@@ -3,12 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WordJewelsSolver", "WordJewelsSolver\WordJewelsSolver.vcxproj", "{2489EA92-AA2E-4779-9CCB-6347F307B248}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WordJewelsSolverWebService", "WordJewelsSolverWebService\WordJewelsSolverWebService.vcxproj", "{67FFE927-4916-4053-B9B2-19256E89D407}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WordJewelsSolverWebServiceTest", "WordJewelsSolverWebServiceTest\WordJewelsSolverWebServiceTest.vcxproj", "{9757CB21-B840-49A6-B057-9F322E543DD6}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WordJewelsSolverTest", "WordJewelsSolverTest\WordJewelsSolverTest.vcxproj", "{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,36 +23,6 @@ Global
 		{2489EA92-AA2E-4779-9CCB-6347F307B248}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{2489EA92-AA2E-4779-9CCB-6347F307B248}.Release|Win32.ActiveCfg = Release|Win32
 		{2489EA92-AA2E-4779-9CCB-6347F307B248}.Release|Win32.Build.0 = Release|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Debug|Win32.ActiveCfg = Debug|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Debug|Win32.Build.0 = Debug|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Release|Any CPU.ActiveCfg = Release|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Release|Win32.ActiveCfg = Release|Win32
-		{67FFE927-4916-4053-B9B2-19256E89D407}.Release|Win32.Build.0 = Release|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Debug|Win32.ActiveCfg = Debug|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Debug|Win32.Build.0 = Debug|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Release|Any CPU.ActiveCfg = Release|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Release|Win32.ActiveCfg = Release|Win32
-		{9757CB21-B840-49A6-B057-9F322E543DD6}.Release|Win32.Build.0 = Release|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Debug|Win32.ActiveCfg = Debug|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Debug|Win32.Build.0 = Debug|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Release|Any CPU.ActiveCfg = Release|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Release|Win32.ActiveCfg = Release|Win32
-		{4EF37C08-57A5-4712-B7B7-0E2D7F00D1D7}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
