@@ -1,0 +1,132 @@
+#include "Stdafx.h"
+
+#include "CaptureManager.h"
+
+namespace WordJewelsImager
+{
+
+CaptureManager::CaptureManager() : m_CaptureEngine(), m_hVideoWnd(nullptr), m_rcDest()
+{
+}
+
+CaptureManager::CaptureManager(HWND hVideoWnd) : m_CaptureEngine(), m_hVideoWnd(hVideoWnd), m_rcDest()
+{
+}
+
+CaptureManager::~CaptureManager()
+{
+}
+
+void CaptureManager::SetVideoWindow(HWND hVideoWnd)
+{
+	if (nullptr == hVideoWnd)
+	{
+		wdebugstream() << TEXT("DEBUG: Cannot use a NULL window handle") << std::endl;
+		throw;
+	}
+	else
+	{
+		m_hVideoWnd = hVideoWnd;
+	}
+}
+
+void CaptureManager::DisplayVideo()
+{
+	uint64_t width, height; 
+	HRESULT hr;
+
+	if (0 >= m_CaptureEngine.AvailableDeviceCount())
+	{
+		wdebugstream() << TEXT("DEBUG: No devices are available for video display") << std::endl;
+	}
+	else if (m_CaptureEngine.IsBoundToDevice())
+	{
+		wdebugstream() << TEXT("DEBUG: Engine already bound to a device") << std::endl;
+	}
+	else if (FAILED(hr = m_CaptureEngine.SelectVideoDevice(0))) /// FIXME remove need to hardcode first device.
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to select the video device for display") << std::endl;
+	}
+	else if (FAILED(hr = m_CaptureEngine.InitWindowlessVMR(m_hVideoWnd)))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to initialise the video playback window") << std::endl;
+	}
+	else if (FAILED(hr = m_CaptureEngine.GetNativeVideoSize(width, height)))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to determine native video size") << std::endl;
+	}
+	else 
+	{
+		RECT rcSrc; 
+
+		// Set the source rectangle.
+		::SetRect(&rcSrc, 0, 0, static_cast<int32_t>(width), static_cast<int32_t>(height)); 
+
+		// Get the window client area.
+		::GetClientRect(m_hVideoWnd, &m_rcDest); 
+
+		// Set the destination rectangle.
+		::SetRect(&m_rcDest, 0, 0, m_rcDest.right, m_rcDest.bottom);
+		
+		if (FAILED(hr = m_CaptureEngine.SetVideoPosition(rcSrc, m_rcDest)))
+		{
+			wdebugstream() << TEXT("DEBUG: Failed to set video window to native window extents") << std::endl;
+		}
+		else
+		{
+			wdebugstream() << TEXT("DEBUG: Successfully bound, initialised video stream") << std::endl;
+		}
+	}
+}
+
+void CaptureManager::DisplayModeChanged()
+{
+}
+
+void CaptureManager::RepaintVideo()
+{
+	PAINTSTRUCT ps; 
+	RECT rcClient; 
+	HDC hDC;
+
+	::GetClientRect(m_hVideoWnd, &rcClient); 
+	hDC = ::BeginPaint(m_hVideoWnd, &ps); 
+	
+	if (m_CaptureEngine.IsBoundToDevice()) 
+	{ 
+		// Find the region where the application can paint by subtracting 
+		// the video destination rectangle from the client area.
+		
+		// (Assume that m_rcDest was calculated previously.)
+
+		HRGN rgnClient = ::CreateRectRgnIndirect(&rcClient); 
+		HRGN rgnVideo  = ::CreateRectRgnIndirect(&m_rcDest);  
+		::CombineRgn(rgnClient, rgnClient, rgnVideo, RGN_DIFF);  
+
+		// Paint on window.
+		HBRUSH hbr = ::GetSysColorBrush(COLOR_BTNFACE); 
+		::FillRgn(hDC, rgnClient, hbr); 
+
+		// Clean up.
+		::DeleteObject(hbr); 
+		::DeleteObject(rgnClient); 
+		::DeleteObject(rgnVideo); 
+
+		// Request the VMR to paint the video.
+		HRESULT hr = m_CaptureEngine.RepaintVideo(m_hVideoWnd, hDC);  
+	} 
+	else 
+	{ 
+		// There is no video, so paint the whole client area. 
+		///FIXME ::FillRect(hDC, &rc2, reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1)); 
+	} 
+
+	::EndPaint(m_hVideoWnd, &ps);
+}
+
+void CaptureManager::SetVideoPosition()
+{
+}
+
+}
+// namespaceWordJewelsImager

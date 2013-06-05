@@ -1,0 +1,172 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{2489EA92-AA2E-4779-9CCB-6347F307B248}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>WordJewelsSolver</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>comctl32.lib;strmiids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>true</EnableDpiAwareness>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>comctl32.lib;strmiids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>true</EnableDpiAwareness>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Engine\Dictionary.h" />
+    <ClInclude Include="Engine\FastTrie.h" />
+    <ClInclude Include="Engine\GameBoard.h" />
+    <ClInclude Include="Engine\GameBoardOperators.h" />
+    <ClInclude Include="Engine\GameBoardIterator.h" />
+    <ClInclude Include="Engine\GameBoardMatrix.h" />
+    <ClInclude Include="Engine\GameBoardNode.h" />
+    <ClInclude Include="Engine\GameBoardTemplate.h" />
+    <ClInclude Include="Engine\RulesEngine.h" />
+    <ClInclude Include="Engine\Rule_Abstract.h" />
+    <ClInclude Include="Engine\Rule_Cloner.h" />
+    <ClInclude Include="Engine\Rule_IsUniqueWord.h" />
+    <ClInclude Include="Engine\Rule_ThreeLettersOrMore.h" />
+    <ClInclude Include="Engine\SearchForWords.h" />
+    <ClInclude Include="Engine\StringConversions.h" />
+    <ClInclude Include="Engine\TrieMap.h" />
+    <ClInclude Include="Engine\WordJewelsEngine.h" />
+    <ClInclude Include="Engine\WordsList.h" />
+    <ClInclude Include="GUI\CommandButton_WindowProc.h" />
+    <ClInclude Include="GUI\LetterControl_WindowProc.h" />
+    <ClInclude Include="GUI\ListBox_WindowProc.h" />
+    <ClInclude Include="GUI\MainWindow_DialogProc.h" />
+    <ClInclude Include="GUI\resource.h" />
+    <ClInclude Include="GUI\VideoFrame_WindowProc.h" />
+    <ClInclude Include="Media\CaptureDevice.h" />
+    <ClInclude Include="Media\CaptureEngine.h" />
+    <ClInclude Include="Media\CaptureManager.h" />
+    <ClInclude Include="Media\CaptureSupport.h" />
+    <ClInclude Include="Support\DebugStream.h" />
+    <ClInclude Include="Support\GetErrorString.h" />
+    <ClInclude Include="Support\Stdafx.h" />
+    <ClInclude Include="Support\Win32GameBoardNode.h" />
+    <ClInclude Include="Support\WinMain.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Engine\Dictionary.cpp" />
+    <ClCompile Include="Engine\FastTrie.cpp" />
+    <ClCompile Include="Engine\GameBoard.cpp" />
+    <ClCompile Include="Engine\GameBoardOperators.cpp" />
+    <ClCompile Include="Engine\GameBoardIterator.cpp" />
+    <ClCompile Include="Engine\GameBoardMatrix.cpp" />
+    <ClCompile Include="Engine\GameBoardNode.cpp" />
+    <ClCompile Include="Engine\GameBoardTemplate.cpp" />
+    <ClCompile Include="Engine\RulesEngine.cpp" />
+    <ClCompile Include="Engine\Rule_Abstract.cpp" />
+    <ClCompile Include="Engine\Rule_Cloner.cpp" />
+    <ClCompile Include="Engine\Rule_IsUniqueWord.cpp" />
+    <ClCompile Include="Engine\Rule_ThreeLettersOrMore.cpp" />
+    <ClCompile Include="Engine\SearchForWords.cpp" />
+    <ClCompile Include="Engine\StringConversions.cpp" />
+    <ClCompile Include="Engine\TrieMap.cpp" />
+    <ClCompile Include="Engine\WordJewelsEngine.cpp" />
+    <ClCompile Include="Engine\WordsList.cpp" />
+    <ClCompile Include="GUI\CommandButton_WindowProc.cpp" />
+    <ClCompile Include="GUI\LetterControl_WindowProc.cpp" />
+    <ClCompile Include="GUI\ListBox_WindowProc.cpp" />
+    <ClCompile Include="GUI\MainWindow_DialogProc.cpp" />
+    <ClCompile Include="GUI\VideoFrame_WindowProc.cpp" />
+    <ClCompile Include="Media\CaptureDevice.cpp" />
+    <ClCompile Include="Media\CaptureEngine.cpp" />
+    <ClCompile Include="Media\CaptureManager.cpp" />
+    <ClCompile Include="Media\CaptureSupport.cpp" />
+    <ClCompile Include="Support\DebugStream.cpp" />
+    <ClCompile Include="Support\GetErrorString.cpp" />
+    <ClCompile Include="Support\Stdafx.cpp" />
+    <ClCompile Include="Support\Win32GameBoardNode.cpp" />
+    <ClCompile Include="Support\WinMain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Dictionary\Dictionary_EN.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GUI\resource.hm" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="GUI\WordJewelSolver.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="GUI\WordJewelsSolver.exe.manifest" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
