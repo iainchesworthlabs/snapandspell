@@ -91,13 +91,9 @@ void GameBoard::check_item_range(uint32_t row, uint32_t col) const
 	}
 }
 
-void GameBoard::load(const uint32_t rowNum, std::array<value_type, NUMBER_OF_COLUMNS_PER_BOARD> posLetters)
+void GameBoard::load(const uint32_t rowNum, std::array<value_type, NUMBER_OF_COLUMNS_PER_BOARD>& posLetters)
 {
-	if (0 > rowNum)
-	{
-		throw std::out_of_range("GameBoard::load - row number is too small");
-	}
-	else if (NUMBER_OF_ROWS_PER_BOARD <= rowNum)
+	if (NUMBER_OF_ROWS_PER_BOARD <= rowNum)
 	{
 		throw std::out_of_range("GameBoard::load - row number is too large");
 	}
@@ -111,13 +107,9 @@ void GameBoard::load(const uint32_t rowNum, std::array<value_type, NUMBER_OF_COL
 	}
 }
 
-void GameBoard::load(const uint32_t rowNum, value_type posOne, value_type posTwo, value_type posThree, value_type posFour, value_type posFive)
+void GameBoard::load(const uint32_t rowNum, value_type& posOne, value_type& posTwo, value_type& posThree, value_type& posFour, value_type& posFive)
 {
-	if (0 > rowNum)
-	{
-		throw std::out_of_range("GameBoard::load - row number is too small");
-	}
-	else if (NUMBER_OF_ROWS_PER_BOARD <= rowNum)
+	if (NUMBER_OF_ROWS_PER_BOARD <= rowNum)
 	{
 		throw std::out_of_range("GameBoard::load - row number is too large");
 	}

@@ -5,6 +5,10 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Intel_SSA|Win32">
+      <Configuration>Intel_SSA</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
@@ -19,13 +23,19 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler XE 13.0</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Intel_SSA|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Intel C++ Compiler XE 13.0</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>Intel C++ Compiler XE 13.0</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -35,11 +45,18 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Intel_SSA|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Intel_SSA|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
   </PropertyGroup>
@@ -54,6 +71,27 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\Extensions\Microsoft\ConcurrencyVisualizer\SDK\Native\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>comctl32.lib;strmiids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>true</EnableDpiAwareness>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Intel_SSA|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LevelOfStaticAnalysis>Verbose</LevelOfStaticAnalysis>
+      <ModeOfStaticAnalysis>Full</ModeOfStaticAnalysis>
+      <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\Extensions\Microsoft\ConcurrencyVisualizer\SDK\Native\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -73,6 +111,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\Extensions\Microsoft\ConcurrencyVisualizer\SDK\Native\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -111,12 +150,24 @@
     <ClInclude Include="GUI\resource.h" />
     <ClInclude Include="GUI\VideoFrame_WindowProc.h" />
     <ClInclude Include="Media\CaptureDevice.h" />
+    <ClInclude Include="Media\CaptureDeviceLoader.h" />
     <ClInclude Include="Media\CaptureEngine.h" />
+    <ClInclude Include="Media\CaptureEngineCOM.h" />
     <ClInclude Include="Media\CaptureManager.h" />
     <ClInclude Include="Media\CaptureSupport.h" />
+    <ClInclude Include="Media\CaptureThread.h" />
+    <ClInclude Include="Media\EVR_Renderer.h" />
+    <ClInclude Include="Media\IVideoRenderer.h" />
+    <ClInclude Include="Media\VMR7_Renderer.h" />
+    <ClInclude Include="Media\VMR9_Renderer.h" />
+    <ClInclude Include="Support\CoInitialize.h" />
     <ClInclude Include="Support\DebugStream.h" />
+    <ClInclude Include="Support\DxVersion.h" />
     <ClInclude Include="Support\GetErrorString.h" />
+    <ClInclude Include="Support\OSVersion.h" />
+    <ClInclude Include="Support\SafeRelease.h" />
     <ClInclude Include="Support\Stdafx.h" />
+    <ClInclude Include="Support\StringConversion.h" />
     <ClInclude Include="Support\Win32GameBoardNode.h" />
     <ClInclude Include="Support\WinMain.h" />
   </ItemGroup>
@@ -145,12 +196,24 @@
     <ClCompile Include="GUI\MainWindow_DialogProc.cpp" />
     <ClCompile Include="GUI\VideoFrame_WindowProc.cpp" />
     <ClCompile Include="Media\CaptureDevice.cpp" />
+    <ClCompile Include="Media\CaptureDeviceLoader.cpp" />
     <ClCompile Include="Media\CaptureEngine.cpp" />
+    <ClCompile Include="Media\CaptureEngineCOM.cpp" />
     <ClCompile Include="Media\CaptureManager.cpp" />
     <ClCompile Include="Media\CaptureSupport.cpp" />
+    <ClCompile Include="Media\CaptureThread.cpp" />
+    <ClCompile Include="Media\EVR_Renderer.cpp" />
+    <ClCompile Include="Media\IVideoRenderer.cpp" />
+    <ClCompile Include="Media\VMR7_Renderer.cpp" />
+    <ClCompile Include="Media\VMR9_Renderer.cpp" />
+    <ClCompile Include="Support\CoInitialize.cpp" />
     <ClCompile Include="Support\DebugStream.cpp" />
+    <ClCompile Include="Support\DxVersion.cpp" />
     <ClCompile Include="Support\GetErrorString.cpp" />
+    <ClCompile Include="Support\OSVersion.cpp" />
+    <ClCompile Include="Support\SafeRelease.cpp" />
     <ClCompile Include="Support\Stdafx.cpp" />
+    <ClCompile Include="Support\StringConversion.cpp" />
     <ClCompile Include="Support\Win32GameBoardNode.cpp" />
     <ClCompile Include="Support\WinMain.cpp" />
   </ItemGroup>

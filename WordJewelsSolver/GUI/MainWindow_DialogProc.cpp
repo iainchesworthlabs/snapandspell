@@ -136,7 +136,7 @@ INT_PTR CALLBACK MainWindow_DialogProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, L
 				//       window handle does not become NULL when it goes
 				//       out of scope at the end of the WindowProc.
 
-				std::packaged_task<int64_t()> task([hWndDlg]()
+				std::packaged_task<int64_t()> task([hWndDlg]() -> int64_t
 				{
 					int64_t discoveredWords(0);
 

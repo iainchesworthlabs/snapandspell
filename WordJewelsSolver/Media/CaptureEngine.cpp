@@ -1,146 +1,100 @@
 #include "Stdafx.h"
 
-#include "CaptureEngine.h"
 #include <cstdint>
 #include <string>
+
+#include "CaptureEngine.h"
+#include "DxVersion.h"
+#include "EVR_Renderer.h"
+#include "OSVersion.h"
+#include "SafeRelease.h"
+#include "VMR7_Renderer.h"
+#include "VMR9_Renderer.h"
 
 namespace WordJewelsImager
 {
 
 CaptureEngine::CaptureEngine() : 
+	m_pVideoRenderer(nullptr),
+	m_ComInit(),
 	m_pGraph(nullptr), 
-	m_pBuild(nullptr), 
-	m_pCap(nullptr), 
+	m_pBuilder(nullptr),
 	m_pControl(nullptr), 
-	m_pEvent(nullptr), 
-	m_pWc(nullptr), 
-	m_Devices(),
-	m_IsBound(false)
+	m_pEvent(nullptr),
+	m_pEnum(nullptr), 
+	m_pCap(nullptr),
+	m_DeviceLoader(),
+	m_HaveDevice(false)
 {
-	IEnumMoniker *pEnum(nullptr);
-	IMoniker* pMoniker(nullptr);
 	HRESULT hr(S_OK);
 
-	if (FAILED(hr = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED)))
+	try 
 	{
-		wdebugstream() << TEXT("DEBUG: Could not initialize COM library") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = InitCaptureGraphBuilder()))
-	{
-		wdebugstream() << TEXT("DEBUG: Could not create the Filter Graph Manager") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = m_pGraph->QueryInterface(IID_IMediaControl, reinterpret_cast<void **>(&m_pControl))))
-	{
-		wdebugstream() << TEXT("DEBUG: Could not create the Media Control") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = m_pGraph->QueryInterface(IID_IMediaEvent, reinterpret_cast<void **>(&m_pEvent))))
-	{
-		wdebugstream() << TEXT("DEBUG: Could not create the Media Event Interfaces") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = EnumerateDevices(CLSID_VideoInputDeviceCategory, &pEnum)))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to enumerate devices") << std::endl;
-		throw;
-	}
-	else
-	{
-		/*else if (FAILED(hr = InitWindowlessVMR(hWnd)))
+		if (FAILED(m_ComInit))
 		{
-			wdebugstream() << TEXT("DEBUG: Failed to initialise windowless VMR") << std::endl;
+			wdebugstream() << TEXT("DEBUG: Could not initialize COM library") << std::endl;
 			throw;
 		}
-		else if (FAILED(hr = ConfigureWindowlessVMRClient(hWnd)))
+		else if (CaptureDeviceLoader::Success != m_DeviceLoader.Initialise())
 		{
-			wdebugstream() << TEXT("DEBUG: Failed to set window rectangle for video") << std::endl;
+			wdebugstream() << TEXT("DEBUG: Failed to initialise device loader") << std::endl;
 			throw;
 		}
-		else if (FAILED(hr = m_pBuild->RenderStream(&PIN_CATEGORY_PREVIEW, &MEDIATYPE_Video, pCap, nullptr, nullptr)))
+		else if (FAILED(hr = m_pBuilder.CreateInstance(CLSID_CaptureGraphBuilder2)))
 		{
-			wdebugstream() << TEXT("DEBUG: RenderStream() failed") << std::endl;
+			wdebugstream() << TEXT("DEBUG: Failed to create IID_CaptureGraphBuilder2") << std::endl;
 			throw;
 		}
-		else if (FAILED(hr = m_pControl->Run()))
+		else if (FAILED(hr = m_pGraph.CreateInstance(CLSID_FilterGraph)))
 		{
-			wdebugstream() << TEXT("DEBUG: Run() failed") << std::endl;
+			wdebugstream() << TEXT("DEBUG: Failed to create IID_IFilterGraph") << std::endl;
 			throw;
 		}
-		else 
+		else if (FAILED(hr = m_pBuilder->SetFiltergraph(m_pGraph)))
 		{
-			long evCode;
-				
-			if (FAILED(hr = m_pEvent->WaitForCompletion(INFINITE, &evCode)))
-			{
-				wdebugstream() << TEXT("DEBUG: WaitForCompletion() failed") << std::endl;
-				throw;
-			}
-			else if (FAILED(hr = m_pControl->Stop()))
-			{
-				wdebugstream() << TEXT("DEBUG: Stop() failed") << std::endl;
-				throw;
-			}
-			else
-			{
-				pMoniker->Release();
-				pEnum->Release();
-			}
-		}*/
+			wdebugstream() << TEXT("DEBUG: Failed to set filter graph") << std::endl;
+			throw;
+		}
+		else if (FAILED(hr = m_pGraph->QueryInterface(IID_PPV_ARGS(&m_pControl))))
+		{
+			wdebugstream() << TEXT("DEBUG: Could not create the Media Control") << std::endl;
+			throw;
+		}
+		else if (FAILED(hr = m_pGraph->QueryInterface(IID_PPV_ARGS(&m_pEvent))))
+		{
+			wdebugstream() << TEXT("DEBUG: Could not create the Media Event Interfaces") << std::endl;
+			throw;
+		}
+		else
+		{
+			// All done, chief!
+		}
+	}
+	catch (const _com_error& e)
+	{
+		wdebugstream() << TEXT("COM ERROR: ") << e.ErrorMessage() << std::endl;
+		assert(false);
 	}
 }
 
 CaptureEngine::~CaptureEngine()
 {
-	if (nullptr != m_pWc)
-	{
-		m_pWc->Release();
-		m_pWc = nullptr;
-	}
-
-	if (nullptr != m_pEvent)
-	{
-		m_pEvent->Release();
-		m_pEvent = nullptr;
-	}
-		
-	if (nullptr != m_pGraph)
-	{
-		m_pGraph->Release();
-		m_pGraph = nullptr;
-	}
-		
-	if (nullptr != m_pControl)
-	{
-		m_pControl->Release();
-		m_pControl = nullptr;
-	}
-		
-	if (nullptr != m_pCap)
-	{
-		m_pCap->Release();
-		m_pCap = nullptr;
-	}
-		
-	if (nullptr != m_pBuild)
-	{
-		m_pBuild->Release();
-		m_pBuild = nullptr;
-	}
-		
-	if (nullptr != m_pGraph)
-	{
-		m_pGraph->Release();
-		m_pGraph = nullptr;
-	}
-
-	::CoUninitialize();
+	SafeRelease(&m_pCap);
+	SafeRelease(&m_pEnum);
+	SafeRelease(&m_pEvent);
+	SafeRelease(&m_pControl);
+	SafeRelease(&m_pBuilder);
+	SafeRelease(&m_pGraph);
 }
 
 uint32_t CaptureEngine::AvailableDeviceCount() const
 {
-	return m_Devices.size();
+	return m_DeviceLoader.GetNumSources();
+}
+
+bool CaptureEngine::IsRunning() const
+{
+	return m_HaveDevice;
 }
 
 HRESULT CaptureEngine::QueryDeviceInfo(const uint32_t deviceId)
@@ -150,30 +104,27 @@ HRESULT CaptureEngine::QueryDeviceInfo(const uint32_t deviceId)
 
 HRESULT CaptureEngine::SelectVideoDevice(const uint32_t deviceId)
 {
+	CaptureEngineCOM::IBaseFilterPtr pBaseFilter(nullptr);
 	HRESULT hr(S_FALSE);
 
-	if (AvailableDeviceCount() <= deviceId)
+	if (nullptr == m_pGraph)
 	{
-		wdebugstream() << TEXT("DEBUG: Selected a video device which does not exist") << std::endl;
-	}
-	else if (nullptr == m_Devices[deviceId].GetMoniker())
-	{
-		wdebugstream() << TEXT("DEBUG: Provided moniker was NULL; this should not happen") << std::endl;
+		wdebugstream() << TEXT("DEBUG: Graph pointer is NULL; cannot continue") << std::endl;
 		throw;
 	}
-	else if (FAILED(hr = m_Devices[deviceId].GetMoniker()->BindToObject(0, 0, IID_IBaseFilter, reinterpret_cast<void**>(&m_pCap))))
+	else if (nullptr == (pBaseFilter = m_DeviceLoader.GetSource(deviceId)))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to bind to moniker") << std::endl;
-		throw;
+		wdebugstream() << TEXT("DEBUG: Failed to select a video device") << std::endl;
 	}
-	else if (FAILED(hr = m_pGraph->AddFilter(m_pCap, TEXT("Capture Filter"))))
+	else if (FAILED(hr = m_pGraph->AddFilter(pBaseFilter, TEXT("Capture Filter"))))
 	{
 		wdebugstream() << TEXT("DEBUG: Failed to add video device to graph") << std::endl;
 		throw;
 	}
 	else
 	{
-		m_IsBound = true;
+		m_pCap = pBaseFilter;
+		m_HaveDevice = true;
 	}
 
 	return hr;
@@ -182,16 +133,25 @@ HRESULT CaptureEngine::SelectVideoDevice(const uint32_t deviceId)
 HRESULT CaptureEngine::GetNativeVideoSize(uint64_t& width, uint64_t& height)
 {
 	long tmpWidth(0), tmpHeight(0);
-	HRESULT hr;
+	HRESULT hr(S_OK);
 
-	if (FAILED(hr = m_pWc->GetNativeVideoSize(&tmpWidth, &tmpHeight, nullptr, nullptr)))
+	if (nullptr == m_pVideoRenderer)
 	{
-		///FIXME
+		wdebugstream() << TEXT("DEBUG: m_pVideoRenderer is NULL; cannot continue") << std::endl;
+		throw;
+	}
+	else if (!m_pVideoRenderer->HasVideo())
+	{
+		wdebugstream() << TEXT("DEBUG: m_pVideoRenderer is not ready for use; cannot continue") << std::endl;
+	}
+	else if (FAILED(hr = m_pVideoRenderer->GetNativeVideoSize(&tmpWidth, &tmpHeight, nullptr, nullptr)))
+	{
 		wdebugstream() << TEXT("DEBUG: Failed get dimensions of native video") << std::endl;
 		throw;
 	}
 	else
 	{
+		// Success.
 		width = tmpWidth;
 		height = tmpHeight;
 	}
@@ -199,18 +159,26 @@ HRESULT CaptureEngine::GetNativeVideoSize(uint64_t& width, uint64_t& height)
 	return hr;
 }
 
-HRESULT CaptureEngine::SetVideoPosition(RECT rcSrc, RECT rcDest)
+HRESULT CaptureEngine::SetVideoPosition(HWND hwndApp, RECT rcDest)
 {
-	HRESULT hr;
+	HRESULT hr(S_OK);
 
-	if (FAILED(hr = m_pWc->SetVideoPosition(&rcSrc, &rcDest)))
+	if (nullptr == m_pVideoRenderer)
 	{
-		///FIXME
-		wdebugstream() << TEXT("DEBUG: Failed set dimension and position of output video") << std::endl;
+		wdebugstream() << TEXT("DEBUG: m_pVideoRenderer is NULL; cannot continue") << std::endl;
 		throw;
+	}
+	else if (!m_pVideoRenderer->HasVideo())
+	{
+		wdebugstream() << TEXT("DEBUG: m_pVideoRenderer is not ready for use; cannot continue") << std::endl;
+	}
+	else if (FAILED(hr = m_pVideoRenderer->UpdateVideoWindow(hwndApp, &rcDest)))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed set dimension and position of output video") << std::endl;
 	}
 	else
 	{
+		// Success.
 	}
 
 	return hr;
@@ -218,58 +186,116 @@ HRESULT CaptureEngine::SetVideoPosition(RECT rcSrc, RECT rcDest)
 
 HRESULT CaptureEngine::RepaintVideo(HWND hWnd, HDC hDC)
 {
-	HRESULT hr;
+	HRESULT hr(S_OK);
 
-	if (FAILED(hr = m_pWc->RepaintVideo(hWnd, hDC)))
+	if (nullptr == m_pVideoRenderer)
 	{
-		///FIXME
-		wdebugstream() << TEXT("DEBUG: Failed repaint video in window") << std::endl;
+		wdebugstream() << TEXT("DEBUG: m_pVideoRenderer is NULL; cannot continue") << std::endl;
 		throw;
+	}
+	else if (!m_pVideoRenderer->HasVideo())
+	{
+		wdebugstream() << TEXT("DEBUG: m_pVideoRenderer is not ready for use; cannot continue") << std::endl;
+	}
+	else if (FAILED(hr = m_pVideoRenderer->Repaint(hWnd, hDC)))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to repaint video in window") << std::endl;
 	}
 	else
 	{
+		// Success.
 	}
 
 	return hr;
 }
 
-HRESULT CaptureEngine::InitWindowlessVMR(HWND hwndApp)
+HRESULT CaptureEngine::DisplayModeChanged()
 {
-	IVMRFilterConfig9* pConfig(nullptr); 
-	IBaseFilter* pVmr(nullptr);
+	HRESULT hr(S_OK);
+
+	if (nullptr == m_pVideoRenderer)
+	{
+		wdebugstream() << TEXT("DEBUG: m_pVideoRenderer is NULL; cannot continue") << std::endl;
+		throw;
+	}
+	else if (!m_pVideoRenderer->HasVideo())
+	{
+		wdebugstream() << TEXT("DEBUG: m_pVideoRenderer is not ready for use; cannot continue") << std::endl;
+	}
+	else if (FAILED(hr = m_pVideoRenderer->DisplayModeChanged()))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to manage display mode change") << std::endl;
+	}
+	else
+	{
+		// Success.
+	}
+
+	return hr;
+}
+
+HRESULT CaptureEngine::InitialiseRenderer(HWND hwndApp)
+{
+	CDxVersion DxVersion;
+	COSVersion OSVersion;
+	HRESULT hr(S_OK);
+
+	switch(OSVersion.Version())
+	{
+	case COSVersion::Windows8:
+	case COSVersion::Windows7:
+	case COSVersion::Vista:
+		wdebugstream() << TEXT("DEBUG: Using EVR renderer....") << std::endl;
+		m_pVideoRenderer = IVideoRendererPtr(new EVR_Renderer());
+		break;
+
+	case COSVersion::XP:
+		switch (DxVersion.Version())
+		{
+		case CDxVersion::DirectX_9c:
+		case CDxVersion::DirectX_9b:
+		case CDxVersion::DirectX_9a:
+		case CDxVersion::DirectX_9:
+			wdebugstream() << TEXT("DEBUG: Using VMR-9 renderer....") << std::endl;
+			m_pVideoRenderer = IVideoRendererPtr(new VMR9_Renderer());
+			break;
+
+		default:
+			wdebugstream() << TEXT("DEBUG: Using VMR-7 renderer....") << std::endl;
+			m_pVideoRenderer = IVideoRendererPtr(new VMR7_Renderer());
+			break;
+		}
+		break;
+
+	default:
+		//TODO Determine whether hardware overlays are supported to pick the renderer.
+		//m_pVideoRenderer = new OverlayMixer_Renderer();
+		//m_pVideoRenderer = new LegacyVideo_Renderer();
+		break;
+	}
+
+	if (FAILED(hr = m_pVideoRenderer->AddToGraph(m_pGraph, hwndApp)))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to add video mixing renderer to graph") << std::endl;
+		throw;
+	}
+	else
+	{
+		wdebugstream() << TEXT("DEBUG: Configured and initialised video in window") << std::endl;
+	}
+
+	return hr; 
+}
+
+HRESULT CaptureEngine::Start() const
+{
 	HRESULT hr;
 
-	if (FAILED(hr = ::CoCreateInstance(CLSID_VideoMixingRenderer9, nullptr, CLSCTX_INPROC, IID_IBaseFilter, reinterpret_cast<void**>(&pVmr))))
+	if ((nullptr == m_pBuilder) || (nullptr == m_pCap) || (nullptr == m_pControl))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to create IBaseFilter") << std::endl;
-		throw;
+		wdebugstream() << TEXT("DEBUG: Cannot start capture engine; not initialised") << std::endl;
 	}
-	else if (FAILED(hr = m_pGraph->AddFilter(pVmr, L"Video Mixing Renderer")))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to set filter graph") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = pVmr->QueryInterface(IID_IVMRFilterConfig9, reinterpret_cast<void**>(&pConfig))))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to create IID_IVMRFilterConfig") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = pConfig->SetRenderingMode(VMRMode_Windowless)))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to set rendering mode to VMRMode_Windowless") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = pVmr->QueryInterface(IID_IVMRWindowlessControl9, reinterpret_cast<void**>(&m_pWc))))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to create IID_IVMRWindowlessControl") << std::endl;
-		throw;
-	}
-	else if (FAILED (hr = m_pWc->SetVideoClippingWindow(hwndApp)))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to set clipping window") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = m_pBuild->RenderStream(&PIN_CATEGORY_CAPTURE, &MEDIATYPE_Video, m_pCap, nullptr, pVmr)))
+	else if (FAILED(hr = m_pBuilder->RenderStream(&PIN_CATEGORY_CAPTURE, &MEDIATYPE_Video, m_pCap, nullptr, nullptr)))
 	{
 		wdebugstream() << TEXT("DEBUG: Failed to render video to the display") << std::endl;
 		throw;
@@ -281,104 +307,20 @@ HRESULT CaptureEngine::InitWindowlessVMR(HWND hwndApp)
 	}
 	else
 	{
-		wdebugstream() << TEXT("DEBUG: Configured and initialised video in window") << std::endl;
-	}
-
-	pConfig->Release();
-	pVmr->Release();
-	return hr; 
-}
-
-bool CaptureEngine::IsBoundToDevice() const
-{
-	return m_IsBound;
-}
-
-HRESULT CaptureEngine::InitCaptureGraphBuilder()
-{
-	HRESULT hr;
-
-	if (FAILED(hr = ::CoCreateInstance(CLSID_CaptureGraphBuilder2, nullptr, CLSCTX_INPROC_SERVER, IID_ICaptureGraphBuilder2, reinterpret_cast<void**>(&m_pBuild))))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to create IID_ICaptureGraphBuilder2") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = ::CoCreateInstance(CLSID_FilterGraph, 0, CLSCTX_INPROC_SERVER, IID_IGraphBuilder, reinterpret_cast<void**>(&m_pGraph))))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to create IID_IGraphBuilder") << std::endl;
-		throw;
-	}
-	else if (FAILED(hr = m_pBuild->SetFiltergraph(m_pGraph)))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to set filter graph") << std::endl;
-		throw;
-	}
-	else
-	{
+		// Success.
 	}
 
 	return hr;
 }
 
-HRESULT CaptureEngine::EnumerateDevices(REFGUID category, IEnumMoniker **ppEnum)
+HRESULT CaptureEngine::Pause() const
 {
-	// Create the System Device Enumerator.
-	ICreateDevEnum *pDevEnum;
-	HRESULT hr;
-		
-	if (FAILED(hr = ::CoCreateInstance(CLSID_SystemDeviceEnum, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pDevEnum))))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to create ICreateDevEnum") << std::endl;
-		throw;
-	}
-	else if (FAILED(pDevEnum->CreateClassEnumerator(category, ppEnum, 0)))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to enumerate specified category") << std::endl;
-		throw;
-	}
-	else if (S_FALSE == hr)
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to find a suitable device") << std::endl;
-
-		// The category is empty. Treat as an error.
-		hr = VFW_E_NOT_FOUND;
-		pDevEnum->Release();
-	}
-	else if (FAILED(EnumerateDeviceInformation(ppEnum)))
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to enumerate specific device information") << std::endl;
-	}
-	else
-	{
-		// No nothing.
-	}
-
-	return hr;
+	return S_FALSE;
 }
 
-HRESULT CaptureEngine::EnumerateDeviceInformation(IEnumMoniker **ppEnum)
+HRESULT CaptureEngine::Stop() const
 {
-	IMoniker* pTempMoniker(nullptr);
-
-	while (S_OK == (*ppEnum)->Next(1, &pTempMoniker, nullptr))
-	{
-		IPropertyBag *pPropBag(nullptr);
-		HRESULT hr;
-
-		if (FAILED(hr = pTempMoniker->BindToStorage(0, 0, IID_PPV_ARGS(&pPropBag))))
-		{
-			wdebugstream() << TEXT("DEBUG: Failed to bind to storage (0x") << std::hex << hr << TEXT(")") << std::endl;
-
-			pTempMoniker->Release();
-			continue;  
-		}
-		else
-		{
-			m_Devices.push_back(CaptureDevice(pTempMoniker, pPropBag));
-		}
-	}
-
-	return S_OK;
+	return S_FALSE;
 }
 
 }

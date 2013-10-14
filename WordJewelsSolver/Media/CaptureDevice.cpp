@@ -57,7 +57,7 @@ IMoniker* CaptureDevice::GetMoniker() const
 std::wstring CaptureDevice::ReadProperty(const BSTR sPropertyName)
 {
 	std::wstring sDeviceProperty(TEXT("UnknownProperty"));
-	HRESULT hr;
+	HRESULT hr(S_OK);
 
 	// Get description or friendly name.
 	if (FAILED(hr = m_pPropBag->Read(sPropertyName, &m_VarData, 0)))

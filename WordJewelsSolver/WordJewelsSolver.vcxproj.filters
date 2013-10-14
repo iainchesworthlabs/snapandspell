@@ -126,6 +126,42 @@
     <ClInclude Include="Media\CaptureDevice.h">
       <Filter>Media</Filter>
     </ClInclude>
+    <ClInclude Include="Media\CaptureThread.h">
+      <Filter>Media</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\IVideoRenderer.h">
+      <Filter>Media</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\VMR7_Renderer.h">
+      <Filter>Media</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\VMR9_Renderer.h">
+      <Filter>Media</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\EVR_Renderer.h">
+      <Filter>Media</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\SafeRelease.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\CoInitialize.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\OSVersion.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\CaptureEngineCOM.h">
+      <Filter>Media</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\CaptureDeviceLoader.h">
+      <Filter>Media</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\StringConversion.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\DxVersion.h">
+      <Filter>Support</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Engine\Dictionary.cpp">
@@ -223,6 +259,42 @@
     </ClCompile>
     <ClCompile Include="Media\CaptureDevice.cpp">
       <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\CaptureThread.cpp">
+      <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\IVideoRenderer.cpp">
+      <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\VMR7_Renderer.cpp">
+      <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\VMR9_Renderer.cpp">
+      <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\EVR_Renderer.cpp">
+      <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Support\SafeRelease.cpp">
+      <Filter>Support</Filter>
+    </ClCompile>
+    <ClCompile Include="Support\CoInitialize.cpp">
+      <Filter>Support</Filter>
+    </ClCompile>
+    <ClCompile Include="Support\OSVersion.cpp">
+      <Filter>Support</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\CaptureEngineCOM.cpp">
+      <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\CaptureDeviceLoader.cpp">
+      <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Support\StringConversion.cpp">
+      <Filter>Support</Filter>
+    </ClCompile>
+    <ClCompile Include="Support\DxVersion.cpp">
+      <Filter>Support</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

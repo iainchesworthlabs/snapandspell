@@ -22,7 +22,6 @@ public:
 	void RepaintVideo();
 	void SetVideoPosition();
 
-
 private:
 	CaptureEngine m_CaptureEngine;
 	HWND m_hVideoWnd;

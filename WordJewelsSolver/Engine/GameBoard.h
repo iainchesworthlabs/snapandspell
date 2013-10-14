@@ -69,8 +69,8 @@ private:
 	void check_item_range(uint32_t row, uint32_t col) const;
 
 public:
-	void load(const uint32_t rowNum, std::array<value_type, NUMBER_OF_COLUMNS_PER_BOARD> posLetters);
-	void load(const uint32_t rowNum, value_type posOne, value_type posTwo, value_type posThree, value_type posFour, value_type posFive);
+	void load(const uint32_t rowNum, std::array<value_type, NUMBER_OF_COLUMNS_PER_BOARD>& posLetters);
+	void load(const uint32_t rowNum, value_type& posOne, value_type& posTwo, value_type& posThree, value_type& posFour, value_type& posFive);
 
 public:
 	operator bool_type() const

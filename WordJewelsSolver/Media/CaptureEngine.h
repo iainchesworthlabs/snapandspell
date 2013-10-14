@@ -7,9 +7,15 @@
 #include <d3d9.h>
 #include <vmr9.h>
 #include <cstdint>
+#include <memory>
 #include <vector>
 #include "CaptureDevice.h"
+#include "CaptureDeviceLoader.h"
+#include "CaptureEngineCOM.h"
+#include "CoInitialize.h"
 #include "DebugStream.h"
+#include "IVideoRenderer.h"
+#include "SafeRelease.h"
 
 namespace WordJewelsImager
 {
@@ -22,36 +28,42 @@ public:
 	
 public:
 	uint32_t AvailableDeviceCount() const;
+	bool IsRunning() const;
+
+public:
 	HRESULT QueryDeviceInfo(const uint32_t deviceId);
 	HRESULT SelectVideoDevice(const uint32_t deviceId);
 	HRESULT GetNativeVideoSize(uint64_t& width, uint64_t& height);
-	HRESULT SetVideoPosition(RECT rcSrc, RECT rcDest);
-	HRESULT RepaintVideo(HWND hWnd, HDC hDC);
-	HRESULT InitWindowlessVMR(HWND hwndApp);
-
-public:
-	bool IsBoundToDevice() const;
-	
-private:
-	HRESULT InitCaptureGraphBuilder();
-	HRESULT EnumerateDevices(REFGUID category, IEnumMoniker **ppEnum);
-	HRESULT EnumerateDeviceInformation(IEnumMoniker **ppEnum);
+	HRESULT SetVideoPosition(HWND hwndApp, RECT rcDest);
+	HRESULT RepaintVideo(HWND hwndApp, HDC hDC);
+	HRESULT DisplayModeChanged();
+	HRESULT InitialiseRenderer(HWND hwndApp);
 	
 public:
-	// IUnknown
-	STDMETHODIMP QueryInterface(REFIID riid, void** ppv);
-	STDMETHODIMP_(ULONG) AddRef();
-	STDMETHODIMP_(ULONG) Release();
+	HRESULT Start() const;
+	HRESULT Pause() const;
+	HRESULT Stop() const;
 
 private:
-	IGraphBuilder *m_pGraph;
-	ICaptureGraphBuilder2 *m_pBuild;
-	IBaseFilter *m_pCap;
-	IMediaControl *m_pControl;
-	IMediaEvent *m_pEvent;
-	IVMRWindowlessControl9 *m_pWc;
-	std::vector<CaptureDevice> m_Devices;
-	bool m_IsBound;
+	HRESULT CreateVideoRenderer();
+	HRESULT TearDownGraph();
+	
+private:
+	typedef std::unique_ptr<IVideoRenderer> IVideoRendererPtr;
+
+private:
+	IVideoRendererPtr m_pVideoRenderer;
+	CCoInitialize m_ComInit;
+
+	CaptureEngineCOM::IGraphBuilderPtr         m_pGraph;
+	CaptureEngineCOM::ICaptureGraphBuilder2Ptr m_pBuilder;
+	CaptureEngineCOM::IMediaControlPtr         m_pControl;
+	CaptureEngineCOM::IMediaEventPtr           m_pEvent;
+	CaptureEngineCOM::IEnumMonikerPtr          m_pEnum;
+	CaptureEngineCOM::IBaseFilterPtr           m_pCap;
+
+	CaptureDeviceLoader m_DeviceLoader;
+	bool m_HaveDevice;
 };
 
 }

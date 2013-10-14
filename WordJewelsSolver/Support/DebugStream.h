@@ -12,7 +12,7 @@ class basic_debugbuf : public std::basic_stringbuf<CharT, TraitsT>
 {
 public:
 
-    virtual ~basic_debugbuf()
+    virtual ~basic_debugbuf() throw()
     {
         sync();
     }
@@ -53,7 +53,7 @@ public:
 	{
 	}
 
-    ~basic_dostream() 
+    virtual ~basic_dostream() throw() 
     {
         delete rdbuf(); 
     }

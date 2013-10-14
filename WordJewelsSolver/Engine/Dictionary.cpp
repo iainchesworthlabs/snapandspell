@@ -38,7 +38,7 @@ Dictionary::~Dictionary()
 
 void Dictionary::InitialiseAsynchronously(const std::wstring& dictionary)
 {
-	std::packaged_task<bool()> task([&]()
+	std::packaged_task<bool()> task([&]() -> bool
 	{
 		try
 		{

@@ -34,7 +34,7 @@ public:
 	iterator end();
 
 public:
-	void add(std::wstring word, int64_t score = 0);
+	void add(std::wstring& word, int64_t score = 0);
 	void clear();
 	int64_t count() const;
 

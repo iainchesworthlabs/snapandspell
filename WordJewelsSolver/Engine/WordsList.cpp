@@ -32,7 +32,7 @@ WordsList::iterator WordsList::end()
 	return m_WordsList.end();
 }
 
-void WordsList::add(std::wstring word, int64_t score)
+void WordsList::add(std::wstring& word, int64_t score)
 {
 	metaword_t metaWord(std::make_tuple(word, score));
 	m_WordsList.push_back(metaWord);
