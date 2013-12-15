@@ -1,86 +1,99 @@
 #include "Stdafx.h"
 
 #include "CaptureManager.h"
-#include "cvmarkersobj.h"
+#include "DebugStream.h"
 
 namespace WordJewelsImager
 {
 
-CaptureManager::CaptureManager() : m_CaptureEngine(), m_hVideoWnd(nullptr), m_rcDest()
+CaptureManager::CaptureManager() : 
+	m_AvailableDevices(),
+	m_CaptureEngine(), 
+	m_PreviewWindow(m_CaptureEngine),
+	m_GraphDebugger(),
+	m_dwGraphRegister(0),
+	m_hVideoWnd(nullptr),
+	m_rcDest()
 {
-}
+	static const uint32_t DEFAULT_DEVICE = 0;
+	CaptureEngineCOM::IGraphBuilderPtr pGraph;
+	HRESULT hr;
 
-CaptureManager::CaptureManager(HWND hVideoWnd) : m_CaptureEngine(), m_hVideoWnd(hVideoWnd), m_rcDest()
-{
+	// Enable debugging.
+	if (FAILED(hr = m_CaptureEngine.GetCaptureGraph(pGraph)))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to acquire graph pointer from engine") << std::endl;
+	}
+	else if (FAILED(hr = GraphDebugger::AddGraphToROT(pGraph, &m_dwGraphRegister)))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to register graph in Running Object Table") << std::endl;
+	}
+	else if (0 >= m_AvailableDevices.size())
+	{
+		wdebugstream() << TEXT("DEBUG: There are no capture devices available in the system") << std::endl;
+	}
+	else if (FAILED(hr = m_CaptureEngine.SetCaptureDevice(m_AvailableDevices[DEFAULT_DEVICE])))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to select the video device for display") << std::endl;
+	}
+	else
+	{
+		wdebugstream() << TEXT("DEBUG: Successfully initialised Capture Manager") << std::endl;
+	}
 }
 
 CaptureManager::~CaptureManager()
 {
+	GraphDebugger::RemoveGraphFromROT(m_dwGraphRegister);
 }
 
-void CaptureManager::SetVideoWindow(HWND hVideoWnd)
+void CaptureManager::EnablePreviewVideo(HWND hVideoWnd)
 {
+	uint64_t width, height;
+	HRESULT hr;
+	RECT rcSrc;
+
 	if (nullptr == hVideoWnd)
 	{
 		wdebugstream() << TEXT("DEBUG: Cannot use a NULL window handle") << std::endl;
-		throw;
-	}
-	else
-	{
-		m_hVideoWnd = hVideoWnd;
-	}
-}
-
-void CaptureManager::DisplayVideo()
-{
-	uint64_t width, height; 
-	HRESULT hr;
-
-	if (0 >= m_CaptureEngine.AvailableDeviceCount())
-	{
-		wdebugstream() << TEXT("DEBUG: No devices are available for video display") << std::endl;
 	}
 	else if (m_CaptureEngine.IsRunning())
 	{
-		wdebugstream() << TEXT("DEBUG: Capture engine is not running...do nothing") << std::endl;
+		wdebugstream() << TEXT("DEBUG: Capture engine is already running...do not try again") << std::endl;
 	}
-	else if (FAILED(hr = m_CaptureEngine.InitialiseRenderer(m_hVideoWnd)))
+	else if (FAILED(hr = m_PreviewWindow.SetWindow(hVideoWnd)))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to initialise the video playback window") << std::endl;
+		wdebugstream() << TEXT("DEBUG: Failed to set the preview window with supplied handle") << std::endl;
 	}
-	else if (FAILED(hr = m_CaptureEngine.SelectVideoDevice(0))) /// FIXME remove need to hardcode first device.
-	{
-		wdebugstream() << TEXT("DEBUG: Failed to select the video device for display") << std::endl;
-	}
-	else if (FAILED(hr = m_CaptureEngine.GetNativeVideoSize(width, height)))
+	else if (FAILED(hr = m_PreviewWindow.GetNativeVideoSize(width, height)))
 	{
 		wdebugstream() << TEXT("DEBUG: Failed to determine native video size") << std::endl;
 	}
-	else 
+	else if (0 == ::SetRect(&rcSrc, 0, 0, static_cast<int32_t>(width), static_cast<int32_t>(height)))
 	{
-		RECT rcSrc; 
-
-		// Set the source rectangle.
-		::SetRect(&rcSrc, 0, 0, static_cast<int32_t>(width), static_cast<int32_t>(height)); 
-
-		// Get the window client area.
-		::GetClientRect(m_hVideoWnd, &m_rcDest); 
-
-		// Set the destination rectangle.
-		::SetRect(&m_rcDest, 0, 0, m_rcDest.right, m_rcDest.bottom);
+		wdebugstream() << TEXT("DEBUG: Failed to set the source rectangle coordinates") << std::endl;
+	}
+	else if (0 == ::GetClientRect(hVideoWnd, &m_rcDest))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to get the client rectangle") << std::endl;
+	}
+	else if (0 == ::SetRect(&m_rcDest, 0, 0, m_rcDest.right, m_rcDest.bottom))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to set destination rectangle coordinates") << std::endl;
+	}
+	else if (FAILED(hr = m_PreviewWindow.SetVideoPosition(hVideoWnd, m_rcDest)))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to set video window to native window extents") << std::endl;
+	}
+	else if (FAILED(hr = m_CaptureEngine.Start()))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to start the capture engine") << std::endl;
+	}
+	else
+	{
+		wdebugstream() << TEXT("DEBUG: Successfully bound, initialised video stream") << std::endl;
 		
-		if (FAILED(hr = m_CaptureEngine.SetVideoPosition(m_hVideoWnd, m_rcDest)))
-		{
-			wdebugstream() << TEXT("DEBUG: Failed to set video window to native window extents") << std::endl;
-		}
-		else if (FAILED(hr = m_CaptureEngine.Start()))
-		{
-			wdebugstream() << TEXT("DEBUG: Failed to start the capture engine") << std::endl;
-		}
-		else
-		{
-			wdebugstream() << TEXT("DEBUG: Successfully bound, initialised video stream") << std::endl;
-		}
+		m_hVideoWnd = hVideoWnd;
 	}
 }
 
@@ -88,15 +101,27 @@ void CaptureManager::DisplayModeChanged()
 {
 	if (!m_CaptureEngine.IsRunning())
 	{
-		wdebugstream() << TEXT("") << std::endl;
+		wdebugstream() << TEXT("DEBUG: The engine is not running...cannot alter video display") << std::endl;
 	}
 	else
 	{
-		m_CaptureEngine.DisplayModeChanged();
+		m_PreviewWindow.DisplayModeChanged();
 	}
 }
 
-Concurrency::diagnostic::marker_series mySeries;
+void CaptureManager::HandleGraphEvent()
+{
+	HRESULT hr;
+
+	if (FAILED(hr = m_PreviewWindow.HandleGraphEvent()))
+	{
+		wdebugstream() << TEXT("DEBUG: Failed to handle graph event sent to window") << std::endl;
+	}
+	else
+	{
+		// Success
+	}
+}
 
 void CaptureManager::RepaintVideo()
 {
@@ -108,10 +133,8 @@ void CaptureManager::RepaintVideo()
 	::GetClientRect(m_hVideoWnd, &rcClient); 
 	hDC = ::BeginPaint(m_hVideoWnd, &ps); 
 	
-	if (m_CaptureEngine.IsRunning()) 
+	if (m_CaptureEngine.IsRunning())
 	{ 
-		Concurrency::diagnostic::span s(mySeries, TEXT("void CaptureManager::RepaintVideo()"));
-
 		// Find the region where the application can paint by subtracting 
 		// the video destination rectangle from the client area.
 		
@@ -131,7 +154,7 @@ void CaptureManager::RepaintVideo()
 		::DeleteObject(rgnVideo); 
 
 		// Request the VMR to paint the video.
-		if (FAILED(hr = m_CaptureEngine.RepaintVideo(m_hVideoWnd, hDC)))
+		if (FAILED(hr = m_PreviewWindow.RepaintVideo(m_hVideoWnd, hDC)))
 		{
 			wdebugstream() << TEXT("DEBUG: Failed to repaint video window") << std::endl;
 		}

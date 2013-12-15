@@ -5,21 +5,28 @@
 #include <ObjIdl.h>
 #include <string>
 
+#include "CaptureEngineCOM.h"
+#include "ICaptureDevice.h"
+
 namespace WordJewelsImager
 {
 
-class CaptureDevice
+class CaptureDevice : public ICaptureDevice
 {
 public:
-	CaptureDevice(IMoniker *pMoniker, IPropertyBag *pPropBag);
+	CaptureDevice(IMoniker *pMoniker);
+	CaptureDevice(const CaptureDevice& rhs);
 	virtual ~CaptureDevice();
+
+public:
+	CaptureDevice& operator=(const CaptureDevice& rhs);
 
 public:
 	std::wstring GetDeviceFriendlyName();
 	std::wstring GetDeviceDescription();
 
 public:
-	IMoniker* GetMoniker() const;
+	virtual CaptureEngineCOM::IBaseFilterPtr& operator()();
 
 private:
 	std::wstring ReadProperty(const BSTR sPropertyName);
@@ -29,9 +36,12 @@ private:
 	static const BSTR FRIENDLY_NAME;
 
 private:
-	IMoniker* m_pMoniker;
-	IPropertyBag *m_pPropBag;
+	CaptureEngineCOM::IMonikerPtr m_pMoniker;
+	CaptureEngineCOM::IPropertyBagPtr m_pPropBag;
+	CaptureEngineCOM::IBaseFilterPtr m_pCapFilter;
+
 	VARIANT m_VarData;
+	IBindCtx* m_PBC;
 };
 
 }

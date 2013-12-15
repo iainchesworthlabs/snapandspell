@@ -24,7 +24,7 @@ public:
 	HRESULT GetNativeVideoSize(LONG* lpWidth, LONG* lpHeight, LONG* lpARWidth, LONG* lpARHeight);
     HRESULT UpdateVideoWindow(HWND hwnd, const LPRECT prc);
     HRESULT Repaint(HWND hwnd, HDC hdc);
-    HRESULT DisplayModeChanged();
+	HRESULT DisplayModeChanged();
 
 public:
 	HRESULT InitWindowlessVMR(CaptureEngineCOM::IBaseFilterPtr pVMR, HWND hWnd, IVMRWindowlessControl **ppWc);

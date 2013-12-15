@@ -8,8 +8,8 @@ struct trie_map_compile_time_test
 {
 	trie_map_compile_time_test()
 	{
-		switch(false)
-		{ 
+		switch (false)
+		{
 		case false:
 		case test_condition:
 			break;
@@ -18,15 +18,15 @@ struct trie_map_compile_time_test
 };
 
 template <unsigned int VALUE>
-struct trie_map_test_for_power_of_two :  private trie_map_compile_time_test< ((VALUE & (VALUE-1))==0) >
+struct trie_map_test_for_power_of_two : private trie_map_compile_time_test< ((VALUE & (VALUE - 1)) == 0) >
 {
 };
 
-template <typename KEY_T, typename MAPPED_T, size_t KEY_ELEMENT_RANGE = 256, typename ALLOCATOR_T = std::allocator<std::pair<const KEY_T, MAPPED_T>>> 
+template <typename KEY_T, typename MAPPED_T, size_t KEY_ELEMENT_RANGE = 256, typename ALLOCATOR_T = std::allocator<std::pair<const KEY_T, MAPPED_T>>>
 class trie_map : private trie_map_test_for_power_of_two<KEY_ELEMENT_RANGE>
 {
 public:
-	typedef KEY_T key_type;    
+	typedef KEY_T key_type;
 	typedef std::pair<const KEY_T, MAPPED_T>  value_type;
 	typedef MAPPED_T mapped_type;
 	typedef ALLOCATOR_T allocator_type;
@@ -42,14 +42,14 @@ public:
 	//typedef std::reverse_iterator<iterator> reverse_iterator;
 	//typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
-	enum 
+	enum
 	{
-		key_element_range_mask = KEY_ELEMENT_RANGE-1,
+		key_element_range_mask = KEY_ELEMENT_RANGE - 1,
 		key_element_range = KEY_ELEMENT_RANGE
 	};
 
 	typedef typename key_type::value_type key_element_type;
-	typedef trie_map<key_type,mapped_type,key_element_range,allocator_type> trie_map_type;
+	typedef trie_map<key_type, mapped_type, key_element_range, allocator_type> trie_map_type;
 
 	class iterator_base
 	{
@@ -78,7 +78,7 @@ public:
 				parent = rhs.parent;
 				item = rhs.item;
 			}
-			
+
 			return *this;
 		}
 
@@ -126,18 +126,18 @@ public:
 				iterator_base::operator=(rhs);
 				// Do any additional copying here.
 			}
-			
+
 			return *this;
 		}
 
-		inline bool operator == ( const iterator &other )
+		inline bool operator == (const iterator &other)
 		{
 			return (top_trie == other.top_trie) && (item == other.item) && (parent == other.parent);
 		}
 
-		inline bool operator != ( const iterator &other )
+		inline bool operator != (const iterator &other)
 		{
-			return ! operator == ( other );
+			return !operator == (other);
 		}
 
 		inline iterator operator ++ (int)
@@ -167,16 +167,16 @@ public:
 
 		inline void next()
 		{
-			if( item!=key_element_range_mask )
+			if (item != key_element_range_mask)
 			{
-				*this = parent->begin( top_trie, item+1 );
+				*this = parent->begin(top_trie, item + 1);
 			}
 			else
 			{
-				if( parent )
+				if (parent)
 				{
 					item = parent->key_element;
-					parent=parent->parent;
+					parent = parent->parent;
 					next();
 				}
 				else
@@ -219,18 +219,18 @@ public:
 				iterator_base::operator=(rhs);
 				// Do any additional copying here.
 			}
-			
+
 			return *this;
 		}
 
-		inline bool operator == ( const const_iterator &other )
+		inline bool operator == (const const_iterator &other)
 		{
 			return top_trie == other.top_trie && item == other.item && parent == other.parent;
 		}
 
-		inline bool operator != ( const const_iterator &other )
+		inline bool operator != (const const_iterator &other)
 		{
-			return ! operator == ( other );
+			return !operator == (other);
 		}
 
 		inline const_iterator operator ++ (int)
@@ -260,16 +260,16 @@ public:
 
 		inline void next()
 		{
-			if( item!=key_element_range_mask )
+			if (item != key_element_range_mask)
 			{
-				*this = parent->begin( top_trie, item+1 );
+				*this = parent->begin(top_trie, item + 1);
 			}
 			else
 			{
-				if( parent )
+				if (parent)
 				{
 					item = parent->key_element;
-					parent=parent->parent;
+					parent = parent->parent;
 					next();
 				}
 				else
@@ -281,19 +281,19 @@ public:
 	};
 
 
-	inline bool operator == ( const trie_map_type &other ) const
+	inline bool operator == (const trie_map_type &other) const
 	{
-		bool is_equal=true;
+		bool is_equal = true;
 
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			if( table[i]!=0 && other.table[i]!=0 )
+			if (table[i] != 0 && other.table[i] != 0)
 			{
-				is_equal=table[i]->operator == ( other.table[i] );
-				if( !is_equal )
+				is_equal = table[i]->operator == (other.table[i]);
+				if (!is_equal)
 					break;
 			}
-			else if( table[i]!=0 || other.table[i]!=0 )
+			else if (table[i] != 0 || other.table[i] != 0)
 			{
 				is_equal = false;
 				break;
@@ -302,20 +302,20 @@ public:
 		return is_equal;
 	}
 
-	inline bool operator != ( const trie_map_type &other ) const
+	inline bool operator != (const trie_map_type &other) const
 	{
-		return ! operator == ( other );
+		return !operator == (other);
 	}
 
 	inline bool empty() const
 	{
-		bool is_empty=true;
+		bool is_empty = true;
 
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			if( table[i] )
+			if (table[i])
 			{
-				is_empty=false;
+				is_empty = false;
 				break;
 			}
 		}
@@ -324,13 +324,13 @@ public:
 
 	inline size_t size() const
 	{
-		size_t total_size=0;
+		size_t total_size = 0;
 
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			if (table[i]) 
+			if (table[i])
 			{
-				total_size+=table[i]->size();
+				total_size += table[i]->size();
 			}
 		}
 		return total_size;
@@ -338,171 +338,171 @@ public:
 
 	inline void clear()
 	{
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			if( table[i] )
+			if (table[i])
 			{
 				delete table[i];
 				table[i] = 0;
 			}
-		}    
+		}
 	}
 
-	inline trie_map_type & operator = ( const trie_map_type &other )
+	inline trie_map_type & operator = (const trie_map_type &other)
 	{
 		clear();
 
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			if( other.table[i] )
-				table[i] = new trie_map_type( *other.table[i], allocator );
+			if (other.table[i])
+				table[i] = new trie_map_type(*other.table[i], allocator);
 		}
 
 		return *this;
 	}
 
-	inline trie_map( const allocator_type &allocator_ = allocator_type() )
-		: 
-	allocator( allocator_ ),
+	inline trie_map(const allocator_type &allocator_ = allocator_type())
+		:
+		allocator(allocator_),
 		value(0),
 		parent(0),
-		key_element( 0 )
+		key_element(0)
 	{
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			table[i] = 0;  
-		}    
+			table[i] = 0;
+		}
 	}
 
-	inline trie_map( trie_map_type *parent_, key_element_type key_element_, const allocator_type &allocator_ = allocator_type() )
-		: 
-	allocator( allocator_ ),
+	inline trie_map(trie_map_type *parent_, key_element_type key_element_, const allocator_type &allocator_ = allocator_type())
+		:
+		allocator(allocator_),
 		value(0),
 		parent(parent_),
-		key_element( key_element_ )
+		key_element(key_element_)
 	{
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			table[i] = 0;  
-		}    
+			table[i] = 0;
+		}
 	}
 
-	inline trie_map( const trie_map_type &other, trie_map_type *parent_=0, const allocator_type &allocator_ = allocator_type()  )
-		: 
-	allocator(allocator_),
+	inline trie_map(const trie_map_type &other, trie_map_type *parent_ = 0, const allocator_type &allocator_ = allocator_type())
+		:
+		allocator(allocator_),
 		value(other.value),
 		parent(parent_)
 	{
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			if( other.table[i] )
+			if (other.table[i])
 			{
-				table[i] = new trie_map_type( *other.table[i], allocator_, this );
+				table[i] = new trie_map_type(*other.table[i], allocator_, this);
 			}
 			else
 			{
-				table[i] = 0;  
-			}    
+				table[i] = 0;
+			}
 		}
 	}
 
 
 	inline ~trie_map()
 	{
-		for( size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+		for (size_t i = 0; i < KEY_ELEMENT_RANGE; ++i)
 		{
-			if( table[i] )
+			if (table[i])
 				delete table[i];
 		}
 		delete value;
 	}
 
-	inline std::pair< iterator, bool> insert(const value_type &v )
+	inline std::pair< iterator, bool> insert(const value_type &v)
 	{
-		bool r=_add( v.first, v.second );
-		return std::make_pair( find( v.first ), r );
-	} 
+		bool r = _add(v.first, v.second);
+		return std::make_pair(find(v.first), r);
+	}
 
-	inline bool _add( const key_type &k, const mapped_type &v )
+	inline bool _add(const key_type &k, const mapped_type &v)
 	{
 		trie_map_type * t = this;
 		typename key_type::const_iterator pos(k.begin());
 		typename key_type::const_iterator end(k.end());
 
-		for( ; pos!=end; ++pos )
+		for (; pos != end; ++pos)
 		{
 			size_t c = static_cast<size_t>(*pos) & key_element_range_mask;
 
-			if( !t->table[ c ] )
+			if (!t->table[c])
 			{
-				t->table[c] = new trie_map_type(t,*pos,allocator);
+				t->table[c] = new trie_map_type(t, *pos, allocator);
 			}
 			t = t->table[c];
 		}
 
-		bool r=false;
-		if( !t->value )
+		bool r = false;
+		if (!t->value)
 		{
-			t->value = new value_type(k,v);
-			r=true;
+			t->value = new value_type(k, v);
+			r = true;
 		}
 		return r;
 	}
 
 	inline mapped_type & operator[](const key_type& k)
 	{
-		iterator i = find( k );
+		iterator i = find(k);
 
-		if( i==end() )
+		if (i == end())
 		{
-			_add( k, mapped_type() );
+			_add(k, mapped_type());
 			i = find(k);
 		}
 		return i->second;
 	}
 
 
-	inline iterator find( const key_type &k )
+	inline iterator find(const key_type &k)
 	{
 		trie_map_type * t = this;
 		typename key_type::const_iterator pos(k.begin());
 		typename key_type::const_iterator end(k.end());
 
-		for( ; pos!=end; ++pos )
+		for (; pos != end; ++pos)
 		{
 			size_t c = static_cast<size_t>(*pos) & key_element_range_mask;
-			t = t->table[ c ];
-			if( !t )
+			t = t->table[c];
+			if (!t)
 			{
-				return iterator(this,0,0);
-			}    
+				return iterator(this, 0, 0);
+			}
 		}
 
-		return iterator( this, t->parent, t->key_element);    
+		return iterator(this, t->parent, t->key_element);
 	}
 
 
-	inline const_iterator find( const key_type &k ) const
+	inline const_iterator find(const key_type &k) const
 	{
 		const trie_map_type * t = this;
 		typename key_type::const_iterator pos(k.begin());
 		typename key_type::const_iterator end(k.end());
 
-		for( ; pos!=end; ++pos )
+		for (; pos != end; ++pos)
 		{
 			size_t c = static_cast<size_t>(*pos) & key_element_range_mask;
-			t = t->table[ c ];
-			if( !t )
+			t = t->table[c];
+			if (!t)
 			{
-				return const_iterator(this,0,0);
-			}    
+				return const_iterator(this, 0, 0);
+			}
 		}
 
-		return const_iterator( this, t->parent, t->key_element);    
+		return const_iterator(this, t->parent, t->key_element);
 	}
 
-	inline bool erase( const const_iterator &i )
-	{ 
+	inline bool erase(const const_iterator &i)
+	{
 		// TODO
 		return false;
 	}
@@ -514,120 +514,125 @@ public:
 	}
 #endif
 
-	inline bool erase( const key_type &k )
+	inline bool erase(const key_type &k)
 	{
 		trie_map_type * last_fork = this;
 		typename key_type::const_iterator buf(k.begin());
 		typename key_type::const_iterator end(k.end());
 
-		size_t last_fork_pos=0;
-		size_t pos=0;
+		size_t last_fork_pos = 0;
+		size_t pos = 0;
 		trie_map_type * t = this;
 
 
 		// follow the branch, but remember where the last fork in the branch is
 
-		for( ; buf!=end; ++buf )
+		for (; buf != end; ++buf)
 		{
-			size_t entry_count=0;
-			for(size_t i=0; i<KEY_ELEMENT_RANGE; ++i )
+			size_t entry_count = 0;
+			for (size_t i = 0; i<KEY_ELEMENT_RANGE; ++i)
 			{
-				entry_count += static_cast<size_t>( t->table[i]!=0 );
+				entry_count += static_cast<size_t>(t->table[i] != 0);
 			}
 
-			if( entry_count>1 )
+			if (entry_count>1)
 			{
 				last_fork_pos = pos;
 				last_fork = t;
 			}
 
 			size_t c = static_cast<size_t>(*buf) & key_element_range_mask;
-			t = t->table[ c ];
-			if( !t )
+			t = t->table[c];
+			if (!t)
 			{
 				return false;
 			}
-		}    
+		}
 
 		// ok, we found a match. Now delete the branch starting from our last fork position
 
-		size_t c = static_cast<size_t>( k[last_fork_pos] ) & key_element_range_mask;
-		trie_map_type **kill_point = &last_fork->table[ c ];
+		size_t c = static_cast<size_t>(k[last_fork_pos]) & key_element_range_mask;
+		trie_map_type **kill_point = &last_fork->table[c];
 		delete *kill_point;
 		*kill_point = 0;
 
 		return true;
 	}
 
-	inline iterator begin( trie_map_type *top_level=0, size_t self_item=0 ) 
+	inline iterator begin(trie_map_type *top_level = 0, size_t self_item = 0)
 	{
 		// find first item
-		if( top_level==0 )
-			top_level = this;
-
-		for( size_t i=self_item; i<key_element_range; ++i )
+		if (top_level == 0)
 		{
-			if( table[ i ] )
+			top_level = this;
+		}
+
+		for (size_t i = self_item; i < key_element_range; ++i)
+		{
+			if (table[i])
 			{
-				return table[i]->begin( top_level, 0 );
+				return table[i]->begin(top_level, 0);
 			}
 		}
-		if( value )
+
+		if (value)
 		{
-			return iterator( top_level, parent, key_element );
+			return iterator(top_level, parent, key_element);
 		}
-		else if( parent ) // watch it here, edge condition when at end of array. this is a bug!
+		else if (parent) // watch it here, edge condition when at end of array. this is a bug!
 		{
-			return parent->begin( top_level, (key_element+1) & key_element_range_mask );
+			return parent->begin(top_level, (key_element + 1) & key_element_range_mask);
 		}
 		else
-			return iterator(top_level,0,0);
+		{
+			return iterator(top_level, 0, 0);
+		}	
 	}
 
 	inline iterator end()
 	{
-		return iterator(this,0,0);
+		return iterator(this, 0, 0);
 	}
 
-	inline const_iterator begin( const trie_map_type *top_level=0, size_t self_item=0 ) const
+	inline const_iterator begin(const trie_map_type *top_level = 0, size_t self_item = 0) const
 	{
 		// find first item
-		if(nullptr == top_level)
+		if (nullptr == top_level)
 		{
 			top_level = this;
 		}
 
-		for( size_t i=self_item; i<key_element_range; ++i )
+		for (size_t i = self_item; i < key_element_range; ++i)
 		{
-			if( table[ i ] )
+			if (table[i])
 			{
-				return table[i]->begin( top_level, 0 );
+				return table[i]->begin(top_level, 0);
 			}
 		}
 
-		if(value)
+		if (value)
 		{
 			return const_iterator(top_level, parent, key_element);
 		}
-		else if(parent) // watch it here, edge condition when at end of array. this is a bug!
+		else if (parent) // watch it here, edge condition when at end of array. this is a bug!
 		{
-			return parent->begin(top_level, (key_element+1) & key_element_range_mask);
+			return parent->begin(top_level, (key_element + 1) & key_element_range_mask);
 		}
-		else 
+		else
 		{
-			return const_iterator(top_level,0,0);
+			return const_iterator(top_level, 0, 0);
 		}
 	}
 
 	inline const_iterator end() const
 	{
-		return const_iterator(this,0,0);
+		return const_iterator(this, 0, 0);
 	}
+
 private:
 	const allocator_type allocator;
 	trie_map_type * table[KEY_ELEMENT_RANGE];
 	trie_map_type * parent;
 	key_element_type key_element;
 	value_type *value;
-
 };

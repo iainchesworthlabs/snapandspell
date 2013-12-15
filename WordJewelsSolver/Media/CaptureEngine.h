@@ -7,14 +7,14 @@
 #include <d3d9.h>
 #include <vmr9.h>
 #include <cstdint>
-#include <memory>
 #include <vector>
 #include "CaptureDevice.h"
-#include "CaptureDeviceLoader.h"
+#include "CaptureDeviceCollection.h"
 #include "CaptureEngineCOM.h"
-#include "CoInitialize.h"
 #include "DebugStream.h"
+#include "ICaptureDevice.h"
 #include "IVideoRenderer.h"
+#include "NullCaptureDevice.h"
 #include "SafeRelease.h"
 
 namespace WordJewelsImager
@@ -22,48 +22,37 @@ namespace WordJewelsImager
 
 class CaptureEngine
 {
+	static NullCaptureDevice m_NullCaptureDevice;
+
 public:
 	CaptureEngine();
 	virtual ~CaptureEngine();
+
+public:
+	HRESULT GetCaptureGraph(CaptureEngineCOM::IGraphBuilderPtr& pGraph);
+	HRESULT SetCaptureDevice(CaptureDevice& captureDevice);
 	
 public:
-	uint32_t AvailableDeviceCount() const;
+	HRESULT Start();
+	HRESULT Pause();
+	HRESULT Stop();
 	bool IsRunning() const;
 
-public:
-	HRESULT QueryDeviceInfo(const uint32_t deviceId);
-	HRESULT SelectVideoDevice(const uint32_t deviceId);
-	HRESULT GetNativeVideoSize(uint64_t& width, uint64_t& height);
-	HRESULT SetVideoPosition(HWND hwndApp, RECT rcDest);
-	HRESULT RepaintVideo(HWND hwndApp, HDC hDC);
-	HRESULT DisplayModeChanged();
-	HRESULT InitialiseRenderer(HWND hwndApp);
-	
-public:
-	HRESULT Start() const;
-	HRESULT Pause() const;
-	HRESULT Stop() const;
+private:
+	enum EngineStates
+	{
+		Running, Paused, Stopped
+	};
 
 private:
-	HRESULT CreateVideoRenderer();
-	HRESULT TearDownGraph();
-	
-private:
-	typedef std::unique_ptr<IVideoRenderer> IVideoRendererPtr;
-
-private:
-	IVideoRendererPtr m_pVideoRenderer;
-	CCoInitialize m_ComInit;
-
 	CaptureEngineCOM::IGraphBuilderPtr         m_pGraph;
-	CaptureEngineCOM::ICaptureGraphBuilder2Ptr m_pBuilder;
+	//CaptureEngineCOM::ICaptureGraphBuilder2Ptr m_pBuilder;
 	CaptureEngineCOM::IMediaControlPtr         m_pControl;
-	CaptureEngineCOM::IMediaEventPtr           m_pEvent;
+	CaptureEngineCOM::IMediaPositionPtr        m_pPosition;
 	CaptureEngineCOM::IEnumMonikerPtr          m_pEnum;
-	CaptureEngineCOM::IBaseFilterPtr           m_pCap;
 
-	CaptureDeviceLoader m_DeviceLoader;
-	bool m_HaveDevice;
+	ICaptureDevice* m_pCaptureDevice; ///FIXME why can't this be a reference???
+	EngineStates m_EngineStatus;
 };
 
 }

@@ -4,52 +4,61 @@
 
 COSVersion::COSVersion() : m_WindowsVersion(UnknownVersion), m_WindowsVariant(UnknownVariant), m_WindowsArchitecture(UnknownArchitecture)
 {
-	bool bOsVersionInfoEx;
+	BOOL bOsVersionInfoEx;
 	OSVERSIONINFOEX osvi;
 	SYSTEM_INFO si;
 	PGNSI pGNSI;
-	PGPI pGPI;
-	DWORD dwType;
+	///FIXME PGPI pGPI;
+	///FIXME DWORD dwType;
 
 	::ZeroMemory(&si, sizeof(SYSTEM_INFO));
 	::ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
 
 	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-	bOsVersionInfoEx = ::GetVersionEx((OSVERSIONINFO*) &osvi);
+	bOsVersionInfoEx = ::GetVersionEx(reinterpret_cast<OSVERSIONINFO*>(&osvi));
 
 	if (!bOsVersionInfoEx)
 	{
 		wdebugstream() << TEXT("DEBUG: Failed to determine windows version information") << std::endl;
-		return;
 	}
 	else
 	{
 		// Call ::GetNativeSystemInfo if supported or ::GetSystemInfo otherwise.
-		pGNSI = reinterpret_cast<PGNSI>(::GetProcAddress(::GetModuleHandle(TEXT("kernel32.dll")), "GetNativeSystemInfo"));
-		if (nullptr != pGNSI)
+		static const LPCSTR GET_NATIVE_SYSTEM_INFO_NAME = "GetNativeSystemInfo";
+		static const HMODULE KERNEL32_HANDLE = ::GetModuleHandle(TEXT("kernel32.dll"));
+		
+		if (0 == KERNEL32_HANDLE)
 		{
-			pGNSI(&si);
+			wdebugstream() << TEXT("DEBUG: Failed to get handle to Kernel32") << std::endl;
 		}
 		else
 		{
-			::GetSystemInfo(&si);
-		}
-
-		// Interpret the returned information...
-		if ((VER_PLATFORM_WIN32_NT == osvi.dwPlatformId) && (4 <= osvi.dwMajorVersion))
-		{
-			switch(osvi.dwMajorVersion)
+			pGNSI = reinterpret_cast<PGNSI>(::GetProcAddress(KERNEL32_HANDLE, GET_NATIVE_SYSTEM_INFO_NAME));
+			if (nullptr != pGNSI)
 			{
-			case 6:
-				Decode_Win7_Win8_Win2008(osvi, si);
-				break;
-				
-			case 5:
-				Decode_Win2003_XP_HomeServer_StorageServer(osvi, si);
-				break;
+				pGNSI(&si);
+			}
+			else
+			{
+				::GetSystemInfo(&si);
+			}
 
-			default:
-				break;
+			// Interpret the returned information...
+			if ((VER_PLATFORM_WIN32_NT == osvi.dwPlatformId) && (4 <= osvi.dwMajorVersion))
+			{
+				switch (osvi.dwMajorVersion)
+				{
+				case 6:
+					Decode_Win7_Win8_Win2008(osvi, si);
+					break;
+
+				case 5:
+					Decode_Win2003_XP_HomeServer_StorageServer(osvi, si);
+					break;
+
+				default:
+					break;
+				}
 			}
 		}
 	}

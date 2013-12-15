@@ -55,6 +55,9 @@ BOOL MainDialog_InitDialog(HWND hWndDlg, HANDLE, LPARAM)
 		::SetWindowSubclass(::GetDlgItem(hWndDlg, IDC_BUTTON_SOLVE), CommandButton_WindowProc, 0, 0);
 		::SetWindowSubclass(::GetDlgItem(hWndDlg, IDC_VIDEO_CAPTUREFRAME), VideoFrame_WindowProc, 0, 0);
 
+		// COUGH SPLUTTER ACK - trigger the preview window.
+		VideoFrame_OnCreate(::GetDlgItem(hWndDlg, IDC_VIDEO_CAPTUREFRAME), nullptr);
+
 		// Create the status bar in which the various statuses can be displayed.
 		::CreateWindowEx(0, STATUSCLASSNAME, nullptr, WS_CHILD | WS_VISIBLE | SBARS_SIZEGRIP, 0, 0, 0, 0, hWndDlg, reinterpret_cast<HMENU>(StatusBarIdentifier), ::GetModuleHandle(nullptr), nullptr);
 		uint32_t StatusSegmentWidths[] = {150, -1};

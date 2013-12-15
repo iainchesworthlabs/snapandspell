@@ -1,5 +1,6 @@
 #include "StdAfx.h"
 
+#include "CaptureSupport.h"
 #include "DebugStream.h"
 #include "EVR_Renderer.h"
 #include "SafeRelease.h"
@@ -31,7 +32,7 @@ HRESULT EVR_Renderer::AddToGraph(CaptureEngineCOM::IGraphBuilderPtr pGraph, HWND
 	{
 		wdebugstream() << TEXT("DEBUG: pGraph is NULL; cannot continue") << std::endl;
 	}
-	else if (FAILED(hr = AddFilterByCLSID(pGraph, CLSID_EnhancedVideoRenderer, pEVR, TEXT("EVR"))))
+	else if (FAILED(hr = CaptureSupport::AddFilterByCLSID(pGraph, CLSID_EnhancedVideoRenderer, pEVR, TEXT("EVR"))))
 	{
 		wdebugstream() << TEXT("DEBUG: Failed to add EVR CLSID to pGraph") << std::endl;
 	}
@@ -86,7 +87,7 @@ HRESULT EVR_Renderer::FinalizeGraph(CaptureEngineCOM::IGraphBuilderPtr pGraph)
 
 HRESULT EVR_Renderer::GetNativeVideoSize(LONG* lpWidth, LONG* lpHeight, LONG* lpARWidth, LONG* lpARHeight)
 {
-	SIZE szVideo, szARVideo;
+	SIZE szVideo = { 0, 0 }, szARVideo = { 0, 0 };
 	HRESULT hr(S_OK);
 	
 	if (nullptr == m_pVideoDisplay)

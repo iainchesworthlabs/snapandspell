@@ -1,7 +1,11 @@
 #include "StdAfx.h"
 
+#include <stdexcept>
+
+#include "CaptureSupport.h"
 #include "DebugStream.h"
 #include "SafeRelease.h"
+#include "TracedThrow.h"
 #include "VMR7_Renderer.h"
 
 namespace WordJewelsImager
@@ -28,18 +32,15 @@ HRESULT VMR7_Renderer::AddToGraph(CaptureEngineCOM::IGraphBuilderPtr pGraph, HWN
 
 	if (nullptr == pGraph)
 	{
-		wdebugstream() << TEXT("DEBUG: pGraph is NULL, cannot continue") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: pGraph is NULL, cannot continue"));
 	}
-	else if (FAILED(hr = AddFilterByCLSID(pGraph, CLSID_VideoMixingRenderer, pVMR, TEXT("VMR-7"))))
+	else if (FAILED(hr = CaptureSupport::AddFilterByCLSID(pGraph, CLSID_VideoMixingRenderer, pVMR, TEXT("VMR-7"))))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to add VMR-7 filter to graph") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to add VMR-7 filter to graph"));
 	}
 	else if (FAILED(hr = InitWindowlessVMR(pVMR, hWnd, &m_pWindowless)))
     {
-		wdebugstream() << TEXT("DEBUG: Failed to initialise VMR-7 (windowless)") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to initialise VMR-7 (windowless)"));
     }
 	else
 	{
@@ -61,18 +62,15 @@ HRESULT VMR7_Renderer::FinalizeGraph(CaptureEngineCOM::IGraphBuilderPtr pGraph)
 	}
 	else if (nullptr == pGraph)
 	{
-		wdebugstream() << TEXT("DEBUG: pGraph is NULL, cannot continue") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: pGraph is NULL, cannot continue"));
 	}
 	else if (FAILED(hr = m_pWindowless->QueryInterface(IID_PPV_ARGS(&pFilter))))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to query interface for pFilter") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to query interface for pFilter"));
 	}
 	else if (FAILED(hr = RemoveUnconnectedRenderer(pGraph, pFilter, &bRemoved)))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to remove unconnected renderer") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to remove unconnected renderer"));
 	}
 	else if (bRemoved)
     {
@@ -148,33 +146,27 @@ HRESULT VMR7_Renderer::InitWindowlessVMR(CaptureEngineCOM::IBaseFilterPtr pVMR, 
     // Set the rendering mode.  
     if (nullptr == pVMR)
 	{
-		wdebugstream() << TEXT("DEBUG: pVMR is NULL, cannot continue") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: pVMR is NULL, cannot continue"));
 	}
 	else if (FAILED(hr = pVMR->QueryInterface(IID_PPV_ARGS(&pConfig))))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to query interface for pConfig") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to query interface for pConfig"));
 	}
 	else if (FAILED(hr = pConfig->SetRenderingMode(VMRMode_Windowless)))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to set rendering mode to VMR-7 (windowless)") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to set rendering mode to VMR-7 (windowless)"));
 	}
 	else if (FAILED(hr = pVMR->QueryInterface(IID_PPV_ARGS(&pWC))))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to query interface for pWC") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to query interface for pWC"));
 	}
 	else if (FAILED(hr = pWC->SetVideoClippingWindow(hWnd)))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to set clipping window to hWnd") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to set clipping window to hWnd"));
 	}
 	else if (FAILED(hr = pWC->SetAspectRatioMode(VMR_ARMODE_LETTER_BOX)))
 	{
-		wdebugstream() << TEXT("DEBUG: Failed to set aspect ratio mode to letter box") << std::endl;
-		throw;
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to set aspect ratio mode to letter box"));
 	}
 	else
 	{

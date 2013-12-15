@@ -4,17 +4,9 @@
     <Filter Include="Engine">
       <UniqueIdentifier>{26e4bfa8-4d0a-46ca-877a-e626d4ceb80c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Engine\Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
     <Filter Include="Dictionary">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Engine\Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="GUI">
       <UniqueIdentifier>{c129df86-b8fb-49e1-8aab-19adc459d3be}</UniqueIdentifier>
@@ -25,55 +17,25 @@
     <Filter Include="Media">
       <UniqueIdentifier>{16d16f8b-d021-47ad-b529-2874f118c2a4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Media\Renderer">
+      <UniqueIdentifier>{737a7d98-facd-49b2-bf28-53dd70e0cb27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Media\Device Management">
+      <UniqueIdentifier>{3ea5dd1f-1c96-45fa-8a28-0d3ea9fae706}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Media\Debugging">
+      <UniqueIdentifier>{044bf677-f22b-43db-896c-b3b341277ff1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Media\Graph Management">
+      <UniqueIdentifier>{9ed32337-4ce4-4b1e-b79b-261b7944c0f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Diagnostics">
+      <UniqueIdentifier>{9a85eb57-79be-4a0f-baa9-9080ed5cd60b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Dictionary.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\FastTrie.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\GameBoard.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\GameBoardIterator.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\GameBoardMatrix.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\GameBoardNode.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Rule_Abstract.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Rule_Cloner.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\RulesEngine.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\SearchForWords.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\StringConversions.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\TrieMap.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\WordsList.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Support\Stdafx.h">
       <Filter>Support</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Rule_IsUniqueWord.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Rule_ThreeLettersOrMore.h">
-      <Filter>Engine\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Support\WinMain.h">
       <Filter>Support</Filter>
@@ -87,14 +49,8 @@
     <ClInclude Include="GUI\resource.h">
       <Filter>GUI</Filter>
     </ClInclude>
-    <ClInclude Include="Support\GetErrorString.h">
-      <Filter>Support</Filter>
-    </ClInclude>
     <ClInclude Include="GUI\LetterControl_WindowProc.h">
       <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\WordJewelsEngine.h">
-      <Filter>Engine\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Support\Win32GameBoardNode.h">
       <Filter>Support</Filter>
@@ -104,12 +60,6 @@
     </ClInclude>
     <ClInclude Include="GUI\CommandButton_WindowProc.h">
       <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\GameBoardOperators.h">
-      <Filter>Engine\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\GameBoardTemplate.h">
-      <Filter>Engine\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Media\CaptureEngine.h">
       <Filter>Media</Filter>
@@ -123,24 +73,6 @@
     <ClInclude Include="GUI\VideoFrame_WindowProc.h">
       <Filter>GUI</Filter>
     </ClInclude>
-    <ClInclude Include="Media\CaptureDevice.h">
-      <Filter>Media</Filter>
-    </ClInclude>
-    <ClInclude Include="Media\CaptureThread.h">
-      <Filter>Media</Filter>
-    </ClInclude>
-    <ClInclude Include="Media\IVideoRenderer.h">
-      <Filter>Media</Filter>
-    </ClInclude>
-    <ClInclude Include="Media\VMR7_Renderer.h">
-      <Filter>Media</Filter>
-    </ClInclude>
-    <ClInclude Include="Media\VMR9_Renderer.h">
-      <Filter>Media</Filter>
-    </ClInclude>
-    <ClInclude Include="Media\EVR_Renderer.h">
-      <Filter>Media</Filter>
-    </ClInclude>
     <ClInclude Include="Support\SafeRelease.h">
       <Filter>Support</Filter>
     </ClInclude>
@@ -153,62 +85,128 @@
     <ClInclude Include="Media\CaptureEngineCOM.h">
       <Filter>Media</Filter>
     </ClInclude>
-    <ClInclude Include="Media\CaptureDeviceLoader.h">
-      <Filter>Media</Filter>
-    </ClInclude>
     <ClInclude Include="Support\StringConversion.h">
       <Filter>Support</Filter>
     </ClInclude>
     <ClInclude Include="Support\DxVersion.h">
       <Filter>Support</Filter>
     </ClInclude>
+    <ClInclude Include="Media\EVR_Renderer.h">
+      <Filter>Media\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\IVideoRenderer.h">
+      <Filter>Media\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\VMR7_Renderer.h">
+      <Filter>Media\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\VMR9_Renderer.h">
+      <Filter>Media\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\CaptureDevice.h">
+      <Filter>Media\Device Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\CaptureDeviceCollection.h">
+      <Filter>Media\Device Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\GraphDebugger.h">
+      <Filter>Media\Debugging</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\CapturePreviewWindow.h">
+      <Filter>Media</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\ICaptureDevice.h">
+      <Filter>Media\Device Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\NullCaptureDevice.h">
+      <Filter>Media\Device Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\Singleton.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+    <ClInclude Include="Media\CaptureGraphMgmt.h">
+      <Filter>Media\Graph Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\CallStack.h">
+      <Filter>Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\Diagnostics.h">
+      <Filter>Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\Win32Error.h">
+      <Filter>Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\WJSErrorHandler.h">
+      <Filter>Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\Win32Result.h">
+      <Filter>Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\GetErrorString.h">
+      <Filter>Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="Support\WithFinally.h">
+      <Filter>Support</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\TracedThrow.h">
+      <Filter>Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\FastTrie.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\GameBoard.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\GameBoardIterator.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\GameBoardMatrix.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\GameBoardNode.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\GameBoardOperators.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\GameBoardTemplate.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Rule_Abstract.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Rule_Cloner.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Rule_IsUniqueWord.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Rule_ThreeLettersOrMore.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\RulesEngine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\SearchForWords.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\StringConversions.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\TrieMap.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\WordJewelsEngine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\WordsList.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Dictionary\Dictionary.h">
+      <Filter>Dictionary</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Dictionary.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\FastTrie.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\GameBoard.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\GameBoardIterator.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\GameBoardMatrix.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\GameBoardNode.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Rule_Abstract.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Rule_Cloner.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Rule_IsUniqueWord.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Rule_ThreeLettersOrMore.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\RulesEngine.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\SearchForWords.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\StringConversions.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\TrieMap.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\WordsList.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Support\Stdafx.cpp">
       <Filter>Support</Filter>
     </ClCompile>
@@ -221,14 +219,8 @@
     <ClCompile Include="GUI\MainWindow_DialogProc.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
-    <ClCompile Include="Support\GetErrorString.cpp">
-      <Filter>Support</Filter>
-    </ClCompile>
     <ClCompile Include="GUI\LetterControl_WindowProc.cpp">
       <Filter>GUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\WordJewelsEngine.cpp">
-      <Filter>Engine\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Support\Win32GameBoardNode.cpp">
       <Filter>Support</Filter>
@@ -238,12 +230,6 @@
     </ClCompile>
     <ClCompile Include="GUI\CommandButton_WindowProc.cpp">
       <Filter>GUI</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\GameBoardTemplate.cpp">
-      <Filter>Engine\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\GameBoardOperators.cpp">
-      <Filter>Engine\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Media\CaptureEngine.cpp">
       <Filter>Media</Filter>
@@ -257,24 +243,6 @@
     <ClCompile Include="GUI\VideoFrame_WindowProc.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
-    <ClCompile Include="Media\CaptureDevice.cpp">
-      <Filter>Media</Filter>
-    </ClCompile>
-    <ClCompile Include="Media\CaptureThread.cpp">
-      <Filter>Media</Filter>
-    </ClCompile>
-    <ClCompile Include="Media\IVideoRenderer.cpp">
-      <Filter>Media</Filter>
-    </ClCompile>
-    <ClCompile Include="Media\VMR7_Renderer.cpp">
-      <Filter>Media</Filter>
-    </ClCompile>
-    <ClCompile Include="Media\VMR9_Renderer.cpp">
-      <Filter>Media</Filter>
-    </ClCompile>
-    <ClCompile Include="Media\EVR_Renderer.cpp">
-      <Filter>Media</Filter>
-    </ClCompile>
     <ClCompile Include="Support\SafeRelease.cpp">
       <Filter>Support</Filter>
     </ClCompile>
@@ -287,20 +255,126 @@
     <ClCompile Include="Media\CaptureEngineCOM.cpp">
       <Filter>Media</Filter>
     </ClCompile>
-    <ClCompile Include="Media\CaptureDeviceLoader.cpp">
-      <Filter>Media</Filter>
-    </ClCompile>
     <ClCompile Include="Support\StringConversion.cpp">
       <Filter>Support</Filter>
     </ClCompile>
     <ClCompile Include="Support\DxVersion.cpp">
       <Filter>Support</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="Dictionary\Dictionary_EN.txt">
+    <ClCompile Include="Media\EVR_Renderer.cpp">
+      <Filter>Media\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\IVideoRenderer.cpp">
+      <Filter>Media\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\VMR7_Renderer.cpp">
+      <Filter>Media\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\VMR9_Renderer.cpp">
+      <Filter>Media\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\CaptureDevice.cpp">
+      <Filter>Media\Device Management</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\CaptureDeviceCollection.cpp">
+      <Filter>Media\Device Management</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\GraphDebugger.cpp">
+      <Filter>Media\Debugging</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\CapturePreviewWindow.cpp">
+      <Filter>Media</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\ICaptureDevice.cpp">
+      <Filter>Media\Device Management</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\NullCaptureDevice.cpp">
+      <Filter>Media\Device Management</Filter>
+    </ClCompile>
+    <ClCompile Include="Support\Singleton.cpp">
+      <Filter>Support</Filter>
+    </ClCompile>
+    <ClCompile Include="Media\CaptureGraphMgmt.cpp">
+      <Filter>Media\Graph Management</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\CallStack.cpp">
+      <Filter>Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\Diagnostics.cpp">
+      <Filter>Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\Win32Error.cpp">
+      <Filter>Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\WJSErrorHandler.cpp">
+      <Filter>Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\Win32Result.cpp">
+      <Filter>Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\GetErrorString.cpp">
+      <Filter>Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="Support\WithFinally.cpp">
+      <Filter>Support</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\TracedThrow.cpp">
+      <Filter>Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\FastTrie.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\GameBoard.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\GameBoardIterator.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\GameBoardMatrix.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\GameBoardNode.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\GameBoardOperators.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\GameBoardTemplate.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rule_Abstract.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rule_Cloner.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rule_IsUniqueWord.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Rule_ThreeLettersOrMore.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\RulesEngine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\SearchForWords.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\StringConversions.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\TrieMap.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\WordJewelsEngine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\WordsList.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Dictionary\Dictionary.cpp">
       <Filter>Dictionary</Filter>
-    </Text>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="GUI\resource.hm">
@@ -316,5 +390,37 @@
     <Manifest Include="GUI\WordJewelsSolver.exe.manifest">
       <Filter>GUI</Filter>
     </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Dictionary\dictionary.af.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.ar.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.bg.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.ca.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.cs.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.en.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.es.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.hr.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.pt.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
+    <Text Include="Dictionary\dictionary.zh.txt">
+      <Filter>Dictionary</Filter>
+    </Text>
   </ItemGroup>
 </Project>

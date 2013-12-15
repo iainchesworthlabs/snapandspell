@@ -27,13 +27,7 @@ public:
     virtual HRESULT DisplayModeChanged() = 0;
 
 public:
-	HRESULT AddFilterByCLSID(CaptureEngineCOM::IGraphBuilderPtr pGraph, REFGUID clsid, CaptureEngineCOM::IBaseFilterPtr& ppF, LPCWSTR wszName);
 	HRESULT RemoveUnconnectedRenderer(CaptureEngineCOM::IGraphBuilderPtr pGraph, CaptureEngineCOM::IBaseFilterPtr pRenderer, BOOL *pbRemoved);
-
-private:
-	HRESULT IsPinConnected(CaptureEngineCOM::IPinPtr pPin, BOOL *pResult);
-	HRESULT IsPinDirection(CaptureEngineCOM::IPinPtr pPin, PIN_DIRECTION dir, BOOL *pResult);
-	HRESULT FindConnectedPin(CaptureEngineCOM::IBaseFilterPtr pFilter, PIN_DIRECTION PinDir, CaptureEngineCOM::IPinPtr& ppPin);
 };
 
 }

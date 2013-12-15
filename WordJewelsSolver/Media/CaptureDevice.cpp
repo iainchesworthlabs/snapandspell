@@ -1,8 +1,11 @@
 #include "Stdafx.h"
 
 #include <cassert>
+#include <stdexcept>
 #include "CaptureDevice.h"
 #include "DebugStream.h"
+#include "SafeRelease.h"
+#include "TracedThrow.h"
 
 namespace WordJewelsImager
 {
@@ -10,33 +13,84 @@ namespace WordJewelsImager
 const BSTR CaptureDevice::DESCRIPTION = TEXT("Description");
 const BSTR CaptureDevice::FRIENDLY_NAME = TEXT("FriendlyName");
 
-CaptureDevice::CaptureDevice(IMoniker *pMoniker, IPropertyBag *pPropBag) : m_pMoniker(pMoniker), m_pPropBag(pPropBag), m_VarData()
+CaptureDevice::CaptureDevice(IMoniker *pMoniker) :
+	ICaptureDevice(),
+	m_pMoniker(pMoniker),
+	m_pPropBag(nullptr),
+	m_pCapFilter(nullptr),
+	m_VarData(),
+	m_PBC(nullptr)
 {
 	assert(nullptr != pMoniker);
-	assert(nullptr != pPropBag);
+	HRESULT hr;
 
+	if (FAILED(hr = ::CreateBindCtx(0, &m_PBC)))
+	{
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to create a bind context"));
+	}
+	else if (FAILED(hr = pMoniker->BindToStorage(m_PBC, 0, IID_IPropertyBag, reinterpret_cast<void**>(&m_pPropBag))))
+	{
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to bind to moniker property bag"));
+	}
+	else if (FAILED(hr = pMoniker->BindToObject(m_PBC, 0, IID_IBaseFilter, reinterpret_cast<void**>(&m_pCapFilter))))
+	{
+		DiagnosticsTracedThrow(std::runtime_error("DEBUG: Failed to bind to moniker and retrieve filter object"));
+	}
+	else
+	{
+		::VariantInit(&m_VarData);
+
+		wdebugstream() << TEXT("DEBUG: New CaptureDevice created") << std::endl;
+		wdebugstream() << TEXT("DEBUG: CaptureDevice \"FriendlyName\": ") << GetDeviceFriendlyName() << std::endl;
+		wdebugstream() << TEXT("DEBUG: CaptureDevice \"Description\": ") << GetDeviceDescription() << std::endl;
+	}	
+}
+
+CaptureDevice::CaptureDevice(const CaptureDevice& rhs)
+{
+	assert(nullptr != rhs.m_pMoniker);
+	assert(nullptr != rhs.m_pPropBag);
+	assert(nullptr != rhs.m_pCapFilter);
+
+	m_pMoniker = rhs.m_pMoniker;
+	m_pPropBag = rhs.m_pPropBag;
+	m_pCapFilter = rhs.m_pCapFilter;
+		
 	::VariantInit(&m_VarData);
-
-	wdebugstream() << TEXT("DEBUG: New CaptureDevice created") << std::endl;
+		
+	wdebugstream() << TEXT("DEBUG: Copy made of existing CaptureDevice") << std::endl;
 	wdebugstream() << TEXT("DEBUG: CaptureDevice \"FriendlyName\": ") << GetDeviceFriendlyName() << std::endl;
 	wdebugstream() << TEXT("DEBUG: CaptureDevice \"Description\": ") << GetDeviceDescription() << std::endl;
 }
 
 CaptureDevice::~CaptureDevice()
 {
-	if (nullptr != m_pPropBag)
+	SafeRelease(&m_pCapFilter);
+	SafeRelease(&m_pPropBag);
+	SafeRelease(&m_pMoniker);
+
+	::VariantClear(&m_VarData);
+	SafeRelease(&m_PBC);
+}
+
+CaptureDevice& CaptureDevice::operator=(const CaptureDevice& rhs)
+{
+	if (this != &rhs)
 	{
-		m_pPropBag->Release();
-		m_pPropBag = nullptr;
+		ICaptureDevice::operator=(rhs);
+
+		m_pMoniker = rhs.m_pMoniker;
+		m_pPropBag = rhs.m_pPropBag;
+		m_pCapFilter = rhs.m_pCapFilter;
+
+		::VariantInit(&m_VarData);
+
+		wdebugstream() << TEXT("DEBUG: Assignment of existing CaptureDevice") << std::endl;
+		wdebugstream() << TEXT("DEBUG: CaptureDevice \"FriendlyName\": ") << GetDeviceFriendlyName() << std::endl;
+		wdebugstream() << TEXT("DEBUG: CaptureDevice \"Description\": ") << GetDeviceDescription() << std::endl;
 	}
 
-	if (nullptr != m_pMoniker)
-	{
-		m_pMoniker->Release();
-		m_pMoniker = nullptr;
-	}
-
-	::VariantClear(&m_VarData); 
+	return *this;
 }
 
 std::wstring CaptureDevice::GetDeviceFriendlyName()
@@ -49,9 +103,9 @@ std::wstring CaptureDevice::GetDeviceDescription()
 	return ReadProperty(DESCRIPTION);
 }
 
-IMoniker* CaptureDevice::GetMoniker() const
+CaptureEngineCOM::IBaseFilterPtr& CaptureDevice::operator()()
 {
-	return m_pMoniker;
+	return m_pCapFilter;
 }
 
 std::wstring CaptureDevice::ReadProperty(const BSTR sPropertyName)

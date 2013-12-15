@@ -4,18 +4,21 @@
 
 #if defined (WINMAIN)
 
+#include <stdexcept>
 #include <string>
 #include <sstream>
 
+#include "CaptureEngine.h"
 #include "DebugStream.h"
 #include "GetErrorString.h"
 #include "MainWindow_DialogProc.h"
 #include "Resource.h"
+#include "TracedThrow.h"
 
-#include "CaptureEngine.h"
-
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
 {
+	int32_t returnCode(0);
+
 	try
 	{
 		INITCOMMONCONTROLSEX picce;
@@ -27,12 +30,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		if (FALSE == ::InitCommonControlsEx(&picce))
 		{
 			// Failed to initialise the common controls.
-			GetErrorString(::GetLastError());
+			Diagnostics::GetErrorString(::GetLastError());
 		}
 		else if (nullptr == (hWndDlg = ::CreateDialog(hInstance, MAKEINTRESOURCE(IDD_MAINWINDOW), nullptr, MainWindow_DialogProc)))
 		{
 			// Failed to create the window.
-			GetErrorString(::GetLastError());
+			Diagnostics::GetErrorString(::GetLastError());
 		}
 		else
 		{
@@ -46,7 +49,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 				if (-1 == bReturn)
 				{
 					// Handle the error and possibly exit.
-					GetErrorString(::GetLastError());
+					Diagnostics::GetErrorString(::GetLastError());
 				}
 				else if (!::IsDialogMessage(hWndDlg, &Msg))
 				{
@@ -63,23 +66,25 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	catch (const std::wstring& exceptionMsg)
 	{
-		wdebugstream() << "WordJewels Solver: " << exceptionMsg << std::endl;
+		wdebugstream() << TEXT("WordJewels Solver: ") << exceptionMsg << std::endl;
+		returnCode = -1;
 	}
 
 	catch (const std::string& exceptionMsg)
 	{
-		std::wstringstream wss;
-		wss << exceptionMsg.c_str();
-
-		wdebugstream() << "WordJewels Solver: " << wss << std::endl;
+		std::wstring wstmp(exceptionMsg.cbegin(), exceptionMsg.cend());
+		wdebugstream() << TEXT("WordJewels Solver: ") << wstmp << std::endl;
+		returnCode = -1;
 	}
 
-	catch (...)
+	catch (const std::exception& e)
 	{
-		wdebugstream() << "WordJewels Solver: Unknown Exception" << std::endl;
+		DiagnosticsTracedThrow(e);
+		returnCode = -1;
 	}
-
-	return 0;
+	
+	wdebugstream() << TEXT("DEBUG: Exitting application") << std::endl;
+	return returnCode;
 }
 
 #endif // defined (WINMAIN)

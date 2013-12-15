@@ -5,10 +5,6 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Intel_SSA|Win32">
-      <Configuration>Intel_SSA</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
@@ -23,19 +19,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler XE 13.0</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Intel_SSA|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler XE 13.0</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Intel C++ Compiler XE 13.0</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -45,24 +35,17 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Intel_SSA|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Intel_SSA|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\Diagnostics\;$(ProjectDir)\Dictionary\;$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\Diagnostics\;$(ProjectDir)\Dictionary\;$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -71,26 +54,6 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\Extensions\Microsoft\ConcurrencyVisualizer\SDK\Native\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>comctl32.lib;strmiids.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <Manifest>
-      <EnableDpiAwareness>true</EnableDpiAwareness>
-    </Manifest>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Intel_SSA|Win32'">
-    <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LevelOfStaticAnalysis>Verbose</LevelOfStaticAnalysis>
-      <ModeOfStaticAnalysis>Full</ModeOfStaticAnalysis>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\Extensions\Microsoft\ConcurrencyVisualizer\SDK\Native\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -125,7 +88,14 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Dictionary.h" />
+    <ClInclude Include="Diagnostics\CallStack.h" />
+    <ClInclude Include="Diagnostics\Diagnostics.h" />
+    <ClInclude Include="Diagnostics\GetErrorString.h" />
+    <ClInclude Include="Diagnostics\TracedThrow.h" />
+    <ClInclude Include="Diagnostics\Win32Result.h" />
+    <ClInclude Include="Diagnostics\WJSErrorHandler.h" />
+    <ClInclude Include="Diagnostics\Win32Error.h" />
+    <ClInclude Include="Dictionary\Dictionary.h" />
     <ClInclude Include="Engine\FastTrie.h" />
     <ClInclude Include="Engine\GameBoard.h" />
     <ClInclude Include="Engine\GameBoardOperators.h" />
@@ -150,29 +120,41 @@
     <ClInclude Include="GUI\resource.h" />
     <ClInclude Include="GUI\VideoFrame_WindowProc.h" />
     <ClInclude Include="Media\CaptureDevice.h" />
-    <ClInclude Include="Media\CaptureDeviceLoader.h" />
+    <ClInclude Include="Media\CaptureDeviceCollection.h" />
     <ClInclude Include="Media\CaptureEngine.h" />
     <ClInclude Include="Media\CaptureEngineCOM.h" />
+    <ClInclude Include="Media\CaptureGraphMgmt.h" />
     <ClInclude Include="Media\CaptureManager.h" />
+    <ClInclude Include="Media\CapturePreviewWindow.h" />
     <ClInclude Include="Media\CaptureSupport.h" />
-    <ClInclude Include="Media\CaptureThread.h" />
     <ClInclude Include="Media\EVR_Renderer.h" />
+    <ClInclude Include="Media\GraphDebugger.h" />
+    <ClInclude Include="Media\ICaptureDevice.h" />
     <ClInclude Include="Media\IVideoRenderer.h" />
+    <ClInclude Include="Media\NullCaptureDevice.h" />
     <ClInclude Include="Media\VMR7_Renderer.h" />
     <ClInclude Include="Media\VMR9_Renderer.h" />
     <ClInclude Include="Support\CoInitialize.h" />
     <ClInclude Include="Support\DebugStream.h" />
     <ClInclude Include="Support\DxVersion.h" />
-    <ClInclude Include="Support\GetErrorString.h" />
     <ClInclude Include="Support\OSVersion.h" />
     <ClInclude Include="Support\SafeRelease.h" />
+    <ClInclude Include="Support\Singleton.h" />
     <ClInclude Include="Support\Stdafx.h" />
     <ClInclude Include="Support\StringConversion.h" />
     <ClInclude Include="Support\Win32GameBoardNode.h" />
     <ClInclude Include="Support\WinMain.h" />
+    <ClInclude Include="Support\WithFinally.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\Dictionary.cpp" />
+    <ClCompile Include="Diagnostics\CallStack.cpp" />
+    <ClCompile Include="Diagnostics\Diagnostics.cpp" />
+    <ClCompile Include="Diagnostics\GetErrorString.cpp" />
+    <ClCompile Include="Diagnostics\TracedThrow.cpp" />
+    <ClCompile Include="Diagnostics\Win32Result.cpp" />
+    <ClCompile Include="Diagnostics\WJSErrorHandler.cpp" />
+    <ClCompile Include="Diagnostics\Win32Error.cpp" />
+    <ClCompile Include="Dictionary\Dictionary.cpp" />
     <ClCompile Include="Engine\FastTrie.cpp" />
     <ClCompile Include="Engine\GameBoard.cpp" />
     <ClCompile Include="Engine\GameBoardOperators.cpp" />
@@ -196,29 +178,43 @@
     <ClCompile Include="GUI\MainWindow_DialogProc.cpp" />
     <ClCompile Include="GUI\VideoFrame_WindowProc.cpp" />
     <ClCompile Include="Media\CaptureDevice.cpp" />
-    <ClCompile Include="Media\CaptureDeviceLoader.cpp" />
+    <ClCompile Include="Media\CaptureDeviceCollection.cpp" />
     <ClCompile Include="Media\CaptureEngine.cpp" />
     <ClCompile Include="Media\CaptureEngineCOM.cpp" />
+    <ClCompile Include="Media\CaptureGraphMgmt.cpp" />
     <ClCompile Include="Media\CaptureManager.cpp" />
+    <ClCompile Include="Media\CapturePreviewWindow.cpp" />
     <ClCompile Include="Media\CaptureSupport.cpp" />
-    <ClCompile Include="Media\CaptureThread.cpp" />
     <ClCompile Include="Media\EVR_Renderer.cpp" />
+    <ClCompile Include="Media\ICaptureDevice.cpp" />
     <ClCompile Include="Media\IVideoRenderer.cpp" />
+    <ClCompile Include="Media\GraphDebugger.cpp" />
+    <ClCompile Include="Media\NullCaptureDevice.cpp" />
     <ClCompile Include="Media\VMR7_Renderer.cpp" />
     <ClCompile Include="Media\VMR9_Renderer.cpp" />
     <ClCompile Include="Support\CoInitialize.cpp" />
     <ClCompile Include="Support\DebugStream.cpp" />
     <ClCompile Include="Support\DxVersion.cpp" />
-    <ClCompile Include="Support\GetErrorString.cpp" />
     <ClCompile Include="Support\OSVersion.cpp" />
     <ClCompile Include="Support\SafeRelease.cpp" />
+    <ClCompile Include="Support\Singleton.cpp" />
     <ClCompile Include="Support\Stdafx.cpp" />
     <ClCompile Include="Support\StringConversion.cpp" />
     <ClCompile Include="Support\Win32GameBoardNode.cpp" />
     <ClCompile Include="Support\WinMain.cpp" />
+    <ClCompile Include="Support\WithFinally.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Dictionary\Dictionary_EN.txt" />
+    <Text Include="Dictionary\dictionary.af.txt" />
+    <Text Include="Dictionary\dictionary.ar.txt" />
+    <Text Include="Dictionary\dictionary.bg.txt" />
+    <Text Include="Dictionary\dictionary.ca.txt" />
+    <Text Include="Dictionary\dictionary.cs.txt" />
+    <Text Include="Dictionary\dictionary.en.txt" />
+    <Text Include="Dictionary\dictionary.es.txt" />
+    <Text Include="Dictionary\dictionary.hr.txt" />
+    <Text Include="Dictionary\dictionary.pt.txt" />
+    <Text Include="Dictionary\dictionary.zh.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="GUI\resource.hm" />
