@@ -7,8 +7,9 @@ Claims that were not verified are marked **unverified**.
 
 ## 1. What is being built
 
-WordJuels (the repository is `wordjewelssolver`; see decision D6) is a Boggle
-game and companion for 5- and 6-year-olds, on tablets first. Two modes:
+WordJewelsSolver is a Boggle game and companion for 5- and 6-year-olds, on
+tablets first, then phones, the web (WebAssembly) and desktop (macOS, Linux and
+Windows). Two modes:
 
 - **Solo Play**: shake a virtual box, dice drop into a 3x3 or 4x4 grid, the
   child traces words with a finger and hears them.
@@ -58,11 +59,11 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | | Decision | Recommendation | Why |
 | --- | --- | --- | --- |
 | D1 | First platforms and how they are distributed | **iPad and Android tablet, both as private builds for your own devices, using the pipelines CountdownSolver already has.** Iterate on desktop and an Android emulator; take iPad builds from CI. | CountdownSolver ships a signed Android APK and an ad-hoc signed IPA (macOS runner, Apple Developer Program certificate and provisioning profile held as repository secrets, an `itms-services` install page) and both have run on your devices. An ad-hoc build installs only on devices registered in its profile, which is what a family tablet needs. A build that only runs on your own devices is not distributed, so no licence or store rule bites yet. Costs to expect: a new App ID and provisioning profile for this app's bundle identifier, which only you can create in the Apple portal, and a CI round trip for every iPad build if you have no Mac. |
-| D2 | Licence, when something leaves the house | Decide **before the first public store submission**, not now. Keep `GPL-3.0-or-later`; avoid Qt modules offered only as GPL-3.0-only (Quick 3D). | This is sole-authored code, so dual-licensing or a store exception is possible. The obstacle is Qt on Apple's stores: Cubeulator's `docs/licensing.md` analyses it and its maintainer chose to skip the Apple stores. A 2D shake animation keeps Quick 3D, and so that problem, out of this app. Not legal advice. |
+| D2 | Licence, when something leaves the house | Decide **before the first public store submission**, not now. Keep `GPL-3.0-or-later` for the source. Whether the board is drawn with Qt Quick 3D (the Cubeulator look) is a design question (PRD section 11, question 13) with a licence consequence. | This is sole-authored code, so dual-licensing or a store exception is possible. The obstacle is Qt on Apple's stores: Cubeulator's `docs/licensing.md` analyses it and its maintainer chose to skip the Apple stores. Qt Quick 3D is offered only as GPL-3.0-only or commercial, so a build that uses it can be conveyed only under GPL-3.0; a build that does not use it keeps "or later". Private builds and GPL downloads are not affected either way. Not legal advice. |
 | D3 | UI toolkit on tablets | Qt Quick everywhere, as now. | One UI, the shell exists, and Cubeulator already ships the mobile build plumbing. The library is Qt-free, so a native iPad UI over it stays possible if D2 forces it. |
 | D4 | Source of word metadata | Candidates: a pronouncing dictionary (syllables, phonemes), a lexical database with hypernyms (categories), published sight-word lists. | **Licence of each must be checked before use**; none is assumed. Metadata is data, kept out of the code. |
 | D5 | Audio | Record phoneme sounds and the words yourself or with a family voice; use speech synthesis only for words and sentences. | Recordings you make carry no third-party licence. A child hears a phoneme, not a letter name. |
-| D6 | Name | Pick one: WordJuels (PRD) or WordJewelsSolver (repository, CMake project, CLI). | A rename is cheap now and expensive after a public release. |
+| D6 | Name | **Decided 2026-10-16: WordJewelsSolver**, as the repository, CMake project and CLI already have it. The brief's working name, WordJuels, is retired. | Settled before any public release. |
 | D7 | Engine word list | **Done:** ENABLE, unmodified. The child-facing layer is an allow-list (categories and a core tier), not a filter over it, so nothing unsuitable can appear by omission. | See G2. |
 
 ## 5. Where the new code goes
@@ -79,6 +80,14 @@ The rule stays: no `#if`, no `#define`, no OS code outside `src/platforms`.
 - **App (`src/app`, QML):** screens and animation; no game rules.
 
 ## 6. Milestones
+
+**The MVP.** The author's categorisation of the first release is PRD section 12.
+It is narrower than M1 to M2b below in what it ships (a hand-filtered phonics
+index of SATPIN words, 3x3 and 4x4 boards, one help level, no voice recording,
+no export, no network capability, no timers) and wider in one respect: it
+includes the camera-to-board scanner (Mode A), which this roadmap had after Solo
+Play. The MVP is iPad first. Where a milestone below disagrees with section 12,
+section 12 wins; the milestones are the full product's order.
 
 ### M1: Solo Play on iPad and Android tablet (private builds)
 
@@ -97,6 +106,8 @@ it, and collect a jewel.
 - Touch tracing with generous tolerance, tested on a real tablet with small
   fingers (the one thing no unit test can settle).
 - Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.
+  The state school-font setting (PRD 7.1) needs each font's redistribution terms
+  checked first, and is **not** part of the exit above until they are.
 - A 3x3 mode and a 4x4 mode.
 
 ### M2: Child-appropriate words and hints
@@ -105,6 +116,32 @@ it, and collect a jewel.
 - Hint engine; "nudge, don't spoil" works in Solo Play too: a hint for a word
   not yet found.
 - Scoring that rewards a child's first 3-letter word.
+
+### M2b: Phonics mode and the parent dashboard
+
+From the PRD sections 7.3 and 7.4, as narrowed by the MVP scope (section 12).
+**Not designed**: the PRD lists the open questions (29 to 69). What is known now
+is what each part depends on.
+
+- **Grapheme and phoneme data** for every word a child can meet, per phase, and
+  the audio of the sounds in an Australian accent. Neither exists in the
+  repository, and the choice of source (authored for a decodable list, or derived
+  from a pronunciation lexicon) is open. The dictionary has no pronunciations.
+- **Phase word sets.** Deriving them by filtering the dictionary yields entries a
+  child does not meet (249 words for the six SATPIN letters, five of them in the
+  early-reader tier), so each phase needs an authored, reviewed list.
+- **Grapheme-block tracing and the sound-it-out sequence**: a presentation layer
+  over the solver's path; the library already takes tiles of one to three
+  letters.
+- **A local store** for progress and found words, with no network capability,
+  behind a parental gate; and the **sound-mastery metrics**, which need the
+  grapheme data above. The MVP keeps no voice clips and no time played.
+- **No export.** The printable PDF and e-mail are outside the MVP (PRD 12.2). If
+  they return, the way a PDF leaves the device on each platform (the system
+  share and print facilities, under `src/platforms`) is the first route by which
+  a child's data would leave it, and needs the privacy review first.
+- **Phase names are generic**: Phonics Phase A and Phonics Phase B (PRD 12.1).
+  Where each phonic sound sits is for the literacy review (G7).
 
 ### M3: 0.1, the first release
 
@@ -135,6 +172,24 @@ policy). Until then iPad builds stay ad-hoc, on registered devices.
 
 The iOS-specific work of M4 is the Vision-based `board_reader`, which lives
 under `src/platforms/ios` as Objective-C++ and is exercised on the iPad.
+
+### M6: reach
+
+The same application on the other targets named in the brief.
+
+- **Phone**: a layout of the same application, in portrait and landscape.
+  The two-thirds / one-third arrangement of the PRD has to be answered for it
+  (PRD section 11, question 12).
+- **Web (WebAssembly)**: a platform fragment for Emscripten. The Qt 6.12.0
+  `wasm_multithread` kit and Emscripten 5.0.5 are already in the shared tree
+  (`C:\Repos\common`) for Cubeulator; Cubeulator's `web-emscripten-*` presets
+  are the pattern. A browser has no camera device the way a tablet does, so
+  Solo Play is the natural whole of it there (question 15). Threads need
+  cross-origin isolation headers from the host.
+- **Desktop application** for macOS, Linux and Windows: the platform fragments
+  exist and the command-line solver is built and tested there; the installers
+  (CPack, notices installed with the program) and the Qt window in CI are
+  what remain.
 
 ### Cross-cutting
 
@@ -177,6 +232,12 @@ release, and between a release and a store.
   [Branch protection](branch-protection.md).
 - **G5 Licence decision recorded** for anything going to a store (D2).
 - **G6 Privacy and child-safety review** (section 8) before any store listing.
+- **G7 Literacy review.** The author has said phonics is not their field. The
+  grapheme and phoneme segmentation, the phase contents, the sound-it-out
+  wording, the recorded sounds, the hand-filtered word lists and the wording of
+  anything shown to a parent are reviewed by a classroom teacher or literacy
+  specialist before any child uses them and before any audio is recorded (PRD
+  12.6).
 
 ## 8. Children, cameras and privacy
 
@@ -189,11 +250,20 @@ Constraints to decide before a camera ships, not a policy:
   Design Code, GDPR Article 8). Apple's Kids Category and Google Play's Families
   policy each add requirements, such as a parental gate for anything outside the
   game. Get these reviewed before M4 reaches a store.
-- Hints and rewards should not nag, time-limit or push the child to continue.
+- Hints and rewards should not nag or push the child to continue. The MVP has
+  no timers or limits and ends a cleared board on a calm resting screen (PRD
+  12.3). A parent-set limit was in the earlier brief and is deferred.
+- A child's progress stays on the device, with no cloud tracking, no network
+  capability, no voice capture and no export, as the author has stated for the
+  MVP (PRD 12.2). A recording of a child's voice and an emailed PDF summary were
+  in the earlier brief and are deferred; each is the kind of feature that needs
+  this review before it returns, because the first is the most sensitive data
+  the application would hold and the second is data leaving the device.
 
 ## 9. Questions for you
 
-1. D6: the name.
+1. The MVP assumptions in PRD questions 58 to 69, above all the dictionary scope,
+   whether the scanner is in the first release, and who the literacy reviewer is.
 2. Is the Apple developer account behind CountdownSolver's profile the one to
    use here, and are the family devices' UDIDs still registered? (A new profile
    for this app is needed either way.)
