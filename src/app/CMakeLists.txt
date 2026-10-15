@@ -34,3 +34,12 @@ target_link_libraries(wjs_app
 wjs_platform_configure_app(wjs_app)
 wjs_platform_deploy_qt_runtime(wjs_app "${CMAKE_CURRENT_SOURCE_DIR}/qml")
 wjs_deploy_sanitizer_runtime(wjs_app)
+
+# The default dictionary the model looks for: dictionaries/en.txt beside the
+# executable (see SolverModel::loadDefaultDictionary).
+add_custom_command(TARGET wjs_app POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:wjs_app>/dictionaries"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/data/dictionaries/en.txt"
+        "$<TARGET_FILE_DIR:wjs_app>/dictionaries/en.txt"
+    COMMENT "Placing the English dictionary beside the application")

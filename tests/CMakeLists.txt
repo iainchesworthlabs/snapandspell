@@ -58,6 +58,13 @@ add_test(NAME platform.fragments
 # too; this is the same check, so a developer sees it fail locally.
 find_program(WJS_PWSH NAMES pwsh)
 if(WJS_PWSH)
+    # The word lists: lowercase a-z, sorted, unique, and every category and
+    # tier word is in the dictionary.
+    add_test(NAME data.wordlists
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${PROJECT_SOURCE_DIR}/tools/data/check_wordlists.ps1"
+            -Root "${PROJECT_SOURCE_DIR}")
+
     add_test(NAME platform.isolation
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/checks/check_platform_isolation.ps1"
