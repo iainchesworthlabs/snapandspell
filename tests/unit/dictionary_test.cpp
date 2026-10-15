@@ -1,0 +1,104 @@
+#include <catch2/catch_test_macros.hpp>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
+#include "wjs/dictionary.hpp"
+
+TEST_CASE("words are found in either case", "[dictionary]") {
+    wjs::Dictionary dictionary;
+    REQUIRE(dictionary.insert("Cat"));
+    REQUIRE(dictionary.insert("DOG"));
+
+    CHECK(dictionary.size() == 2U);
+    CHECK(dictionary.contains("cat"));
+    CHECK(dictionary.contains("CAT"));
+    CHECK(dictionary.contains("dog"));
+    CHECK_FALSE(dictionary.contains("cow"));
+}
+
+TEST_CASE("a prefix is a prefix but not a word", "[dictionary]") {
+    wjs::Dictionary dictionary;
+    dictionary.insert("planet");
+
+    CHECK(dictionary.has_prefix("plan"));
+    CHECK(dictionary.has_prefix(""));
+    CHECK(dictionary.has_prefix("planet"));
+    CHECK_FALSE(dictionary.has_prefix("planets"));
+    CHECK_FALSE(dictionary.contains("plan"));
+    CHECK(dictionary.contains("planet"));
+}
+
+TEST_CASE("something that is not a word of letters is refused", "[dictionary]") {
+    wjs::Dictionary dictionary;
+
+    CHECK_FALSE(dictionary.insert(""));
+    CHECK_FALSE(dictionary.insert("don't"));
+    CHECK_FALSE(dictionary.insert("co-op"));
+    CHECK_FALSE(dictionary.insert("a1"));
+    CHECK(dictionary.size() == 0U);
+    CHECK_FALSE(dictionary.contains("dont"));
+}
+
+TEST_CASE("a word inserted twice is counted once", "[dictionary]") {
+    wjs::Dictionary dictionary;
+    dictionary.insert("tea");
+    dictionary.insert("TEA");
+    dictionary.insert("team");
+
+    CHECK(dictionary.size() == 2U);
+}
+
+TEST_CASE("a cursor follows a word one letter at a time", "[dictionary]") {
+    wjs::Dictionary dictionary;
+    dictionary.insert("TO");
+    dictionary.insert("TOP");
+
+    auto cursor = dictionary.step(wjs::Dictionary::root, 'T');
+    REQUIRE(cursor != wjs::Dictionary::no_node);
+    CHECK_FALSE(dictionary.is_word(cursor));
+
+    cursor = dictionary.step(cursor, 'O');
+    REQUIRE(cursor != wjs::Dictionary::no_node);
+    CHECK(dictionary.is_word(cursor));
+
+    CHECK(dictionary.step(cursor, 'Z') == wjs::Dictionary::no_node);
+    CHECK_FALSE(dictionary.is_word(wjs::Dictionary::no_node));
+}
+
+TEST_CASE("loading skips blanks and lines that are not words", "[dictionary]") {
+    std::istringstream words("cat\r\n\r\ndog\n  bird  \ndon't\nco-op\nCAT\n");
+
+    const auto dictionary = wjs::Dictionary::load(words);
+
+    REQUIRE(dictionary.has_value());
+    CHECK(dictionary->size() == 3U);
+    CHECK(dictionary->contains("cat"));
+    CHECK(dictionary->contains("dog"));
+    CHECK(dictionary->contains("bird"));
+    CHECK_FALSE(dictionary->contains("dont"));
+}
+
+TEST_CASE("a missing file is reported, not thrown", "[dictionary]") {
+    const auto missing = std::filesystem::temp_directory_path() / "wjs_no_such_dictionary.txt";
+
+    const auto dictionary = wjs::Dictionary::load_file(missing);
+
+    REQUIRE_FALSE(dictionary.has_value());
+    CHECK(dictionary.error() == wjs::DictionaryError::cannot_open);
+}
+
+TEST_CASE("a dictionary is read back from a file", "[dictionary]") {
+    const auto path = std::filesystem::temp_directory_path() / "wjs_dictionary_roundtrip.txt";
+    {
+        std::ofstream out(path);
+        out << "apple\nbanana\n";
+    }
+
+    const auto dictionary = wjs::Dictionary::load_file(path);
+    std::filesystem::remove(path);
+
+    REQUIRE(dictionary.has_value());
+    CHECK(dictionary->size() == 2U);
+    CHECK(dictionary->contains("banana"));
+}
