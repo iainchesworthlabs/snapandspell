@@ -15,7 +15,11 @@ set(WJS_PLATFORM_SOURCES
 set(WJS_PLATFORM_LINK_LIBRARIES "")
 set(WJS_PLATFORM_COMPILE_DEFINITIONS "")
 
+# An ordinary executable is already what a Linux desktop launches.
+function(wjs_platform_configure_app target)
+endfunction()
+
 # Nothing to deploy: Qt comes from the system or from CMAKE_PREFIX_PATH and is
 # found at run time the same way.
-function(wjs_platform_deploy_qt_runtime target)
+function(wjs_platform_deploy_qt_runtime target qml_dir)
 endfunction()

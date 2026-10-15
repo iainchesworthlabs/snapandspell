@@ -74,6 +74,9 @@ include(Coverage)
 # Options
 # ---------------------------------------------------------------------------
 option(WJS_BUILD_CLI "Build the wjs-cli command-line solver" ON)
+# Off until CI installs Qt: the application needs a prebuilt Qt 6.12 found via
+# QT_ROOT_DIR or CMAKE_PREFIX_PATH (cmake/FindQt6.cmake), which is not vcpkg's.
+option(WJS_BUILD_APP "Build the Qt Quick application (needs Qt 6.12)" OFF)
 option(WJS_BUILD_TESTS "Build the unit test suite" ON)
 
 # ---------------------------------------------------------------------------
@@ -92,6 +95,14 @@ if(WJS_BUILD_CLI)
     add_subdirectory(src/cli)
 endif()
 
+# The application is a thin Qt Quick layer over the library.
+if(WJS_BUILD_APP)
+    # Found here, not in src/app: imported targets are directory-scoped, and
+    # tests/ links Qt::Core too.
+    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
+    add_subdirectory(src/app)
+endif()
+
 if(WJS_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
@@ -99,4 +110,5 @@ endif()
 
 message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_NAME}")
 message(STATUS "  Build CLI   : ${WJS_BUILD_CLI}")
+message(STATUS "  Build app   : ${WJS_BUILD_APP}")
 message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")

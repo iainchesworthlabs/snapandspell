@@ -21,6 +21,7 @@ set(WJS_PLATFORM_CONTRACT_VARIABLES
     WJS_PLATFORM_COMPILE_DEFINITIONS)
 
 set(WJS_PLATFORM_CONTRACT_HOOKS
+    wjs_platform_configure_app
     wjs_platform_deploy_qt_runtime)
 
 # Checks the fragment that was just included (in the caller's scope):

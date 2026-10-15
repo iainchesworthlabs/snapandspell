@@ -15,7 +15,12 @@ set(WJS_PLATFORM_SOURCES
 set(WJS_PLATFORM_LINK_LIBRARIES "")
 set(WJS_PLATFORM_COMPILE_DEFINITIONS "")
 
+# A graphical program on macOS is an application bundle.
+function(wjs_platform_configure_app target)
+    set_target_properties(${target} PROPERTIES MACOSX_BUNDLE ON)
+endfunction()
+
 # Nothing to deploy yet: the application bundle gets macdeployqt with the
 # packaging work (docs/roadmap.md).
-function(wjs_platform_deploy_qt_runtime target)
+function(wjs_platform_deploy_qt_runtime target qml_dir)
 endfunction()

@@ -38,8 +38,15 @@
 #                                 only target that includes OS headers).
 #
 # Hooks (every platform defines all of them, even as no-ops):
-#   wjs_platform_deploy_qt_runtime(<target>)
-#                                 Puts Qt's runtime next to the built app.
+#   wjs_platform_configure_app(<target>)
+#                                 What makes <target>, the Qt application, a
+#                                 program of this desktop: a GUI-subsystem
+#                                 executable on Windows, an application bundle
+#                                 on macOS.
+#   wjs_platform_deploy_qt_runtime(<target> <qml_dir>)
+#                                 Puts Qt's runtime next to the built program,
+#                                 including the QML modules imported by the
+#                                 QML sources in <qml_dir> ("" if it has none).
 # ---------------------------------------------------------------------------
 include_guard(GLOBAL)
 

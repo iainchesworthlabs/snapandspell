@@ -3,12 +3,17 @@
 # because cmake/ is on CMAKE_MODULE_PATH (CMake tries Module mode, i.e. a
 # Find<Pkg>.cmake, before Config mode).
 #
-# It never replaces Qt6Config.cmake: it only widens CMAKE_PREFIX_PATH with
-# the aqtinstall / install-qt-action layout used by ci/install-qt.ps1 and
-# ci/install-qt.sh (C:/Qt, ~/Qt, /opt/Qt, ...) when Qt6 isn't already
-# discoverable, then defers to Qt's own config package for the real work.
-# An explicit -DCMAKE_PREFIX_PATH=... or -DQt6_DIR=... always wins.
+# It never replaces Qt6Config.cmake: it only widens CMAKE_PREFIX_PATH when Qt6
+# isn't already discoverable - first with QT_ROOT_DIR (what the labs shell
+# environment, C:\Repos\common\env.ps1, and CI export), then with the
+# aqtinstall layout (C:/Qt, ~/Qt, /opt/Qt, ...) each platform fragment lists -
+# and then defers to Qt's own config package for the real work. An explicit
+# -DCMAKE_PREFIX_PATH=... or -DQt6_DIR=... always wins.
 # ---------------------------------------------------------------------------
+
+if(NOT "$ENV{QT_ROOT_DIR}" STREQUAL "")
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{QT_ROOT_DIR}")
+endif()
 
 find_package(Qt6 ${Qt6_FIND_VERSION} CONFIG QUIET COMPONENTS ${Qt6_FIND_COMPONENTS})
 
