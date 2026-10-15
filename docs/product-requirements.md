@@ -54,14 +54,19 @@ there and from `aqtinstall` in CI, not from vcpkg.
 The child plays the game with no physical board.
 
 1. **The board with its lid.** The child sees a Boggle board with its lid on.
-2. **The shake.** The board can be shaken, and the shake is animated.
-3. **The drop.** The dice fall into their slots.
+2. **The shake.** The board can be shaken, and the shake is animated. The
+   author's expectation is a **3D dice shake in a virtual 3D container**, and
+   the tablet's **accelerometer** can be used to shake it, which "would be fun
+   as well". The shake comes with **haptic feedback** and an **audio cue**.
+3. **The drop.** The dice fall into their slots, and a **grid presentation**
+   shows the board when the cubes settle.
 4. **The layout.** The board then moves to the side and occupies two-thirds of
    the screen. The remaining third is a panel split into three parts:
    **words I found**, **history**, and **hints**, and that sort of thing.
-5. **Tracing.** The child traces a word with a finger over the letter dice on
-   the board. Letters light up and speak their phonetic sounds as they are
-   traced (original brief).
+5. **Tracing.** Interaction is by gesture: the child traces a word with a
+   finger over the letter dice on the board, and the tiles **illuminate
+   dynamically** along the path. Letters light up and speak their phonetic
+   sounds as they are traced (original brief).
 6. **Playing on.** When the child is done, a button reshuffles and starts a
    new game, and they can play another game and find more words.
 7. **Gamification.** There can be high scores and a little gamification, "five
@@ -133,6 +138,25 @@ offered only under GPL-3.0-only or a commercial licence, which is why
 Cubeulator recorded, and deferred, the Apple-store question. Its design
 documents set a 48 px minimum touch target, 56 px on the scan screen and 96 px
 on the solve screen. See [Licensing](licensing.md).
+
+### 7.1 Gamification and child-centric UI requirements
+
+To keep early readers engaged, the interaction design follows strict
+kid-centric feedback loops (the author's requirements, 2026-10-16):
+
+- **Celebration mechanics.** When a valid word is completed by tracing, a
+  cascade of visual praise is triggered (for example confetti particles or
+  floating stars), paired with audio pronunciation. The app speaks the word
+  aloud: "C-A-T... Cat! Great job!"
+- **Progress tracking.** No negative point penalties and no harsh buzzers for
+  invalid words. Simple star counters or collectible virtual badges reward
+  successful sessions.
+- **Accessible typography.** Large, child-friendly sans-serif fonts in which
+  the distinction between lowercase and uppercase is very clear, avoiding the
+  ambiguous shapes of "I", "l" and "1".
+
+These sit alongside the high scores and light gamification of section 3, and
+mean that nothing in the application subtracts from a child's progress.
 
 ## 8. Performance
 
@@ -232,3 +256,13 @@ these. They are questions, not recommendations.
     to be supported, and which parts of it are measured by a test?
 15. What does the application do without a camera (the browser, a desktop with
     none): is Solo Play the whole of it there?
+16. What does the application do and say when a traced path is not a word, or
+    is a real word outside the child's vocabulary tier? Section 7.1 rules out a
+    penalty and a harsh buzzer; what replaces them?
+17. What are the stars and badges earned for (a session, a number of words, a
+    long word, a new category), what do they look like, and where are they kept?
+18. Which typeface meets the clarity requirement of section 7.1 when the actual
+    letters "I", "l", "1", "O" and "0" are set at the sizes used on the dice,
+    and does it also suit the on-screen replica of the physical dice in the
+    Family Companion? This is checked by looking at the glyphs, not assumed from
+    a face's description.
