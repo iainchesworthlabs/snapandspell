@@ -81,6 +81,14 @@ The rule stays: no `#if`, no `#define`, no OS code outside `src/platforms`.
 
 ## 6. Milestones
 
+**The MVP.** The author's categorisation of the first release is PRD section 12.
+It is narrower than M1 to M2b below in what it ships (a hand-filtered phonics
+index of SATPIN words, 3x3 and 4x4 boards, one help level, no voice recording,
+no export, no network capability, no timers) and wider in one respect: it
+includes the camera-to-board scanner (Mode A), which this roadmap had after Solo
+Play. The MVP is iPad first. Where a milestone below disagrees with section 12,
+section 12 wins; the milestones are the full product's order.
+
 ### M1: Solo Play on iPad and Android tablet (private builds)
 
 The whole of Solo Play, nothing else. Exit: the app installs on your iPad and
@@ -98,6 +106,8 @@ it, and collect a jewel.
 - Touch tracing with generous tolerance, tested on a real tablet with small
   fingers (the one thing no unit test can settle).
 - Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.
+  The state school-font setting (PRD 7.1) needs each font's redistribution terms
+  checked first, and is **not** part of the exit above until they are.
 - A 3x3 mode and a 4x4 mode.
 
 ### M2: Child-appropriate words and hints
@@ -106,6 +116,32 @@ it, and collect a jewel.
 - Hint engine; "nudge, don't spoil" works in Solo Play too: a hint for a word
   not yet found.
 - Scoring that rewards a child's first 3-letter word.
+
+### M2b: Phonics mode and the parent dashboard
+
+From the PRD sections 7.3 and 7.4, as narrowed by the MVP scope (section 12).
+**Not designed**: the PRD lists the open questions (29 to 69). What is known now
+is what each part depends on.
+
+- **Grapheme and phoneme data** for every word a child can meet, per phase, and
+  the audio of the sounds in an Australian accent. Neither exists in the
+  repository, and the choice of source (authored for a decodable list, or derived
+  from a pronunciation lexicon) is open. The dictionary has no pronunciations.
+- **Phase word sets.** Deriving them by filtering the dictionary yields entries a
+  child does not meet (249 words for the six SATPIN letters, five of them in the
+  early-reader tier), so each phase needs an authored, reviewed list.
+- **Grapheme-block tracing and the sound-it-out sequence**: a presentation layer
+  over the solver's path; the library already takes tiles of one to three
+  letters.
+- **A local store** for progress and found words, with no network capability,
+  behind a parental gate; and the **sound-mastery metrics**, which need the
+  grapheme data above. The MVP keeps no voice clips and no time played.
+- **No export.** The printable PDF and e-mail are outside the MVP (PRD 12.2). If
+  they return, the way a PDF leaves the device on each platform (the system
+  share and print facilities, under `src/platforms`) is the first route by which
+  a child's data would leave it, and needs the privacy review first.
+- **Phase names are generic**: Phonics Phase A and Phonics Phase B (PRD 12.1).
+  Where each phonic sound sits is for the literacy review (G7).
 
 ### M3: 0.1, the first release
 
@@ -196,6 +232,12 @@ release, and between a release and a store.
   [Branch protection](branch-protection.md).
 - **G5 Licence decision recorded** for anything going to a store (D2).
 - **G6 Privacy and child-safety review** (section 8) before any store listing.
+- **G7 Literacy review.** The author has said phonics is not their field. The
+  grapheme and phoneme segmentation, the phase contents, the sound-it-out
+  wording, the recorded sounds, the hand-filtered word lists and the wording of
+  anything shown to a parent are reviewed by a classroom teacher or literacy
+  specialist before any child uses them and before any audio is recorded (PRD
+  12.6).
 
 ## 8. Children, cameras and privacy
 
@@ -208,11 +250,20 @@ Constraints to decide before a camera ships, not a policy:
   Design Code, GDPR Article 8). Apple's Kids Category and Google Play's Families
   policy each add requirements, such as a parental gate for anything outside the
   game. Get these reviewed before M4 reaches a store.
-- Hints and rewards should not nag, time-limit or push the child to continue.
+- Hints and rewards should not nag or push the child to continue. The MVP has
+  no timers or limits and ends a cleared board on a calm resting screen (PRD
+  12.3). A parent-set limit was in the earlier brief and is deferred.
+- A child's progress stays on the device, with no cloud tracking, no network
+  capability, no voice capture and no export, as the author has stated for the
+  MVP (PRD 12.2). A recording of a child's voice and an emailed PDF summary were
+  in the earlier brief and are deferred; each is the kind of feature that needs
+  this review before it returns, because the first is the most sensitive data
+  the application would hold and the second is data leaving the device.
 
 ## 9. Questions for you
 
-1. D6: the name.
+1. The MVP assumptions in PRD questions 58 to 69, above all the dictionary scope,
+   whether the scanner is in the first release, and who the literacy reviewer is.
 2. Is the Apple developer account behind CountdownSolver's profile the one to
    use here, and are the family devices' UDIDs still registered? (A new profile
    for this app is needed either way.)
