@@ -57,3 +57,13 @@ nav:
       - Product requirements: product-requirements.md
       - Roadmap: roadmap.md
       - Licensing: licensing.md
+  - Design:
+      - Overview: design/index.md
+      - Answers to the open questions: design/answers.md
+      - Game: design/game.md
+      - Phonics: design/phonics.md
+      - Board: design/board.md
+      - Application: design/application.md
+      - Parent dashboard: design/dashboard.md
+      - Performance: design/performance.md
+      - From the MVP to the full product: design/path.md

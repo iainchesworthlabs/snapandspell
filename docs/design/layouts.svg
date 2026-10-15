@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 530" width="980" height="530" role="img" aria-labelledby="t d" font-family="Helvetica, Arial, sans-serif">
+  <title id="t">The two-thirds and one-third layout at four window shapes</title>
+  <desc id="d">A tablet on its side, a tablet upright, a phone upright and a phone on its side, drawn to one scale. In each the board takes the leading two thirds of a wide window or the top two thirds of a tall one, and the panel takes the rest.</desc>
+  <rect width="980" height="530" fill="#FBF8F1"/>
+  <text x="20" y="28" font-size="16" font-weight="700" fill="#1F2A37">Two thirds board, one third panel: four window shapes, to one scale (1 px here = 4 dp)</text>
+  <g transform="translate(20 60)">
+    <rect x="0" y="0" width="320" height="200" fill="#FFFFFF" stroke="#1F2A37" stroke-width="2"/>
+    <rect x="0" y="0" width="213.3" height="200" fill="#EFE9DA"/>
+    <rect x="12.7" y="6" width="188" height="188" fill="#1F2A37"/>
+    <rect x="12.7" y="6" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="60.2" y="6" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="107.7" y="6" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="155.2" y="6" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="12.7" y="53.5" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="60.2" y="53.5" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="107.7" y="53.5" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="155.2" y="53.5" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="12.7" y="101" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="60.2" y="101" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="107.7" y="101" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="155.2" y="101" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="12.7" y="148.5" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="60.2" y="148.5" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="107.7" y="148.5" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="155.2" y="148.5" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="213.3" y="0" width="106.7" height="200" fill="#DCE6F2" stroke="#1F2A37" stroke-width="1"/>
+    <rect x="215.3" y="2" width="102.7" height="115.2" fill="#FFFFFF" stroke="#1F2A37"/>
+    <rect x="215.3" y="119.2" width="102.7" height="38.4" fill="#FFD54F" stroke="#1F2A37"/>
+    <rect x="215.3" y="159.6" width="102.7" height="38.4" fill="#FFFFFF" stroke="#1F2A37"/>
+    <text x="0" y="218" font-size="13" font-weight="700" fill="#1F2A37">Tablet on its side</text>
+    <text x="0" y="234" font-size="12" fill="#4A5666">1280 x 800 dp</text>
+    <text x="0" y="250" font-size="12" fill="#4A5666">4x4 tile 182 dp, 6x6 tile 119 dp</text>
+  </g>
+  <g transform="translate(380 60)">
+    <rect x="0" y="0" width="200" height="320" fill="#FFFFFF" stroke="#1F2A37" stroke-width="2"/>
+    <rect x="0" y="0" width="200" height="213.3" fill="#EFE9DA"/>
+    <rect x="6" y="12.7" width="188" height="188" fill="#1F2A37"/>
+    <rect x="6" y="12.7" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="53.5" y="12.7" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="101" y="12.7" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="148.5" y="12.7" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="6" y="60.2" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="53.5" y="60.2" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="101" y="60.2" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="148.5" y="60.2" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="6" y="107.7" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="53.5" y="107.7" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="101" y="107.7" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="148.5" y="107.7" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="6" y="155.2" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="53.5" y="155.2" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="101" y="155.2" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="148.5" y="155.2" width="45.5" height="45.5" fill="#FFF8E1"/>
+    <rect x="0" y="213.3" width="200" height="106.7" fill="#DCE6F2" stroke="#1F2A37" stroke-width="1"/>
+    <rect x="2" y="215.3" width="196" height="62.4" fill="#FFFFFF" stroke="#1F2A37"/>
+    <rect x="2" y="279.7" width="97" height="38.3" fill="#FFD54F" stroke="#1F2A37"/>
+    <rect x="101" y="279.7" width="97" height="38.3" fill="#FFFFFF" stroke="#1F2A37"/>
+    <text x="0" y="338" font-size="13" font-weight="700" fill="#1F2A37">Tablet upright</text>
+    <text x="0" y="354" font-size="12" fill="#4A5666">800 x 1280 dp</text>
+    <text x="0" y="370" font-size="12" fill="#4A5666">4x4 tile 182 dp, 6x6 tile 119 dp</text>
+  </g>
+  <g transform="translate(620 60)">
+    <rect x="0" y="0" width="90" height="185" fill="#FFFFFF" stroke="#1F2A37" stroke-width="2"/>
+    <rect x="0" y="0" width="90" height="123.3" fill="#EFE9DA"/>
+    <rect x="3" y="19.7" width="84" height="84" fill="#1F2A37"/>
+    <rect x="3" y="19.7" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="24.4" y="19.7" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="45.8" y="19.7" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="67.1" y="19.7" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="3" y="41" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="24.4" y="41" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="45.8" y="41" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="67.1" y="41" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="3" y="62.4" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="24.4" y="62.4" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="45.8" y="62.4" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="67.1" y="62.4" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="3" y="83.8" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="24.4" y="83.8" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="45.8" y="83.8" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="67.1" y="83.8" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="0" y="123.3" width="90" height="61.7" fill="#DCE6F2" stroke="#1F2A37" stroke-width="1"/>
+    <rect x="2" y="125.3" width="86" height="34.5" fill="#FFFFFF" stroke="#1F2A37"/>
+    <rect x="2" y="161.8" width="42" height="21.2" fill="#FFD54F" stroke="#1F2A37"/>
+    <rect x="46" y="161.8" width="42" height="21.2" fill="#FFFFFF" stroke="#1F2A37"/>
+    <text x="0" y="203" font-size="13" font-weight="700" fill="#1F2A37">Phone upright</text>
+    <text x="0" y="219" font-size="12" fill="#4A5666">360 x 740 dp</text>
+    <text x="0" y="235" font-size="12" fill="#4A5666">4x4 tile 80 dp, 6x6 tile 51 dp</text>
+  </g>
+  <g transform="translate(760 60)">
+    <rect x="0" y="0" width="185" height="90" fill="#FFFFFF" stroke="#1F2A37" stroke-width="2"/>
+    <rect x="0" y="0" width="123.3" height="90" fill="#EFE9DA"/>
+    <rect x="19.7" y="3" width="84" height="84" fill="#1F2A37"/>
+    <rect x="19.7" y="3" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="41" y="3" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="62.4" y="3" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="83.8" y="3" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="19.7" y="24.4" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="41" y="24.4" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="62.4" y="24.4" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="83.8" y="24.4" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="19.7" y="45.8" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="41" y="45.8" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="62.4" y="45.8" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="83.8" y="45.8" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="19.7" y="67.1" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="41" y="67.1" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="62.4" y="67.1" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="83.8" y="67.1" width="19.9" height="19.9" fill="#FFF8E1"/>
+    <rect x="123.3" y="0" width="61.7" height="90" fill="#DCE6F2" stroke="#1F2A37" stroke-width="1"/>
+    <rect x="125.3" y="2" width="57.7" height="49.2" fill="#FFFFFF" stroke="#1F2A37"/>
+    <rect x="125.3" y="53.2" width="57.7" height="16.4" fill="#FFD54F" stroke="#1F2A37"/>
+    <rect x="125.3" y="71.6" width="57.7" height="16.4" fill="#FFFFFF" stroke="#1F2A37"/>
+    <text x="0" y="108" font-size="13" font-weight="700" fill="#1F2A37">Phone on its side</text>
+    <text x="0" y="124" font-size="12" fill="#4A5666">740 x 360 dp</text>
+    <text x="0" y="140" font-size="12" fill="#4A5666">4x4 tile 80 dp, 6x6 tile 51 dp</text>
+  </g>
+  <g font-size="12" fill="#1F2A37">
+    <rect x="20" y="470" width="14" height="14" fill="#1F2A37"/><text x="40" y="482">the board, with its tiles</text>
+    <rect x="200" y="470" width="14" height="14" fill="#FFFFFF" stroke="#1F2A37"/><text x="220" y="482">words I found (the tray)</text>
+    <rect x="400" y="470" width="14" height="14" fill="#FFD54F" stroke="#1F2A37"/><text x="420" y="482">hints (the start tile)</text>
+    <rect x="580" y="470" width="14" height="14" fill="#FFFFFF" stroke="#1F2A37"/><text x="600" y="482">history (a button on a phone)</text>
+    <text x="20" y="508" fill="#4A5666">Inset 24 dp (12 dp when the board area is under 600 dp); gap 8 dp (6 dp). Sizes are typical logical sizes, not the author's devices.</text>
+  </g>
+</svg>
