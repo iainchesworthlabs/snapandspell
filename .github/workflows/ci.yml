@@ -247,7 +247,7 @@ jobs:
       # does not carry the tools for.
       - name: Install what vcpkg needs for Tracy's tools (Linux profiling)
         if: ${{ matrix.leg == 'profiling-linux' }}
-        run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool python3-venv
+        run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev python3-venv
 
       # No Qt: the GUI application is behind WJS_BUILD_APP (off), and CI does
       # not install Qt until that application is built here.

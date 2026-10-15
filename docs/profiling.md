@@ -35,7 +35,7 @@ everything:
 On Windows the client is a DLL: vcpkg puts `TracyClient.dll` beside each program
 it was linked into. **On Linux** vcpkg builds the tools from `dbus` upward
 (`libxcrypt`, `libsystemd`), which needs `autoconf`, `autoconf-archive`,
-`automake`, `libtool` and `python3-venv` installed first; the first configure
+`automake`, `libtool`, `libltdl-dev` and `python3-venv` installed first; the first configure
 takes several minutes (6 in a clean container), and vcpkg's binary cache makes
 the next one quick. The tools are in
 `build/<preset>/vcpkg_installed/<triplet>/tools/tracy/`.
