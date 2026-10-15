@@ -98,7 +98,7 @@ them.
 | Adds | Depends on |
 | --- | --- |
 | A store submission (TestFlight, App Store, Google Play) | Roadmap D2 (the licence) and G6 (privacy and child-safety review) |
-| The scene decision, 3D or 2D | D2, with the scene seam in hand ([Board](board.md#rendered-3d-or-drawn-in-2d)) |
+| Whether the store build keeps the 3D scene (the MVP's is 3D, decided by the author on 2026-10-16) or swaps in the 2D one | D2, with the scene seam in hand ([Board](board.md#rendered-3d-or-drawn-in-2d)) |
 | An accessibility audit with real people | A screen reader on each target; children |
 | A parental gate checked against each store's rules | The stores' current policies, read |
 
@@ -161,6 +161,6 @@ additions, not rewrites. They cost little now.
    file is on another branch; this page proposes it and does not edit it.
 3. **Is R4 (more devices) before R3 (bigger boards)?** The brief names Android
    tablet and phone as platforms; the author's own devices decide.
-4. **Is the web a release or a by-product?** The browser build is cheap once
+4. **Should D2 in the roadmap record the decision?** The MVP links Qt Quick 3D by\n   the author's decision of 2026-10-16, so its binary is GPL-3.0 only; D2 still\n   decides what a store build does. A line in D2 saying so would stop the\n   roadmap and these pages disagreeing.\n5. **Is the web a release or a by-product?** The browser build is cheap once
    the fragment exists, and it is the one target with no accelerometer, no
    known speech and a memory limit.

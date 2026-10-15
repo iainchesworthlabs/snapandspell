@@ -105,16 +105,16 @@ the board in the leading two-thirds, tall puts it in the top two-thirds. The
 panel keeps three roles at a density that fits. See
 [Board](board.md#the-rule) and [layouts.svg](layouts.svg).
 
-**13. 3D, 2D or scripted, and a physics engine?** *design; **Author**.* The brief
-now expects a 3D dice shake in a 3D container. **Recommendation: Qt Quick 3D
-behind a one-component seam for the MVP, scripted, with no physics engine, the
-decision at D2.** The MVP is a private build, which no licence rule touches; the
-cost (a binary that is GPL-3.0 only, and Apple's store) comes only at a store
-submission, when the seam makes the alternative a rewrite of one component. A
-physics engine would decide the board that the game has already decided. The
-reverse (2D now) is just as legitimate and is put to the author. Checked in the
-shared tree's SBOMs: `Quick3D` is Commercial or GPL-3.0-only; Quick and
-Particles carry the LGPL option. See [Board](board.md#the-shake-and-the-drop).
+**13. 3D, 2D or scripted, and a physics engine?** *Decided by the author,
+2026-10-16.* The brief expects a 3D dice shake in a 3D container, and the author
+accepted the recommendation: **Qt Quick 3D behind a one-component seam for the
+MVP, scripted, with no physics engine, and the licence decision left at D2.**
+The MVP is a private build, which no licence rule touches; the cost (a binary
+that is GPL-3.0 only, and Apple's store) comes only at a store submission,
+when the seam makes the alternative a rewrite of one component. A physics engine
+would decide the board that the game has already decided. Checked in the shared
+tree's SBOMs: `Quick3D` is Commercial or GPL-3.0-only; Quick and Particles carry
+the LGPL option. See [Board](board.md#the-shake-and-the-drop).
 
 **14. What are the budgets, and what does a test measure?** *design; **Author**
 to name the lowest device.* A 16.7 ms frame; no frame over 33 ms in the shake;

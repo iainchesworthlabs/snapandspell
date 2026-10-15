@@ -60,8 +60,8 @@ not removed.
    sounds a word out; it knows no letter or sound.
 6. **The shake is scripted, not simulated**, and the scene is one component
    with a narrow interface. 3D (Qt Quick 3D) for the MVP's private build,
-   with the licence decision (GPL-3.0 only for a build that links it) taken at
-   D2 before any store.
+   **decided by the author**, with the licence decision (GPL-3.0 only for a
+   build that links it) taken at D2 before any store.
 7. **Privacy is built in and checked in CI from the first build**: no audio
    input, no network capability, no export, a local store of a few kilobytes,
    no profiler in what ships.
@@ -77,20 +77,23 @@ not removed.
 
 ## Questions for the author
 
-In the order they are best asked, each with the default this design uses so
-nothing waits.
+**Decided.** The MVP's shake is 3D, in Qt Quick 3D, behind a one-component
+seam, with the licence decision left at D2 before any store (the author,
+2026-10-16; [Board](board.md#rendered-3d-or-drawn-in-2d)).
+
+The rest, in the order they are best asked, each with the default this design
+uses so nothing waits.
 
 | # | Question | Default |
 | --- | --- | --- |
-| 1 | **3D or 2D for the shake?** The brief expects 3D and "the Cubeulator look". 3D costs a GPL-3.0-only binary, which matters at a store, not in a private build | 3D behind a seam in the MVP; decide at D2 ([Board](board.md#rendered-3d-or-drawn-in-2d)) |
-| 2 | **Which are the lowest iPad, tablet and phone** to support, and on which operating system? | Budgets are written for "the lowest device" |
-| 3 | **Who is the literacy reviewer, and who writes the Phase A index?** Needed before any audio is recorded and before a child uses it (question 69) | Not named; the mechanism is built first |
-| 4 | **Are worlds, the mascot, the vault's art and school fonts in the MVP?** Section 12.5 does not say | Not in the MVP; R2 ([Path](path.md)) |
-| 5 | **Should the app's data be excluded from device backups?** "Air-gapped" says yes; a lost iPad would then lose the progress | Undecided |
-| 6 | **Which English?** Spelling, the voice's accent and the phonics set (the brief asks about Australian English) | The reviewer's |
-| 7 | **How should the history on `feature/product-design` be handled** for the programme names (question 66)? A fresh branch from `develop` holding the final tree needs no force-push | A fresh branch |
-| 8 | **Is a scoreboard against other players out for good** (question 5)? | Out |
-| 9 | **Is the order of releases right** ([Path](path.md))? | As written |
+| 1 | **Which are the lowest iPad, tablet and phone** to support, and on which operating system? | Budgets are written for "the lowest device" |
+| 2 | **Who is the literacy reviewer, and who writes the Phase A index?** Needed before any audio is recorded and before a child uses it (question 69) | Not named; the mechanism is built first |
+| 3 | **Are worlds, the mascot, the vault's art and school fonts in the MVP?** Section 12.5 does not say | Not in the MVP; R2 ([Path](path.md)) |
+| 4 | **Should the app's data be excluded from device backups?** "Air-gapped" says yes; a lost iPad would then lose the progress | Undecided |
+| 5 | **Which English?** Spelling, the voice's accent and the phonics set (the brief asks about Australian English) | The reviewer's |
+| 6 | **How should the history on `feature/product-design` be handled** for the programme names (question 66)? A fresh branch from `develop` holding the final tree needs no force-push | A fresh branch |
+| 7 | **Is a scoreboard against other players out for good** (question 5)? | Out |
+| 8 | **Is the order of releases right** ([Path](path.md))? | As written |
 
 ## Questions for the reviewer
 

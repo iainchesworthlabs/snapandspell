@@ -225,10 +225,10 @@ it though the source files stay "or later"; and leaving Quick 3D out does not
 cure the Apple store question, because the LGPL has its own conflict with
 stores.
 
-**Recommendation: A for the MVP, behind a seam, with the choice taken at D2.**
-The MVP is a private ad-hoc build on the author's iPad, which the roadmap says
-no licence rule touches. The author expects 3D and a lit solid is what Cubeulator
-has. The cost comes only at a store submission, so:
+**Decided (the author, 2026-10-16): A for the MVP, behind a seam, with the choice
+taken at D2.** The MVP is a private ad-hoc build on the author's iPad, which the
+roadmap says no licence rule touches. The author expects 3D and a lit solid is
+what Cubeulator has. The cost comes only at a store submission, so:
 
 1. The board scene is one component with a narrow interface: *given a finished
    board and a seed, play the shake and the drop, and report when the dice are
@@ -240,11 +240,11 @@ has. The cost comes only at a store submission, so:
 3. Before any store submission D2 is decided with the interface in hand, and the
    cost of B is a rewrite of one component, not of the game.
 
-The reverse choice (B now) is just as legitimate: it keeps "or later" and costs
-a flatter look. It is put to the author on [Questions for the
-author](index.md#questions-for-the-author). Two more modules the product needs
-are not in the shared tree at all; see [Application
-design](application.md#qt-modules).
+What this commits the MVP to: Qt Quick 3D and Shader Tools are linked, so the MVP
+binary is GPL-3.0 only, which a private build does not mind and a store
+submission would. It does not decide D2: that is taken before any store, with
+the seam in hand. Two more modules the product needs are not in the shared tree
+at all; see [Application design](application.md#qt-modules).
 
 ### How it is drawn
 
