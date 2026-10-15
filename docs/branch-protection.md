@@ -1,0 +1,227 @@
+# Branch protection, rulesets and the merge queue
+
+GitHub's repository rules cannot be expressed as a workflow file. Here they are
+kept as code, in `.github/rulesets/*.json` (the JSON body of the REST API's
+"Create a repository ruleset"), and `tools/repo/apply_rulesets.ps1` is the one
+way they reach GitHub. This page records what they say and why, so the settings
+can be rebuilt or audited from the page alone.
+
+## Status: not applied - the repository is private on GitHub Free
+
+On GitHub Free, **rulesets, branch protection and the merge queue are not
+available for a private repository.** This is verified, not assumed: the API
+answers
+
+```text
+GET /repos/{owner}/{repo}/rulesets  ->  403
+"Upgrade to GitHub Pro or make this repository public to enable this feature."
+```
+
+So until the repository is public there is nothing to configure, and the
+enforcement is the workflows (`ci.yml`, `branch-name-check.yml`,
+`commit-policy.yml`) plus the local hooks in `tools/hooks`
+([CI, text policy and local hooks](ci.md)). The plan is to run
+
+```sh
+./tools/repo/apply_rulesets.ps1 -Apply
+```
+
+at the moment the repository is made public (the first 0.1 release). The
+script checks that rulesets are available first and stops with an explanation
+when they are not, so running it too early is harmless.
+
+## The flow
+
+```text
+feature/* bugfix/* ──PR──▶ merge queue ──▶ develop ──release PR──▶ main
+                                                        ▲
+                                   release/* hotfix/* support/* ─┘
+```
+
+- **Topic branches** (`feature/*`, `bugfix/*`, `release/*`, `hotfix/*`,
+  `support/*`, plus Dependabot's `dependabot/*`) open a pull request against
+  `develop`; a ready PR goes into the **merge queue**. Nobody pushes to
+  `develop` directly.
+- **`develop` → `main`** is a release step: a merge commit, never a squash or
+  rebase (or the two branches diverge and the next release PR re-lists every
+  commit). Hotfixes go to `main` from `hotfix/*` and are merged back into
+  `develop` through a PR.
+- **Head branches are deleted** when their PR merges.
+
+## The rulesets
+
+| File | Ruleset (name) | Applies to | What it does |
+| --- | --- | --- | --- |
+| `main-protection.json` | `main-protection` | `refs/heads/main` | Pull request required; required checks with "up to date" **on**; conversations resolved; no deletion; no force push. |
+| `develop-protection.json` | `develop-protection` | `refs/heads/develop` | Pull request required; required checks with "up to date" **off** (the queue makes each entry current); no deletion; no force push. |
+| `merge-queue-develop.json` | `merge-queue-develop` | `refs/heads/develop` | The merge queue: merge commits, `ALLGREEN`, build up to 4 entries and merge up to 5, wait 1 minute, 180-minute check timeout. |
+| `branch-names.json` | `branch-names` | every branch (`~ALL`, nothing excluded) | Only the allowed branch names can be created. No bypass actors. |
+
+### `main-protection` and `develop-protection`
+
+- **Require a pull request**, with **0 required approvals** and stale
+  approvals dismissed on push. Zero, not one: this is a solo-maintainer
+  repository and GitHub does not count an author's own approval, so a required
+  approval could only ever be met by bypassing it. Merge method: **merge
+  commit only**.
+- **Require status checks**, the list in the table below. `main` also requires
+  the branch to be up to date and review conversations to be resolved.
+- **Block deletion and non-fast-forward** (force) pushes.
+- The repository **admin role may bypass through a pull request only**
+  (`bypass_mode: pull_request`): a direct push stays blocked even for an admin,
+  and skipping a requirement is a deliberate "merge without waiting" on a PR.
+
+### `merge-queue-develop`
+
+One `merge_queue` rule. A PR enters the queue once it is ready (or earlier,
+with auto-merge: `gh pr merge --auto --merge <n>`). GitHub then builds a
+temporary `gh-readonly-queue/develop/pr-<n>-<sha>` branch - the PR merged onto
+the queue's tip - re-runs the required checks on *that* tree, and merges only
+if they pass. This is why every workflow that produces a required check also
+triggers on `merge_group` (see [Required checks](#required-checks)).
+
+### `branch-names`
+
+A `branch_name_pattern` rule, operator `regex`, matched against the branch
+name:
+
+```text
+^(main|develop|(feature|bugfix|release|hotfix|support|dependabot)/.+|gh-readonly-queue/.+)$
+```
+
+A branch whose name does not match - a tool-named session branch, a typo, a
+bare `fix-thing` - is refused when it is created, at push time, before any
+workflow runs. There are **no bypass actors**: not even an admin can push a
+non-matching name. The same allow-list is applied earlier and softer by
+`tools/hooks/pre-push` (locally) and `Validate gitflow branch name` (on the
+pull request).
+
+Consequences worth knowing:
+
+- **`gh-readonly-queue/.+` is in the pattern** because the merge queue creates
+  its temporary branches under that prefix and they must be creatable. If
+  GitHub is found to exempt queue branches from this rule, the alternative can
+  be dropped; leaving it in costs nothing but allowing a hand-made branch with
+  that prefix.
+- **GitHub's "Revert" button on a merged PR** creates a `revert-<n>-...`
+  branch, which is refused. Revert with `git revert` on a gitflow-named branch
+  instead.
+- **The default branch must already be a conforming name** (`develop` or
+  `main`) when the ruleset is applied; today the repository's default branch is
+  a backup branch with a non-conforming name.
+- Branches created in the web UI must follow the same names.
+- Existing non-conforming branches are not renamed by the rule; delete or
+  rename them.
+
+## Required checks
+
+The required contexts equal the job display names of the three workflows that
+produce them:
+
+| Check (context) | Workflow | Required on `develop` | Required on `main` |
+| --- | --- | --- | --- |
+| `Validate gitflow branch name` | `branch-name-check.yml` | yes | yes |
+| `Validate commit and PR text` | `commit-policy.yml` | yes | yes |
+| `clang-format` | `ci.yml` | yes | yes |
+| `platform-isolation` | `ci.yml` | yes | yes |
+| `Plan build legs` | `ci.yml` | yes | yes |
+| `Windows (MSVC)` | `ci.yml` | yes | yes |
+| `Linux (GCC)` | `ci.yml` | yes | yes |
+| `macOS (AppleClang)` | `ci.yml` | yes | yes |
+| `Coverage (Linux, GCC)` | `ci.yml` | yes | yes |
+| `Scan dependency diff` | `dependency-review.yml` | **staged** | **staged** |
+
+### Staging of `Scan dependency diff`
+
+`dependency-review.yml` is public-only: its job is skipped while the repository
+is private, so it cannot have reported a result before the rulesets exist.
+Requiring a check that has never reported leaves every pull request waiting on
+it, so it is **not** in the JSON files. The sequence is:
+
+1. Make the repository public and apply the rulesets (above).
+2. Open the first pull request after that; let `Scan dependency diff` report
+   (it also needs the dependency graph switched on in the repository's
+   security settings).
+3. Add `{ "context": "Scan dependency diff" }` to the `required_status_checks`
+   list in `develop-protection.json` and `main-protection.json`, commit, and
+   run `apply_rulesets.ps1 -Apply` again (it updates by name).
+
+`Analyze (C++)` (CodeQL) is informational and is not required.
+
+### The `merge_group` rule
+
+Two rules keep the queue honest:
+
+- **Every workflow that produces a required check must also trigger on
+  `merge_group`.** GitHub only runs workflows that opt in on the queue's
+  temporary ref; a required check from one that does not never reports, and
+  the entry sits until `check_response_timeout_minutes` expires.
+  `ci.yml`, `branch-name-check.yml`, `commit-policy.yml` and
+  `dependency-review.yml` carry it.
+- **A workflow that produces no required check must not carry
+  `merge_group`**, or every queue entry burns a full run of it for nothing.
+  `codeql.yml` and `scorecard.yml` do not.
+
+A queue entry has no head branch name, PR title or PR body of its own, so
+`Validate gitflow branch name` and `Validate commit and PR text` skip their job
+there (checked when the PR was opened or edited); a skipped job counts as a
+pass for a required check. Changing a required check's name in a workflow
+without changing the rulesets leaves a context that never reports: change both
+in one commit.
+
+## Applying the rulesets
+
+`tools/repo/apply_rulesets.ps1` creates or updates each ruleset **by name**
+through the `gh` CLI, so it is idempotent. It is a **dry run by default**: it
+reads (GET only), prints the exact payload it would send for each file and
+whether that would be a create, an update or "unchanged", and sends nothing.
+
+```sh
+./tools/repo/apply_rulesets.ps1                    # dry run, prints what it would send
+./tools/repo/apply_rulesets.ps1 -Offline           # just print the payloads; no API call
+./tools/repo/apply_rulesets.ps1 -Apply             # really create / update
+./tools/repo/apply_rulesets.ps1 -Only branch-names -Apply
+./tools/repo/apply_rulesets.ps1 -Repo owner/name   # not the current directory's remote
+```
+
+It first asks whether the repository can have rulesets (public, or a paid
+plan) and stops with an explanation - exit code 3 - when it cannot. It needs
+the GitHub CLI authenticated as a repository admin.
+
+Order of operations for the day the repository is made public:
+
+1. Create `main` and `develop`; make `develop` (or `main`) the default branch.
+2. Make the repository public.
+3. `./tools/repo/apply_rulesets.ps1` (dry run), read it, then `-Apply`.
+4. Set the repository settings below.
+5. After the first pull request, stage in `Scan dependency diff` (above).
+
+## Repository settings
+
+Set by hand in the repository's settings (not expressible as a ruleset):
+
+- **Allow auto-merge**: on - it is how a ready PR goes into the queue.
+- **Automatically delete head branches**: on.
+- **Allow merge commits**: on. Squash and rebase merging: off (the rulesets
+  already restrict `main` and `develop` to merge commits).
+- **Actions → Workflow permissions**: read repository contents only; the
+  workflows request anything more per job.
+- **Actions → Fork pull request workflows**: require approval for first-time
+  contributors.
+
+## Dependabot pull requests
+
+Dependabot opens its pull requests against `develop` from `dependabot/*`
+branches (its prefix is not configurable, so `branch-name-check.yml` and the
+`branch-names` pattern allow it). They go through the same required checks and
+the same queue as any other pull request; nothing is bypassed. Commit messages
+and titles Dependabot writes carry no attribution, so
+`Validate commit and PR text` passes them.
+
+## Other scanners (visible-only)
+
+`scorecard.yml` publishes a score and a badge from `main` and re-runs when the
+rulesets change; it scores more completely with a read-only fine-grained token
+in the `SCORECARD_READ_TOKEN` secret (see the comments in the workflow). It is
+not a check. CodeQL results appear under **Security → Code scanning** and are
+triaged there.

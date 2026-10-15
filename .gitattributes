@@ -17,3 +17,6 @@ CMakeLists.txt text
 *.ico binary
 *.qm  binary
 *.ktx binary
+
+# Git hooks are run by sh: LF only, whatever the checkout platform.
+tools/hooks/* text eol=lf

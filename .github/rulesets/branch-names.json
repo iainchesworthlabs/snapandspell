@@ -1,0 +1,23 @@
+{
+  "name": "branch-names",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~ALL"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "branch_name_pattern",
+      "parameters": {
+        "name": "Gitflow branch names only",
+        "negate": false,
+        "operator": "regex",
+        "pattern": "^(main|develop|(feature|bugfix|release|hotfix|support|dependabot)/.+|gh-readonly-queue/.+)$"
+      }
+    }
+  ],
+  "bypass_actors": []
+}
