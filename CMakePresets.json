@@ -31,6 +31,24 @@
       }
     },
     {
+      "name": "fastdebug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "profiling",
+      "hidden": true,
+      "inherits": [
+        "fastdebug"
+      ],
+      "cacheVariables": {
+        "WJS_ENABLE_TRACY": "ON",
+        "WJS_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
       "name": "windows-msvc-base",
       "hidden": true,
       "inherits": [
@@ -59,6 +77,14 @@
       "inherits": [
         "windows-msvc-base",
         "release"
+      ]
+    },
+    {
+      "name": "windows-msvc-profiling",
+      "displayName": "Windows (MSVC, Profiling: optimised, debug info, Tracy)",
+      "inherits": [
+        "windows-msvc-base",
+        "profiling"
       ]
     },
     {
@@ -91,6 +117,14 @@
       "inherits": [
         "linux-gcc-base",
         "release"
+      ]
+    },
+    {
+      "name": "linux-gcc-profiling",
+      "displayName": "Linux (GCC, Profiling: optimised, debug info, Tracy)",
+      "inherits": [
+        "linux-gcc-base",
+        "profiling"
       ]
     },
     {
@@ -135,6 +169,14 @@
         "macos-clang-base",
         "release"
       ]
+    },
+    {
+      "name": "macos-clang-profiling",
+      "displayName": "macOS (Clang, Profiling: optimised, debug info, Tracy)",
+      "inherits": [
+        "macos-clang-base",
+        "profiling"
+      ]
     }
   ],
   "buildPresets": [
@@ -144,7 +186,10 @@
     { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release" },
     { "name": "linux-gcc-coverage", "configurePreset": "linux-gcc-coverage" },
     { "name": "macos-clang-debug", "configurePreset": "macos-clang-debug" },
-    { "name": "macos-clang-release", "configurePreset": "macos-clang-release" }
+    { "name": "macos-clang-release", "configurePreset": "macos-clang-release" },
+    { "name": "windows-msvc-profiling", "configurePreset": "windows-msvc-profiling" },
+    { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling" },
+    { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling" }
   ],
   "testPresets": [
     {
@@ -163,6 +208,19 @@
     { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release", "inherits": ["base"] },
     { "name": "linux-gcc-coverage", "configurePreset": "linux-gcc-coverage", "inherits": ["base"] },
     { "name": "macos-clang-debug", "configurePreset": "macos-clang-debug", "inherits": ["base"] },
-    { "name": "macos-clang-release", "configurePreset": "macos-clang-release", "inherits": ["base"] }
+    { "name": "macos-clang-release", "configurePreset": "macos-clang-release", "inherits": ["base"] },
+    { "name": "windows-msvc-profiling", "configurePreset": "windows-msvc-profiling", "inherits": ["base"] },
+    { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling", "inherits": ["base"] },
+    { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling", "inherits": ["base"] },
+    {
+      "name": "perf",
+      "hidden": true,
+      "inherits": ["base"],
+      "filter": { "include": { "label": "perf" } },
+      "environment": { "WJS_PERF_TIMING": "1" }
+    },
+    { "name": "windows-msvc-perf", "configurePreset": "windows-msvc-release", "inherits": ["perf"] },
+    { "name": "linux-gcc-perf", "configurePreset": "linux-gcc-release", "inherits": ["perf"] },
+    { "name": "macos-clang-perf", "configurePreset": "macos-clang-release", "inherits": ["perf"] }
   ]
 }

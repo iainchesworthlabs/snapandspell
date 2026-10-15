@@ -96,6 +96,8 @@ The cases already in the tree:
 | A program with no console window on Windows, a bundle on macOS | The `wjs_platform_configure_app` hook in each fragment |
 | Where to find Qt on each system | `WJS_PLATFORM_QT_SEARCH_ROOTS` in each fragment, read by `cmake/FindQt6.cmake` |
 | Copying Qt's DLLs beside the program on Windows | The `wjs_platform_deploy_qt_runtime` hook; Linux and macOS define it as a no-op |
+| A profiler whose API is macros (Tracy) | Two `wjs/profiling.hpp` under `src/lib/variants/`, one calling Tracy's functions and one empty; CMake puts one directory on the include path. [Profiling](profiling.md) |
+| Whether a build is optimised, or has coverage or Tracy in it, for the performance tests | `WJS_PERF_OPTIMISED` and the like, compile definitions CMake passes to `wjs_perf_tests`, read as `constexpr bool` in `tests/perf/perf_build.hpp` |
 
 ## Rules
 

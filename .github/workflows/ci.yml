@@ -28,7 +28,7 @@ on:
       legs:
         description: >-
           Comma-separated legs to run, no spaces: clang-format,
-          platform-isolation, windows, linux, macos, coverage - or "all".
+          platform-isolation, windows, linux, macos, coverage, perf - or "all".
         type: string
         default: all
 
@@ -145,8 +145,8 @@ jobs:
           esac
           for leg in ${LEGS//,/ }; do
             case "$leg" in
-              all|clang-format|platform-isolation|windows|linux|macos|coverage) ;;
-              *) echo "::error::unknown leg '$leg' (clang-format, platform-isolation, windows, linux, macos, coverage, all)"
+              all|clang-format|platform-isolation|windows|linux|macos|coverage|perf) ;;
+              *) echo "::error::unknown leg '$leg' (clang-format, platform-isolation, windows, linux, macos, coverage, perf, all)"
                  exit 1 ;;
             esac
           done
@@ -255,6 +255,68 @@ jobs:
         uses: ./.github/actions/vcpkg-cache/save
         with:
           triplet: ${{ matrix.triplet }}
+          restored: ${{ steps.vcpkg-cache.outputs.listing }}
+
+  # The performance tier's work budgets (tests/perf; docs/testing.md,
+  # "Performance tests"), which the Debug legs above skip: they are counts, the
+  # same on every compiler, but only an optimised build runs them in seconds,
+  # and this is the one leg that builds a Release preset. One compiler is
+  # enough. The wall-time checks are not run on a push or a pull request - a
+  # shared runner is the one machine a stopwatch cannot be trusted on - but a
+  # manual run (legs=perf, or all) runs them too, so that a person can look.
+  # Not a required check: the contexts in .github/rulesets/*.json are untouched.
+  performance:
+    name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - Performance (Linux, GCC)' || 'Performance (Linux, GCC)' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || contains(format(',{0},', inputs.legs), ',perf,') }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      # fetch-depth: 0 for vcpkg's version resolution - see build-and-test.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Same triplet, same archives as the Linux (GCC) leg.
+      - name: Restore vcpkg binaries
+        id: vcpkg-cache
+        uses: ./.github/actions/vcpkg-cache/restore
+        with:
+          triplet: x64-linux
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      - name: Configure
+        run: cmake --preset linux-gcc-release -DWJS_BUILD_APP=OFF
+
+      - name: Build
+        run: cmake --build --preset linux-gcc-release
+
+      # Everything in ctest, so that the Release build is proven too: the unit
+      # tests, the two repository checks and the work budgets. The wall-time
+      # cases skip themselves (WJS_PERF_TIMING is not set).
+      - name: Test
+        run: ctest --preset linux-gcc-release
+
+      # Only by hand: the *-perf test preset sets WJS_PERF_TIMING and selects
+      # the perf label, and the timing cases run alone (RUN_SERIAL).
+      - name: Wall-time checks (manual runs only)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: ctest --preset linux-gcc-perf
+
+      # Saved even when a later step fails - see build-and-test.
+      - name: Save vcpkg binaries
+        if: ${{ always() }}
+        uses: ./.github/actions/vcpkg-cache/save
+        with:
+          triplet: x64-linux
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
   # Line and branch coverage of src/ from the unit tests, as a report. There is

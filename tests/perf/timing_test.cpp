@@ -1,0 +1,28 @@
+// Wall-time checks, the part of the performance tier that is opt-in.
+//
+// A clock is the one measurement that can be wrong for no reason of its own:
+// another process, a cold cache, a runner that is not the machine the budget
+// was set on. So each figure here is a ratio to a calibration workload run in
+// the same process, alternately with the task and with the same load on both,
+// and each budget is several times what the ratio is; and the cases do not run
+// unless WJS_PERF_TIMING is set, never in an unoptimised or instrumented build,
+// and alone (ctest RUN_SERIAL), not beside other tests.
+//
+// What a failure means: docs/testing.md, "Performance tests".
+
+#include <catch2/catch_test_macros.hpp>
+
+#include "check.hpp"
+#include "metrics.hpp"
+
+TEST_CASE("loading the dictionary takes no more than a multiple of the calibration workload",
+          "[perf][timing][dictionary]") {
+    wjs::perf::skip_unless_timing_wanted();
+    wjs::perf::check_within_budget(wjs::perf::load_timing_metrics());
+}
+
+TEST_CASE("solving takes no more than a multiple of the calibration workload",
+          "[perf][timing][solver]") {
+    wjs::perf::skip_unless_timing_wanted();
+    wjs::perf::check_within_budget(wjs::perf::solve_timing_metrics());
+}

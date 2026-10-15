@@ -43,6 +43,12 @@ if(NOT DEFINED WJS_BUILD_TESTS OR WJS_BUILD_TESTS)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif()
 
+# Tracy is opt-in: the one switch (declared in cmake/Tracy.cmake) both makes
+# the profiling calls real and asks vcpkg for the client and the tools.
+if(WJS_ENABLE_TRACY)
+    list(APPEND VCPKG_MANIFEST_FEATURES "profiling")
+endif()
+
 project(WordJewelsSolver
     VERSION 0.1.0
     DESCRIPTION "Finds every word on a Boggle board"
@@ -69,6 +75,7 @@ include(Platform)
 include(CompilerWarnings)
 include(Sanitizers)
 include(Coverage)
+include(Tracy)
 
 # ---------------------------------------------------------------------------
 # Options
@@ -112,3 +119,4 @@ message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_N
 message(STATUS "  Build CLI   : ${WJS_BUILD_CLI}")
 message(STATUS "  Build app   : ${WJS_BUILD_APP}")
 message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")
+message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY}")
