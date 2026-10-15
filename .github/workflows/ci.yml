@@ -29,6 +29,9 @@ on:
         description: >-
           Comma-separated legs to run, no spaces: clang-format,
           platform-isolation, windows, linux, macos, coverage, perf - or "all".
+          The profiling builds (Tracy) are never part of "all": name them -
+          profiling (all three), profiling-windows, profiling-linux or
+          profiling-macos.
         type: string
         default: all
 
@@ -138,6 +141,15 @@ jobs:
             {"leg": "linux",   "name": "Linux (GCC)",        "os": "ubuntu-26.04",        "preset": "linux-gcc-debug",    "triplet": "x64-linux"},
             {"leg": "macos",   "name": "macOS (AppleClang)", "os": "macos-26",            "preset": "macos-clang-debug",  "triplet": "arm64-osx"}
           ]'
+          # The profiling presets (RelWithDebInfo with Tracy: docs/profiling.md)
+          # are the same three platforms, and are only ever run when a dispatch
+          # names them: the client opens a network port and the vcpkg tools
+          # take a while to build, so a push does not pay for them.
+          profiling='[
+            {"leg": "profiling-windows", "name": "Profiling (Windows, MSVC)",     "os": "windows-2025-vs2026", "preset": "windows-msvc-profiling", "triplet": "x64-windows"},
+            {"leg": "profiling-linux",   "name": "Profiling (Linux, GCC)",        "os": "ubuntu-26.04",        "preset": "linux-gcc-profiling",    "triplet": "x64-linux"},
+            {"leg": "profiling-macos",   "name": "Profiling (macOS, AppleClang)", "os": "macos-26",            "preset": "macos-clang-profiling",  "triplet": "arm64-osx"}
+          ]'
           case "$LEGS" in
             *[[:space:]]*)
               echo "::error::legs must be comma-separated with no spaces: '$LEGS'"
@@ -146,7 +158,8 @@ jobs:
           for leg in ${LEGS//,/ }; do
             case "$leg" in
               all|clang-format|platform-isolation|windows|linux|macos|coverage|perf) ;;
-              *) echo "::error::unknown leg '$leg' (clang-format, platform-isolation, windows, linux, macos, coverage, perf, all)"
+              profiling|profiling-windows|profiling-linux|profiling-macos) ;;
+              *) echo "::error::unknown leg '$leg' (clang-format, platform-isolation, windows, linux, macos, coverage, perf, profiling, profiling-windows, profiling-linux, profiling-macos, all)"
                  exit 1 ;;
             esac
           done
@@ -154,6 +167,9 @@ jobs:
             selected=$(jq -c . <<<"$all")
           else
             selected=$(jq -c --arg legs ",${LEGS}," '[.[] | select(.leg as $leg | $legs | contains("," + $leg + ","))]' <<<"$all")
+            # `profiling` names all three of the Tracy builds.
+            named=$(jq -c --arg legs ",${LEGS}," '[.[] | select((.leg as $leg | $legs | contains("," + $leg + ",")) or ($legs | contains(",profiling,")))]' <<<"$profiling")
+            selected=$(jq -c -n --argjson a "$selected" --argjson b "$named" '$a + $b')
           fi
           count=$(jq 'length' <<<"$selected")
           # A dispatch that names only clang-format, platform-isolation or

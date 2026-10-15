@@ -32,6 +32,10 @@ everything:
   built for the *host* so that a cross-build does not try to build them for the
   device.
 
+On Windows the client is a DLL: vcpkg puts `TracyClient.dll` beside each program
+it was linked into. The tools are in
+`build/<preset>/vcpkg_installed/<triplet>/tools/tracy/`.
+
 To turn it on for another configuration, pass `-DWJS_ENABLE_TRACY=ON`. Do not
 profile a Debug build: the sanitizers' cost dominates every number, and
 `cmake` warns if you try. The perf tests treat a Tracy build as not fit for
@@ -123,6 +127,38 @@ Interactively, run the `tracy-profiler` GUI of the same version (a release from
 <https://github.com/wolfpld/tracy/releases>, or built from that tag), press
 **Connect** and enter `127.0.0.1`, or pick the program from the discovery list.
 The GUI is not part of the build.
+
+## Reading a trace
+
+A trace holds the zones that ran while the profiler was connected, with their
+times, each zone's value and its source location, the plots, and the threads.
+
+**The CSV, one row a zone** (`tracy-csvexport trace.tracy`):
+
+| Column | Meaning |
+| --- | --- |
+| `name`, `src_file`, `src_line` | The zone and the place it was first run from (one name is one place) |
+| `total_ns`, `total_perc` | Time inside the zone, summed, and its share of the trace's span |
+| `counts` | How many times it ran while connected |
+| `mean_ns`, `min_ns`, `max_ns`, `std_ns` | The distribution of one run. `min` is the cost of the code; `max` and `std` are what the machine added |
+
+Inclusive times: a zone's time contains the zones inside it (`-e` for self
+time). `-f` filters by name.
+
+**Every event** (`-u`) adds `ns_since_start`, `exec_time_ns`, the `thread` and the
+zone's `value`: here the words found by a solve (`solver.solve`) or loaded
+(`data.load_dictionary`). With `-p` it lists the plot samples instead, which is
+where `solver.visits` is, one sample a solve.
+
+Reading the capture above: 3,839 solves of a board with 1,126 words ran in 2.9
+s, a mean of 0.76 ms against a minimum of 0.56 ms. The search is the same every
+time (a visit count does not vary), so the spread is the machine. A **change**
+in `min_ns` or in the visits is the code's; a change in `max_ns` alone is not.
+
+**The GUI** shows the same on a timeline per thread: zones as bars nested by
+call, the plots under them, and the statistics window with the same table. The
+**information** window will carry the build (version, commit); nothing sets it
+yet.
 
 ## What is instrumented
 

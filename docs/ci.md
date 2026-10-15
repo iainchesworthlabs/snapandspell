@@ -109,7 +109,16 @@ gh workflow run ci.yml --ref <branch> -f legs=clang-format,linux
 ```
 
 `legs` is comma-separated with no spaces: `clang-format`, `platform-isolation`,
-`windows`, `linux`, `macos`, `coverage`, `perf`, or `all` (the default). An unknown
+`windows`, `linux`, `macos`, `coverage`, `perf`, or `all` (the default).
+Three more legs exist only for a dispatch and are **not** part of `all`: the
+profiling builds (`windows-msvc-profiling`, `linux-gcc-profiling`,
+`macos-clang-profiling`: RelWithDebInfo with Tracy, [Profiling](profiling.md)),
+named `profiling-windows`, `profiling-linux` and `profiling-macos`, or
+`profiling` for all three. They configure, build warning-free against the real
+Tracy headers, and run all of ctest, which includes the test that the real
+variant of `wjs/profiling.hpp` is the one in use. A push does not pay for them:
+the client opens a network port, and vcpkg builds Tracy's tools for the host
+(on Linux that is a chain of ports that needs autoconf and Python's venv). An unknown
 name fails the run rather than running nothing. Jobs of a dispatched run are
 named `dispatch - <leg>`, deliberately not the names of the required checks: a
 run that skips legs would otherwise report "skipped" (which counts as a pass)
