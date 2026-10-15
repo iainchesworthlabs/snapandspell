@@ -158,6 +158,66 @@ kid-centric feedback loops (the author's requirements, 2026-10-16):
 These sit alongside the high scores and light gamification of section 3, and
 mean that nothing in the application subtracts from a child's progress.
 
+### 7.2 Progression and vocabulary growth
+
+Stated by the author on 2026-10-16. To maintain long-term novelty, and to drive
+the "aha!" moment when a child discovers big words, the application has a
+progression system built around vocabulary growth and personal triumph.
+
+**The big-word triumph mechanic.** Longer or phonetically advanced words are
+treated as milestone discoveries rather than just points.
+
+| Word tier | Examples | Visual and audio feedback | Reward |
+| --- | --- | --- | --- |
+| Spark Words (3 letters) | CAT, FOX, SUN | Soft sparkle animation, standard word pronunciation | +1 star |
+| Power Words (4 letters) | RAIN, STAR, MOON | Rainbow trailing effect on the text, cheering sound effect | +2 stars, and unlocks a "Word Sticker" |
+| Mega Words (5+ letters) | TRAIN, HOUSE, TRUCK | Screen shake, screen-wide confetti explosion, a voiceover ("Whoa! A 5-letter Mega Word!") | +5 stars, and unlocks a character accessory |
+
+**The word vault ("My Word Vault").** A visual place for the child to see
+growing knowledge ("I know how to spell RAIN!"), replacing progress bars with a
+collection mechanic.
+
+- **The sticker book.** Every time a new word is found, it is added to a digital
+  sticker album. Finding RAIN unlocks a little raincloud sticker; finding STAR
+  unlocks a shining star sticker.
+- **Tap to talk.** In the sticker book the child can tap any sticker they have
+  unlocked, and the application reads it aloud and shows it in a sentence, for
+  example "R-A-I-N spells rain! I love jumping in the rain!"
+- **Missing outlines.** Words not yet found appear as greyed-out outlines, which
+  creates a gentle curiosity to play more and unlock the hidden pictures.
+
+**Levels and novelty ("World Unlock").** To keep the game fresh without making
+it complex, worlds unlock by the total stars collected. The board design and the
+background environment change as stars accumulate.
+
+| Level | Stars | World | Board look | Words it unlocks |
+| --- | --- | --- | --- | --- |
+| 1 | 0 to 20 | The Cozy Farm | Tiles look like wood | COW, HEN, BARN |
+| 2 | 21 to 50 | Space Explorer | Tiles look like glowing neon planets | STAR, MOON, MARS |
+| 3 | 51 and up | Deep Blue Sea | Tiles look like bubbles | FISH, SHARK, BOAT |
+
+**The board companion.** A simple cartoon mascot (for example a little
+bookworm or a friendly robot) sits next to the grid. Collecting stars unlocks
+simple cosmetic accessories for it, such as sunglasses, a party hat or a cape.
+
+**Dynamic vocabulary scaling (technical note).** To keep the game fun and
+prevent frustration, the back end adjusts the game board to the child's current
+tier automatically:
+
+- **Early levels:** the grid generation forces a higher concentration of simple
+  CVC (consonant, vowel, consonant) letter combinations.
+- **Advanced levels:** letters such as R, S, T, A, I and N are allowed to
+  cluster together more often, to raise the chance of finding the larger words,
+  such as RAIN and STAR.
+
+**Fact.** Nothing here exists yet: the application stores no progress of any
+kind. The solver library can already list every word on a given board with its
+path and a letter count (the "Qu" tile counts as two letters), so the tier of a
+found word and the number of words of each tier on a board are computable. The
+category lists in `data/lexicon` (animals, colours, shapes, food and others)
+hold words only: there are no pictures, sentences or recordings for them. The
+brief's two descriptions of RAIN and STAR differ (see question 20).
+
 ## 8. Performance
 
 - Performance is tracked with **Tracy**.
@@ -266,3 +326,36 @@ these. They are questions, not recommendations.
     and does it also suit the on-screen replica of the physical dice in the
     Family Companion? This is checked by looking at the glyphs, not assumed from
     a face's description.
+
+**Progression (section 7.2)**
+19. How is a word's tier decided: by its length in letters only (so the "Qu"
+    tile makes "QUIT" a 4-letter Power Word), and are inflections such as RAINS
+    new words with their own sticker?
+20. The tier table makes RAIN and STAR Power Words (4 letters), while the
+    technical note calls them Mega Words; which is meant, and is the 5-letter
+    threshold the one the board generation aims at?
+21. Which words have a sticker, and so what is the closed set behind the
+    greyed-out outlines? Who draws the pictures and writes the sentences, and
+    under what licence, given that each needs art and text the repository does
+    not have?
+22. What does a level's "words it unlocks" do: add those stickers to the book,
+    make those words likelier on the board, or both? Every valid word is found
+    and counted in any case, so what is locked?
+23. The thresholds (0 to 20, 21 to 50, 51 and up) against rewards of +1, +2 and
+    +5 stars are reached within a session or two: how many levels are there, and
+    what is the pace?
+24. Biased board generation changes what a "shake" means. How far may the
+    letters be steered, how is a board kept fair and varied, and what is
+    measured (for example, the number of words of each tier on the board)?
+    The Family Companion scans a real board and cannot be steered: what does
+    the tier do there?
+25. Screen shake, a screen-wide confetti explosion and a loud voiceover are
+    strong effects for a young child: what is the reduced-motion and
+    reduced-sound behaviour, and who sets it?
+26. Whose voice says the voiceover lines and the sentences, recorded or
+    synthesised, and in which languages?
+27. Whose progress is kept: one child per device, several children, or a
+    parent-managed profile; where is it stored (on the device only, as the
+    privacy constraints in the roadmap assume); and how is it reset?
+28. What is the mascot, who designs it and its accessories, and is it the same
+    character in every world?
