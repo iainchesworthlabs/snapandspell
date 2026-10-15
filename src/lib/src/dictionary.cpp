@@ -85,10 +85,20 @@ bool Dictionary::insert(std::string_view word) {
 }
 
 std::expected<Dictionary, DictionaryError> Dictionary::load(std::istream& words) {
+    // A file saved by some editors starts with a UTF-8 byte-order mark; left in
+    // place it would make the first word not a word.
+    constexpr std::string_view byte_order_mark = "\xEF\xBB\xBF";
+
     Dictionary dictionary;
     std::string line;
+    bool first_line = true;
     while (std::getline(words, line)) {
-        dictionary.insert(trim(line));
+        std::string_view text = line;
+        if (first_line && text.starts_with(byte_order_mark)) {
+            text.remove_prefix(byte_order_mark.size());
+        }
+        first_line = false;
+        dictionary.insert(trim(text));
     }
     if (words.bad()) {
         return std::unexpected(DictionaryError::read_failed);

@@ -79,6 +79,18 @@ TEST_CASE("loading skips blanks and lines that are not words", "[dictionary]") {
     CHECK_FALSE(dictionary->contains("dont"));
 }
 
+TEST_CASE("a byte-order mark does not cost the first word", "[dictionary]") {
+    std::istringstream words(
+        "\xEF\xBB\xBF"
+        "cat\ndog\n");
+
+    const auto dictionary = wjs::Dictionary::load(words);
+
+    REQUIRE(dictionary.has_value());
+    CHECK(dictionary->size() == 2U);
+    CHECK(dictionary->contains("cat"));
+}
+
 TEST_CASE("a missing file is reported, not thrown", "[dictionary]") {
     const auto missing = std::filesystem::temp_directory_path() / "wjs_no_such_dictionary.txt";
 
