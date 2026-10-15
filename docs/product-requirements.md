@@ -12,6 +12,13 @@ checked in this repository or its sibling projects, included because the design
 has to live with it. Nothing here is marked as a proposal: where a decision is
 open it is a question in section 11.
 
+**MVP scope.** The author's categorisation of the first release is section 12.
+It narrows this brief, corrects two slips in it, and in places contradicts
+earlier statements. The author has said that some of its details are probably
+wrong, so it is written to be planned around: each item is classed as adopted,
+corrected, a planning assumption or needing expert review, and the
+assumptions are questions (58 to 69) to confirm, not decisions.
+
 ## 1. Overview
 
 WordJewelsSolver is an interactive app for 5- and 6-year-olds (Kindergarten and
@@ -220,7 +227,8 @@ path and a letter count (the "Qu" tile counts as two letters), so the tier of a
 found word and the number of words of each tier on a board are computable. The
 category lists in `data/lexicon` (animals, colours, shapes, food and others)
 hold words only: there are no pictures, sentences or recordings for them. The
-brief's two descriptions of RAIN and STAR differ (see question 20).
+brief's two descriptions of RAIN and STAR differed; RAIN and STAR are Power
+Words (4 letters), as section 12.1 settles.
 
 ### 7.3 Phonics mode: Australian synthetic phonics
 
@@ -237,7 +245,7 @@ digraphs together when they are selected.
 
 | Phonic sound (grapheme) | Classroom examples | How tracing handles it |
 | --- | --- | --- |
-| Long A (/eɪ/) | J-AY, R-AI-N, P-L-AY | "When the finger drags from R to A, the I and N illuminate together as a unit to highlight the phoneme sound." (see question 31) |
+| Long A (/eɪ/) | J-AY, R-AI-N, P-L-AY | When the finger drags from R to A, the A and I tiles link together as a single grapheme block (the vowel team), not the I and N, to highlight the phoneme sound (corrected, section 12.1) |
 | Digraphs (/ʃ/, /θ/) | SH-I-P, FI-SH, CH-I-P | The S and H tiles are visually linked with a subtle glow-colour border to show they make one sound together |
 | Split digraphs (magic E) | C-A-K-E, L-I-K-E | Tracing C-A-K-E triggers a magical line linking the A and E across the K, to show the E makes the A say its name |
 
@@ -245,15 +253,18 @@ digraphs together when they are selected.
 does not read the word flatly: it decodes it as teachers do in the classroom.
 
 1. **Segmenting.** Each sound block is highlighted in turn. For RAIN: R (the
-   /r/ sound), then AI (the long sound; the brief writes it as /aʊ/, see
-   question 31), then N (the /n/ sound).
+   /r/ sound), then AI (the long /eɪ/ sound, corrected from /aʊ/, section
+   12.1), then N (the /n/ sound).
 2. **Blending.** The letters slide closer together while the audio plays
-   "/r/ ... /ay/ ... /n/ ... RAIN!"
+   "/r/ ... /eɪ/ ... /n/ ... RAIN!"
 3. **Success cheer.** "Fantastic! You used the /ay/ sound to make RAIN!"
 
 **Phonics-targeted levels (the decodable approach).** Progress is tracked by
-phonics phase, matching popular Australian programs such as InitiaLit or
-Letters and Sounds, rather than only by word length.
+phonics phase, following the sequence a school teaches, rather than only by
+word length. No programme is named in this repository; the MVP uses the generic
+names Phonics Phase A (fundamental SATPIN) and Phonics Phase B (consolidated
+blends), section 12.1. The three-step list below is the author's fuller
+sequence.
 
 - **Phase 1 grid (early Prep):** only simple single-letter phonemes (SATPIN
   words: SAT, PIN, TAP, PAN).
@@ -279,8 +290,13 @@ dictionary to words of three or more letters spelled only with S, A, T, P, I
 and N gives 249 words (43 of three letters, 70 of four, 54 of five, up to ten
 letters), including entries a child does not meet (AIS, AIT, ANA, ANTI, PIA,
 PSI, TAS, TIS); of those 249, five are in the early-reader tier of
-`data/lexicon/core-words.txt`. Every example word in the brief is in the
-dictionary.
+`data/lexicon/core-words.txt` (NIP, PAT, SAT, SIT, TAP). The 249 is the count
+before any stripping: it includes entries unsuitable for a child (for example
+ASS, TIT and PISS), and 127 of the 249 are plurals ending in S. The brief's
+example words RAIN, TRAIN, JAY, PLAY, CHIP and FISH need letters outside S, A,
+T, P, I and N, so they are not in that set; PAIN, PAINT, SAINT and STAIN, which
+carry the same "ai" vowel team, are. Every example word in the brief is in the
+full dictionary.
 
 ### 7.4 Parent dashboard
 
@@ -288,6 +304,12 @@ Stated by the author on 2026-10-16. The parent dashboard turns the application
 from a casual game into an insightful educational tool. For an Australian Prep
 or Year 1 context it bridges home play and classroom learning, tracking phonics
 progress without making the child feel they are taking a test.
+
+**MVP scope.** For the first release the "read aloud" voice recording, the
+printable summary and the time limit are outside the MVP, and the dashboard is
+shown on the device and nowhere else (section 12). They stay here as the
+author's brief until it is confirmed whether they are removed or only deferred
+(question 62).
 
 **The sound mastery heatmap.** Instead of basic percentage scores, the dashboard
 visualises which phonemes and graphemes (sounds and letter teams) the child is
@@ -300,9 +322,8 @@ identifying on the board and which they are overlooking.
 | Blind spots | Completely missed available "ch" words over multiple boards | "Next time you play the physical Family Mode, point out a 'ch' word to support them." |
 
 **Classroom alignment (curriculum sync).** Australian schools introduce sounds
-in explicit, systematic sequences (such as the InitiaLit program or Letters and
-Sounds phases), and the dashboard lets a parent match the application to what is
-happening at school.
+in explicit, systematic sequences (a school's phonics programme), and the
+dashboard lets a parent match the application to what is happening at school.
 
 - **The "focus sound" selector.** A simple toggle screen where a parent ticks the
   specific sounds the child is learning at school this week (for example "ai",
@@ -408,6 +429,10 @@ These are decided elsewhere and the design has to fit them.
 - A child's learning data stays on the device: all dashboard metrics, progress
   history and voice clips are stored locally, with no cloud tracking (section
   7.4), and reaching them takes a parental gate.
+- For the MVP (section 12): no voice capture, no export of data, no network
+  capability, no timers or limits, and a calm resting screen when a board is
+  cleared. The privacy architecture is frozen before any visual assets or
+  layouts are designed.
 
 ## 11. Questions for the design work
 
@@ -464,7 +489,7 @@ these. They are questions, not recommendations.
 19. How is a word's tier decided: by its length in letters only (so the "Qu"
     tile makes "QUIT" a 4-letter Power Word), and are inflections such as RAINS
     new words with their own sticker?
-20. The tier table makes RAIN and STAR Power Words (4 letters), while the
+20. **(Settled, section 12.1: Power Words.)** The tier table makes RAIN and STAR Power Words (4 letters), while the
     technical note calls them Mega Words; which is meant, and is the 5-letter
     threshold the one the board generation aims at?
 21. Which words have a sticker, and so what is the closed set behind the
@@ -500,7 +525,7 @@ these. They are questions, not recommendations.
     time, or do dice carry multi-letter faces (the library takes tiles of up to
     three letters)? What happens when the letters are traced in an order that
     is not the grapheme?
-31. Two details in the brief need confirming. The RAIN tracing example lights
+31. **(Settled, section 12.1: A and I link, and the sound is /eɪ/.)** Two details in the brief need confirming. The RAIN tracing example lights
     "the I and N" together, where the vowel team of RAIN is A and I. And the
     audio example gives the sound of AI as /aʊ/, the vowel of "cow", where
     /eɪ/ ("ay"), as the brief says elsewhere, is meant.
@@ -508,12 +533,12 @@ these. They are questions, not recommendations.
     from: hand-authored for a decodable list, or derived from a pronunciation
     lexicon? How are tricky words that do not follow the pattern (said, the,
     one) shown, and do the sounds follow Australian English?
-33. Which programme's sequence is meant? The brief names InitiaLit and Letters
-    and Sounds, and the three phases listed here do not match the numbering of
-    Letters and Sounds as published (where, to be checked, the SATPIN letters
-    belong to its phase 2). Are the phases the author's own scheme aligned with a
-    programme, and if one is named, what do its licence and trade-mark terms
-    allow?
+33. **(Reworded, section 12.1.)** No programme is named in the repository now.
+    The MVP uses the generic names Phonics Phase A (fundamental SATPIN) and
+    Phonics Phase B (consolidated blends). What exactly does each contain, in
+    particular where do the vowel teams such as AI and AY sit (the brief
+    elsewhere places them in a third step), and is there a Phase C? This is for
+    the literacy review of section 12.6.
 34. How is each phase's word set made: by filtering the dictionary to words
     spelled with the taught graphemes (249 words for SATPIN, including entries
     a child does not meet), or by an authored decodable list, and who reviews it?
@@ -536,7 +561,7 @@ these. They are questions, not recommendations.
     7.1), which requirement wins, and is the font setting then limited?
 
 **Parent dashboard (section 7.4)**
-41. What exactly is recorded for the "read aloud" moment: the child saying a
+41. **(Outside the MVP: no voice is captured; section 12.2 and question 62.)** What exactly is recorded for the "read aloud" moment: the child saying a
     word, when, prompted by what, under which microphone permission, kept for
     how long and deleted how? A recording of a child's voice is the most
     sensitive data the application would hold, and the children's-app policies
@@ -574,20 +599,209 @@ these. They are questions, not recommendations.
 52. What counts as time played (the application open, the screen on, active
     play), per child or per device, per day or per session, and when does the
     day end?
-53. What does "gentle" mean at the limit: a warning beforehand, a wind-down that
+53. **(Outside the MVP: no timers or limits; section 12.3 and question 62.)** What does "gentle" mean at the limit: a warning beforehand, a wind-down that
     lets the current word finish and saves progress, what the child sees and
     hears, and can a parent extend it? Does it end play for the rest of the day?
     A time limit also sits against the requirement that nothing pushes the child
     to continue.
 54. How does the application's limit relate to the operating system's own
     screen-time controls, and what does it do in a browser, which has none?
-55. What does the printable summary contain (the heatmap, the weekly highlights,
+55. **(Outside the MVP: no export; section 12.2 and question 62.)** What does the printable summary contain (the heatmap, the weekly highlights,
     time played, a name), what is deliberately left out (voice clips, anything
     not wanted by a teacher), and does the parent see a preview before it goes?
-56. How does the PDF leave the application on each platform (the system share
+56. **(Outside the MVP: no export; section 12.2 and question 62.)** How does the PDF leave the application on each platform (the system share
     sheet, a print dialog, a download in the browser)? It is the first route by
     which a child's data leaves the device, so what does the parent confirm, and
     is the parental gate required?
-57. Does the application know the teacher's address? Storing a third party's
+57. **(Outside the MVP: no export; section 12.2 and question 62.)** Does the application know the teacher's address? Storing a third party's
     contact details is data of its own; the alternative is to hand the PDF to
     the system's mail and share facilities and keep no address.
+
+**The MVP scope (section 12): assumptions to confirm**
+58. *Dictionary scope.* Assumed: the Phase A index is a hand-filtered, reviewed
+    list derived from the SATPIN-spelled dictionary words, and so has fewer
+    than the 249 counted before stripping; and each board offers three to five
+    words from it. Confirm, and say who writes and reviews the list.
+59. *The five.* Assumed: NIP, PAT, SAT, SIT and TAP are the starting subset and
+    the index grows beyond them. If they are the whole accessible set, every
+    board offers the same five words: is that wanted?
+60. *RAIN.* RAIN needs R, which is not a SATPIN letter, so the MVP's own Solo
+    example is a Phase B word. Assumed: Phase A shows grapheme blocks with
+    SATPIN-only words (PAIN, SAINT and STAIN carry "ai"). Is Phase B in the MVP,
+    and what is in it?
+61. *A real word that is not on the board's list.* Assumed: a gentle, neutral
+    cue, no penalty and no word called wrong (section 7.1). What does the child
+    see and hear when they trace TAP and only SAT and SIT count?
+62. *Removed, or deferred.* Assumed: the voice recording, the printable summary,
+    the timers and the parent-set limit are deferred beyond the MVP and none is
+    designed now, not deleted from the product; and a passive time-played
+    figure is not in the MVP either. Confirm, or say any of them is removed for
+    good.
+63. *After a board is cleared.* The solo flow of section 3 has a reshuffle
+    button and high scores; the MVP has a calm resting screen that encourages
+    putting the device down. Assumed: the resting screen keeps one quiet way to
+    play again, started by the child or a parent and never automatically. What
+    does it show, and how are high scores kept without pulling the child back?
+64. *Platform.* The categorisation says the iPad throughout. Assumed: the MVP
+    is the iPad first, as a private ad-hoc build, and the platform list of
+    section 2 is unchanged as the product's scope. Confirm.
+65. *Zero network capability.* How is it kept true, and checked, on each target
+    (the Android permission, the iOS build, the browser build, and the
+    profiling build that listens on a port and is never shipped), and is a CI
+    check that the shipped targets link no network module wanted?
+66. *Programme names in history.* The names were removed from the documents on
+    this branch, but earlier commits of the unmerged branch still contain them
+    and a pull request would carry them. Is a rewrite of that branch wanted (a
+    force-push to a branch only the design session uses), or only the working
+    tree?
+67. *The scanner in the MVP.* Mode A is the camera-to-board pipeline, the
+    riskiest piece, which the roadmap had after Solo Play. Is it in the first
+    MVP? Assumed: a single capture with a confirm-and-correct step, since an
+    OCR error would otherwise feed a wrong board to the solver, rather than the
+    stand-and-watch flow of section 4.
+68. *Help in Mode A.* The MVP highlights only the starting tile. Assumed: that
+    is the one help level in the MVP, with the tailorable levels of sections 4
+    and 6 after it. Confirm.
+69. *The reviewer.* Who is the literacy specialist or classroom teacher who
+    reviews the phonics content (section 12.6), and at what point: before any
+    audio is recorded, or before the first child uses it?
+
+## 12. MVP scope
+
+Stated by the author on 2026-10-16 as a categorisation of the first release,
+with the caveat that some of its details are probably wrong: phonics is not the
+author's field, so the plan assumes errors and corrects for them. Each item is
+classed as one of:
+
+- **Adopted**: taken as stated.
+- **Corrected**: changed, with the reason, and the author's wording quoted so
+  the change can be seen.
+- **Planning assumption**: a resolution adopted so work can go on where the
+  categorisation contradicts itself or an earlier statement. It stands until
+  the author says otherwise (questions 58 to 69).
+- **Needs expert review**: whether it is right depends on a literacy
+  specialist, not on the author or on engineering (section 12.6).
+
+### 12.1 Corrections and dictionary scope
+
+| Element | As categorised | Class | MVP specification |
+| --- | --- | --- | --- |
+| Grapheme binding | "When tracing RAIN, the A and I tiles link together as a single grapheme block, not the I and N" | Adopted | The vowel team of a traced word is the unit that lights |
+| Phonetic notation | "The long 'A' sound found in JAY and RAIN is accurately encoded as the /eɪ/ phoneme" | Adopted | /eɪ/ throughout, in text and in audio labels |
+| Word tier | "RAIN and STAR are strictly classified as Power Words (4 Letters)" | Adopted | Power Words; Mega Words begin at five letters |
+| Dictionary scope | "a hardcoded, hand-filtered index of exactly 249 SATPIN / Early CVC words, stripped of all obscure vocabulary. Only the 5 standard early-reader tier words are accessible initially" | **Corrected** | A hand-filtered Phase A index, written and reviewed, derived from the SATPIN-spelled dictionary words by removing what is unsuitable. Its size is whatever remains: fewer than 249, because 249 is the count *before* stripping. Each board offers a handful (three to five) of viable words drawn from it, so boards differ while each is quickly cleared. NIP, PAT, SAT, SIT and TAP, the five that are in the early-reader tier, are the subset to start from and not the whole index: used alone, every board would offer the same five words |
+| Curriculum names | "Strip all specific mentions of proprietary programs ... Use generic ... terms: Phonics Phase A (Fundamental SATPIN), Phonics Phase B (Consolidated Blends)" | Adopted and applied | The names are removed from this repository's documents; Phase A and Phase B are the names |
+| What is in Phase B | "Consolidated Blends" | **Needs expert review** | "Blends" usually means consonant clusters (as in TRAIN and STAR), while AI and AY are vowel teams, which the earlier brief placed in a third step. Where each sits is for the review |
+
+**Fact.** The index does not exist. The dictionary has 249 words of three or
+more letters spelled only with S, A, T, P, I and N, and that set holds entries
+no child should meet (including ASS, TIT and PISS) and 127 plurals. The
+dictionary data and the early-reader tier are described in section 7.3.
+
+### 12.2 Privacy architecture
+
+Frozen before any visual assets or layouts are designed. All three are
+**adopted**.
+
+- **No audio recording.** No child voice is captured, processed or stored by the
+  application. Pronunciation audio is output only, from the device's native
+  text-to-speech or from pre-rendered audio assets. (Isolated sounds are not
+  something speech synthesis does well, so the sounds are pre-rendered
+  assets, section 7.3, question 37.)
+- **An air-gapped data model.** Progress metrics, found words and sticker
+  milestones are stored in a local, sandboxed database on the device. The
+  application has no network capability, no external API hooks and no cloud
+  analytics.
+- **Zero export.** The printable PDF summary is removed from the MVP. Data does
+  not leave the device; to share progress with a teacher, a parent shows the
+  dashboard on the device itself at the parent-teacher interview.
+
+**Planning assumption.** These are constraints on the MVP. The brief's earlier
+voice recording, PDF and e-mail are deferred, not designed, and would each need
+the privacy review before they came back (question 62).
+
+### 12.3 Screen time and game loops without coercion
+
+**Adopted.** Nothing micro-manages the child or pushes them to continue.
+
+- **No timers or limits.** No ticking countdown clocks, locked session windows
+  or sudden "time's up" interruptions: forcing a child off an application with a
+  hard gate invites friction.
+- **Natural fatigue.** A standard "shake and play" board holds only a handful of
+  viable early-reader words from the curated list. When the three to five are
+  found the board is cleared; the child is gently celebrated and meets a calm,
+  non-stimulating resting screen that encourages putting the device down.
+
+**Conflicts with the earlier brief, and the planning assumption.** The earlier
+brief asked for a parent-set time limit (section 7.4), for a button to reshuffle
+and play again, and for high scores (section 3). The MVP removes the limit.
+Assumed: no limit and no passive time-played figure in the MVP; one quiet way to
+play again on the resting screen, never started automatically; high scores to be
+worked out without a pull to continue (questions 62 and 63).
+
+### 12.4 Play modes
+
+**Mode A: Family Assistant and Scanner.**
+
+1. The parent uses the iPad camera to snap the physical Boggle board.
+2. Local OCR processes the grid text.
+3. The engine cross-references the grid only against the curated early-reader
+   index (section 12.1).
+4. The screen highlights only the starting tile of a discovered word, leaving
+   the blending work to the child.
+
+**Mode B: Solo Play (virtual sandbox).**
+
+1. The child shakes the tablet to roll a virtual 3x3 or 4x4 grid.
+2. The engine uses a targeted seeding algorithm so that valid SATPIN
+   combinations land adjacent to one another.
+3. The child traces the adjacent tiles with a finger. For R, then AI, then N
+   the vowel team lights as a single phonic unit, and the audio segments play:
+   /r/ ... /eɪ/ ... /n/ ... RAIN!
+
+**Planning assumptions, from reading the two modes against the rest.**
+
+- Mode A is a single capture with a confirm-and-correct step (question 67),
+  with one help level, the starting tile (question 68). It contains the
+  camera-to-board pipeline, which is the riskiest part of the whole product and
+  has not been started; the MVP includes it.
+- Mode B offers 3x3 and 4x4 only; 5x5 and 6x6 come after the MVP.
+- RAIN needs R, which is not a SATPIN letter, so Mode B's demonstration word is
+  a Phase B word and cannot come from the Phase A index. Phase A would show the
+  same effect with SATPIN-only words such as PAIN, SAINT or STAIN (question 60).
+- A real word that is not among the board's viable words gets a gentle,
+  neutral cue and no penalty (question 61).
+- The shake in Mode B is the theatre of rolling the dice; "targeted seeding"
+  means the board is not a plain random shuffle (question 24), and Mode A, which
+  scans a real board, cannot be seeded at all.
+
+### 12.5 What the MVP leaves out
+
+As read; each is a deferral under the assumption of question 62.
+
+| From the full brief | In the MVP |
+| --- | --- |
+| The "read aloud" voice recording (7.4) | Out: no voice capture |
+| The printable PDF and e-mail to a teacher (7.4) | Out: no export |
+| Time played and the parent-set limit (7.4) | Out: no timers or limits |
+| Open dictionary solver for early levels | Out: the Phase A index |
+| Boards of 5x5 and 6x6 (5) | Out: 3x3 and 4x4 |
+| Tailorable help levels (4, 6) | One level: the starting tile |
+| Camera on a stand, watching the lid come off (4) | A single capture (assumed) |
+| Worlds, mascot, stickers by theme (7.2) | Not mentioned in the categorisation; to confirm whether any are in the MVP |
+| School fonts (7.1) | Not mentioned; to confirm |
+
+### 12.6 Review by a literacy specialist
+
+Because the phonics detail is not the author's field, the following are
+**needing expert review** by a classroom teacher or literacy specialist before
+any child uses them, and before audio is recorded (question 69):
+
+- the grapheme and phoneme segmentation of every word in the index;
+- which graphemes and words belong to Phase A and which to Phase B, and what
+  follows;
+- the order and wording of the sound-it-out sequence and of any spoken praise;
+- the sounds themselves, and the accent they are recorded in;
+- the hand-filtered word lists, for suitability as well as for correctness;
+- the wording of anything shown to a parent as a finding about a child.
+
