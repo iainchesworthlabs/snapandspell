@@ -9,6 +9,7 @@ add_executable(wjs_unit_tests
     unit/paths_test.cpp
     unit/phase_data_test.cpp
     unit/scoring_test.cpp
+    unit/shake_test.cpp
     unit/seeding_test.cpp
     unit/solver_test.cpp)
 

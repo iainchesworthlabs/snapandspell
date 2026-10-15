@@ -16,6 +16,7 @@ add_library(wjs_lib STATIC
     src/path.cpp
     src/phase_data.cpp
     src/scoring.cpp
+    src/shake.cpp
     src/seeding.cpp
     src/solver.cpp)
 add_library(wjs::lib ALIAS wjs_lib)
