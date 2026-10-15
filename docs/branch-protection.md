@@ -55,7 +55,7 @@ feature/* bugfix/* ──PR──▶ merge queue ──▶ develop ──release
 | `main-protection.json` | `main-protection` | `refs/heads/main` | Pull request required; required checks with "up to date" **on**; conversations resolved; no deletion; no force push. |
 | `develop-protection.json` | `develop-protection` | `refs/heads/develop` | Pull request required; required checks with "up to date" **off** (the queue makes each entry current); no deletion; no force push. |
 | `merge-queue-develop.json` | `merge-queue-develop` | `refs/heads/develop` | The merge queue: merge commits, `ALLGREEN`, build up to 4 entries and merge up to 5, wait 1 minute, 180-minute check timeout. |
-| `branch-names.json` | `branch-names` | every branch except the gitflow names (`~ALL` minus `main`, `develop`, `feature/**`, `bugfix/**`, `release/**`, `hotfix/**`, `support/**`, `dependabot/**`, `gh-readonly-queue/**`) | Creating any other branch is refused. No bypass actors. |
+| `branch-names.json` | `branch-names` | every branch except the gitflow names (`~ALL` minus `main`, `develop`, and the namespaces `feature/`, `bugfix/`, `release/`, `hotfix/`, `support/`, `dependabot/` and `gh-readonly-queue/` to the depths listed below) | Creating any other branch is refused. No bypass actors. |
 
 ### `main-protection` and `develop-protection`
 
@@ -95,6 +95,15 @@ There are **no bypass actors**: not even an admin can push a non-matching name.
 The same allow-list is applied earlier and softer by `tools/hooks/pre-push`
 (locally) and `Validate gitflow branch name` (on the pull request).
 
+**What the allowed names are.** One `*` per path segment, so the depth of each
+namespace is explicit:
+
+| Namespace | Levels allowed | Why that many |
+| --- | --- | --- |
+| `feature/`, `bugfix/`, `release/`, `hotfix/`, `support/` | 1 to 3 (`feature/area/sub/name`) | a name and a couple of groupings |
+| `dependabot/` | 1 to 5 | its branches are `dependabot/<ecosystem>/<dependency or directory>/...` |
+| `gh-readonly-queue/` | 1 to 4 | the merge queue names its branch `gh-readonly-queue/<base>/pr-<n>-<sha>` |
+
 **Why a creation rule and not a name pattern.** GitHub also offers a
 `branch_name_pattern` rule ("restrict branch names"). On this plan the API
 accepts it and creates it, and then **does not enforce it**: a branch that
@@ -104,19 +113,26 @@ silently ignored is worse than none, so the allow-list is written as include and
 exclude globs on a `creation` rule, which is enforced. If this repository moves
 to a plan where metadata rules are enforced, the pattern rule could replace it.
 
+**Why `*` per level and not `**`.** In a ruleset glob, `**` stands for a single
+path segment, not for "any depth". The first version of this rule used
+`refs/heads/gh-readonly-queue/**`, which does not match the two-segment name the
+merge queue creates; the queue therefore could not create its temporary branch
+and removed every entry about 16 seconds after it was added, with the reason
+`branch_protection_failure`, before a single check ran. The same version would
+have refused every Dependabot branch. Both were found by a pull request that
+could not merge, not by reading the documentation, and the rule is now tested
+against the exact shapes above, including names that must be refused
+(`feature-x`, `wip/a/b`, a fifth level).
+
 Consequences worth knowing:
 
-- **`gh-readonly-queue/.+` is in the pattern** because the merge queue creates
-  its temporary branches under that prefix and they must be creatable. If
-  GitHub is found to exempt queue branches from this rule, the alternative can
-  be dropped; leaving it in costs nothing but allowing a hand-made branch with
-  that prefix.
+- **The queue prefix is excluded on purpose.** Without it, the merge queue
+  cannot create its branch and no pull request can be merged into `develop`.
 - **GitHub's "Revert" button on a merged PR** creates a `revert-<n>-...`
   branch, which is refused. Revert with `git revert` on a gitflow-named branch
   instead.
-- **The default branch must already be a conforming name** (`develop` or
-  `main`) when the ruleset is applied; today the repository's default branch is
-  a backup branch with a non-conforming name.
+- **A ref name cannot have a component that starts with a dot** (git itself
+  refuses it), so a directory such as `.github` never appears in a branch name.
 - Branches created in the web UI must follow the same names.
 - Existing non-conforming branches are not renamed by the rule; delete or
   rename them.
