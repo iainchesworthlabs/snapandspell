@@ -50,6 +50,17 @@ parent, they hold base forms only (no plurals), and a word can be in more than
 one category (`star` is in `nature` and `shapes`). Nothing in the program reads
 them yet; the [roadmap](../docs/roadmap.md) (M2) says how they are to be used.
 
+## `phonics/`: phase data (none yet)
+
+Where the phonics phases are to go: `phase-<x>.graphemes.txt` and
+`phase-<x>.words.txt`, in the format [Architecture](../docs/architecture.md#phase-data)
+describes and `tools/data/check_phonics.ps1` checks. **There is no file here,
+and none is to be added without a reviewer.** Which graphemes and words belong to
+which phase, how each word is split and which words are tricky are for a literacy
+specialist, and the file's header records who reviewed it and when. A file
+without that header is test data, and a release build refuses it. Its `source`
+is recorded in the header, in the form this file asks of every list.
+
 ## Adding a list
 
 Record where it came from, when, and under what terms, in this file, in the
