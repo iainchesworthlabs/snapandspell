@@ -1,0 +1,66 @@
+# Build trees, package caches and generated output
+/build/
+build*/
+cmake-build-*/
+/vcpkg_installed/
+compile_commands.json
+.cache/
+.ninja_deps
+.ninja_log
+CMakeUserPresets.json
+
+# mkdocs build output
+/site/
+
+# Camera captures. This application is meant to be pointed at a game played
+# with children, so a picture of a person must never be committed. Recordings
+# used by tests live outside the tree; a test that wants one skips when it is
+# not there.
+/tests/data/captures/
+/docs/evidence/
+
+# Third-party OCR / camera models are fetched, not vendored.
+*.traineddata
+*.onnx
+
+# Visual Studio and other IDE state
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+ipch/
+*.aps
+*.ncb
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Native build products
+*.obj
+*.o
+*.pdb
+*.ilk
+*.idb
+*.pch
+*.log
+*.tlog
+
+# Coverage output
+coverage*.json
+coverage*.xml
+coverage*.info
+*.gcda
+*.gcno
+
+# Python bytecode (tooling scripts are run in place)
+__pycache__/
+*.pyc
