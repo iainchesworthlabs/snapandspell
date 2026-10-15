@@ -78,6 +78,11 @@ option(WJS_BUILD_CLI "Build the wjs-cli command-line solver" ON)
 # QT_ROOT_DIR or CMAKE_PREFIX_PATH (cmake/FindQt6.cmake), which is not vcpkg's.
 option(WJS_BUILD_APP "Build the Qt Quick application (needs Qt 6.12)" OFF)
 option(WJS_BUILD_TESTS "Build the unit test suite" ON)
+# The prototype of the 3D board scene (src/app/prototype/shake, and
+# docs/design/shake-prototype.md). A program of its own, not part of the
+# application: it links Qt Quick 3D, which Qt offers under the GPL-3.0 only, so
+# the program it makes is GPL-3.0 only (docs/design/board.md). Needs WJS_BUILD_APP.
+option(WJS_BUILD_SHAKE_PROTOTYPE "Build the 3D board-scene prototype (needs Qt Quick 3D; GPL-3.0 only)" OFF)
 
 # ---------------------------------------------------------------------------
 # Targets
@@ -99,8 +104,14 @@ endif()
 if(WJS_BUILD_APP)
     # Found here, not in src/app: imported targets are directory-scoped, and
     # tests/ links Qt::Core too.
-    find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
+    set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2)
+    if(WJS_BUILD_SHAKE_PROTOTYPE)
+        list(APPEND WJS_QT_COMPONENTS Quick3D)
+    endif()
+    find_package(Qt6 6.12 REQUIRED COMPONENTS ${WJS_QT_COMPONENTS})
     add_subdirectory(src/app)
+elseif(WJS_BUILD_SHAKE_PROTOTYPE)
+    message(WARNING "WJS_BUILD_SHAKE_PROTOTYPE needs WJS_BUILD_APP=ON; the prototype is not built.")
 endif()
 
 if(WJS_BUILD_TESTS)
@@ -112,3 +123,4 @@ message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_N
 message(STATUS "  Build CLI   : ${WJS_BUILD_CLI}")
 message(STATUS "  Build app   : ${WJS_BUILD_APP}")
 message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")
+message(STATUS "  Build shake prototype : ${WJS_BUILD_SHAKE_PROTOTYPE}")
