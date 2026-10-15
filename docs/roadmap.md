@@ -98,6 +98,8 @@ it, and collect a jewel.
 - Touch tracing with generous tolerance, tested on a real tablet with small
   fingers (the one thing no unit test can settle).
 - Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.
+  The state school-font setting (PRD 7.1) needs each font's redistribution terms
+  checked first, and is **not** part of the exit above until they are.
 - A 3x3 mode and a 4x4 mode.
 
 ### M2: Child-appropriate words and hints
@@ -106,6 +108,33 @@ it, and collect a jewel.
 - Hint engine; "nudge, don't spoil" works in Solo Play too: a hint for a word
   not yet found.
 - Scoring that rewards a child's first 3-letter word.
+
+### M2b: Phonics mode and the parent dashboard
+
+From the PRD sections 7.3 and 7.4. **Not designed**: the PRD lists the open
+questions (29 to 57). What is known now is what each part depends on.
+
+- **Grapheme and phoneme data** for every word a child can meet, per phase, and
+  the audio of the sounds in an Australian accent. Neither exists in the
+  repository, and the choice of source (authored for a decodable list, or derived
+  from a pronunciation lexicon) is open. The dictionary has no pronunciations.
+- **Phase word sets.** Deriving them by filtering the dictionary yields entries a
+  child does not meet (249 words for the six SATPIN letters, five of them in the
+  early-reader tier), so each phase needs an authored, reviewed list.
+- **Grapheme-block tracing and the sound-it-out sequence**: a presentation layer
+  over the solver's path; the library already takes tiles of one to three
+  letters.
+- **A local store** for progress, time played and any voice clips, with no
+  network access, behind a parental gate; and the **sound-mastery metrics**,
+  which need the grapheme data above.
+- **The printable PDF** and how it leaves the device on each platform (the
+  system share and print facilities, under `src/platforms`), which is the first
+  route by which a child's data would leave it.
+- **The programme names** (InitiaLit, Letters and Sounds) need their licence and
+  trade-mark terms checked before any alignment is claimed.
+
+The recording of a child's voice (PRD question 41) belongs in the privacy review
+(G6) before it is designed.
 
 ### M3: 0.1, the first release
 
@@ -208,7 +237,14 @@ Constraints to decide before a camera ships, not a policy:
   Design Code, GDPR Article 8). Apple's Kids Category and Google Play's Families
   policy each add requirements, such as a parental gate for anything outside the
   game. Get these reviewed before M4 reaches a store.
-- Hints and rewards should not nag, time-limit or push the child to continue.
+- Hints and rewards should not nag or push the child to continue. The one
+  limit is a parent's: a gentle, parent-configured screen-time limit is a stated
+  requirement (PRD 7.4), set behind the parental gate.
+- A child's progress, time played and any voice clips stay on the device, with
+  no cloud tracking, as the author has now stated (PRD 7.4). A recording of a
+  child's voice and the emailed PDF summary are the two places where this needs
+  care, because the first is the most sensitive data the application would hold
+  and the second is data leaving the device at a parent's request.
 
 ## 9. Questions for you
 
