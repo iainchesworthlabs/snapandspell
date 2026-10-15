@@ -2,7 +2,8 @@
 
 The tests are Catch2 unit tests for the library, the platform layer and (when
 the Qt window is built) its model, plus two checks about the build itself. They
-have been run on Windows with MSVC only; Linux and macOS have not been built.
+run in CI on Windows (MSVC), Linux (GCC) and macOS (AppleClang), 28 tests each;
+the Qt model tests run only where the window is built, which is Windows so far.
 
 ## Running them
 
@@ -113,7 +114,9 @@ fix a number here.
 - **The window.** The model is tested. The QML has been loaded offscreen to see
   that it starts and reads its `--dictionary` argument, and not exercised by a
   test or run on a real screen.
-- **The console and path code on Linux and macOS.** Written, never built.
+- **The console code on Linux and macOS.** It does nothing there (a POSIX
+  terminal already carries UTF-8), so there is nothing to observe. The path code
+  is covered by `paths_test` in CI on both.
 - **A UTF-8 console on Windows**, and files opened by paths longer than
   `MAX_PATH` (a [known problem](building.md#platform-notes)).
 - **Performance.** There are no timing or throughput tests, and no

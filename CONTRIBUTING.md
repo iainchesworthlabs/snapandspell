@@ -46,8 +46,9 @@ cmake --build --preset windows-msvc-debug
 ctest --preset windows-msvc-debug
 ```
 
-Use `linux-gcc-debug` or `macos-clang-debug` on those systems. Only Windows with
-MSVC has been built so far, so a problem on the others is a useful report.
+Use `linux-gcc-debug` or `macos-clang-debug` on those systems. All three are
+built and tested by CI; a problem on a compiler or system it does not cover is a
+useful report.
 
 ## Tests are not optional
 

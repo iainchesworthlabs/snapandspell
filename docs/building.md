@@ -3,9 +3,10 @@
 This page builds WordJewelsSolver from source. To use `wjs-cli`, see the
 [home page](index.md#using-the-command-line-solver).
 
-Only Windows with MSVC has been built and run so far. The Linux and macOS
-presets, platform code and compiler minimums below are the intent: written, but
-not yet tried. What CI will build is in [CI](ci.md).
+CI builds and tests all three desktops: Windows (MSVC 19.51), Linux (GCC 15.2,
+Ubuntu 26.04) and macOS (Apple clang 21, Apple silicon), each in Debug with
+warnings as errors and sanitizers. The compiler minimums below are the intent;
+only the versions just named have been tried. What CI runs is in [CI](ci.md).
 
 ## Requirements
 
@@ -13,7 +14,7 @@ not yet tried. What CI will build is in [CI](ci.md).
 | --- | --- | --- |
 | CMake | 4.0 or newer | The presets require it. 4.4.0 is what the verified build used |
 | Ninja | any recent | The presets use the Ninja generator |
-| A C++23 compiler | MSVC from Visual Studio 2022 17.x or Visual Studio 2026; GCC 14 or newer; AppleClang 16 or newer | Only MSVC 19.51 (Visual Studio 2026) is verified. The code uses `std::expected` and `std::format` |
+| A C++23 compiler | MSVC from Visual Studio 2022 17.x or Visual Studio 2026; GCC 14 or newer; AppleClang 16 or newer | Verified: MSVC 19.51 (Visual Studio 2026), GCC 15.2, Apple clang 21. The code uses `std::expected` and `std::format` |
 | Git | any recent | The vendored vcpkg is a submodule |
 | PowerShell 7 (`pwsh`) | 7.0 or newer | For the [platform-isolation check](platform-isolation.md#enforcement). Optional: without it the `platform.isolation` test is not registered |
 | Network access | | The first configure bootstraps vcpkg and builds Catch2 |

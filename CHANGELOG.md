@@ -81,9 +81,11 @@ that release, so that its rules (branch protection, required checks) can apply.
   in the git history before the rebuild. The rebuilt program has no camera
   input yet.
 
-> **Pre-release.** Only Windows with MSVC 19.51 has been built and run; the
-> Linux (GCC) and macOS (AppleClang) code and presets are written but not yet
-> built. There is no camera input, no reading of letters from a picture, and no
+> **Pre-release.** The first continuous-integration run built and tested the
+> library, the command-line solver and the platform layer on Windows (MSVC
+> 19.51), Linux (GCC 15.2) and macOS (Apple clang 21), all green with warnings
+> as errors and sanitizers on; the Qt window is built only on Windows so far.
+> There is no camera input, no reading of letters from a picture, and no
 > installer or package. It has not been tried with children. Opening a file by a
 > path longer than `MAX_PATH` fails on Windows, since the executables are not
 > long-path aware. `wjs-cli` itself is checked by hand, not by a test.

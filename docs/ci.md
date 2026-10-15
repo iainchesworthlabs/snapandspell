@@ -244,9 +244,10 @@ in the index (git ignores a hook that is not, with a warning).
 
 ## When the first run goes red
 
-Linux and macOS have not been built anywhere yet (the Windows leg was verified
-with MSVC 19.51 locally), so the first runs are where those platforms are
-proven. The usual suspects, in order of likelihood:
+The first run, on the pull request that introduced the build, was green on all
+three desktops: Windows (MSVC 19.51), Linux (GCC 15.2) and macOS (Apple clang
+21), 28 tests each. When a later run goes red on one of them, the usual
+suspects, in order of likelihood:
 
 1. **Warnings as errors** on a compiler version nobody has tried: `-Werror`
    with `-Wconversion`, `-Wsign-conversion`, `-Wold-style-cast` and friends

@@ -48,8 +48,8 @@ error.
 
 **Which platforms does it run on?**
 The code is written for Windows, Linux and macOS, with the differences between
-them kept in `src/platforms`. Only Windows with MSVC has been built and run. The
-Linux and macOS code has not yet been built, so expect to fix something there.
+them kept in `src/platforms`. CI builds and tests it on Windows (MSVC), Linux
+(GCC) and macOS (AppleClang); the Qt window is built on Windows only so far.
 See [Building](building.md).
 
 **Is this the 2013 program?**

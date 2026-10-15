@@ -27,10 +27,10 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | `wjs-cli` | Done | Run end to end on Windows |
 | Platform isolation (`src/platforms`, one CMake selector, enforcing check) | Done | `platform.isolation` and `platform.fragments` ctests |
 | Qt Quick shell (type a board, Solve, scored list) | Works, **not seen rendered** | Built with Qt 6.12.0; launched offscreen, QML loads; 3 model tests |
-| Windows build (MSVC 19.51, Qt 6.12.0, `/W4 /WX`, ASan) | Verified | 29 ctests pass |
-| Linux and macOS builds | **Unverified** | Standard C++23 and small platform files, but never compiled |
+| Windows build (MSVC 19.51, Qt 6.12.0, `/W4 /WX`, ASan) | Verified | Locally and in CI; 31 ctests locally (with the window), 28 in CI |
+| Linux (GCC 15.2) and macOS (Apple clang 21) builds | Verified | CI, Debug, warnings as errors, sanitizers: 28/28 tests on each. The Qt window is not built on either |
 | Android and iOS builds of this app | Not started | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad (its CHANGELOG records it; `docs/building.md` there is out of date on this) |
-| CI, repository rules, documentation | Written, **never run** | Needs a push to GitHub |
+| CI, repository rules, documentation | Running; rulesets applied and enforced | First CI run green (12 checks); branch-name rule verified by a rejected push. The `main` and `develop` protections are applied but not exercised |
 | Touch UI, dice, shake, tracing, audio, rewards | Not started | |
 | Child-appropriate lexicon and hints | Not started | |
 | Camera scan | Not started | |
@@ -167,7 +167,9 @@ release, and between a release and a store.
   entries such as `chooseing`, `circleed`, `lyeer`, and missing `the`, `house`,
   `happy`). A list built by attaching suffixes to stems produces words that do
   not exist; start from a real list.
-- **G3 Linux and macOS compile and pass.** First CI run; expect small fixes.
+- **G3 Linux and macOS compile and pass. Done.** The first CI run was green on
+  GCC 15.2 and Apple clang 21. Still open: the Qt window is built in CI on no
+  platform, so installing Qt 6.12 there is the next piece.
 - **G4 Rulesets applied.** Branch protection, the merge queue and the rule that
   rejects any branch not named in the gitflow scheme are in `.github/rulesets`
   and applied with `tools/repo/apply_rulesets.ps1`; they were unavailable while

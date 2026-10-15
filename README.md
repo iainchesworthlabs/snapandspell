@@ -12,9 +12,8 @@ type the board in and it finds the words. The camera, and reading letters from
 a picture, are still to be built.
 
 > **Status: pre-release, nothing released yet.** The solver is real and
-> tested. The camera, letter recognition, installers and an English word list
-> do not exist yet, and it has been built and run on Windows with MSVC only;
-> the Linux and macOS code is written but has not been built.
+> tested. The camera, letter recognition and installers do not exist yet. CI
+> builds and tests it on Windows (MSVC), Linux (GCC) and macOS (AppleClang).
 > [CHANGELOG.md](CHANGELOG.md) says what is in and what is not proven, and
 > [docs/roadmap.md](docs/roadmap.md) says what comes next.
 
@@ -24,7 +23,7 @@ a picture, are still to be built.
 | --- | --- | --- |
 | The library: board parsing, a trie dictionary, scoring, a depth-first solver. No GUI, no operating system code | `src/lib` | Unit tested |
 | `wjs-cli`, a command-line front end | `src/cli` | Works; not covered by a test of its own |
-| Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Windows built and tested; Linux and macOS not yet built |
+| Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Built and tested by CI on Windows, Linux and macOS |
 | A small Qt Quick window: type a board into a grid, press Solve, see the scored words | `src/app` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model tests only, not packaged |
 | Catch2 unit tests, a platform-contract test and the platform-isolation check | `tests`, `tools/checks` | Pass on Windows |
 
