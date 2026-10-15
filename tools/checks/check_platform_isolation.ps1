@@ -48,7 +48,11 @@
 #      CXX_COMPILER_ID - are a different axis and are not matched, nor are
 #      property names such as WIN32_EXECUTABLE.)
 #
-#   5. NO #define OR #undef in any first-party C++ tree. Platform directories\r\n#      included: what they need from the build arrives as a compile definition\r\n#      CMake passes in, not as a macro the source declares.\r\n#\r\n# Not scanned, deliberately: third_party/ and deps/ (vendored code, with its own
+#   5. NO #define OR #undef in any first-party C++ tree. Platform directories
+#      included: what they need from the build arrives as a compile definition
+#      CMake passes in, not as a macro the source declares.
+#
+# Not scanned, deliberately: third_party/ and deps/ (vendored code, with its own
 # licence and conventions), anything git ignores (build output, generated
 # headers), and shader sources (GLSL has no operating system to branch on).
 #
