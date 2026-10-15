@@ -19,19 +19,20 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
+  <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -41,11 +42,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\Diagnostics\;$(ProjectDir)\Dictionary\;$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Core;$(SolutionDir)Engine;$(SolutionDir)Media;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)\Diagnostics\;$(ProjectDir)\Dictionary\;$(ProjectDir)\Engine\;$(ProjectDir)\GUI\;$(ProjectDir)\Media\;$(ProjectDir)\Support\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)Core;$(SolutionDir)Engine;$(SolutionDir)Media;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -55,6 +56,8 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\Extensions\Microsoft\ConcurrencyVisualizer\SDK\Native\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -64,6 +67,9 @@
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -75,6 +81,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\Extensions\Microsoft\ConcurrencyVisualizer\SDK\Native\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -86,144 +94,45 @@
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Diagnostics\CallStack.h" />
-    <ClInclude Include="Diagnostics\Diagnostics.h" />
-    <ClInclude Include="Diagnostics\GetErrorString.h" />
-    <ClInclude Include="Diagnostics\TracedThrow.h" />
-    <ClInclude Include="Diagnostics\Win32Result.h" />
-    <ClInclude Include="Diagnostics\WJSErrorHandler.h" />
-    <ClInclude Include="Diagnostics\Win32Error.h" />
-    <ClInclude Include="Dictionary\Dictionary.h" />
-    <ClInclude Include="Engine\FastTrie.h" />
-    <ClInclude Include="Engine\GameBoard.h" />
-    <ClInclude Include="Engine\GameBoardOperators.h" />
-    <ClInclude Include="Engine\GameBoardIterator.h" />
-    <ClInclude Include="Engine\GameBoardMatrix.h" />
-    <ClInclude Include="Engine\GameBoardNode.h" />
-    <ClInclude Include="Engine\GameBoardTemplate.h" />
-    <ClInclude Include="Engine\RulesEngine.h" />
-    <ClInclude Include="Engine\Rule_Abstract.h" />
-    <ClInclude Include="Engine\Rule_Cloner.h" />
-    <ClInclude Include="Engine\Rule_IsUniqueWord.h" />
-    <ClInclude Include="Engine\Rule_ThreeLettersOrMore.h" />
-    <ClInclude Include="Engine\SearchForWords.h" />
-    <ClInclude Include="Engine\StringConversions.h" />
-    <ClInclude Include="Engine\TrieMap.h" />
-    <ClInclude Include="Engine\WordJewelsEngine.h" />
-    <ClInclude Include="Engine\WordsList.h" />
-    <ClInclude Include="GUI\CommandButton_WindowProc.h" />
-    <ClInclude Include="GUI\LetterControl_WindowProc.h" />
-    <ClInclude Include="GUI\ListBox_WindowProc.h" />
-    <ClInclude Include="GUI\MainWindow_DialogProc.h" />
-    <ClInclude Include="GUI\resource.h" />
-    <ClInclude Include="GUI\VideoFrame_WindowProc.h" />
-    <ClInclude Include="Media\CaptureDevice.h" />
-    <ClInclude Include="Media\CaptureDeviceCollection.h" />
-    <ClInclude Include="Media\CaptureEngine.h" />
-    <ClInclude Include="Media\CaptureEngineCOM.h" />
-    <ClInclude Include="Media\CaptureGraphMgmt.h" />
-    <ClInclude Include="Media\CaptureManager.h" />
-    <ClInclude Include="Media\CapturePreviewWindow.h" />
-    <ClInclude Include="Media\CaptureSupport.h" />
-    <ClInclude Include="Media\EVR_Renderer.h" />
-    <ClInclude Include="Media\GraphDebugger.h" />
-    <ClInclude Include="Media\ICaptureDevice.h" />
-    <ClInclude Include="Media\IVideoRenderer.h" />
-    <ClInclude Include="Media\NullCaptureDevice.h" />
-    <ClInclude Include="Media\VMR7_Renderer.h" />
-    <ClInclude Include="Media\VMR9_Renderer.h" />
-    <ClInclude Include="Support\CoInitialize.h" />
-    <ClInclude Include="Support\DebugStream.h" />
-    <ClInclude Include="Support\DxVersion.h" />
-    <ClInclude Include="Support\OSVersion.h" />
-    <ClInclude Include="Support\SafeRelease.h" />
-    <ClInclude Include="Support\Singleton.h" />
-    <ClInclude Include="Support\Stdafx.h" />
-    <ClInclude Include="Support\StringConversion.h" />
-    <ClInclude Include="Support\Win32GameBoardNode.h" />
-    <ClInclude Include="Support\WinMain.h" />
-    <ClInclude Include="Support\WithFinally.h" />
+    <ClInclude Include="CommandButton_WindowProc.h" />
+    <ClInclude Include="LetterControl_WindowProc.h" />
+    <ClInclude Include="ListBox_WindowProc.h" />
+    <ClInclude Include="MainWindow_DialogProc.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="VideoFrame_WindowProc.h" />
+    <ClInclude Include="WinMain.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Diagnostics\CallStack.cpp" />
-    <ClCompile Include="Diagnostics\Diagnostics.cpp" />
-    <ClCompile Include="Diagnostics\GetErrorString.cpp" />
-    <ClCompile Include="Diagnostics\TracedThrow.cpp" />
-    <ClCompile Include="Diagnostics\Win32Result.cpp" />
-    <ClCompile Include="Diagnostics\WJSErrorHandler.cpp" />
-    <ClCompile Include="Diagnostics\Win32Error.cpp" />
-    <ClCompile Include="Dictionary\Dictionary.cpp" />
-    <ClCompile Include="Engine\FastTrie.cpp" />
-    <ClCompile Include="Engine\GameBoard.cpp" />
-    <ClCompile Include="Engine\GameBoardOperators.cpp" />
-    <ClCompile Include="Engine\GameBoardIterator.cpp" />
-    <ClCompile Include="Engine\GameBoardMatrix.cpp" />
-    <ClCompile Include="Engine\GameBoardNode.cpp" />
-    <ClCompile Include="Engine\GameBoardTemplate.cpp" />
-    <ClCompile Include="Engine\RulesEngine.cpp" />
-    <ClCompile Include="Engine\Rule_Abstract.cpp" />
-    <ClCompile Include="Engine\Rule_Cloner.cpp" />
-    <ClCompile Include="Engine\Rule_IsUniqueWord.cpp" />
-    <ClCompile Include="Engine\Rule_ThreeLettersOrMore.cpp" />
-    <ClCompile Include="Engine\SearchForWords.cpp" />
-    <ClCompile Include="Engine\StringConversions.cpp" />
-    <ClCompile Include="Engine\TrieMap.cpp" />
-    <ClCompile Include="Engine\WordJewelsEngine.cpp" />
-    <ClCompile Include="Engine\WordsList.cpp" />
-    <ClCompile Include="GUI\CommandButton_WindowProc.cpp" />
-    <ClCompile Include="GUI\LetterControl_WindowProc.cpp" />
-    <ClCompile Include="GUI\ListBox_WindowProc.cpp" />
-    <ClCompile Include="GUI\MainWindow_DialogProc.cpp" />
-    <ClCompile Include="GUI\VideoFrame_WindowProc.cpp" />
-    <ClCompile Include="Media\CaptureDevice.cpp" />
-    <ClCompile Include="Media\CaptureDeviceCollection.cpp" />
-    <ClCompile Include="Media\CaptureEngine.cpp" />
-    <ClCompile Include="Media\CaptureEngineCOM.cpp" />
-    <ClCompile Include="Media\CaptureGraphMgmt.cpp" />
-    <ClCompile Include="Media\CaptureManager.cpp" />
-    <ClCompile Include="Media\CapturePreviewWindow.cpp" />
-    <ClCompile Include="Media\CaptureSupport.cpp" />
-    <ClCompile Include="Media\EVR_Renderer.cpp" />
-    <ClCompile Include="Media\ICaptureDevice.cpp" />
-    <ClCompile Include="Media\IVideoRenderer.cpp" />
-    <ClCompile Include="Media\GraphDebugger.cpp" />
-    <ClCompile Include="Media\NullCaptureDevice.cpp" />
-    <ClCompile Include="Media\VMR7_Renderer.cpp" />
-    <ClCompile Include="Media\VMR9_Renderer.cpp" />
-    <ClCompile Include="Support\CoInitialize.cpp" />
-    <ClCompile Include="Support\DebugStream.cpp" />
-    <ClCompile Include="Support\DxVersion.cpp" />
-    <ClCompile Include="Support\OSVersion.cpp" />
-    <ClCompile Include="Support\SafeRelease.cpp" />
-    <ClCompile Include="Support\Singleton.cpp" />
-    <ClCompile Include="Support\Stdafx.cpp" />
-    <ClCompile Include="Support\StringConversion.cpp" />
-    <ClCompile Include="Support\Win32GameBoardNode.cpp" />
-    <ClCompile Include="Support\WinMain.cpp" />
-    <ClCompile Include="Support\WithFinally.cpp" />
+    <ClCompile Include="CommandButton_WindowProc.cpp" />
+    <ClCompile Include="LetterControl_WindowProc.cpp" />
+    <ClCompile Include="ListBox_WindowProc.cpp" />
+    <ClCompile Include="MainWindow_DialogProc.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="VideoFrame_WindowProc.cpp" />
+    <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Dictionary\dictionary.af.txt" />
-    <Text Include="Dictionary\dictionary.ar.txt" />
-    <Text Include="Dictionary\dictionary.bg.txt" />
-    <Text Include="Dictionary\dictionary.ca.txt" />
-    <Text Include="Dictionary\dictionary.cs.txt" />
-    <Text Include="Dictionary\dictionary.en.txt" />
-    <Text Include="Dictionary\dictionary.es.txt" />
-    <Text Include="Dictionary\dictionary.hr.txt" />
-    <Text Include="Dictionary\dictionary.pt.txt" />
-    <Text Include="Dictionary\dictionary.zh.txt" />
+    <ProjectReference Include="..\Core\Core.vcxproj">
+      <Project>{b932a1cb-44ed-4a4f-a1d7-3a6d5835c9d0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Engine\Engine.vcxproj">
+      <Project>{5b110fec-2b3c-472e-939a-4ad48d6c7113}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Media\Media.vcxproj">
+      <Project>{f2c0e705-260e-4d43-9c84-696b720acd48}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="GUI\resource.hm" />
+    <Manifest Include="WordJewelsSolver.exe.manifest" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="GUI\WordJewelSolver.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="GUI\WordJewelsSolver.exe.manifest" />
+    <ResourceCompile Include="WordJewelSolver.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
