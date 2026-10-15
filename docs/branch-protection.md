@@ -55,7 +55,7 @@ feature/* bugfix/* ──PR──▶ merge queue ──▶ develop ──release
 | `main-protection.json` | `main-protection` | `refs/heads/main` | Pull request required; required checks with "up to date" **on**; conversations resolved; no deletion; no force push. |
 | `develop-protection.json` | `develop-protection` | `refs/heads/develop` | Pull request required; required checks with "up to date" **off** (the queue makes each entry current); no deletion; no force push. |
 | `merge-queue-develop.json` | `merge-queue-develop` | `refs/heads/develop` | The merge queue: merge commits, `ALLGREEN`, build up to 4 entries and merge up to 5, wait 1 minute, 180-minute check timeout. |
-| `branch-names.json` | `branch-names` | every branch (`~ALL`, nothing excluded) | Only the allowed branch names can be created. No bypass actors. |
+| `branch-names.json` | `branch-names` | every branch except the gitflow names (`~ALL` minus `main`, `develop`, `feature/**`, `bugfix/**`, `release/**`, `hotfix/**`, `support/**`, `dependabot/**`, `gh-readonly-queue/**`) | Creating any other branch is refused. No bypass actors. |
 
 ### `main-protection` and `develop-protection`
 
@@ -82,19 +82,27 @@ triggers on `merge_group` (see [Required checks](#required-checks)).
 
 ### `branch-names`
 
-A `branch_name_pattern` rule, operator `regex`, matched against the branch
-name:
+A **creation** restriction on every branch except the gitflow namespaces (the
+`exclude` list in the file). A branch named anything else - a tool-named session
+branch, a typo, a bare `fix-thing`, `feature-x` - is refused when it is
+created, at push time, before any workflow runs:
 
 ```text
-^(main|develop|(feature|bugfix|release|hotfix|support|dependabot)/.+|gh-readonly-queue/.+)$
+ ! [remote rejected] main -> wip/ruleset-check (push declined due to repository rule violations)
 ```
 
-A branch whose name does not match - a tool-named session branch, a typo, a
-bare `fix-thing` - is refused when it is created, at push time, before any
-workflow runs. There are **no bypass actors**: not even an admin can push a
-non-matching name. The same allow-list is applied earlier and softer by
-`tools/hooks/pre-push` (locally) and `Validate gitflow branch name` (on the
-pull request).
+There are **no bypass actors**: not even an admin can push a non-matching name.
+The same allow-list is applied earlier and softer by `tools/hooks/pre-push`
+(locally) and `Validate gitflow branch name` (on the pull request).
+
+**Why a creation rule and not a name pattern.** GitHub also offers a
+`branch_name_pattern` rule ("restrict branch names"). On this plan the API
+accepts it and creates it, and then **does not enforce it**: a branch that
+broke the pattern was pushed without complaint, with the `regex` operator and
+with `starts_with` alike (checked live on 2026-10-15). A rule that is created and
+silently ignored is worse than none, so the allow-list is written as include and
+exclude globs on a `creation` rule, which is enforced. If this repository moves
+to a plan where metadata rules are enforced, the pattern rule could replace it.
 
 Consequences worth knowing:
 
