@@ -241,6 +241,14 @@ jobs:
             Windows) cl 2>&1 | head -n 1 || true ;;
           esac
 
+      # Only the Linux profiling build needs this: vcpkg builds Tracy's
+      # command-line tools for the host, and on Linux that is a chain of
+      # autotools ports (dbus, libxcrypt, libsystemd) that the hosted image
+      # does not carry the tools for.
+      - name: Install what vcpkg needs for Tracy's tools (Linux profiling)
+        if: ${{ matrix.leg == 'profiling-linux' }}
+        run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool python3-venv
+
       # No Qt: the GUI application is behind WJS_BUILD_APP (off), and CI does
       # not install Qt until that application is built here.
       - name: Configure
