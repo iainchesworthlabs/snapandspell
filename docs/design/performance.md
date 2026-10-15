@@ -30,10 +30,10 @@ its letters in integer arithmetic where the throw-away program scaled a double,
 and that changed no board of the 800. The maxima over 200 boards are 514 / 1,548
 / 2,859 / 5,174 visits, the four rich boards make 2,832 / 5,496 / 9,443 / 12,350
 visits and find 1,126 / 1,464 / 1,788 / 327 words, and the two empty boards make
-100 and 256. Loading ENABLE took 65 to 68 ms in the tier's runs (the throw-away program saw
-55 to 65 ms).
-The tier also runs, and passes, under GCC 15.2 on Ubuntu 26.04 (the CI Linux
-image) with the same counts.
+100 and 256. Loading ENABLE took 65 to 68 ms in the tier's runs (the
+throw-away program saw 55 to 65 ms). The tier also runs, and passes, under GCC
+15.2 on Ubuntu 26.04 with the same counts (a container of the CI image, and the
+`Performance` CI leg).
 
 | | Result |
 | --- | --- |
@@ -158,9 +158,11 @@ connection check.
 
 **Built, and checked.** Compiled warning-free (`/W4 /WX`, `-Wall -Wextra
 -Wpedantic -Werror ...`) against the **real Tracy v0.13.1 headers** (vcpkg
-`tracy[on-demand]`, crash handler off) with MSVC 19.51, and with GCC 15.2; the
-result for Apple clang is in the CI leg's log (see the pull request). Three
-things the plan did not have:
+`tracy[on-demand]`, crash handler off) with MSVC 19.51, GCC 15.2 and Apple
+clang 21 (Xcode), each running all 43 tests of its profiling preset: the
+dispatch-only `profiling-*` legs of `ci.yml`, and the first two also locally.
+The disabled variant is what every Debug leg compiles. Three things the plan
+did not have:
 
 - **A collision, found.** Tracy's header defines a macro `ZoneName`, which is
   what the first version of the wrapper called its name type, and it did not
@@ -289,8 +291,8 @@ screen is the one automatable exception, and it needs the window and Qt.
 - Every device figure above.
 - The size of the phase index, and so the seeding's tries.
 - ~~Whether the macro-free zone behaves on GCC and Apple clang and against the
-  real Tracy headers.~~ **Settled for MSVC and GCC, against the real headers**
-  (see "A macro-free route"). Apple clang: the macOS CI leg.
+  real Tracy headers.~~ **Settled** on MSVC, GCC and Apple clang, against the
+  real headers (see "A macro-free route").
 - **A profiler needs about a second to find a program that has just started**,
   and in on-demand mode what happens before it connects is not recorded, so a
   program that is over in a tenth of a second (`wjs-cli`) cannot be captured as
