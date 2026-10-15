@@ -6,6 +6,7 @@ add_executable(wjs_unit_tests
     unit/dictionary_test.cpp
     unit/path_test.cpp
     unit/paths_test.cpp
+    unit/phase_data_test.cpp
     unit/scoring_test.cpp
     unit/solver_test.cpp)
 
