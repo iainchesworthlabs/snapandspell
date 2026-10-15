@@ -1,0 +1,176 @@
+#include <charconv>
+#include <cstddef>
+#include <expected>
+#include <filesystem>
+#include <format>
+#include <iostream>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <system_error>
+#include <vector>
+
+#include "wjs/board.hpp"
+#include "wjs/dictionary.hpp"
+#include "wjs/platform/console.hpp"
+#include "wjs/platform/paths.hpp"
+#include "wjs/scoring.hpp"
+#include "wjs/solver.hpp"
+#include "wjs/version.hpp"
+
+namespace {
+
+constexpr int exit_usage = 1;
+constexpr int exit_dictionary = 2;
+constexpr int exit_board = 3;
+
+constexpr std::string_view usage_text =
+    "Usage: wjs-cli [options] <row>...\n"
+    "\n"
+    "Finds every word on a Boggle board. Each <row> is one row of the board. A row\n"
+    "with no spaces is read one letter per tile (TAPE); otherwise tiles are\n"
+    "separated by spaces or commas (\"Qu I T\"), so quote such a row.\n"
+    "\n"
+    "Options:\n"
+    "  -d, --dictionary <file>  Word list, one word per line. Defaults to\n"
+    "                           dictionaries/en.txt beside the executable.\n"
+    "  -m, --min-length <n>     Shortest word to report (default 3).\n"
+    "  -s, --scoring <scheme>   boggle (default) or rarity.\n"
+    "  -h, --help               Show this help.\n"
+    "      --version            Show the version.\n";
+
+struct Arguments {
+    std::optional<std::filesystem::path> dictionary;
+    wjs::SolveOptions options;
+    std::string board_text;
+    bool help = false;
+    bool version = false;
+};
+
+[[nodiscard]] std::expected<Arguments, std::string> parse_arguments(
+    const std::vector<std::string>& args) {
+    Arguments parsed;
+
+    for (std::size_t i = 0; i < args.size(); ++i) {
+        const std::string& arg = args[i];
+
+        // The value after an option that takes one.
+        const auto value = [&]() -> std::expected<std::string_view, std::string> {
+            if (i + 1 >= args.size()) {
+                return std::unexpected(std::format("{} needs a value", arg));
+            }
+            return std::string_view(args[++i]);
+        };
+
+        if (arg == "-h" || arg == "--help") {
+            parsed.help = true;
+        } else if (arg == "--version") {
+            parsed.version = true;
+        } else if (arg == "-d" || arg == "--dictionary") {
+            const auto path = value();
+            if (!path) {
+                return std::unexpected(path.error());
+            }
+            parsed.dictionary = std::filesystem::path{std::string(*path)};
+        } else if (arg == "-m" || arg == "--min-length") {
+            const auto text = value();
+            if (!text) {
+                return std::unexpected(text.error());
+            }
+            const char* const first = text->data();
+            const char* const last = first + text->size();
+            const auto [end, error] = std::from_chars(first, last, parsed.options.min_length);
+            if (error != std::errc{} || end != last) {
+                return std::unexpected(std::format("'{}' is not a length", *text));
+            }
+        } else if (arg == "-s" || arg == "--scoring") {
+            const auto scheme = value();
+            if (!scheme) {
+                return std::unexpected(scheme.error());
+            }
+            if (*scheme == "boggle") {
+                parsed.options.scoring = wjs::ScoringScheme::standard_boggle;
+            } else if (*scheme == "rarity") {
+                parsed.options.scoring = wjs::ScoringScheme::letter_rarity;
+            } else {
+                return std::unexpected(
+                    std::format("'{}' is not a scoring scheme (boggle or rarity)", *scheme));
+            }
+        } else if (arg.size() > 1 && arg.front() == '-') {
+            return std::unexpected(std::format("unknown option '{}'", arg));
+        } else {
+            parsed.board_text += arg;
+            parsed.board_text += '\n';
+        }
+    }
+    return parsed;
+}
+
+[[nodiscard]] std::string describe_path(const std::vector<wjs::Position>& path) {
+    std::string text;
+    for (const auto& position : path) {
+        if (!text.empty()) {
+            text += ' ';
+        }
+        text += std::format("r{}c{}", position.row + 1, position.column + 1);
+    }
+    return text;
+}
+
+[[nodiscard]] int run(const Arguments& arguments) {
+    const auto board = wjs::Board::parse(arguments.board_text);
+    if (!board) {
+        std::cerr << std::format("wjs-cli: {}\n", wjs::to_string(board.error()));
+        return exit_board;
+    }
+
+    const auto dictionary_path = arguments.dictionary.value_or(
+        wjs::platform::executable_path().parent_path() / "dictionaries" / "en.txt");
+    const auto dictionary = wjs::Dictionary::load_file(dictionary_path);
+    if (!dictionary) {
+        std::cerr << std::format("wjs-cli: {}: {}\n", dictionary_path.string(),
+                                 wjs::to_string(dictionary.error()));
+        return exit_dictionary;
+    }
+
+    const auto words = wjs::solve(*board, *dictionary, arguments.options);
+
+    int total = 0;
+    for (const auto& found : words) {
+        total += found.score;
+        std::cout << std::format("{:<16}{:>5}   {}\n", found.word, found.score,
+                                 describe_path(found.path));
+    }
+    std::cout << std::format("{} words, {} points\n", words.size(), total);
+    return 0;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    wjs::platform::use_utf8_console();
+
+    std::vector<std::string> args;
+    for (int i = 1; i < argc; ++i) {
+        args.emplace_back(argv[i]);
+    }
+
+    const auto arguments = parse_arguments(args);
+    if (!arguments) {
+        std::cerr << std::format("wjs-cli: {}\n\n{}", arguments.error(), usage_text);
+        return exit_usage;
+    }
+    if (arguments->version) {
+        std::cout << std::format("wjs-cli {} ({})\n", wjs::project_version, wjs::target_platform);
+        return 0;
+    }
+    if (arguments->help) {
+        std::cout << usage_text;
+        return 0;
+    }
+    if (arguments->board_text.empty()) {
+        std::cerr << usage_text;
+        return exit_usage;
+    }
+    return run(*arguments);
+}
