@@ -1,0 +1,59 @@
+site_name: WordJewelsSolver
+site_description: Finds every word on a Boggle board.
+site_url: https://iainchesworthlabs.github.io/wordjewelssolver/
+repo_url: https://github.com/iainchesworthlabs/wordjewelssolver
+repo_name: iainchesworthlabs/wordjewelssolver
+edit_uri: edit/develop/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+# Every page listed here is in docs/. The files at the top of the repository
+# (README, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, CHANGELOG) are outside
+# docs_dir, so the pages link to them by their GitHub address.
+nav:
+  - Home: index.md
+  - FAQ: faq.md
+  - Build and contribute:
+      - Building: building.md
+      - Testing: testing.md
+      - CI: ci.md
+      - Branch protection: branch-protection.md
+  - How it works:
+      - Architecture: architecture.md
+      - Platform isolation: platform-isolation.md
+  - Project:
+      - Product requirements: product-requirements.md
+      - Roadmap: roadmap.md
+      - Licensing: licensing.md
