@@ -154,6 +154,10 @@ kid-centric feedback loops (the author's requirements, 2026-10-16):
 - **Accessible typography.** Large, child-friendly sans-serif fonts in which
   the distinction between lowercase and uppercase is very clear, avoiding the
   ambiguous shapes of "I", "l" and "1".
+- **School fonts, as a setting.** In Australia schools use specific fonts
+  tailored to each state, for example Vic Modern Cursive for Victoria, WA and
+  the NT, or the NSW Foundation font. Supporting these would be a good settings
+  choice.
 
 These sit alongside the high scores and light gamification of section 3, and
 mean that nothing in the application subtracts from a child's progress.
@@ -218,6 +222,132 @@ category lists in `data/lexicon` (animals, colours, shapes, food and others)
 hold words only: there are no pictures, sentences or recordings for them. The
 brief's two descriptions of RAIN and STAR differ (see question 20).
 
+### 7.3 Phonics mode: Australian synthetic phonics
+
+Stated by the author on 2026-10-16. In Australian Prep and Year 1 classrooms the
+curriculum focuses heavily on synthetic phonics, where children learn phonemes
+(the sounds) and graphemes (the letters or letter combinations that represent
+those sounds, such as "ay", "ai", "sh" or "ch"). Integrating this shifts the
+application from a simple letter-matching puzzle to a phonics solver, bridging
+the backend solver with the classroom curriculum.
+
+**The grapheme-block system (phonic tracing).** Instead of treating every letter
+tile as a standalone sound, the game engine dynamically binds vowel teams and
+digraphs together when they are selected.
+
+| Phonic sound (grapheme) | Classroom examples | How tracing handles it |
+| --- | --- | --- |
+| Long A (/eɪ/) | J-AY, R-AI-N, P-L-AY | "When the finger drags from R to A, the I and N illuminate together as a unit to highlight the phoneme sound." (see question 31) |
+| Digraphs (/ʃ/, /θ/) | SH-I-P, FI-SH, CH-I-P | The S and H tiles are visually linked with a subtle glow-colour border to show they make one sound together |
+| Split digraphs (magic E) | C-A-K-E, L-I-K-E | Tracing C-A-K-E triggers a magical line linking the A and E across the K, to show the E makes the A say its name |
+
+**The "sound it out" audio engine.** When a word is completed, the celebration
+does not read the word flatly: it decodes it as teachers do in the classroom.
+
+1. **Segmenting.** Each sound block is highlighted in turn. For RAIN: R (the
+   /r/ sound), then AI (the long sound; the brief writes it as /aʊ/, see
+   question 31), then N (the /n/ sound).
+2. **Blending.** The letters slide closer together while the audio plays
+   "/r/ ... /ay/ ... /n/ ... RAIN!"
+3. **Success cheer.** "Fantastic! You used the /ay/ sound to make RAIN!"
+
+**Phonics-targeted levels (the decodable approach).** Progress is tracked by
+phonics phase, matching popular Australian programs such as InitiaLit or
+Letters and Sounds, rather than only by word length.
+
+- **Phase 1 grid (early Prep):** only simple single-letter phonemes (SATPIN
+  words: SAT, PIN, TAP, PAN).
+- **Phase 2 grid (mid to late Prep):** double consonants and simple digraphs
+  (for example CHIP, FISH).
+- **Phase 3 grid (Year 1):** complex vowel teams such as AY (JAY, PLAY, DAY) and
+  AI (RAIN, TRAIN, SAIL).
+
+**The phonics sticker book (the sound collection).** The progress tracker can be
+sorted by vowel sound as well as by theme. The child opens a "Long A page" in the
+sticker album and sees outlines for JAY, RAIN and PLAY. Tapping the page header
+plays: "This is the /ay/ page! Find words on the board that make the /ay/ sound
+to unlock their stickers!"
+
+**Fact.** Nothing here exists yet. The library takes tiles of one to three
+letters, so a digraph tile (SH, AI) is expressible and the solver reads such a
+tile as its letters in order; and the path of a found word is returned as tile
+positions, which is what grouping tiles into a grapheme block would build on.
+There is no grapheme or phoneme data of any kind in the repository, and the
+dictionary has no pronunciations. Speech synthesis says letter names and whole
+words; isolated phonemes ("/r/", not "ruh") are a recording job. Filtering the
+dictionary to words of three or more letters spelled only with S, A, T, P, I
+and N gives 249 words (43 of three letters, 70 of four, 54 of five, up to ten
+letters), including entries a child does not meet (AIS, AIT, ANA, ANTI, PIA,
+PSI, TAS, TIS); of those 249, five are in the early-reader tier of
+`data/lexicon/core-words.txt`. Every example word in the brief is in the
+dictionary.
+
+### 7.4 Parent dashboard
+
+Stated by the author on 2026-10-16. The parent dashboard turns the application
+from a casual game into an insightful educational tool. For an Australian Prep
+or Year 1 context it bridges home play and classroom learning, tracking phonics
+progress without making the child feel they are taking a test.
+
+**The sound mastery heatmap.** Instead of basic percentage scores, the dashboard
+visualises which phonemes and graphemes (sounds and letter teams) the child is
+identifying on the board and which they are overlooking.
+
+| Focus | Metrics tracked | Parent-actionable insight (example copy) |
+| --- | --- | --- |
+| Mastered sounds | Found 3 or more words containing "ay" (JAY, PLAY) or "ai" (RAIN) unassisted | "They completely understand the Long A vowel team. Ready for trickier sounds!" |
+| Emerging sounds | Selected the starting letter of a "sh" word but did not finish the digraph block | "They see the letters but are still learning to blend them together." |
+| Blind spots | Completely missed available "ch" words over multiple boards | "Next time you play the physical Family Mode, point out a 'ch' word to support them." |
+
+**Classroom alignment (curriculum sync).** Australian schools introduce sounds
+in explicit, systematic sequences (such as the InitiaLit program or Letters and
+Sounds phases), and the dashboard lets a parent match the application to what is
+happening at school.
+
+- **The "focus sound" selector.** A simple toggle screen where a parent ticks the
+  specific sounds the child is learning at school this week (for example "ai",
+  "ay" and "ee").
+- **Targeted board seeding.** Once sounds are selected, the virtual Boggle
+  backend dynamically forces the digital dice to generate grids with an
+  abundance of those target sounds, reinforcing school homework organically.
+
+**The weekly report card.** At the end of each week the dashboard generates a
+punchy, positive summary that gives the parent concrete things to praise.
+
+- **Milestone callouts.** "This week, they discovered their very first 5-letter
+  Mega Word: TRAIN!"
+- **The "read aloud" shared moment.** Saves a small audio snippet of favourite
+  word successes. The parent taps a button in the dashboard to hear the
+  recording: "T-R-A-I-N... Train!"
+- **Family play insights.** In the physical Family Companion mode, it tracks
+  which hints were tapped the most, showing where reading confidence sits when
+  playing together.
+
+**Time played.** A "Time Played" tracker with a gentle, parent-configured
+screen-time limit.
+
+**The printable summary.** The dashboard generates a printable PDF summary that
+can easily be emailed to the child's Prep or Year 1 classroom teacher for
+parent-teacher interviews.
+
+**Privacy and local storage (technical note).** Because this involves a child's
+learning data, absolute data privacy is required.
+
+- **Zero cloud tracking.** All dashboard metrics, progress history and voice
+  clips are stored locally on the device, not on a remote cloud server.
+- **A parental gate.** Reaching the dashboard requires a simple maths
+  verification lock or a long-press action, so the child does not wander into
+  the data screens by accident and break the gamification illusion.
+
+**Fact.** None of this exists: the application stores no progress, has no
+microphone input, and has no code to produce or share a PDF. Which words were
+available on a board, and which were found, are computable from the library's
+output; the sound-level metrics depend on the grapheme data of section 7.3,
+which does not exist. The "read aloud" snippet is a recording of a child's voice.
+The printed summary and the email are the first route by which a child's data
+would leave the device, started by a parent. The roadmap's privacy constraints
+(section 8 there) assumed local-only storage; this section now states it.
+
 ## 8. Performance
 
 - Performance is tracked with **Tracy**.
@@ -275,6 +405,9 @@ These are decided elsewhere and the design has to fit them.
   vcpkg submodule.
 - Camera frames are not committed to the repository, and the application is for
   a game played with children ([Licensing](licensing.md#camera-input-and-letter-recognition)).
+- A child's learning data stays on the device: all dashboard metrics, progress
+  history and voice clips are stored locally, with no cloud tracking (section
+  7.4), and reaching them takes a parental gate.
 
 ## 11. Questions for the design work
 
@@ -359,3 +492,102 @@ these. They are questions, not recommendations.
     privacy constraints in the roadmap assume); and how is it reset?
 28. What is the mascot, who designs it and its accessories, and is it the same
     character in every world?
+
+**Phonics and school fonts (sections 7.1 and 7.3)**
+29. Is phonics a mode, a setting or the default, and how does it relate to the
+    word-length tiers, stars and worlds of 7.2: two axes of progress, or one?
+30. Does tracing bind adjacent single-letter dice into a grapheme at selection
+    time, or do dice carry multi-letter faces (the library takes tiles of up to
+    three letters)? What happens when the letters are traced in an order that
+    is not the grapheme?
+31. Two details in the brief need confirming. The RAIN tracing example lights
+    "the I and N" together, where the vowel team of RAIN is A and I. And the
+    audio example gives the sound of AI as /aʊ/, the vowel of "cow", where
+    /eɪ/ ("ay"), as the brief says elsewhere, is meant.
+32. Where does the segmentation of each word into graphemes and phonemes come
+    from: hand-authored for a decodable list, or derived from a pronunciation
+    lexicon? How are tricky words that do not follow the pattern (said, the,
+    one) shown, and do the sounds follow Australian English?
+33. Which programme's sequence is meant? The brief names InitiaLit and Letters
+    and Sounds, and the three phases listed here do not match the numbering of
+    Letters and Sounds as published (where, to be checked, the SATPIN letters
+    belong to its phase 2). Are the phases the author's own scheme aligned with a
+    programme, and if one is named, what do its licence and trade-mark terms
+    allow?
+34. How is each phase's word set made: by filtering the dictionary to words
+    spelled with the taught graphemes (249 words for SATPIN, including entries
+    a child does not meet), or by an authored decodable list, and who reviews it?
+35. Does a phase constrain board generation to its graphemes, what happens when
+    a board then has too few words, and how does that combine with the steering
+    of 7.2 and the focus sounds of 7.4?
+36. Is the phonics sticker book the same album as the word vault of 7.2,
+    arranged two ways, or a second book, and does a word sit on several pages?
+37. Who records the phonemes and graphemes, in what accent and in what set, and
+    how are the blending animation and the audio kept in step?
+38. Which school font belongs to which state and territory (the brief gives Vic
+    Modern Cursive for Victoria, WA and the NT and the NSW Foundation font for
+    NSW; the others are to be confirmed), and may each be redistributed in the
+    application? A commercial font cannot be bundled without a licence, and a
+    tablet cannot be assumed to have it installed.
+39. What does the font setting change: the dice letters, the word panel, the
+    stickers, the captions? How are joined cursive letters shown when the dice
+    are print capitals?
+40. Where a school font's letterforms are ambiguous (the "I", "l" and "1" of
+    7.1), which requirement wins, and is the font setting then limited?
+
+**Parent dashboard (section 7.4)**
+41. What exactly is recorded for the "read aloud" moment: the child saying a
+    word, when, prompted by what, under which microphone permission, kept for
+    how long and deleted how? A recording of a child's voice is the most
+    sensitive data the application would hold, and the children's-app policies
+    of the stores should be read before it is designed.
+42. How are "mastered", "emerging" and "blind spot" defined (the brief gives 3
+    or more words unassisted, an abandoned trace, and missed across multiple
+    boards): the thresholds, the time window, whether a sound can fall back, and
+    how "unassisted" is known (no hint used on that word)?
+43. How is an abandoned trace told apart from a stray touch, and is that
+    inference reliable enough to show a parent as a finding?
+44. How are the findings phrased (as observations, not assessments), and what
+    guards against reading a gap in play as a deficit?
+45. How do the focus sounds relate to the phases of 7.3 (a phase is a set of
+    sounds, the selector picks individual ones), and what does seeding do when
+    too few words contain the chosen sounds?
+46. Seeding steers a virtual shake (question 24); the Family Companion board is
+    real and cannot be seeded. Does the dashboard there only track and advise,
+    as the "point out a 'ch' word" example suggests?
+47. When is the weekly report produced and shown (when the dashboard is opened,
+    or by a local notification, which needs a permission), and where does the
+    week begin and end?
+48. Which hints count as "family play insights", and who taps them, the child or
+    an adult, and how is that told?
+49. What is the parental gate (a maths question, a long press, or both), what
+    age is assumed unable to pass it, and how does it meet each store's rules
+    for children's apps?
+50. "On the device" means different things on a tablet, in a browser (storage
+    the user can clear) and on a desktop. What happens when the family changes
+    device, and is an export or backup wanted, which would be data leaving the
+    device and so a decision of its own?
+51. Are there several children with separate heatmaps on a shared device, or
+    one?
+
+**Time played and the printable summary (section 7.4)**
+52. What counts as time played (the application open, the screen on, active
+    play), per child or per device, per day or per session, and when does the
+    day end?
+53. What does "gentle" mean at the limit: a warning beforehand, a wind-down that
+    lets the current word finish and saves progress, what the child sees and
+    hears, and can a parent extend it? Does it end play for the rest of the day?
+    A time limit also sits against the requirement that nothing pushes the child
+    to continue.
+54. How does the application's limit relate to the operating system's own
+    screen-time controls, and what does it do in a browser, which has none?
+55. What does the printable summary contain (the heatmap, the weekly highlights,
+    time played, a name), what is deliberately left out (voice clips, anything
+    not wanted by a teacher), and does the parent see a preview before it goes?
+56. How does the PDF leave the application on each platform (the system share
+    sheet, a print dialog, a download in the browser)? It is the first route by
+    which a child's data leaves the device, so what does the parent confirm, and
+    is the parental gate required?
+57. Does the application know the teacher's address? Storing a third party's
+    contact details is data of its own; the alternative is to hand the PDF to
+    the system's mail and share facilities and keep no address.
