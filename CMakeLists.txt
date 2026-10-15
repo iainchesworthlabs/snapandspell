@@ -79,6 +79,23 @@ option(WJS_BUILD_CLI "Build the wjs-cli command-line solver" ON)
 option(WJS_BUILD_APP "Build the Qt Quick application (needs Qt 6.12)" OFF)
 option(WJS_BUILD_TESTS "Build the unit test suite" ON)
 
+# The review gate. Phonics data (data/phonics) is written and reviewed by a
+# person qualified to do it, and a file says so in its header (reviewed-by and
+# reviewed-on). A file without them is test data. With this on, the build runs
+# tools/data/check_phonics.ps1 -RequireReviewed before the library is built and
+# stops if any file is test data, so a release cannot carry unreviewed content.
+# On by default for the release build types; the release presets set it
+# explicitly. A multi-config generator has no build type at configure time, so
+# pass it there.
+if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel)$")
+    set(WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT ON)
+else()
+    set(WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT OFF)
+endif()
+option(WJS_REQUIRE_REVIEWED_PHONICS
+    "Refuse to build while data/phonics holds a file without a review header"
+    ${WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT})
+
 # ---------------------------------------------------------------------------
 # Targets
 # ---------------------------------------------------------------------------
@@ -90,6 +107,27 @@ add_subdirectory(src/platforms)
 # The library holds ALL of the game logic and is completely GUI-free and
 # platform-free.
 add_subdirectory(src/lib)
+
+find_program(WJS_PWSH NAMES pwsh)
+if(WJS_REQUIRE_REVIEWED_PHONICS)
+    if(NOT WJS_PWSH)
+        message(FATAL_ERROR
+            "WJS_REQUIRE_REVIEWED_PHONICS is ON, and it is checked by "
+            "tools/data/check_phonics.ps1, which needs PowerShell 7 (pwsh). "
+            "Install it, or configure with -DWJS_REQUIRE_REVIEWED_PHONICS=OFF "
+            "for a build that is not to be released.")
+    endif()
+    # Always out of date, so every build looks at the data as it is now, not as
+    # it was when CMake last ran. The library depends on it, so building any
+    # target that links the library is gated.
+    add_custom_target(wjs_phonics_review_gate ALL
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/check_phonics.ps1"
+            -Root "${CMAKE_CURRENT_SOURCE_DIR}" -RequireReviewed
+        COMMENT "Checking that the phonics data has been reviewed"
+        VERBATIM)
+    add_dependencies(wjs_lib wjs_phonics_review_gate)
+endif()
 
 if(WJS_BUILD_CLI)
     add_subdirectory(src/cli)
@@ -112,3 +150,4 @@ message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_N
 message(STATUS "  Build CLI   : ${WJS_BUILD_CLI}")
 message(STATUS "  Build app   : ${WJS_BUILD_APP}")
 message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")
+message(STATUS "  Reviewed phonics data required : ${WJS_REQUIRE_REVIEWED_PHONICS}")
