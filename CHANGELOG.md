@@ -11,8 +11,8 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 WordJewelsSolver began in 2013 as a Windows-only Win32 and DirectShow program.
 This is its rebuild as a portable C++23 CMake project. Nothing has been
-released: the first release will be 0.1, and it is the point at which the
-repository becomes public.
+released: the first release will be 0.1. The repository is public from before
+that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 

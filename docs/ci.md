@@ -5,29 +5,26 @@ the rules when GitHub cannot. The settings that sit above the workflows
 (rulesets, required checks, the merge queue) are in
 [Branch protection](branch-protection.md).
 
-## What enforces what, today
+## What enforces what
 
-The repository is **private on GitHub Free**. On that plan GitHub does not offer
-rulesets, branch protection or the merge queue for a private repository (the
-API answers `403`, "Upgrade to GitHub Pro or make this repository public"), so
-nothing can *block* a merge or a push on the server yet. Until the repository
-is made public - the plan is the first 0.1 release - the rules are kept by:
+The repository is public and its rulesets are applied ([Branch
+protection](branch-protection.md)), so GitHub blocks a merge or a push that
+breaks a rule. The same rules are also kept before a push, locally, by the
+hooks in `tools/hooks`.
 
-| Rule | Kept by, now | Kept by, once public and the rulesets are applied |
+| Rule | Kept by | Also kept locally by |
 | --- | --- | --- |
-| Builds, tests, formatting, platform isolation | the `ci.yml` jobs, red on the pull request | the same jobs, as required checks |
-| Gitflow branch names | `Validate gitflow branch name` on the pull request; `tools/hooks/pre-push` locally | the `branch-names` ruleset refuses the push |
-| No attribution in commits and PR text | `Validate commit and PR text` on the pull request; `tools/hooks/commit-msg` locally | the same, as a required check |
-| Pull request required, no direct push, no force push | convention | the `main-protection` and `develop-protection` rulesets |
-| Merge queue in front of `develop` | not available | the `merge-queue-develop` ruleset |
+| Builds, tests, formatting, platform isolation | the `ci.yml` jobs, as required checks | `ctest` (includes the isolation and word-list checks) |
+| Gitflow branch names | `Validate gitflow branch name`, and the `branch-names` ruleset refuses the push | `tools/hooks/pre-push` |
+| No attribution in commits and PR text | `Validate commit and PR text`, as a required check | `tools/hooks/commit-msg` |
+| Pull request required, no direct push, no force push | the `main-protection` and `develop-protection` rulesets | - |
+| Merge queue in front of `develop` | the `merge-queue-develop` ruleset | - |
 
-So today a red check is advisory: the maintainer has to honour it. The day the
-repository is public, `tools/repo/apply_rulesets.ps1 -Apply` turns the same
-checks into gates ([Applying the rulesets](branch-protection.md#applying-the-rulesets)).
+Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 
 ## Workflows
 
-| Workflow | Purpose | Runs while private? |
+| Workflow | Purpose | Runs on a private copy? |
 | --- | --- | --- |
 | `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs and a coverage report | yes |
 | `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
@@ -47,11 +44,11 @@ interpolating `${{ }}` into a shell.
 
 `codeql.yml`, `dependency-review.yml` and `scorecard.yml` need a public
 repository (or a paid plan). Each of their jobs carries
-`if: ${{ !github.event.repository.private }}`, so while the repository is
-private they are **skipped, not red**, and the day it is made public they start
-running with no edit. None of the three is a required check while the
-repository is private, so skipping them blocks nothing (see the staging
-table).
+`if: ${{ !github.event.repository.private }}`, so they run now that the
+repository is public and would be **skipped, not red**, if it were ever made
+private again. `Scan dependency diff` is staged into the required checks after
+its first report (see the staging table in
+[Branch protection](branch-protection.md)).
 
 ## The jobs in `ci.yml`
 
@@ -99,7 +96,7 @@ hosted image has).
 ### Running some legs by hand
 
 A push, pull request or queue run always runs every leg. A manual dispatch can
-name just the ones it needs - useful on a private repository, where hosted
+name just the ones it needs - useful in a fork or private copy, where hosted
 minutes are limited and macOS minutes are billed at a multiple:
 
 ```sh

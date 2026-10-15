@@ -6,29 +6,29 @@ kept as code, in `.github/rulesets/*.json` (the JSON body of the REST API's
 way they reach GitHub. This page records what they say and why, so the settings
 can be rebuilt or audited from the page alone.
 
-## Status: not applied - the repository is private on GitHub Free
+## Status: applied
 
-On GitHub Free, **rulesets, branch protection and the merge queue are not
-available for a private repository.** This is verified, not assumed: the API
-answers
+The repository is public, and the rulesets in `.github/rulesets` were applied
+with `tools/repo/apply_rulesets.ps1 -Apply`. They could not have been while it
+was private: on GitHub Free, rulesets, branch protection and the merge queue are
+not available for a private repository, and the API answers
 
 ```text
 GET /repos/{owner}/{repo}/rulesets  ->  403
 "Upgrade to GitHub Pro or make this repository public to enable this feature."
 ```
 
-So until the repository is public there is nothing to configure, and the
-enforcement is the workflows (`ci.yml`, `branch-name-check.yml`,
-`commit-policy.yml`) plus the local hooks in `tools/hooks`
-([CI, text policy and local hooks](ci.md)). The plan is to run
+To see what is applied now, or to change a rule, edit the JSON and run
 
 ```sh
-./tools/repo/apply_rulesets.ps1 -Apply
+./tools/repo/apply_rulesets.ps1          # dry run: prints what it would send
+./tools/repo/apply_rulesets.ps1 -Apply   # create or update, by ruleset name
 ```
 
-at the moment the repository is made public (the first 0.1 release). The
-script checks that rulesets are available first and stops with an explanation
-when they are not, so running it too early is harmless.
+The script checks that rulesets are available first and stops with an
+explanation when they are not. The local hooks in `tools/hooks` and the
+workflows ([CI, text policy and local hooks](ci.md)) keep the same rules
+before a push reaches GitHub.
 
 ## The flow
 
@@ -133,8 +133,8 @@ produce them:
 
 ### Staging of `Scan dependency diff`
 
-`dependency-review.yml` is public-only: its job is skipped while the repository
-is private, so it cannot have reported a result before the rulesets exist.
+`dependency-review.yml` is public-only, so it had not reported a result before
+the rulesets existed.
 Requiring a check that has never reported leaves every pull request waiting on
 it, so it is **not** in the JSON files. The sequence is:
 
@@ -188,9 +188,9 @@ It first asks whether the repository can have rulesets (public, or a paid
 plan) and stops with an explanation - exit code 3 - when it cannot. It needs
 the GitHub CLI authenticated as a repository admin.
 
-Order of operations for the day the repository is made public:
+First-time setup of a repository, in order:
 
-1. Create `main` and `develop`; make `develop` (or `main`) the default branch.
+1. Create `main` and `develop`; make `main` the default branch.
 2. Make the repository public.
 3. `./tools/repo/apply_rulesets.ps1` (dry run), read it, then `-Apply`.
 4. Set the repository settings below.
