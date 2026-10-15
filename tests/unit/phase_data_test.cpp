@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <initializer_list>
@@ -575,8 +576,7 @@ public:
         static int counter = 0;
         path_ = std::filesystem::temp_directory_path() /
                 ("wjs_phase_data_test_" + std::to_string(++counter) + "_" +
-                 std::to_string(
-                     std::filesystem::file_time_type::clock::now().time_since_epoch().count()));
+                 std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
         std::filesystem::create_directories(path_);
     }
     ~TempDirectory() {
