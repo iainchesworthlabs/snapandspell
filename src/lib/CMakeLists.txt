@@ -14,6 +14,7 @@ add_library(wjs_lib STATIC
     src/dashboard.cpp
     src/deal.cpp
     src/dice.cpp
+    src/dice_sets.cpp
     src/dictionary.cpp
     src/game_rules.cpp
     src/game_session.cpp
