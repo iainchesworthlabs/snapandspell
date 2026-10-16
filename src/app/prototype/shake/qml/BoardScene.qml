@@ -14,7 +14,8 @@ import "ShakeScript.js" as Script
 //
 //   in    play(board, seed), show(board), reducedMotion, agitation, tilt
 //   out   settled(), landed(index, pitch), rattled(), busy, and the geometry the
-//         2D layer over it lays out by: boardRect, tileSize, tileGap
+//         2D layer over it lays out by: boardRect, tileSize, tileGap, and how
+//         far past its item the scene draws: overdraw
 //
 // board is { rows, columns, tiles }, tiles row-major, one string a tile.
 //
@@ -58,6 +59,11 @@ Item {
     readonly property real tileSize: tile
     readonly property real tileGap: gap
     readonly property rect boardRect: Qt.rect((width - spanX) / 2, (height - spanY) / 2, spanX, spanY)
+    // How far past this item's edges the scene draws, on every side: a die that
+    // tumbles at the edge of the board, and the box's rim as it tips, are not
+    // cut off. The item is still the board's area and boardRect is still by the
+    // rule; the application only has to leave the item unclipped (no `clip`).
+    readonly property real overdraw: tile * 0.5
 
     // Plays the shake, the lid and the drop for a board. The dice are in the
     // box before the first frame, and `settled` follows the last of them.
@@ -268,17 +274,21 @@ Item {
     }
 
     // The distance at which, upright, one scene unit is one pixel on the top
-    // of the dice, and the field of view that gives. While the camera leans it
-    // also stands a little back (and comes in as it comes upright), so a board
-    // that fills its square upright is not cut off by the lean.
+    // of the dice, and the field of view that gives, for the view, which is the
+    // item and its overdraw. While the camera leans it also stands a little back
+    // (and comes in as it comes upright), so a board that fills its square
+    // upright is not cut off by the lean.
     readonly property real viewDistance: cameraDistance * Math.max(spanX, spanY)
-    readonly property real fieldOfView: 2 * Math.atan(height / 2 / viewDistance) * 180 / Math.PI
+    readonly property real fieldOfView: 2 * Math.atan((height + 2 * overdraw) / 2 / viewDistance) * 180 / Math.PI
     readonly property real standBack: 1 + 0.3 * (lean > 0 ? Math.min(1, leanNow / lean) : 0)
 
     View3D {
         id: view
 
-        anchors.fill: parent
+        x: -root.overdraw
+        y: -root.overdraw
+        width: root.width + 2 * root.overdraw
+        height: root.height + 2 * root.overdraw
         camera: camera
 
         environment: SceneEnvironment {

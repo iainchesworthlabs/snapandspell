@@ -54,6 +54,7 @@ jewel.
 | `landed(index, pitch)` | signal | A die has hit the floor: its place in the board, and a pitch for its click |
 | `rattled()` | signal | The box rattles, at most 8 a second, for the haptic tap |
 | `busy`, `rows`, `columns`, `tileSize`, `tileGap`, `boardRect` | read-only | The geometry by [the rule](board.md#the-rule), for the 2D layer that traces over the scene |
+| `overdraw` | read-only | How far past its item the scene draws, on every side (half a tile), so a die tumbling at the edge and the tipping rim are not cut off. The item is still the board's area; the application must not `clip` it |
 
 `lean`, `probeMode`, `cameraDistance` and `warmUp` are settings of the 3D
 implementation and are not part of the seam. `seek(board, seed, ms)` and
@@ -98,6 +99,7 @@ $env:QT_ASSUME_STDERR_HAS_CONSOLE = 1      # the program is a GUI program; this 
 build\windows-msvc-release\bin\ShakePrototype.exe                       # to play with
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --runs 6 --out results   # timing
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --out shots      # stills
+build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --frames 30 --size 720x900 --out frames   # every frame, for a video
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --digest --out digest    # replay check
 ```
 
@@ -138,6 +140,17 @@ It moves about 40 ms into the creation frame above. The 47.7 ms without it is
 the only frame on Direct3D 11, after the scene was made, over the
 [33 ms budget](performance.md#budgets).
 
+### Two cadences
+
+The same binary, run twice in a row on the same machine, presented at two
+different rhythms: intervals of 16.7 ms and a press-to-first-frame of about
+16 ms, and then intervals of 11 to 12 ms and a press-to-first-frame of 53 to
+65 ms, with the same render-thread time. It happened with the overdraw off and
+on, so it is not the scene. The suspect is which of the machine's displays (it
+has a 100 Hz mode) the window opened on; it was not investigated. The tables
+below are from runs in the 16.7 ms rhythm, and the 18 ms first-shake figure
+with the warm-up is from there; the 48 ms without it is in the same one.
+
 ### During the shake and the drop
 
 All the plays of three processes, each process's first play left out
@@ -154,7 +167,9 @@ All the plays of three processes, each process's first play left out
 
 On this machine the scene is far inside its frame: no frame was late, the
 render thread spends about half a millisecond on a frame, and the longest
-interval was 20 ms. That says nothing about a tablet's GPU, which does the work
+interval was 20 ms. (Drawing past the item, below, makes the view a tenth
+bigger each way and added about 0.1 ms to the render thread's mean, from two
+more processes of six plays each; the intervals did not change.) That says nothing about a tablet's GPU, which does the work
 the render thread only submits. The two things to measure on the device are the
 GPU time of a frame with 16 dice and MSAA, and the first-frame cost above.
 
@@ -253,18 +268,18 @@ running it.
   every face, so a tumbling die is always a letter and never a blank. The camera
   coming upright over the fall is what shows the height of the fall in the
   stills.
-- **Straight down is worse than leaning.** With `--lean 0` the dice, at the
-  height of the box, are about a tenth bigger on the screen than a tile, which
-  is more than the 12 dp inset, so the rattle and the start of the drop are
-  cropped by the item's edge, and the box does not read as a box: ![The same shake with the camera straight
-  down](shake-prototype-filmstrip-straight-down.png)
+- **Straight down is flatter than leaning.** With `--lean 0` the box has no
+  rim or depth to see, and the rattle is a grid shaking under a pane. Before
+  the scene drew past its item it was also cropped: the dice at the height of
+  the box are about a tenth bigger on the screen than a tile, which is more
+  than the 12 dp inset. It is not cropped now:
+  ![The same shake with the camera straight down](shake-prototype-filmstrip-straight-down.png)
 - **What is wrong with it.** There is no collision, so a falling die cuts
-  through a landed neighbour for a few frames (1450 ms, the O through the K);
-  the scene's item is the board's area, so a die that tumbles at the edge is
-  cut off by the item's bounds (1300 and 1450 ms, the left edge); and the dead
-  jewel is a cube with four facets painted on its faces, which looks wrong from
-  the side. The first two want the scene's item to be larger than `boardRect`;
-  the third wants a mesh, if D2 goes 3D.
+  through a landed neighbour for a few frames (1450 ms, the O through the K),
+  and the dead jewel is a cube with four facets painted on its faces, which
+  looks wrong from the side and wants a mesh if D2 goes 3D. The first pictures
+  also showed a tumbling die cut off at the item's edge; that is the overdraw
+  below.
 
 ## If a 2D implementation is swapped in
 
@@ -298,17 +313,21 @@ the 3D-only files (`Die.qml`, `FaceAtlas.qml`, the probe). It loses the lit
 solid and the true tumble about the horizontal axes; the stages and their
 durations are the same.
 
-### What the seam should change
+### What changed in the seam
 
-The prototype suggests two changes to the seam before the application is built
-on it, both cheap now:
+The prototype suggested two changes to the seam before the application is
+built on it:
 
-- The scene's item should be allowed to be larger than the board, with
-  `boardRect` saying where the board is in it, so that a tumbling die at the
-  edge and the box's rim are not cut off.
-- The first board's `show()` is where the one-time costs go, so the
-  application should create the scene at start-up with the first board and not
-  on the first press of Shake. The interface already allows it.
+- **Done: the scene draws past its item.** `overdraw` (half a tile) is how far,
+  and the view is that much bigger on every side. The item is still the
+  board's area and `boardRect` is still by the rule, so the layout is not
+  changed; the application must leave the item unclipped, and the window needs
+  room around the board (the harness gives it a margin above, and the stills
+  and the video are 720 wide). 3D only: a 2D scene may report any `overdraw`,
+  including 0.
+- **A rule for the application, no code:** the first board's `show()` is where
+  the one-time costs go, so the application creates the scene at start-up with
+  the first board and not on the first press of Shake.
 
 ## What was not measured
 

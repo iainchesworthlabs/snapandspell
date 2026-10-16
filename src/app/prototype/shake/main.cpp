@@ -41,6 +41,10 @@ int main(int argc, char* argv[]) {
     const QCommandLineOption shotsOption(
         QStringLiteral("shots"),
         QStringLiteral("With --auto: save screenshots through one shake instead of timing."));
+    const QCommandLineOption framesOption(
+        QStringLiteral("frames"),
+        QStringLiteral("With --auto --shots: save a frame every 1/fps s for 2.4 s, for a video."),
+        QStringLiteral("fps"), QStringLiteral("0"));
     const QCommandLineOption boardOption(QStringLiteral("board"),
                                          QStringLiteral("Board size: 3 or 4."),
                                          QStringLiteral("size"), QStringLiteral("4"));
@@ -56,7 +60,7 @@ int main(int argc, char* argv[]) {
                                         QStringLiteral("Window size, WxH, in logical pixels."),
                                         QStringLiteral("WxH"), QStringLiteral("560x900"));
     parser.addOptions({autoOption, outOption, probeOption, leanOption, runsOption, shotsOption,
-                       digestOption, boardOption, warmOption, sizeOption});
+                       digestOption, framesOption, boardOption, warmOption, sizeOption});
     parser.process(application);
 
     const QStringList size = parser.value(sizeOption).split(QLatin1Char('x'));
@@ -64,6 +68,7 @@ int main(int argc, char* argv[]) {
     initial.insert(QStringLiteral("autoRun"), parser.isSet(autoOption));
     initial.insert(QStringLiteral("shotsOnly"), parser.isSet(shotsOption));
     initial.insert(QStringLiteral("digestOnly"), parser.isSet(digestOption));
+    initial.insert(QStringLiteral("framesPerSecond"), parser.value(framesOption).toInt());
     initial.insert(QStringLiteral("startBoard"), parser.value(boardOption).toInt() == 3 ? 3 : 4);
     initial.insert(QStringLiteral("outDir"), parser.value(outOption));
     initial.insert(QStringLiteral("probeMode"), parser.value(probeOption));
