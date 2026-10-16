@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "draw.hpp"
+#include "wjs/profiling.hpp"
 
 namespace wjs {
 namespace {
@@ -272,6 +273,8 @@ std::expected<SeedOptions, SeedError> phonics_board_options(const PhaseIndex& in
 std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                                                  const SeedOptions& options,
                                                  const RecentTargets& recent, std::uint32_t seed) {
+    auto zone = profiling::zone<"board.seed">();
+
     // --- the options -----------------------------------------------------------
     if (options.size == 0 || options.size > Board::max_dimension) {
         return std::unexpected(SeedError::bad_size);
@@ -349,6 +352,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
     distinct.erase(std::ranges::unique(distinct).begin(), distinct.end());
 
     const auto verify = [&](Attempt& attempt) -> bool {
+        auto verify_zone = profiling::zone<"board.verify">();
         const auto board = Board::parse(board_text(attempt.letters, options.size));
         // The letters are A-Z in a square of at most 16: it parses.
         attempt.viable =
@@ -357,6 +361,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
         ++solves;
 
         const std::size_t count = attempt.viable.size();
+        verify_zone.Value(count);
         attempt.distance = count < options.min_viable   ? options.min_viable - count
                            : count > options.max_viable ? count - options.max_viable
                                                         : 0;
@@ -556,6 +561,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
     }
     result.fallback = best->distance != 0;
     result.focus_unmet = !options.focus_sounds.empty() && with_focus < result.targets.size();
+    zone.Value(tries);
     return result;
 }
 

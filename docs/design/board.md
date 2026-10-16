@@ -192,18 +192,25 @@ are Cubeulator's own motion tokens (`quick`, `turn`).
 | Layout | The board slides to the leading two-thirds and the panel slides in, 380 ms | Cross-fade, 120 ms |
 | Total after the shake | About 1.7 s (4x4) and 1.9 s (6x6) | Under 0.6 s |
 
-### No physics engine
+### No physics engine decides the board
 
 The board is decided by the library first. So:
 
 - A physics engine would decide where each die lands, and the game would have to
   read the board back from the simulation. The game already has the board, and
-  in Mode B it is a *seeded* board that must hold three to five words.
-- A shake would not repeat. A seeded script replays exactly, which is what a
-  test, a recording and a "play this board again" need.
-- The rattle can still answer the device. The accelerometer drives the box's
-  tilt and the dice's sliding in the box with a few lines of integration of our
-  own: this is the "fun" of the brief and it does not decide anything.
+  in Mode B it is a *seeded* board that must hold three to five words. So the
+  physics never decides where a die ends: when the shaking stops, each die is
+  given a cell and is guided to it, hopping and sliding past the others.
+- A shake would not repeat. A seeded simulation in fixed steps replays exactly,
+  on one build, which is what a test, a recording and a "play this board again"
+  need.
+- The rattle answers the device, and in the prototype it is a physical model.
+  The dice are rigid cubes in a box, simulated from first principles by about
+  fourteen hundred lines of our own plain C++ (no third-party engine, and no Qt in it),
+  accelerated by minus what the accelerometer reads and by the gyroscope's
+  turning, and colliding, sliding and tumbling with mass, inertia and friction.
+  This is the "fun" of the brief and it does not decide anything. See
+  [Shake prototype](shake-prototype.md#the-two-scripts).
 - Qt Quick 3D Physics, the engine in Qt's own set, is GPL-only like Qt Quick 3D
   (below) and is not in the shared tree.
 

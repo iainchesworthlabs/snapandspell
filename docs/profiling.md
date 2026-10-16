@@ -174,17 +174,62 @@ Only code that exists is instrumented. The [performance design](design/performan
 lists the zones the rest of the application will carry, and they are added with
 the code they time.
 
-| Name | Kind | Where | Carries |
-| --- | --- | --- | --- |
-| `solver.solve` | zone | `wjs::solve`, once per call | the words found |
-| `solver.visits` | plot | the same, once per call | the visits of that search |
-| `data.load_dictionary` | zone | `wjs::Dictionary::load`, so every file or stream load | the words loaded |
+The **board mode** matters to how a trace reads. The standard board (dice, 3x3
+to 6x6) is the default and the seeded phonics board is a parent's switch, so a
+standard board's trace has `board.roll` and a `solver.solve`, and a phonics
+board's has `board.seed` with many `solver.solve` inside it and `phonics.bind`
+as the finger moves. The column below says which.
+
+| Name | Kind | Mode | Where | Carries |
+| --- | --- | --- | --- | --- |
+| `solver.solve` | zone | both | `wjs::solve`, once per call | the words found |
+| `solver.visits` | plot | both | the same, once per call | the visits of that search |
+| `data.load_dictionary` | zone | both (on the path to the first board of the standard one) | `wjs::Dictionary::load`, so every file or stream load | the words loaded |
+| `board.roll` | zone | standard | `wjs::roll`, once per board | the dice rolled (the tiles) |
+| `board.seed` | zone | phonics | `wjs::seed_board`, once per board | the verifications it spent (1 to `max_tries`) |
+| `board.verify` | zone | phonics | each verification inside `board.seed` | the words of the phase found on that board |
+| `phonics.bind` | zone | phonics | `GraphemeBinder::bind`, so every call that binds a path | the comparisons it made: a grapheme held against the tiles at a block |
+| `board.deal` | zone | phonics | `GameSession::shake`, once per board | the seedings it spent (1 to `max_seedings`) |
+| `board.restore` | zone | phonics | `GameSession::restore` | none |
+| `input.submit` | zone | phonics | `GameSession::trace` of two tiles or more in `playing`; not for an event that is refused or a touch of one tile | the number of tiles in the path |
+
+`board.seed` has no plot of its own. The solves it makes, the verifications and
+the guided fill's trials, are `solver.solve` zones inside it, each with its
+`solver.visits` sample, so the CSV's `solver.solve` row inside a seeding trace
+is the fill's cost and `board.verify`'s is the verifications'. A seeding of a
+6x6 on the test phase is about 680 solves of which two are verifications
+(the [performance design](design/performance.md#the-game-rows) has the
+figures).
+
+What a capture of the report shows (`wjs_perf_tests "[.perf-report]"` in the
+profiling build, headless as above; MSVC, the same desktop, the profiler
+attached for the run, which costs tens of nanoseconds a zone):
+
+```text
+name,total_ns,counts,mean_ns,min_ns,max_ns
+board.seed,1298149292,400,3245373,334247,15298926
+board.verify,34324224,2784,12329,3570,57459
+board.roll,6897909,1600,4311,2400,10570
+phonics.bind,6050,3,2016,1220,2500
+```
+
+The counts are the budgets' own numbers: `board.seed` is the 100 seeds of each
+of four sizes; `board.verify` is 2,784, which is the verifications of the
+[work budgets](design/performance.md#the-game-rows) summed (1,739 + 664 + 194
++ 187); `board.roll` is two passes of the 800 rolls (the metrics and the
+digest); and `phonics.bind` is the three paths. A mean of a zone under a
+profiler is a little above the same zone's cost without one, and a bind is a
+microsecond, so the zone is a few percent of it.
 
 `wjs-cli` names its thread `main`.
 
 Visits are the tile steps that stayed inside the dictionary's trie: the measure
 of a search that does not depend on the machine, and the one the
-[work budgets](testing.md#performance-tests) are held on.
+[work budgets](testing.md#performance-tests) are held on. The seeding's are the
+verifications and the solves it made, which it reports in its result, and the
+visits of those solves; the binder's are the comparisons, which `phonics.bind`
+carries as its value. Each is held in the same tier, and each has a budget for
+the mode it is part of.
 
 There are no frame marks, messages or other threads yet; the application will
 add them with the window.

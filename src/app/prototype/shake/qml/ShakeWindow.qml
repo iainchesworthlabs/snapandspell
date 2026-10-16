@@ -16,9 +16,9 @@ ApplicationWindow {
     required property bool autoRun
     required property bool shotsOnly
     required property bool digestOnly
-    required property bool changeOnly
     required property bool prepareFirst
     required property int startBoard
+    required property bool changeOnly
     required property string boardKind
     required property var autoSizes
     required property int framesPerSecond
@@ -59,8 +59,9 @@ ApplicationWindow {
     // with a few digraphs and a Qu, and some dead jewels (""), chosen from the
     // seed. The library has no dice for it (the design's open choice is whether
     // its dice are phase dice or decoy faces drawn for show), so this gives each
-    // tile a die whose other five faces are drawn from the pool: a stand-in, to
-    // exercise the scene, and not what the design will decide.
+    // tile a die whose other five faces are drawn from the pool, six different
+    // letters: a stand-in, to exercise the scene, and not what the design will
+    // decide.
     function makeBoard(size, boardSeed, deadCount) {
         const pool = ["S", "A", "T", "P", "I", "N", "M", "D", "G", "O", "C", "K", "E", "U", "R",
                       "H", "B", "F", "L", "SH", "CH", "TH", "QU", "A", "O", "E", "I"];
@@ -102,8 +103,8 @@ ApplicationWindow {
         return { rows: size, columns: size, tiles: tiles, faces: faces, up: up };
     }
 
-    // The board for the size and seed now: the library's roll of the shipped
-    // dice for the standard board, the stand-in for the other.
+    // The board for the size and seed: the library's roll of the shipped dice
+    // for the standard board, the stand-in for the other.
     function boardFor(size, boardSeed) {
         if (kind === "standard" && dice.hasSet(size)) {
             return dice.roll(size, boardSeed);
@@ -245,13 +246,17 @@ ApplicationWindow {
         pointer.vy = vy;
         pointer.at = atMs;
         const toG = 0.16 / Math.max(1, window.scene.boardRect.width) / 9.81;
-        const handX = clampTo(ax * toG, 8);
-        const handY = clampTo(-ay * toG, 8);
+        const handX = clampTo(ax * toG, 5);
+        const handY = clampTo(-ay * toG, 5);
         const roll = clampTo((px / sceneHost.width - 0.5) * 2, 1) * 0.14;
         const pitch = clampTo((0.5 - py / sceneHost.height) * 2, 1) * 0.14;
         const sx = -Math.sin(roll) + handX;
         const sy = Math.sin(pitch) + handY;
-        const sz = Math.cos(roll) * Math.cos(pitch);
+        // A mouse cannot lift the device. A hand that shakes one sideways also
+        // moves it up and down, in time with the strokes, so that is added: the
+        // up and down follows the sideways acceleration.
+        const lift = clampTo(0.8 * (handX + handY), 4);
+        const sz = Math.cos(roll) * Math.cos(pitch) + lift;
         const wx = clampTo(-vy * 0.001, 4);
         const wy = clampTo(vx * 0.001, 4);
         window.scene.pushMotion(sx, sy, sz, wx, wy, 0);
@@ -294,7 +299,7 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        // The scene draws past its item by its overdraw (half a tile); leave
+        // The scene draws past its item by its overdraw (0.8 of a tile); leave
         // room above it. A fixed share of the window, not the scene's own
         // number, which depends on this item's size.
         anchors.topMargin: parent.height * 0.07
@@ -408,7 +413,7 @@ ApplicationWindow {
             }
 
             Switch {
-                text: qsTr("Weighted")
+                text: qsTr("Simulated dice")
                 checked: window.weighted
                 onToggled: {
                     window.weighted = checked;
@@ -529,9 +534,9 @@ ApplicationWindow {
                        + "; reduced seed 100: " + reducedFirst + " then " + reducedAgain
                        + (reducedFirst === reducedAgain ? " (same)" : " (DIFFERENT)"));
         }
-        // The faces: that every die ends with the board's face up and upright,
-        // that the faces are the board's tiles, and what a viewer saw of the
-        // other faces on the way. For the library's dice and the stand-in.
+        // The faces: that every die ends with the board's face up, that the faces
+        // are the board's tiles, and what a viewer saw of the other faces on the
+        // way. For the library's dice and the stand-in.
         for (const which of ["standard", "phonics"]) {
             for (const size of autoSizes) {
                 const board = which === "standard" ? dice.roll(size, 7) : makeBoard(size, 7, 2);
@@ -546,13 +551,13 @@ ApplicationWindow {
                     }
                     distinct += new Set(board.faces[t]).size;
                 }
-                scene.reducedMotion = false;
                 // The finished board, row by row, to compare with a still.
                 const rowsText = [];
                 for (let r = 0; r < board.rows; ++r) {
                     rowsText.push(board.tiles.slice(r * board.columns, (r + 1) * board.columns).join(" "));
                 }
                 lines.push("board, " + which + " " + size + "x" + size + " seed 7: " + rowsText.join("/"));
+                scene.reducedMotion = false;
                 const report = scene.faceReport(board, 100);
                 scene.reducedMotion = true;
                 const reduced = scene.faceReport(board, 100);
@@ -560,11 +565,15 @@ ApplicationWindow {
                 lines.push("faces, " + which + " " + size + "x" + size + " seed 7 (play seed 100): "
                            + tilesAreFaces + "/" + board.tiles.length + " tiles are the face up; "
                            + "mean " + (distinct / board.tiles.length).toFixed(2) + " different letters on a die; "
-                           + report.landed + "/" + report.dice + " land face up and upright; "
+                           + report.landed + "/" + report.dice + " land face up; "
                            + "mean " + report.facesSeenMean.toFixed(2) + " faces on top in a play, most "
                            + report.facesSeenMost + "; reduced "
                            + reduced.landed + "/" + reduced.dice + ", " + reduced.facesSeenMean.toFixed(2));
             }
+        }
+        scene.reducedMotion = false;
+        for (const seed of [100, 101, 102, 103]) {
+            stats.writeText(outDir + "/trace-" + seed + ".txt", scene.trace(makeBoard(4, 7, 2), seed));
         }
         const text = lines.join("\n") + "\n";
         console.log("DIGEST\n" + text);

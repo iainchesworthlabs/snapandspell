@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "draw.hpp"
+#include "wjs/profiling.hpp"
 
 namespace wjs {
 namespace {
@@ -131,6 +132,10 @@ std::size_t DiceSet::side() const noexcept {
 
 std::expected<RolledBoard, DiceError> roll_with_placements(const DiceSet& dice,
                                                            std::uint32_t seed) {
+    // The one zone of a roll: roll() is this and the board taken out of it.
+    auto zone = profiling::zone<"board.roll">();
+    zone.Value(dice.size());
+
     const std::size_t side = dice.side();
     if (side == 0) {
         return std::unexpected(DiceError::not_square);

@@ -44,8 +44,9 @@ void print_metrics(const char* title, const std::vector<wjs::perf::Metric>& metr
         if (!metric.note.empty()) {
             where += (where.empty() ? "" : "  ") + metric.note;
         }
-        std::cout << std::format("  {:<38} {:>12.3f} / {:<12.3f} {:<14} {:>+7.0f}%  {}{}\n",
-                                 metric.name, metric.measured, metric.budget, metric.unit, headroom,
+        std::cout << std::format("  {:<34} {:<8} {:>12.3f} / {:<12.3f} {:<14} {:>+7.0f}%  {}{}\n",
+                                 metric.name, wjs::perf::to_string(metric.mode), metric.measured,
+                                 metric.budget, metric.unit, headroom,
                                  metric.holds() ? "" : "OVER  ", where);
     }
 }
@@ -55,6 +56,12 @@ void print_timing() {
                   wjs::perf::load_timing_metrics());
     print_metrics("timing: solves (one solve against the calibration workload)",
                   wjs::perf::solve_timing_metrics());
+    print_metrics(
+        "timing: PHONICS BOARD, one deal of a session board against the calibration workload",
+        wjs::perf::session_timing_metrics());
+
+    print_metrics("timing: reading a frame (one read against the heavy calibration workload)",
+                  wjs::perf::scan_timing_metrics());
     // The two calibrations on their own, so that a ratio can be read back into
     // milliseconds.
     for (const wjs::perf::Weight weight : {wjs::perf::Weight::light, wjs::perf::Weight::heavy}) {
@@ -78,8 +85,27 @@ TEST_CASE("report: what every metric measures now", "[.perf-report]") {
                   wjs::perf::random_board_metrics());
     print_metrics("boards built to hold many words, and boards with none",
                   wjs::perf::special_board_metrics());
+    print_metrics("the scanner: what reading four synthetic frames does",
+                  wjs::perf::scan_metrics());
     std::cout << std::format("\ndigest of every solution over the corpus: {} (kCorpusDigest)\n",
                              wjs::perf::corpus_digest());
+    print_metrics(
+        "STANDARD BOARD (the default): a roll of the dice and a solve, most visits by size",
+        wjs::perf::dice_board_metrics());
+    std::cout << std::format(
+        "\ndigest of every solution over the rolled boards: {} (kDiceDigest)\n",
+        wjs::perf::dice_digest());
+    print_metrics("PHONICS BOARD (a parent's switch): seeding, by size",
+                  wjs::perf::seeding_metrics());
+    std::cout << std::format("\ndigest of every board seeded: {} (kSeedDigest)\n",
+                             wjs::perf::seeding_digest());
+    print_metrics("PHONICS BOARD (a parent's switch): the game session, by size",
+                  wjs::perf::session_metrics());
+    std::cout << std::format(
+        "\ndigest of every board a session dealt and played: {} (kSessionDigest)\n",
+        wjs::perf::session_digest());
+    print_metrics("PHONICS BOARD (a parent's switch): the binder, a path of nine tiles",
+                  wjs::perf::binder_metrics());
     print_timing();
 }
 

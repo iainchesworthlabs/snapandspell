@@ -8,8 +8,10 @@
 #include <vector>
 
 #include "wjs/board.hpp"
+#include "wjs/deal.hpp"
 #include "wjs/dice.hpp"
 #include "wjs/dictionary.hpp"
+#include "wjs/game_rules.hpp"
 #include "wjs/solver.hpp"
 
 // The project's own dice, data/dice/<n>x<n>.txt, made by tools/data/make_dice.ps1
@@ -95,6 +97,34 @@ TEST_CASE("the placements of a roll are the faces of the shipped dice that are u
             }
             CHECK(all_match);
             CHECK(used.size() == side * side);
+        }
+    }
+}
+
+TEST_CASE("a dealt standard board has the dice that its seed rolls", "[dice][data]") {
+    // The deal rolls again until a board holds a word and says the seed of the
+    // roll it kept (DealtBoard::seed). The scene is given the dice of that roll,
+    // so the roll of that seed must be the dealt board, die for die.
+    const auto words = wjs::WordSets::standard(english());
+    for (const std::size_t side : {3U, 4U}) {
+        const auto set = load(side);
+
+        for (std::uint32_t seed = 1; seed <= 40; ++seed) {
+            const auto dealt = wjs::deal_standard_board(set, words, seed);
+            REQUIRE(dealt.has_value());
+            const auto rolled = wjs::roll_with_placements(set, dealt->seed);
+            REQUIRE(rolled.has_value());
+
+            INFO("side " << side << " seed " << seed << " dealt from " << dealt->seed);
+            bool same = rolled->board.rows() == dealt->board.rows() &&
+                        rolled->board.columns() == dealt->board.columns();
+            for (std::size_t tile = 0; tile < side * side && same; ++tile) {
+                const wjs::Position at{tile / side, tile % side};
+                const auto& placement = rolled->placements[tile];
+                same = rolled->board.tile(at) == dealt->board.tile(at) &&
+                       set.die(placement.die)[placement.face] == dealt->board.tile(at);
+            }
+            CHECK(same);
         }
     }
 }

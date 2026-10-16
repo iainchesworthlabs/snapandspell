@@ -21,6 +21,8 @@ foreach(side 3 4 5 6)
     list(APPEND WJS_SHAKE_DICE_FILES "${dice_file}")
 endforeach()
 
+add_subdirectory(sim)
+
 qt_add_executable(wjs_shake_prototype
     main.cpp)
 set_target_properties(wjs_shake_prototype PROPERTIES OUTPUT_NAME ShakePrototype)
@@ -40,6 +42,10 @@ qt_add_qml_module(wjs_shake_prototype
     SOURCES
         dice_roller.cpp
         dice_roller.hpp
+        dice_sim.cpp
+        dice_sim.hpp
+        die_geometry.cpp
+        die_geometry.hpp
         frame_stats.cpp
         frame_stats.hpp)
 
@@ -52,6 +58,7 @@ target_link_libraries(wjs_shake_prototype
         Qt6::QuickControls2
         Qt6::Quick3D
         wjs::lib
+        wjs_dice_world
         wjs::warnings
         wjs::sanitizers
         wjs::coverage)

@@ -67,6 +67,154 @@ inline constexpr std::array<std::uint64_t, 2> kEmptyVisits = {100, 256};
 inline constexpr std::uint64_t kCorpusDigest = 228066831253711239ULL;
 
 // ---------------------------------------------------------------------------
+// The two board modes
+//
+// Everything above is the STANDARD board's work (dice, the full word list), as
+// docs/design/performance.md says. What follows is that mode's making of a
+// board, and then the PHONICS board's seeding and binding. The standard board
+// is the default and the phonics board a parent's switch (decided 2026-10-16),
+// so each section below says which it is for and every metric carries its
+// mode (metrics.hpp, BoardMode). The figures below are a quarter above the
+// measurement, rounded up to three significant figures.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// STANDARD BOARD (the default): a roll of the project's dice, then a solve
+// ---------------------------------------------------------------------------
+
+// The work of making a standard board: roll data/dice/<n>x<n>.txt with the seed
+// of each of the kBoardsPerSize corpus boards of a size (corpus.hpp,
+// dice_board) and solve the result against the full word list. The most visits
+// any one of them makes, kSizes order, a quarter above what each measured, and
+// the corpus seed of the board that made it.
+inline constexpr std::array<std::uint64_t, 4> kDiceMaxVisitsPerSize = {
+    589,    // measured 471 (seed 886931)
+    2'050,  // measured 1,636 (seed 823580)
+    4'690,  // measured 3,748 (seed 300927)
+    8'080,  // measured 6,457 (seed 277171)
+};
+
+// A digest of every solution over those boards, in the order solve() returns
+// them. Exact, as kCorpusDigest is, and it moves with the dice files (which
+// move with the dictionary: data/README.md) or the roll, by a person's decision.
+inline constexpr std::uint64_t kDiceDigest = 9710656603150208005ULL;
+
+// ---------------------------------------------------------------------------
+// PHONICS BOARD (a parent's switch): seeding and binding
+// ---------------------------------------------------------------------------
+
+// The words of the test phase (corpus.hpp, phonics_phase): exact, because it
+// pins the phase and the dictionary together.
+inline constexpr std::uint64_t kPhonicsWords = 249;
+
+// What seeding spent over kSeedsPerSize seeds of each size on that phase, with
+// the options of wjs::phonics_board_options (guided fill, targets of three
+// letters at most, every letter but the dead one as filler), the range 3 to 5
+// and 20 tries: each a quarter above what it measured, by size, kSizes order.
+//
+//   tries_total   boards verified, summed (one solve each)
+//   solves_total  every solve: the verifications and the guided fill's trials
+//   visits_total  the solver's visits over all of them, the machine-independent
+//                 cost of the whole corpus
+//   visits_max    the visits of the one seeding that made the most
+//   fallbacks     boards that were the nearest and not in range
+struct SeedBudget {
+    std::uint64_t tries_total;
+    std::uint64_t solves_total;
+    std::uint64_t visits_total;
+    std::uint64_t visits_max;
+    std::uint64_t fallbacks;
+};
+
+//
+// 3x3 is the board this phase seeds worst: 77 of its 100 seeds are fallbacks
+// (the 23% that land is what docs/testing.md measured for targets of three
+// letters), so nearly every seeding spends all twenty verifications. A quarter
+// above its 1,739 is 2,174, which is past the 2,000 that 100 seeds of twenty
+// tries make; the budget is that cap, and cannot fail. What holds the 3x3 is
+// the solves and the visits, which the guided fill's trials make unbounded.
+inline constexpr std::array<SeedBudget, 4> kSeedBudgets = {{
+    {2'000, 6'880, 610'000, 13'100, 97},   // 3x3: 1,739 / 5,503 / 487,209 / 10,460 / 77
+    {830, 27'100, 1'300'000, 31'700, 7},   // 4x4: 664 / 21,653 / 1,036,442 / 25,292 / 5
+    {243, 50'900, 3'160'000, 121'000, 0},  // 5x5: 194 / 40,663 / 2,525,621 / 96,479 / 0
+    {234, 85'100, 6'980'000, 168'000, 0},  // 6x6: 187 / 68,049 / 5,578,096 / 133,802 / 0
+}};
+
+// The seeding's own cap on verifications (SeedOptions::max_tries). Not a
+// quarter above anything: it is the algorithm's promise, and no seed may spend
+// more.
+inline constexpr std::uint64_t kSeedMaxTries = 20;
+
+// A digest of every board seeded over the corpus: tiles, targets, dead jewels,
+// the words found, tries and solves. Exact; it moves with the seeding
+// algorithm or the phase, deliberately, and with the pinned boards of
+// seeding_test.cpp.
+inline constexpr std::uint64_t kSeedDigest = 15489434241397487766ULL;
+
+// The binder's comparisons for a path of nine tiles (corpus.hpp, kBindPaths
+// order: none, all, mixed) against the 31 multi-letter graphemes of its test
+// set, a quarter above what each measured. A tile that starts no grapheme costs
+// 31; one that does costs its place in the binder's order.
+inline constexpr std::array<std::uint64_t, 3> kBindComparisons = {
+    349,  // none: measured 279 (9 tiles x 31 graphemes)
+    63,   // all: measured 50 (4 blocks)
+    234,  // mixed: measured 187 (7 blocks)
+};
+
+// ---------------------------------------------------------------------------
+// PHONICS BOARD (a parent's switch): the game session
+// ---------------------------------------------------------------------------
+
+// What the session spent dealing and playing kSeedsPerSize boards of each size
+// (kSessionSizes order) on the test phase: sessions seeded with corpus_seed,
+// the default options (a board of three to five words, up to
+// kSessionMaxSeedings seedings of up to 20 verifications each), every board
+// played through to the resting screen. Each figure a quarter above what it
+// measured, rounded up to three significant figures.
+//
+//   seedings_total  calls to seed_board, summed (a board that lands first time is one)
+//   tries_total     boards verified, summed
+//   solves_total    every solve of the deal, the solver's own count
+//   visits_total    the solver's visits to deal them all
+//   visits_max      the visits of the one deal that cost the most
+//   out_of_range    boards that held fewer than three or more than five words
+//                   after every seeding
+//   words_total     the words of the phase on all of them: exact, it pins the
+//                   corpus, the phase and the seeding together
+//   restore_visits  the visits of restoring each board once
+struct SessionBudget {
+    std::uint64_t seedings_total;
+    std::uint64_t tries_total;
+    std::uint64_t solves_total;
+    std::uint64_t visits_total;
+    std::uint64_t visits_max;
+    std::uint64_t out_of_range;
+    std::uint64_t words_total;
+    std::uint64_t restore_visits;
+};
+
+//
+// 3x3 is the board this phase deals worst, as it seeds worst: 35 of its 100 boards
+// are out of range after all five seedings (322 seedings for 100 boards), where
+// a single seeding left 77 of 100 as fallbacks (kSeedBudgets). The 4x4 lands
+// every one, in 106 seedings.
+inline constexpr std::array<SessionBudget, 2> kSessionBudgets = {{
+    // 3x3: 322 / 5,792 / 17,534 / 1,544,699 / 26,251 / 35 / 522 / 5,122
+    {403, 7'240, 22'000, 1'940'000, 32'900, 44, 522, 6'410},
+    // 4x4: 106 / 717 / 22,809 / 1,101,833 / 25,292 / 0 / 476 / 6,605
+    {133, 897, 28'600, 1'380'000, 31'700, 0, 476, 8'260},
+}};
+
+// The session's own cap on seedings for one board (SessionOptions::max_seedings):
+// the promise of the design, and no board may take more.
+inline constexpr std::uint64_t kSessionMaxSeedings = 5;
+
+// A digest of every board a session dealt and played: the deal, the kind of
+// every trace, and the snapshots after the first find and at rest. Exact; it
+// moves with the session, the seeding or the phase, deliberately.
+inline constexpr std::uint64_t kSessionDigest = 4119037603476531768ULL;
+
+// ---------------------------------------------------------------------------
 // Time, as a multiple of the calibration workload (perf/measure.hpp)
 // ---------------------------------------------------------------------------
 
@@ -95,10 +243,54 @@ inline constexpr TimeBudget kLoadTime = {5.0};
 inline constexpr TimeBudget kSolveRich4Time = {0.3};
 inline constexpr TimeBudget kSolveRich6Time = {0.8};
 
+// Dealing one session board (the shake, which seeds up to five times) against the
+// light calibration, for the first kDealsPerRun corpus seeds of the size. Measured
+// 0.087 and 0.086 for one deal (1.23 and 1.25 ms against 14 ms); the budget is
+// several times that, as the solves' are.
+inline constexpr TimeBudget kDeal3Time = {0.6};
+inline constexpr TimeBudget kDeal4Time = {0.6};
+
 // How many timed runs each takes, after one that is thrown away; and how many
 // solves make one timed run of a solve (a solve is under a millisecond).
 inline constexpr int kLoadRuns = 5;
 inline constexpr int kSolveRuns = 15;
 inline constexpr int kSolvesPerRun = 50;
+// And for the deal of a session board: deals in one timed run, and timed runs.
+inline constexpr int kDealsPerRun = 5;
+inline constexpr int kDealRuns = 9;
+
+// ---------------------------------------------------------------------------
+// The scanner, counted (wjs/scan/work.hpp)
+// ---------------------------------------------------------------------------
+
+// Reading four fixed synthetic frames (a 4x4, a 5x5, a 6x6, a 4x4 under glare,
+// metrics.cpp). The reads, and every one answering with a board, and the pixels of
+// the frames and of the working pictures, are exact: they pin the corpus. The rest
+// are what a read does, a quarter above what each measured (rounded up to three
+// significant figures), and are not exact because a decision at the edge of a
+// threshold (which look found the board, which height fitted best) can differ by a
+// compiler's last digit; a change that reads each cell at four times the angles, or
+// allocates a buffer a row, is a factor and not a few percent.
+inline constexpr std::uint64_t kScanReads = 4;
+inline constexpr std::uint64_t kScanFramePixels = 4ULL * 960 * 720;
+inline constexpr std::uint64_t kScanWorkingPixels = 4ULL * 480 * 360;
+// Beside each, what it measured (MSVC 19.51, /O2): the warped pixels are the board at
+// 480 x 480 and each of five looks for it at 240 x 240; the blobs are every bright
+// connected set the five looks found, and the dice candidates the die-shaped ones.
+inline constexpr std::uint64_t kScanWarpPixels = 2'600'000;  // measured 2,073,600
+inline constexpr std::uint64_t kScanBlobs = 3'240;           // measured 2,589
+inline constexpr std::uint64_t kScanDiceCandidates = 619;    // measured 495
+inline constexpr std::uint64_t kScanCellsRead = 323;         // measured 258
+inline constexpr std::uint64_t kScanComparisons = 418'000;   // measured 334,368
+inline constexpr std::uint64_t kScanBuffers = 125;           // measured 100
+inline constexpr std::uint64_t kScanBuffersMax = 32;         // measured 25
+
+// One read of a 4x4 and of a 6x6 frame, against the heavy calibration (a read walks
+// several pictures, none of which stays in cache). Measured 0.36 to 0.44 (45 to 50 ms)
+// and 0.46 to 0.55 (61 to 69 ms) against 102 to 150 ms, three runs, on the desktop
+// above; each budget is seven to eight times what it measures.
+inline constexpr TimeBudget kScanRead4Time = {3.0};
+inline constexpr TimeBudget kScanRead6Time = {4.0};
+inline constexpr int kScanRuns = 7;
 
 }  // namespace wjs::perf::budget

@@ -34,6 +34,8 @@ not removed.
 | [Shake prototype](shake-prototype.md) | The board scene built in Qt Quick 3D behind its seam, what it cost on one desktop, and what a 2D swap-in must keep |
 | [Application](application.md) | Screens, touch targets, type and school fonts, colour, motion, accessibility, sound, privacy built in and checked, Qt modules |
 | [Dashboard](dashboard.md) | The parent area: the gate, what is shown and how it is worded, settings, what is deferred |
+| [The parent area as built](parent-area.md) | The store, the gate, the dashboard's numbers, the screens and the privacy checks as built: the choices made, what each test holds, what is for the reviewer, what is not verified |
+| [Scanner](scanner.md) | Mode A's board reader: the library, the confirm-and-correct model, the camera and reader interfaces, the accuracy target and the synthetic corpus, what was measured, and what the iPad still has to do |
 | [Performance](performance.md) | Budgets, the Tracy zones, the macro-free route, the performance tier |
 | [Path](path.md) | The route from the MVP to the full product across several releases, and what the MVP must leave open |
 | [Layouts](layouts.svg) | The two-thirds / one-third arrangement at four window shapes, to scale |
@@ -63,8 +65,9 @@ not removed.
 5. **Phonics is data.** Phases, graphemes and words are reviewed files the
    build refuses to ship unreviewed. The code binds a trace into blocks and
    sounds a word out; it knows no letter or sound.
-6. **The shake is scripted, not simulated**, and the scene is one component
-   with a narrow interface. 3D (Qt Quick 3D) for the MVP's private build,
+6. **The shake's outcome is decided, not simulated**: the dice move by a small
+   simulation of our own, and a guide takes each to its cell. The scene is one
+   component with a narrow interface. 3D (Qt Quick 3D) for the MVP's private build,
    **decided by the author**, with the licence decision (GPL-3.0 only for a
    build that links it) taken at D2 before any store.
 7. **Privacy is built in and checked in CI from the first build**: no audio

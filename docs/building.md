@@ -99,7 +99,7 @@ Pass these to the configure step, for example
 | `WJS_BUILD_CLI` | `ON` | Build `wjs-cli` |
 | `WJS_BUILD_APP` | `OFF` | Build the Qt Quick window. Needs Qt 6.12 |
 | `WJS_BUILD_TESTS` | `ON` | Build the test suites, and register the platform tests. Turning it off also stops vcpkg building Catch2 |
-| `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the 3D board-scene prototype as `ShakePrototype`. Needs `WJS_BUILD_APP=ON` and Qt Quick 3D; the program it makes is GPL-3.0 only. See [the prototype](design/shake-prototype.md#building-and-running) |
+| `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the 3D board-scene prototype as `ShakePrototype`. Needs `WJS_BUILD_APP=ON` and Qt Quick 3D; the program it makes is GPL-3.0 only. See [the prototype](design/shake-prototype.md#how-it-was-measured) |
 | `WJS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
 | `WJS_ENABLE_COVERAGE` | `OFF` | gcov instrumentation. Only the `linux-gcc-coverage` preset turns it on |
 | `WJS_REQUIRE_REVIEWED_PHONICS` | `ON` for the release build types, else `OFF` | The review gate: the build runs `tools/data/check_phonics.ps1 -RequireReviewed` and stops while a file in `data/phonics` has no reviewed-by and reviewed-on header. Needs PowerShell 7. The release presets set it. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
@@ -109,7 +109,8 @@ C++23 is required, with compiler extensions off, for every target.
 
 ## The Qt Quick window
 
-The window is a thin Qt Quick layer over the library (`src/app`). It is the
+The window is the Solo Play game of [Application design](design/application.md)
+in Qt Quick, over the library (`src/app`; [Architecture](architecture.md#the-qt-quick-window)). It is the
 optional target `wjs_app`, built as `WordJewelsSolver` (`WordJewelsSolver.exe`
 on Windows, where it is a GUI-subsystem program with no console window; an
 application bundle on macOS). It is off by default until CI installs Qt.
@@ -129,7 +130,7 @@ as a prebuilt install (from the Qt online installer, or with
 ```sh
 cmake --preset windows-msvc-debug -DWJS_BUILD_APP=ON -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64
 cmake --build --preset windows-msvc-debug
-build/windows-msvc-debug/bin/WordJewelsSolver.exe --dictionary words.txt
+build/windows-msvc-debug/bin/WordJewelsSolver.exe
 ```
 
 On Windows the build runs `windeployqt` after linking, so Qt's DLLs and the QML
@@ -141,6 +142,20 @@ runtime (that comes with packaging).
 With the window enabled, `ctest` also runs `wjs_app_tests`, the Catch2 tests of
 the model the window talks to. They need Qt's runtime beside them, which the
 build arranges the same way.
+
+The window plays a stand-in game until it is told where a phase is: the
+repository has none, because the phase files have to be written and reviewed by a
+person qualified to do it. To play the library's session, keep a directory of
+`phase-<x>.graphemes.txt` and `phase-<x>.words.txt` files **outside the
+repository** and start the program with it
+([the options](architecture.md#the-qt-quick-window)):
+
+```sh
+build/windows-msvc-release/bin/WordJewelsSolver.exe --phase-directory <dir> --store <file> --seed 7
+```
+
+Give `--store` a file of its own when the phase is test data, or what is found
+goes into the store of your own profile.
 
 ## Dependencies
 

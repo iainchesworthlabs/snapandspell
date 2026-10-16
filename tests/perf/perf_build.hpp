@@ -30,4 +30,8 @@ inline constexpr std::string_view kBuildType = WJS_PERF_BUILD_TYPE;
 // as a path in this checkout.
 inline constexpr std::string_view kDictionaryPath = WJS_PERF_DICTIONARY;
 
+// The project's dice, data/dice/<n>x<n>.txt, as a directory in this checkout:
+// the standard board's work is measured on the sets that ship.
+inline constexpr std::string_view kDiceDirectory = WJS_PERF_DICE_DIRECTORY;
+
 }  // namespace wjs::perf

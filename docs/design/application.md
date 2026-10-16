@@ -224,8 +224,13 @@ core seen against the dice. And:
 - **A jewel's colour is decoration.** Its size says its tier; nothing is "the
   red one". A world (7.2) swaps the board's look and background tokens and no
   rule.
-- **Dark theme values** are not computed here; they are to be computed when the
-  tokens exist.
+- **Dark theme values** are in `src/app/qml/kit/Theme.qml`, with the light ones, and
+  were computed against the same gate: the page `#12161C` and ink `#F4EFE3`
+  (15.82), secondary ink `#B4BDC9` (9.56), a control's edge `#8C98A8` (6.20 on the
+  page, 4.49 on a card, 5.16 on the panel), the button `#7DB4EE` under `#0E1620`
+  (8.35, and 8.33 on the page). The board is the same in both, so its edge, which
+  the dark tray would otherwise lose against a dark page, is `#8C98A8` (5.66 on
+  the board area). Nothing here has been looked at on a device.
 
 ## Motion
 
@@ -310,17 +315,27 @@ checked on each target.
 
 | Rule | In the build | Checked by |
 | --- | --- | --- |
-| **No audio recording** | No microphone usage string in the iOS property list; no audio input in the camera session, which is video only; no `QAudioSource` or audio capture in first-party code | A scan of first-party code for the audio-capture classes, in the style of `check_platform_isolation.ps1`; a check on the built property list |
+| **No audio recording** | No microphone usage string in the iOS property list; no audio input in the camera session, which is video only; no `QAudioSource` or audio capture in first-party code | A scan of first-party code for the audio-capture classes, in the style of `check_platform_isolation.ps1` (**built for the scanner and its camera files:** `scan.privacy`, [Scanner](scanner.md#privacy-built-in-and-checked), which also scans them for network classes and for any file output, so a frame is never written); a check on the built property list |
 | **No network capability** | Android: no `INTERNET` permission in the merged manifest. All targets: first-party code does not use the network classes; the QML engine is given a network manager that refuses everything but local and resource URLs. Web: the page makes no request beyond its own files (a content-security policy of `connect-src 'self'`) | On Android, a dump of the built package's permissions (it must not list `INTERNET`; whether Qt's Android build adds it for a module is **unverified**, which is why it is checked on the built package); a scan for the network classes; a test that loads a remote URL in QML and fails; on the web, a header check. **Qt Network cannot be left unlinked**: Cubeulator's licensing paper notes that Qml and Quick depend on it, so the rule is "no capability and no use", not "no module" |
 | **Zero export** | No share sheet, print, file-save or mail code; no URL scheme handler | A scan for the share, print and file-dialog classes. **Backups are an open question**: an iOS app's data is included in a device backup by default (**general knowledge, not checked**), which is data leaving the app under the user's own account; whether to exclude it is the author's decision (question 50) |
 | **Local store** | A small versioned file, written atomically, in the app's private directory, with only what the dashboard needs (below). SQLite through Qt SQL is possible but the data is a few kilobytes and has no query that needs it | A test that round-trips and migrates a version |
 | **No profiling in what ships** | Tracy listens on a TCP port when built in (Cubeulator's profiling notes) | The shipped presets must not enable it; a check that a release artefact has no Tracy symbols |
 
 **What the store holds**, which is also what the dashboard may say: for each
-find, the word, the board size, the time of day it was found, whether the start
+find, the word, the board size, the day it was found, whether the start
 tile was used for it, and the phase; the stars; the best; the stickers; the
 last twenty boards. **It does not hold** a duration of play, an identity, a
-location, an image or a sound.
+location, an image or a sound. (An earlier draft of this page said the time of
+day; the build keeps the day only, because a time on every find would be
+a figure for time on screen, which [Game](game.md#what-this-design-does-not-do)
+rules out. See [The parent area as built](parent-area.md#the-store).)
+
+**What is checked now.** The scans for audio capture, the network classes and
+modules, and the export routes, the store's round trip, migration, damage and size
+cap, and the parent area's wording are tests that run in every CI leg
+(`privacy.sources`, the `[store]` cases, `parent.wording`; the table in
+[The parent area as built](parent-area.md#privacy-checks-ci)). The checks on a built
+Android package, an iOS property list and a web page wait for those targets.
 
 ## Unknowns
 
