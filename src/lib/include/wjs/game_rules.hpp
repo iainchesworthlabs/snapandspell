@@ -211,9 +211,10 @@ struct StartTileHelp {
 // 4. Whether the board is cleared
 
 // No viable word is left unfound. Words in `found` that are not viable are
-// ignored. A board with no viable word at all is cleared in this sense, and is
-// not one a child plays: the application asks after a find, which such a board
-// cannot give, and deals another board instead of celebrating this one.
+// ignored. A board with no viable word at all is cleared in this literal sense,
+// and the deal is meant never to make one: the board is decided and checked
+// before the shake (the author, 2026-10-16), so this is the answer for a board
+// that should not have been dealt, not a case the application plays.
 [[nodiscard]] bool is_cleared(std::span<const FoundWord> viable, const FoundWords& found);
 
 }  // namespace wjs

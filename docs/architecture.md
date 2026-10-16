@@ -321,8 +321,10 @@ word is left.
 
 **Cleared.** `is_cleared(viable, found)` is true when no viable word is left
 unfound. A board with no viable word at all is cleared in that literal sense,
-which is why the application asks it after a find (which such a board cannot
-give) and deals another board instead of celebrating one nobody played.
+and none is meant to be dealt: the board is decided and checked before the
+shake, so a child never lands on one (the author, 2026-10-16). A phonics board
+always holds its planted targets, so `seed_board` already keeps to that; the
+standard board's deal does not check yet (below).
 
 What is the library's reading of the design, and what the design left open, is
 on [Testing](testing.md#game-rules-what-is-pinned).
@@ -409,6 +411,14 @@ These do not exist, and nothing in the tree stands in for them:
   file exists, and none is written here: the content has to be written and
   reviewed by someone qualified to do it before a child uses it. The audio
   clips, the sound-it-out sequence and the dashboard are not built.
+- **A standard board that always holds a word.** The standard board's deal
+  (`wjs::roll` on the dice branch) does not check what it rolled, and with the
+  full dictionary some rolls hold nothing: measured 2026-10-16 with the
+  project's own dice, 3,830 of 100,000 3x3 rolls (3.8%), 30 of 20,000 4x4 rolls
+  (0.15%) and none of 5,000 5x5 or 2,000 6x6 rolls. The author's rule is that
+  such a board is never dealt, so the deal has to solve what it rolled with
+  `viable_words` and roll again until it holds a word, before the shake. Not
+  built.
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
   early-reader tier lists (animals, colours, shapes, and so on); nothing reads
   them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.

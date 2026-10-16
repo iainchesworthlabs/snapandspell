@@ -720,7 +720,7 @@ TEST_CASE("words found that are not viable do not clear a board", "[rules]") {
 }
 
 TEST_CASE("a board with no viable word has none left to find", "[rules]") {
-    // The literal reading, and why it is safe: the application asks after a
-    // find, and no find can be made on a board with no viable word.
+    // The literal reading. The deal is meant never to make such a board (the
+    // author, 2026-10-16), so this is only what the question answers for one.
     CHECK(wjs::is_cleared({}, wjs::FoundWords{}));
 }
