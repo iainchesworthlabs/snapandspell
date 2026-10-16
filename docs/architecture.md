@@ -28,9 +28,18 @@ src/
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
                          profiling-disabled/wjs/profiling.hpp  (empty)
   cli/                 main.cpp: wjs-cli
-  app/                 the Qt Quick window (built only with WJS_BUILD_APP)
-    qml/Main.qml         the window
-    solver_model.*       the model the window talks to
+  app/                 the Qt Quick application (built only with WJS_BUILD_APP)
+    qml/Main.qml         the window: a shell that shows the screen Navigation names
+    qml/Home.qml         home
+    qml/kit/             Theme (the tokens), Navigation, Feedback, AppButton, HoldButton,
+                         Icon, Jewel, TileFace
+    qml/scene/           BoardScene (the 2D placeholder of the board scene), SceneScript.js
+    qml/solo/            SoloScreen (solo.box, solo.playing, solo.resting), TraceLayer,
+                         PlayingPanel, SoloBox, SoloResting, HistorySheet, BoardThumb
+    solo/                solo_game.hpp (the port), fake_solo_game.*, solo_model.*,
+                         path_tracer.*, board_layout.*, solo_layout.*
+    solver_model.*       the solver's model (no screen uses it now; it keeps its tests)
+    system_colour_scheme.*  whether the system is in dark mode
     parent/              the parent area's controller and its QML module (CMake)
     qml/parent/          the parent area's screens and their wording
   platforms/           everything that differs between operating systems
@@ -584,14 +593,50 @@ Linux and macOS share `posix/console_posix.cpp`, named by both
 
 ## The Qt Quick window
 
-`src/app` is a small Qt Quick application and is optional (`WJS_BUILD_APP`,
-off by default; it needs a prebuilt Qt 6.12). `SolverModel` is a `QObject` that
-owns a `wjs::Dictionary`, loads it from `--dictionary <file>` or from
-`dictionaries/en.txt` beside the executable, and turns a board string into a
-`QVariantList` of words, scores and paths for QML. `Main.qml` is a grid of
-text fields, a Solve button and a list. All the solving is the library's; the
-model only reshapes its answer. The library knows nothing of Qt, and the model
-has its own Catch2 tests.
+`src/app` is the Qt Quick application and is optional (`WJS_BUILD_APP`, off by
+default; it needs a prebuilt Qt 6.12). It is Solo Play, Mode B, of
+[Application design](design/application.md) and [Game design](design/game.md):
+`home`, and `solo.box`, `solo.playing` and `solo.resting` with the moments
+between them (shaking, dropping, word-found, cleared) on one screen, because the
+board scene is one component that stays while the lid lifts and the dice fall.
+The library knows nothing of any of it, and no game rule is in the QML.
+
+| Layer | Where | What it is |
+| --- | --- | --- |
+| The port | `solo/solo_game.hpp` | `SoloGame`, a Qt-free abstract class in the names of the game design: the states of the flow (box, shaking, dropping, playing, cleared, resting), `shake`, `settled`, `submit(path)` answered as viable, real-but-not-today's or not-a-word (the last two carry no word), `startTile`, `lidOn`, `again`, the tray and the history. It decides nothing |
+| The fake | `solo/fake_solo_game.*` | A stand-in for the library's session until it is wired, and for the tests. Its words are test data: today's are the five early-reader words the design names, a few more are real, and the boards are two fixed grids turned by the seed. It publishes no phonics list |
+| The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue` |
+| The touch logic | `solo/path_tracer.*` | Trace and tap in order, both always on. A hit circle smaller than the tile and a larger one it must leave, so a diagonal slide takes the diagonal tile and a wobble near an edge does nothing; a fast move is walked in small steps so no tile is jumped; sliding back takes the last tile off; lifting outside the board cancels; a tapped path ends with the last tile tapped again or the Done jewel; a trace may carry on from a tapped path; a dead jewel is never in a path. The radii are starting values for a small finger and are the one thing the tests cannot settle |
+| The layout rule | `solo/board_layout.*`, `solo/solo_layout.*` | [Board design](design/board.md#layouts-and-sizes) as a pure function, tested on the page's reference windows, and one copy for the screens and the scene. A size is offered only if its tile is 48 dp or more |
+| The board scene | `qml/scene/BoardScene.qml` | One component: given a finished board and a seed, play the shake, the lid and the drop and say when the dice are settled. The 2D placeholder, with the members of [Shake prototype](design/shake-prototype.md#the-interface); the 3D scene being built apart plugs in at the same seam. `app.scene_contract` holds both files to the list. An empty board is the box with its lid on |
+| The kit | `qml/kit/` | `Theme` has every colour, size, time and type size a screen uses (light and dark, reduced motion, text scale); a screen writes none of its own, so a school font or a world is a token swap. `AppButton` has the three targets (48, 64 and 96 dp), acts on release inside it and takes the keyboard. Nothing drawn has text in it |
+
+The two-thirds and one-third split is applied to the window below a 72 dp bar
+that holds the way back and the quiet corner buttons, so neither lies over the
+board; so the tiles are a little smaller than the reference table's (a 4x4 on
+a 1280 x 800 window is 164 dp and not 182). Back goes where the person came from,
+with the design's exceptions, and Esc and the system back do what the visible
+control does.
+
+**What is not there.** No sound or touch feedback: every moment is a
+`Feedback.cue`, and nothing listens, because Qt Multimedia, Sensors and
+TextToSpeech are not in the tree and the recordings wait for the literacy review.
+No device shake: `wjs::detect_shakes` exists and the sensor interface in
+`src/platforms` does not, so Shake is a button (and Space) everywhere. No bundled
+type: Andika is named in `Theme` and Qt falls back to the platform's face until
+its licence is read and the glyph check is done. The family game's picture and the
+parent's button are on `home` and are shown only when `Navigation.scanAvailable`
+and `Navigation.parentAvailable` are set, by whoever adds those screens. The
+history is the fake's until the store exists.
+
+**Wiring the library's session.** `make_solo_game()` in `solo/solo_game_factory.cpp`
+is the one place that decides which game is played. The session
+(`wjs::GameSession`) maps to the port: `shake()`, `still()` and `landed()` (the
+port's `settled()` calls the last two), `trace(path, stamp)`, `rest()`, `back()` for
+`lidOn()`, `again()`, `request_help()` and `lit_tile()`; the dead jewels are its
+`dead_tiles()`; the grapheme blocks are `GraphemeBinder` with the phase; the best
+for each size, the first-time sticker and the history come from the parent area's
+store.
 
 The parent area (the gate, the dashboard, the settings and the about page) is a QML
 module of its own, `WordJewelsSolver.Parent`, in `src/app/parent` (C++) and
@@ -601,11 +646,6 @@ clock; `ParentArea.qml` is one screen with a controller and a `closed()` signal.
 program makes one `Store` and shares it with the game. Its tests are in
 `wjs_app_tests`, and a stub shell (`tests/app/parent_ui`) draws the screens without a
 display. See [The parent area as built](design/parent-area.md).
-
-What makes the window a program of the platform's desktop (a GUI-subsystem
-executable on Windows, an application bundle on macOS) and what puts Qt's
-runtime beside it are two hooks in each platform's `platform.cmake`, not tests
-of the operating system in CMake.
 
 ## Build targets
 

@@ -32,7 +32,7 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 (and `[data]` for the cases that read the shipped data),
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
 `[shake]`, `[rules]`, `[session]`, `[platform]` and `[profiling]`, and `[app]` in
-`wjs_app_tests`. The parent area's are
+`wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]` and `[solo]`). The parent area's are
 `[calendar]`, `[settings]`, `[gate]`, `[store]` (with `[record]`, `[file]`, `[migration]`, `[bounds]`,
 `[reset]`, `[resume]` and `[privacy]`), `[dashboard]` (with `[sounds]`, `[week]`, `[vault]`, `[best]`,
 `[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`.
@@ -62,7 +62,13 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 | `tests/unit/store_test.cpp` | `wjs::Store`, `parse_store`, `serialize_store` | The format and its round trip; a file cut at every length and with every byte changed is refused; each record checked; a later version told apart; migration through a pretend older format; what a snapshot records (stars once, first-time words, bests, tallies, cleared boards, the bounds); the game in progress; each way a file on disk can be (missing, damaged, newer, older, unreadable, a refusing disk), kept whole and never overwritten; the worst case the bounds allow is under the cap; no time of day in the file |
 | `tests/unit/session_store_test.cpp` | `wjs::snapshot_of`, `record_of`, `saved_session_of`, `session_snapshot_of` | The copy between the game session's values and the store's: fields, the stars from each find's reward, a stamp that is not a day refused, a board and every saved state through the store and back as it was, the words back in upper case and in order, what cannot come back refused; and a real session (one restored from a hand-written board, one the session dealt itself) taken through the store's file and brought back by `restore()` |
 | `tests/unit/dashboard_test.cpp` | `wjs::build_dashboard`, `focus_sound_choices` | Each count of a sound (met, found, unassisted, often found, few words) on a made-up phase; the week on either first day of the week; the vault and the best; nothing said of a week without play |
-| `tests/app/solver_model_test.cpp` | The window's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
+| `tests/app/solver_model_test.cpp` | The solver's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
+| `tests/app/board_layout_test.cpp` | The layout rule, `SoloLayout` | The nine reference windows of the board design: which side the board takes, the tile of each size 3x3 to 6x6 against the page's table, the inset and gap either side of 600 dp, the board centred, a size offered only at 48 dp, the object recomputing on a rotation (`[layout]`) |
+| `tests/app/path_tracer_test.cpp` | `PathTracer` | A slide, a diagonal that skips no tile, a fast jump, the hit circle smaller than the tile, sliding back, a tile used twice, a dead jewel, lifting outside, tapping in order and the last tile again, a trace carried on from taps, a press in a gap, the keyboard's moves, a rotated window (`[trace]`) |
+| `tests/app/fake_solo_game_test.cpp` | `FakeSoloGame` | The flow of the game design: the board dealt by the shake, the size, a viable word and its stars, a word found again, a real word that is not today's (no word in the answer), not a word, clearing and resting, the best, the start tile (shortest, nearest the top left, stays until found), the history, the blocks (`[fake]`) |
+| `tests/app/solo_model_test.cpp` | `SoloModel` over the fake | The states as the screens see them, input before the dice settle, the find shown and ended, the tick and the fade, tap and Done, a find again, the start tile, the blocks as a path grows, a dead jewel, the last word and the rest, the lid back on (`[solo]`) |
+| `tests/app/check_scene_contract.cmake` | `BoardScene.qml` (2D) and the prototype's | `app.scene_contract`: both declare the whole interface of the board scene, under the same names |
+| `tests/app/run_qmllint.cmake` | The application's QML | `app.qml_lint`: no warning from `qmllint`; skipped if the application has not been built |
 | `tests/app/parent_controller_test.cpp` | The parent area's `ParentController` | The gate as the screens drive it, the dashboard and settings maps, every setting changed by name and every wrong value refused, the resets, what the parent is told of the store. Built only with `WJS_BUILD_APP` |
 | `tests/app/parent_ui/` | The parent area's screens | `parent.screens`: see below |
 | `tests/privacy/` | The source tree | `privacy.sources` and `privacy.sources.selftest`: see below |
@@ -573,9 +579,11 @@ fix a number here.
 - **`wjs-cli` itself.** Nothing runs the program: option parsing, the exit
   codes and the output format are checked by hand. The library behind it is
   tested, and the README example is the solver case above.
-- **The window.** The model is tested. The QML has been loaded offscreen to see
-  that it starts and reads its `--dictionary` argument, and not exercised by a
-  test or run on a real screen.
+- **The screens.** The models, the layout rule, the touch logic and the fake are
+  tested, and the QML is linted with no warning allowed. No test loads the QML or
+  sends it input: the screens were run on a Windows desktop and driven with the
+  mouse and the keyboard by hand, at four window shapes, and that is all. Nothing
+  was run on a touch screen, a tablet or a phone, or on Linux or macOS.
 - **The console code on Linux and macOS.** It does nothing there (a POSIX
   terminal already carries UTF-8), so there is nothing to observe. The path code
   is covered by `paths_test` in CI on both.

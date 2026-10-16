@@ -16,6 +16,18 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **The Solo Play screens of the game** in Qt Quick (`WJS_BUILD_APP=ON`):
+  `home`, and `solo.box`, `solo.playing` and `solo.resting` with the moments
+  between them, the board and the panel split two thirds to one third at any window
+  shape, trace and tap in order both always on with a loose tolerance, a button for
+  every shake, 48, 64 and 96 dp targets, a way back on every screen, theme tokens
+  in place of any colour or size in a screen (light, dark, reduced motion), a calm
+  resting screen with nothing that asks the child to go on, and no text drawn into
+  a picture. The board scene is one component behind its interface with a 2D
+  placeholder; the game is `SoloGame`, a Qt-free port, with a fake until the
+  library's session is wired. It replaces the window that typed a board into a
+  grid; `SolverModel` stays with its tests. There is no sound, no device shake and
+  no bundled font yet. See [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
 - **The parent area, on the device and nowhere else**, inside the first release's
   frozen privacy rules (no voice, no export, no network, no time played, no limit):
   a small versioned **store** (`wjs/store.hpp`) of finds, the last twenty boards, stars,

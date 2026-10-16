@@ -224,8 +224,13 @@ core seen against the dice. And:
 - **A jewel's colour is decoration.** Its size says its tier; nothing is "the
   red one". A world (7.2) swaps the board's look and background tokens and no
   rule.
-- **Dark theme values** are not computed here; they are to be computed when the
-  tokens exist.
+- **Dark theme values** are in `src/app/qml/kit/Theme.qml`, with the light ones, and
+  were computed against the same gate: the page `#12161C` and ink `#F4EFE3`
+  (15.82), secondary ink `#B4BDC9` (9.56), a control's edge `#8C98A8` (6.20 on the
+  page, 4.49 on a card, 5.16 on the panel), the button `#7DB4EE` under `#0E1620`
+  (8.35, and 8.33 on the page). The board is the same in both, so its edge, which
+  the dark tray would otherwise lose against a dark page, is `#8C98A8` (5.66 on
+  the board area). Nothing here has been looked at on a device.
 
 ## Motion
 
