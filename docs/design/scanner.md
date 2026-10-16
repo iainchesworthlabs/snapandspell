@@ -385,9 +385,12 @@ the same desktop, `-O2`, the project's warnings as errors), which read both spli
 **the same numbers digit for digit** (below), the same 21 of 21 frames with no board and
 the same `scan.*` work counts. The full Debug build under the sanitizers (MSVC, ASan)
 ran all 255 tests of the repository clean, the scanner's smoke subset in under 15 s a
-case. **Not measured:** a tablet, an iPad, a camera, real dice, real light, AppleClang
-or macOS (the Linux and macOS legs of CI build and run the same tests; I have not seen
-what they say).
+case. On the pull request the Windows (MSVC), Linux (GCC) and macOS (AppleClang) Debug
+legs and the Linux Release `Performance` leg, which holds the whole accuracy target and the
+work budgets, all passed. (The macOS leg first failed on one implicit float-to-double
+conversion that clang's `-Wdouble-promotion` refuses and MSVC and GCC did not; it is fixed,
+and the sources are now also checked with clang 21 on libc++.) **Not measured:** a tablet,
+an iPad, a camera, real dice, real light.
 
 **The target, on the test split** (a fresh draw, [above](#splits-and-size)): every
 limit of every condition held, with the upright limits relaxed as described under
