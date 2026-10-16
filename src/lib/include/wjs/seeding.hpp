@@ -95,6 +95,22 @@ struct SeedOptions {
     // Boards verified before the nearest is taken. Each costs one solve.
     std::size_t max_tries = 20;
 
+    // Words longer than this are not planted as targets (0 is no limit). They
+    // are still words of the phase and still found if they are on the board.
+    // A long target brings its shorter words and its inflections with it, which
+    // is most of what makes a board hold too many.
+    std::size_t max_target_letters = 0;
+
+    // Fill the tiles the words leave by asking the solver: each is given a
+    // letter, chosen at random from those that leave the board no more than
+    // max_viable words, in a random order, preferring a letter of the phase to
+    // one it does not use, or a dead jewel if every letter would go over. It makes fuller boards
+    // than the random fill at the same share, at the price of a solve for each letter of the filler
+    // at each tile. Needs a dead letter, as the dead jewels it may add are drawn as jewels; the
+    // filler is read as a set of letters, so repeating one weighs nothing. The
+    // words planted are at least min_viable, so the count cannot fall short.
+    bool guided_fill = false;
+
     // Filler tiles changed one at a time, each costing a solve, on a planting
     // before the words are chosen and planted again. Measured no better than
     // planting again (docs/testing.md, "Seeding"), so the default is none.
@@ -110,7 +126,8 @@ struct SeededBoard {
     // Every word of the phase on the board, as the solver reports them.
     std::vector<FoundWord> viable;
 
-    // The dead jewels, in row order.
+    // The dead jewels, in row order. With guided_fill there may be more than
+    // dead_cells: a tile no letter fits is made dead.
     std::vector<Position> dead;
 
     // Boards verified: 1 to max_tries.
@@ -123,7 +140,22 @@ struct SeededBoard {
     // Focus sounds were asked for and fewer than every target carries one:
     // "few words use this sound yet".
     bool focus_unmet = false;
+
+    // Solves spent: the boards verified and, with guided_fill, the trials of
+    // each letter at each tile.
+    std::size_t solves = 0;
 };
+
+// The options chosen for the phonics board (docs/design/mvp-library.md): targets
+// of three letters at most, planted apart; the solver-guided fill; and every
+// letter but one as filler, so that letters the phase has not taught may appear
+// where a letter of the phase would make too many words, and no tile need be a
+// dead jewel. The letter left out is the first of A-Z that no word of the phase
+// uses, and is the dead letter; there is none to leave out if the phase uses all
+// 26, and then this is SeedError::bad_dead_letter. The caller still chooses the
+// range, the focus sounds and the tries.
+[[nodiscard]] std::expected<SeedOptions, SeedError> phonics_board_options(const PhaseIndex& index,
+                                                                          std::size_t size);
 
 [[nodiscard]] std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                                                                const SeedOptions& options,

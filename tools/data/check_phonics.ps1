@@ -6,26 +6,37 @@
 # format as src/lib/src/phase_data.cpp and applies the same checks, so a file
 # that passes here loads there.
 #
-#   data/phonics/phase-<x>.graphemes.txt   one grapheme a line:  ai  /sound/  clip:ai
-#   data/phonics/phase-<x>.words.txt       one word a line:      pain  p ai n
-#                                                                 <word>  tricky
+#   data/phonics/phase-<x>.graphemes.txt   one grapheme and a sound a line:
+#                                            ai  /sound/  clip:ai
+#   data/phonics/phase-<x>.words.txt       one word a line:
+#                                            pain  p ai n
+#                                            <word>  tricky
+#
+# A split digraph is written as its two halves around the letters between,
+# `cake  c a_ k _e`, and is the grapheme `a_e` in the graphemes file. A
+# grapheme that makes more than one sound is listed once for each sound, and a
+# word line says which it uses, counting from 1 in the order of that grapheme's
+# lines: `snow  s n ow:2`. A split digraph's number goes on its first half,
+# `a_:2`.
 #
 # Each file starts with `# phase: <x>` and may carry
 # `# reviewed-by: <name>   reviewed-on: <date>   source: <where it came from>`.
-# A file without both reviewed-by and reviewed-on (and reviewed-on as
-# YYYY-MM-DD) is test data. -RequireReviewed makes that a failure, which is the
-# release build's gate (WJS_REQUIRE_REVIEWED_PHONICS).
+# A file without all three (and reviewed-on as YYYY-MM-DD) is test data.
+# -RequireReviewed makes that a failure, which is the release build's gate
+# (WJS_REQUIRE_REVIEWED_PHONICS).
 #
 # Checks, each reported with file and line:
 #   - the file name is phase-<x>.graphemes.txt or phase-<x>.words.txt and the
 #     header names the same phase;
 #   - the line grammar; lowercase a-z words of three or more letters, graphemes
 #     of lowercase letters, sounds between slashes, clip ids;
-#   - no word or grapheme twice, in a file or across phases; sorted (byte order);
-#   - every word is in data/dictionaries/en.txt;
 #   - the graphemes of a word, joined, spell the word (not for `tricky`);
+#   - no word twice, and no grapheme with the same sound twice, in a file or
+#     across phases; sorted (byte order);
+#   - every word is in data/dictionaries/en.txt;
 #   - every grapheme of a word is in the word's phase or an earlier one
-#     (phases are cumulative, ordered by name).
+#     (phases are cumulative, ordered by name), and a grapheme with several
+#     sounds there is told which.
 #
 # No data/phonics directory, or none with a .txt file in it, is not a problem:
 # there is nothing to check.
@@ -80,9 +91,35 @@ function Read-DataLines([string]$path) {
     return @($text -split "`n" | ForEach-Object { $_.TrimEnd("`r") })
 }
 
+# One token of a word line after the word, as a piece: its kind (whole, open or
+# close), its letters without the underscore or the number, and the sound it
+# picks (counting from 0, or -1 for none). $null if it is none of those.
+function Read-Piece([string]$token) {
+    $sound = -1
+    $colon = $token.IndexOf(':')
+    if ($colon -ge 0) {
+        $number = $token.Substring($colon + 1)
+        if ($number -cnotmatch '^[1-9][0-9]?$') { return $null }
+        $sound = [int]$number - 1
+        $token = $token.Substring(0, $colon)
+    }
+    if ($token.StartsWith('_')) {
+        # The second half picks nothing: the first half does.
+        if ($colon -ge 0 -or $token.Substring(1) -cnotmatch '^[a-z]+$') { return $null }
+        return [pscustomobject]@{ Kind = 'close'; Letters = $token.Substring(1); Sound = $sound }
+    }
+    if ($token.EndsWith('_')) {
+        $letters = $token.Substring(0, $token.Length - 1)
+        if ($letters -cnotmatch '^[a-z]+$') { return $null }
+        return [pscustomobject]@{ Kind = 'open'; Letters = $letters; Sound = $sound }
+    }
+    if ($token -cnotmatch '^[a-z]+$') { return $null }
+    return [pscustomobject]@{ Kind = 'whole'; Letters = $token; Sound = $sound }
+}
+
 # A file read: its name, phase, kind, header and entries. Entries are objects
-# with Line and, for words, Word, Graphemes and Tricky; for graphemes,
-# Letters, Sound and Clip.
+# with Line and, for words, Word, Graphemes (each Letters and Sound) and Tricky;
+# for graphemes, Letters, Sound and Clip.
 function Read-PhaseFile([System.IO.FileInfo]$file) {
     $name = $file.Name
     $result = [pscustomobject]@{
@@ -148,8 +185,8 @@ function Read-PhaseFile([System.IO.FileInfo]$file) {
             }
             $letters, $sound, $clip = $fields
             $good = $true
-            if ($letters -cnotmatch '^[a-z]+$') {
-                Add-Problem $name $lineNumber "'$letters' is not lowercase a-z letters (a split digraph cannot be written yet)"
+            if ($letters -cnotmatch '^[a-z]+(_[a-z]+)?$') {
+                Add-Problem $name $lineNumber "'$letters' is not lowercase a-z letters (or two runs of them with an underscore between, for a split digraph)"
                 $good = $false
             }
             if ($sound -cnotmatch '^/[^/]+/$') {
@@ -161,8 +198,9 @@ function Read-PhaseFile([System.IO.FileInfo]$file) {
                 $good = $false
             }
             if (-not $good) { $result.Ok = $false; continue }
-            if ($firstLine.ContainsKey($letters)) {
-                Add-Problem $name $lineNumber "'$letters' is listed twice (first on line $($firstLine[$letters]))"
+            $pair = "$letters $sound"
+            if ($firstLine.ContainsKey($pair)) {
+                Add-Problem $name $lineNumber "'$letters' with the sound $sound is listed twice (first on line $($firstLine[$pair]))"
                 $result.Ok = $false
                 continue
             }
@@ -171,7 +209,7 @@ function Read-PhaseFile([System.IO.FileInfo]$file) {
                 $result.Ok = $false
             }
             $previous = $letters
-            $firstLine[$letters] = $lineNumber
+            $firstLine[$pair] = $lineNumber
             $entries.Add([pscustomobject]@{ Line = $lineNumber; Letters = $letters; Sound = $sound; Clip = $clip })
             continue
         }
@@ -194,23 +232,65 @@ function Read-PhaseFile([System.IO.FileInfo]$file) {
             continue
         }
         $tricky = $false
-        $graphemes = @()
+        $graphemes = [System.Collections.Generic.List[object]]::new()
         if ($fields.Count -eq 2 -and $fields[1] -ceq 'tricky') {
             $tricky = $true
         } else {
+            # The pieces after the word: each is a grapheme or one half of a
+            # split digraph. Their letters, in the order written, have to spell
+            # the word.
+            $spelt = ''
+            $open = -1        # index in $graphemes of a split digraph not yet closed
+            $between = $false # a grapheme has come since it opened
             $good = $true
-            foreach ($grapheme in $fields[1..($fields.Count - 1)]) {
-                if ($grapheme -ceq 'tricky') {
+            foreach ($token in $fields[1..($fields.Count - 1)]) {
+                if ($token -ceq 'tricky') {
                     Add-Problem $name $lineNumber "'$word': 'tricky' stands alone, with no split"
                     $good = $false
                     break
                 }
-                if ($grapheme -cnotmatch '^[a-z]+$') {
-                    Add-Problem $name $lineNumber "'$grapheme' in '$word' is not lowercase a-z letters (a split digraph cannot be written yet)"
+                $piece = Read-Piece $token
+                if ($null -eq $piece) {
+                    Add-Problem $name $lineNumber "'$token' in '$word' is not a grapheme: letters, with ':2' to pick a second sound, or the halves of a split digraph as in 'a_' ... '_e'"
                     $good = $false
                     break
                 }
-                $graphemes += $grapheme
+                if ($piece.Kind -eq 'close') {
+                    if ($open -lt 0) {
+                        Add-Problem $name $lineNumber "'$token' in '$word' closes a split digraph that was not opened"
+                        $good = $false
+                        break
+                    }
+                    if (-not $between) {
+                        Add-Problem $name $lineNumber "the halves of a split digraph in '$word' have nothing between them"
+                        $good = $false
+                        break
+                    }
+                    $graphemes[$open].Letters += "_$($piece.Letters)"
+                    $open = -1
+                } else {
+                    if ($open -ge 0 -and $piece.Kind -eq 'open') {
+                        Add-Problem $name $lineNumber "'$token' in '$word' opens a split digraph inside another"
+                        $good = $false
+                        break
+                    }
+                    $graphemes.Add([pscustomobject]@{ Letters = $piece.Letters; Sound = $piece.Sound })
+                    if ($piece.Kind -eq 'open') {
+                        $open = $graphemes.Count - 1
+                        $between = $false
+                    } elseif ($open -ge 0) {
+                        $between = $true
+                    }
+                }
+                $spelt += $piece.Letters
+            }
+            if ($good -and $open -ge 0) {
+                Add-Problem $name $lineNumber "a split digraph in '$word' is opened and not closed"
+                $good = $false
+            }
+            if ($good -and $spelt -cne $word) {
+                Add-Problem $name $lineNumber "the graphemes of '$word' spell '$spelt'"
+                $good = $false
             }
             if (-not $good) { $result.Ok = $false; continue }
         }
@@ -225,7 +305,7 @@ function Read-PhaseFile([System.IO.FileInfo]$file) {
         }
         $previous = $word
         $firstLine[$word] = $lineNumber
-        $entries.Add([pscustomobject]@{ Line = $lineNumber; Word = $word; Graphemes = $graphemes; Tricky = $tricky })
+        $entries.Add([pscustomobject]@{ Line = $lineNumber; Word = $word; Graphemes = $graphemes.ToArray(); Tricky = $tricky })
     }
 
     # What the header as a whole says.
@@ -246,9 +326,15 @@ function Read-PhaseFile([System.IO.FileInfo]$file) {
         Add-Problem $name 0 'reviewed-on must be a date written YYYY-MM-DD'
         $result.Ok = $false
     }
+    # A reviewed list says where it came from. Test data need not.
+    $sourced = $header['source'] -ne ''
+    if ($by -and $on -and -not $sourced) {
+        Add-Problem $name 0 "a reviewed file says where its list came from: add 'source: <where>'"
+        $result.Ok = $false
+    }
 
     $result.Phase = $header['phase']
-    $result.Reviewed = $by -and $on -and (Test-IsoDate $header['reviewed-on'])
+    $result.Reviewed = $by -and $on -and $sourced -and (Test-IsoDate $header['reviewed-on'])
     $result.Entries = $entries.ToArray()
     return $result
 }
@@ -277,6 +363,7 @@ foreach ($file in $usable) {
     }
 }
 
+# Letters -> the list of its sounds (Sound and Where), in the order defined.
 $knownGraphemes = @{}
 $knownWords = @{}
 $graphemeCount = 0
@@ -285,10 +372,15 @@ foreach ($phase in $names) {
     if ($graphemeFile.ContainsKey($phase)) {
         $file = $graphemeFile[$phase]
         foreach ($entry in $file.Entries) {
-            if ($knownGraphemes.ContainsKey($entry.Letters)) {
-                Add-Problem $file.Name $entry.Line "'$($entry.Letters)' is already defined ($($knownGraphemes[$entry.Letters]))"
+            if (-not $knownGraphemes.ContainsKey($entry.Letters)) {
+                $knownGraphemes[$entry.Letters] = [System.Collections.Generic.List[object]]::new()
+            }
+            $sounds = $knownGraphemes[$entry.Letters]
+            $same = $sounds | Where-Object { $_.Sound -ceq $entry.Sound } | Select-Object -First 1
+            if ($null -ne $same) {
+                Add-Problem $file.Name $entry.Line "'$($entry.Letters)' with the sound $($entry.Sound) is already defined ($($same.At))"
             } else {
-                $knownGraphemes[$entry.Letters] = "$($file.Name):$($entry.Line)"
+                $sounds.Add([pscustomobject]@{ Sound = $entry.Sound; At = "$($file.Name):$($entry.Line)" })
                 $graphemeCount++
             }
         }
@@ -299,15 +391,19 @@ foreach ($phase in $names) {
             if (-not $englishSet.Contains($entry.Word)) {
                 Add-Problem $file.Name $entry.Line "'$($entry.Word)' is not in the dictionary"
             }
-            if (-not $entry.Tricky) {
-                foreach ($grapheme in $entry.Graphemes) {
-                    if (-not $knownGraphemes.ContainsKey($grapheme)) {
-                        Add-Problem $file.Name $entry.Line "grapheme '$grapheme' of '$($entry.Word)' is not in phase $phase or an earlier phase"
-                    }
+            foreach ($grapheme in $entry.Graphemes) {
+                if (-not $knownGraphemes.ContainsKey($grapheme.Letters)) {
+                    Add-Problem $file.Name $entry.Line "grapheme '$($grapheme.Letters)' of '$($entry.Word)' is not in phase $phase or an earlier phase"
+                    continue
                 }
-                $spelt = $entry.Graphemes -join ''
-                if ($spelt -cne $entry.Word) {
-                    Add-Problem $file.Name $entry.Line "the graphemes of '$($entry.Word)' spell '$spelt'"
+                # Which sound, where there is a choice.
+                $count = $knownGraphemes[$grapheme.Letters].Count
+                if ($grapheme.Sound -lt 0) {
+                    if ($count -gt 1) {
+                        Add-Problem $file.Name $entry.Line "grapheme '$($grapheme.Letters)' of '$($entry.Word)' has $count sounds in phase ${phase}: say which, as '$($grapheme.Letters):1' to '$($grapheme.Letters):$count'"
+                    }
+                } elseif ($grapheme.Sound -ge $count) {
+                    Add-Problem $file.Name $entry.Line "grapheme '$($grapheme.Letters)' of '$($entry.Word)' is numbered $($grapheme.Sound + 1) and has only $count sound(s) in phase $phase"
                 }
             }
             if ($knownWords.ContainsKey($entry.Word)) {
@@ -325,7 +421,7 @@ foreach ($phase in $names) {
 $unreviewed = @($parsed | Where-Object { -not $_.Reviewed } | ForEach-Object { $_.Name })
 if ($RequireReviewed) {
     foreach ($name in $unreviewed) {
-        Add-Problem $name 0 'has no complete review header (reviewed-by and reviewed-on), so it is test data, which a release build refuses'
+        Add-Problem $name 0 'has no complete review header (reviewed-by, reviewed-on and source), so it is test data, which a release build refuses'
     }
 }
 

@@ -28,7 +28,8 @@ build/windows-msvc-debug/bin/wjs_unit_tests --list-tests
 build/windows-msvc-debug/bin/wjs_unit_tests "[solver]"
 ```
 
-The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`,
+The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dice]`
+(and `[data]` for the cases that read the shipped data),
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
 `[shake]`, `[platform]` and `[profiling]`, and `[app]` in `wjs_app_tests`.
 
@@ -42,10 +43,12 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`,
 | `tests/unit/solver_test.cpp` | `wjs::solve` | Adjacency, the minimum length, the path reported for a word, a tile used at most once, a word reached by several paths reported once, the `Qu` tile, the scoring scheme applied, an empty dictionary; and the work counter (`wjs/solver_work.hpp`): visits, solves and the largest, reset, and that each thread has its own |
 | `tests/unit/path_test.cpp` | `wjs::validate_path`, `wjs::are_neighbours` | The word a path spells (a `Qu` tile adds two letters), each fault (off the board, a tile twice, tiles that do not touch, no tiles), no wrap-around from the end of a row, and that every path the solver reports validates |
 | `tests/unit/phase_data_test.cpp` | `wjs::parse_words`, `parse_graphemes`, `PhaseSet` | The two file formats, the review header (all three on one line or one to a line, placeholders, a half-given or malformed review), each line problem with its line number, the cumulative phase index, each cross-file check, `reviewed()` and the files it names, loading a directory |
-| `tests/unit/seeding_test.cpp` | `wjs::seed_board`, `RecentTargets` | The same inputs give the same board (and two boards are pinned, so a change of compiler or algorithm shows), a range of three to five words unless the board says it fell back, targets that are words of the phase and are on the board, dead jewels, focus sounds, recent targets, the cap on tries, each refused option, variety over 300 seeds |
+| `tests/unit/seeding_test.cpp` | `wjs::seed_board`, `RecentTargets` | The same inputs give the same board (and two boards are pinned, so a change of compiler or algorithm shows), a range of three to five words unless the board says it fell back, targets that are words of the phase and are on the board, dead jewels, focus sounds, recent targets, the cap on tries, each refused option, variety over 300 seeds; the target-length limit, and the guided fill (count kept in range, dead jewels listed as they are on the board, a function of the seed, none with letters outside the phase) |
 | `tests/unit/grapheme_binder_test.cpp` | `wjs::GraphemeBinder` | The brief's `R [AI] N`, order, longest first, greedy from the left, blocks that are whole tiles (`Qu`), single letters ignored, a block growing as the path does, every path of up to four tiles covered in order |
 | `tests/unit/shake_test.cpp` | `wjs::detect_shakes` | Synthetic traces: a shake, one still, a gentle wave, walking, a knock, turning over, a slow tilt, two shakes, a pause, sample rates and jitter, units, a harder threshold, damaged samples |
 | `tests/unit/profiling_test.cpp` | `wjs/profiling.hpp` | That the variant CMake chose is the one it was asked for, that every call can be made with no profiler connected, and that a zone cannot be copied or moved |
+| `tests/unit/dice_test.cpp` | `wjs::DiceSet`, `wjs::roll` | The file format (a face of several letters, commas, comments, a byte-order mark), each way a set is refused, a roll using each die once and showing one of its faces, a function of the seed, two boards pinned so a change of compiler shows, every face shown over many rolls |
+| `tests/unit/dice_data_test.cpp` | The shipped dice, `data/dice` | Each size has the dice for its board and six different faces to a die with a vowel among them; 300 boards a size rolled and solved against the dictionary hold about the words a random board does; two boards pinned. Reads the shipped files by their path in the checkout, as the performance tier does |
 | `tests/unit/paths_test.cpp` | `wjs::platform::executable_path` | That it names the running test program: absolute, an existing file, called `wjs_unit_tests` |
 | `tests/app/solver_model_test.cpp` | The window's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
 | `tests/perf/` | The solver and the word list, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
@@ -54,6 +57,7 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`,
 | `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
 | `tools/checks/check_platform_isolation.ps1` | The source tree | See below: `platform.isolation` |
 | `tools/data/check_wordlists.ps1` | `data/dictionaries` and `data/lexicon` | `data.wordlists`: lowercase a-z, sorted, unique, and every lexicon word in the dictionary |
+| `tools/data/make_dice.ps1 -Check` | `data/dice` | `data.dice`: each file is what the tool makes from the dictionary as it is, so the recorded source hash and the dice both match |
 | `tools/data/check_phonics.ps1` | `data/phonics` | See below: `data.phonics` |
 | `tools/data/test_check_phonics.ps1` | The phonics checker itself | See below: `data.phonics.checker` |
 
@@ -213,25 +217,30 @@ reader are in [Architecture](architecture.md#phase-data).
 # reviewed-by: <name>   reviewed-on: <date>   source: <where it came from>
 ai  /sound/  clip:ai        <- a graphemes file line
 pain  p ai n                <- a words file line
+cake  c a_ k _e             <- a split digraph, the grapheme a_e
+snow  s n ow:2              <- the second sound of a grapheme with two
 ```
 
 **`data.phonics`** runs `tools/data/check_phonics.ps1` over the tree. It holds
 the files to the checks the phonics design lists, and to the same ones the
 library's `PhaseSet` applies, so a file that passes loads: the file name and
-the header's phase agree; the line grammar; no word or grapheme twice, in a file
-or across phases; sorted (byte order); every word in
-`data/dictionaries/en.txt`; a word's graphemes, joined, spell it; every grapheme
-is in the word's phase or an earlier one. With no `data/phonics` there is
-nothing to check and it passes.
+the header's phase agree; the line grammar; a word's graphemes, joined, spell
+it; no word, and no grapheme with the same sound, twice, in a file or across
+phases; sorted (byte order); every word in `data/dictionaries/en.txt`; every
+grapheme is in the word's phase or an earlier one, and one with several sounds
+there is told which. With no `data/phonics` there is nothing to check and it
+passes.
 
 **`data.phonics.checker`** runs `tools/data/test_check_phonics.ps1`, which builds
-throw-away data and holds the checker to a table of 38 cases (the ones in
+throw-away data and holds the checker to a table of 55 cases (the ones in
 `phase_data_test.cpp`, so the two implementations agree). A gate that passes
-everything is worse than none, so the gate is itself tested; it takes about
-twenty seconds because each case starts a PowerShell.
+everything is worse than none, so the gate is itself tested; it takes half a
+minute because each case starts a PowerShell.
 
-**The review gate.** A file with no `reviewed-by` and `reviewed-on` (the second
-a date, `YYYY-MM-DD`) is test data. `WJS_REQUIRE_REVIEWED_PHONICS` makes the
+**The review gate.** A file with no `reviewed-by`, `reviewed-on` (a date,
+`YYYY-MM-DD`) and `source` is test data. Test data need not say where it came
+from; a file that claims a review has to, as `data/README.md` asks of every
+list. `WJS_REQUIRE_REVIEWED_PHONICS` makes the
 build refuse it: with the switch on, a build step runs
 `check_phonics.ps1 -RequireReviewed` before the library is built, every time, so
 a file edited after configuring is still caught, and `data.phonics` passes
@@ -240,8 +249,8 @@ a file edited after configuring is still caught, and `data.phonics` passes
 PowerShell 7: if the switch is on and `pwsh` is not found, configuring stops and
 says so, rather than building something unchecked. Turning it off is an explicit
 `-DWJS_REQUIRE_REVIEWED_PHONICS=OFF`, which is on the command line of whoever
-did it. A half-given review (a reviewer and no date) and a date that is not a
-date are problems, not passes. What a reviewer attests is theirs; the gate only
+did it. A half-given review (a reviewer and no date, or a review and no source)
+and a date that is not a date are problems, not passes. What a reviewer attests is theirs; the gate only
 makes it impossible to ship a file that does not say so.
 
 ## Seeding: what was measured
@@ -296,9 +305,93 @@ What it says, and what it does not:
   and 50 ms worst on the lowest device, with a tablet at three to five times a
   desktop core (its estimate): the worst case would be over it there.
 - **Not measured**: seeding with a real index (none exists), with focus sounds on
-  a real phase, with recent targets over a session, on a tablet, or in Debug. A
-  fill that chooses each filler letter by solving, so that it adds no word, was
-  not built and might give fuller boards at the same share.
+  a real phase, with recent targets over a session, on a tablet, or in Debug.
+
+### Fuller boards: a guided fill and short targets
+
+The result above leaves a board with four letters in a field of dead jewels,
+which is not a board anyone would play. Two options exist to do better, and
+both were measured on the same proxies (400 seeds a row, Release, no dead
+jewels asked for, 200 seeds for 5x5 and 6x6):
+
+- `guided_fill` gives each tile left after planting a letter chosen at random
+  from those that keep the board's count under a ceiling (drawn between the
+  words already planted and the most wanted), tried tile by tile with the
+  solver; a tile no letter fits is made a dead jewel. The planted words are
+  also kept apart where the board has room.
+- `max_target_letters` limits the targets to words of that many letters or
+  fewer. Longer words are still words of the phase and still count if found.
+
+**The fill alone did nothing.** It cannot take a word away, and the words
+planted already hold too many: a planted word of four or more letters brings its
+shorter words and its inflections with it, so three targets of an index of
+hundreds hold more than five words before any filler is placed. What moved the
+result was the targets, three letters at most, and keeping them apart.
+
+| Index | Board | Landed, targets of 3 letters | Dead jewels (of the tiles) | Mean time |
+| --- | --- | --- | --- | --- |
+| 249 | 3x3 | 23% | 2.6 of 9 | 0.6 ms |
+| 249 | 4x4 | 92% | 4.4 of 16 | 0.6 ms |
+| 249 | 5x5 | 100% | 7.0 of 25 | 1.0 ms |
+| 249 | 6x6 | 100% | 9.6 of 36 | 2.1 ms |
+| 122 | 3x3 / 4x4 / 5x5 / 6x6 | 75% / 90% / 100% / 91% | 1.7 / 3.4 / 5.7 / 9.0 | 0.3 / 0.6 / 1.2 / 2.4 ms |
+| 68 | 3x3 / 4x4 / 5x5 / 6x6 | 56% / 90% / 100% / 91% | 1.9 / 3.3 / 5.5 / 8.7 | 0.4 / 0.5 / 0.9 / 1.8 ms |
+
+With targets of four letters the 4x4 lands 19% to 50% of the time, and with no
+limit 2% to 48%; the random fill, with any limit, landed 0% on a 4x4 or larger.
+So: **boards of about three quarters letters at 4x4 and larger, a few dead
+jewels, 90% or more of seeds in range**, at the price of planting only 3-letter
+words (what the design calls Spark words). The 3x3 stays crowded (23% to 75%).
+A seed that does not land is reported as a fallback, as before.
+
+Put letters outside the phase in the filler (the design's "letters not yet
+taught") and a tile always has a letter that forms no word of the phase, so
+nothing is made dead at all; the board then holds untaught letters. The fill
+takes a letter of the phase when one fits and an outside letter only when none
+does, so the phase's letters stay the most of the board.
+
+**The phonics board as decided** (the author, 2026-10-16: targets of three
+letters, and untaught letters acceptable) is `phonics_board_options(index,
+size)`: those two options with the whole alphabet as filler, less the first
+letter the phase does not use, which is the dead letter. Measured on the same
+proxies, 400 seeds (200 for 5x5 and 6x6):
+
+| Index | 3x3 | 4x4 | 5x5 | 6x6 |
+| --- | --- | --- | --- | --- |
+| Landed, 249 | 23% | 92% | 100% | 100% |
+| Landed, 122 | 75% | 90% | 100% | 91% |
+| Landed, 68 | 56% | 90% | 100% | 91% |
+| Tiles that are letters of the phase | 72% to 82% | 72% to 79% | 72% to 78% | 74% to 76% |
+| Dead jewels on a board that landed | 0 | 0 | 0 | 0 |
+| Mean time, 249 / 122 / 68 | 0.7 / 0.5 / 0.4 ms | 1.4 / 1.3 / 1.2 ms | 3.0 / 3.3 / 3.0 ms | 6.7 / 6.9 / 5.9 ms |
+
+The time is higher than the table above because there are 25 letters to try at
+each tile, not six. A seed that does not land is a fallback and its tiles are
+dead jewels, as before.
+
+What it does not settle: the proxies are sizes, not a proposed index; and a
+tablet, where the 5x5 and 6x6 times are three to five times these.
+
+## The dice: what was measured
+
+The project's dice (`data/dice`) were checked by rolling each size 1,000 times
+(seeds 1 to 1,000) and solving every board against the dictionary, once, with a
+throw-away program; `dice_data_test.cpp` holds the same to loose bounds on 300
+boards a size. One Windows 11 desktop, Release.
+
+| Board | Words a board holds, mean | 10th / 50th / 90th percentile | Boards with no word | Vowels (A E I O U) among tiles |
+| --- | --- | --- | --- | --- |
+| 3x3 | 30 | 7 / 26 / 58 | 3.3% | 30% |
+| 4x4 | 105 | 41 / 98 / 182 | 0.3% | 29% |
+| 5x5 | 254 | 137 / 243 / 389 | 0% | 40% |
+| 6x6 | 471 | 291 / 458 / 669 | 0% | 38% |
+
+These are about what the design measured for boards of letters drawn by the
+dictionary's letter counts (31, 120, 254 and 435), which the dice are made from.
+A `QU` tile did not appear in 1,000 boards of any size: with six different
+letters dealt by count, Q is dealt about once in 1,000 faces, so no set of the
+four has one. The model takes a `QU` face and the tool shows a Q as one; whether
+a set should be made to carry one is a rule the tool does not yet have.
 
 ## Sanitizers, warnings and Debug
 
@@ -324,8 +417,9 @@ fix a number here.
 - Name each `TEST_CASE` as a sentence that says what is true, and give it a
   tag. The name is what CTest shows.
 - A test that needs a file writes it to the system's temporary directory and
-  removes it, as `dictionary_test.cpp` does. No test reads a real word list:
-  tests build their dictionaries from a few words in the test itself.
+  removes it, as `dictionary_test.cpp` does. No test reads a real word list
+  but the ones about the shipped data themselves (`[data]`, and the performance
+  tier): the rest build their dictionaries from a few words in the test itself.
 - A test must not need a camera, a network or a word list that is not in the
   tree.
 - A change in behaviour comes with the test that shows it; a bug fix with the
