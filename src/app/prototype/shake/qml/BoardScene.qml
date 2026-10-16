@@ -13,7 +13,8 @@ import "ShakeScript.js" as Script
 // Nothing outside this file touches the scene, and everything it needs is in
 // this file's interface:
 //
-//   in    play(board, seed), show(board), reducedMotion, pushMotion(...)
+//   in    play(board, seed), show(board), prepare(board), reducedMotion,
+//         pushMotion(...)
 //   out   settled(), landed(index, pitch), rattled(), busy, and the geometry the
 //         2D layer over it lays out by: boardRect, tileSize, tileGap, and how
 //         far past its item the scene draws: overdraw
@@ -98,6 +99,26 @@ Item {
         stage = current.stage;
         apply();
         frames.running = true;
+    }
+
+    // Draws a board's faces ahead of play() or show() of that board, so that
+    // the frame in which the board arrives has less to do: they are one
+    // texture of up to 216 cells, which the frame would make and draw
+    // (docs/design/shake-prototype.md, "The real faces"). It changes nothing on
+    // screen: the dice keep the faces of the board they
+    // show until play() or show() is given one, and a board that was not
+    // prepared is drawn when it arrives, as it always was. Call it with the
+    // board you are about to play a frame or more before, where one frame a
+    // little longer is not seen (behind the layout stage, a transition). A
+    // second call for another board replaces the one prepared. It holds a
+    // second atlas (a texture the size of the board's, 14 MB at 6 x 6).
+    function prepare(board) {
+        const key = facesKey(board);
+        if (key === atlasKey || key === spareKey) {
+            return;
+        }
+        fillAtlas(spareAtlas, board);
+        spareKey = key;
     }
 
     // Shows a board already dropped: no motion. For a game that is resumed, or
@@ -215,6 +236,7 @@ Item {
     // given and reported: the scene lands the up face, so a mismatch would show
     // the wrong letter without a sound.
     function setBoard(board) {
+        useAtlasFor(board);
         boardRows = board.rows;
         boardColumns = board.columns;
         boardFaces = board.faces;
@@ -228,6 +250,35 @@ Item {
                 }
             }
         }
+    }
+
+    // What identifies the faces an atlas draws: the size and the six strings
+    // of every die. Two boards with the same key draw the same atlas.
+    function facesKey(board) {
+        return board.rows + "x" + board.columns + ":" + board.faces.map(sides => sides.join("|")).join("/");
+    }
+
+    function fillAtlas(atlas, board) {
+        atlas.fill(board.rows, board.columns, board.faces);
+    }
+
+    // The dice show the atlas of the board they are given: the one prepared if
+    // it is that board's, else the one they have, drawn again.
+    function useAtlasFor(board) {
+        const key = facesKey(board);
+        if (key === atlasKey) {
+            return;
+        }
+        if (key === spareKey) {
+            const shown = atlasItem;
+            atlasItem = spareAtlas;
+            spareAtlas = shown;
+            spareKey = atlasKey;
+            atlasKey = key;
+            return;
+        }
+        fillAtlas(atlasItem, board);
+        atlasKey = key;
     }
 
     function begin(board, seed, standIn) {
@@ -351,11 +402,32 @@ Item {
         id: diceSim
     }
 
-    // The atlas is not part of the scene's tree; the textures read it.
-    property Item atlasItem: FaceAtlas {
-        faces: root.boardFaces
-        rows: root.boardRows
-        columns: root.boardColumns
+    // The face atlases. The dice show one (atlasItem) and prepare() draws the
+    // next board into the other (spareAtlas); they swap when the board it drew
+    // arrives. atlasKey and spareKey say which faces each holds (facesKey).
+    //
+    // Each is a layer, drawn once into one texture that every die's Texture
+    // reads. An atlas that is only a Texture's `sourceItem`, with no parent and
+    // no layer, cost far more, and more the more dice there were (the render
+    // thread's time for the frame of a new 6 x 6 board was 33 to 35 ms and with
+    // a layer it is 5 ms; for a 3 x 3 board, with a ninth of the dice, 12 ms and
+    // 3 ms): each of a board's textures seems to draw it for itself. The atlases are in the window's
+    // tree, a long way off its left edge; Quick 3D puts a source item that has
+    // no parent under the window's root item in any case, and keeps it out of
+    // sight.
+    property Item atlasItem: atlasOne
+    property Item spareAtlas: atlasTwo
+    property string atlasKey: ""
+    property string spareKey: ""
+    property Item atlasOne: FaceAtlas {
+        parent: root
+        x: -100000
+        layer.enabled: true
+    }
+    property Item atlasTwo: FaceAtlas {
+        parent: root
+        x: -100000
+        layer.enabled: true
     }
 
     // Made once, when the scene is, for the mode asked for: a Texture has to

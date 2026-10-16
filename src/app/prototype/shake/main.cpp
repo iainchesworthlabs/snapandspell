@@ -65,6 +65,10 @@ int main(int argc, char* argv[]) {
         QStringLiteral("change"),
         QStringLiteral("With --auto: time changing the board (the frames after show() of a "
                        "new board, in which the atlas is drawn again) and quit."));
+    const QCommandLineOption prepareOption(
+        QStringLiteral("prepare"),
+        QStringLiteral("With --auto --change: give the scene the board to prepare() first, record "
+                       "that, then show() it."));
     const QCommandLineOption warmOption(
         QStringLiteral("warm"),
         QStringLiteral("1: draw the lid, shadows and blended dice once while the first board is "
@@ -80,7 +84,7 @@ int main(int argc, char* argv[]) {
                                         QStringLiteral("WxH"), QStringLiteral("560x900"));
     parser.addOptions({autoOption, outOption, probeOption, leanOption, runsOption, shotsOption,
                        digestOption, framesOption, boardOption, sizesOption, boardsOption,
-                       changeOption, feelOption, warmOption, sizeOption});
+                       changeOption, prepareOption, feelOption, warmOption, sizeOption});
     parser.process(application);
 
     const QStringList size = parser.value(sizeOption).split(QLatin1Char('x'));
@@ -89,6 +93,7 @@ int main(int argc, char* argv[]) {
     initial.insert(QStringLiteral("shotsOnly"), parser.isSet(shotsOption));
     initial.insert(QStringLiteral("digestOnly"), parser.isSet(digestOption));
     initial.insert(QStringLiteral("changeOnly"), parser.isSet(changeOption));
+    initial.insert(QStringLiteral("prepareFirst"), parser.isSet(prepareOption));
     initial.insert(QStringLiteral("framesPerSecond"), parser.value(framesOption).toInt());
     const int startBoard = parser.value(boardOption).toInt();
     initial.insert(QStringLiteral("startBoard"),

@@ -16,6 +16,7 @@ ApplicationWindow {
     required property bool autoRun
     required property bool shotsOnly
     required property bool digestOnly
+    required property bool prepareFirst
     required property int startBoard
     required property bool changeOnly
     required property string boardKind
@@ -583,11 +584,13 @@ ApplicationWindow {
     // What it costs to change the board: the frames from show() of a new
     // board, in which its dice's faces are drawn into the atlas again. For each
     // size, runCount boards, one after the other (a new seed each, so the atlas
-    // is made new each time), written to change-<probe>.json.
+    // is made new each time), written to change-<probe>.json. With --prepare
+    // the scene is first given the board to prepare() and the frames of the
+    // next 300 ms are recorded (the "prepare" of the result), and then it is
+    // shown that board, made again (so that the scene tells it by its faces).
     property var changeJobs: []
     property var changeJob: null
     property var changeResults: []
-    property bool changeBegan: false
 
     function startChange() {
         const queued = [];
@@ -604,6 +607,7 @@ ApplicationWindow {
     function nextChange() {
         if (changeJobs.length === 0) {
             const report = { graphicsApi: stats.graphicsApi(), probeMode: probeMode, boards: kind,
+                             prepared: prepareFirst,
                              window: { width: width, height: height }, runs: changeResults };
             stats.writeText(outDir + "/change-" + probeMode + ".json", JSON.stringify(report, null, 1));
             console.log("RESULTS " + outDir + "/change-" + probeMode + ".json");
@@ -611,9 +615,16 @@ ApplicationWindow {
             return;
         }
         changeJob = changeJobs.shift();
-        changeBegan = false;
+        changePhase = 0;
+        changePrepared = null;
         changeTimer.restart();
     }
+
+    // 0: waiting to ask for the board; 1: waiting out the frames of prepare();
+    // 2: waiting out the frames of show().
+    property int changePhase: 0
+    property var changePrepared: null
+    property double showCallMs: 0
 
     // Waits 300 ms (so nothing of the last board is in the frames), then asks
     // for the new board and records the frames of the next 300 ms.
@@ -622,16 +633,44 @@ ApplicationWindow {
 
         interval: 300
         onTriggered: {
-            if (!window.changeBegan) {
-                window.changeBegan = true;
+            if (window.changePhase === 0) {
                 stats.begin();
                 window.boardSize = window.changeJob.size;
                 window.seed = 500 + window.changeJob.run;
+                const askedAt = stats.now();
+                if (window.prepareFirst) {
+                    const ahead = window.currentBoard();
+                    window.scene.prepare(ahead);
+                    window.showCallMs = stats.now() - askedAt;
+                    window.changePhase = 1;
+                } else {
+                    const board = window.currentBoard();
+                    window.scene.show(board);
+                    window.showCallMs = stats.now() - askedAt;
+                    window.changePhase = 2;
+                }
+                changeTimer.restart();
+                return;
+            }
+            if (window.changePhase === 1) {
+                const ahead = stats.end();
+                ahead.prepareCallMs = window.showCallMs;
+                window.changePrepared = ahead;
+                stats.begin();
+                const askedAt = stats.now();
                 window.scene.show(window.currentBoard());
+                window.showCallMs = stats.now() - askedAt;
+                window.changePhase = 2;
                 changeTimer.restart();
                 return;
             }
             const measured = stats.end();
+            // How long the board and show() held the GUI thread (the dice and
+            // the atlas's items made), before any frame.
+            measured.showCallMs = window.showCallMs;
+            if (window.changePrepared !== null) {
+                measured.prepare = window.changePrepared;
+            }
             measured.size = window.changeJob.size;
             measured.run = window.changeJob.run;
             window.changeResults.push(measured);
