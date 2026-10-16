@@ -2516,3 +2516,43 @@ TEST_CASE(
     REQUIRE(restored.has_value());
     CHECK(restored->snapshot() == saved);
 }
+
+TEST_CASE("a dealt standard board has the dice its reported seed rolls, face for face",
+          "[session][standard][data]") {
+    // A scene that shows the dice is given them by roll_with_placements on the seed
+    // the deal reports (docs/design/dice-and-faces.md): the board that roll makes
+    // must be the board the session holds, and the face each placement names the
+    // letters of its tile. Held for the test dice and for the project's six-face dice.
+    const std::array<wjs::SessionData, 2> worlds = {{standard_data(), shipped_data()}};
+    for (const wjs::SessionData& data : worlds) {
+        for (const BoardSize size :
+             {BoardSize::three, BoardSize::four, BoardSize::five, BoardSize::six}) {
+            for (std::uint32_t seed = 1; seed <= 6; ++seed) {
+                wjs::SessionOptions options;
+                options.size = size;
+                options.seed = seed;
+                auto created = wjs::GameSession::create(data, options);
+                REQUIRE(created.has_value());
+                wjs::GameSession session = *std::move(created);
+                REQUIRE(session.shake().has_value());
+                INFO("size " << wjs::side(size) << ", seed " << seed);
+
+                const wjs::DiceSet& set = *data.dice->find(wjs::side(size));
+                const auto rolled = wjs::roll_with_placements(set, session.last_deal()->seed);
+                REQUIRE(rolled.has_value());
+                CHECK(text_of(rolled->board) == text_of(*session.board()));
+                REQUIRE(rolled->placements.size() == set.size());
+                std::set<std::size_t> used;
+                for (std::size_t tile = 0; tile < rolled->placements.size(); ++tile) {
+                    const wjs::Placement& placement = rolled->placements[tile];
+                    const wjs::Position position{tile / wjs::side(size), tile % wjs::side(size)};
+                    CHECK(set.die(placement.die)[placement.face] ==
+                          session.board()->tile(position));
+                    used.insert(placement.die);
+                }
+                // Every die of the set is on the board once.
+                CHECK(used.size() == set.size());
+            }
+        }
+    }
+}
