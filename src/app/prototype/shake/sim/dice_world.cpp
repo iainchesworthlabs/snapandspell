@@ -273,20 +273,38 @@ std::vector<int> World::assignCells() {
 }
 
 void World::guide(const std::vector<double>& delays) {
-    for (int i = 0; i < count(); ++i) {
-        Die& d = dice_[static_cast<std::size_t>(i)];
-        const double delay =
-            static_cast<std::size_t>(i) < delays.size() ? delays[static_cast<std::size_t>(i)] : 0.0;
+    // The dice that have furthest to go start first, so that they cross the box
+    // while it is still open; the delays given are used in order.
+    const int n = count();
+    std::vector<double> distance(static_cast<std::size_t>(n), 0.0);
+    std::vector<int> order(static_cast<std::size_t>(n));
+    for (int i = 0; i < n; ++i) {
+        const Die& d = dice_[static_cast<std::size_t>(i)];
+        const Vec3 home = cellCentre(d.home);
+        const double dx = home.x - d.x.x;
+        const double dy = home.y - d.x.y;
+        distance[static_cast<std::size_t>(i)] = std::sqrt(dx * dx + dy * dy);
+        order[static_cast<std::size_t>(i)] = i;
+    }
+    std::stable_sort(order.begin(), order.end(), [&distance](int a, int b) {
+        return distance[static_cast<std::size_t>(a)] > distance[static_cast<std::size_t>(b)];
+    });
+    std::vector<double> sorted = delays;
+    std::sort(sorted.begin(), sorted.end());
+    for (int rank = 0; rank < n; ++rank) {
+        const auto i = static_cast<std::size_t>(order[static_cast<std::size_t>(rank)]);
+        Die& d = dice_[i];
+        const double delay = static_cast<std::size_t>(rank) < sorted.size()
+                                 ? sorted[static_cast<std::size_t>(rank)]
+                                 : 0.0;
         d.guideAt = time_ + delay;
         d.launched = false;
         d.done = false;
         d.calm = 0.0;
-        const Vec3 home = cellCentre(d.home);
-        const double dx = home.x - d.x.x;
-        const double dy = home.y - d.x.y;
-        const double distance = std::sqrt(dx * dx + dy * dy);
+        d.stuck = 0.0;
+        d.progress = -1.0;
         d.hopRise =
-            std::min(tuning_.hopFar, tuning_.hopNear + 0.55 * distance) * (0.9 + 0.2 * random());
+            std::min(tuning_.hopFar, tuning_.hopNear + 0.55 * distance[i]) * (0.9 + 0.2 * random());
     }
 }
 
@@ -884,15 +902,27 @@ void World::finishStep(double h) {
         const Vec3 home = cellCentre(d.home);
         const double toHome =
             std::sqrt((home.x - d.x.x) * (home.x - d.x.x) + (home.y - d.x.y) * (home.y - d.x.y));
-        const double slide = std::sqrt(d.v.x * d.v.x + d.v.y * d.v.y);
-        if (toHome > 0.08 && slide < 0.5 && std::abs(d.v.z) < 0.5 && d.x.z < 0.7) {
-            d.stuck += h;
-            if (d.stuck > tuning_.stuckAfter) {
+        // On the floor, short of home, and not getting any closer.
+        if (toHome > 0.08 && d.x.z < 0.7) {
+            if (d.progress < 0.0 || toHome < d.progress - 0.05) {
+                d.progress = toHome;
                 d.stuck = 0.0;
-                d.v.z += std::sqrt(2.0 * tuning_.g * tuning_.unstickRise * (0.85 + 0.3 * random()));
+            }
+            d.stuck += h;
+            // Two dice that are stuck against one another must not hop together,
+            // or they land as they were: each waits its own time.
+            if (d.stuckLimit <= 0.0) {
+                d.stuckLimit = tuning_.stuckAfter * (0.7 + 0.9 * random());
+            }
+            if (d.stuck > d.stuckLimit) {
+                d.stuck = 0.0;
+                d.progress = -1.0;
+                d.stuckLimit = tuning_.stuckAfter * (0.7 + 0.9 * random());
+                d.v.z += std::sqrt(2.0 * tuning_.g * tuning_.unstickRise * (0.85 + 0.4 * random()));
             }
         } else {
             d.stuck = 0.0;
+            d.progress = -1.0;
         }
     }
 

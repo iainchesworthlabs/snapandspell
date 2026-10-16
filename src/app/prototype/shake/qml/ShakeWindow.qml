@@ -199,13 +199,17 @@ ApplicationWindow {
         pointer.vy = vy;
         pointer.at = atMs;
         const toG = 0.16 / Math.max(1, window.scene.boardRect.width) / 9.81;
-        const handX = clampTo(ax * toG, 8);
-        const handY = clampTo(-ay * toG, 8);
+        const handX = clampTo(ax * toG, 5);
+        const handY = clampTo(-ay * toG, 5);
         const roll = clampTo((px / sceneHost.width - 0.5) * 2, 1) * 0.14;
         const pitch = clampTo((0.5 - py / sceneHost.height) * 2, 1) * 0.14;
         const sx = -Math.sin(roll) + handX;
         const sy = Math.sin(pitch) + handY;
-        const sz = Math.cos(roll) * Math.cos(pitch);
+        // A mouse cannot lift the device. A hand that shakes one sideways also
+        // moves it up and down, in time with the strokes, so that is added: the
+        // up and down follows the sideways acceleration.
+        const lift = clampTo(0.8 * (handX + handY), 4);
+        const sz = Math.cos(roll) * Math.cos(pitch) + lift;
         const wx = clampTo(-vy * 0.001, 4);
         const wy = clampTo(vx * 0.001, 4);
         window.scene.pushMotion(sx, sy, sz, wx, wy, 0);
@@ -248,7 +252,7 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        // The scene draws past its item by its overdraw (half a tile); leave
+        // The scene draws past its item by its overdraw (0.8 of a tile); leave
         // room above it. A fixed share of the window, not the scene's own
         // number, which depends on this item's size.
         anchors.topMargin: parent.height * 0.07

@@ -54,7 +54,7 @@ jewel.
 | `landed(index, pitch)` | signal | A die has come down on its cell: its place in the board, and a pitch for its click |
 | `rattled()` | signal | The box rattles, at most 8 a second, for the haptic tap |
 | `busy`, `rows`, `columns`, `tileSize`, `tileGap`, `boardRect` | read-only | The geometry by [the rule](board.md#the-rule), for the 2D layer that traces over the scene |
-| `overdraw` | read-only | How far past its item the scene draws, on every side (half a tile), so a die tumbling at the edge and the tipping rim are not cut off. The item is still the board's area; the application must not `clip` it |
+| `overdraw` | read-only | How far past its item the scene draws, on every side (0.8 of a tile), so a die tumbling at the edge and the tipping rim are not cut off. The item is still the board's area; the application must not `clip` it |
 
 `lean`, `probeMode`, `cameraDistance`, `warmUp`, `weighted` and `mockBurstMs`
 are settings of the 3D implementation and are not part of the seam. `seek(board, seed, ms)` and
@@ -92,9 +92,15 @@ physical model (see [What it looked like](#what-it-looked-like)).
   turning, to the position and to the die's own spin. That is six axes, about a
   hundred samples a second, each taken as the reading for its share of a
   frame, so a jerky hand is a jerky shake.
-- **A box with room in it.** A floor, four walls 0.6 of a tile past the board on
-  every side, and a lid 2.42 tiles up, so a die can leave the floor, stack on
-  another and slide off, hit the lid, and tumble.
+- **A box with room in it.** A floor, four walls 1.4 tiles past the board on
+  every side, and a lid 3 tiles up, so that a die can leave the floor, roll
+  over, stack on another and slide off, hit the lid, and tumble. (At 0.6 of a
+  tile past the board and a lid at 2.4 the sixteen dice were a packed grid that
+  could only slide as one piece, and 0 or 1 of them rolled over in a shake.)
+  The camera stands back while the box is shaken, so that all of it is in the
+  item, and comes in as the dice go home, to be square by the time the last is
+  down; the board is at its own scale at rest, and the 2D layer over it is
+  unchanged.
 - **Contact.** Two dice are tested on all fifteen separating axes; a face
   against a face is clipped to up to four contact points and an edge across an
   edge gives one. A die's eight corners are tested against each plane of the
@@ -106,24 +112,30 @@ physical model (see [What it looked like](#what-it-looked-like)).
   step, with what overlap is left pushed out in position alone so it adds no
   energy. A fast impact bounces by the contact's restitution, and the closing
   speed it is taken from is read before any carried impulse is applied. Floor
-  0.35 restitution, 0.5 friction; walls 0.30 and 0.2; lid 0.25 and 0.2; dice
-  against dice 0.40 and 0.3. **These are starting values, not measured from real
-  dice.** Each die's grip and bounce differ from the next's by up to 15%,
+  0.52 restitution, 0.5 friction; walls 0.45 and 0.2; lid 0.38 and 0.2; dice
+  against dice 0.60 and 0.3 (hard plastic dice on a hard board; the first
+  values, 0.25 to 0.40, were dead: they did not bounce as the author expects,
+  and it was the bounce, more than anything, that made dice roll over).
+  **These are starting values, not measured from real dice.** Each die's grip and bounce differ from the next's by up to 15%,
   seeded, as no two real ones are alike.
 - **Home (the guide).** The physics decides how a play looks and never where a
   die ends, because the board is decided before the play. When the reading goes
   still, each die is given a cell (the assignment that makes the dice travel
   least in the plan, by the Hungarian method) and shows that cell's tile from
   then on, the lid lifts, and from a moment of its own in the seeded order each
-  die is kicked up (a hop of 0.3 to 1.0 of a tile, by how far it has to go),
-  pulled toward its cell by a spring in the plan and turned flat and square to
-  the board by a spring on its orientation, its friction nearly off. The dice
-  still collide on the way. A die held up behind others that want its place
-  (two that have to change sides, say) hops again, higher, over them. When
-  every die has been on its cell, flat and still, for 40 ms, they are put
-  exactly there and the play is over. If that has not happened 1.8 s after the
-  last die started, they are put there anyway; the slowest of 400 plays in the
-  simulation alone took 1.7 s in all, so it has not been needed.
+  die is kicked up (a hop of 0.3 to 1.6 tiles, by how far it has to go; the
+  dice that have furthest to go start first, so that they cross the box while
+  it is still open), pulled toward its cell by a spring in the plan and turned
+  flat and square to the board by a spring on its orientation, its friction
+  nearly off. The dice still collide on the way. A die that is on the floor
+  and not getting closer (not by 0.05 of a tile in 0.07 to 0.19 s, a time of
+  its own, so that two that are stuck against one another do not hop in step)
+  hops again, higher, over the others. When every die has been on its cell,
+  flat and still, for 40 ms, they are put exactly there and the play is over.
+  If that has not happened 1.8 s after the last die started, they are put
+  there anyway; in 900 shakes of 3x3, 4x4 and 5x5 in the simulation alone, with
+  the scene's stand-in, none needed it (the slowest took 2.4 s from the end of
+  the shake, at 5x5).
 - **The letters.** Every face of a die carries the tile of the cell it is going
   to, so nothing shows when the assignment is made under the lid. A die is a
   `DieGeometry`, a cube with a small bevel whose six faces each have a
@@ -134,11 +146,11 @@ physical model (see [What it looked like](#what-it-looked-like)).
 
 With no device there is a stand-in, `mockSampleAt(seed, k)`, a function of the
 seed and the sample number. It is meant to be a hand, not a signal generator:
-a burst of 0.7 to 1.0 s of strokes at three to five hertz that wanders, back
-and forth along an axis that drifts, reaching 1.7 g at the turns, with the up
-and down of the arm (to 2 g) so that dice leave the floor, a little ripple from
-the box, small knocks now and then, noise on every sample, a slow tip of the
-device, and a twist on the gyroscope that goes with the strokes. The Shake
+a burst of 0.8 to 1.2 s of strokes at three to five hertz that wanders, back
+and forth along an axis that drifts, reaching 2.4 g at the turns, with the up
+and down of the arm (to 2.4 g) so that dice leave the floor, a little ripple
+from the box, small knocks now and then, noise on every sample, a slow tip of
+the device, and a twist on the gyroscope that goes with the strokes. The Shake
 button, a replay and the tests use it, so they are the same shake every time;
 a real device, or the drag in the harness, is live.
 
@@ -152,10 +164,11 @@ stored, or an integer simulation.
 
 | Play (simulated) | Measured, play to `settled` | What it is |
 | --- | --- | --- |
-| 4x4, full motion | 1.66 to 1.85 s | A 0.9 to 1.07 s shake, the 0.25 s of the lid, and 0.53 to 0.65 s for the dice to go home (the lid lifts while the first dice go) |
-| 3x3, full motion | 1.46 to 1.66 s | The same |
+| 4x4, full motion | 1.72 to 2.52 s | A 1.05 to 1.28 s shake (a burst of 0.8 to 1.2 s and the time for the reading to go still), the 0.25 s of the lid, and 0.47 to 0.88 s for the dice to go home (the lid lifts while the first dice go) |
+| 3x3, full motion | 1.44 to 2.34 s | The same |
 | Either, reduced motion | 0.55 to 0.57 s | 0.30 rattle, 0.12 lid fade, 0.12 dice fade |
-| Rattle held at full | 3.6 to 3.9 s | A 4 s burst, cut at the 3 s limit, then the lid and the hops |
+| Rattle held at full | 3.5 to 4.6 s | A 4 s burst, cut at the 3 s limit, then the lid and the hops |
+| The mouse drag, 2 s of it | 1.9 to 2.4 s | A scripted back-and-forth pointer path, with the arm's up and down added |
 
 (Staged: 1.97 s at 4x4 and 1.73 s at 3x3, with a 0.87 s drop.)
 
@@ -164,16 +177,17 @@ screen at 60 Hz sees it (a tile is the die's edge):
 
 | | |
 | --- | --- |
-| Shake, then the lid, then home | 0.90 to 1.07 s, then 0.25 s, then 0.53 to 0.65 s |
-| Speed of a die, peak; 95th percentile | 41 to 48 tiles a second; 26 to 31 (the hops home are the fastest part) |
-| Distance a die moves in a frame | median 0.01 to 0.03 of a tile, 95th percentile 0.43 to 0.51, none over 0.81 |
-| Turn in a frame | 95th percentile 4.3 to 6.0 rad/s; none over 0.46 rad a frame |
-| Acceleration seen at 60 Hz (second difference), 99th percentile | 3.5 to 4.5 g |
-| Dice off the floor by more than 0.15 of a tile | 21 to 22% of die-frames; all sixteen at once at some frame in every play |
-| Highest a die's centre gets | 1.94 to 1.97 tiles (the lid is at 2.42) |
-| What an average die does in a play | 10 to 14 tiles of path; 86 to 137 degrees of turning |
-| Deepest overlap between two dice, or past a wall, over 300 plays of 4x4 and 100 of 3x3 (every 50 ms) | 0.04 of a tile between dice or into a wall; 0.025 of a tile outside the box |
-| Plays in which the dice did not all reach their cells, in the simulation alone with 0.9 s shakes from a different stand-in (the tests') | 0 of 300 (4x4) and 0 of 100 (3x3); the slowest took 1.6 and 1.7 s from the end of the shake |
+| Shake, then the lid, then home | 1.05 to 1.28 s, then 0.25 s, then 0.47 to 0.88 s |
+| Speed of a die, peak; 95th percentile | 64 to 78 tiles a second; 44 to 52 (1.3 to 1.6 m/s for a 20 mm die: a hand's stroke) |
+| Distance a die moves in a frame | median 0.10 to 0.16 of a tile, 95th percentile 0.73 to 0.86, none over 1.3 |
+| Turn in a frame | 95th percentile 17 to 22 rad/s; none over 1.0 rad a frame |
+| Acceleration seen at 60 Hz (second difference), 99th percentile | 5.4 to 6.2 g |
+| Dice off the floor by more than 0.15 of a tile | 36 to 45% of die-frames; all sixteen at once at some frame in every play |
+| Highest a die's centre gets | 2.5 to 4.2 tiles (the lid is at 3; the highest are thrown past it as it lifts) |
+| What an average die does in a play | 24 to 33 tiles of path; 395 to 632 degrees of turning |
+| Dice that end the shake on a different face than they began on, over 300 shakes of 4x4 with 2.4 g strokes in the simulation alone | 10.7 of 16, turning 627 degrees each (3x3: 6.7 of 9, 402 degrees; 5x5: 14.7 of 25, 890). At 0.6 of a tile of room, 0.3 of 16, 110 degrees |
+| Deepest overlap between two dice, or past a wall, over 300 plays of 4x4 and 100 of 3x3 with the tests' gentler stand-in (every 50 ms) | 0.05 of a tile between dice or into a wall; 0.03 of a tile outside the box |
+| Shakes in which the dice did not all reach their cells, in the simulation alone | 0 of 300 each of 3x3, 4x4 and 5x5 with the scene's stand-in (the slowest took 1.2, 1.6 and 2.4 s from the end of the shake), and 0 of 300 (4x4) and 0 of 100 (3x3) with the tests' gentler one (0.9 to 1.1 s) |
 
 ### The dice, checked against paper
 
@@ -188,17 +202,17 @@ those cases measure, with identical dice (the 15% variety off) and no air:
 | The box accelerates (0.5, -0.25) g | the die goes the other way by half of 0.5 g t² | -1.2365 and 0.6182 against -1.2263 and 0.6131 |
 | A box turning at 2 rad/s, a die 3 tiles out | centrifugal: ω² r t = 0.1200 in 10 ms | 0.1200; the Coriolis term's sign and the Euler term's size are checked too |
 | A free die spinning at 3.74 rad/s for 1 s | the same spin, turned by 3.74 rad | off by less than 0.00001 rad |
-| A die dropped flat, from 2 tiles, restitution 0.35 | rebounds e² h = 0.2450 | 0.2494 (+1.8%) |
+| A die dropped flat, from 2 tiles, restitution 0.52 | rebounds e² h = 0.5408 | 0.5518 (+2.0%) |
 | A die sliding from 20 tiles/s, friction 0.5 | stops after v²/(2 μ g) = 0.8155 | 0.8071 (-1.0%) |
 | A slope of 20° (tan 0.36, under the friction 0.5) | holds | moved 0.00000 in 1.5 s |
 | A slope of 35° (tan 0.70, over it) | slides g (sin a − μ cos a) t²/2 = 3.6199 in 0.3 s | 3.6302 (+0.3%) |
-| Two dice head on, 10 tiles/s, restitution 0.4 | 3.000 and 7.000 afterwards | 3.001 and 6.999; momentum 10.0000 |
-| An off-centre hit | momentum conserved, energy not made | (12.00000, 0, 0) of (12, 0, 0); 72.0 to 47.1 |
+| Two dice head on, 10 tiles/s, restitution 0.6 | 2.000 and 8.000 afterwards | 2.001 and 7.999; momentum 10.0000 |
+| An off-centre hit | momentum conserved, energy not made | (12.00000, 0, 0) of (12, 0, 0); 72.0 to 53.1 |
 | A stack of three dice, 2 s | stands | drift 0.0002, height error 0.0002 |
 | A die 0.3 off the centre of the one under it | stands (the centre of mass is over the support) | 0.30025, no turn |
-| A die tipped 20°, 40°, 50°, 70° on an edge, 2 s | falls flat, onto its own face below 45° and onto another above | flat to 0.003 rad, as predicted |
+| A die tipped 20°, 40°, 50°, 70° on an edge, 2 s | falls flat, onto its own face below 45° and onto another above | flat (an axis within 0.03 rad of vertical), as predicted |
 | A die thrown at the lid and the walls | stays in the box | never more than 0.05 of a tile out (the check's limit) |
-| Sixteen dice shaken hard | stay in the box, out of one another | 0.04 of a tile at the deepest |
+| Sixteen dice shaken hard | stay in the box, out of one another | 0.05 of a tile at the deepest |
 | A replay | is the same replay | the same checksum, a different one for another shake |
 | The least-cost assignment | is the least cost | equals the best of all 720 permutations, 30 random matrices |
 | The die that is up, and its letter's turns | the letter reads upright | 60 random orientations |
@@ -209,14 +223,14 @@ simulated), felt or board compliance, air, a shaker's walls being anything but
 rigid, or sound. The friction and bounce are plausible starting values and
 the author is the judge of whether it *feels* right.
 
-**Cost.** In plain C++ in Release on this desktop, a 4x4 play costs 1.39 ms
+**Cost.** In plain C++ in Release on this desktop, a 4x4 play costs 1.24 ms
 of a frame on average (20 steps), 2.9 ms at the 99th percentile and 4.7 ms at
-worst, which is 69 µs a step; a 3x3 costs 0.67 ms on average. This is on the
+worst, which is 62 µs a step; a 3x3 costs 0.59 ms on average. This is on the
 GUI thread, with the script, and a tablet's core is slower, so it is the first
-thing to measure on one. Four passes instead of six cost 1.08 ms in the same
-test, with the dice a little less exact (a die at rest flat to 0.011 rad and
-the deepest overlap 0.037 of a tile), and 600 steps a second would halve it
-again; neither was tried at the scene.
+thing to measure on one. Four passes instead of six cost about a fifth less in
+the same test, with the dice a little less exact (a die at rest flat to 0.011
+rad and the deepest overlap 0.037 of a tile), and 600 steps a second would
+halve it again; neither was tried at the scene.
 
 ## How it was measured
 
@@ -331,8 +345,8 @@ different seed a different one, and reduced motion its own:
 | --- | --- | --- | --- | --- |
 | Staged | 3x3 | `7cfdfd74`, `7cfdfd74` | `c5dc0064` | `4a2172c5`, `4a2172c5` |
 | Staged | 4x4 | `ea3b8ceb`, `ea3b8ceb` | `cd5e72f7` | `e5250505`, `e5250505` |
-| Simulated, on the stand-in stream | 3x3 | `692770d0`, `692770d0` | `416b0b00` | `25436ec5`, `25436ec5` |
-| Simulated, on the stand-in stream | 4x4 | `47abc34e`, `47abc34e` | `123a126d` | `856e1c45`, `856e1c45` |
+| Simulated, on the stand-in stream | 3x3 | `e47beae6`, `e47beae6` | `daedff55` | `25436ec5`, `25436ec5` |
+| Simulated, on the stand-in stream | 4x4 | `1fd23609`, `1fd23609` | `f75cbf8` | `856e1c45`, `856e1c45` |
 
 A checksum is of the poses in pixels, so it is for one scene size: the staged
 rows are from the first window and the simulated from the later one (which is
@@ -351,8 +365,11 @@ A mouse drag stands in for the device. The pointer's position at each event is
 differentiated twice into an acceleration (the board is taken as 16 cm across),
 so the stream is as jerky as the hand: a spike at every start and stop. Where
 the pointer is in the scene tips the device up to 8 degrees, and its speed
-twists it. Each sample goes to `pushMotion`, and to a stand-in for the shake
-detector, which starts a play when the hand reads 0.8 g or more of shaking: so
+twists it. A mouse cannot lift the device, and with no lift the dice have no reason
+to leave the floor and slide as one block (the author's report), so the drag
+adds the up and down of an arm: the vertical reading follows the sideways
+acceleration (0.8 of it, to 4 g). Each sample goes to `pushMotion`, and to a
+stand-in for the shake detector, which starts a play when the hand reads 0.8 g or more of shaking: so
 the way to use it is to take hold of the board and shake it, and the dice start
 to go when the hand does, and are held for as long as it keeps shaking, up to
 3 s.
@@ -412,19 +429,18 @@ file cannot. The baked probe ran on it as above.
 ### The simulated dice in the same harness
 
 Direct3D 11, the baked probe, three processes of six plays of each case, each
-process's first play left out: 12,962 frames. The longest interval was 26.0 ms
-(two intervals were over 25 ms in all: that one, in a 4x4 play, and a 25.2 ms
-one in a reduced-motion play; none was over 33 ms), and the render thread's
-mean is 0.41 to 0.67 ms a frame, with a worst frame of 3.0 ms: the same as
-staged. (The display ran at 10 to 12 ms in these runs and 16.7 ms in the tables
-above: the [two cadences](#two-cadences).) Making the scene took 3.4 to 4.3 ms
-and its first frame 230 to 276 ms after that, as before.
+process's first play left out: 12,445 frames. The longest interval was 20.4 ms
+(none was over 25 ms), and the render thread's mean is 0.40 to 0.63 ms a
+frame, with a worst frame of 4.8 ms: the same as staged. (The display ran at
+12 to 13 ms in these runs and 16.7 ms in the tables above: the
+[two cadences](#two-cadences).) Making the scene took 3.3 to 3.9 ms and its
+first frame 228 to 232 ms after that, as before.
 
 The simulation does not show in those numbers, because it runs on the GUI
 thread, ahead of the frame, and they are the render thread's. Its own cost is
-under [the two scripts](#the-two-scripts): 1.39 ms of a frame on average for a
-4x4 play, and the whole prototype, playing, uses 10 to 25% of one core and 1 to
-3% of the GPU's 3D engine on this machine, and idle it uses under 1% of a core
+under [the two scripts](#the-two-scripts): 1.24 ms of a frame on average for a
+4x4 play, and the whole prototype, playing, uses 8 to 18% of one core and 1 to
+2% of the GPU's 3D engine on this machine, and idle it uses under 1% of a core
 and none of the GPU. Checksums for replay are in [Replay](#replay).
 
 ## What it looked like
@@ -468,10 +484,38 @@ dimensions, and the hop home was a scripted arc. Hence the rigid cubes of
 paper before they were put in the scene.
 
 (The author also said the desktop became laggy while this was being tested and
-demonstrated. The scene is not what did it: playing, it uses 10 to 25% of one
-core and 1 to 3% of the GPU's 3D engine, and idle it uses nothing. It was the
+demonstrated. The scene is not what did it: playing, it uses 8 to 18% of one
+core and 1 to 2% of the GPU's 3D engine, and idle it uses nothing. It was the
 builds, the test runs and the stills and videos, which used every core. They
 now run at below-normal priority and with at most eight jobs.)
+
+The fifth look, at the rigid dice, shaken with the mouse and with the button:
+**they shook, and did not roll.** They did not bounce as a real set does, and
+they moved "stuck together", as one piece. What was wrong, found by measuring
+and not by guessing (the simulation alone, 120 shakes of the 4x4, with the
+number of dice, of 16, that end a shake on a different face than they began,
+and the turning each did):
+
+- **The drag had no up and down.** A mouse moves the device sideways only, so
+  nothing lifted a die off the floor and the pack slid as one piece against a
+  wall: 0 of 16 rolled over, and each die turned 23 degrees in a shake.
+- **The box was a packed grid.** With 0.6 of a tile of room the dice could not
+  get an edge up even with 2 g of up and down: 0.3 of 16 rolled over, and each
+  turned 110 degrees.
+- **The bounce was dead.** Restitution of 0.25 to 0.40. At 1.5 times that, in a
+  box with room, 9.3 of 16 rolled over, against 3.6 without it; friction
+  mattered the other way (halving it, 1.4).
+- **The stand-in was gentle**, 1.7 g.
+
+Hence the box with 1.4 tiles of room and a lid at 3, the camera that stands back
+for the shake, a bounce of 0.38 to 0.60, a stand-in of 2.4 g, and a drag with an
+up and down in it. In the simulation alone that gives 10.7 of 16 dice rolled
+over in a shake and 630 degrees of turning each (3x3: 6.7 of 9; 5x5: 14.7 of
+25). It also broke the way home: dice that had to cross the box found the cells
+filled, and in 2 shakes of 120 two dice had swapped sides and gear-turned
+against one another for ever. The guide now sends the dice that have furthest
+to go first, has a stiffer spring, and hops again a die that is not getting
+closer, each after a time of its own.
 
 ![The simulated shake, 4x4, straight down: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
 
@@ -482,25 +526,28 @@ judge by running it. **Nothing plays `landed`, and sound is much of what makes
 a die feel heavy:** Qt Multimedia is not in the shared tree, so the prototype
 is silent, and the feel is judged without it.
 
-- **Simulated, straight down (above).** The dice start in their cells; in
-  the first third of a second they are shoved, begin to turn, and some tip up
-  on an edge (350 ms); the box tips with the device and the whole pack slides
-  against the low side, with dice stacked on one another and tilted, and a
-  layer of them rising toward the lid and coming down (800 to 1150 ms); then
-  the lid goes, and each die in turn is kicked up and slides and tumbles across
-  to its own cell, over and between the others, turning flat as it goes, and
-  comes down square to the board (1300 to 1650 ms). Height is shown by size
-  (the camera is 2.2 board-widths away) and by the shadow.
+- **Simulated, straight down (above).** The dice start in their cells. At
+  350 ms they have been thrown apart, turned and tipped, and the camera has
+  stood back to show the whole box, with its rim and the translucent lid
+  (the pale frame). At 800 ms the box tips with the device and the pack has
+  slid and stacked against the low side, a die thrown up toward the lid
+  (bigger, with its shadow away from it). From 1000 to 1450 ms they roll
+  across the box, show their sides and their other faces, and bounce off one
+  another and the walls; then the lid has gone, and each die in turn is
+  kicked up and goes to its own cell over and between the others, turning
+  flat as it goes (1300 to 1900 ms), while the camera comes in so that the
+  board is at its own scale when the last is down. Height is shown by size and
+  by the shadow.
 - **Faults.** The hops home are the most scripted-looking part: the guide is a
   spring and a kick, and a die hopping over others can look like a spring
   toy; all sixteen rise together in a vertical stroke, because in the box's
   frame the same acceleration pushes every die the same way, and the balance
-  of up and sideways in the stand-in is a guess; a die's bevel is drawn, not
-  simulated, so a corner meeting a corner is a sharp one; the dead jewel is a
-  cube with four facets painted on, which looks wrong from the side; the top
-  of the stack reaches the camera's size at the lid (a die at the lid is a
-  third bigger) and can overlap the controls in the harness; and nothing is
-  heard.
+  of up and sideways in the stand-in is a guess; the letters on the sides of
+  a tumbling die are not turned to read (only the face that is up is, once the
+  lid goes); a die's bevel is drawn, not simulated; the dead jewel is a cube
+  with four facets painted on, which looks wrong from the side; a die at the
+  lid is a third bigger and can overlap the controls in the harness; the camera
+  standing back makes the board small for the shake; and nothing is heard.
 
 Staged, leaning 24 degrees, for comparison:
 
@@ -561,13 +608,19 @@ the staged script and give up the physics too.
 The prototype suggested two changes to the seam before the application is
 built on it:
 
-- **Done: the scene draws past its item.** `overdraw` (half a tile) is how far,
+- **Done: the scene draws past its item.** `overdraw` (0.8 of a tile) is how far,
   and the view is that much bigger on every side. The item is still the
   board's area and `boardRect` is still by the rule, so the layout is not
   changed; the application must leave the item unclipped, and the window needs
   room around the board (the harness gives it a margin above, and the stills
   and the video are 720 wide). 3D only: a 2D scene may report any `overdraw`,
   including 0.
+- **The scene's box is bigger than the board while it is shaken**, 1.4 tiles
+  past it on every side, and the camera stands back so that all of it is inside
+  the item, then comes in as the dice go home. Nothing in the interface
+  changes, but a 2D layer over the scene has to be the one the settled board
+  needs (it is drawn once the dice are down) and the board is smaller on
+  screen for the shake. 3D only.
 - **A rule for the application, no code:** the first board's `show()` is where
   the one-time costs go, so the application creates the scene at start-up with
   the first board and not on the first press of Shake.
@@ -582,7 +635,7 @@ built on it:
   plausible starting values and were not compared with real dice, a real box
   or a real hand; the physics was checked against what can be worked out on
   paper ([above](#the-dice-checked-against-paper)) and nothing else.
-- The simulation's cost on a tablet's core (1.39 ms of a frame on average on
+- The simulation's cost on a tablet's core (1.24 ms of a frame on average on
   this desktop, 2.9 ms at the 99th percentile), and its replays on another
   compiler or processor, which are not promised to match.
 - A real accelerometer and gyroscope. The scene takes samples; what has been

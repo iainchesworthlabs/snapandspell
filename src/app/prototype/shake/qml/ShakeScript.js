@@ -228,7 +228,7 @@ function hash(seed, k, channel) {
 // with the strokes. burstMs of 0 is a burst of 0.6 to 0.9 s from the seed.
 function mockSampleAt(seed, k, burstMs) {
     var t = k * sampleMs / 1000;
-    var burst = (burstMs > 0 ? burstMs : 700 + 300 * hash(seed, 0, 90)) / 1000;
+    var burst = (burstMs > 0 ? burstMs : 800 + 400 * hash(seed, 0, 90)) / 1000;
     var two = 2 * Math.PI;
     var env = 0;
     if (t < burst) {
@@ -242,11 +242,11 @@ function mockSampleAt(seed, k, burstMs) {
     // The phase is the integral of a frequency that wanders around f0.
     var phase = two * f0 * t - 0.6 / 0.9 * Math.cos(two * 0.9 * t + p[1]);
     var stroke = Math.sin(phase) + 0.12 * Math.sin(2 * phase + p[2]);
-    var amount = 1.7 * env * (0.85 + 0.15 * Math.sin(two * 1.3 * t + p[3]));
+    var amount = 2.4 * env * (0.85 + 0.15 * Math.sin(two * 1.3 * t + p[3]));
     var axis = p[0] + 0.9 * Math.sin(two * 0.7 * t + p[4]);
     var ax = amount * stroke * Math.cos(axis);
     var ay = amount * stroke * Math.sin(axis);
-    var az = 1.2 * amount * Math.sin(phase + 1.2);
+    var az = 1.0 * amount * Math.sin(phase + 1.2);
     var ripple = 0.08 * env * Math.sin(two * 23 * t + p[5]);
     ax += ripple; ay -= ripple;
     // A small knock, one or two samples.
@@ -334,6 +334,8 @@ function initWeighted(state, board, seed, layout) {
     state.f = [0, 0, 1];
     state.w = [0, 0, 0];
     state.alpha = [0, 0, 0];
+    state.zoom = 0;
+    state.doneShare = 0;
     state.vibe = 0;
     state.tipX = 0;
     state.tipY = 0;
@@ -414,7 +416,7 @@ function advanceWeighted(state, dtMs, tracker) {
             var delays = [];
             for (var i = 0; i < state.count; ++i) {
                 state.cell[i] = cells[i];
-                delays.push((hopDelayMs + state.dice[i].startMs) / 1000);
+                delays.push((hopDelayMs + 0.5 * state.dice[i].startMs) / 1000);
             }
             sim.guide(delays);
         }
@@ -450,6 +452,14 @@ function advanceWeighted(state, dtMs, tracker) {
         }
     }
     readPoses(state);
+    // The camera stands back for the shake and comes in as the dice go home, so
+    // that it is square by the time the last of them is down.
+    state.doneShare = sim.doneCount() / state.count;
+    var zoomTarget = state.stage === 'settle' ? Math.max(0, 1 - state.doneShare / 0.6) : 1;
+    if (state.stage === 'idle') {
+        zoomTarget = 0;
+    }
+    state.zoom += (zoomTarget - state.zoom) * Math.min(1, dtMs / (state.stage === 'settle' ? 70 : 160));
     if (state.stage === 'settle' || state.stage === 'lid') {
         noteFaces(state);
         landedEvents(state);
@@ -506,14 +516,8 @@ function evaluateWeighted(state) {
     state.lidLift = tile * 0.9 * lift;
     state.lidOpacity = state.stage === 'shake' ? 1
         : (state.stage === 'lid' ? 1 - smooth((lidU - 0.55) / 0.45) : 0);
-    // The camera comes upright as the dice go home.
-    if (state.stage === 'shake' || state.stage === 'lid') {
-        state.leanFraction = 1;
-    } else if (state.stage === 'settle') {
-        state.leanFraction = 1 - smooth(inStage / (state.lastStartMs + 400));
-    } else {
-        state.leanFraction = 0;
-    }
+    // The camera stands back for the shake and comes in as the dice go home.
+    state.leanFraction = state.stage === 'idle' ? 0 : state.zoom;
 }
 
 function enter(state, name) {

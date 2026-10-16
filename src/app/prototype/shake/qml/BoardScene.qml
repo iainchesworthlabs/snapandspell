@@ -73,7 +73,7 @@ Item {
     // tumbles at the edge of the board, and the box's rim as it tips, are not
     // cut off. The item is still the board's area and boardRect is still by the
     // rule; the application only has to leave the item unclipped (no `clip`).
-    readonly property real overdraw: tile * (slackTiles + 0.4)
+    readonly property real overdraw: tile * 0.8
 
     // Plays the shake, the lid and the drop for a board. The dice are in the
     // box before the first frame, and `settled` follows the last of them.
@@ -165,14 +165,17 @@ Item {
     readonly property real spanX: boardColumns * tile + (boardColumns - 1) * gap
     readonly property real spanY: boardRows * tile + (boardRows - 1) * gap
     readonly property real rimWidth: inset * 0.7
-    // The box's cavity is a little roomier than the board, so a die has
-    // something to slide into and bump against when it is shaken.
-    readonly property real slackTiles: 0.6
+    // The box's cavity is roomier than the board, so that dice have room to
+    // roll over and tumble when it is shaken, and taller. The camera stands back
+    // while it is shaken so that the whole box is in the item, and comes in as
+    // the dice go home.
+    readonly property real slackTiles: weighted ? 1.4 : 0.6
+    readonly property real lidTiles: weighted ? 3.0 : 2.45
     readonly property real slack: tile * slackTiles
     readonly property real boxX: spanX + 2 * slack
     readonly property real boxY: spanY + 2 * slack
     readonly property real boxDepth: tile * 0.34
-    readonly property real lidHeight: tile * 2.45
+    readonly property real lidHeight: tile * lidTiles
 
     // ---- The play in progress ---------------------------------------------
     property string stage: "idle"
@@ -188,7 +191,7 @@ Item {
     // What the script needs of the layout, in this item's pixels.
     function layout() {
         return { tile: tile, gap: gap, pitch: pitch, reduced: reducedMotion, weighted: weighted,
-                 lidTiles: 2.45, slackTiles: slackTiles, mock: true, mockBurstMs: mockBurstMs,
+                 lidTiles: lidTiles, slackTiles: slackTiles, mock: true, mockBurstMs: mockBurstMs,
                  sim: diceSim };
     }
 
@@ -253,6 +256,7 @@ Item {
         lid.opacity = warm ? Math.max(state.lidOpacity, 0.02) : state.lidOpacity;
         lidHinge.visible = warm || state.lidOpacity > 0.001;
         leanNow = lean * state.leanFraction;
+        zoomNow = state.useQuaternion ? state.leanFraction : 0;
     }
 
     function step(dtMs) {
@@ -290,6 +294,7 @@ Item {
     }
 
     property real leanNow: lean
+    property real zoomNow: 0
 
     // One tick for each frame the window draws; a stalled frame counts as 50 ms,
     // so a hitch slows the play down instead of skipping through it.
@@ -350,7 +355,11 @@ Item {
     // upright is not cut off by the lean.
     readonly property real viewDistance: cameraDistance * Math.max(spanX, spanY)
     readonly property real fieldOfView: 2 * Math.atan((height + 2 * overdraw) / 2 / viewDistance) * 180 / Math.PI
-    readonly property real standBack: 1 + 0.3 * (lean > 0 ? Math.min(1, leanNow / lean) : 0)
+    // How far the camera stands back so that the whole box is in the item: the
+    // box's size over the item's, with a tenth to spare for the dice nearer the
+    // camera at the lid.
+    readonly property real zoomOut: Math.max(0, 1.1 * Math.max(boxX / Math.max(1, width), boxY / Math.max(1, height)) - 1)
+    readonly property real standBack: 1 + 0.3 * (lean > 0 ? Math.min(1, leanNow / lean) : 0) + zoomOut * zoomNow
 
     View3D {
         id: view

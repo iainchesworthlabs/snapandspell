@@ -343,8 +343,11 @@ TEST_CASE("a die tipped on an edge falls flat, whichever way it is nearer", "[di
         INFO("tipped by " << degrees << " degrees");
         CHECK(after.x.z == Approx(0.5).margin(0.01));
         CHECK(length(after.v) < 0.1);
-        // flat: an axis is within a degree of vertical
-        CHECK(angleBetween(after.q, squareTo(after.q)) < 0.03);
+        // flat: an axis is within 0.03 rad of vertical (it may have turned about it)
+        const auto axes = axesOf(after.q);
+        const double upright =
+            std::max({std::abs(axes[0].z), std::abs(axes[1].z), std::abs(axes[2].z)});
+        CHECK(upright > std::cos(0.03));
     }
 }
 

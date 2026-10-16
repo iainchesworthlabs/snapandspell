@@ -92,10 +92,10 @@ struct Tuning {
     double airSpinDrag = 0.05;     // per second
     double contactSpinDrag = 1.5;  // per second, while touching: the rolling resistance of felt
     // Restitution and friction for the surfaces a die meets.
-    double restitutionFloor = 0.35;
-    double restitutionWall = 0.30;
-    double restitutionLid = 0.25;
-    double restitutionDie = 0.40;
+    double restitutionFloor = 0.52;
+    double restitutionWall = 0.45;
+    double restitutionLid = 0.38;
+    double restitutionDie = 0.60;
     double frictionFloor = 0.50;
     double frictionWall = 0.20;
     double frictionLid = 0.20;
@@ -107,15 +107,15 @@ struct Tuning {
     double restSpeed = 0.5;
     // The guide.
     double guideRamp = 0.04;         // seconds from nothing to full
-    double guideStiffness = 700.0;   // 1/s^2 toward the cell, in the plan
-    double guideDamping = 53.0;      // 1/s
+    double guideStiffness = 1200.0;  // 1/s^2 toward the cell, in the plan
+    double guideDamping = 69.0;      // 1/s
     double guideTurn = 900.0;        // 1/s^2 toward flat and square
     double guideTurnDamping = 60.0;  // 1/s
-    double guideSpeedLimit = 28.0;   // edges per second
+    double guideSpeedLimit = 45.0;   // edges per second
     double hopNear = 0.3;            // height of the hop at a cell's distance of nothing, edges
-    double hopFar = 1.0;             // and for crossing the box
+    double hopFar = 1.6;             // and for crossing the box
     double unstickRise = 1.3;      // height of the hop of a die that is stuck behind others, edges
-    double stuckAfter = 0.12;      // seconds going nowhere before it hops again
+    double stuckAfter = 0.10;      // seconds going nowhere before it hops again
     double settleDistance = 0.03;  // within this of its cell, flat, still: it is down
     double settleAngle = 0.05;     // radians
     double settleSpeed = 0.6;      // edges per second, and radians per second
@@ -143,9 +143,11 @@ struct Die {
     bool settled = false;   // is on its cell, flat and still, for now
     bool done = false;      // is home: fixed from now on
     double calm = 0.0;
-    double stuck = 0.0;   // seconds spent on the floor, short of home, going nowhere
-    double grip = 1.0;    // how much grippier than the next die this one is
-    double bounce = 1.0;  // and how much bouncier: no two dice are alike
+    double stuck = 0.0;       // seconds spent on the floor, short of home, going nowhere
+    double stuckLimit = 0.0;  // how long before it hops again
+    double progress = -1.0;   // how far from home it was when it last got closer
+    double grip = 1.0;        // how much grippier than the next die this one is
+    double bounce = 1.0;      // and how much bouncier: no two dice are alike
     double hopRise = 0.0;
     Vec3 xPrev;
     Quat qPrev;
