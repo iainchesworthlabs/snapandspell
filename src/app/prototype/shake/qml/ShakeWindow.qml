@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ShakePrototype
+import "ShakeScript.js" as Script
 
 // The harness around BoardScene: a window with a Shake button, a mouse drag
 // that stands in for the accelerometer, a 2D layer over the scene to show the
@@ -154,38 +155,83 @@ ApplicationWindow {
     }
 
     // ---- The device's motion, from the mouse --------------------------------
-    // Where the pointer is in the scene sets the tilt; how fast it moves sets
-    // the agitation, which decays when it stops.
-    property real dragAgitation: 0
-    property vector2d dragTilt: Qt.vector2d(0, 0)
-    // What the measurement run saw of them, for the run driven by the pointer.
-    property real peakAgitation: 0
+    // Dragging the board moves the "device" under the pointer. The pointer's
+    // position at each event is differentiated twice into an acceleration (the
+    // board is taken as 16 cm across), so the stream is as jerky as the hand:
+    // a spike at every start and stop. Where the pointer is in the scene tips
+    // the device up to 8 degrees, and its speed twists it. Every sample goes
+    // to the scene, and to a stand-in for the shake detector (the library's),
+    // which starts a play when the hand is shaking hard enough.
+    property var detector: Script.newTracker()
+    property bool armed: true
+    // What the measurement run saw of the hand, for the run driven by the pointer.
+    property real peakLevel: 0
     property real peakTilt: 0
-    onDragAgitationChanged: peakAgitation = Math.max(peakAgitation, dragAgitation)
-    onDragTiltChanged: peakTilt = Math.max(peakTilt, Math.abs(dragTilt.x), Math.abs(dragTilt.y))
 
+    QtObject {
+        id: pointer
+
+        property bool down: false
+        property double at: 0
+        property real x: 0
+        property real y: 0
+        property real vx: 0
+        property real vy: 0
+    }
+
+    function clampTo(value, limit) {
+        return Math.max(-limit, Math.min(limit, value));
+    }
+
+    // The pointer is at (px, py) in the scene now: one sample of the device.
+    function pointerSample(px, py, atMs) {
+        if (window.scene === null) {
+            return;
+        }
+        const dt = Math.max(0.002, (atMs - pointer.at) / 1000);
+        const vx = (px - pointer.x) / dt;
+        const vy = (py - pointer.y) / dt;
+        const ax = (vx - pointer.vx) / dt;
+        const ay = (vy - pointer.vy) / dt;
+        pointer.x = px;
+        pointer.y = py;
+        pointer.vx = vx;
+        pointer.vy = vy;
+        pointer.at = atMs;
+        const toG = 0.16 / Math.max(1, window.scene.boardRect.width) / 9.81;
+        const handX = clampTo(ax * toG, 8);
+        const handY = clampTo(-ay * toG, 8);
+        const roll = clampTo((px / sceneHost.width - 0.5) * 2, 1) * 0.14;
+        const pitch = clampTo((0.5 - py / sceneHost.height) * 2, 1) * 0.14;
+        const sx = -Math.sin(roll) + handX;
+        const sy = Math.sin(pitch) + handY;
+        const sz = Math.cos(roll) * Math.cos(pitch);
+        const wx = clampTo(-vy * 0.001, 4);
+        const wy = clampTo(vx * 0.001, 4);
+        window.scene.pushMotion(sx, sy, sz, wx, wy, 0);
+        Script.feed(window.detector, sx, sy, sz, wx, wy, 0);
+        window.peakLevel = Math.max(window.peakLevel, window.detector.level);
+        window.peakTilt = Math.max(window.peakTilt, Math.abs(roll), Math.abs(pitch));
+        if (window.armed && pointer.down && !window.scene.busy
+                && window.detector.level > Script.shakeStartLevel) {
+            window.armed = false;
+            window.seed += 1;
+            window.shake();
+        }
+    }
+
+    // While the hand is down or the dice are moving the device keeps sending
+    // samples (a hundred a second), so a hand that has stopped reads as stopped.
     Timer {
-        interval: 33
-        running: true
+        interval: 10
         repeat: true
-        onTriggered: window.dragAgitation = window.dragAgitation * 0.86
-    }
-
-    // Held by the measurement run, to rattle for as long as the script allows.
-    property real autoAgitation: 0
-
-    Binding {
-        target: window.scene
-        property: "agitation"
-        value: Math.max(window.dragAgitation, window.autoAgitation)
-        when: window.scene !== null
-    }
-
-    Binding {
-        target: window.scene
-        property: "tilt"
-        value: window.dragTilt
-        when: window.scene !== null
+        running: window.scene !== null && (window.scene.busy || pointer.down)
+        onTriggered: {
+            const now = stats.now();
+            if (now - pointer.at > 20) {
+                window.pointerSample(pointer.x, pointer.y, now);
+            }
+        }
     }
 
     Binding {
@@ -211,34 +257,24 @@ ApplicationWindow {
         DragHandler {
             id: drag
 
-            // The speed is read from where the pointer was and when, not from
-            // the handler's own velocity, which needs timestamps the event
-            // may not carry.
-            property point lastPoint: Qt.point(0, 0)
-            property double lastTime: 0
-
             target: null
             onCentroidChanged: {
-                if (!active) {
-                    return;
+                if (active) {
+                    window.pointerSample(centroid.position.x, centroid.position.y, stats.now());
                 }
-                const at = stats.now();
-                const elapsed = Math.max(1, at - lastTime);
-                const speed = Math.hypot(centroid.position.x - lastPoint.x,
-                                         centroid.position.y - lastPoint.y) / elapsed * 1000;
-                lastPoint = centroid.position;
-                lastTime = at;
-                window.dragAgitation = Math.min(1, Math.max(window.dragAgitation, speed / 1800));
-                window.dragTilt = Qt.vector2d(
-                    Math.max(-1, Math.min(1, (centroid.position.x / sceneHost.width - 0.5) * 2)),
-                    Math.max(-1, Math.min(1, (0.5 - centroid.position.y / sceneHost.height) * 2)));
             }
             onActiveChanged: {
+                pointer.down = active;
                 if (active) {
-                    lastPoint = centroid.position;
-                    lastTime = stats.now();
+                    pointer.x = centroid.position.x;
+                    pointer.y = centroid.position.y;
+                    pointer.vx = 0;
+                    pointer.vy = 0;
+                    pointer.at = stats.now();
+                    window.peakLevel = 0;
+                    window.peakTilt = 0;
                 } else {
-                    window.dragTilt = Qt.vector2d(0, 0);
+                    window.armed = true;
                 }
             }
         }
@@ -479,7 +515,7 @@ ApplicationWindow {
         reduced = job.reduced;
         seed = job.seed;
         scene.reducedMotion = job.reduced;
-        autoAgitation = 0;
+        scene.mockBurstMs = 0;
         showTiles = false;
         scene.show(currentBoard());
         settleTimer.restart();
@@ -492,9 +528,11 @@ ApplicationWindow {
         interval: 350
         onTriggered: {
             stats.begin();
-            window.autoAgitation = window.job.rattle ? 1 : 0;
-            window.peakAgitation = 0;
+            // A shake held as long as the script allows: a long burst.
+            window.scene.mockBurstMs = window.job.rattle ? 4000 : 0;
+            window.peakLevel = 0;
             window.peakTilt = 0;
+            window.detector = Script.newTracker();
             window.shake();
             if (window.job.drag) {
                 // Across the scene and back for about two seconds.
@@ -509,12 +547,12 @@ ApplicationWindow {
             return;
         }
         const measured = stats.end();
-        autoAgitation = 0;
+        scene.mockBurstMs = 0;
         measured.size = job.size;
         measured.reduced = job.reduced;
         measured.rattle = job.rattle;
         measured.drag = job.drag === true;
-        measured.peakAgitation = peakAgitation;
+        measured.peakLevel = peakLevel;
         measured.peakTilt = peakTilt;
         measured.run = job.index;
         measured.playMs = stats.now() - playStartedAt;
@@ -546,10 +584,10 @@ ApplicationWindow {
         if (framesPerSecond <= 0) {
             return [0, 350, 800, 1000, 1150, 1300, 1450, 1650, 1900, 2300];
         }
-        // Every frame of the first 2.4 s: the shake's minimum, the lid, the
+        // Every frame of the first 3 s: the shake, the lid, the
         // drop and the settle, and a little of the board at rest.
         const times = [];
-        for (let t = 0; t <= 2400; t += 1000 / framesPerSecond) {
+        for (let t = 0; t <= 3000; t += 1000 / framesPerSecond) {
             times.push(Math.round(t));
         }
         return times;

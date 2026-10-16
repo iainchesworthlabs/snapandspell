@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
         QStringLiteral("With --auto: save screenshots through one shake instead of timing."));
     const QCommandLineOption framesOption(
         QStringLiteral("frames"),
-        QStringLiteral("With --auto --shots: save a frame every 1/fps s for 2.4 s, for a video."),
+        QStringLiteral("With --auto --shots: save a frame every 1/fps s for 3 s, for a video."),
         QStringLiteral("fps"), QStringLiteral("0"));
     const QCommandLineOption boardOption(QStringLiteral("board"),
                                          QStringLiteral("Board size: 3 or 4."),

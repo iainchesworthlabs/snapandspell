@@ -48,16 +48,15 @@ jewel.
 | `play(board, seed)` | function | Shake, lid, drop, settle, for `board = { rows, columns, tiles }`. The dice are in the box at the first frame |
 | `show(board)` | function | The board already down, with no motion: a resumed game, a rotated window |
 | `reducedMotion` | in | The cross-fading variant of every stage |
-| `agitation` | in | 0 to 1, how hard the device is being shaken now. Holds the rattle on past 0.7 s, up to 3 s |
-| `tilt` | in | A vector, each axis -1 to 1. Leans the box within the 8 degrees |
+| `pushMotion(ax, ay, az, wx, wy, wz)` | function | One sample of the device's motion, about a hundred a second: the accelerometer's reading in g, gravity included (face up and still it reads 0, 0, 1; x right, y up the screen, z out of it), and the gyroscope's in rad/s. The dice answer to it sample for sample, and the rattle holds on, up to 3 s, while it reads as shaking. With none, a seeded stand-in shakes |
 | `settled()` | signal | Once per play, when the dice have stopped |
 | `landed(index, pitch)` | signal | A die has hit the floor: its place in the board, and a pitch for its click |
 | `rattled()` | signal | The box rattles, at most 8 a second, for the haptic tap |
 | `busy`, `rows`, `columns`, `tileSize`, `tileGap`, `boardRect` | read-only | The geometry by [the rule](board.md#the-rule), for the 2D layer that traces over the scene |
 | `overdraw` | read-only | How far past its item the scene draws, on every side (half a tile), so a die tumbling at the edge and the tipping rim are not cut off. The item is still the board's area; the application must not `clip` it |
 
-`lean`, `probeMode`, `cameraDistance`, `warmUp` and `weighted` are settings of
-the 3D implementation and are not part of the seam. `seek(board, seed, ms)` and
+`lean`, `probeMode`, `cameraDistance`, `warmUp`, `weighted` and `mockBurstMs`
+are settings of the 3D implementation and are not part of the seam. `seek(board, seed, ms)` and
 `digest(board, seed)` are for tests and pictures.
 
 ### The two scripts
@@ -73,37 +72,54 @@ over the fall.
 
 **Weighted** is the same play with the stages kept (rattle for 0.7 s or while
 the device shakes, up to 3 s; the lid; the dice slot in, in the seeded order)
-and the motion between them integrated, at a fixed 240 steps a second, from
-forces:
+and the motion between them simulated, at a fixed 480 steps a second, in the
+box's own frame, from what the device does:
 
-- The box is accelerated (sideways and up and down) and the dice in it are
-  pushed the other way. The vertical push is more than gravity, so dice leave
-  the floor and hit the lid; the live `agitation` scales it.
-- A die bounces off the floor (about a third of its speed back), the lid and
-  the walls of a cavity a fifth of a tile roomier than the board, and off the
-  dice next to it. It spins by a seeded amount, more the harder it hit, and
-  flops flat on the floor within a tenth of a second.
-- Once the lid is off, a spring funnels each die into its cell, the first dice
-  of the seeded order first (30 ms apart), and the yaw springs back to upright.
-  Everything is at rest when the springs and bounces have died away, with a
-  hard limit 0.7 s after the last die began, and then it is exactly on its cell.
-- Time is slowed to about a third of a real die's, so that a fall of a tile
-  takes a fifth of a second and can be seen. The weight is in the shape of the
-  motion: the acceleration, the stop, the rebound, the spin.
+- **The input is the device's own signal.** A die's acceleration in the box is
+  *minus what the accelerometer reads*: gravity, a tilt, a shove and a jolt are
+  one thing, and a spike in the reading is a spike in the dice. The gyroscope
+  adds the centrifugal, Coriolis and Euler terms of the box's spin. That is six
+  axes, sampled about a hundred times a second, and the dice take each sample
+  as it comes, so a jerky hand is a jerky shake.
+- **Inertia, contact and spin.** A die slides on the floor with friction
+  against its weight, leaves it when the box is thrown away from it, hits the
+  lid, the walls of its pocket (a fifth of a tile either way, so it can bump a
+  neighbour and cannot trade places with one) and the dice next to it, and
+  spins by a seeded amount, more the harder it hit. It flops flat on the floor
+  within a tenth of a second.
+- **Real time.** A tile is taken as 20 mm, so 1 g is 490 tiles a second squared
+  and a die falls a tile in 64 ms. (The first version slowed time to a third,
+  which makes a shake at a few hertz too quick for the dice to follow: it
+  reads light.)
+- **Slotting in.** Once the lid is off, a spring funnels each die into its
+  cell, the first dice of the seeded order first (30 ms apart), and the yaw
+  springs back to upright. Everything is at rest when the springs and bounces
+  have died away, with a hard limit 0.7 s after the last die began, and then it
+  is exactly on its cell.
 
-It is still seeded and replays: the same board, seed and (still) device give
-the same checksum, because the integrator is a fixed step with a generator for
-each die. It is not a physics engine and does not decide where a die lands;
-that is its cell, always.
+With no device there is a stand-in, `mockSampleAt(seed, k)`, a function of the
+seed and the sample number: a burst of 0.7 to 1.0 s of strokes at four to six
+hertz on all three axes, with a third harmonic so the turnarounds are sharp,
+spikes of 0.8 to 2.2 g on one sample, noise on every sample, a slow tip of the
+device, and a twist on the gyroscope that goes with the strokes. The Shake
+button, a replay and the tests use it, so they are the same shake every time; a
+real device, or the drag in the harness, is live.
+
+It is still seeded and replays: the same board, seed and stream give the same
+checksum, because the integration is a fixed step with a generator for each
+die. It is not a physics engine and does not decide where a die lands; that is
+its cell, always.
 
 | Play (weighted) | Measured, play to `settled` | What it is |
 | --- | --- | --- |
-| 4x4, full motion | 1.7 to 1.8 s | 0.70 shake, 0.25 lid, the rest slotting in: 1.1 s after the shake, 1.5 s with the 380 ms layout stage that is the application's, not the scene's |
-| 3x3, full motion | 1.9 s | The same |
-| Either, reduced motion | 0.58 s | 0.30 rattle, 0.12 lid fade, 0.12 dice fade |
-| Rattle held at full | 4.1 to 4.2 s | The shake held to its 3 s limit, then the lid and the slot |
+| 4x4, full motion | 2.2 to 2.3 s | A 0.7 to 1.0 s burst, the box held until the reading is still (0.3 s), 0.25 lid, 0.9 slotting in |
+| 3x3, full motion | 2.3 to 2.5 s | The same |
+| Either, reduced motion | 0.56 s | 0.30 rattle, 0.12 lid fade, 0.12 dice fade |
+| Rattle held at full | 4.1 to 4.2 s | A 4 s burst, cut at the 3 s limit, then the lid and the slot |
 
-(Staged: 1.97 s at 4x4 and 1.73 s at 3x3, with a 0.87 s drop.)
+(Staged: 1.97 s at 4x4 and 1.73 s at 3x3, with a 0.87 s drop. The weighted play
+is longer because it is a shake of a real length followed by a slot, and the
+board page's 1.7 s was for the drop alone, after the shake.)
 
 ## How it was measured
 
@@ -214,8 +230,8 @@ different seed a different one, and reduced motion its own:
 | --- | --- | --- | --- | --- |
 | Staged | 3x3 | `7cfdfd74`, `7cfdfd74` | `c5dc0064` | `4a2172c5`, `4a2172c5` |
 | Staged | 4x4 | `ea3b8ceb`, `ea3b8ceb` | `cd5e72f7` | `e5250505`, `e5250505` |
-| Weighted | 3x3 | `f3f4f8ac`, `f3f4f8ac` | `3763cac3` | `fecee3b5`, `fecee3b5` |
-| Weighted | 4x4 | `4bba074`, `4bba074` | `bb5ba6` | `6a5f4a5d`, `6a5f4a5d` |
+| Weighted, on the stand-in stream | 3x3 | `62cd6fea`, `62cd6fea` | `5ddbfde1` | `25436ec5`, `25436ec5` |
+| Weighted, on the stand-in stream | 4x4 | `421ea932`, `421ea932` | `59fa7ead` | `856e1c45`, `856e1c45` |
 
 A checksum is of the poses in pixels, so it is for one scene size: the staged
 rows are from the first window and the weighted from the later one (which is
@@ -223,21 +239,25 @@ why the reduced rows, the same script in both, differ between them).
 
 Moving the script out of the scene file into `ShakeScript.js` left the stills
 identical, pixel for pixel but one pixel one level off. What the checksum does
-not cover is the rattle's response to a live `agitation`, which is the one live
-part by design.
+not cover is a live device: the same board with a different shake is a
+different play, by design, and ends on the same cells.
 
 ### The drag
 
-A mouse drag stands in for the accelerometer: where the pointer is in the scene
-sets `tilt`, how fast it moves sets `agitation`, and the agitation decays when
-it stops. One measured play sent the window a scripted back-and-forth pointer
-path for two seconds (`dragBetween`, so the pointer path through the scene is
-exercised without a hand): the peak agitation reached 1.0 and the tilt 0.7, the
-box rattled for 2.3 s instead of 0.7 s (3.6 s play against 1.97 s), and no frame
-was over 20 ms. The same hold with the agitation set directly is the "rattle
-held" rows above. The first version read the speed from the handler's own
-velocity, which a scripted event does not carry (peak 0.19); it is now computed
-from where the pointer was and when.
+A mouse drag stands in for the device. The pointer's position at each event is
+differentiated twice into an acceleration (the board is taken as 16 cm across),
+so the stream is as jerky as the hand: a spike at every start and stop. Where
+the pointer is in the scene tips the device up to 8 degrees, and its speed
+twists it. Each sample goes to `pushMotion`, and to a stand-in for the shake
+detector, which starts a play when the hand reads 0.8 g or more of shaking: so
+the way to use it is to take hold of the board and shake it, and the dice start
+to go when the hand does, and are held for as long as it keeps shaking, up to
+3 s.
+
+One measured play sent the window a scripted back-and-forth pointer path for
+two seconds (`dragBetween`, so the pointer path through the scene is exercised
+without a hand): the peak of the hand's shaking read 4.4 g, the play was 3.3 s,
+and the longest interval was 21 ms. How it *feels* in a hand is unjudged.
 
 ### The light probe
 
@@ -287,12 +307,11 @@ file cannot. The baked probe ran on it as above.
 
 ### The weighted script in the same harness
 
-Direct3D 11, four plays of each case after the first, the baked probe: 2,862
-frames, the longest interval 20.9 ms, and the render thread's mean is 0.4 to
-0.7 ms a frame, the same as staged. The integrator (4 steps a frame, 16 dice,
-120 pair tests a step) does not show in the frame times. A shake driven
-through the pointer was 3.4 s in all. New checksums for replay, for this script,
-are recorded in [Replay](#replay) and agree between runs.
+Direct3D 11, the baked probe, four plays of each case after the first: 4,262
+frames, the longest interval 21.1 ms, and the render thread's mean is 0.4 to
+0.6 ms a frame, the same as staged. The integrator (8 steps a frame, 16 dice,
+120 pair tests a step) does not show in the frame times. Checksums for replay
+are in [Replay](#replay).
 
 ## What it looked like
 
@@ -302,6 +321,14 @@ the way a real set does (curved corners, a tap to seat them), and there was no
 sense of mass. Looking straight down was right for how the board is held and
 shaken, and 3x3 was fine. Hence the weighted script, and top-down as the
 default (`lean` 0).
+
+The second look, at the first weighted version: **it had weight, and did not
+react.** The box was still being driven by a prescribed sine wave and one number
+for how hard, so the dice answered a curve and not a motion. A real device gives
+a spiky stream on several axes, and the dice should have inertia and bang
+against one another as that stream pushes them. Hence the input is now the
+device's own signal (six axes, a hundred samples a second), and the dice are
+simulated in the box's frame from it.
 
 ![The weighted shake, 4x4, straight down: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
 
@@ -356,9 +383,10 @@ What a 2D `BoardScene` has to keep:
    before it is false; `landed(index, pitch)` from the script; `rattled()` at
    most 8 a second; `play()` while busy restarts; `show()` makes no motion and
    emits nothing.
-5. **The same inputs, the same meaning.** `agitation` and `tilt` change how
-   hard and how long the box rattles and never where a die lands;
-   `reducedMotion` takes the cross-fading path of every stage, 0.54 s in all.
+5. **The same inputs, the same meaning.** The motion samples change how the
+   dice move and how long the box rattles and never where a die lands; with
+   none, a seeded stand-in shakes; `reducedMotion` takes the cross-fading path
+   of every stage, 0.54 s in all.
 
 What it does not carry: `lean`, `probeMode`, `cameraDistance`, `warmUp`, and
 the 3D-only files (`Die.qml`, `FaceAtlas.qml`, the probe). It loses the lit
@@ -389,9 +417,9 @@ built on it:
   any device. The next step is a build for iOS (the shared tree has no kit) and
   Qt's GPU timestamps on the device.
 - Power and heat, memory beyond what is noted, and a second desktop GPU.
-- A person's hand on the drag. The runs set the agitation directly, and one
-  sends the window a scripted back-and-forth pointer path ([above](#the-drag));
-  how the drag *feels* is unjudged.
+- A real accelerometer and gyroscope. The scene takes samples; what has been
+  fed to it is the seeded stand-in and a mouse (a pointer path differentiated
+  twice), and a person's hand on the drag is unjudged ([above](#the-drag)).
 - **Sound**, the accelerometer and haptics. The scene emits `rattled` and
   `landed` and the harness shows a count; nothing plays them, and no run
   checked the counts against the script.
