@@ -28,6 +28,23 @@ that release, so that its rules (branch protection, required checks) can apply.
   library's session is wired. It replaces the window that typed a board into a
   grid; `SolverModel` stays with its tests. There is no sound, no device shake and
   no bundled font yet. See [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
+- **The parent area, on the device and nowhere else**, inside the first release's
+  frozen privacy rules (no voice, no export, no network, no time played, no limit):
+  a small versioned **store** (`wjs/store.hpp`) of finds, the last twenty boards, stars,
+  bests, the vault, day tallies, settings and the game in progress, kept in one file in
+  the per-user data directory (`wjs::platform::user_data_directory()`), written whole and
+  renamed into place, migrated from older versions with the old file kept, and set aside
+  whole and never overwritten if damaged; the **parental gate** (`wjs/parent_gate.hpp`):
+  two fingers on two circles for two seconds, with an accessibility route and Space and
+  the mouse on a desktop; the **dashboard's numbers** (`wjs/dashboard.hpp`): this week,
+  the sounds of the active phase (met, found, unassisted), the vault and the best; and the
+  **screens** (`WordJewelsSolver.Parent`: the gate, the dashboard, the settings, about,
+  licences and privacy) with every sentence a parent reads in one file for the literacy
+  review. Privacy checks run in CI: a scan of the source for audio capture, the network
+  and export routes, and a held-to-cases checker for it; the store's size cap and what
+  it may hold; the wording. The copy between the game session's values and the store's
+  (`wjs/session_store.hpp`) brings a stored board back in the form `GameSession::restore()`
+  needs. See [docs/design/parent-area.md](docs/design/parent-area.md).
 - **The first working slice of Mode A's board reader** (`wjs::scan`, `src/scan`): finds a
   board in a camera frame (the largest convex quadrilateral of a lattice of dice, drawn
   square, its cells counted and centred), reads each die's one rotated letter by matching it

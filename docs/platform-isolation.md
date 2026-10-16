@@ -60,6 +60,7 @@ other CMake file reads what the fragment declared:
 | The name in the version block (`Windows`, `Linux`, `macOS`) | `WJS_PLATFORM_DISPLAY_NAME` | `src/lib` (generated `version.hpp`), the configure summary |
 | Whether this is a desktop (installers, the Qt application and notices exist) | `WJS_PLATFORM_DESKTOP` | Checked by the contract; nothing reads it yet |
 | Where an installed Qt lives | `WJS_PLATFORM_QT_SEARCH_ROOTS`, `WJS_PLATFORM_QT_ARCH_DIRS` | `cmake/FindQt6.cmake` |
+| `NAME=value` entries a Qt Quick test needs to run without a display, besides `QT_QPA_PLATFORM=offscreen` (`""` for none) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` | `tests/CMakeLists.txt` |
 | What makes the Qt application a program of this desktop (no console window on Windows, a bundle on macOS) | `wjs_platform_configure_app(<target>)` | `src/app/CMakeLists.txt` |
 | Qt's runtime beside a program, including the QML modules in `<qml_dir>` (`windeployqt` on Windows) | `wjs_platform_deploy_qt_runtime(<target> <qml_dir>)` | `src/app/CMakeLists.txt`, `tests/CMakeLists.txt` |
 
@@ -100,7 +101,8 @@ The cases already in the tree:
 | Need | Done as |
 | --- | --- |
 | `<windows.h>` without the `min`/`max` macros, and with the wide-character API | `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE` are in the Windows `platform.cmake` and passed to `wjs_platform`; no source file defines them |
-| The path of the running executable | `interfaces/wjs/platform/paths.hpp`; `windows/paths_windows.cpp`, `linux/paths_linux.cpp`, `macos/paths_macos.cpp` |
+| The path of the running executable, and the directory a program keeps its own data in | `interfaces/wjs/platform/paths.hpp` (`executable_path`, `user_data_directory`); `windows/paths_windows.cpp`, `linux/paths_linux.cpp`, `macos/paths_macos.cpp` |
+| What a Qt Quick test needs to draw with no display (the offscreen platform has no fonts on Windows until told where the system's are) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` in each `platform.cmake`, read by the tests that run Qt Quick |
 | A UTF-8 console on Windows, nothing to do on a POSIX terminal | `interfaces/wjs/platform/console.hpp`; `windows/console_windows.cpp` and `posix/console_posix.cpp` |
 | The version and the platform's name in `wjs-cli --version` | `configure_file` generates `constexpr` values (`wjs::project_version`, `wjs::target_platform`); no macro |
 | A program with no console window on Windows, a bundle on macOS | The `wjs_platform_configure_app` hook in each fragment |

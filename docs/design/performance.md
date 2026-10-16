@@ -224,7 +224,7 @@ zones inside `board.seed`, each with its `solver.visits`.
 | Layer | Zones, with the value each carries |
 | --- | --- |
 | app | `app.startup`, `app.load_qml`, `app.scene_create` |
-| data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` |
+| data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` (bytes written), `data.load_store` (bytes read), `data.build_dashboard` (sounds); the last three are built, in the parent area's store and dashboard |
 | board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.deal` (seedings; **phonics**, the session), `board.restore` (**phonics**, the session), `board.roll` (dice; **standard**) |
 | solver | `solver.solve` (words found; visits) |
 | phonics (**phonics** board only) | `phonics.bind` (comparisons), `phonics.segment`, `phonics.sequence` |

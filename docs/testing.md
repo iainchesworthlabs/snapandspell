@@ -37,7 +37,10 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 (and `[data]` for the cases that read the shipped data),
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
 `[shake]`, `[rules]`, `[session]`, `[platform]` and `[profiling]`, and `[app]` in
-`wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]` and `[solo]`).
+`wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]` and `[solo]`). The parent area's are
+`[calendar]`, `[settings]`, `[gate]`, `[store]` (with `[record]`, `[file]`, `[migration]`, `[bounds]`,
+`[reset]`, `[resume]` and `[privacy]`), `[dashboard]` (with `[sounds]`, `[week]`, `[vault]`, `[best]`,
+`[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`.
 
 ## What there is
 
@@ -57,7 +60,13 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 | `tests/unit/profiling_test.cpp` | `wjs/profiling.hpp` | That the variant CMake chose is the one it was asked for, that every call can be made with no profiler connected, and that a zone cannot be copied or moved |
 | `tests/unit/dice_test.cpp` | `wjs::DiceSet`, `wjs::roll` | The file format (a face of several letters, commas, comments, a byte-order mark), each way a set is refused, a roll using each die once and showing one of its faces, a function of the seed, two boards pinned so a change of compiler shows, every face shown over many rolls |
 | `tests/unit/dice_data_test.cpp` | The shipped dice, `data/dice` | Each size has the dice for its board and six different faces to a die with a vowel among them; 300 boards a size rolled and solved against the dictionary hold about the words a random board does; two boards pinned. Reads the shipped files by their path in the checkout, as the performance tier does |
-| `tests/unit/paths_test.cpp` | `wjs::platform::executable_path` | That it names the running test program: absolute, an existing file, called `wjs_unit_tests` |
+| `tests/unit/paths_test.cpp` | `wjs::platform::executable_path`, `user_data_directory` | That the first names the running test program: absolute, an existing file, called `wjs_unit_tests`; that the second is an absolute path and is the same each time |
+| `tests/unit/calendar_test.cpp` | `wjs/calendar.hpp` | A date as a day (against dates counted by an independent program), the ISO weekday, the week from any first day of the week, over 800 days for each |
+| `tests/unit/settings_test.cpp` | `wjs::Settings` | The defaults are the table's; every value a screen offers survives; any other becomes the default for it; names, sizes, text scales and focus sounds are brought within their bounds |
+| `tests/unit/parent_gate_test.cpp` | `wjs::Gate` | The layout on every screen shape; two fingers held two seconds open it, anything else does not (one finger, two on one spot, a third touch, a slide out, a lift and a press again); the accessibility action; and a property test, 400 random runs of touches, against an oracle written separately |
+| `tests/unit/store_test.cpp` | `wjs::Store`, `parse_store`, `serialize_store` | The format and its round trip; a file cut at every length and with every byte changed is refused; each record checked; a later version told apart; migration through a pretend older format; what a snapshot records (stars once, first-time words, bests, tallies, cleared boards, the bounds); the game in progress; each way a file on disk can be (missing, damaged, newer, older, unreadable, a refusing disk), kept whole and never overwritten; the worst case the bounds allow is under the cap; no time of day in the file |
+| `tests/unit/session_store_test.cpp` | `wjs::snapshot_of`, `record_of`, `saved_session_of`, `session_snapshot_of` | The copy between the game session's values and the store's: fields, the stars from each find's reward, a stamp that is not a day refused, a board and every saved state through the store and back as it was, the words back in upper case and in order, what cannot come back refused; and a real session (one restored from a hand-written board, one the session dealt itself) taken through the store's file and brought back by `restore()` |
+| `tests/unit/dashboard_test.cpp` | `wjs::build_dashboard`, `focus_sound_choices` | Each count of a sound (met, found, unassisted, often found, few words) on a made-up phase; the week on either first day of the week; the vault and the best; nothing said of a week without play |
 | `tests/app/solver_model_test.cpp` | The solver's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
 | `tests/app/board_layout_test.cpp` | The layout rule, `SoloLayout` | The nine reference windows of the board design: which side the board takes, the tile of each size 3x3 to 6x6 against the page's table, the inset and gap either side of 600 dp, the board centred, a size offered only at 48 dp, the object recomputing on a rotation (`[layout]`) |
 | `tests/app/path_tracer_test.cpp` | `PathTracer` | A slide, a diagonal that skips no tile, a fast jump, the hit circle smaller than the tile, sliding back, a tile used twice, a dead jewel, lifting outside, tapping in order and the last tile again, a trace carried on from taps, a press in a gap, the keyboard's moves, a rotated window (`[trace]`) |
@@ -65,6 +74,10 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 | `tests/app/solo_model_test.cpp` | `SoloModel` over the fake | The states as the screens see them, input before the dice settle, the find shown and ended, the tick and the fade, tap and Done, a find again, the start tile, the blocks as a path grows, a dead jewel, the last word and the rest, the lid back on (`[solo]`) |
 | `tests/app/check_scene_contract.cmake` | `BoardScene.qml` (2D) and the prototype's | `app.scene_contract`: both declare the whole interface of the board scene, under the same names |
 | `tests/app/run_qmllint.cmake` | The application's QML | `app.qml_lint`: no warning from `qmllint`; skipped if the application has not been built |
+| `tests/app/parent_controller_test.cpp` | The parent area's `ParentController` | The gate as the screens drive it, the dashboard and settings maps, every setting changed by name and every wrong value refused, the resets, what the parent is told of the store. Built only with `WJS_BUILD_APP` |
+| `tests/app/parent_ui/` | The parent area's screens | `parent.screens`: see below |
+| `tests/privacy/` | The source tree | `privacy.sources` and `privacy.sources.selftest`: see below |
+| `tests/parent/` | `ParentWording.qml` | `parent.wording` and `parent.wording.selftest`: see below |
 | `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, and the scanner's work, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
 | `tests/scan/` | The scanner, the camera and `board_reader` interfaces and the synthetic corpus, as `wjs_scan_tests` | See below: [The scanner](#the-scanner) |
 | `tests/scan/check_privacy.cmake` | The scanner's sources and the camera and `board_reader` files | `scan.privacy`, `scan.privacy.catches_a_leak`: see [The scanner](#the-scanner) |
@@ -187,6 +200,41 @@ zone's source location is a function-local static of `zone<"name">()`, so one
 name is one place and a name used twice would show the first place's file and
 line for both. It scans `src/` and fails on a name that is used twice or is not
 `<layer>.<thing>`, lower case and dotted.
+
+## The privacy and parent-area checks
+
+**`privacy.sources`** runs `tests/privacy/check_sources.cmake` over the first-party tree
+(`src/`, `cmake/`, `tests/`, the top-level CMake files, any directory that is not
+third-party or documentation) and its manifests, for the rules of the first release that
+a source scan can hold ([Application design](design/application.md#privacy-built-in-and-checked)):
+no audio capture, no network class or header or URL literal or network Qt module or
+manifest permission, no export route (printing, sharing, a save dialog, the clipboard,
+a URL handed to the system, mail, a launched program), and no file written outside
+`src/lib/src/store.cpp`. A comment line is skipped; the checker, its self-test, the
+3D prototype (`src/app/prototype`, a program of its own) and the scanner's own privacy
+checker and its deliberate leak (`tests/scan`, which name the forbidden things as data) are
+not scanned. It is a
+pattern scan, not a proof, and Qt Qml links Qt Network itself, so the rule is "no
+capability and no use", not "no module". **`privacy.sources.selftest`** holds each rule to
+a violation it must find and to the cases it must leave alone, so a pattern that stops
+matching is a failure and not a pass. Both are CMake scripts, run on every host with no
+pwsh.
+
+**`parent.wording`** holds `src/app/qml/parent/ParentWording.qml`, the one file of
+sentences a parent reads, to the design (dashboard.md, "Wording"): the sentences the
+design quotes are there, none of a list of words an assessment or a gap is made of
+("weak", "mastered", "missed", ...) is in any parent screen, and no screen has a `qsTr`
+of its own. **`parent.wording.selftest`** holds the check to cases.
+
+**`parent.screens`** (with `WJS_BUILD_APP`) runs `wjs_parent_preview --check`: the
+parent area's screens in a stub shell, drawn by the software renderer under Qt's
+offscreen platform (`QT_QPA_PLATFORM=offscreen`; the platform fragment names anything
+else the host needs, `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT`). It drives the gate with
+synthetic touches on a clock of its own, walks the dashboard, the settings and the about
+page over made-up play, checks what is on screen (the design's sentences, the settings
+the table names, nothing of the data at the gate, none of the forbidden words) and that
+QML warned of nothing, and with `--out <dir>` saves a picture of each screen. The same
+program without `--check` is a window to look at them in.
 
 ## Performance tests
 

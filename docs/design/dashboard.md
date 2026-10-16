@@ -4,6 +4,10 @@ What a parent sees and sets, how it is guarded, what it measures and how it
 must be worded. Written from [product requirements](../product-requirements.md)
 sections 7.4, 10 and 12. Proposals unless marked **Fact**.
 
+**As built:** [The parent area as built](parent-area.md) records the store, the
+gate, the numbers and the screens, where the build chose between readings of this
+page, and what is for the reviewer.
+
 **Scope.** The MVP's dashboard is **on the device and nowhere else**
 (section 12.2): no export, no printable summary, no e-mail, no voice clip, no
 time played and no limit. Those stay in the brief and are deferred, not removed

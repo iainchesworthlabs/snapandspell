@@ -7,6 +7,10 @@ set(WJS_PLATFORM_DESKTOP ON)
 set(WJS_PLATFORM_QT_SEARCH_ROOTS "C:/Qt" "$ENV{USERPROFILE}/Qt")
 set(WJS_PLATFORM_QT_ARCH_DIRS msvc2022_64 msvc2019_64)
 
+# Qt's offscreen platform plugin draws text with the fonts in this directory, and
+# finds none of its own on Windows.
+set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "QT_QPA_FONTDIR=$ENV{SystemRoot}/Fonts")
+
 # detail/ is what no platform differs in: no camera backend yet, and the portable
 # board reader (docs/design/scanner.md).
 set(WJS_PLATFORM_SOURCES
@@ -48,7 +52,9 @@ function(wjs_platform_deploy_qt_runtime target qml_dir)
         return()
     endif()
 
-    set(_arguments --no-translations)
+    # qoffscreen is the platform plugin that runs without a display, which the
+    # checks of the Qt Quick screens need (tests/app/parent_ui).
+    set(_arguments --no-translations --include-plugins qoffscreen)
     if(NOT "${qml_dir}" STREQUAL "")
         list(APPEND _arguments --qmldir "${qml_dir}")
     endif()

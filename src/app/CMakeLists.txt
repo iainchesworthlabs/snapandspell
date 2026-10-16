@@ -75,8 +75,13 @@ foreach(_wjs_source IN LISTS _wjs_app_sources)
     endif()
 endforeach()
 
+# The parent area: the gate, the dashboard and the settings, a module of its own
+# (src/app/parent) for the screen shell to show when a parent asks.
+add_subdirectory(parent)
+
 target_link_libraries(wjs_app
     PRIVATE
+        wjs_parentplugin
         wjs::lib
         wjs::platform
         Qt6::Core

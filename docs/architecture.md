@@ -14,6 +14,8 @@ src/
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp  game_rules.hpp
                          game_session.hpp
+                         calendar.hpp  settings.hpp  store.hpp  session_store.hpp
+                         parent_gate.hpp  dashboard.hpp
                          solver_work.hpp  binder_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
     src/                 board.cpp  dice.cpp  draw.hpp (internal)  dictionary.cpp
@@ -21,6 +23,8 @@ src/
                          path.cpp  phase_data.cpp  seeding.cpp
                          grapheme_binder.cpp  shake.cpp  game_rules.cpp
                          game_session.cpp
+                         settings.cpp  store.cpp  store_format.cpp  session_store.cpp
+                         parent_gate.cpp  dashboard.cpp
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
                          profiling-disabled/wjs/profiling.hpp  (empty)
   scan/                wjs::scan: finds a board in a camera frame and reads its
@@ -42,6 +46,8 @@ src/
                          path_tracer.*, board_layout.*, solo_layout.*
     solver_model.*       the solver's model (no screen uses it now; it keeps its tests)
     system_colour_scheme.*  whether the system is in dark mode
+    parent/              the parent area's controller and its QML module (CMake)
+    qml/parent/          the parent area's screens and their wording
   platforms/           everything that differs between operating systems
     interfaces/wjs/platform/
                          console.hpp  paths.hpp  camera.hpp  board_reader.hpp
@@ -54,7 +60,8 @@ src/
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
                        Tracy.cmake, FindQt6.cmake
-tests/                 unit/  app/  platform/  perf/  profiling/  scan/
+tests/                 unit/  app/  app/parent_ui/  platform/  perf/  profiling/  scan/
+                       privacy/  parent/
 tools/checks/          check_platform_isolation.ps1
 tools/scan/            render_corpus.cpp: wjs_scan_render, writes the synthetic corpus
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
@@ -535,6 +542,44 @@ by the screens. Time, sound and animation are theirs. The standard board
 the phonics board's, and the deal is the one function in it that knows which
 board it is.
 
+### The store
+
+`Store` is what the application keeps between runs (docs/design/dashboard.md,
+"The store"): a small versioned text file in one place and nothing else. It holds
+each find (word, board size, phase, **day**, whether the start tile was shown, which
+board), the last twenty boards, the stars, the best of each size, the words found at
+least once (the vault), a tally for each of the last 35 days, the settings, and the
+game in progress; no duration, time of day, identity, location, image or sound. Every
+list has a bound and the file never exceeds 128 KiB. The first line is the version
+and the last a checksum; an older file is migrated a step at a time (`MigrationStep`)
+and kept beside the new one, a damaged file is moved aside whole and never
+overwritten, and a newer file is left alone and not saved over. A save is written
+whole and renamed into place. The game session hands it plain values
+(`BoardSnapshot`, `SavedSession`), and a find's moment is a `Day` from
+`wjs/calendar.hpp` (days since 1970-01-01, the device's calendar, with the week by
+the locale's first day). Where the file goes is `wjs::platform::user_data_directory()`.
+`session_store.hpp` is the copy between the game session's `BoardRecord` and
+`SessionSnapshot` and the store's values, and does what the session's `restore()` needs on
+the way back (upper-case words in alphabetical order, the session's own tile text).
+See [The parent area as built](design/parent-area.md#the-store).
+
+### The parent gate
+
+`Gate` (`wjs/parent_gate.hpp`) is the rule of the parental gate as logic: two touches,
+one in each of two circles a diagonal apart, held two seconds; any other touch, a lift
+or a slide out starts the hold over. It has no clock of its own: it is told the time
+with each touch. An accessibility action opens it with no hold. It keeps a child out
+of the settings by accident and is not security.
+
+### The dashboard
+
+`build_dashboard(store data, phase index, today, first day of the week)` computes what
+a parent sees, as counts: this week (boards cleared, stars, new words, the longest
+word), a row for each sound of the phase (boards it was met on, boards it was found
+on, distinct words found, found without the start tile, often found), the vault and
+the best. It words nothing: the screens do, from one file. With no phase data there are
+no sounds.
+
 ### The scanner
 
 `wjs::scan` (`src/scan`) reads a real board for Mode A: `read_board(frame, options)`
@@ -570,6 +615,7 @@ An OS service the program needs is declared in a header under
 | Interface | What it does | Windows | Linux | macOS |
 | --- | --- | --- | --- | --- |
 | `paths.hpp`: `executable_path()` | The absolute path of the running program, so data beside it can be found | `GetModuleFileNameW` | `/proc/self/exe` | `_NSGetExecutablePath` |
+| `paths.hpp`: `user_data_directory()` | The per-user, per-device directory a program keeps its own data in | `%LOCALAPPDATA%` | `$XDG_DATA_HOME`, else `~/.local/share` | `~/Library/Application Support` |
 | `console.hpp`: `use_utf8_console()` | Make the console read and write UTF-8 | `SetConsoleCP`, `SetConsoleOutputCP` | nothing to do (`posix/`) | nothing to do (`posix/`) |
 | `camera.hpp`: `enumerate_devices`, `start`, `stop`, `try_pop_latest_frame`, ... | Capture frames for Mode A | no camera backend yet (`detail/`): `unavailable` | the same | the same |
 | `board_reader.hpp`: `read(frame, options)` | Read a board from a frame | the portable reader (`detail/`) | the same | the same |
@@ -626,6 +672,15 @@ port's `settled()` calls the last two), `trace(path, stamp)`, `rest()`, `back()`
 for each size, the first-time sticker and the history come from the parent area's
 store.
 
+The parent area (the gate, the dashboard, the settings and the about page) is a QML
+module of its own, `WordJewelsSolver.Parent`, in `src/app/parent` (C++) and
+`src/app/qml/parent` (screens), linked by one line of `src/app/CMakeLists.txt`.
+`ParentController` is the shape Qt Quick wants over the library's rules, plus the
+clock; `ParentArea.qml` is one screen with a controller and a `closed()` signal. The
+program makes one `Store` and shares it with the game. Its tests are in
+`wjs_app_tests`, and a stub shell (`tests/app/parent_ui`) draws the screens without a
+display. See [The parent area as built](design/parent-area.md).
+
 ## Build targets
 
 | Target | Kind | Notes |
@@ -668,7 +723,8 @@ These do not exist, and nothing in the tree stands in for them:
   no front end uses them yet. No phase
   file exists, and none is written here: the content has to be written and
   reviewed by someone qualified to do it before a child uses it. The audio
-  clips, the sound-it-out sequence and the dashboard are not built.
+  clips and the sound-it-out sequence are not built. The parent dashboard is built
+  and shows nothing of the sounds until a phase exists.
 - **A standard board that always holds a word.** The standard board's deal
   (`wjs::roll` on the dice branch) does not check what it rolled, and with the
   full dictionary some rolls hold nothing: measured 2026-10-16 with the

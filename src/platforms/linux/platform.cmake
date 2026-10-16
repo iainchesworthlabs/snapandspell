@@ -8,6 +8,9 @@ set(WJS_PLATFORM_QT_SEARCH_ROOTS
     "$ENV{HOME}/Qt" "/opt/Qt" "/usr/lib/qt6" "/usr/lib/x86_64-linux-gnu/qt6")
 set(WJS_PLATFORM_QT_ARCH_DIRS gcc_64)
 
+# The offscreen platform plugin takes its fonts from fontconfig.
+set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
+
 # detail/ is what no platform differs in: no camera backend yet, and the portable
 # board reader (docs/design/scanner.md).
 set(WJS_PLATFORM_SOURCES
