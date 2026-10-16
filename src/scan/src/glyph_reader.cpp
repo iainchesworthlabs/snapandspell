@@ -255,7 +255,7 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
     // glyph is well under half of it, so that half is die.
     std::vector<double> values(count);
     for (std::size_t m = 0; m < count; ++m) {
-        values[m] = grey[c.pixel[m]];
+        values[m] = static_cast<double>(grey[c.pixel[m]]);
     }
     std::vector<double> sorted = values;
     std::ranges::nth_element(sorted, sorted.begin() + static_cast<std::ptrdiff_t>(count / 2));
