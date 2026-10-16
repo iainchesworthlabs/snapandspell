@@ -37,6 +37,8 @@ namespace wjs {
 struct Point {
     double x = 0.0;
     double y = 0.0;
+
+    friend bool operator==(const Point&, const Point&) = default;
 };
 
 struct Spot {
@@ -44,6 +46,8 @@ struct Spot {
     double radius = 0.0;
 
     [[nodiscard]] bool contains(Point p) const noexcept;
+
+    friend bool operator==(const Spot&, const Spot&) = default;
 };
 
 struct GateLayout {

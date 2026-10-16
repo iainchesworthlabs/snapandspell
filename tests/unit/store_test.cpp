@@ -463,14 +463,19 @@ namespace {
 // A pretend older format: a version 1 file whose find lines were called "saw".
 // The step renames them. This is the mechanism a real step would use.
 std::vector<wjs::MigrationStep> rename_saw_to_find() {
-    return {{1, [](wjs::RawStore& raw) {
-                 for (wjs::RawLine& line : raw.lines) {
-                     if (line.tag == "saw") {
-                         line.tag = "find";
-                     }
-                 }
-                 return true;
-             }}};
+    // Built by push_back, not from a braced list: the list copies each step, and
+    // GCC at -O3 takes the copy of a std::function from a temporary for a use of
+    // something uninitialised.
+    std::vector<wjs::MigrationStep> steps;
+    steps.push_back(wjs::MigrationStep{1, [](wjs::RawStore& raw) {
+                                           for (wjs::RawLine& line : raw.lines) {
+                                               if (line.tag == "saw") {
+                                                   line.tag = "find";
+                                               }
+                                           }
+                                           return true;
+                                       }});
+    return steps;
 }
 
 const std::string old_file =
@@ -499,7 +504,8 @@ TEST_CASE("without its migration an older file is damage this program cannot rea
 }
 
 TEST_CASE("a migration that refuses the file is told apart", "[store][migration]") {
-    const std::vector<wjs::MigrationStep> steps = {{1, [](wjs::RawStore&) { return false; }}};
+    std::vector<wjs::MigrationStep> steps;
+    steps.push_back(wjs::MigrationStep{1, [](wjs::RawStore&) { return false; }});
 
     const auto parsed = wjs::parse_store(old_file, steps, 2);
 
@@ -510,10 +516,10 @@ TEST_CASE("a migration that refuses the file is told apart", "[store][migration]
 TEST_CASE("migrations run in order, each on what the one before made", "[store][migration]") {
     // 1 -> 2 renames; 2 -> 3 adds a line. A file of version 1 gets both.
     std::vector<wjs::MigrationStep> steps = rename_saw_to_find();
-    steps.push_back({2, [](wjs::RawStore& raw) {
-                         raw.lines.push_back({"day", {"20738", "0", "7"}});
-                         return true;
-                     }});
+    steps.push_back(wjs::MigrationStep{2, [](wjs::RawStore& raw) {
+                                           raw.lines.push_back({"day", {"20738", "0", "7"}});
+                                           return true;
+                                       }});
 
     const auto parsed = wjs::parse_store(old_file, steps, 3);
 
