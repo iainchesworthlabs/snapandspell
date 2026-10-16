@@ -1,13 +1,18 @@
 #include <QObject>
+#include <QString>
+#include <QStringList>
+#include <QVariantList>
 #include <QVariantMap>
 #include <algorithm>
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <cctype>
 #include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -35,7 +40,8 @@
 // rules are tested in tests/unit/game_session_test.cpp; what is held down here is
 // that each call of the port is the call of the session it is meant to be, that
 // nothing the session keeps back (a word that is not today's) is handed to the
-// screens, and what is handed to the store.
+// screens, what is handed to the store, and that a run begins where the last one
+// ended (the game in progress, and the size the child chose last).
 //
 // TEST DATA. Two phases written for these tests (the words of the session's own
 // tests, with placeholder sounds) and a word list that holds them and a few real
@@ -240,6 +246,12 @@ struct Table {
     explicit Table(wjs::GameSession session)
         : game(std::move(session), true, phase_a(), store, device_day) {}
 };
+
+std::string lower_case(std::string text) {
+    std::ranges::transform(text, text.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return text;
+}
 
 std::vector<std::string> words_of(const std::vector<wjs::app::SoloFound>& found) {
     std::vector<std::string> words;
@@ -1024,4 +1036,475 @@ TEST_CASE("a change in the parent area is the box's next game, through the model
 
     CHECK(model.state() == "box");
     CHECK_FALSE(model.helpAllowed());
+}
+
+// --- the game in progress ------------------------------------------------------
+
+TEST_CASE("the store keeps the game in progress after each change", "[app][real]") {
+    Table table("A");
+    RealSoloGame& game = table.game;
+    const std::optional<wjs::SavedSession>& saved = table.store.session();
+
+    // A board on the table with nothing found.
+    REQUIRE(saved.has_value());
+    CHECK(saved->state == wjs::SavedState::playing);
+    CHECK(saved->size == 3);
+    REQUIRE(saved->board.has_value());
+    CHECK(saved->board->phase == "A");
+    CHECK(saved->board->finds.empty());
+    CHECK_FALSE(saved->lit.has_value());
+
+    // A find, with the day it was made.
+    REQUIRE(game.submit(pat).kind == WordKind::viable);
+    REQUIRE(saved->board->finds.size() == 1);
+    CHECK(saved->board->finds[0].word == "pat");
+    CHECK(saved->board->finds[0].day == today);
+
+    // The start tile is kept while it is lit, and its word is found with help.
+    REQUIRE(game.startTile().has_value());
+    REQUIRE(saved->lit.has_value());
+    const std::string lit = *saved->lit;
+    const auto words = wjs::solve(*game.session().board(), phase_a().dictionary());
+    const auto lit_word = std::ranges::find_if(
+        words, [&](const wjs::FoundWord& word) { return lower_case(word.word) == lit; });
+    REQUIRE(lit_word != words.end());
+    REQUIRE(game.submit(lit_word->path).kind == WordKind::viable);
+    CHECK_FALSE(saved->lit.has_value());
+    REQUIRE(saved->board->finds.size() == 2);
+    CHECK(saved->board->finds[1].assisted);
+
+    // The last word clears the board, and a cleared board is kept as the resting
+    // screen, which the celebration does not change.
+    for (const wjs::FoundWord& word : words) {
+        game.submit(word.path);
+    }
+    REQUIRE(game.state() == SoloState::cleared);
+    CHECK(saved->state == wjs::SavedState::resting);
+    CHECK(saved->board->finds.size() == 5);
+    game.celebrated();
+    CHECK(saved->state == wjs::SavedState::resting);
+
+    // Again puts the lid on: nothing is in progress.
+    game.again();
+    CHECK_FALSE(saved.has_value());
+}
+
+TEST_CASE("a game in the box, the shake or the drop is no game in progress", "[app][real]") {
+    // A game left on the table, which a new game replaces.
+    Table left("A");
+    REQUIRE(left.store.session().has_value());
+    const std::optional<wjs::SavedSession>& saved = left.store.session();
+
+    auto made = RealSoloGame::create(phase_a(), english(), left.store, {}, device_day);
+    REQUIRE(made.has_value());
+    RealSoloGame& game = *made;
+    CHECK_FALSE(saved.has_value());
+
+    REQUIRE(game.shake());
+    CHECK_FALSE(saved.has_value());
+    game.settled();
+    REQUIRE(saved.has_value());
+    CHECK(saved->state == wjs::SavedState::playing);
+
+    game.lidOn();
+    CHECK_FALSE(saved.has_value());
+}
+
+TEST_CASE("the size the child chooses is the one the box offers next", "[app][real]") {
+    wjs::Store store = wjs::Store::in_memory();
+    wjs::Settings settings = store.settings();
+    settings.help = false;
+    settings.phase = "B";
+    store.update_settings(settings);
+    auto made = RealSoloGame::create(phase_a(), english(), store, {}, device_day);
+    REQUIRE(made.has_value());
+    RealSoloGame& game = *made;
+    REQUIRE(store.settings().board_size == 3);
+
+    struct Choice {
+        std::size_t side;
+        int written;  // the settings' board size after it
+    };
+    // A side that is no size is not a choice.
+    const std::array<Choice, 6> choices = {{{4, 4}, {4, 4}, {5, 4}, {3, 3}, {0, 3}, {4, 4}}};
+    for (const Choice& choice : choices) {
+        INFO(choice.side);
+        game.chooseSize(choice.side);
+        CHECK(store.settings().board_size == choice.written);
+    }
+    // The rest of the settings are the parent's, and are not touched.
+    CHECK_FALSE(store.settings().help);
+    CHECK(store.settings().phase == "B");
+
+    // Only the box takes a choice, so a later one is not the last used.
+    REQUIRE(game.shake());
+    game.chooseSize(3);
+    CHECK(game.size() == 4);
+    CHECK(store.settings().board_size == 4);
+}
+
+namespace {
+
+// What a game shows the screens: enough to tell one game in progress from another.
+struct Seen {
+    SoloState state = SoloState::box;
+    std::size_t size = 0;
+    std::size_t rows = 0;
+    std::size_t columns = 0;
+    std::vector<std::string> tiles;
+    std::vector<std::string> found;
+    std::optional<Position> lit;
+};
+
+Seen seen(const wjs::app::SoloGame& game) {
+    Seen shown;
+    shown.state = game.state();
+    shown.size = game.size();
+    shown.rows = game.board().rows;
+    shown.columns = game.board().columns;
+    shown.tiles = game.board().tiles;
+    shown.found = words_of(game.found());
+    shown.lit = game.litTile();
+    return shown;
+}
+
+// One run of the program, as far as the game goes: the setup opened on the files and
+// the store, the game it made, and a few moves a child's hand makes on it.
+struct Run {
+    wjs::app::SoloGameSetup& setup;
+    wjs::app::SoloGame& game;
+
+    // The shake and the drop: a board on the table.
+    void deal() const {
+        REQUIRE(game.shake());
+        game.settled();
+        REQUIRE(game.state() == SoloState::playing);
+    }
+
+    // Every word of the board in play, each with a path that spells it.
+    [[nodiscard]] std::vector<wjs::FoundWord> words() const {
+        const auto* real = dynamic_cast<const RealSoloGame*>(&game);
+        REQUIRE(real != nullptr);
+        return wjs::solve(*real->session().board(), setup.phase().dictionary());
+    }
+
+    // The first `count` of them, found.
+    void find(std::size_t count) const {
+        const auto all = words();
+        REQUIRE(all.size() >= count);
+        for (std::size_t i = 0; i < count; ++i) {
+            REQUIRE(game.submit(all[i].path).kind == WordKind::viable);
+        }
+    }
+};
+
+using Play = std::function<void(const Run&)>;
+
+// What a run is made from: the setup's options and the store file the runs share.
+struct RunOptions : wjs::app::SoloGameOptions {
+    std::filesystem::path store;
+};
+
+// What the program has when it starts: the store opened from its file (main.cpp) and
+// the setup over it. Held in place, because the setup points at the store.
+struct OpenedRun {
+    wjs::OpenResult store;
+    std::unique_ptr<wjs::app::SoloGameSetup> setup;
+
+    explicit OpenedRun(const RunOptions& options) : store(wjs::Store::open(options.store)) {
+        auto opened = wjs::app::SoloGameSetup::open(options, store.store);
+        REQUIRE(opened.has_value());
+        setup = *std::move(opened);
+    }
+    OpenedRun(const OpenedRun&) = delete;
+    OpenedRun& operator=(const OpenedRun&) = delete;
+};
+
+// A run: the setup opened as the program opens it, its game made and played with
+// `play`, and everything closed again. What the game showed when it was left.
+Seen run(const RunOptions& options, const Play& play = {}) {
+    const OpenedRun opened(options);
+    const auto game = opened.setup->make();
+    if (play) {
+        play(Run{*opened.setup, *game});
+    }
+    return seen(*game);
+}
+
+// The options of a run over a store file of its own, which the runs share.
+RunOptions kept_options(const TempDirectory& directory) {
+    write_data(directory);
+    RunOptions options;
+    static_cast<wjs::app::SoloGameOptions&>(options) = options_in(directory);
+    options.store = directory.path() / "store.wjs";
+    return options;
+}
+
+// The store's file as a run left it, with its game in progress changed by `edit`.
+void tamper(const std::filesystem::path& file,
+            const std::function<void(wjs::SavedSession&)>& edit) {
+    auto opened = wjs::Store::open(file);
+    REQUIRE(opened.store.session().has_value());
+    wjs::SavedSession saved = *opened.store.session();
+    edit(saved);
+    REQUIRE(opened.store.save_session(saved));
+}
+
+}  // namespace
+
+TEST_CASE("a run begins where the last one ended", "[app][real]") {
+    struct Left {
+        const char* name;
+        Play play;
+        SoloState next;  // what the next run opens on
+        bool kept;       // with the board, the tray and the start tile of the run before
+    };
+    const std::array<Left, 7> rows = {{
+        {"a board on the table", [](const Run& run) { run.deal(); }, SoloState::playing, true},
+        {"two finds and the start tile lit",
+         [](const Run& run) {
+             run.deal();
+             run.find(2);
+             REQUIRE(run.game.startTile().has_value());
+         },
+         SoloState::playing, true},
+        {"the last word found",
+         [](const Run& run) {
+             run.deal();
+             run.find(run.words().size());
+             REQUIRE(run.game.state() == SoloState::cleared);
+         },
+         SoloState::resting, true},
+        {"the celebration over",
+         [](const Run& run) {
+             run.deal();
+             run.find(run.words().size());
+             run.game.celebrated();
+             REQUIRE(run.game.state() == SoloState::resting);
+         },
+         SoloState::resting, true},
+        {"Again",
+         [](const Run& run) {
+             run.deal();
+             run.find(run.words().size());
+             run.game.celebrated();
+             run.game.again();
+         },
+         SoloState::box, false},
+        {"the lid put back on",
+         [](const Run& run) {
+             run.deal();
+             run.find(1);
+             run.game.lidOn();
+         },
+         SoloState::box, false},
+        {"the box mid-shake", [](const Run& run) { REQUIRE(run.game.shake()); }, SoloState::box,
+         false},
+    }};
+
+    for (const Left& row : rows) {
+        INFO(row.name);
+        const TempDirectory directory;
+        const auto options = kept_options(directory);
+
+        const Seen before = run(options, row.play);
+        const Seen after = run(options);
+
+        CHECK(after.state == row.next);
+        if (row.kept) {
+            CHECK_FALSE(after.tiles.empty());
+            CHECK(after.size == before.size);
+            CHECK(after.rows == before.rows);
+            CHECK(after.columns == before.columns);
+            CHECK(after.tiles == before.tiles);
+            CHECK(after.found == before.found);
+            CHECK(after.lit == before.lit);
+        } else {
+            CHECK(after.tiles.empty());
+            CHECK(after.found.empty());
+            CHECK_FALSE(after.lit.has_value());
+        }
+    }
+}
+
+TEST_CASE("a game brought back goes on where it was, and the board is one board", "[app][real]") {
+    const TempDirectory directory;
+    const auto options = kept_options(directory);
+    run(options, [](const Run& run) {
+        run.deal();
+        run.find(1);
+    });
+
+    std::size_t boards = 0;
+    std::vector<std::string> history_words;
+    const Seen second = run(options, [&](const Run& run) {
+        REQUIRE(run.game.state() == SoloState::playing);
+        // The first word is on the tray already, the second is new.
+        run.find(2);
+        run.game.lidOn();
+        const auto history = run.game.history();
+        boards = history.size();
+        if (!history.empty()) {
+            history_words = words_of(history.front().found);
+        }
+    });
+
+    CHECK(second.state == SoloState::box);
+    CHECK(boards == 1);
+    CHECK(history_words.size() == 2);
+    // The lid on is the end of that game: the next run starts anew.
+    CHECK(run(options).state == SoloState::box);
+}
+
+TEST_CASE("the next run's box offers the size last chosen", "[app][real]") {
+    const TempDirectory directory;
+    const auto options = kept_options(directory);
+
+    CHECK(run(options).size == 3);
+    run(options, [](const Run& run) { run.game.chooseSize(4); });
+    const Seen next = run(options);
+    CHECK(next.state == SoloState::box);
+    CHECK(next.size == 4);
+    run(options, [](const Run& run) { run.game.chooseSize(3); });
+    CHECK(run(options).size == 3);
+}
+
+TEST_CASE("a game that cannot come back is forgotten and a new one begins in the box",
+          "[app][real]") {
+    struct Gone {
+        const char* name;
+        std::function<void(wjs::SavedSession&)> edit;  // what the file is changed by
+        std::string phase;                             // the phase of the next run, or ""
+    };
+    const std::array<Gone, 4> rows = {{
+        {"the phase played is another now", nullptr, "B"},
+        {"the phase no longer holds a word of the board",
+         [](wjs::SavedSession& saved) {
+             // A word that is not found yet: the store keeps no find that is not on the board.
+             std::vector<std::string>& viable = saved.board->viable;
+             const auto gone = std::ranges::find_if(viable, [&](const std::string& word) {
+                 return std::ranges::none_of(saved.board->finds,
+                                             [&](const wjs::FoundSnapshot& found) {
+                                                 return lower_case(found.word) == lower_case(word);
+                                             });
+             });
+             REQUIRE(gone != viable.end());
+             viable.erase(gone);
+             saved.board->viable_total = static_cast<int>(viable.size());
+         },
+         ""},
+        {"a record that is resting but not cleared",
+         [](wjs::SavedSession& saved) { saved.state = wjs::SavedState::resting; }, ""},
+        {"a start tile lit for a word already found",
+         [](wjs::SavedSession& saved) { saved.lit = saved.board->finds.front().word; }, ""},
+    }};
+
+    for (const Gone& row : rows) {
+        INFO(row.name);
+        const TempDirectory directory;
+        auto options = kept_options(directory);
+        run(options, [](const Run& run) {
+            run.deal();
+            run.find(1);
+        });
+        if (row.edit) {
+            tamper(options.store, row.edit);
+        }
+        options.phase = row.phase;
+
+        // Nothing is said: the next run opens in the box, with nothing on the table,
+        // and what could not come back is gone from the file.
+        const Seen after = run(options);
+        CHECK(after.state == SoloState::box);
+        CHECK(after.tiles.empty());
+        CHECK(after.found.empty());
+        CHECK_FALSE(wjs::Store::open(options.store).store.session().has_value());
+
+        // And that run goes on to play a game of its own (the other phase of the test
+        // data is too small to deal a board).
+        if (row.phase.empty()) {
+            CHECK(run(options, [](const Run& run) { run.deal(); }).state == SoloState::playing);
+            CHECK(run(options).state == SoloState::playing);
+        }
+    }
+}
+
+TEST_CASE("a start tile the parent no longer allows is not lit when the game comes back",
+          "[app][real]") {
+    const TempDirectory directory;
+    const auto options = kept_options(directory);
+    const Seen before = run(options, [](const Run& run) {
+        run.deal();
+        run.find(1);
+        REQUIRE(run.game.startTile().has_value());
+    });
+    REQUIRE(before.lit.has_value());
+    {
+        auto opened = wjs::Store::open(options.store);
+        wjs::Settings settings = opened.store.settings();
+        settings.help = false;
+        opened.store.update_settings(settings);
+    }
+
+    bool allowed = true;
+    const Seen after = run(options, [&](const Run& run) { allowed = run.game.helpAllowed(); });
+    CHECK_FALSE(allowed);
+    CHECK(after.state == SoloState::playing);
+    CHECK(after.tiles == before.tiles);
+    CHECK_FALSE(after.lit.has_value());
+}
+
+TEST_CASE("the model opens on the game that was left, with no shake", "[app][real]") {
+    const TempDirectory directory;
+    const auto options = kept_options(directory);
+
+    SECTION("a board on the table, its tray and its lit tile") {
+        std::vector<Position> third;
+        const Seen before = run(options, [&](const Run& run) {
+            run.deal();
+            run.find(2);
+            REQUIRE(run.game.startTile().has_value());
+            third = run.words()[2].path;
+        });
+        REQUIRE(before.lit.has_value());
+
+        const OpenedRun opened(options);
+        wjs::app::SoloModel model(opened.setup->make());
+        model.setGeometry(100, 10);
+
+        CHECK(model.state() == "playing");
+        CHECK(model.rows() == 3);
+        CHECK(model.columns() == 3);
+        QStringList tiles;
+        for (const std::string& tile : before.tiles) {
+            tiles.append(QString::fromStdString(tile));
+        }
+        CHECK(model.tiles() == tiles);
+        CHECK(model.boardVersion() == 1);
+        REQUIRE(model.found().size() == 2);
+        CHECK(model.found()[0].toMap().value("word").toString().toStdString() == before.found[0]);
+        CHECK(model.helpTile() == static_cast<int>(before.lit->row * 3 + before.lit->column));
+
+        // It takes a word at once: the tiles tapped in order, and Done.
+        for (const Position position : third) {
+            model.tapTile(static_cast<int>(position.row * 3 + position.column));
+        }
+        model.done();
+        CHECK(model.state() == "word-found");
+        CHECK(model.found().size() == 3);
+    }
+    SECTION("the resting screen, and Again from it") {
+        run(options, [](const Run& run) {
+            run.deal();
+            run.find(run.words().size());
+        });
+
+        const OpenedRun opened(options);
+        wjs::app::SoloModel model(opened.setup->make());
+
+        CHECK(model.state() == "resting");
+        CHECK_FALSE(model.found().isEmpty());
+        model.again();
+        CHECK(model.state() == "box");
+    }
 }

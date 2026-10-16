@@ -48,6 +48,14 @@ SoloModel::SoloModel(QObject* parent) : SoloModel(make_solo_game(), parent) {}
 SoloModel::SoloModel(std::unique_ptr<SoloGame> game, QObject* parent)
     : QObject(parent), game_(std::move(game)) {
     refreshHistory();
+    // A game that is not in the box was brought back from the run before: the board
+    // is on the table already, with no shake to deal it, so what a shake sets up is
+    // set up here (the touch geometry, and the tile the help had lit).
+    if (game_->state() != SoloState::box) {
+        ++board_version_;
+        resetTracer();
+        refreshHelp();
+    }
 }
 
 SoloModel::~SoloModel() = default;
@@ -409,13 +417,18 @@ void SoloModel::renewGameIfDue() {
     }
     renew_due_ = false;
     // The game is made from the store as it is now (the maker is the program's), and
-    // the box is shown as a new game's: empty, with the size and the help the parent
-    // has chosen and the history the store keeps.
+    // shown as a new game is: the box, empty, with the size and the help the parent
+    // has chosen and the history the store keeps. One that is not in the box was
+    // brought back, as at the start (the constructor): its board is on the table.
     game_ = make_solo_game();
     presenting_ = false;
     help_tile_ = -1;
     lit_path_.clear();
+    if (game_->state() != SoloState::box) {
+        ++board_version_;
+    }
     resetTracer();
+    refreshHelp();
     refreshHistory();
     emit sizeChanged();
     emit boardChanged();
