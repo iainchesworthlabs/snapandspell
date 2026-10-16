@@ -66,6 +66,39 @@ TEST_CASE("each shipped set has the dice for its board and six faces to a die", 
     }
 }
 
+TEST_CASE("the placements of a roll are the faces of the shipped dice that are up", "[dice][data]") {
+    // The scene draws a die with its six faces and lands it on the face the
+    // roll says is up, so for every tile of every board the die and face that
+    // are returned must be the tile's letters, and each die is on one tile.
+    for (const std::size_t side : {3U, 4U, 5U, 6U}) {
+        const auto set = load(side);
+
+        for (std::uint32_t seed = 1; seed <= 300; ++seed) {
+            const auto rolled = wjs::roll_with_placements(set, seed);
+
+            INFO("side " << side << " seed " << seed);
+            REQUIRE(rolled.has_value());
+            REQUIRE(rolled->board.rows() == side);
+            REQUIRE(rolled->board.columns() == side);
+            REQUIRE(rolled->placements.size() == side * side);
+
+            std::set<std::size_t> used;
+            bool all_match = true;
+            for (std::size_t tile = 0; tile < side * side; ++tile) {
+                const auto& placement = rolled->placements[tile];
+                REQUIRE(placement.die < set.size());
+                REQUIRE(placement.face < set.die(placement.die).size());
+                all_match = all_match &&
+                            set.die(placement.die)[placement.face] ==
+                                rolled->board.tile({tile / side, tile % side});
+                used.insert(placement.die);
+            }
+            CHECK(all_match);
+            CHECK(used.size() == side * side);
+        }
+    }
+}
+
 TEST_CASE("boards rolled from the shipped dice hold about the words a random board does",
           "[dice][data]") {
     // The design measured boards of letters drawn by the dictionary's letter
@@ -130,4 +163,10 @@ TEST_CASE("a seed rolls the same board from the shipped dice on every compiler",
 
     CHECK(text(*wjs::roll(load(3), 1)) == "Z C N/R R V/M A B");
     CHECK(text(*wjs::roll(load(4), 1)) == "E A L N/O D O I/S K C T/H U T O");
+
+    // The same boards from the function that returns the placements, which
+    // must not have moved a board: a board of today is a board of before.
+    CHECK(text(wjs::roll_with_placements(load(3), 1)->board) == "Z C N/R R V/M A B");
+    CHECK(text(wjs::roll_with_placements(load(4), 1)->board) ==
+          "E A L N/O D O I/S K C T/H U T O");
 }
