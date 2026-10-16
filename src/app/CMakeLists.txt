@@ -45,10 +45,14 @@ qt_add_qml_module(wjs_app
         solo/fake_solo_game.hpp
         solo/path_tracer.cpp
         solo/path_tracer.hpp
+        solo/real_solo_game.cpp
+        solo/real_solo_game.hpp
         solo/solo_game.cpp
         solo/solo_game.hpp
         solo/solo_game_factory.cpp
         solo/solo_game_factory.hpp
+        solo/solo_game_setup.cpp
+        solo/solo_game_setup.hpp
         solo/solo_layout.cpp
         solo/solo_layout.hpp
         solo/solo_model.cpp

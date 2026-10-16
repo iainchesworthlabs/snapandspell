@@ -1,0 +1,273 @@
+#include "real_solo_game.hpp"
+
+#include <algorithm>
+#include <cctype>
+#include <utility>
+
+#include "wjs/board.hpp"
+#include "wjs/game_rules.hpp"
+#include "wjs/seeding.hpp"
+#include "wjs/session_store.hpp"
+
+namespace wjs::app {
+namespace {
+
+[[nodiscard]] std::string lower(std::string word) {
+    std::ranges::transform(word, word.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return word;
+}
+
+[[nodiscard]] WordTier tier_of(wjs::Tier tier) noexcept {
+    switch (tier) {
+        case wjs::Tier::spark:
+            return WordTier::spark;
+        case wjs::Tier::power:
+            return WordTier::power;
+        case wjs::Tier::mega:
+            return WordTier::mega;
+    }
+    return WordTier::spark;
+}
+
+// A word in the tray: lower-case, whatever case it was kept in.
+[[nodiscard]] SoloFound tray_word(std::string_view word, int stars) {
+    SoloFound found;
+    found.word = lower(std::string(word));
+    found.tier = tier_of(wjs::tier_for_letters(word.size()).value_or(wjs::Tier::spark));
+    found.stars = stars;
+    return found;
+}
+
+[[nodiscard]] SoloFound tray_word(const wjs::Find& find) {
+    return tray_word(find.word, find.reward().stars);
+}
+
+[[nodiscard]] SoloState solo_state_of(wjs::SessionState state) noexcept {
+    switch (state) {
+        case wjs::SessionState::box:
+            return SoloState::box;
+        case wjs::SessionState::shaking:
+            return SoloState::shaking;
+        case wjs::SessionState::dropping:
+            return SoloState::dropping;
+        case wjs::SessionState::playing:
+            return SoloState::playing;
+        case wjs::SessionState::cleared:
+            return SoloState::cleared;
+        case wjs::SessionState::resting:
+            return SoloState::resting;
+    }
+    return SoloState::box;
+}
+
+// The letter the phase leaves out of every board, which is what the session
+// writes on a dead jewel in a record. Empty when the phase cannot make a board.
+[[nodiscard]] std::string dead_letter_of(const wjs::PhaseIndex& phase) {
+    const auto options = wjs::phonics_board_options(phase, 3);
+    if (!options) {
+        return {};
+    }
+    return std::string(
+        1, static_cast<char>(std::toupper(static_cast<unsigned char>(options->dead_letter))));
+}
+
+}  // namespace
+
+RealSoloGame::RealSoloGame(wjs::GameSession session, bool help_allowed,
+                           const wjs::PhaseIndex& phase, wjs::Store& store,
+                           std::function<wjs::Day()> today)
+    : session_(std::move(session)),
+      help_allowed_(help_allowed),
+      phase_(&phase),
+      store_(&store),
+      today_(std::move(today)),
+      binder_(phase),
+      dead_letter_(dead_letter_of(phase)),
+      board_(scene_board()) {
+    refresh_found();
+}
+
+std::expected<RealSoloGame, wjs::SessionError> RealSoloGame::create(
+    const wjs::PhaseIndex& phase, const wjs::Dictionary& dictionary, wjs::Store& store,
+    const wjs::SessionOptions& options, std::function<wjs::Day()> today) {
+    auto session = wjs::GameSession::create(phase, dictionary, options);
+    if (!session) {
+        return std::unexpected(session.error());
+    }
+    return RealSoloGame(*std::move(session), options.help, phase, store, std::move(today));
+}
+
+SoloState RealSoloGame::state() const {
+    return solo_state_of(session_.state());
+}
+
+std::size_t RealSoloGame::size() const {
+    return wjs::side(session_.size());
+}
+
+void RealSoloGame::chooseSize(std::size_t size) {
+    if (const auto chosen = wjs::board_size_for(size)) {
+        session_.choose_size(*chosen);
+    }
+}
+
+bool RealSoloGame::shake() {
+    if (!session_.shake()) {
+        return false;
+    }
+    board_ = scene_board();
+    found_.clear();
+    return true;
+}
+
+void RealSoloGame::settled() {
+    // The scene reports one moment for the shake, the lid and the drop, which the
+    // session has as two. Each applies in its own state and ignores the others, so
+    // from `shaking` both run and from `dropping` the second does.
+    session_.still();
+    session_.landed();
+}
+
+TraceOutcome RealSoloGame::submit(std::span<const Position> path) {
+    TraceOutcome outcome;
+    const wjs::TraceOutcome traced = session_.trace(path, today_());
+
+    switch (traced.kind) {
+        case wjs::TraceKind::found:
+        case wjs::TraceKind::found_again: {
+            if (!traced.find) {
+                break;
+            }
+            outcome.kind = WordKind::viable;
+            outcome.found = tray_word(*traced.find);
+            outcome.alreadyFound = traced.kind == wjs::TraceKind::found_again;
+            if (traced.kind == wjs::TraceKind::found) {
+                refresh_found();
+                outcome.cleared = traced.cleared;
+                const wjs::RecordOutcome recorded = record_board();
+                // Recorded silently, and meant for one sparkle inside the last word's
+                // celebration: the store says so only for a board that has just cleared.
+                outcome.newBest = recorded.new_best && traced.cleared;
+                outcome.sticker =
+                    traced.sticker() && std::ranges::find(recorded.new_words, outcome.found.word) !=
+                                            recorded.new_words.end();
+            }
+            break;
+        }
+        case wjs::TraceKind::real_not_todays:
+            // The kind and no word: nothing in the answer could be shown or read.
+            outcome.kind = WordKind::realNotTodays;
+            break;
+        case wjs::TraceKind::not_a_word:
+        case wjs::TraceKind::ignored:
+            break;
+    }
+    return outcome;
+}
+
+std::vector<GraphemeBinder::Block> RealSoloGame::blocks(std::span<const Position> path) const {
+    const wjs::Board* board = session_.board();
+    if (board == nullptr ||
+        !std::ranges::all_of(path, [&](Position position) { return board->contains(position); })) {
+        return {};
+    }
+    return binder_.bind(*board, path);
+}
+
+void RealSoloGame::celebrated() {
+    session_.rest();
+}
+
+std::optional<Position> RealSoloGame::startTile() {
+    return session_.request_help();
+}
+
+std::optional<Position> RealSoloGame::litTile() const {
+    return session_.lit_tile();
+}
+
+void RealSoloGame::lidOn() {
+    // The board that was in play is kept by the session until the next shake, so
+    // it can be handed over whichever way it was left.
+    if (session_.back()) {
+        record_board();
+    }
+}
+
+void RealSoloGame::again() {
+    session_.again();
+}
+
+std::vector<SoloHistoryEntry> RealSoloGame::history() const {
+    const wjs::StoreData& data = store_->data();
+    std::vector<SoloHistoryEntry> entries;
+    entries.reserve(data.boards.size());
+    for (auto stored = data.boards.rbegin(); stored != data.boards.rend(); ++stored) {
+        const auto parsed = wjs::Board::parse(stored->tiles);
+        if (!parsed) {
+            continue;
+        }
+        // A tile with the phase's dead letter is a dead jewel on a board of this
+        // phase; on a board of another the letter is not ours to read.
+        const bool ours = !dead_letter_.empty() && stored->phase == phase_->phase();
+        SoloHistoryEntry entry;
+        entry.board.rows = parsed->rows();
+        entry.board.columns = parsed->columns();
+        for (std::size_t row = 0; row < parsed->rows(); ++row) {
+            for (std::size_t column = 0; column < parsed->columns(); ++column) {
+                const std::string& tile = parsed->tile({row, column});
+                entry.board.tiles.push_back(ours && tile == dead_letter_ ? std::string{} : tile);
+            }
+        }
+        for (const wjs::FindRecord& find : wjs::finds_on_board(data, stored->serial)) {
+            entry.found.push_back(tray_word(find.word, find.stars));
+        }
+        entries.push_back(std::move(entry));
+    }
+    return entries;
+}
+
+SoloBoard RealSoloGame::scene_board() const {
+    const wjs::Board* board = session_.board();
+    if (board == nullptr) {
+        return {};
+    }
+    SoloBoard scene;
+    scene.rows = board->rows();
+    scene.columns = board->columns();
+    const std::span<const Position> dead = session_.dead_tiles();
+    scene.tiles.reserve(scene.rows * scene.columns);
+    for (std::size_t row = 0; row < scene.rows; ++row) {
+        for (std::size_t column = 0; column < scene.columns; ++column) {
+            const Position position{row, column};
+            const bool is_dead = std::ranges::find(dead, position) != dead.end();
+            scene.tiles.push_back(is_dead ? std::string{} : board->tile(position));
+        }
+    }
+    if (const auto& deal = session_.last_deal()) {
+        scene.seed = deal->seed;
+    }
+    return scene;
+}
+
+void RealSoloGame::refresh_found() {
+    found_.clear();
+    for (const wjs::Find& find : session_.finds()) {
+        found_.push_back(tray_word(find));
+    }
+}
+
+wjs::RecordOutcome RealSoloGame::record_board() {
+    const auto record = session_.record();
+    if (!record) {
+        return {};
+    }
+    const auto snapshot = wjs::snapshot_of(*record);
+    if (!snapshot) {
+        return {};
+    }
+    return store_->record(*snapshot, today_());
+}
+
+}  // namespace wjs::app

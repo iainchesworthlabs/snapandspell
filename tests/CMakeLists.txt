@@ -8,6 +8,7 @@ add_executable(wjs_unit_tests
     unit/dice_data_test.cpp
     unit/dice_test.cpp
     unit/dictionary_test.cpp
+    unit/deal_test.cpp
     unit/game_rules_test.cpp
     unit/game_session_test.cpp
     unit/grapheme_binder_test.cpp
@@ -127,14 +128,17 @@ if(WJS_BUILD_APP)
         app/parent_controller_test.cpp
         app/parent_ui/demo_data.cpp
         app/path_tracer_test.cpp
+        app/real_solo_game_test.cpp
         app/solo_model_test.cpp
         app/solver_model_test.cpp
         "${PROJECT_SOURCE_DIR}/src/app/parent/parent_controller.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/board_layout.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/fake_solo_game.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/path_tracer.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/solo/real_solo_game.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_factory.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_setup.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_model.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solver_model.cpp")

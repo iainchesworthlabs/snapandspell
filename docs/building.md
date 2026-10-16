@@ -143,6 +143,20 @@ With the window enabled, `ctest` also runs `wjs_app_tests`, the Catch2 tests of
 the model the window talks to. They need Qt's runtime beside them, which the
 build arranges the same way.
 
+The window plays a stand-in game until it is told where a phase is: the
+repository has none, because the phase files have to be written and reviewed by a
+person qualified to do it. To play the library's session, keep a directory of
+`phase-<x>.graphemes.txt` and `phase-<x>.words.txt` files **outside the
+repository** and start the program with it
+([the options](architecture.md#the-qt-quick-window)):
+
+```sh
+build/windows-msvc-release/bin/WordJewelsSolver.exe --phase-directory <dir> --store <file> --seed 7
+```
+
+Give `--store` a file of its own when the phase is test data, or what is found
+goes into the store of your own profile.
+
 ## Dependencies
 
 The vcpkg manifest (`vcpkg.json`) is pinned to a `builtin-baseline`, and the

@@ -33,10 +33,18 @@ that release, so that its rules (branch protection, required checks) can apply.
   in place of any colour or size in a screen (light, dark, reduced motion), a calm
   resting screen with nothing that asks the child to go on, and no text drawn into
   a picture. The board scene is one component behind its interface with a 2D
-  placeholder; the game is `SoloGame`, a Qt-free port, with a fake until the
-  library's session is wired. It replaces the window that typed a board into a
+  placeholder; the game is `SoloGame`, a Qt-free port, answered by the library's
+  session or, without a phase, by a fake. It replaces the window that typed a board into a
   grid; `SolverModel` stays with its tests. There is no sound, no device shake and
   no bundled font yet. See [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
+- **The Solo Play screens over the library's session**: `RealSoloGame` (`src/app/solo`) is the
+  port over `wjs::GameSession`, handing the session's records to the store after each find and
+  when the lid goes on, and reading the best, the first-time sticker and the history from it.
+  The program plays it only when started with `--phase-directory <dir>` (with `--phase`,
+  `--store`, `--seed`): the repository has no phase, because the phase files have to be written
+  and reviewed by a person qualified to do it, so without one the fake is played as before.
+  The game in progress is not saved or brought back yet. See
+  [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
 - **The parent area, on the device and nowhere else**, inside the first release's
   frozen privacy rules (no voice, no export, no network, no time played, no limit):
   a small versioned **store** (`wjs/store.hpp`) of finds, the last twenty boards, stars,
