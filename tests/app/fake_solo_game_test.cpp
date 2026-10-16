@@ -293,7 +293,8 @@ TEST_CASE("the parent can turn the start tile off", "[app][fake]") {
     CHECK_FALSE(game.litTile());
 }
 
-TEST_CASE("putting the lid back on saves a board in play and leaves a shake unsaved", "[app][fake]") {
+TEST_CASE("putting the lid back on saves a board in play and leaves a shake unsaved",
+          "[app][fake]") {
     FakeSoloGame game;
     REQUIRE(game.shake());
     game.settled();

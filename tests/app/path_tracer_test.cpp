@@ -58,7 +58,8 @@ void slide(PathTracer& tracer, Point from, Point to, int steps = 10) {
 
 }  // namespace
 
-TEST_CASE("a press on a tile starts a path and a slide across neighbours extends it", "[app][trace]") {
+TEST_CASE("a press on a tile starts a path and a slide across neighbours extends it",
+          "[app][trace]") {
     auto tracer = make_tracer();
 
     CHECK(tracer.press(centre(0, 0)) == Event::changed);
@@ -91,7 +92,8 @@ TEST_CASE("a fast move that jumps over a tile still takes it", "[app][trace]") {
     CHECK(shown(tracer) == tiles_of(Tiles{{0, 0}, {0, 1}, {0, 2}}));
 }
 
-TEST_CASE("the hit area is smaller than the tile, so a finger near an edge adds nothing", "[app][trace]") {
+TEST_CASE("the hit area is smaller than the tile, so a finger near an edge adds nothing",
+          "[app][trace]") {
     auto tracer = make_tracer();
     tracer.press(centre(0, 0));
 
@@ -160,7 +162,8 @@ TEST_CASE("lifting outside the board cancels with nothing handed in", "[app][tra
     CHECK(tracer.path().empty());
 }
 
-TEST_CASE("tapping tiles in order builds a path and the last tile again hands it in", "[app][trace]") {
+TEST_CASE("tapping tiles in order builds a path and the last tile again hands it in",
+          "[app][trace]") {
     auto tracer = make_tracer();
 
     for (const auto& [row, column] : Tiles{{2, 0}, {1, 0}, {0, 1}}) {

@@ -44,16 +44,16 @@ struct Fixture {
 
     Fixture() {
         model.setGeometry(100, 10);
-        QObject::connect(&model, &SoloModel::traced,
-                         [this](const QString& kind, const QVariantList& path, const QString& word,
-                                const QString& tier, int stars, bool again, bool new_best,
-                                bool cleared) {
-                             heard.traced.push_back(
-                                 {kind, path, word, tier, stars, again, new_best, cleared});
+        QObject::connect(
+            &model, &SoloModel::traced,
+            [this](const QString& kind, const QVariantList& path, const QString& word,
+                   const QString& tier, int stars, bool again, bool new_best, bool cleared) {
+                heard.traced.push_back({kind, path, word, tier, stars, again, new_best, cleared});
+            });
+        QObject::connect(&model, &SoloModel::cue,
+                         [this](const QString& kind, const QString& detail) {
+                             heard.cues.push_back({kind, detail});
                          });
-        QObject::connect(&model, &SoloModel::cue, [this](const QString& kind, const QString& detail) {
-            heard.cues.push_back({kind, detail});
-        });
         QObject::connect(&model, &SoloModel::stateChanged, [this] { ++heard.state_changes; });
     }
 
@@ -334,8 +334,8 @@ TEST_CASE("tiles that make one sound are one block as the path grows", "[app][so
     Fixture f;
     f.play();
 
-    f.model.pressAt(Fixture::x(1), Fixture::y(1));   // A
-    f.model.moveTo(Fixture::x(2), Fixture::y(1));    // I
+    f.model.pressAt(Fixture::x(1), Fixture::y(1));  // A
+    f.model.moveTo(Fixture::x(2), Fixture::y(1));   // I
     const auto blocks = f.model.blocks();
 
     REQUIRE(blocks.size() == 1);
@@ -404,7 +404,8 @@ TEST_CASE("the last word clears the board, which celebrates once and then rests"
     CHECK(f.model.state() == "box");
 }
 
-TEST_CASE("putting the lid back on saves the board and clears what was in the making", "[app][solo]") {
+TEST_CASE("putting the lid back on saves the board and clears what was in the making",
+          "[app][solo]") {
     Fixture f;
     f.play();
     f.sit();
