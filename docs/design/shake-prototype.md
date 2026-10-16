@@ -121,30 +121,40 @@ physical model (see [What it looked like](#what-it-looked-like)).
   **These are starting values, not measured from real dice.** Each die's grip and bounce differ from the next's by up to 15%,
   seeded, as no two real ones are alike.
 - **Home (the guide).** The physics decides how a play looks and never where a
-  die ends, because the board is decided before the play. When the reading goes
-  still, each die is given a cell (the assignment that makes the dice travel
-  least in the plan, by the Hungarian method) and shows that cell's tile from
-  then on, the lid lifts, and from a moment of its own in the seeded order each
-  die is kicked up (a hop of 0.3 to 1.6 tiles, by how far it has to go; the
-  dice that have furthest to go start first, so that they cross the box while
-  it is still open), pulled toward its cell by a spring in the plan and turned
-  flat and square to the board by a spring on its orientation, its friction
-  nearly off. The dice still collide on the way. A die that is on the floor
-  and not getting closer (not by 0.05 of a tile in 0.07 to 0.19 s, a time of
-  its own, so that two that are stuck against one another do not hop in step)
-  hops again, higher, over the others. When every die has been on its cell,
-  flat and still, for 40 ms, they are put exactly there and the play is over.
-  If that has not happened 1.8 s after the last die started, they are put
-  there anyway; in 900 shakes of 3x3, 4x4 and 5x5 in the simulation alone, with
-  the scene's stand-in, none needed it (the slowest took 2.4 s from the end of
-  the shake, at 5x5).
-- **The letters.** Every face of a die carries the tile of the cell it is going
-  to, so nothing shows when the assignment is made under the lid. A die is a
-  `DieGeometry`, a cube with a small bevel whose six faces each have a
-  quarter-turn setting for the letter. Once the lid is going, the face that is
-  up has its letter turned to read upright for the way the die would lie if it
-  were squared to the board, so by the time a die is down its letter reads
-  upright, and a die that lands on a side shows the letter on that side.
+  die ends, nor which of its faces is up, because the board is decided before
+  the play. When the reading goes still, the lid lifts, and from a moment of its
+  own in the seeded order each die is kicked up (a hop of 0.3 to 1.6 tiles, by
+  how far it has to go; the dice that have furthest to go start first, so that
+  they cross the box while it is still open), pulled toward its cell by a
+  spring in the plan and turned flat and square to the board by a spring on its
+  orientation, its friction nearly off. The dice still collide on the way. A
+  die that is on the floor and not getting closer (not by 0.05 of a tile in 0.07
+  to 0.19 s, a time of its own, so that two that are stuck against one another
+  do not hop in step) hops again, higher, over the others. When every die has
+  been on its cell, flat and still, for 40 ms, they are put exactly there and
+  the play is over. If that has not happened 1.8 s after the last die started,
+  they are put there anyway.
+- **Its cell, and its face.** A die has faces of its own (the library's die on
+  that tile, [Real faces](#real-faces)), so it is a particular die and goes to
+  the cell the roll gave it: dice that were interchangeable could go to the
+  cell that is nearest (the assignment that makes the dice travel least in the
+  plan, by the Hungarian method, which the simulation still does, and the
+  script does when the board gives no faces), and these cannot. The face that
+  is to be up is given to the simulation, and the guide squares the die to the
+  nearest of the four ways to lie with that face up, and not the nearest of the
+  twenty-four. A die that is not on that face when it is launched is thrown
+  1.7 tiles up, so that it has time in the air to turn over (a die on the
+  floor is held there by its weight more firmly than the guide's spring turns
+  it: in the simulation, a die that had to turn a quarter turn lay on the wrong
+  face for the rest of the play), and one that lands on the wrong face is
+  thrown again, as one that is stuck is.
+- **The letters.** A die is a `DieGeometry`, a cube with a small bevel whose six
+  faces each read their own cell of the die's block of the atlas (3 cells
+  across and 2 down) and each have a quarter-turn setting for the letter. Once
+  the lid is going, the face that is up has its letter turned to read upright
+  for the way the die would lie if it were squared to the board, so by the time
+  a die is down its letter reads upright, and a die that lands on a side shows
+  that side's own letter.
 
 With no device there is a stand-in, `mockSampleAt(seed, k)`, a function of the
 seed and the sample number. It is meant to be a hand, not a signal generator:
@@ -249,54 +259,59 @@ phonics board is still a stand-in (below).
 
 | Part | How it is made |
 | --- | --- |
-| The mesh | One cube of six sides, built in QML by `ProceduralMesh` from the script's `sides` table (24 vertices, shared by every die), so the mesh and the orientations agree on which side is which face. It replaces `#Cube`, whose six sides all show the whole texture |
-| The atlas | A block of 3 x 2 cells for each die, a cell to a face. A die's texture offset and scale pick its block, as they picked its cell; the mesh's coordinates pick the cell in it |
-| Which face is up | A quaternion for each die from the script, set on the cube under the Euler tips and yaw the body already had, so those are unchanged. At rest it is the face the board says, the letter upright |
-| Weighted | A die starts on a random face with a random quarter turn of yaw, and turns a quarter turn about a horizontal axis, the way it was going, at each knock over 3.5 tiles/s (floor, lid, wall, neighbour; a half turn over 14). On its hop home it turns the short way to its up face, and lands on it |
-| Staged | A die lies on a random face in the box and turns over as it falls, landing with its up face on top |
+| The cube | `DieGeometry`'s six faces each read a cell of the die's block of the atlas, face `f` of the library's die on the cube's face `f` (the simulation's numbering: +x, -x, +y, -y, +z, -z) and in cell `f` of the block; the bevels and corners sample the dark border of a cell of a face they touch. Before, all six faces read the one cell |
+| The atlas | A block of 3 x 2 cells for each die, a cell to a face (`FaceAtlas.qml`). A die's texture offset and scale pick its block, as they picked its cell |
+| Which face is up (simulated dice) | The simulation is told which face of each die is to be up (`DiceSim.setTargets`), squares the die to that face when it is home, and throws a die that has to turn over high enough to do it in the air ([the guide](#the-two-scripts)). A die goes to its own cell. At rest it is the face the board says |
+| Staged | A die lies on a random face in the box and turns over as it falls, landing with its up face on top (the cube's own turn, `tw`, `tx`, `ty`, `tz`, in the script's state) |
 | Reduced motion | Nothing tumbles: the dice fade in on their up faces |
 | A dead jewel | A die of six jewel cells, so every way up is the jewel |
 
-**The faces move nothing.** They are drawn from generators of their own and
-nothing in the motion reads them. The poses of the previous script (positions
-and the three angles, frame for frame at 60 Hz, for both scripts and both
-sizes, checked against the branch's script in Node) are the same numbers, and the
-landing is the same cells; what is new is the die's orientation, which the replay
-checksum now covers. A ctest case holds the same against the file itself: with
-another set of faces up on every die the positions and angles are equal at six
-times through a play.
+**Until it is sent home a die is unchanged by its faces.** The faces are given to
+the simulation and read by the guide, the settle test and `finish`, and by
+nothing before the lid goes. A unit test of the simulation holds that, for a
+shake with and without faces asked for, the dice are the same (the same
+checksum of every die's state) until the guide starts, and that the replay of a
+play is the same replay; the script test holds it at four times through a
+shake. After that a die that is not on its face is thrown higher and turns
+over, by design, so the way home is not the same: in the simulation alone, with
+the unit test's shake, every die of 3x3, 4x4 and 6x6 came home on the face
+asked for in 0.6 to 1.0, 0.8 to 1.3 and 1.6 to 2.0 s, against 0.45 to 0.53, 0.68
+to 0.98 and 1.24 to 1.48 s for the same boards with no face asked for. (That is
+six plays of each size; before a die that landed on the wrong face was thrown
+again, 15 of the 18 did not come home at all: a die lying flat on the wrong
+face stayed there.)
 
 **What a viewer sees of the other faces.** `--auto --digest` plays a board and
-counts, frame by frame at 60 Hz with the device still, the faces that were
+counts, frame by frame at 60 Hz with the stand-in's shake, the faces that were
 uppermost at some frame (the tips of a die in flight, which show side faces
 too, are not counted). Seed 7 of the library's dice, and of the stand-in, played
 with seed 100:
 
-| Board | Tiles that are their die's face up | Different letters on a die (mean) | Land face up, upright | Faces uppermost in a play (mean, most) |
+| Board | Tiles that are their die's face up | Different letters on a die (mean) | Land on the face that is up | Faces uppermost in a play (mean, most) |
 | --- | --- | --- | --- | --- |
-| Library dice 3x3 | 9 of 9 | 6.00 | 9 of 9 | 5.00, 6 |
-| Library dice 4x4 | 16 of 16 | 6.00 | 16 of 16 | 4.50, 6 |
-| Library dice 5x5 | 25 of 25 | 6.00 | 25 of 25 | 4.60, 6 |
-| Library dice 6x6 | 36 of 36 | 6.00 | 36 of 36 | 4.97, 6 |
-| Stand-in 3x3, 4x4, 5x5, 6x6 | all | 5.4 to 5.7 (a dead die has one) | all | 4.6 to 4.9, 6 |
+| Library dice 3x3 | 9 of 9 | 6.00 | 9 of 9 | 3.11, 5 |
+| Library dice 4x4 | 16 of 16 | 6.00 | 16 of 16 | 2.94, 5 |
+| Library dice 5x5 | 25 of 25 | 6.00 | 25 of 25 | 3.48, 6 |
+| Library dice 6x6 | 36 of 36 | 6.00 | 36 of 36 | 2.83, 6 |
+| Stand-in 3x3, 4x4, 5x5, 6x6 | all | 5.4 to 5.7 (a dead die has one) | all | 2.7 to 3.8, 5 or 6 |
 
 Under reduced motion nothing tumbles (one face, 1.00) and every die lands as
 asked. The staged script shows a die about two faces (the one it lay on and the
 one it lands on, and what the turn passes between). The same checks, on six
-boards (3x3 and 4x4, three seeds each), are the ctest case "the shake script
-lands each die on the face the roll says and tumbles the others"; it fails if
-the up face is ignored, and if the tumble is switched off.
+boards (3x3 and 4x4, three seeds each) and the three scripts, are the ctest
+case "the shake script lands each die on the face the roll says and tumbles the
+others"; it fails if the up face is ignored. The simulation's own are in
+`tests/prototype/dice_faces_test.cpp`.
 
 **What it does not do.** The opposite faces of a die are the cube's arrangement,
 not the die's (the library says which six letters a die has and nothing about
-their neighbours). The dice that are shown tumbling are the dice of the final
-board: the roll decided which die is on which tile, and the weighted script lets
-the dice roam the box and trade places and then hops each to the tile it was
-given, so the mixing of *which die is where* is drawn but decides nothing; in
-the staged script and under reduced motion a die does not travel. The phonics
-board's dice are a stand-in in the harness (a tile on one face and five others
-drawn from the harness's pool, six different letters); what faces the phonics
-board's dice have is an open choice that is not made here.
+their neighbours). A die goes to its own cell, so after a shake that has thrown
+the dice about, some cross the box over the others where the least-travel
+assignment would have had them go to the nearest: that is part of the 0.3 to
+0.6 s the faces add to the way home. The phonics board's dice are a stand-in in
+the harness (a tile on one face and five others drawn from the harness's pool,
+six different letters); what faces the phonics board's dice have is an open
+choice that is not made here.
 
 ## How it was measured
 
@@ -411,25 +426,25 @@ different seed a different one, and reduced motion its own:
 
 | Script, board (seed 7) | Seed 100, then again | Seed 101 | Reduced, seed 100, then again |
 | --- | --- | --- | --- |
-| Weighted, library dice 3x3 | `38cde292`, `38cde292` | `efd90ab4` | `c710afd9`, `c710afd9` |
-| Weighted, library dice 4x4 | `d3fba177`, `d3fba177` | `f015d079` | `b226c069`, `b226c069` |
-| Weighted, library dice 5x5 | `987c1268`, `987c1268` | `4dd96e54` | `fe1247e5`, `fe1247e5` |
-| Weighted, library dice 6x6 | `b11deba2`, `b11deba2` | `a74de28b` | `709173dd`, `709173dd` |
-| Weighted, stand-in 3x3 | `8aea8`, `8aea8` | `b5fd164b` | `d92b509d`, `d92b509d` |
-| Weighted, stand-in 4x4 | `2af519a0`, `2af519a0` | `ac922da6` | `683142cd`, `683142cd` |
-| Staged, library dice 3x3 | `e5396714`, `e5396714` | `50fbac07` | `c710afd9`, `c710afd9` |
-| Staged, library dice 4x4 | `ed068f95`, `ed068f95` | `6b6fb2aa` | `b226c069`, `b226c069` |
-| Staged, stand-in 3x3 | `53647a7e`, `53647a7e` | `16f63790` | `d92b509d`, `d92b509d` |
-| Staged, stand-in 4x4 | `dc06b383`, `dc06b383` | `668a9f2` | `683142cd`, `683142cd` |
+| Simulated, library dice 3x3 | `ec8747fc`, `ec8747fc` | `9016cfb` | `5c6eadfd`, `5c6eadfd` |
+| Simulated, library dice 4x4 | `db77bef9`, `db77bef9` | `38ee1b03` | `faa109a5`, `faa109a5` |
+| Simulated, library dice 5x5 | `43e5469f`, `43e5469f` | `8f876ee8` | `15ee5e1d`, `15ee5e1d` |
+| Simulated, library dice 6x6 | `75a5472`, `75a5472` | `932844ef` | `788b8eb9`, `788b8eb9` |
+| Simulated, stand-in 3x3 | `390bb03f`, `390bb03f` | `c417f199` | `edb0db61`, `edb0db61` |
+| Simulated, stand-in 4x4 | `b9da5067`, `b9da5067` | `481146f0` | `3e4c8909`, `3e4c8909` |
+| Staged, library dice 3x3 | `5335e2c9`, `5335e2c9` | `25376b66` | `5c6eadfd`, `5c6eadfd` |
+| Staged, library dice 4x4 | `650013a2`, `650013a2` | `83613d72` | `faa109a5`, `faa109a5` |
+| Staged, stand-in 3x3 | `d42820ee`, `d42820ee` | `ce8b479e` | `edb0db61`, `edb0db61` |
+| Staged, stand-in 4x4 | `acd7fd74`, `acd7fd74` | `c27aa426` | `3e4c8909`, `3e4c8909` |
 
-A checksum is of the poses in pixels (for the harness's window, 560 x 900) **and
-now of each die's orientation**, so every earlier checksum is replaced, not only
-by the new motion code: the board's faces are in it too, so the same seed on
-another roll is another checksum. The reduced rows are the same script under
-either name. What the checksum does not cover is the position and angles alone,
-which the faces leave as they were: with the faces left out of the checksum the
-poses of the previous script and of this one were equal, frame for frame, for
-both scripts and both sizes (checked in Node against the branch's script).
+A checksum is of the poses in pixels (for the harness's window, 560 x 900) and
+of each die's orientation, which, with the dice's faces, is why every earlier
+checksum is replaced: the board's faces are in it, so the same seed on another
+roll is another checksum. The reduced rows are the same script under either
+name. The simulated rows are for this build on this machine, as
+[above](#the-two-scripts) says. The faces enter the simulation only when the
+guide starts: a unit test holds that two shakes of the same dice, one with the
+faces asked for and one without, are the same dice until then.
 
 Moving the script out of the scene file into `ShakeScript.js` left the stills
 identical, pixel for pixel but one pixel one level off. What the checksum does
@@ -522,15 +537,32 @@ and none of the GPU. Checksums for replay are in [Replay](#replay).
 
 ### The real faces
 
-What six cells to a die cost, against the branch as it was without them (its tip
-when this was merged, `ac4e881`, built beside this one with the same compiler
-and flags, with the same `--change` mode patched into its harness so the two
-measure the same way). Three processes of each, one after the other on this
-desktop, with nothing else drawing and no build running, which was checked every
-second of every run (a run in which anything was seen was thrown away and made
-again; an earlier series had been broken by another worktree's `ShakePrototype`).
-The "after" is two boards: the stand-in the earlier tables used (two dead jewels,
-each now a die of six jewel cells) and the library's dice.
+What six cells to a die cost, against the branch without them (its tip when
+this was merged, `2b528f1`, built beside this one with the same compiler and
+flags, with the same `--change` mode patched into its harness so the two measure
+the same way). Three processes of each, one after the other on this desktop.
+The "after" is two boards: the stand-in the earlier tables used (two dead
+jewels, each now a die of six jewel cells) and the library's dice.
+
+**The machine was not quiet, and the frames of a play are not told apart by
+this series.** Other work was running on it through the hours it took (builds
+and tests, which a script checked for and threw runs away for, and a number of
+runs were; the three processes of each kind that are reported were the ones that
+got through). In six of the nine the display ran at a normal cadence (16.7 ms,
+and 10 ms in one) and the render thread's median frame was 0.53 and 0.58 ms before, 0.59 and 0.62 ms with
+the stand-in board, and 0.56 and 0.86 ms with the library's dice; in the other
+three, one of each kind, the display ran at about 50 Hz and a frame cost the
+render thread 10.3 to 10.4 ms at the median, which is the machine and not the
+scene (it was in the baseline as much). The tails (p99 from 9 to 39 ms, the
+largest 460 ms) are other work on the machine and are in the baseline too. An
+earlier series, against the branch's previous tip (the dice in a box with room,
+`ac4e881`), on a quiet machine, had the median at 0.44 ms before and 0.47 to
+0.49 ms after, about a tenth more, and nothing in the frames of a play that the
+faces did. **The render thread's time is not the cost that matters here:** the
+script and the simulation run on the GUI thread, which this did not measure
+(the simulation's own cost is under [the two scripts](#the-two-scripts); the
+faces add to it only the extra hops of a die that has to turn over, after the
+lid has gone).
 
 **The atlas is six times the pixels.**
 
@@ -541,33 +573,10 @@ each now a die of six jewel cells) and the library's dice.
 | 5x5 | 640 x 640, 25 cells | 1,920 x 1,280, 150 cells | 1.6 MB, 9.8 MB |
 | 6x6 | 768 x 768, 36 cells | 2,304 x 1,536, 216 cells | 2.4 MB, 14.2 MB |
 
-**A frame of a play costs about a tenth more.** Every play but the first of each
-process, 30 plays a process, the stand-in's shake (the render thread's time to
-record and submit a frame, as above; GPU time was not measured):
-
-| | Before | After, stand-in board | After, library dice |
-| --- | --- | --- | --- |
-| Frames | 13,107 | 14,156 | 13,394 |
-| Render thread, median | 0.44 ms | 0.49 ms | 0.47 ms |
-| mean | 0.46 ms | 0.52 ms | 0.55 ms |
-| p95 | 0.67 ms | 0.83 ms | 0.84 ms |
-| p99 | 0.97 ms | 1.12 ms | 1.33 ms |
-| largest | 2.5 ms | 2.4 ms | 59.1 ms |
-| Intervals over 33 ms | 0 | 0 | 4 |
-
-The median is 0.03 to 0.05 ms higher, in every kind of play (by 0.01 to 0.09 ms
-in the mean): what the cube of six sides and an extra turn for each die add to
-the frame. The one large number is one process of the nine, which had a stall (a
-115.8 ms interval and a 59.1 ms frame, with 44 intervals over 20 ms) that its
-two siblings and the other six processes did not; the cause was not found (an
-earlier series of this measurement, against the branch's previous tip, had a
-stall of the same kind in one process of the *before*).
-The display ran at 100 Hz (10 ms) in all but the first process of the before,
-which was a mix of the two cadences (the "two cadences" above), so the intervals
-are not compared. Creating the view is unchanged within its spread: loading the
-component 16, 16 and 17 ms (before, stand-in, library dice), creating the
-objects 3.5, 3.9 and 4.0 ms, and the first frame after it 237, 251 and 240 ms
-(228 to 238 ms of it the render thread's).
+Creating the view is unchanged within its spread: loading the component 11.9,
+11.4 and 11.7 ms (before, stand-in, library dice), creating the objects 3.8, 4.3
+and 4.5 ms, and the first frame after it 247, 253 and 260 ms (238, 239 and
+248 ms of it the render thread's).
 
 **The cost is in the frame in which the board changes.** `--auto --change` shows
 a new board and records the frames after it, six boards of each size in each of
@@ -577,29 +586,28 @@ screen, and what the render thread spent on that frame.
 
 | Board | Before | After, stand-in board | After, library dice |
 | --- | --- | --- | --- |
-| 3x3 | 11.7 ms, 5.7 ms | 28.1 ms, 16.6 ms | 21.9 ms, 11.2 ms |
-| 4x4 | 11.8 ms, 5.0 ms | 26.2 ms, 14.5 ms | 19.0 ms, 8.1 ms |
-| 5x5 | 17.1 ms, 8.7 ms | 46.6 ms, 29.3 ms | 33.5 ms, 16.5 ms |
-| 6x6 | 26.1 ms, 13.5 ms | 75.5 ms, 49.5 ms | 57.7 ms, 32.3 ms |
+| 3x3 | 15.9 ms, 7.3 ms | 32.5 ms, 20.0 ms | 26.1 ms, 12.8 ms |
+| 4x4 | 14.4 ms, 7.0 ms | 32.7 ms, 17.4 ms | 21.2 ms, 8.6 ms |
+| 5x5 | 22.4 ms, 12.2 ms | 54.1 ms, 32.9 ms | 38.3 ms, 19.0 ms |
+| 6x6 | 36.1 ms, 19.1 ms | 89.8 ms, 58.4 ms | 66.9 ms, 37.3 ms |
 
-The frames after the first are nearly the same as before (the largest
-render-thread time of the next four was under 2 ms everywhere but at 6x6, where
-it was 1.5 ms before, and 9.1 ms with the stand-in and 4.5 ms with the library's
-dice). So **a new board costs two to
-three and a half times what it did**, and the frame in which it is drawn is over
-the [33 ms budget](performance.md#budgets) at 6x6 and at 5x5 with the stand-in's
-jewels, at the budget at 5x5 with the library's dice, and under it at 3x3 and
-4x4 (the stand-in's means there, 28 and 26 ms, are close to it). `play()` sets
-the board, so the first frame of a shake carries it. What makes the stand-in
-dearer than the library's board is the jewel: each dead die is six `Shape`s of
-four facets, about 0.6 ms a cell by the difference at 4x4 (two dead dice, 12
-cells, 6.4 ms more; the boards' letters differ too). Two things would take it
-back, and neither is done: set the board (so that the atlas is drawn) a frame or
-more before the shake starts, behind the layout stage that is the application's;
-and draw the jewel once and share it.
+So **a new board costs between one and a quarter and three times what it
+did** (the render thread, 4x4 with the library's dice: 7.0 to 8.6 ms; 6x6 with
+the stand-in: 19.1 to 58.4 ms), and the frame in which it is drawn is over the
+[33 ms budget](performance.md#budgets) at 5x5 and 6x6, and close to it with the
+stand-in's jewels at 3x3 and 4x4 (32.5 and 32.7 ms on average, and 65 ms for one
+4x4 board); the baseline at 6x6 was already at 36 ms. `play()` sets the board,
+so the first frame of a shake carries it. What makes the stand-in dearer than
+the library's board is the jewel: each dead die is six `Shape`s of four facets,
+about 0.7 ms a cell by the difference at 4x4 (two dead dice, 12 cells, 8.8 ms
+more; the boards' letters differ too). Two things would take it back, and
+neither is done here: set the board (so that the atlas is drawn) a frame or more
+before the shake starts, behind the layout stage that is the application's; and
+draw the jewel once and share it.
 
 **Not measured:** the GPU's time for a frame with the bigger atlas, the atlas's
-memory and upload on a device, and anything on an iPad, a tablet or a phone.
+memory and upload on a device, the GUI thread's time, and anything on an iPad, a
+tablet or a phone.
 
 ## What it looked like
 
@@ -682,12 +690,15 @@ six sides.** A real die has six different letters, and a shake mixes the dice an
 the faces. Hence [Real faces](#real-faces): the scene is given the dice, not only
 the board.
 
+![The simulated shake, 4x4, straight down, the library's dice: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip-faces.png)
+
 The library's roll of the 4x4 dice with seed 7 (`M D O O / C A R T / R N E U /
-L D R P`). At 0 ms the dice sit in the box on other faces than the ones they
-will land on, and the shake shows side faces (350 to 1000 ms); then each die
-hops home, turning over in the air (1150 to 1450 ms), and lands on the rolled
-face, the letter upright. The same with the stand-in board, whose two dead dice
-are six jewels each (and whose decoy faces include `QU` and `TH`):
+L D R P`). At 0 ms every die lies on its cell showing the same face of its own
+(face 4 of the six); they are thrown apart and roll (350 to 1450 ms), showing
+other faces, side faces among them; then each is thrown up and turns over in
+the air to the face the roll says (1450 to 1900 ms), and at 2300 ms every die is
+down on it, the letter upright. The same with the stand-in board, whose two dead
+dice are six jewels each (and whose decoy faces include `QU` and `TH`):
 
 ![The same with the stand-in board](shake-prototype-filmstrip-jewels.png)
 
