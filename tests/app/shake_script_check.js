@@ -75,7 +75,7 @@ function run(S) {
     }
 
     function layout(weighted, reduced) {
-        return { tile: 100, gap: 8, pitch: 108, reduced: reduced, weighted: weighted, lidTiles: 2.45 };
+        return { tile: 100, gap: 8, pitch: 108, reduced: reduced, weighted: weighted, lidTiles: 2.45, slackTiles: 0.6 };
     }
 
     // A play ends with every die on the face the board says, the letter upright,

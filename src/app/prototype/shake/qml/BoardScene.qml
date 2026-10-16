@@ -79,7 +79,7 @@ Item {
     // tumbles at the edge of the board, and the box's rim as it tips, are not
     // cut off. The item is still the board's area and boardRect is still by the
     // rule; the application only has to leave the item unclipped (no `clip`).
-    readonly property real overdraw: tile * 0.5
+    readonly property real overdraw: tile * (slackTiles + 0.4)
 
     // Plays the shake, the lid and the drop for a board. The dice are in the
     // box before the first frame, and `settled` follows the last of them.
@@ -144,7 +144,7 @@ Item {
     // "none", "procedural" (Qt's sky, prefiltered on the first frame) or
     // "baked" (the same, prefiltered in advance and read from a file).
     property string probeMode: "baked"
-    property real cameraDistance: 2.3   // times the board's side
+    property real cameraDistance: 2.2   // times the board's side
     // Weighted motion: the dice are thrown about the box, bounce, collide and
     // slot into their cells (ShakeScript.js). False is the prescribed curves.
     property bool weighted: true
@@ -174,7 +174,8 @@ Item {
     readonly property real rimWidth: inset * 0.7
     // The box's cavity is a little roomier than the board, so a die has
     // something to slide into and bump against when it is shaken.
-    readonly property real slack: tile * 0.2
+    readonly property real slackTiles: 0.6
+    readonly property real slack: tile * slackTiles
     readonly property real boxX: spanX + 2 * slack
     readonly property real boxY: spanY + 2 * slack
     readonly property real boxDepth: tile * 0.34
@@ -194,7 +195,7 @@ Item {
     // What the script needs of the layout, in this item's pixels.
     function layout() {
         return { tile: tile, gap: gap, pitch: pitch, reduced: reducedMotion, weighted: weighted,
-                 lidTiles: 2.45, mock: true, mockBurstMs: mockBurstMs };
+                 lidTiles: 2.45, slackTiles: slackTiles, mock: true, mockBurstMs: mockBurstMs };
     }
 
     // The board's dice. A board whose faces do not make its tiles is drawn as
@@ -237,12 +238,17 @@ Item {
                 continue;
             }
             die.body.position = Qt.vector3d(state.px[i] - die.x, state.py[i] - die.y, state.pz[i]);
-            die.body.eulerRotation = Qt.vector3d(state.rx[i], state.ry[i], state.rz[i]);
+            if (state.useQuaternion) {
+                die.body.rotation = Qt.quaternion(state.qw[i], state.qx[i], state.qy[i], state.qz[i]);
+            } else {
+                die.body.eulerRotation = Qt.vector3d(state.rx[i], state.ry[i], state.rz[i]);
+            }
             // Which face is up, and how the die is turned over getting there.
             die.cube.rotation = Qt.quaternion(state.tw[i], state.tx[i], state.ty[i], state.tz[i]);
             die.body.visible = state.opacity[i] > 0.001;
             die.body.opacity = warm ? 0.98 : state.opacity[i];
-            die.shadow.position = Qt.vector3d(state.px[i] - die.x, state.py[i] - die.y, 0.2);
+            const lift = Math.max(0, state.pz[i] - tile / 2);
+            die.shadow.position = Qt.vector3d(state.px[i] - die.x + 0.45 * lift, state.py[i] - die.y - 0.45 * lift, 0.2);
             const radius = state.shadowRadius[i] / 50;
             die.shadow.scale = Qt.vector3d(radius, radius, 0.02);
             die.shadow.opacity = warm ? Math.max(state.shadowOpacity[i], 0.02) : state.shadowOpacity[i];

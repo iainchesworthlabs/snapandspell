@@ -12,14 +12,18 @@
 //
 //   staged    every position and angle is a prescribed curve of the time: a
 //             sine rattle, a fall on a parabola, one rebound.
-//   weighted  a rigid-ish body simulation of our own, at a fixed 480 steps a
-//             second, in the box's own frame: the dice are accelerated by the
+//   weighted  dice simulated by us at a fixed 480 steps a second, in the
+//             box's own frame. Each die is a square in the plan (it turns, so
+//             its corners are what meet the walls and its neighbours) with a
+//             height: it slides with friction, leaves the floor, hits the lid,
+//             stacks on a neighbour and slides off, and bumps and turns what
+//             it meets with a proper impulse. It is accelerated by the
 //             *negative of what the accelerometer reads* (so gravity, tilt, a
-//             shove and a jolt are all one thing), and by the centrifugal,
-//             Coriolis and Euler terms of the gyroscope's rotation. They
-//             slide with friction, leave the floor, hit the lid, the walls and
-//             one another, spin when they hit, and slot into their cells under
-//             springs once the lid is off.
+//             shove and a jolt are all one thing) and by the centrifugal,
+//             Coriolis and Euler terms of the gyroscope's rotation. Its tip
+//             (how far it is rocked off the floor) follows its impacts through
+//             damped springs. When the shaking stops each die hops to its own
+//             cell, in a seeded order, and lands there.
 //
 // The device's motion comes in as samples (feed): the accelerometer's reading
 // in g, gravity included, and the gyroscope's in rad/s, about 100 a second.
@@ -44,12 +48,12 @@
 // is). The script does not read the letters. It lays each die with its up face
 // on top and its letter upright when the play is over, and makes the die show
 // other faces on the way: in the weighted script a die turns a quarter or a
-// half turn at each knock it takes in the box, and then turns to its up face as
-// it slots in; in the staged script it lies on another face in the box and
-// turns over as it falls. Which face is on which side of the cube is `sides`
-// below, and the mesh and the atlas are made to agree with it. The faces have
-// generators of their own, so nothing about where a die goes or how it moves
-// depends on them.
+// half turn at each knock it takes in the box (the floor, the lid, a wall, a
+// neighbour), and turns to its up face as it hops home; in the staged script it
+// lies on another face in the box and turns over as it falls. Which face is on
+// which side of the cube is `sides` below, and the mesh and the atlas are made
+// to agree with it. The faces have generators of their own, so nothing about
+// where a die goes or how it moves depends on them.
 
 // The stages and their durations: starting values to tune on a device
 // (docs/design/board.md, "The stages").
@@ -233,8 +237,9 @@ function topSide(q) {
 
 // board is { rows, columns, faces, up } (and tiles, which the script does not
 // read); layout is { tile, gap, pitch, reduced,
-// weighted, lidTiles }, in the pixels the scene is drawn in (lidTiles is the
-// height of the lid's middle above the floor, in tiles).
+// weighted, lidTiles, slackTiles, mock, mockBurstMs }, in the pixels the scene
+// is drawn in (lidTiles is the height of the lid's middle above the floor, and
+// slackTiles how far the box's walls are past the board, both in tiles).
 function create(board, seed, layout) {
     var rowCount = board.rows;
     var columnCount = board.columns;
@@ -337,7 +342,7 @@ function create(board, seed, layout) {
 // included, so a device lying face up reads 0, 0, 1; x to the right, y up the
 // screen, z out of the screen) and the gyroscope's rate in rad/s.
 var sampleMs = 10;                // the nominal interval, 100 samples a second
-var shakeStillLevel = 0.25;       // g of "hand" (gravity taken out) below which it is not being shaken
+var shakeStillLevel = 0.3;        // g of "hand" (gravity taken out) below which it is not being shaken
 var shakeStartLevel = 0.8;        // and above which a shake has started
 
 function newTracker() {
@@ -359,7 +364,7 @@ function feed(tracker, ax, ay, az, wx, wy, wz) {
     var ux = ax - tracker.g[0];
     var uy = ay - tracker.g[1];
     var uz = az - tracker.g[2];
-    tracker.energy += (ux * ux + uy * uy + uz * uz - tracker.energy) * 0.08;
+    tracker.energy += (ux * ux + uy * uy + uz * uz - tracker.energy) * 0.15;
     tracker.level = Math.sqrt(tracker.energy);
     tracker.count += 1;
 }
@@ -388,50 +393,58 @@ function hash(seed, k, channel) {
 }
 
 // The stand-in for a hand shaking a device: sample number k of the stream for a
-// seed. A burst of strokes (a few hertz, with a third harmonic so the turns are
-// sharp) on all three axes, a slow tilt of the device, sharp spikes, a little
-// noise on every sample, and a twist on the gyroscope that goes with the
-// strokes. burstMs of 0 is a burst of 0.7 to 1.0 s from the seed.
+// seed. A burst of strokes: back and forth along an axis that drifts, at three
+// to five hertz that wanders, rising to about 1.2 g at the ends of a stroke
+// (where the hand turns round), with the up and down of the arm, a little
+// ripple from the box and the dice in it, now and then a small knock, noise on
+// every sample, a slow tip of the device, and a twist on the gyroscope that goes
+// with the strokes. burstMs of 0 is a burst of 0.6 to 0.9 s from the seed.
 function mockSampleAt(seed, k, burstMs) {
     var t = k * sampleMs / 1000;
-    var burst = (burstMs > 0 ? burstMs : 700 + 300 * hash(seed, 0, 90)) / 1000;
+    var burst = (burstMs > 0 ? burstMs : 600 + 300 * hash(seed, 0, 90)) / 1000;
     var two = 2 * Math.PI;
     var env = 0;
     if (t < burst) {
-        env = smooth(t / 0.1) * (1 - smooth((t - (burst - 0.12)) / 0.12));
+        env = smooth(t / 0.12) * (1 - smooth((t - (burst - 0.15)) / 0.15));
     }
-    var f1 = 4.2 + 1.8 * hash(seed, 0, 91);
-    var f2 = 3.4 + 1.6 * hash(seed, 0, 92);
-    var f3 = 6.0 + 2.0 * hash(seed, 0, 93);
     var p = [];
     for (var i = 0; i < 9; ++i) {
         p.push(two * hash(seed, 0, 100 + i));
     }
-    var ax = env * 2.4 * (0.75 * Math.sin(two * f1 * t + p[0]) + 0.25 * Math.sin(two * 3 * f1 * t + p[3]));
-    var ay = env * 2.0 * (0.70 * Math.sin(two * f2 * t + p[1]) + 0.30 * Math.sin(two * 2.6 * f2 * t + p[4]));
-    var az = env * 1.8 * (0.8 * Math.sin(two * f3 * t + p[2]) + 0.2 * Math.sin(two * 2.7 * f3 * t + p[6]));
-    // Spikes: a sample, and half of it on the next.
+    var f0 = 3.2 + 1.4 * hash(seed, 0, 91);
+    // The phase is the integral of a frequency that wanders around f0.
+    var phase = two * f0 * t - 0.6 / 0.9 * Math.cos(two * 0.9 * t + p[1]);
+    var stroke = Math.sin(phase) + 0.12 * Math.sin(2 * phase + p[2]);
+    var amount = 1.2 * env * (0.85 + 0.15 * Math.sin(two * 1.3 * t + p[3]));
+    var axis = p[0] + 0.9 * Math.sin(two * 0.7 * t + p[4]);
+    var ax = amount * stroke * Math.cos(axis);
+    var ay = amount * stroke * Math.sin(axis);
+    var az = 2.6 * amount * Math.sin(phase + 1.2);
+    var ripple = 0.08 * env * Math.sin(two * 23 * t + p[5]);
+    ax += ripple; ay -= ripple;
+    // A small knock, one or two samples.
     for (var back = 0; back < 2; ++back) {
         var kk = k - back;
-        if (kk >= 0 && hash(seed, kk, 3) < 0.09 * env) {
-            var magnitude = (0.8 + 1.4 * hash(seed, kk, 4)) * (hash(seed, kk, 5) < 0.5 ? -1 : 1) * (back === 0 ? 1 : 0.5);
-            var axis = Math.floor(hash(seed, kk, 6) * 3);
-            if (axis === 0) { ax += magnitude; } else if (axis === 1) { ay += magnitude; } else { az += magnitude; }
+        if (kk >= 0 && hash(seed, kk, 3) < 0.012 * env) {
+            var knock = (0.25 + 0.25 * hash(seed, kk, 4)) * (hash(seed, kk, 5) < 0.5 ? -1 : 1) * (back === 0 ? 1 : 0.5);
+            var which = Math.floor(hash(seed, kk, 6) * 3);
+            if (which === 0) { ax += knock; } else if (which === 1) { ay += knock; } else { az += knock; }
         }
     }
     // The device tips a little as it is shaken.
-    var roll = 0.17 * Math.sin(two * 0.6 * t + p[5]);
-    var pitch = 0.14 * Math.sin(two * 0.45 * t + p[6]);
+    var roll = 0.05 * Math.sin(two * 1.1 * t + p[6]);
+    var pitch = 0.04 * Math.sin(two * 0.9 * t + p[7]);
     var gx = -Math.sin(roll);
     var gy = Math.sin(pitch);
     var gz = Math.sqrt(Math.max(0, 1 - gx * gx - gy * gy));
-    var noise = 0.05;
+    var noise = 0.02;
     var f = [gx + ax + noise * (hash(seed, k, 7) * 2 - 1),
              gy + ay + noise * (hash(seed, k, 8) * 2 - 1),
              gz + az + noise * (hash(seed, k, 9) * 2 - 1)];
-    var w = [env * 2.6 * Math.sin(two * f2 * t + p[7]) + 0.04 * (hash(seed, k, 10) * 2 - 1),
-             env * 2.2 * Math.sin(two * f1 * t + p[8]) + 0.04 * (hash(seed, k, 11) * 2 - 1),
-             env * 1.4 * Math.sin(two * f3 * t + p[0]) + 0.04 * (hash(seed, k, 12) * 2 - 1)];
+    var twist = 1.6 * env * Math.sin(phase + p[8]);
+    var w = [twist * Math.sin(axis) + 0.02 * (hash(seed, k, 10) * 2 - 1),
+             -twist * Math.cos(axis) + 0.02 * (hash(seed, k, 11) * 2 - 1),
+             0.3 * twist + 0.02 * (hash(seed, k, 12) * 2 - 1)];
     return { f: f, w: w };
 }
 
@@ -459,33 +472,43 @@ function tiltYOf(tracker) {
     return Math.max(-1, Math.min(1, tracker.g[1] / 0.14));
 }
 
-// ---- Weighted motion ---------------------------------------------------------
-// Lengths are in tiles (one die's edge, taken as 20 mm), times in seconds,
-// angles in degrees. A tile is 20 mm, so 1 g is 490 tiles/s^2 and time is real:
-// a die falls a tile in 64 ms and a hop of a tile and a half is a sixth of a
-// second. Slowing time would make a shake at a few hertz too quick for the dice
-// to follow, which is the opposite of heavy.
+// ---- Weighted motion: dice in a box --------------------------------------------
+// Lengths are in tiles (one die's edge, taken as 20 mm), times in seconds. A
+// tile is 20 mm, so 1 g is 490 tiles/s^2 and time is real: a die falls a tile
+// in 64 ms. A die is a unit square in the plan, of mass 1 and moment of inertia
+// 1/6, with a height, and a tip that is only for the eye.
 var simStepMs = 1000 / 480;
 var gTiles = 9810 / 20;           // tiles/s^2 in 1 g
-var cavitySlack = 0.2;            // how far a die may stray from the middle of its cell
-var dieRadius = 0.52;
-var slotStiffness = 700;          // the funnel into a cell, 1/s^2
-var slotDamping = 45;
-var restitutionWall = 0.4;
-var restitutionDie = 0.45;
-var restitutionLid = 0.3;
-var floorFriction = 0.3;
-var bounceSpeed = 8;              // tiles/s of impact that spins a die fully
-
-function wrapDegrees(a) {
-    return ((a + 180) % 360 + 360) % 360 - 180;
-}
+var restitutionFloor = 0.38;
+var restitutionDie = 0.35;
+var restitutionWall = 0.3;
+var restitutionLid = 0.25;
+var frictionFloor = 0.5;
+var frictionDie = 0.3;
+var frictionWall = 0.2;
+var restThreshold = 3;            // tiles/s: below this a contact does not bounce
+var inverseInertia = 6;
+var linearDamping = 0.15;         // per second
+var yawDampingFloor = 6;
+var yawDampingAir = 0.6;
+var maxYawRate = 25;              // rad/s: about 0.4 of a turn a frame at 60 Hz
+var maxSlide = 30;                // tiles/s: half a tile a frame at 60 Hz, what the eye can follow
+var tipStiffness = 500;           // the tip follows impacts through a spring,
+var tipDamping = 45;              // critically damped: it rocks and settles, it does not buzz
+var maxTip = 0.6;                 // rad
+var pairPasses = 3;               // rounds of pushing crowded dice apart
+var hopRiseNear = 0.3;           // how far above where it is a die hops to reseat, tiles
+var hopRiseFar = 1.0;             // and to cross the box
+var hopDelayMs = 90;              // the lid is up before the first die hops
+var landingBounceMs = 100;
 
 function initWeighted(state, board, seed, layout) {
     state.mode = 'weighted';
     state.simAcc = 0;
     state.simSteps = 0;
-    state.ceiling = layout.lidTiles - 0.03 - 0.5;   // the lid's underside, to a die's centre
+    state.halfX = ((state.columns - 1) * layout.pitch / layout.tile + 1) / 2 + layout.slackTiles;
+    state.halfY = ((state.rows - 1) * layout.pitch / layout.tile + 1) / 2 + layout.slackTiles;
+    state.lidZ = layout.lidTiles - 0.03;              // the lid's underside
     state.lastStartMs = 0;
     state.f = [0, 0, 1];
     state.w = [0, 0, 0];
@@ -493,37 +516,45 @@ function initWeighted(state, board, seed, layout) {
     state.tipX = 0;
     state.tipY = 0;
     state.vibe = 0;
+    state.hits = 0;
     for (var i = 0; i < state.count; ++i) {
         var d = state.dice[i];
         state.lastStartMs = Math.max(state.lastStartMs, d.startMs);
-        d.x = d.cx / layout.tile;
-        d.y = d.cy / layout.tile;
-        d.z = 0.5;
-        d.vx = 0; d.vy = 0; d.vz = 0;
-        d.psi = 0; d.wpsi = 0;
-        d.phx = 0; d.wphx = 0;
-        d.phy = 0; d.wphy = 0;
-        d.bounce = 0.30 + 0.14 * ((d.pitchValue - 0.9) / 0.25);   // 0.30 to 0.44
+        d.hx = d.cx / layout.tile;                    // its cell
+        d.hy = d.cy / layout.tile;
         d.rng = random((seed | 0) * 31 + i * 7919 + 17);
-        d.active = false;       // the cell's funnel is on
+        // Dice are not alike: a little bouncier or grippier than its neighbour,
+        // which, with the knocks they give one another, is what keeps a box of
+        // dice from moving as one. At rest each is exactly on its cell.
+        d.x = d.hx;
+        d.y = d.hy;
+        d.z = 0.5;
+        d.psi = 0;
+        d.vx = 0; d.vy = 0; d.vz = 0; d.wpsi = 0;
+        d.phx = 0; d.phy = 0; d.wphx = 0; d.wphy = 0;
+        d.bounceVariety = 0.8 + 0.4 * d.rng();
+        d.gripVariety = 0.8 + 0.4 * d.rng();
+        d.grounded = true;
+        d.hop = null;           // while hopping home: where from, and how long
+        d.launchAt = -1;
+        d.done = false;
         d.landed = false;
     }
 }
 
-// How a die turns over, in seconds, while it is thrown about (a quarter turn,
-// or a half turn for a hard knock) and as it slots in (to its up face, whatever
-// it has been through); and how hard a knock turns it, in tiles/s.
-var tumbleSeconds = 0.09;
+// How a die turns over, in milliseconds, while it is thrown about (a quarter
+// turn, or a half turn for a hard knock; and how hard a knock turns it, in
+// tiles/s). The turn to its up face is the length of its hop home.
+var tumbleMs = 90;
 var tumbleMinSpeed = 3.5;
 var tumbleHalfTurnSpeed = 14;
-var turnToFaceSeconds = 0.2;
 
-// Where the die is in a turn, at time ts.
-function turnPose(d, ts) {
+// Where the die is in a turn, at time ms.
+function turnPose(d, ms) {
     if (!d.flipping) {
         return d.turn;
     }
-    return quatSlerp(d.flipFrom, d.flipTo, smooth((ts - d.flipStart) / d.flipLength));
+    return quatSlerp(d.flipFrom, d.flipTo, smooth((ms - d.flipStart) / d.flipLength));
 }
 
 // A die that is being thrown about has hit something at `speed`: it turns
@@ -531,7 +562,7 @@ function turnPose(d, ts) {
 // coin toss), so that another face is up. One turn at a time: a knock that
 // comes while it is turning is another knock, not another turn.
 function tumble(d, speed) {
-    if (d.active || d.flipping || speed < tumbleMinSpeed) {
+    if (d.hop !== null || d.done || d.flipping || speed < tumbleMinSpeed) {
         return;
     }
     var quarters = speed >= tumbleHalfTurnSpeed ? 2 : 1;
@@ -552,13 +583,14 @@ function tumble(d, speed) {
     d.flipFrom = d.turn;
     d.flipTo = quatMultiply(turn, d.turn);
     d.flipStart = d.now;
-    d.flipLength = tumbleSeconds * (quarters === 2 ? 1.4 : 1);
+    d.flipLength = tumbleMs * (quarters === 2 ? 1.4 : 1);
     d.flipping = true;
 }
 
-// The die is slotting in: from however it lies now, it turns to its up face.
-function turnToFace(d, ts) {
-    var from = turnPose(d, ts);
+// The die is hopping home: from however it lies now, it turns to its up face
+// by the time it lands, `ms` from `now`.
+function turnToFace(d, now, ms) {
+    var from = turnPose(d, now);
     d.flipping = false;
     d.turn = from;
     if (quatSame(from, d.target)) {
@@ -566,29 +598,78 @@ function turnToFace(d, ts) {
     }
     d.flipFrom = from;
     d.flipTo = d.target;
-    d.flipStart = ts;
-    d.flipLength = turnToFaceSeconds;
+    d.flipStart = now;
+    d.flipLength = ms;
     d.flipping = true;
 }
 
-// A die has hit something at `speed`: it spins a little, more the harder, and
-// turns over.
-function kick(d, speed) {
-    var amount = Math.min(1, speed / bounceSpeed);
-    d.wpsi += (d.rng() * 2 - 1) * 240 * amount;
-    d.wphx += (d.rng() * 2 - 1) * 180 * amount;
-    d.wphy += (d.rng() * 2 - 1) * 180 * amount;
+// The kick a tip gets from an impact: a die rocks the way it was hit, and turns
+// over.
+function rock(d, speed, nx, ny) {
+    var amount = Math.min(1, speed / 12);
+    d.wphx += (ny * 6 + (d.rng() * 2 - 1) * 2) * amount;
+    d.wphy += (-nx * 6 + (d.rng() * 2 - 1) * 2) * amount;
     tumble(d, speed);
 }
 
-// One fixed step of the box's frame. `f` is the accelerometer's reading in g,
-// `w` and `alpha` the gyroscope's rate and its change.
+// A contact in the plan between die a and die b (or a fixed wall, b = null) at
+// the point (px, py), the normal (nx, ny) pointing from a to b (a to the wall):
+// gives the impulse, friction and yaw that go with it, and returns the impulse.
+function contactImpulse(a, b, px, py, nx, ny, restitution, friction) {
+    var rax = px - a.x, ray = py - a.y;
+    var vax = a.vx - a.wpsi * ray, vay = a.vy + a.wpsi * rax;
+    var vbx = 0, vby = 0, rbx = 0, rby = 0;
+    if (b) {
+        rbx = px - b.x; rby = py - b.y;
+        vbx = b.vx - b.wpsi * rby; vby = b.vy + b.wpsi * rbx;
+    }
+    var rvx = vbx - vax, rvy = vby - vay;
+    var vn = rvx * nx + rvy * ny;
+    if (vn >= 0) {
+        return 0;
+    }
+    var ran = rax * ny - ray * nx;
+    var denom = 1 + inverseInertia * ran * ran;
+    var rbn = 0;
+    if (b) {
+        rbn = rbx * ny - rby * nx;
+        denom += 1 + inverseInertia * rbn * rbn;
+    }
+    var e = vn < -restThreshold ? restitution : 0;
+    var j = -(1 + e) * vn / denom;
+    a.vx -= j * nx; a.vy -= j * ny;
+    a.wpsi -= inverseInertia * ran * j;
+    if (b) {
+        b.vx += j * nx; b.vy += j * ny;
+        b.wpsi += inverseInertia * rbn * j;
+    }
+    // friction along the contact
+    var tx = -ny, ty = nx;
+    rvx = (b ? b.vx - b.wpsi * rby : 0) - (a.vx - a.wpsi * ray);
+    rvy = (b ? b.vy + b.wpsi * rbx : 0) - (a.vy + a.wpsi * rax);
+    var vt = rvx * tx + rvy * ty;
+    var rat = rax * ty - ray * tx;
+    var denomT = 1 + inverseInertia * rat * rat;
+    if (b) {
+        var rbt = rbx * ty - rby * tx;
+        denomT += 1 + inverseInertia * rbt * rbt;
+    }
+    var jt = -vt / denomT;
+    var limit = friction * j;
+    jt = Math.max(-limit, Math.min(limit, jt));
+    a.vx -= jt * tx; a.vy -= jt * ty;
+    a.wpsi -= inverseInertia * (rax * ty - ray * tx) * jt;
+    if (b) {
+        b.vx += jt * tx; b.vy += jt * ty;
+        b.wpsi += inverseInertia * (rbx * ty - rby * tx) * jt;
+    }
+    return j;
+}
+
+// One fixed step of the box's frame. state.f is the accelerometer's reading in
+// g, state.w and state.alpha the gyroscope's rate and its change.
 function stepWeighted(state) {
     var h = simStepMs / 1000;
-    var ts = state.simSteps * h;
-    var rest = 0.5;
-    var settling = state.stage === 'settle';
-    var ceiling = state.stage === 'shake' ? state.ceiling : 4;
     var inStage = state.clock - state.stageStart;
     // Once the lid is lifting the device is put down: the reading fades to flat.
     var follow = state.stage === 'shake' ? 1
@@ -598,143 +679,283 @@ function stepWeighted(state) {
     var fz = 1 + (state.f[2] - 1) * follow;
     var wx = state.w[0] * follow, wy = state.w[1] * follow, wz = state.w[2] * follow;
     var alx = state.alpha[0] * follow, aly = state.alpha[1] * follow, alz = state.alpha[2] * follow;
-    var restSpeed = 3 * Math.max(0.2, fz) * gTiles * h;
+    var n = state.count;
+    var dampLinear = 1 - linearDamping * h;
+    var ceiling = state.stage === 'shake' ? state.lidZ - 0.5 : 1000;
 
-    for (var i = 0; i < state.count; ++i) {
+    for (var i = 0; i < n; ++i) {
         var d = state.dice[i];
-        d.now = ts;
-        if (d.flipping && ts >= d.flipStart + d.flipLength) {
+        d.now = state.clock;
+        if (d.flipping && state.clock >= d.flipStart + d.flipLength) {
             d.turn = d.flipTo;
             d.flipping = false;
         }
-        if (settling && !d.active && inStage >= d.startMs) {
-            d.active = true;
-            d.psi = wrapDegrees(d.psi);
-            turnToFace(d, ts);
+        if (d.hop !== null || d.done) {
+            continue;
         }
-        var cellX = d.cx / state.tile;
-        var cellY = d.cy / state.tile;
         // What the dice feel in the box's frame: minus what the accelerometer
-        // reads, and the pseudo-forces of the box's spin (centrifugal, Coriolis,
-        // Euler), the position taken from the middle of the box's floor.
+        // reads, and the pseudo-forces of the box's spin (centrifugal,
+        // Coriolis, Euler), the position taken from the middle of the box's floor.
         var rx = d.x, ry = d.y, rz = d.z;
-        var cfx = -(wy * (wx * ry - wy * rx) - wz * (wz * rx - wx * rz));
-        var cfy = -(wz * (wy * rz - wz * ry) - wx * (wx * ry - wy * rx));
-        var cfz = -(wx * (wz * rx - wx * rz) - wy * (wy * rz - wz * ry));
-        var cox = -2 * (wy * d.vz - wz * d.vy);
-        var coy = -2 * (wz * d.vx - wx * d.vz);
-        var coz = -2 * (wx * d.vy - wy * d.vx);
-        var eux = -(aly * rz - alz * ry);
-        var euy = -(alz * rx - alx * rz);
-        var euz = -(alx * ry - aly * rx);
-        var ax = -fx * gTiles + cfx + cox + eux + 10 * (cellX - d.x) - 0.6 * d.vx;
-        var ay = -fy * gTiles + cfy + coy + euy + 10 * (cellY - d.y) - 0.6 * d.vy;
-        var az = -fz * gTiles + cfz + coz + euz;
-        if (d.active) {
-            ax += slotStiffness * (cellX - d.x) - slotDamping * d.vx;
-            ay += slotStiffness * (cellY - d.y) - slotDamping * d.vy;
-        }
-        d.vx += ax * h;
-        d.vy += ay * h;
-        d.vz += az * h;
+        var ax = -fx * gTiles - (wy * (wx * ry - wy * rx) - wz * (wz * rx - wx * rz))
+            - 2 * (wy * d.vz - wz * d.vy) - (aly * rz - alz * ry);
+        var ay = -fy * gTiles - (wz * (wy * rz - wz * ry) - wx * (wx * ry - wy * rx))
+            - 2 * (wz * d.vx - wx * d.vz) - (alz * rx - alx * rz);
+        var az = -fz * gTiles - (wx * (wz * rx - wx * rz) - wy * (wy * rz - wz * ry))
+            - 2 * (wx * d.vy - wy * d.vx) - (alx * ry - aly * rx);
+        d.vx = (d.vx + ax * h) * dampLinear;
+        d.vy = (d.vy + ay * h) * dampLinear;
+        d.vz = (d.vz + az * h) * dampLinear;
         d.x += d.vx * h;
         d.y += d.vy * h;
         d.z += d.vz * h;
+        d.psi += d.wpsi * h;
+        // the tip leans against an acceleration, and rocks from impacts
+        var leanX = Math.max(-0.25, Math.min(0.25, -ay / gTiles * 0.25));
+        var leanY = Math.max(-0.25, Math.min(0.25, ax / gTiles * 0.25));
+        d.wphx += (-tipStiffness * (d.phx - leanX) - tipDamping * d.wphx) * h;
+        d.wphy += (-tipStiffness * (d.phy - leanY) - tipDamping * d.wphy) * h;
+        d.phx += d.wphx * h;
+        d.phy += d.wphy * h;
+        d.phx = Math.max(-maxTip, Math.min(maxTip, d.phx));
+        d.phy = Math.max(-maxTip, Math.min(maxTip, d.phy));
 
         // The floor, with friction against the weight on it.
         var onFloor = false;
-        if (d.z <= rest) {
-            d.z = rest;
+        if (d.z <= 0.5) {
+            d.z = 0.5;
             onFloor = true;
             if (d.vz < 0) {
                 var impact = -d.vz;
-                if (impact < restSpeed) {
-                    d.vz = 0;
-                } else {
-                    d.vz = impact * d.bounce;
-                    kick(d, impact);
-                    if (impact > 4 && d.active && !d.landed) {
-                        d.landed = true;
-                        state.events.push({ kind: 'landed', index: i, pitch: d.pitchValue });
+                if (impact > restThreshold) {
+                    d.vz = impact * restitutionFloor * d.bounceVariety;
+                    // an impact grips: some of the sliding speed goes
+                    var slideNow = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
+                    if (slideNow > 1e-6) {
+                        var lose = Math.min(slideNow, frictionFloor * d.gripVariety * (1 + restitutionFloor) * impact);
+                        d.vx *= 1 - lose / slideNow;
+                        d.vy *= 1 - lose / slideNow;
                     }
+                    rock(d, impact, d.vx / Math.max(1, Math.sqrt(d.vx * d.vx + d.vy * d.vy)), d.vy / Math.max(1, Math.sqrt(d.vx * d.vx + d.vy * d.vy)));
+                    d.wpsi += (d.rng() * 2 - 1) * Math.min(6, impact * 0.25);
+                    state.hits += 1;
+                } else {
+                    d.vz = 0;
                 }
             }
             var slide = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
             if (slide > 0) {
-                var drop = (d.active ? 0 : 1) * floorFriction * Math.max(0, fz) * gTiles * h;
-                var scale = slide > drop ? (slide - drop) / slide : 0;
-                d.vx *= scale;
-                d.vy *= scale;
+                var drop = frictionFloor * d.gripVariety * Math.max(0, fz) * gTiles * h;
+                var keep = slide > drop ? (slide - drop) / slide : 0;
+                d.vx *= keep;
+                d.vy *= keep;
             }
         }
         // The lid, while it is on.
         if (d.z > ceiling) {
             d.z = ceiling;
             if (d.vz > 0) {
-                kick(d, d.vz);
+                rock(d, d.vz, 0, 0);
                 d.vz = -d.vz * restitutionLid;
             }
         }
-        // The walls of its pocket: the box is a grid of loose cells, so a die
-        // can slide and bump its neighbours but cannot trade places with one.
-        var lowX = cellX - cavitySlack, highX = cellX + cavitySlack;
-        var lowY = cellY - cavitySlack, highY = cellY + cavitySlack;
-        if (d.x > highX) { d.x = highX; if (d.vx > 0) { kick(d, d.vx * 0.5); d.vx = -d.vx * restitutionWall; } }
-        if (d.x < lowX) { d.x = lowX; if (d.vx < 0) { kick(d, -d.vx * 0.5); d.vx = -d.vx * restitutionWall; } }
-        if (d.y > highY) { d.y = highY; if (d.vy > 0) { kick(d, d.vy * 0.5); d.vy = -d.vy * restitutionWall; } }
-        if (d.y < lowY) { d.y = lowY; if (d.vy < 0) { kick(d, -d.vy * 0.5); d.vy = -d.vy * restitutionWall; } }
-
-        // Turning: yaw is free but for friction, and funnelled once slotting;
-        // the tips flop flat on the floor and spin on in the air.
-        d.psi += d.wpsi * h;
-        d.wpsi *= 1 - (onFloor ? 10 : 1.5) * h;
-        d.phx += d.wphx * h;
-        d.phy += d.wphy * h;
-        if (onFloor || d.active) {
-            d.wphx += (-500 * d.phx - 26 * d.wphx) * h;
-            d.wphy += (-500 * d.phy - 26 * d.wphy) * h;
-        } else {
-            d.wphx *= 1 - 1.2 * h;
-            d.wphy *= 1 - 1.2 * h;
-        }
-        if (d.active) {
-            d.wpsi += (-500 * d.psi - 38 * d.wpsi) * h;
-        }
-        d.phx = Math.max(-75, Math.min(75, d.phx));
-        d.phy = Math.max(-75, Math.min(75, d.phy));
+        d.wpsi *= 1 - (onFloor ? yawDampingFloor : yawDampingAir) * h;
+        d.wpsi = Math.max(-maxYawRate, Math.min(maxYawRate, d.wpsi));
+        d.grounded = onFloor;
     }
 
-    // Dice push one another apart (two dice at about the same height).
-    var reach = 2 * dieRadius;
-    for (var a = 0; a < state.count; ++a) {
-        var da = state.dice[a];
-        for (var b = a + 1; b < state.count; ++b) {
-            var db = state.dice[b];
-            if (Math.abs(da.z - db.z) > 0.9) {
+    // The walls of the box, met by a die's corners.
+    wallsOf(state);
+    // Nothing moves faster than the eye can follow at 60 Hz, or turns faster.
+    for (var y = 0; y < n; ++y) {
+        var dy2 = state.dice[y];
+        dy2.wpsi = Math.max(-maxYawRate, Math.min(maxYawRate, dy2.wpsi));
+        var speed = Math.sqrt(dy2.vx * dy2.vx + dy2.vy * dy2.vy);
+        if (speed > maxSlide) {
+            dy2.vx *= maxSlide / speed;
+            dy2.vy *= maxSlide / speed;
+        }
+    }
+
+    // Dice push one another apart: in the plan by their corners, or, if one is
+    // above the other, by the height.
+    for (var pass = 0; pass < pairPasses; ++pass) {
+        for (var a = 0; a < n; ++a) {
+            var da = state.dice[a];
+            if (da.hop !== null || da.done) {
                 continue;
             }
-            var dx = db.x - da.x;
-            var dy = db.y - da.y;
-            var distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance >= reach) {
-                continue;
-            }
-            var nx = distance > 1e-6 ? dx / distance : 1;
-            var ny = distance > 1e-6 ? dy / distance : 0;
-            var push = (reach - distance) / 2;
-            da.x -= nx * push; da.y -= ny * push;
-            db.x += nx * push; db.y += ny * push;
-            var approach = (da.vx - db.vx) * nx + (da.vy - db.vy) * ny;
-            if (approach > 0) {
-                var j = (1 + restitutionDie) * approach / 2;
-                da.vx -= j * nx; da.vy -= j * ny;
-                db.vx += j * nx; db.vy += j * ny;
-                kick(da, approach * 0.5);
-                kick(db, approach * 0.5);
+            for (var b2 = a + 1; b2 < n; ++b2) {
+                var db = state.dice[b2];
+                if (db.hop !== null || db.done) {
+                    continue;
+                }
+                pairContact(state, da, db, pass === 0);
             }
         }
     }
     state.simSteps += 1;
+}
+
+// A die and the walls: each of its four sides against the box, by the corners.
+function wallsOf(state) {
+    for (var i = 0; i < state.count; ++i) {
+        var d = state.dice[i];
+        if (d.hop !== null || d.done) {
+            continue;
+        }
+        var c = Math.cos(d.psi), s = Math.sin(d.psi);
+        var ex = 0.5 * (Math.abs(c) + Math.abs(s));
+        // The four walls, as (axis, side).
+        for (var wall = 0; wall < 4; ++wall) {
+            var horizontal = wall < 2;
+            var side = (wall & 1) ? -1 : 1;
+            var limit = horizontal ? state.halfX : state.halfY;
+            var position = horizontal ? d.x : d.y;
+            var reach = ex;                   // a rotated square's half extent is the same on both axes
+            var over = side * position + reach - limit;
+            if (over <= 0) {
+                continue;
+            }
+            // the corner that is furthest into the wall
+            var best = -1e9, cornerX = 0, cornerY = 0;
+            for (var q = 0; q < 4; ++q) {
+                var lx = (q & 1) ? 0.5 : -0.5, ly = (q & 2) ? 0.5 : -0.5;
+                var gx = c * lx - s * ly, gy = s * lx + c * ly;
+                var score = side * (horizontal ? gx : gy);
+                if (score > best) { best = score; cornerX = gx; cornerY = gy; }
+            }
+            if (horizontal) {
+                d.x -= side * over;
+            } else {
+                d.y -= side * over;
+            }
+            // the normal points from the die to the wall
+            var nx = horizontal ? side : 0, ny = horizontal ? 0 : side;
+            var speedIn = d.vx * nx + d.vy * ny;
+            if (speedIn > 0) {
+                var impulse = contactImpulse(d, null, d.x + cornerX, d.y + cornerY, nx, ny, restitutionWall, frictionWall);
+                rock(d, speedIn, nx, ny);
+                if (impulse > 0) {
+                    state.hits += 1;
+                }
+            }
+        }
+    }
+}
+
+// Two dice: if their squares overlap in the plan and their heights overlap,
+// push them out of one another along the way that takes least, and give the
+// impulse. Dice more than a die apart in height do not touch.
+function pairContact(state, a, b, first) {
+    var dz = b.z - a.z;
+    var apart = Math.abs(dz);
+    if (apart >= 1) {
+        return;
+    }
+    var dx = b.x - a.x, dy = b.y - a.y;
+    if (dx * dx + dy * dy > 2.02) {
+        return;
+    }
+    var ca = Math.cos(a.psi), sa = Math.sin(a.psi);
+    var cb = Math.cos(b.psi), sb = Math.sin(b.psi);
+    // the four axes, each a face normal of one of the squares
+    var best = 1e9, bnx = 0, bny = 0, fromA = true;
+    for (var k = 0; k < 4; ++k) {
+        var ux, uy, owner;
+        if (k === 0) { ux = ca; uy = sa; owner = true; }
+        else if (k === 1) { ux = -sa; uy = ca; owner = true; }
+        else if (k === 2) { ux = cb; uy = sb; owner = false; }
+        else { ux = -sb; uy = cb; owner = false; }
+        var ra = 0.5 * (Math.abs(ux * ca + uy * sa) + Math.abs(-ux * sa + uy * ca));
+        var rb = 0.5 * (Math.abs(ux * cb + uy * sb) + Math.abs(-ux * sb + uy * cb));
+        var distance = dx * ux + dy * uy;
+        var depth = ra + rb - Math.abs(distance);
+        if (depth <= 0) {
+            return;
+        }
+        if (depth < best) {
+            best = depth;
+            bnx = distance >= 0 ? ux : -ux;
+            bny = distance >= 0 ? uy : -uy;
+            fromA = owner;
+        }
+    }
+    var depthZ = 1 - apart;
+    if (depthZ < best) {
+        // one sits on the other: push them apart in height
+        var upper = dz > 0 ? b : a;
+        var lower = dz > 0 ? a : b;
+        var half = depthZ * 0.5;
+        upper.z += half;
+        lower.z -= half;
+        if (lower.z < 0.5) {
+            upper.z += 0.5 - lower.z;
+            lower.z = 0.5;
+        }
+        var relative = upper.vz - lower.vz;
+        if (relative < 0) {
+            var e = relative < -restThreshold ? restitutionDie : 0;
+            var jz = -(1 + e) * relative / 2;
+            upper.vz += jz;
+            lower.vz -= jz;
+            if (lower.z <= 0.5) {
+                lower.vz = Math.max(0, lower.vz);
+            }
+        }
+        // sliding on one another: the two drag one another along
+        var tx = upper.vx - lower.vx, ty = upper.vy - lower.vy;
+        var drag = Math.min(1, frictionDie * Math.max(0, -relative) * 0.05 + 0.02);
+        upper.vx -= tx * drag; upper.vy -= ty * drag;
+        lower.vx += tx * drag; lower.vy += ty * drag;
+        return;
+    }
+    // in the plan: the point of contact is the deepest corner of the other
+    // square, taken on the side that the normal leaves from
+    var px = 0, py = 0, score = -1e9;
+    var from = fromA ? b : a;                    // the square whose corner meets the face
+    var cf = fromA ? cb : ca, sf = fromA ? sb : sa;
+    var sign = fromA ? -1 : 1;                   // toward the other square along -n or +n
+    for (var q = 0; q < 4; ++q) {
+        var lx = (q & 1) ? 0.5 : -0.5, ly = (q & 2) ? 0.5 : -0.5;
+        var gx = cf * lx - sf * ly, gy = sf * lx + cf * ly;
+        var t = sign * (gx * bnx + gy * bny);
+        if (t > score) { score = t; px = from.x + gx; py = from.y + gy; }
+    }
+    // push apart (a toward -n, b toward +n), then the impulse
+    var move = best * 0.5 * (first ? 1 : 0.6);
+    a.x -= bnx * move; a.y -= bny * move;
+    b.x += bnx * move; b.y += bny * move;
+    var impulse = contactImpulse(a, b, px, py, bnx, bny, restitutionDie, frictionDie);
+    if (impulse > 0.5) {
+        var along = Math.abs(a.vx * bnx + a.vy * bny) + Math.abs(b.vx * bnx + b.vy * bny);
+        rock(a, along * 0.5, bnx, bny);
+        rock(b, along * 0.5, -bnx, -bny);
+        state.hits += 1;
+    }
+}
+
+// A die lets go of the physics and hops home: a ballistic arc from where it is
+// to its own cell, turning flat and upright on the way.
+function startHop(state, d, index) {
+    var distance = Math.sqrt((d.hx - d.x) * (d.hx - d.x) + (d.hy - d.y) * (d.hy - d.y));
+    var rise = Math.min(hopRiseFar, hopRiseNear + 0.55 * distance) * (0.9 + 0.2 * d.rng());
+    var z0 = Math.max(0.5, d.z);
+    var up = Math.sqrt(2 * rise / gTiles);
+    var down = Math.sqrt(2 * (z0 + rise - 0.5) / gTiles);
+    // yaw by the shortest way round
+    var psi = d.psi - 2 * Math.PI * Math.round(d.psi / (2 * Math.PI));
+    d.hop = {
+        t0: state.clock,
+        T: (up + down) * 1000,
+        x0: d.x, y0: d.y, z0: z0,
+        vz: gTiles * up,
+        psi0: psi, phx0: d.phx, phy0: d.phy,
+        wobble: (d.rng() * 2 - 1),
+        index: index
+    };
+    // It turns to its face, the letter upright, as it hops.
+    turnToFace(d, state.clock, d.hop.T);
 }
 
 function advanceWeighted(state, dtMs, tracker) {
@@ -748,6 +969,10 @@ function advanceWeighted(state, dtMs, tracker) {
         }
         if (inStage >= shakeMinMs && (tracker.level < shakeStillLevel || inStage >= shakeMaxMs)) {
             enter(state, 'lid');
+            // Each die hops home in the seeded order, once the lid is up.
+            for (var i = 0; i < state.count; ++i) {
+                state.dice[i].launchAt = state.clock + hopDelayMs + state.dice[i].startMs;
+            }
         }
     } else if (state.stage === 'lid') {
         if (inStage >= lidMs) {
@@ -774,32 +999,75 @@ function advanceWeighted(state, dtMs, tracker) {
                            Math.max(-100, Math.min(100, (sample.w[1] - previousW[1]) / (sampleMs / 1000))),
                            Math.max(-100, Math.min(100, (sample.w[2] - previousW[2]) / (sampleMs / 1000)))];
         }
+        for (var s = 0; s < state.count; ++s) {
+            var ds = state.dice[s];
+            if (ds.launchAt >= 0 && ds.hop === null && !ds.done && state.clock >= ds.launchAt) {
+                startHop(state, ds, s);
+            }
+        }
         stepWeighted(state);
     }
-    // What the box shows of the device: how it is tipped, and a shiver.
-    state.tipX = Math.asin(Math.max(-1, Math.min(1, state.f[1] / Math.max(0.2, Math.sqrt(state.f[0] * state.f[0] + state.f[1] * state.f[1] + state.f[2] * state.f[2]))))) * 180 / Math.PI;
-    state.tipY = Math.asin(Math.max(-1, Math.min(1, -state.f[0] / Math.max(0.2, Math.sqrt(state.f[0] * state.f[0] + state.f[1] * state.f[1] + state.f[2] * state.f[2]))))) * 180 / Math.PI;
-    state.vibe = tracker.level;
-    if (state.stage === 'settle') {
-        var settleFor = state.clock - state.stageStart;
-        var still = true;
-        for (var i = 0; i < state.count && still; ++i) {
-            var d = state.dice[i];
-            var cellX = d.cx / state.tile;
-            var cellY = d.cy / state.tile;
-            still = d.active
-                && !d.flipping
-                && Math.abs(d.x - cellX) < 0.004 && Math.abs(d.y - cellY) < 0.004
-                && Math.abs(d.z - 0.5) < 0.004
-                && Math.abs(d.vx) < 0.05 && Math.abs(d.vy) < 0.05 && Math.abs(d.vz) < 0.05
-                && Math.abs(d.psi) < 0.3 && Math.abs(d.phx) < 0.3 && Math.abs(d.phy) < 0.3;
+    // Where the hopping dice are now: arcs, not physics.
+    var remaining = 0;
+    for (var j = 0; j < state.count; ++j) {
+        var dj = state.dice[j];
+        if (dj.done) {
+            continue;
         }
-        if (still || settleFor >= state.lastStartMs + 700) {
+        remaining += 1;
+        if (dj.hop === null) {
+            continue;
+        }
+        var hop = dj.hop;
+        var tau = (state.clock - hop.t0) / 1000;
+        var T = hop.T / 1000;
+        if (tau < T) {
+            var u = smooth(tau / T);
+            dj.x = hop.x0 + (dj.hx - hop.x0) * (tau / T);
+            dj.y = hop.y0 + (dj.hy - hop.y0) * (tau / T);
+            dj.z = hop.z0 + hop.vz * tau - 0.5 * gTiles * tau * tau;
+            dj.psi = hop.psi0 * (1 - u);
+            dj.phx = hop.phx0 * (1 - u);
+            dj.phy = hop.phy0 * (1 - u);
+        } else {
+            if (!dj.landed) {
+                dj.landed = true;
+                state.events.push({ kind: 'landed', index: j, pitch: dj.pitchValue });
+            }
+            var after = (state.clock - hop.t0 - hop.T) / landingBounceMs;
+            if (after < 1) {
+                // a small rebound and a settling wobble, then it is down
+                dj.x = dj.hx; dj.y = dj.hy; dj.psi = 0;
+                dj.z = 0.5 + 0.07 * Math.sin(Math.PI * after) * (1 - after);
+                dj.phx = 0.06 * hop.wobble * Math.sin(2 * Math.PI * 1.5 * after) * (1 - after);
+                dj.phy = 0;
+            } else {
+                dj.x = dj.hx; dj.y = dj.hy; dj.z = 0.5;
+                dj.psi = 0; dj.phx = 0; dj.phy = 0;
+                dj.vx = 0; dj.vy = 0; dj.vz = 0; dj.wpsi = 0;
+                dj.done = true;
+                remaining -= 1;
+            }
+        }
+    }
+    // What the box shows of the device: how it is held, which is gravity as the
+    // reading settles to it, not each stroke (the dice answer to the strokes).
+    var gv = tracker.g;
+    var norm = Math.max(0.2, Math.sqrt(gv[0] * gv[0] + gv[1] * gv[1] + gv[2] * gv[2]));
+    state.tipX = Math.asin(Math.max(-1, Math.min(1, gv[1] / norm))) * 180 / Math.PI;
+    state.tipY = Math.asin(Math.max(-1, Math.min(1, -gv[0] / norm))) * 180 / Math.PI;
+    state.vibe = tracker.level;
+    if (state.stage === 'settle' || state.stage === 'lid') {
+        if (remaining === 0) {
+            enter(state, 'idle');
+            state.events.push({ kind: 'settled' });
+        } else if (state.stage === 'settle' && state.clock - state.stageStart > state.lastStartMs + 1200) {
             for (var k = 0; k < state.count; ++k) {
                 var e = state.dice[k];
-                e.x = e.cx / state.tile; e.y = e.cy / state.tile; e.z = 0.5;
-                e.vx = 0; e.vy = 0; e.vz = 0;
+                e.x = e.hx; e.y = e.hy; e.z = 0.5;
                 e.psi = 0; e.phx = 0; e.phy = 0;
+                e.vx = 0; e.vy = 0; e.vz = 0; e.wpsi = 0;
+                e.hop = null; e.done = true;
                 e.flipping = false;
                 e.turn = e.target;
                 if (!e.landed) {
@@ -816,6 +1084,7 @@ function advanceWeighted(state, dtMs, tracker) {
 function evaluateWeighted(state) {
     var tile = state.tile;
     var inStage = state.clock - state.stageStart;
+    var toDegrees = 180 / Math.PI;
     for (var i = 0; i < state.count; ++i) {
         var d = state.dice[i];
         var height = Math.max(0, d.z - 0.5);
@@ -823,12 +1092,12 @@ function evaluateWeighted(state) {
         state.px[i] = d.x * tile;
         state.py[i] = d.y * tile;
         state.pz[i] = d.z * tile;
-        state.rx[i] = d.phx;
-        state.ry[i] = d.phy;
-        state.rz[i] = d.psi;
+        state.rx[i] = d.phx * toDegrees;
+        state.ry[i] = d.phy * toDegrees;
+        state.rz[i] = d.psi * toDegrees;
         // Which face is up: at rest, the board's; before that, whichever the
-        // knocks have left it on.
-        var turn = state.stage === 'idle' ? d.target : turnPose(d, state.simSteps * simStepMs / 1000);
+        // knocks have left it on, and then the way home.
+        var turn = state.stage === 'idle' ? d.target : turnPose(d, state.clock);
         state.tw[i] = turn[0];
         state.tx[i] = turn[1];
         state.ty[i] = turn[2];
@@ -837,13 +1106,12 @@ function evaluateWeighted(state) {
         state.shadowRadius[i] = tile * 0.47 * (1 - 0.1 * Math.min(1.5, airborne));
         state.shadowOpacity[i] = 0.34 / (1 + 1.2 * airborne);
     }
-    // The box is shown tipped the way the device is, up to about eight degrees,
-    // with a shiver in proportion to how hard it is being shaken.
-    var shiver = state.stage === 'shake' ? Math.min(1, state.vibe / 1.2) : 0;
-    var seconds = state.clock / 1000;
-    var limit = 10;
-    state.boxRx = Math.max(-limit, Math.min(limit, state.tipX + shiver * 1.2 * Math.sin(6.2832 * 23 * seconds)));
-    state.boxRy = Math.max(-limit, Math.min(limit, state.tipY + shiver * 1.2 * Math.sin(6.2832 * 19 * seconds + 1.3)));
+    // The box is shown tipped the way the device is held, up to about eight
+    // degrees, and otherwise still: a box that shivers with every stroke reads
+    // as judder, and the dice already answer to the strokes.
+    var limit = 8;
+    state.boxRx = Math.max(-limit, Math.min(limit, state.tipX));
+    state.boxRy = Math.max(-limit, Math.min(limit, state.tipY));
     // The lid.
     var lidU = state.stage === 'shake' ? 0 : (state.stage === 'lid' ? inStage / lidMs : 1);
     var lift = smooth(lidU);
@@ -851,7 +1119,7 @@ function evaluateWeighted(state) {
     state.lidLift = tile * 0.9 * lift;
     state.lidOpacity = state.stage === 'shake' ? 1
         : (state.stage === 'lid' ? 1 - smooth((lidU - 0.55) / 0.45) : 0);
-    // The camera comes upright as the dice slot in.
+    // The camera comes upright as the dice hop home.
     if (state.stage === 'shake' || state.stage === 'lid') {
         state.leanFraction = 1;
     } else if (state.stage === 'settle') {
