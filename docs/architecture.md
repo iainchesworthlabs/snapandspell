@@ -208,7 +208,9 @@ up, so `dice.die(p.die)[p.face]` is the tile's letters. A scene that draws the
 dice, and tumbles them to show their other faces, takes the faces from
 `dice.die(p.die)` and the face that is up from `p.face`; the game reads only the
 board. `roll(dice, seed)` is the same roll returning the board alone, for a
-caller that does not draw dice. Both are pure functions of the set and the seed,
+caller that does not draw dice. A board from `deal_standard_board` is the roll of the
+seed it reports (`DealtBoard::seed`), so `roll_with_placements(dice, dealt.seed)` gives
+the dice of a dealt board. Both are pure functions of the set and the seed,
 with the library's own `Draw` (`std::mt19937` taken modulo, and a shuffle that is
 not `std::shuffle`), so a seed is the same board and the same placements on every
 compiler, and a seed that gave a board before the placements were returned gives
