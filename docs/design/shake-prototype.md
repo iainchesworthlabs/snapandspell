@@ -31,7 +31,7 @@ platform fragment's to change, not this page's, and is left for the author.
 | Part | Where | What it is |
 | --- | --- | --- |
 | The scene | `src/app/prototype/shake/qml/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die sharing the `#Cube` mesh, a letter atlas, a baked light probe. Draws the poses the script gives it |
-| The script | `qml/ShakeScript.js` | The shake, lid, drop and settle as a function of the board, the seed and the time. Plain JavaScript, no QML and no renderer |
+| The script | `qml/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or a small integrator of our own (weighted). Plain JavaScript, no QML and no renderer |
 | The faces | `qml/FaceAtlas.qml`, `qml/Die.qml` | One texture for the board's tiles, each die sampling its own cell; a dead jewel is a cell of four facets |
 | The harness | `qml/ShakeWindow.qml`, `frame_stats.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, and the timing and measurement runs |
 | The probe | `tools/lightprobe`, `qml/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
@@ -54,25 +54,56 @@ jewel.
 | `landed(index, pitch)` | signal | A die has hit the floor: its place in the board, and a pitch for its click |
 | `rattled()` | signal | The box rattles, at most 8 a second, for the haptic tap |
 | `busy`, `rows`, `columns`, `tileSize`, `tileGap`, `boardRect` | read-only | The geometry by [the rule](board.md#the-rule), for the 2D layer that traces over the scene |
+| `overdraw` | read-only | How far past its item the scene draws, on every side (half a tile), so a die tumbling at the edge and the tipping rim are not cut off. The item is still the board's area; the application must not `clip` it |
 
-`lean`, `probeMode`, `cameraDistance` and `warmUp` are settings of the 3D
-implementation and are not part of the seam. `seek(board, seed, ms)` and
+`lean`, `probeMode`, `cameraDistance`, `warmUp` and `weighted` are settings of
+the 3D implementation and are not part of the seam. `seek(board, seed, ms)` and
 `digest(board, seed)` are for tests and pictures.
 
-### The stages as built
+### The two scripts
 
-All are [the starting values](board.md#the-stages), unchanged. The drop is a
-seeded shuffle, the gap between starts is the smaller of 30 ms and 700 ms over
-the dice, each fall takes 280 to 420 ms with a rebound of an eighth of the
-height, and the camera comes upright over the drop and the settle so that the
-dice's tops are the 2D tiles.
+**Weighted** (the default) and **staged** are two ways of making the same
+play, chosen by `weighted`; reduced motion is the same cross-fade in both. The
+harness has a switch for it so they can be compared in one window.
 
-| Play | Measured, play to `settled` | What it is |
+**Staged** is [the stages of the board page](board.md#the-stages) as prescribed
+curves: dice hover a tile above their cells and jitter on sine waves, then fall
+in a seeded order on a parabola with one rebound, and the camera comes upright
+over the fall.
+
+**Weighted** is the same play with the stages kept (rattle for 0.7 s or while
+the device shakes, up to 3 s; the lid; the dice slot in, in the seeded order)
+and the motion between them integrated, at a fixed 240 steps a second, from
+forces:
+
+- The box is accelerated (sideways and up and down) and the dice in it are
+  pushed the other way. The vertical push is more than gravity, so dice leave
+  the floor and hit the lid; the live `agitation` scales it.
+- A die bounces off the floor (about a third of its speed back), the lid and
+  the walls of a cavity a fifth of a tile roomier than the board, and off the
+  dice next to it. It spins by a seeded amount, more the harder it hit, and
+  flops flat on the floor within a tenth of a second.
+- Once the lid is off, a spring funnels each die into its cell, the first dice
+  of the seeded order first (30 ms apart), and the yaw springs back to upright.
+  Everything is at rest when the springs and bounces have died away, with a
+  hard limit 0.7 s after the last die began, and then it is exactly on its cell.
+- Time is slowed to about a third of a real die's, so that a fall of a tile
+  takes a fifth of a second and can be seen. The weight is in the shape of the
+  motion: the acceleration, the stop, the rebound, the spin.
+
+It is still seeded and replays: the same board, seed and (still) device give
+the same checksum, because the integrator is a fixed step with a generator for
+each die. It is not a physics engine and does not decide where a die lands;
+that is its cell, always.
+
+| Play (weighted) | Measured, play to `settled` | What it is |
 | --- | --- | --- |
-| 4x4, full motion | 1.97 s | 0.70 shake, 0.25 lid, 0.87 drop, 0.15 settle: 1.27 s after the shake, 1.65 s with the 380 ms layout stage that is the application's, not the scene's |
-| 3x3, full motion | 1.73 s | The same, with 9 dice starting 30 ms apart |
+| 4x4, full motion | 1.7 to 1.8 s | 0.70 shake, 0.25 lid, the rest slotting in: 1.1 s after the shake, 1.5 s with the 380 ms layout stage that is the application's, not the scene's |
+| 3x3, full motion | 1.9 s | The same |
 | Either, reduced motion | 0.58 s | 0.30 rattle, 0.12 lid fade, 0.12 dice fade |
-| Rattle held at full | 4.0 s (3x3), 4.3 s (4x4) | The 3 s limit, then the lid and the drop |
+| Rattle held at full | 4.1 to 4.2 s | The shake held to its 3 s limit, then the lid and the slot |
+
+(Staged: 1.97 s at 4x4 and 1.73 s at 3x3, with a 0.87 s drop.)
 
 ## How it was measured
 
@@ -81,7 +112,7 @@ dice's tops are the 2D tiles.
 | Machine | Windows 11 Pro for Workstations 10.0.26200; AMD Ryzen 9 5950X (16 cores, 32 threads); NVIDIA GeForce RTX 4090 (driver 32.0.16.1742). Shared with other work, not quiesced |
 | Renderer | Qt RHI on Direct3D 11, threaded render loop, flip-model swap chain, MSAA Medium. Qt reports the window's display at 60 Hz (a vsync of 16.68 ms) |
 | Software | Qt 6.12.0 (`msvc2022_64` of the shared tree), MSVC 19.51, Release (`/O2`), QML compiled to C++ ahead of time |
-| Window | 560 x 900 logical pixels, the scene in the top two thirds |
+| Window | 560 x 900 logical pixels, the scene in the top two thirds. The tables are from the **staged** script, which was the only one when they were taken; the weighted one is under [the weighted script](#the-weighted-script-in-the-same-harness) |
 | Also tried | Qt's bundled Mesa llvmpipe through OpenGL (`QSG_RHI_BACKEND=opengl`, `QT_OPENGL=software`), as a stand-in for a device with a weak GPU; **not** a model of an iPad |
 
 Frame times are the interval between `frameSwapped` signals. The render thread's
@@ -98,6 +129,7 @@ $env:QT_ASSUME_STDERR_HAS_CONSOLE = 1      # the program is a GUI program; this 
 build\windows-msvc-release\bin\ShakePrototype.exe                       # to play with
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --runs 6 --out results   # timing
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --out shots      # stills
+build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --frames 30 --size 720x900 --out frames   # every frame, for a video
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --digest --out digest    # replay check
 ```
 
@@ -138,6 +170,17 @@ It moves about 40 ms into the creation frame above. The 47.7 ms without it is
 the only frame on Direct3D 11, after the scene was made, over the
 [33 ms budget](performance.md#budgets).
 
+### Two cadences
+
+The same binary, run twice in a row on the same machine, presented at two
+different rhythms: intervals of 16.7 ms and a press-to-first-frame of about
+16 ms, and then intervals of 11 to 12 ms and a press-to-first-frame of 53 to
+65 ms, with the same render-thread time. It happened with the overdraw off and
+on, so it is not the scene. The suspect is which of the machine's displays (it
+has a 100 Hz mode) the window opened on; it was not investigated. The tables
+below are from runs in the 16.7 ms rhythm, and the 18 ms first-shake figure
+with the warm-up is from there; the 48 ms without it is in the same one.
+
 ### During the shake and the drop
 
 All the plays of three processes, each process's first play left out
@@ -154,8 +197,11 @@ All the plays of three processes, each process's first play left out
 
 On this machine the scene is far inside its frame: no frame was late, the
 render thread spends about half a millisecond on a frame, and the longest
-interval was 20 ms. That says nothing about a tablet's GPU, which does the work
-the render thread only submits. The two things to measure on the device are the
+interval was 20 ms. (Drawing past the item, below, makes the view a tenth
+bigger each way and added about 0.1 ms to the render thread's mean, from two
+more processes of six plays each; the intervals did not change.) That says
+nothing about a tablet's GPU, which does the work the render thread only
+submits. The two things to measure on the device are the
 GPU time of a frame with 16 dice and MSAA, and the first-frame cost above.
 
 ### Replay
@@ -164,10 +210,16 @@ GPU time of a frame with 16 dice and MSAA, and the first-frame cost above.
 the device still. The same board and seed gave the same checksum twice, a
 different seed a different one, and reduced motion its own:
 
-| Board | Seed 100, then again | Seed 101 | Reduced, seed 100, then again |
-| --- | --- | --- | --- |
-| 3x3 | `7cfdfd74`, `7cfdfd74` | `c5dc0064` | `4a2172c5`, `4a2172c5` |
-| 4x4 | `ea3b8ceb`, `ea3b8ceb` | `cd5e72f7` | `e5250505`, `e5250505` |
+| Script | Board | Seed 100, then again | Seed 101 | Reduced, seed 100, then again |
+| --- | --- | --- | --- | --- |
+| Staged | 3x3 | `7cfdfd74`, `7cfdfd74` | `c5dc0064` | `4a2172c5`, `4a2172c5` |
+| Staged | 4x4 | `ea3b8ceb`, `ea3b8ceb` | `cd5e72f7` | `e5250505`, `e5250505` |
+| Weighted | 3x3 | `f3f4f8ac`, `f3f4f8ac` | `3763cac3` | `fecee3b5`, `fecee3b5` |
+| Weighted | 4x4 | `4bba074`, `4bba074` | `bb5ba6` | `6a5f4a5d`, `6a5f4a5d` |
+
+A checksum is of the poses in pixels, so it is for one scene size: the staged
+rows are from the first window and the weighted from the later one (which is
+why the reduced rows, the same script in both, differ between them).
 
 Moving the script out of the scene file into `ShakeScript.js` left the stills
 identical, pixel for pixel but one pixel one level off. What the checksum does
@@ -233,38 +285,53 @@ either). This is a limit of that Mesa and not of CPU renderers in general
 prefiltered at run time can stop the scene drawing where the GL is old, and a
 file cannot. The baked probe ran on it as above.
 
+### The weighted script in the same harness
+
+Direct3D 11, four plays of each case after the first, the baked probe: 2,862
+frames, the longest interval 20.9 ms, and the render thread's mean is 0.4 to
+0.7 ms a frame, the same as staged. The integrator (4 steps a frame, 16 dice,
+120 pair tests a step) does not show in the frame times. A shake driven
+through the pointer was 3.4 s in all. New checksums for replay, for this script,
+are recorded in [Replay](#replay) and agree between runs.
+
 ## What it looked like
 
-![Ten times through one shake, 4x4, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
+The author's first look at the staged version, running it: **it had no weight.**
+Everything moved on curves, the dice did not collide or slide into their cells
+the way a real set does (curved corners, a tap to seat them), and there was no
+sense of mass. Looking straight down was right for how the board is held and
+shaken, and 3x3 was fine. Hence the weighted script, and top-down as the
+default (`lean` 0).
+
+![The weighted shake, 4x4, straight down: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
 
 Stills at fixed times of one board (`--auto --shots`), so they are the same on
 every run. They were read from stills by whoever built the scene, not by a
-child, and nobody has yet watched the motion: that is the author's to judge by
-running it.
+child, and nobody has yet watched the weighted motion: that is the author's to
+judge by running it. **Nothing plays `landed`, and sound is much of what makes
+a die feel heavy:** Qt Multimedia is not in the shared tree, so the prototype
+is silent, and the feel is judged without it.
+
+- **Weighted, straight down (above).** Dice slide, turn and bump (350 to
+  1000 ms) in a box with a visible rim, then slot into their cells in a seeded
+  order with the last stragglers turning upright (1150 to 1650 ms). Height is
+  shown only by size and shadow, because the camera is straight down.
+- **Faults.** Dice are discs to each other and squares to the eye, so corners
+  cross for a moment when two are turned; the dead jewel is a cube with four
+  facets painted on, which looks wrong from the side; and the rebound is a
+  fixed fraction, so every die lands about alike.
+
+Staged, leaning 24 degrees, for comparison:
+
+![The staged shake, leaning](shake-prototype-filmstrip-staged.png)
 
 - **At rest it reads well**, at 3x3 and 4x4. Letters upright, cream face and
   dark edge, the dead jewels distinct, and the 2D layer's outlines sit on the
-  dice's tops to the pixel (the hairlines in the last frame are the 2D layer;
-  it draws a hovered tile amber, as in the second strip below).
-- **The rattle reads as a box.** With the camera leaning 24 degrees the dice
-  are plainly inside a tipping tray under a pane (350 and 800 ms).
-- **The drop reads as dropping.** In a seeded order, each die turns about its
-  horizontal axes as it falls and settles with a small rebound; a letter is on
-  every face, so a tumbling die is always a letter and never a blank. The camera
-  coming upright over the fall is what shows the height of the fall in the
-  stills.
-- **Straight down is worse than leaning.** With `--lean 0` the dice, at the
-  height of the box, are about a tenth bigger on the screen than a tile, which
-  is more than the 12 dp inset, so the rattle and the start of the drop are
-  cropped by the item's edge, and the box does not read as a box: ![The same shake with the camera straight
-  down](shake-prototype-filmstrip-straight-down.png)
-- **What is wrong with it.** There is no collision, so a falling die cuts
-  through a landed neighbour for a few frames (1450 ms, the O through the K);
-  the scene's item is the board's area, so a die that tumbles at the edge is
-  cut off by the item's bounds (1300 and 1450 ms, the left edge); and the dead
-  jewel is a cube with four facets painted on its faces, which looks wrong from
-  the side. The first two want the scene's item to be larger than `boardRect`;
-  the third wants a mesh, if D2 goes 3D.
+  dice's tops to the pixel.
+- **Staged: the rattle reads as a box**, the drop as dropping, and straight
+  down it was a grid shaking under a pane. It was also what the author found
+  weightless.
+
 
 ## If a 2D implementation is swapped in
 
@@ -296,19 +363,25 @@ What a 2D `BoardScene` has to keep:
 What it does not carry: `lean`, `probeMode`, `cameraDistance`, `warmUp`, and
 the 3D-only files (`Die.qml`, `FaceAtlas.qml`, the probe). It loses the lit
 solid and the true tumble about the horizontal axes; the stages and their
-durations are the same.
+durations are the same. The weighted script is a shared part, not a 3D one: a
+2D scene draws the same positions, yaw, heights (as scale and shadow) and
+events from it.
 
-### What the seam should change
+### What changed in the seam
 
-The prototype suggests two changes to the seam before the application is built
-on it, both cheap now:
+The prototype suggested two changes to the seam before the application is
+built on it:
 
-- The scene's item should be allowed to be larger than the board, with
-  `boardRect` saying where the board is in it, so that a tumbling die at the
-  edge and the box's rim are not cut off.
-- The first board's `show()` is where the one-time costs go, so the
-  application should create the scene at start-up with the first board and not
-  on the first press of Shake. The interface already allows it.
+- **Done: the scene draws past its item.** `overdraw` (half a tile) is how far,
+  and the view is that much bigger on every side. The item is still the
+  board's area and `boardRect` is still by the rule, so the layout is not
+  changed; the application must leave the item unclipped, and the window needs
+  room around the board (the harness gives it a margin above, and the stills
+  and the video are 720 wide). 3D only: a 2D scene may report any `overdraw`,
+  including 0.
+- **A rule for the application, no code:** the first board's `show()` is where
+  the one-time costs go, so the application creates the scene at start-up with
+  the first board and not on the first press of Shake.
 
 ## What was not measured
 
@@ -319,7 +392,8 @@ on it, both cheap now:
 - A person's hand on the drag. The runs set the agitation directly, and one
   sends the window a scripted back-and-forth pointer path ([above](#the-drag));
   how the drag *feels* is unjudged.
-- The accelerometer, haptics and sound. The scene emits `rattled` and `landed`
-  and the harness shows a count; no run checked the counts against the script.
+- **Sound**, the accelerometer and haptics. The scene emits `rattled` and
+  `landed` and the harness shows a count; nothing plays them, and no run
+  checked the counts against the script.
 - Whether the tumble reads at a child's eye height. See
   [Unknowns](board.md#unknowns).

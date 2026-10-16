@@ -16,11 +16,13 @@ ApplicationWindow {
     required property bool shotsOnly
     required property bool digestOnly
     required property int startBoard
+    required property int framesPerSecond
     required property string outDir
     required property string probeMode
     required property real leanDegrees
     required property int runCount
     required property bool warmUp
+    required property bool weighted
     required property int startWidth
     required property int startHeight
 
@@ -84,7 +86,8 @@ ApplicationWindow {
         const made = component.createObject(sceneHost, {
             probeMode: window.probeMode,
             lean: window.leanDegrees,
-            warmUp: window.warmUp
+            warmUp: window.warmUp,
+            weighted: window.weighted
         });
         const createdAt = stats.now();
         made.anchors.fill = sceneHost;
@@ -199,7 +202,11 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: parent.height * 2 / 3
+        // The scene draws past its item by its overdraw (half a tile); leave
+        // room above it. A fixed share of the window, not the scene's own
+        // number, which depends on this item's size.
+        anchors.topMargin: parent.height * 0.07
+        height: parent.height * 2 / 3 - anchors.topMargin
 
         DragHandler {
             id: drag
@@ -316,6 +323,17 @@ ApplicationWindow {
                 text: qsTr("Reduced motion")
                 checked: window.reduced
                 onToggled: window.reduced = checked
+            }
+
+            Switch {
+                text: qsTr("Weighted")
+                checked: window.weighted
+                onToggled: {
+                    window.weighted = checked;
+                    if (window.scene) {
+                        window.scene.weighted = checked;
+                    }
+                }
             }
 
             Switch {
@@ -524,7 +542,18 @@ ApplicationWindow {
     // Screenshots through one play, taken by seeking the script to fixed
     // times, so they are the same on every run and show the stages where they
     // are: the rattle, the lid, the drop in flight, the settle.
-    readonly property var shotTimes: [0, 350, 800, 1000, 1150, 1300, 1450, 1650, 1900, 2300]
+    readonly property var shotTimes: {
+        if (framesPerSecond <= 0) {
+            return [0, 350, 800, 1000, 1150, 1300, 1450, 1650, 1900, 2300];
+        }
+        // Every frame of the first 2.4 s: the shake's minimum, the lid, the
+        // drop and the settle, and a little of the board at rest.
+        const times = [];
+        for (let t = 0; t <= 2400; t += 1000 / framesPerSecond) {
+            times.push(Math.round(t));
+        }
+        return times;
+    }
     property int shotIndex: 0
 
     function takeShots() {
@@ -537,7 +566,7 @@ ApplicationWindow {
     Timer {
         id: shotTimer
 
-        interval: 120
+        interval: window.framesPerSecond > 0 ? 40 : 120
         onTriggered: {
             if (window.shotIndex >= window.shotTimes.length) {
                 window.showTiles = true;
@@ -554,9 +583,9 @@ ApplicationWindow {
     Timer {
         id: grabTimer
 
-        interval: 120
+        interval: window.framesPerSecond > 0 ? 40 : 120
         onTriggered: {
-            const name = "shot-" + String(window.shotIndex).padStart(2, "0") + "-" + window.shotTimes[window.shotIndex] + "ms.png";
+            const name = "shot-" + String(window.shotIndex).padStart(4, "0") + "-" + window.shotTimes[window.shotIndex] + "ms.png";
             stats.grab(window.outDir + "/" + name);
             window.shotIndex += 1;
             shotTimer.restart();
