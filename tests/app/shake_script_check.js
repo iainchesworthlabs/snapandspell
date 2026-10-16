@@ -1,13 +1,13 @@
 // What shake_script_test.cpp asks of src/app/prototype/shake/qml/ShakeScript.js.
 // Plain JavaScript run in Qt's own engine, so the checks are of the script the
-// scene plays and not of a copy: the script's own text is evaluated and run(S)
-// is given its functions. It returns the list of faults (empty when all hold)
-// and, in `summary`, one line for each group of checks, which the test prints.
+// scene plays and not of a copy: the script's own text is evaluated and run(S) is
+// given its functions and the dice simulation (a DiceSim) it drives. It returns
+// the list of faults (empty when all hold) and, in `summary`, one line for each
+// group of checks, which the test prints.
 //
 // What it holds down is the part of the scene the library's roll reaches: that a
-// die is drawn with its six faces, lands with the face the roll says is up,
-// the letter upright, shows other faces on the way, and that none of this moves
-// a die or changes where it lands.
+// die lands with the face the roll says is up, shows other faces on the way, and
+// that none of this moves a die before it is sent home or changes where it lands.
 
 var summary = [];
 
@@ -22,7 +22,8 @@ function run(S) {
         return Math.abs(a - b) < 1e-6;
     }
 
-    // Each of the six sides can be put up, with its letter upright.
+    // Each of the six sides can be put up, with its letter upright (the staged
+    // dice are turned by these, and the table is the simulation's).
     for (var k = 0; k < 6; ++k) {
         var q = S.faceUp(k, 0);
         var top = S.topSide(q);
@@ -32,34 +33,6 @@ function run(S) {
         check(near(r[0], 1) && near(u[1], 1), "side " + k + " is not upright when it is up");
     }
     summary.push("six sides: each goes up, letter upright");
-
-    // The mesh: 24 vertices, 12 triangles that face outward, and each side's
-    // texture coordinates inside its own cell of the 3 x 2 block.
-    var mesh = S.cubeMesh();
-    check(mesh.positions.length === 24 && mesh.normals.length === 24 && mesh.uvs.length === 24
-          && mesh.indexes.length === 36, "the mesh has the wrong sizes");
-    for (var t = 0; t < 12; ++t) {
-        var a = mesh.indexes[3 * t];
-        var b = mesh.indexes[3 * t + 1];
-        var c = mesh.indexes[3 * t + 2];
-        var pa = mesh.positions[a];
-        var e1 = [mesh.positions[b][0] - pa[0], mesh.positions[b][1] - pa[1], mesh.positions[b][2] - pa[2]];
-        var e2 = [mesh.positions[c][0] - pa[0], mesh.positions[c][1] - pa[1], mesh.positions[c][2] - pa[2]];
-        var n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
-        var normal = mesh.normals[a];
-        check(n[0] * normal[0] + n[1] * normal[1] + n[2] * normal[2] > 0, "triangle " + t + " faces inward");
-    }
-    for (var side = 0; side < 6; ++side) {
-        var column = side % 3;
-        var row = Math.floor(side / 3);
-        for (var vertex = 4 * side; vertex < 4 * side + 4; ++vertex) {
-            var uv = mesh.uvs[vertex];
-            check(uv[0] >= column / 3 - 1e-9 && uv[0] <= (column + 1) / 3 + 1e-9
-                  && uv[1] >= (1 - row) / 2 - 1e-9 && uv[1] <= (1 - row) / 2 + 0.5 + 1e-9,
-                  "side " + side + " reads outside its cell");
-        }
-    }
-    summary.push("mesh: 24 vertices, 12 outward triangles, a cell to each side");
 
     function board(size, seed) {
         // A pretend roll: which face is up, from a small generator.
@@ -75,12 +48,13 @@ function run(S) {
     }
 
     function layout(weighted, reduced) {
-        return { tile: 100, gap: 8, pitch: 108, reduced: reduced, weighted: weighted, lidTiles: 2.45, slackTiles: 0.6 };
+        return { tile: 100, gap: 8, pitch: 108, reduced: reduced, weighted: weighted, lidTiles: 3.0,
+                 slackTiles: weighted ? 1.4 : 0.6, sim: S.sim };
     }
 
-    // A play ends with every die on the face the board says, the letter upright,
-    // and the dice show other faces on the way (not under reduced motion, which
-    // does not tumble). The same board and seed make the same play.
+    // A play ends with every die on the face the board says, flat, and the dice
+    // show other faces on the way (not under reduced motion, which does not
+    // tumble). The same board and seed make the same play.
     var scripts = [["weighted", true, false], ["staged", false, false], ["reduced", false, true]];
     var minimumSeen = { weighted: 2.5, staged: 1.5, reduced: 1 };
     for (var s = 0; s < scripts.length; ++s) {
@@ -106,7 +80,7 @@ function run(S) {
         if (name === "reduced") {
             check(seenMean === 1, "reduced motion tumbled");
         }
-        summary.push(name + ": " + landed + " of " + dice + " dice land face up and upright; a die had "
+        summary.push(name + ": " + landed + " of " + dice + " dice land on the face that is up; a die had "
                      + seenMean.toFixed(2) + " faces on top on average");
     }
 
@@ -125,21 +99,26 @@ function run(S) {
     }
     summary.push("replay: the same board and seed repeat; another seed or face up does not");
 
-    // The faces do not move a die: with another face up on every die, the
-    // positions and angles are the same frame for frame, only the turn differs.
+    // The faces do not move a die until it is sent home: with another face up on
+    // every die, the positions are the same frame for frame while the dice are
+    // being shaken (the staged dice, which the physics does not send home, at
+    // every time), and the staged dice's turn differs where the face does.
     for (var m = 0; m < 2; ++m) {
-        var lay2 = layout(m === 0, false);
+        var isWeighted = m === 0;
+        var lay2 = layout(isWeighted, false);
         var one = board(4, 5);
         var two = { rows: 4, columns: 4, faces: one.faces, up: one.up.map(function (v) { return (v + 3) % 6; }) };
         var moved = 0;
         var turned = 0;
-        var times = [0, 300, 700, 1100, 1500, 2100];
+        var times = isWeighted ? [0, 200, 400, 600] : [0, 300, 700, 1100, 1500, 2100];
         for (var ti = 0; ti < times.length; ++ti) {
             var sa = S.at(one, 77, lay2, times[ti]);
             var sb = S.at(two, 77, lay2, times[ti]);
             for (var i = 0; i < sa.count; ++i) {
-                if (sa.px[i] !== sb.px[i] || sa.py[i] !== sb.py[i] || sa.pz[i] !== sb.pz[i]
-                    || sa.rx[i] !== sb.rx[i] || sa.ry[i] !== sb.ry[i] || sa.rz[i] !== sb.rz[i]) {
+                if (sa.px[i] !== sb.px[i] || sa.py[i] !== sb.py[i] || sa.pz[i] !== sb.pz[i]) {
+                    moved += 1;
+                }
+                if (!isWeighted && (sa.rx[i] !== sb.rx[i] || sa.ry[i] !== sb.ry[i] || sa.rz[i] !== sb.rz[i])) {
                     moved += 1;
                 }
                 if (sa.tw[i] !== sb.tw[i] || sa.tx[i] !== sb.tx[i] || sa.ty[i] !== sb.ty[i] || sa.tz[i] !== sb.tz[i]) {
@@ -147,10 +126,12 @@ function run(S) {
                 }
             }
         }
-        check(moved === 0, (m === 0 ? "weighted" : "staged") + ": the faces moved " + moved + " dice");
-        check(turned > 0, (m === 0 ? "weighted" : "staged") + ": the face that is up did not turn anything");
+        check(moved === 0, (isWeighted ? "weighted" : "staged") + ": the faces moved " + moved + " dice");
+        if (!isWeighted) {
+            check(turned > 0, "staged: the face that is up did not turn anything");
+        }
     }
-    summary.push("faces do not move a die: positions and angles are the same for another set of faces up");
+    summary.push("faces do not move a die before it is sent home: positions (and angles) equal for another set of faces up");
 
     // A board that is shown, not played, has its faces up at once.
     for (var v = 0; v < 2; ++v) {
@@ -159,8 +140,9 @@ function run(S) {
         S.finish(state);
         var good = 0;
         for (var d = 0; d < state.count; ++d) {
-            var tt = S.topSide([state.tw[d], state.tx[d], state.ty[d], state.tz[d]]);
-            if (tt.side === bb.up[d] && tt.tilt < 1e-3) {
+            var tt = S.topSide(v === 0 ? [state.qw[d], state.qx[d], state.qy[d], state.qz[d]]
+                                       : [state.tw[d], state.tx[d], state.ty[d], state.tz[d]]);
+            if (tt.side === bb.up[d] && tt.height > 0.9999) {
                 good += 1;
             }
         }

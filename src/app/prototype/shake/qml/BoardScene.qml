@@ -9,9 +9,9 @@ import "ShakeScript.js" as Script
 // What it is given: a finished board, the dice it was rolled with, and a seed.
 // What it does: plays the shake, the lid and the drop, and says when the dice
 // are settled. It decides nothing about the game: a face is an opaque string to
-// it, "" is a dead jewel, and the letters on the dice are the ones it was
-// handed. Nothing outside this file touches the scene, and everything it needs
-// is in this file's interface:
+// it, "" is a jewel, and the letters on the dice are the ones it was handed.
+// Nothing outside this file touches the scene, and everything it needs is in
+// this file's interface:
 //
 //   in    play(board, seed), show(board), reducedMotion, pushMotion(...)
 //   out   settled(), landed(index, pitch), rattled(), busy, and the geometry the
@@ -21,24 +21,27 @@ import "ShakeScript.js" as Script
 // board is { rows, columns, tiles, faces, up }, each of the three arrays with an
 // entry for each tile, row-major: tiles[t] is the letters of the finished
 // board's tile t, faces[t] the six strings on the die that is on it ("" is the
-// jewel, and a dead jewel is a die of six), and up[t] which of the six is up,
-// so that faces[t][up[t]] === tiles[t]. The scene draws each die with its six
+// jewel, and a dead jewel is a die of six), and up[t] which of the six is up, so
+// that faces[t][up[t]] === tiles[t]. The scene draws each die with its six
 // faces, shows the others as it tumbles, and lands it with the up face on top,
 // the letter upright. It reads no letter and decides no face: they are the
 // library's roll (wjs::roll_with_placements), passed through.
 //
-// The drop is a pure function of the board, the seed and the time. There is no
-// physics engine: every position and angle is computed by ShakeScript.js, a
-// script that `seed` makes and that has no renderer in it, so a replay is the
-// same frame for frame (digest() shows it) and a 2D scene would draw the same
-// script. This file turns the script's poses into Qt Quick 3D nodes.
-// The rattle is the one live part, and it answers the device's motion sample
-// for sample: pushMotion() takes the accelerometer's reading and the
-// gyroscope's, about a hundred a second, and the dice are accelerated by the
-// negative of the reading (gravity, tilt, a shove and a jolt are all one thing)
-// and by the spin. The motion decides how the dice move and how long the box
-// rattles, never where a die lands. With no device (the Shake button, a test)
-// a seeded stand-in makes the stream, so that a replay is the same shake.
+// The dice are simulated, from first principles (src/app/prototype/shake/sim):
+// sixteen rigid cubes in a box with a floor, walls and a lid, accelerated by the
+// negative of what the device's accelerometer reads and by the turning of its
+// gyroscope, colliding, sliding and tumbling by the equations of motion, with
+// the same step and the same arithmetic each time, so a replay of a board, a
+// seed and a motion is the same shake (digest() shows it). When the shaking is
+// over each die is sent to a cell of the board, hopping and sliding there past
+// the others: the physics decides how it looks, never where a die ends, nor
+// which of its faces is up. ShakeScript.js
+// holds the clock and the stages and has no renderer in it, so a 2D scene
+// would draw the same script. This file turns the script's poses into Qt Quick
+// 3D nodes. The rattle answers the device's motion sample for sample:
+// pushMotion() takes the accelerometer's reading and the gyroscope's, about a
+// hundred a second. With no device (the Shake button, a test) a seeded stand-in
+// makes the stream.
 //
 // The View3D is made once and kept: a new board is a new set of dice inside it.
 Item {
@@ -79,7 +82,7 @@ Item {
     // tumbles at the edge of the board, and the box's rim as it tips, are not
     // cut off. The item is still the board's area and boardRect is still by the
     // rule; the application only has to leave the item unclipped (no `clip`).
-    readonly property real overdraw: tile * (slackTiles + 0.4)
+    readonly property real overdraw: tile * 0.8
 
     // Plays the shake, the lid and the drop for a board. The dice are in the
     // box before the first frame, and `settled` follows the last of them.
@@ -119,9 +122,14 @@ Item {
         return Script.digest(board, seed, layout());
     }
 
+    // Every die's pose at every frame of a play, as text (see ShakeScript.trace).
+    function trace(board, seed) {
+        return Script.trace(board, seed, layout());
+    }
+
     // What a play of the board and seed does to the faces, device still: how
-    // many dice end with their up face on top and the letter upright, and how
-    // many different faces each die showed uppermost on the way.
+    // many dice end with their up face on top, and how many different faces each
+    // die showed uppermost on the way.
     function faceReport(board, seed) {
         return Script.faceReport(board, seed, layout());
     }
@@ -145,8 +153,9 @@ Item {
     // "baked" (the same, prefiltered in advance and read from a file).
     property string probeMode: "baked"
     property real cameraDistance: 2.2   // times the board's side
-    // Weighted motion: the dice are thrown about the box, bounce, collide and
-    // slot into their cells (ShakeScript.js). False is the prescribed curves.
+    // Simulated dice: rigid cubes thrown about the box by the device's motion
+    // that collide and then go to their cells (ShakeScript.js, DiceSim). False
+    // is the prescribed curves.
     property bool weighted: true
     // How long the stand-in's burst of shaking lasts, when there is no device:
     // 0 takes 0.7 to 1.0 s from the seed.
@@ -172,14 +181,17 @@ Item {
     readonly property real spanX: boardColumns * tile + (boardColumns - 1) * gap
     readonly property real spanY: boardRows * tile + (boardRows - 1) * gap
     readonly property real rimWidth: inset * 0.7
-    // The box's cavity is a little roomier than the board, so a die has
-    // something to slide into and bump against when it is shaken.
-    readonly property real slackTiles: 0.6
+    // The box's cavity is roomier than the board, so that dice have room to
+    // roll over and tumble when it is shaken, and taller. The camera stands back
+    // while it is shaken so that the whole box is in the item, and comes in as
+    // the dice go home.
+    readonly property real slackTiles: weighted ? 1.4 : 0.6
+    readonly property real lidTiles: weighted ? 3.0 : 2.45
     readonly property real slack: tile * slackTiles
     readonly property real boxX: spanX + 2 * slack
     readonly property real boxY: spanY + 2 * slack
     readonly property real boxDepth: tile * 0.34
-    readonly property real lidHeight: tile * 2.45
+    readonly property real lidHeight: tile * lidTiles
 
     // ---- The play in progress ---------------------------------------------
     property string stage: "idle"
@@ -195,7 +207,8 @@ Item {
     // What the script needs of the layout, in this item's pixels.
     function layout() {
         return { tile: tile, gap: gap, pitch: pitch, reduced: reducedMotion, weighted: weighted,
-                 lidTiles: 2.45, slackTiles: slackTiles, mock: true, mockBurstMs: mockBurstMs };
+                 lidTiles: lidTiles, slackTiles: slackTiles, mock: true, mockBurstMs: mockBurstMs,
+                 sim: diceSim };
     }
 
     // The board's dice. A board whose faces do not make its tiles is drawn as
@@ -222,6 +235,13 @@ Item {
         const settings = layout();
         settings.mock = standIn !== false;
         current = Script.create(board, seed, settings);
+        // A new play starts with every letter square on every die.
+        for (let i = 0; i < diceRepeater.count; ++i) {
+            const die = diceRepeater.objectAt(i);
+            if (die) {
+                die.geometry.clearTurns();
+            }
+        }
         // The dice are made as the count changes; a die that is not there yet
         // is posed when it arrives (onObjectAdded below).
     }
@@ -243,8 +263,10 @@ Item {
             } else {
                 die.body.eulerRotation = Qt.vector3d(state.rx[i], state.ry[i], state.rz[i]);
             }
-            // Which face is up, and how the die is turned over getting there.
+            // The cube's own turn: which face is up, for the staged dice (the
+            // simulated ones are turned by the body, and this is no turn).
             die.cube.rotation = Qt.quaternion(state.tw[i], state.tx[i], state.ty[i], state.tz[i]);
+            die.cell = state.cell ? state.cell[i] : i;
             die.body.visible = state.opacity[i] > 0.001;
             die.body.opacity = warm ? 0.98 : state.opacity[i];
             const lift = Math.max(0, state.pz[i] - tile / 2);
@@ -253,12 +275,24 @@ Item {
             die.shadow.scale = Qt.vector3d(radius, radius, 0.02);
             die.shadow.opacity = warm ? Math.max(state.shadowOpacity[i], 0.02) : state.shadowOpacity[i];
         }
+        // The letter on the face that is up is turned to read upright.
+        if (state.turnChanges && state.turnChanges.length > 0) {
+            for (let k = 0; k < state.turnChanges.length; ++k) {
+                const change = state.turnChanges[k];
+                const die = diceRepeater.objectAt(change.die);
+                if (die) {
+                    die.geometry.setTurns(change.face, change.turns);
+                }
+            }
+            state.turnChanges = [];
+        }
         boxNode.eulerRotation = Qt.vector3d(state.boxRx, state.boxRy, 0);
         lidHinge.eulerRotation = Qt.vector3d(state.lidAngle, 0, 0);
         lidHinge.position = Qt.vector3d(0, boxY / 2 + rimWidth, lidHeight + state.lidLift);
         lid.opacity = warm ? Math.max(state.lidOpacity, 0.02) : state.lidOpacity;
         lidHinge.visible = warm || state.lidOpacity > 0.001;
         leanNow = lean * state.leanFraction;
+        zoomNow = state.useQuaternion ? state.leanFraction : 0;
     }
 
     function step(dtMs) {
@@ -296,6 +330,7 @@ Item {
     }
 
     property real leanNow: lean
+    property real zoomNow: 0
 
     // One tick for each frame the window draws; a stalled frame counts as 50 ms,
     // so a hitch slows the play down instead of skipping through it.
@@ -311,8 +346,10 @@ Item {
     onBoardFacesChanged: Qt.callLater(apply)
 
     // ---- The scene ----------------------------------------------------------
-    // The mesh of a die, as plain arrays from the script.
-    readonly property var meshData: Script.cubeMesh()
+    // The dice's physics; the script drives it.
+    DiceSim {
+        id: diceSim
+    }
 
     // The atlas is not part of the scene's tree; the textures read it.
     property Item atlasItem: FaceAtlas {
@@ -354,7 +391,11 @@ Item {
     // upright is not cut off by the lean.
     readonly property real viewDistance: cameraDistance * Math.max(spanX, spanY)
     readonly property real fieldOfView: 2 * Math.atan((height + 2 * overdraw) / 2 / viewDistance) * 180 / Math.PI
-    readonly property real standBack: 1 + 0.3 * (lean > 0 ? Math.min(1, leanNow / lean) : 0)
+    // How far the camera stands back so that the whole box is in the item: the
+    // box's size over the item's, with a tenth to spare for the dice nearer the
+    // camera at the lid.
+    readonly property real zoomOut: Math.max(0, 1.1 * Math.max(boxX / Math.max(1, width), boxY / Math.max(1, height)) - 1)
+    readonly property real standBack: 1 + 0.3 * (lean > 0 ? Math.min(1, leanNow / lean) : 0) + zoomOut * zoomNow
 
     View3D {
         id: view
@@ -400,23 +441,9 @@ Item {
             brightness: 0.3
         }
 
-        // Where the probe's texture and the dice's mesh live.
+        // Where the probe's texture lives.
         Node {
             id: probeHost
-
-            // The one cube every die shares, six sides each with its own cell
-            // of the die's block in the atlas. Made from the script's table of
-            // sides, so that it and the die's orientation agree on which side
-            // is which face.
-            ProceduralMesh {
-                id: dieMesh
-
-                primitiveMode: ProceduralMesh.Triangles
-                positions: root.meshData.positions.map(p => Qt.vector3d(p[0], p[1], p[2]))
-                normals: root.meshData.normals.map(p => Qt.vector3d(p[0], p[1], p[2]))
-                uv0s: root.meshData.uvs.map(t => Qt.vector2d(t[0], t[1]))
-                indexes: root.meshData.indexes
-            }
         }
 
         // The box, with the dice and the lid in it, tilts as one.
@@ -480,7 +507,6 @@ Item {
 
                 delegate: Die {
                     atlas: root.atlasItem
-                    mesh: dieMesh
                     columns: root.boardColumns
                     rows: root.boardRows
                     size: root.tile
