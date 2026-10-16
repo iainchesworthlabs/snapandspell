@@ -8,7 +8,11 @@ set(WJS_PLATFORM_QT_SEARCH_ROOTS
     "$ENV{HOME}/Qt" "/opt/Qt" "/usr/lib/qt6" "/usr/lib/x86_64-linux-gnu/qt6")
 set(WJS_PLATFORM_QT_ARCH_DIRS gcc_64)
 
+# detail/ is what no platform differs in: no camera backend yet, and the portable
+# board reader (docs/design/scanner.md).
 set(WJS_PLATFORM_SOURCES
+    detail/board_reader_portable.cpp
+    detail/camera_unavailable.cpp
     linux/paths_linux.cpp
     posix/console_posix.cpp)
 
