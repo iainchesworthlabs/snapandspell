@@ -28,6 +28,7 @@
 //   settled()                still(), then landed()
 //   submit(path)             trace(path, today)           record() after a find
 //   blocks(path)             GraphemeBinder over the phase
+//   chooseSize(side)         choose_size()                the size is the settings' board_size
 //   celebrated()             rest()
 //   lidOn()                  back()                       record() of the board left
 //   again()                  again()
@@ -48,8 +49,24 @@
 // lid, it records the session's record() (the store ignores what it has already
 // got). Whether a board beat the best of its size, and whether a word is a sticker
 // for the first time, are the store's answers (RecordOutcome), and become
-// TraceOutcome::newBest and ::sticker. It does not save the game in progress, and
-// it does not bring one back: a run begins in the box.
+// TraceOutcome::newBest and ::sticker.
+//
+// The game in progress. After every call that can change it, the store is brought to
+// what the session would be restored from (Store::save_session): a board on the
+// table with its finds and the lit tile, or, once it has cleared, the resting
+// screen. A game in the box is no game in progress, so the store keeps none and what
+// it had is cleared: nothing is on the table, the size the box offers is the one
+// chosen last (below) and the next deal takes a seed of its own. A game that the
+// store cannot keep whole is cleared too, never left as the game before it. Making a
+// game over a session restored from the store (SoloGameSetup) changes nothing the
+// store holds; making a new one clears what was left. The session is saved before the
+// board it earned is recorded, so a store that stops between the two is never ahead
+// of the game, and the board left with the lid is recorded before the session is
+// cleared, so it is never behind.
+//
+// The size the child chooses on the box is written to the settings
+// (Settings::board_size, "3x3, then the last used") as it is chosen, so the next run's
+// box offers it. Nothing else of the settings is touched.
 //
 // Single-threaded. The phase and the store are held by reference and must outlive
 // the game, as the session's phase and dictionary must.
@@ -62,6 +79,7 @@ public:
     // by hand). `help_allowed` is what the session was given in
     // SessionOptions::help, which the session does not give back. `today` is the
     // device's calendar day, asked when a find is made and when a board is left.
+    // The store's game in progress is brought to the session's (see above).
     RealSoloGame(wjs::GameSession session, bool help_allowed, const wjs::PhaseIndex& phase,
                  wjs::Store& store, std::function<wjs::Day()> today);
 
@@ -108,6 +126,10 @@ private:
     void refresh_found();
     // Hands the board in play, or the last left, to the store.
     wjs::RecordOutcome record_board();
+    // Brings the store's game in progress to the session's (or clears it).
+    void save_session();
+    // Writes the size to the settings, if it is not the one there.
+    void remember_size(wjs::BoardSize size);
 
     wjs::GameSession session_;
     bool help_allowed_;
