@@ -39,6 +39,10 @@ wjs_deploy_sanitizer_runtime(wjs_unit_tests)
 
 catch_discover_tests(wjs_unit_tests)
 
+# The scanner: its library, the camera and board_reader interfaces, and the
+# synthetic corpus that holds it to its accuracy target.
+add_subdirectory(scan)
+
 # --- Performance tests: work budgets and a few relative timings -------------
 # wjs_perf_tests holds the tier that fails a change that makes the solver
 # meaningfully more expensive, the way a unit test fails a change that makes it
