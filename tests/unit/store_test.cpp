@@ -379,7 +379,7 @@ TEST_CASE("each record is checked, not only the file", "[store]") {
     }
 }
 
-TEST_CASE("a game in progress is held to the same rules as the rest", "[store][session]") {
+TEST_CASE("a game in progress is held to the same rules as the rest", "[store][resume]") {
     const std::string head = "wjs-store 1\ntotal stars=0 next_board=1\n";
     const std::string playing = "session state=playing size=3 seed=7 lit=-\n";
     const std::string board = "sboard A 3 S,A,T/P,I,N/T,A,P 2 sat,pin\n";
@@ -1001,7 +1001,7 @@ TEST_CASE("a reset keeps the settings and never reuses a board's number", "[stor
     CHECK(second.board > first.board);
 }
 
-TEST_CASE("the first reset also forgets a game in progress", "[store][reset][session]") {
+TEST_CASE("the first reset also forgets a game in progress", "[store][reset][resume]") {
     auto store = wjs::Store::in_memory();
     REQUIRE(store.save_session(playing_session()));
 
@@ -1013,7 +1013,7 @@ TEST_CASE("the first reset also forgets a game in progress", "[store][reset][ses
 // ---------------------------------------------------------------------------
 // A game in progress
 
-TEST_CASE("a game in progress is kept and given back", "[store][session]") {
+TEST_CASE("a game in progress is kept and given back", "[store][resume]") {
     auto store = wjs::Store::in_memory();
 
     REQUIRE(store.save_session(playing_session()));
@@ -1023,7 +1023,7 @@ TEST_CASE("a game in progress is kept and given back", "[store][session]") {
 }
 
 TEST_CASE("a game in progress is written in lower case and in the store's form",
-          "[store][session]") {
+          "[store][resume]") {
     auto store = wjs::Store::in_memory();
     auto session = playing_session();
     session.board->viable = {"SAT", "PIN", "TAP"};
@@ -1040,7 +1040,7 @@ TEST_CASE("a game in progress is written in lower case and in the store's form",
     CHECK(kept.lit == std::optional<std::string>{"pin"});
 }
 
-TEST_CASE("the lid on is a game with no board", "[store][session]") {
+TEST_CASE("the lid on is a game with no board", "[store][resume]") {
     auto store = wjs::Store::in_memory();
     wjs::SavedSession box;
     box.state = wjs::SavedState::box;
@@ -1053,7 +1053,7 @@ TEST_CASE("the lid on is a game with no board", "[store][session]") {
     CHECK_FALSE(store.session()->board.has_value());
 }
 
-TEST_CASE("resting is a game with a board and nothing lit", "[store][session]") {
+TEST_CASE("resting is a game with a board and nothing lit", "[store][resume]") {
     auto store = wjs::Store::in_memory();
     auto resting = playing_session();
     resting.state = wjs::SavedState::resting;
@@ -1063,7 +1063,7 @@ TEST_CASE("resting is a game with a board and nothing lit", "[store][session]") 
     CHECK(store.save_session(resting));
 }
 
-TEST_CASE("a game that cannot be brought back whole is not kept", "[store][session]") {
+TEST_CASE("a game that cannot be brought back whole is not kept", "[store][resume]") {
     auto store = wjs::Store::in_memory();
     REQUIRE(store.save_session(playing_session()));
     const auto before = store.data();
@@ -1108,7 +1108,7 @@ TEST_CASE("a game that cannot be brought back whole is not kept", "[store][sessi
     }
 }
 
-TEST_CASE("none clears the game in progress", "[store][session]") {
+TEST_CASE("none clears the game in progress", "[store][resume]") {
     auto store = wjs::Store::in_memory();
     REQUIRE(store.save_session(playing_session()));
 
@@ -1117,7 +1117,7 @@ TEST_CASE("none clears the game in progress", "[store][session]") {
     CHECK_FALSE(store.session().has_value());
 }
 
-TEST_CASE("recording boards does not disturb the game in progress", "[store][session]") {
+TEST_CASE("recording boards does not disturb the game in progress", "[store][resume]") {
     auto store = wjs::Store::in_memory();
     REQUIRE(store.save_session(playing_session()));
 
