@@ -20,7 +20,8 @@
 // Its words are TEST DATA, not a phase and not a proposal: today's are the five
 // early-reader words the design names, a few more are real but not today's, and
 // the boards are two fixed grids turned by the seed. No phonics list is
-// published by it. The real game is wired in solo_game_factory.cpp.
+// published by it. The real game is RealSoloGame (real_solo_game.hpp); which of the
+// two is played is decided in solo_game_factory.cpp.
 
 namespace wjs::app {
 

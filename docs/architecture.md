@@ -42,7 +42,9 @@ src/
     qml/scene/           BoardScene (the 2D placeholder of the board scene), SceneScript.js
     qml/solo/            SoloScreen (solo.box, solo.playing, solo.resting), TraceLayer,
                          PlayingPanel, SoloBox, SoloResting, HistorySheet, BoardThumb
-    solo/                solo_game.hpp (the port), fake_solo_game.*, solo_model.*,
+    solo/                solo_game.hpp (the port), real_solo_game.* (over the library's
+                         session), solo_game_setup.* (what it is made from),
+                         solo_game_factory.*, fake_solo_game.*, solo_model.*,
                          path_tracer.*, board_layout.*, solo_layout.*
     solver_model.*       the solver's model (no screen uses it now; it keeps its tests)
     system_colour_scheme.*  whether the system is in dark mode
@@ -638,7 +640,9 @@ The library knows nothing of any of it, and no game rule is in the QML.
 | Layer | Where | What it is |
 | --- | --- | --- |
 | The port | `solo/solo_game.hpp` | `SoloGame`, a Qt-free abstract class in the names of the game design: the states of the flow (box, shaking, dropping, playing, cleared, resting), `shake`, `settled`, `submit(path)` answered as viable, real-but-not-today's or not-a-word (the last two carry no word), `startTile`, `lidOn`, `again`, the tray and the history. It decides nothing |
-| The fake | `solo/fake_solo_game.*` | A stand-in for the library's session until it is wired, and for the tests. Its words are test data: today's are the five early-reader words the design names, a few more are real, and the boards are two fixed grids turned by the seed. It publishes no phonics list |
+| The real game | `solo/real_solo_game.*` | `RealSoloGame`, the port over `wjs::GameSession`: it turns the session's names into the port's and is the one place that hands the session's records to the store. It decides nothing. See *Wiring the library's session* below |
+| The setup | `solo/solo_game_setup.*` | `SoloGameSetup`: loads the word list, the phases of a data directory and the store, owns them for the run, and makes a `RealSoloGame` from the parent's settings. Qt-free |
+| The fake | `solo/fake_solo_game.*` | A stand-in for the library's session, for the tests and for the program when it is given no phase. Its words are test data: today's are the five early-reader words the design names, a few more are real, and the boards are two fixed grids turned by the seed. It publishes no phonics list |
 | The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue` |
 | The touch logic | `solo/path_tracer.*` | Trace and tap in order, both always on. A hit circle smaller than the tile and a larger one it must leave, so a diagonal slide takes the diagonal tile and a wobble near an edge does nothing; a fast move is walked in small steps so no tile is jumped; sliding back takes the last tile off; lifting outside the board cancels; a tapped path ends with the last tile tapped again or the Done jewel; a trace may carry on from a tapped path; a dead jewel is never in a path. The radii are starting values for a small finger and are the one thing the tests cannot settle |
 | The layout rule | `solo/board_layout.*`, `solo/solo_layout.*` | [Board design](design/board.md#layouts-and-sizes) as a pure function, tested on the page's reference windows, and one copy for the screens and the scene. A size is offered only if its tile is 48 dp or more |
@@ -660,17 +664,63 @@ No device shake: `wjs::detect_shakes` exists and the sensor interface in
 type: Andika is named in `Theme` and Qt falls back to the platform's face until
 its licence is read and the glyph check is done. The family game's picture and the
 parent's button are on `home` and are shown only when `Navigation.scanAvailable`
-and `Navigation.parentAvailable` are set, by whoever adds those screens. The
-history is the fake's until the store exists.
+and `Navigation.parentAvailable` are set, by whoever adds those screens. No
+phase is played unless the program is given one (below), so by default the
+screens run on the fake.
 
-**Wiring the library's session.** `make_solo_game()` in `solo/solo_game_factory.cpp`
-is the one place that decides which game is played. The session
-(`wjs::GameSession`) maps to the port: `shake()`, `still()` and `landed()` (the
-port's `settled()` calls the last two), `trace(path, stamp)`, `rest()`, `back()` for
-`lidOn()`, `again()`, `request_help()` and `lit_tile()`; the dead jewels are its
-`dead_tiles()`; the grapheme blocks are `GraphemeBinder` with the phase; the best
-for each size, the first-time sticker and the history come from the parent area's
-store.
+**Wiring the library's session.** Done: `RealSoloGame` is the port over
+`wjs::GameSession`, and `make_solo_game()` in `solo/solo_game_factory.cpp` is still
+the one place that decides which game is played. It answers with the maker the
+program installed (`ScopedSoloGameMaker`, in `main.cpp`), and with the fake when
+there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down:
+
+| Port | Session | And the store |
+| --- | --- | --- |
+| `shake()` | `shake()`; an error (`no_board`) stays in the box and answers `false` | |
+| `settled()` | `still()`, then `landed()`: each applies in its own state and ignores the other | |
+| `submit(path)` | `trace(path, today)`: `found` and `found_again` are viable (`alreadyFound` for the second), `real_not_todays` and `not_a_word` keep their names, `ignored` is `notAWord`; the word only for a viable one, lower-case | `Store::record` after each find: `newBest` is `RecordOutcome::new_best` on the board that cleared, `sticker` is a Power word in `new_words` |
+| `celebrated()`, `again()` | `rest()`, `again()` | |
+| `lidOn()` | `back()` | `Store::record` of the board left, found anything or not |
+| `startTile()`, `litTile()` | `request_help()`, `lit_tile()` | the find made while it is lit is recorded as assisted |
+| `helpAllowed()` | what `SessionOptions::help` was given | |
+| `board()` | `board()`, a dead jewel (`dead_tiles()`) as `""`, the seed of `last_deal()` | |
+| `blocks(path)` | `GraphemeBinder` over the phase | |
+| `history()` | | the store's boards, newest first, and their finds; the phase's dead letter is a dead jewel on a board of that phase |
+
+The unit of the stamp is the **day**: `wjs::Day`, days since 1970-01-01 on the
+device's calendar, which is what the store keeps of when and the most it will
+ever keep. The program gives the game a function for it (Qt's `QDate`, in
+`main.cpp`).
+
+**Which game is played.** The repository has no phase: the files have to be
+written and reviewed by a person qualified to do it, and none may be published
+before that. So a run plays the real session only when it is told where a phase
+is, and otherwise the fake:
+
+```text
+WordJewelsSolver --phase-directory <dir> [--phase <name>] [--dictionary <file>]
+                 [--store <file>] [--seed <number>]
+```
+
+`<dir>` holds `phase-<x>.graphemes.txt` and `phase-<x>.words.txt` (the
+[format](#phase-data)). `--phase` defaults to the phase in
+the store's settings, `--dictionary` to `dictionaries/en.txt` beside the program,
+`--store` to the per-user file (`wjs::default_store_path`), and `--seed` to a random
+one; a fixed seed makes a run repeat. Files without a complete review header are
+test data, and the program says so on its error output. A directory that cannot be
+loaded, or a phase that cannot make a board, stops the program with a message and
+exit code 2: it does not fall back to the fake, which would hide the mistake. Run
+against test data, give `--store` a file of its own, or the finds go to the
+store of the person's real profile.
+
+What the game does with the parent's settings: the size to offer first, the help
+switch and the sounds in focus are read when the game is made, once per run, so a
+change made in the parent area is seen by the next run. What it does not do: it
+does not write the size the child last chose back to the settings, and it does not
+save the game in progress or bring one back (`Store::save_session` and
+`GameSession::restore` are there for it); a run begins in the box. The parent
+area's screens are not routed from the window yet; when they are, the one `Store`
+is `SoloGameSetup::store()`, to hand to `ParentController::useStore()`.
 
 The parent area (the gate, the dashboard, the settings and the about page) is a QML
 module of its own, `WordJewelsSolver.Parent`, in `src/app/parent` (C++) and

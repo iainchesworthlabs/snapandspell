@@ -14,9 +14,9 @@
 // What the Solo Play screens need from the game, and nothing more: the names
 // of docs/design/game.md (Mode B, "The flow") as plain C++, with no Qt. The
 // screens talk to SoloModel, SoloModel talks to this, and this is answered by
-// the library's session (src/lib, the game-session work) or, until that is
-// wired, by FakeSoloGame. The library's session owns the rules: what a traced
-// path is, what a find earns, which tile the help lights and when the board is
+// the library's session (RealSoloGame, over src/lib's GameSession) when the
+// program is given a phase to play, and otherwise by FakeSoloGame. The library's session owns the
+// rules: what a traced path is, what a find earns, which tile the help lights and when the board is
 // cleared. This port owns none of them and decides nothing.
 //
 // The states are the states of the flow, less one:
@@ -94,6 +94,10 @@ struct TraceOutcome {
     // celebrated once, inside the celebration of the last word; never shown
     // as a number.
     bool newBest = false;
+    // A viable word whose tier carries a sticker, found for the first time on
+    // this device. The store knows whether it is the first time. No screen draws
+    // a sticker yet; the vault is the parent's to open.
+    bool sticker = false;
 };
 
 // A board the child played, for the history thumbnails (newest first).
