@@ -156,7 +156,8 @@ check enforces it. See [docs/platform-isolation.md](docs/platform-isolation.md).
 | --- | --- |
 | [docs/index.md](docs/index.md) | What it is, and how to use `wjs-cli` |
 | [docs/building.md](docs/building.md) | Presets, options, vcpkg, Qt, platform notes |
-| [docs/testing.md](docs/testing.md) | The test suites, the checks, coverage |
+| [docs/testing.md](docs/testing.md) | The test suites, the checks, coverage, the performance tests |
+| [docs/profiling.md](docs/profiling.md) | Profiling with Tracy: building, capturing, reading a trace |
 | [docs/architecture.md](docs/architecture.md) | The library, the platform layer, how they fit |
 | [docs/platform-isolation.md](docs/platform-isolation.md) | The rule that keeps the OS out of the source, and its check |
 | [docs/licensing.md](docs/licensing.md) | The licence, the dependencies, the word-list question |

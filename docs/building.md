@@ -59,8 +59,8 @@ cmake --build --preset macos-clang-debug
 ctest --preset macos-clang-debug
 ```
 
-The programs are in `build/<preset>/bin/`: `wjs-cli` (`wjs-cli.exe` on Windows)
-and `wjs_unit_tests`. `ctest` fails if it finds no tests at all.
+The programs are in `build/<preset>/bin/`: `wjs-cli` (`wjs-cli.exe` on Windows),
+`wjs_unit_tests` and `wjs_perf_tests` ([Testing](testing.md#performance-tests)). `ctest` fails if it finds no tests at all.
 
 ## Presets
 
@@ -77,6 +77,9 @@ A preset configures into `build/<preset>/` and is named
 | `linux-gcc-coverage` | Linux | `x64-linux` | Debug with gcov instrumentation and the sanitizers off |
 | `macos-clang-debug` | macOS | `arm64-osx` | Debug, with AddressSanitizer and UBSan |
 | `macos-clang-release` | macOS | `arm64-osx` | Release |
+| `windows-msvc-profiling` | Windows | `x64-windows` | RelWithDebInfo with Tracy, sanitizers off. A development build, never shipped: see [Profiling](profiling.md) |
+| `linux-gcc-profiling` | Linux | `x64-linux` | As above, with `g++` |
+| `macos-clang-profiling` | macOS | `arm64-osx` | As above |
 
 The macOS presets use the Apple Silicon triplet. On an Intel Mac, pass
 `-DVCPKG_TARGET_TRIPLET=x64-osx` (untried). The Linux presets name the compiler
@@ -99,6 +102,8 @@ Pass these to the configure step, for example
 | `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the 3D board-scene prototype as `ShakePrototype`. Needs `WJS_BUILD_APP=ON` and Qt Quick 3D; the program it makes is GPL-3.0 only. See [the prototype](design/shake-prototype.md#building-and-running) |
 | `WJS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
 | `WJS_ENABLE_COVERAGE` | `OFF` | gcov instrumentation. Only the `linux-gcc-coverage` preset turns it on |
+| `WJS_REQUIRE_REVIEWED_PHONICS` | `ON` for the release build types, else `OFF` | The review gate: the build runs `tools/data/check_phonics.ps1 -RequireReviewed` and stops while a file in `data/phonics` has no reviewed-by and reviewed-on header. Needs PowerShell 7. The release presets set it. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
+| `WJS_ENABLE_TRACY` | `OFF` | The Tracy profiler: makes the calls in `wjs/profiling.hpp` real, and installs the client and its tools through the vcpkg `profiling` feature. Only the `*-profiling` presets turn it on, and nothing that ships may ([Profiling](profiling.md)) |
 
 C++23 is required, with compiler extensions off, for every target.
 

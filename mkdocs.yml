@@ -48,6 +48,7 @@ nav:
   - Build and contribute:
       - Building: building.md
       - Testing: testing.md
+      - Profiling: profiling.md
       - CI: ci.md
       - Branch protection: branch-protection.md
   - How it works:

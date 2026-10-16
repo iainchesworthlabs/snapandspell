@@ -5,6 +5,8 @@
 #include <optional>
 #include <string>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 namespace {
 
@@ -85,6 +87,8 @@ bool Dictionary::insert(std::string_view word) {
 }
 
 std::expected<Dictionary, DictionaryError> Dictionary::load(std::istream& words) {
+    auto zone = profiling::zone<"data.load_dictionary">();
+
     // A file saved by some editors starts with a UTF-8 byte-order mark; left in
     // place it would make the first word not a word.
     constexpr std::string_view byte_order_mark = "\xEF\xBB\xBF";
@@ -103,6 +107,7 @@ std::expected<Dictionary, DictionaryError> Dictionary::load(std::istream& words)
     if (words.bad()) {
         return std::unexpected(DictionaryError::read_failed);
     }
+    zone.Value(dictionary.size());
     return dictionary;
 }
 

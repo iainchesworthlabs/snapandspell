@@ -3,8 +3,12 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <unordered_map>
 #include <utility>
+
+#include "wjs/profiling.hpp"
+#include "wjs/solver_work.hpp"
 
 namespace wjs {
 namespace {
@@ -35,6 +39,10 @@ public:
           dictionary_(dictionary),
           options_(options),
           visited_(board.rows() * board.columns(), false) {}
+
+    // Tile steps that stayed inside the trie, after run(): the figure
+    // solver_work.hpp tallies.
+    [[nodiscard]] std::uint64_t visits() const noexcept { return visits_; }
 
     [[nodiscard]] std::vector<FoundWord> run() {
         for (std::size_t row = 0; row < board_.rows(); ++row) {
@@ -71,6 +79,8 @@ private:
                 return;
             }
         }
+
+        ++visits_;
 
         const std::size_t index = at.row * board_.columns() + at.column;
         visited_[index] = true;
@@ -110,6 +120,7 @@ private:
     const Dictionary& dictionary_;
     const SolveOptions& options_;
 
+    std::uint64_t visits_ = 0;
     std::vector<bool> visited_;
     std::string word_;
     std::vector<Position> path_;
@@ -120,7 +131,15 @@ private:
 
 std::vector<FoundWord> solve(const Board& board, const Dictionary& dictionary,
                              const SolveOptions& options) {
-    return Search(board, dictionary, options).run();
+    auto zone = profiling::zone<"solver.solve">();
+
+    Search search(board, dictionary, options);
+    std::vector<FoundWord> found = search.run();
+
+    detail::note_solve(search.visits());
+    zone.Value(found.size());
+    profiling::plot("solver.visits", search.visits());
+    return found;
 }
 
 }  // namespace wjs

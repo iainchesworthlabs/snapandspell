@@ -1,12 +1,15 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cstdint>
 #include <initializer_list>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/solver.hpp"
+#include "wjs/solver_work.hpp"
 
 namespace {
 
@@ -128,4 +131,51 @@ TEST_CASE("an empty dictionary finds nothing", "[solver]") {
     const auto board = make_board("CAT/ORE/DGS");
 
     CHECK(wjs::solve(board, wjs::Dictionary{}).empty());
+}
+
+// The work counter (solver_work.hpp) that tests/perf's budgets are held on. A
+// visit is a tile step that stays inside the dictionary's trie.
+TEST_CASE("the solver tallies the visits of each solve on this thread", "[solver]") {
+    const auto board = make_board("AB");
+    const auto dictionary = make_dictionary({"AB"});
+    wjs::SolveOptions two_letters;
+    two_letters.min_length = 2;
+
+    wjs::reset_solve_work();
+    CHECK(wjs::solve_work().solves == 0U);
+
+    // Start on A: A is in the trie (1 visit), then B from A (2). Start on B:
+    // no word begins with B, so the step is refused and is not a visit.
+    const auto found = wjs::solve(board, dictionary, two_letters);
+    REQUIRE(found.size() == 1U);
+    CHECK(wjs::solve_work().solves == 1U);
+    CHECK(wjs::solve_work().visits == 2U);
+    CHECK(wjs::solve_work().largest == 2U);
+
+    // A second solve adds to the totals; the largest is a maximum, not a sum.
+    (void)wjs::solve(make_board("A"), dictionary, two_letters);
+    CHECK(wjs::solve_work().solves == 2U);
+    CHECK(wjs::solve_work().visits == 3U);
+    CHECK(wjs::solve_work().largest == 2U);
+
+    wjs::reset_solve_work();
+    CHECK(wjs::solve_work().solves == 0U);
+    CHECK(wjs::solve_work().visits == 0U);
+    CHECK(wjs::solve_work().largest == 0U);
+}
+
+TEST_CASE("the solver's tally belongs to the thread that solved", "[solver]") {
+    const auto board = make_board("AB");
+    const auto dictionary = make_dictionary({"AB"});
+
+    wjs::reset_solve_work();
+    std::uint64_t solved_there = 0;
+    std::thread worker([&] {
+        (void)wjs::solve(board, dictionary);
+        solved_there = wjs::solve_work().solves;
+    });
+    worker.join();
+
+    CHECK(solved_there == 1U);
+    CHECK(wjs::solve_work().solves == 0U);
 }

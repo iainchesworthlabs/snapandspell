@@ -14,6 +14,7 @@
 #include "wjs/dictionary.hpp"
 #include "wjs/platform/console.hpp"
 #include "wjs/platform/paths.hpp"
+#include "wjs/profiling.hpp"
 #include "wjs/scoring.hpp"
 #include "wjs/solver.hpp"
 #include "wjs/version.hpp"
@@ -36,12 +37,16 @@ constexpr std::string_view usage_text =
     "                           dictionaries/en.txt beside the executable.\n"
     "  -m, --min-length <n>     Shortest word to report (default 3).\n"
     "  -s, --scoring <scheme>   boggle (default) or rarity.\n"
+    "  -r, --repeat <n>         Solve the board n times and print one result\n"
+    "                           (default 1). For timing and for profiling: a\n"
+    "                           profiler needs about a second to attach.\n"
     "  -h, --help               Show this help.\n"
     "      --version            Show the version.\n";
 
 struct Arguments {
     std::optional<std::filesystem::path> dictionary;
     wjs::SolveOptions options;
+    std::size_t repeat = 1;
     std::string board_text;
     bool help = false;
     bool version = false;
@@ -82,6 +87,17 @@ struct Arguments {
             const auto [end, error] = std::from_chars(first, last, parsed.options.min_length);
             if (error != std::errc{} || end != last) {
                 return std::unexpected(std::format("'{}' is not a length", *text));
+            }
+        } else if (arg == "-r" || arg == "--repeat") {
+            const auto text = value();
+            if (!text) {
+                return std::unexpected(text.error());
+            }
+            const char* const first = text->data();
+            const char* const last = first + text->size();
+            const auto [end, error] = std::from_chars(first, last, parsed.repeat);
+            if (error != std::errc{} || end != last || parsed.repeat == 0) {
+                return std::unexpected(std::format("'{}' is not a count of one or more", *text));
             }
         } else if (arg == "-s" || arg == "--scoring") {
             const auto scheme = value();
@@ -133,7 +149,12 @@ struct Arguments {
         return exit_dictionary;
     }
 
-    const auto words = wjs::solve(*board, *dictionary, arguments.options);
+    // One result is printed whatever the count: the repeats are for a clock
+    // or a profiler (docs/profiling.md), not for the person reading the list.
+    auto words = wjs::solve(*board, *dictionary, arguments.options);
+    for (std::size_t again = 1; again < arguments.repeat; ++again) {
+        words = wjs::solve(*board, *dictionary, arguments.options);
+    }
 
     int total = 0;
     for (const auto& found : words) {
@@ -149,6 +170,7 @@ struct Arguments {
 
 int main(int argc, char** argv) {
     wjs::platform::use_utf8_console();
+    wjs::profiling::thread_name("main");
 
     std::vector<std::string> args;
     for (int i = 1; i < argc; ++i) {

@@ -1,9 +1,12 @@
 # Testing
 
 The tests are Catch2 unit tests for the library, the platform layer and (when
-the Qt window is built) its model, plus two checks about the build itself. They
-run in CI on Windows (MSVC), Linux (GCC) and macOS (AppleClang), 28 tests each;
-the Qt model tests run only where the window is built, which is Windows so far.
+the Qt window is built) its model, a performance tier with its own binary, and
+checks about the build and the data itself. They run in CI on Windows (MSVC),
+Linux (GCC) and macOS (AppleClang), 133 tests each, of which the eight of the
+performance tier skip themselves in a Debug build (see
+[Performance tests](#performance-tests)); the Qt model tests run only where the
+window is built, which is Windows so far.
 
 ## Running them
 
@@ -12,6 +15,7 @@ After a build (see [Building](building.md)):
 ```sh
 ctest --preset windows-msvc-debug              # or linux-gcc-debug, macos-clang-debug
 ctest --preset windows-msvc-debug -R platform  # just the two build checks
+ctest --preset windows-msvc-debug -R data      # the word-list and phonics checks
 ```
 
 Every Catch2 `TEST_CASE` is registered with CTest by name
@@ -24,8 +28,9 @@ build/windows-msvc-debug/bin/wjs_unit_tests --list-tests
 build/windows-msvc-debug/bin/wjs_unit_tests "[solver]"
 ```
 
-The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]` and
-`[platform]`, and `[app]` in `wjs_app_tests`.
+The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`,
+`[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
+`[shake]`, `[platform]` and `[profiling]`, and `[app]` in `wjs_app_tests`.
 
 ## What there is
 
@@ -34,11 +39,23 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]` and
 | `tests/unit/board_test.cpp` | `wjs::Board::parse` | One letter per tile or separated tiles (`Qu I T`), `/` and `\r\n` as row breaks, each way a board is refused (empty, ragged, bad tile, over 16 by 16), `contains` |
 | `tests/unit/dictionary_test.cpp` | `wjs::Dictionary` | Case-insensitivity, prefix versus word, words refused (apostrophe, hyphen, digit, empty), duplicates counted once, stepping through the trie, loading skips blanks and non-words, a missing file is an error value, a file round trip |
 | `tests/unit/scoring_test.cpp` | `wjs::score_word` | The printed Boggle scores from 2 letters to 12, and the letter-rarity scores for `E`, `Z`, `EZ` |
-| `tests/unit/solver_test.cpp` | `wjs::solve` | Adjacency, the minimum length, the path reported for a word, a tile used at most once, a word reached by several paths reported once, the `Qu` tile, the scoring scheme applied, an empty dictionary |
+| `tests/unit/solver_test.cpp` | `wjs::solve` | Adjacency, the minimum length, the path reported for a word, a tile used at most once, a word reached by several paths reported once, the `Qu` tile, the scoring scheme applied, an empty dictionary; and the work counter (`wjs/solver_work.hpp`): visits, solves and the largest, reset, and that each thread has its own |
+| `tests/unit/path_test.cpp` | `wjs::validate_path`, `wjs::are_neighbours` | The word a path spells (a `Qu` tile adds two letters), each fault (off the board, a tile twice, tiles that do not touch, no tiles), no wrap-around from the end of a row, and that every path the solver reports validates |
+| `tests/unit/phase_data_test.cpp` | `wjs::parse_words`, `parse_graphemes`, `PhaseSet` | The two file formats, the review header (all three on one line or one to a line, placeholders, a half-given or malformed review), each line problem with its line number, the cumulative phase index, each cross-file check, `reviewed()` and the files it names, loading a directory |
+| `tests/unit/seeding_test.cpp` | `wjs::seed_board`, `RecentTargets` | The same inputs give the same board (and two boards are pinned, so a change of compiler or algorithm shows), a range of three to five words unless the board says it fell back, targets that are words of the phase and are on the board, dead jewels, focus sounds, recent targets, the cap on tries, each refused option, variety over 300 seeds |
+| `tests/unit/grapheme_binder_test.cpp` | `wjs::GraphemeBinder` | The brief's `R [AI] N`, order, longest first, greedy from the left, blocks that are whole tiles (`Qu`), single letters ignored, a block growing as the path does, every path of up to four tiles covered in order |
+| `tests/unit/shake_test.cpp` | `wjs::detect_shakes` | Synthetic traces: a shake, one still, a gentle wave, walking, a knock, turning over, a slow tilt, two shakes, a pause, sample rates and jitter, units, a harder threshold, damaged samples |
+| `tests/unit/profiling_test.cpp` | `wjs/profiling.hpp` | That the variant CMake chose is the one it was asked for, that every call can be made with no profiler connected, and that a zone cannot be copied or moved |
 | `tests/unit/paths_test.cpp` | `wjs::platform::executable_path` | That it names the running test program: absolute, an existing file, called `wjs_unit_tests` |
 | `tests/app/solver_model_test.cpp` | The window's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
+| `tests/perf/` | The solver and the word list, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
+| `tests/profiling/check_presets.cmake` | `CMakePresets.json`, `vcpkg.json`, `cmake/Tracy.cmake` | See below: `profiling.shipped_presets` |
+| `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `src/` | See below: `profiling.zone_names` |
 | `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
 | `tools/checks/check_platform_isolation.ps1` | The source tree | See below: `platform.isolation` |
+| `tools/data/check_wordlists.ps1` | `data/dictionaries` and `data/lexicon` | `data.wordlists`: lowercase a-z, sorted, unique, and every lexicon word in the dictionary |
+| `tools/data/check_phonics.ps1` | `data/phonics` | See below: `data.phonics` |
+| `tools/data/test_check_phonics.ps1` | The phonics checker itself | See below: `data.phonics.checker` |
 
 The first solver case uses the board of the
 [README example](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/README.md#a-worked-example):
@@ -53,7 +70,7 @@ Of the dictionary `CAT CAR CARE ARE TAR TEA DOG COD ROD CATS REST AT`, exactly
 `CARE ARE CAR CAT COD DOG ROD TAR TEA` are found, in that order, because `CATS`
 and `REST` cannot be traced and `AT` is below the minimum length.
 
-## The two build checks
+## The build checks
 
 **`platform.fragments`** runs `tests/platform/check_fragments.cmake`. A build
 only includes the one `platform.cmake` for the platform it targets, so a typo in
@@ -74,6 +91,214 @@ You can run it by hand from the repository root:
 ```sh
 pwsh ./tools/checks/check_platform_isolation.ps1
 ```
+
+**`profiling.shipped_presets`** runs `tests/profiling/check_presets.cmake`. A
+profiling build has a Tracy client in it, which opens a TCP port and answers
+discovery broadcasts, so nothing that ships may have it. The check resolves
+`inherits` the way CMake does and fails if any configure preset other than a
+`*-profiling` one turns `WJS_ENABLE_TRACY` on (a release preset, above all), if
+the option's default in `cmake/Tracy.cmake` is not `OFF`, if `tracy` is a base
+dependency of `vcpkg.json` or `profiling` a default feature, if the top-level
+`CMakeLists.txt` requests the feature other than under that option, or if a CI
+workflow turns the option on by hand. It reads only the presets' JSON, so it
+runs on every host and in every CI leg. [Profiling](profiling.md) is the page
+about why.
+
+**`profiling.zone_names`** runs `tests/profiling/check_zone_names.cmake`. A
+zone's source location is a function-local static of `zone<"name">()`, so one
+name is one place and a name used twice would show the first place's file and
+line for both. It scans `src/` and fails on a name that is used twice or is not
+`<layer>.<thing>`, lower case and dotted.
+
+## Performance tests
+
+`wjs_perf_tests` is a binary of its own, linked against `wjs::lib` and nothing
+else (no Qt, no platform layer), so that it can be built and run alone and so
+that nothing else's allocator churn is in the way of a stopwatch. It is
+modelled on [Cubeulator's](https://github.com/iainchesworthlabs/cubeulator/blob/main/docs/testing.md#performance-tests)
+and is the implementation of the tier in the [performance
+design](design/performance.md). **Two halves, and the split is the design:**
+
+| | Holds | Exact? | Runs |
+| --- | --- | --- | --- |
+| **Work budgets** | What the code *does*: visits, words found, the word list's words and trie nodes, and a digest of every result | Yes, on every machine and compiler | In every `ctest` of an optimised build |
+| **Wall-time checks** | What it *takes*, as a multiple of a calibration workload run in the same process | No, and loose on purpose | Only when asked: `WJS_PERF_TIMING=1`, or a `*-perf` test preset |
+
+```sh
+ctest --preset windows-msvc-release -L perf        # the tier, work budgets only
+ctest --preset windows-msvc-perf                   # the tier, with the wall-time checks
+build/windows-msvc-release/bin/wjs_perf_tests "[.perf-report]"   # what each metric is now
+```
+
+(`linux-gcc-` and `macos-clang-` likewise.) Every case carries the `perf`
+label. A **Debug or sanitizer build skips** the work budgets (reported as
+skipped, not failed: the corpus is much longer there, and the counts are the
+same in every build), and a coverage or Tracy build skips the wall-time checks.
+
+### The corpus
+
+The same boards on every machine, compiler and standard library:
+
+- **Random boards:** 200 each of 3x3, 4x4, 5x5 and 6x6. Board `i` of size `n` is
+  drawn from `std::mt19937` seeded `7919 * i + n`, one draw a tile in row-major
+  order, **taken modulo** (never `std::uniform_int_distribution`, whose algorithm
+  is each standard library's own). A draw picks a letter by ENABLE's letter
+  counts, in integer arithmetic. It is a test corpus, not a set of dice.
+- **Four boards built to hold many words** (4x4, 5x5 and two 6x6) and **two with
+  none** (one letter throughout).
+
+### What is counted
+
+| Metric | Budget |
+| --- | --- |
+| `dictionary.words`, `dictionary.nodes` | Exactly 172,823 and 387,889. They change with the data (`data/README.md`) |
+| `solve.visits.max.<n>x<n>` over the 200 boards | A quarter above the measurement: 640, 1,940, 3,580, 6,470 |
+| `solve.visits.rich.*` | A quarter above: 3,550, 6,900, 11,800, 15,500 |
+| `solve.words.rich.*` | Exactly 1,126, 1,464, 1,788, 327 |
+| `solve.visits.empty.*`, `solve.words.empty.*` | Exactly 100 and 256; 0 |
+| `solve.digest` | Exactly. An FNV-1a digest of every word, score and path over the whole corpus, in the order `solve()` returns them |
+
+A **visit** is a tile step that stayed inside the dictionary's trie: the
+letters of the path so far, with the tile's own, still begin some word. The
+solver counts them in a member of its search and adds the total to a
+thread-local tally (`wjs/solver_work.hpp`) once as the solve ends, so the cost
+is one add a solve and nothing per visit; nothing in the application reads it.
+`wjs::solve`'s signature is as it was. A separate case holds the solver's tally
+to a second walk written out in the test with nothing but the dictionary's
+trie, so the budgets are held to a definition and not to an implementation.
+
+Every threshold is in `tests/perf/budgets.hpp`, with the figure it is above
+beside it. The measurements and the machine are in the
+[performance design](design/performance.md#what-was-measured).
+
+### What a failure means, and how to move a budget
+
+A work failure names the metric, the corpus seed that gave a maximum, and both
+numbers: the search did more than it did. Find out why before touching the
+number. A budget moves when the work **genuinely** changed (a different move
+order, a new dictionary), by a person, with the reason in the commit, and never
+to turn a red run green. `solve.digest` is the same: it moves when the solver's
+output was meant to change, and the failure says which number to set.
+
+A time failure is the ratio of the task's fastest run to the calibration
+workload's fastest run, alternating, so that the machine's speed and a stretch of
+load cancel. The budgets are several times what the ratio measures, so they are
+for the order-of-magnitude slowdown a count cannot see (an allocation or a copy
+per visit). They must never fail because another process was busy; if one does,
+the budget is too tight, and that is a finding about the budget. The timing
+cases are `RUN_SERIAL`, so `ctest -j` runs them one at a time.
+
+The Linux (GCC) Release build runs the work budgets on every push, in the
+`Performance` leg ([CI](ci.md)); the Debug legs prove only that the tier
+compiles warning-free.
+
+### Capturing it
+
+A short run of `wjs-cli` is over before a profiler attaches; the tier's binary
+runs for seconds, which makes it a good thing to capture:
+[Profiling](profiling.md#capturing-a-trace).
+
+## Phonics data: the checker and the review gate
+
+A phonics phase is two files in `data/phonics/`: `phase-<x>.graphemes.txt` (a
+grapheme, its sound, its clip id) and `phase-<x>.words.txt` (a word, split into
+graphemes, or a word marked `tricky`). **There is no phase file in the
+repository.** The content has to be written and reviewed by a person qualified
+to do it, and nothing here writes any; every word, grapheme and sound in the
+tests is marked as test data and written inside the test. The format and the
+reader are in [Architecture](architecture.md#phase-data).
+
+```text
+# phase: A
+# reviewed-by: <name>   reviewed-on: <date>   source: <where it came from>
+ai  /sound/  clip:ai        <- a graphemes file line
+pain  p ai n                <- a words file line
+```
+
+**`data.phonics`** runs `tools/data/check_phonics.ps1` over the tree. It holds
+the files to the checks the phonics design lists, and to the same ones the
+library's `PhaseSet` applies, so a file that passes loads: the file name and
+the header's phase agree; the line grammar; no word or grapheme twice, in a file
+or across phases; sorted (byte order); every word in
+`data/dictionaries/en.txt`; a word's graphemes, joined, spell it; every grapheme
+is in the word's phase or an earlier one. With no `data/phonics` there is
+nothing to check and it passes.
+
+**`data.phonics.checker`** runs `tools/data/test_check_phonics.ps1`, which builds
+throw-away data and holds the checker to a table of 38 cases (the ones in
+`phase_data_test.cpp`, so the two implementations agree). A gate that passes
+everything is worse than none, so the gate is itself tested; it takes about
+twenty seconds because each case starts a PowerShell.
+
+**The review gate.** A file with no `reviewed-by` and `reviewed-on` (the second
+a date, `YYYY-MM-DD`) is test data. `WJS_REQUIRE_REVIEWED_PHONICS` makes the
+build refuse it: with the switch on, a build step runs
+`check_phonics.ps1 -RequireReviewed` before the library is built, every time, so
+a file edited after configuring is still caught, and `data.phonics` passes
+`-RequireReviewed` too. The switch is on by default for `Release`,
+`RelWithDebInfo` and `MinSizeRel` and the release presets set it. It needs
+PowerShell 7: if the switch is on and `pwsh` is not found, configuring stops and
+says so, rather than building something unchecked. Turning it off is an explicit
+`-DWJS_REQUIRE_REVIEWED_PHONICS=OFF`, which is on the command line of whoever
+did it. A half-given review (a reviewer and no date) and a date that is not a
+date are problems, not passes. What a reviewer attests is theirs; the gate only
+makes it impossible to ship a file that does not say so.
+
+## Seeding: what was measured
+
+`seed_board` is tested for what it guarantees (above). How often it lands a
+board in range depends on the size of the phase's index and on the dead jewels,
+and the repository has no phase, so this was measured, once, with a throw-away
+program that is not committed, on proxy indexes made from the dictionary: the
+words of three or more letters spelled only with S, A, T, P, I and N (249 of
+them), those that do not end in S (122) and those of three or four letters that
+do not end in S (68). The proxies are sizes, not a proposed index. One Windows
+11 desktop, a Release build (MSVC 19.51), 1,000 seeds a row, a phase alphabet
+filler and no focus sounds. "Landed" is a board of three to five words found
+within 20 verifications; the rest are fallbacks.
+
+| Index | Board | Dead jewels | Landed | Mean verifications | Mean time |
+| --- | --- | --- | --- | --- | --- |
+| 249 | 3x3 | 0 / 3 / 4 / **5** | 0.4% / 29% / 78% / **100%** | 20.0 / 17.1 / 10.5 / 2.4 | 0.9 / 2.0 / 1.3 / 0.4 ms |
+| 249 | 4x4 | 0 / 8 / 9 / 10 / 11 / **12** | 0% / 8% / 27% / 57% / 91% / **100%** | 20.0 / 19.2 / 17.3 / 14.0 / 7.9 / 2.2 | 2.5 / 2.2 / 3.3 / 6.6 / 3.7 / 0.8 ms |
+| 122 | 3x3 | 0 / 3 / 4 / **5** | 4% / 61% / 97% / **100%** | 19.6 / 13.1 / 5.9 / 2.0 | 0.7 / 1.2 / 0.7 / 0.2 ms |
+| 122 | 4x4 | 0 / 8 / 9 / 10 / 11 / **12** | 0.1% / 34% / 65% / 89% / 99.5% / **100%** | 20.0 / 16.4 / 12.8 / 8.4 / 4.2 / 1.9 | 2.1 / 1.3 / 1.7 / 3.1 / 1.7 / 0.5 ms |
+| 68 | 3x3 | 0 / 3 / 4 / **5** | 6% / 65% / 98% / **100%** | 19.4 / 12.7 / 5.7 / 2.0 | 0.5 / 0.2 / 0.1 / 0.1 ms |
+| 68 | 4x4 | 0 / 8 / 9 / 10 / 11 / **12** | 0% / 53% / 85% / 93% / 99.7% / **100%** | 20.0 / 14.3 / 9.7 / 7.4 / 4.2 / 1.9 | 0.9 / 0.3 / 0.2 / 0.2 / 0.1 / 0.1 ms |
+
+What it says, and what it does not:
+
+- **The number of dead jewels is the lever, and the best share leaves four
+  letters.** A 3x3 with 5 dead jewels and a 4x4 with 12 land every time, but they
+  are boards of four letters in a field of dead jewels. With no dead jewel a
+  board lands 6% of the time at best: a full board holds 10 to 19 words of these
+  indexes on a 3x3 and 18 to 42 on a 4x4, on average. Whether a board that is
+  mostly dead jewels is acceptable is the literacy reviewer's question (the
+  design lists it), and the index size decides how many are needed. With a
+  smaller index (the 7 and 11 words of the tests) nearly every board lands at
+  most settings, and a 3x3 with 6 or more dead jewels never does, because the
+  three tiles left hold one word; that is a fallback every time, and it is
+  reported as one.
+- **Planting helps where it was expected to and not everywhere.** The design's
+  blind draws, with nothing planted, landed 25% to 30% of boards at their best
+  dead count (3 on a 3x3, 8 to 9 on a 4x4). A planted board at those counts lands
+  2% to 9% of verifications, depending on the index: it always holds its targets
+  and the letters round them add words. Where the dead jewels leave about four
+  letters it lands 40% to 50% of verifications. The planting was "not measured" in the
+  design; this is that measurement.
+- **Changing one filler tile at a time did not help.** With 0, 1 and 4 changes
+  before planting again the share moved a few points either way and was best, or
+  equal, with none. The default is none: each try plants again.
+- **Cost.** A verification, with the planting, is 0.02 to 0.5 ms on this
+  machine (the design estimated 0.5). A seed takes a mean of 0.06 to 6.6 ms in
+  the rows above, and the worst single seed took 25 ms (249 words, 4x4, 10 dead
+  jewels, 20 verifications). The performance design's budget is 10 ms typical
+  and 50 ms worst on the lowest device, with a tablet at three to five times a
+  desktop core (its estimate): the worst case would be over it there.
+- **Not measured**: seeding with a real index (none exists), with focus sounds on
+  a real phase, with recent targets over a session, on a tablet, or in Debug. A
+  fill that chooses each filler letter by solving, so that it adds no word, was
+  not built and might give fuller boards at the same share.
 
 ## Sanitizers, warnings and Debug
 
@@ -119,10 +344,25 @@ fix a number here.
   is covered by `paths_test` in CI on both.
 - **A UTF-8 console on Windows**, and files opened by paths longer than
   `MAX_PATH` (a [known problem](building.md#platform-notes)).
-- **Performance.** There are no timing or throughput tests, and no
-  measurements of the solver on large boards or large word lists have been made.
+- **Performance of the application.** The tier holds the solver and the word
+  list. It is not the frame time of the window, a launch, or anything on a
+  device, and nothing has been measured on a tablet or a phone
+  ([performance design](design/performance.md)). Boards larger than 6x6 are not
+  in the corpus. Seeding is held by the unit tests and was measured once by a
+  program that is not committed (above).
 - **Real word lists.** The tests use made-up lists of a dozen words. The
   behaviour on a list of a few hundred thousand words has not been checked by
   a test.
+- **Real phonics data.** There is none. The reader, the checker and the seeding
+  are tested on a dozen words of test data written in the tests, with
+  placeholder sounds. That the data is right, that its segmentation is right and
+  that its words suit a child are for a literacy reviewer, not a test.
+- **The shake on a device.** The detector is tested on synthetic traces: nothing
+  here is a recording from a device, and its thresholds are starting values that
+  have to be tuned on one.
+- **Apple clang's boards.** `seeding_test` pins two boards, which is how a
+  difference between standard libraries would show. They were made on MSVC and
+  come out the same on GCC 15.2 with libstdc++ (run in a container, in Debug and
+  Release); Apple clang with libc++ has not been run.
 - **Threads.** The library keeps no shared state between calls, but nothing
   tests solving from several threads at once.

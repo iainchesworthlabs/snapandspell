@@ -77,6 +77,7 @@ build copies the English dictionary there from `data/dictionaries/en.txt`
 | `-d`, `--dictionary <file>` | The word list. Default: `dictionaries/en.txt` beside the executable |
 | `-m`, `--min-length <n>` | The shortest word to report, in letters (a `Qu` tile is two). Default 3 |
 | `-s`, `--scoring <scheme>` | `boggle` (default) or `rarity` |
+| `-r`, `--repeat <n>` | Solve the board `n` times and print one result. For timing and for [profiling](profiling.md), where a profiler needs about a second to attach. Default 1 |
 | `-h`, `--help` | Show the usage text and exit |
 | `--version` | Show the version and the platform it was built for |
 
@@ -143,7 +144,8 @@ scoring; the options of `wjs-cli` have no equivalent in it yet.
 | | |
 | --- | --- |
 | [Building](building.md) | Requirements, presets, options, vcpkg and Qt, platform notes |
-| [Testing](testing.md) | The suites and checks, sanitizers, coverage |
+| [Testing](testing.md) | The suites and checks, sanitizers, coverage, the performance tests |
+| [Profiling](profiling.md) | Profiling with Tracy: building, capturing, reading a trace |
 | [Architecture](architecture.md) | The library and the platform layer |
 | [Platform isolation](platform-isolation.md) | The rule about operating system code, and its check |
 | [Licensing](licensing.md) | The licence, the dependencies, the word-list question |

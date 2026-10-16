@@ -73,6 +73,23 @@ that release, so that its rules (branch protection, required checks) can apply.
   platform isolation, Windows/Linux/macOS builds and a coverage report; a
   commit and pull-request text policy; repository rulesets as code; and local
   hooks. None has run yet. See [docs/ci.md](docs/ci.md).
+- **Profiling with Tracy, off by default** (`wjs/profiling.hpp`). The
+  repository allows no `#define` or `#if`, and Tracy's interface is macros, so
+  the library has a macro-free wrapper in two variants (`zone<"name">()`,
+  `frame_mark()`, `plot()`, `message()`, `thread_name()`), one of which has
+  Tracy behind it and one nothing, selected by CMake's include path. The
+  `*-profiling` presets turn it on (`WJS_ENABLE_TRACY`, a vcpkg `profiling`
+  feature with the client and the capture and export tools); nothing that ships
+  has it, which `profiling.shipped_presets` holds. The solver and the
+  dictionary load carry the first zones, and `wjs-cli` has `--repeat <n>` so
+  that a profiler has time to attach. See [docs/profiling.md](docs/profiling.md).
+- **A performance-test tier** (`wjs_perf_tests`, `tests/perf`): exact work
+  budgets on what the solver does (visits, words, trie nodes, and a digest of
+  every result) over a fixed corpus of 800 random boards and six built ones,
+  which run in every optimised build and skip in Debug, and wall-time checks as
+  a ratio to a calibration workload, which run only on request. The solver has a
+  work counter (`wjs/solver_work.hpp`) for it. A Linux Release leg in CI runs
+  it. See [docs/testing.md](docs/testing.md#performance-tests).
 
 ### Changed
 

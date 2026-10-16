@@ -11,8 +11,15 @@ end and in the [roadmap](roadmap.md).
 src/
   lib/                 wjs:: the game logic. GUI-free and OS-free
     include/wjs/         board.hpp  dictionary.hpp  scoring.hpp  solver.hpp
+                         path.hpp  phase_data.hpp  seeding.hpp
+                         grapheme_binder.hpp  shake.hpp
+                         solver_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
     src/                 board.cpp  dictionary.cpp  scoring.cpp  solver.cpp
+                         path.cpp  phase_data.cpp  seeding.cpp
+                         grapheme_binder.cpp  shake.cpp
+    variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
+                         profiling-disabled/wjs/profiling.hpp  (empty)
   cli/                 main.cpp: wjs-cli
   app/                 the Qt Quick window (built only with WJS_BUILD_APP)
     qml/Main.qml         the window
@@ -26,9 +33,10 @@ src/
     posix/               console_posix.cpp (shared by Linux and macOS)
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
-                       FindQt6.cmake
-tests/                 unit/  app/  platform/
+                       Tracy.cmake, FindQt6.cmake
+tests/                 unit/  app/  platform/  perf/  profiling/
 tools/checks/          check_platform_isolation.ps1
+tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test
 tools/hooks/, policy/  git hooks and the commit and PR text rule
 ```
 
@@ -41,8 +49,9 @@ tools/hooks/, policy/  git hooks and the commit and PR text rule
        |                                     |
        v                                     v
    wjs::lib                            wjs::platform
-   board, dictionary,                  one implementation of each
-   scoring, solver                     interfaces/ header, chosen by CMake
+   board, dictionary, scoring,         one implementation of each
+   solver, path, phase data,           interfaces/ header, chosen by CMake
+   seeding, grapheme binder, shake
 ```
 
 - **`wjs::lib`** (target `wjs_lib`, a static library) includes no operating
@@ -119,8 +128,128 @@ then alphabetically, and carries each word's path as a list of `Position`s.
 not depend on the path.
 
 Pruning by the trie is what keeps the search small; there is no other
-optimisation. No measurements of its cost on a large board or a full word list
-have been made.
+optimisation. The search counts its **visits**, the tile steps that stayed
+inside the trie, and `wjs/solver_work.hpp` tallies them per thread, once per
+solve; the performance tests hold budgets on that count
+([Testing](testing.md#performance-tests)). On the corpus of 3x3 to 6x6 boards
+the worst solve is about 5,200 visits and 0.9 ms; a 6x6 built to hold 1,788
+words is about 9,400 visits and 1.6 ms. Nothing larger than 6x6 has been
+measured.
+
+### Profiling
+
+`wjs/profiling.hpp` is the one place the code asks to be timed: `zone<"name">()`,
+`frame_mark()`, `plot()`, `message()` and `thread_name()`, as functions and not
+macros. There are two files of that name under `src/lib/variants/`, one with
+Tracy behind it and one empty, and CMake puts exactly one directory on the
+include path, so no source asks which it got. A normal build has the empty one.
+See [Profiling](profiling.md).
+
+### Path
+
+`validate_path(board, path)` checks a path a finger or the solver traced against
+a board: every position on the board, no tile used twice, each tile touching the
+one before it (diagonals included, edges not wrapping). On success it is the word
+the tiles spell, upper-case, a two-letter tile such as `Qu` adding both letters;
+otherwise a `PathError` (`empty`, `off_board`, `repeated_tile`, `not_adjacent`)
+for the first fault. `are_neighbours` is the one-step question, for a touch
+handler that asks it a tile at a time.
+
+### Phase data
+
+A phonics phase is data: which graphemes it teaches and which words it offers,
+each word split into graphemes. The library holds no phase of its own and knows
+no letter, sound or word of one; the files are written and reviewed by a person
+qualified to do it, and **none exists in the repository** (the tests carry a
+dozen words of test data of their own). `phase_data.hpp` reads and checks them.
+
+Two kinds of file, in `data/phonics/`, one line each, `#` lines being the header
+or a comment:
+
+```text
+# phase: A
+# reviewed-by: <name>   reviewed-on: <date>   source: <where it came from>
+
+phase-<x>.graphemes.txt     ai  /sound/  clip:ai
+phase-<x>.words.txt         pain  p ai n
+                            <word>  tricky
+```
+
+- A grapheme is lowercase letters, its sound is written between slashes (any
+  bytes, so a phonetic alphabet passes through), its clip id is `clip:<id>`.
+  Two graphemes may share a clip. A grapheme has one sound: a letter group that
+  makes two sounds cannot yet be written.
+- A word is three or more lowercase letters (nothing shorter can be counted)
+  followed by its graphemes, or by `tricky` and nothing else: a word that does
+  not decode, spoken whole and never sounded out. A split digraph cannot yet be
+  written, and is refused by name.
+- Both files are sorted in byte order and hold nothing twice.
+- A header is `key: value` pairs, several to a line. A file with no
+  `reviewed-by` and `reviewed-on` (the second a date, `YYYY-MM-DD`) is **test
+  data**: `PhaseHeader::reviewed()` and `PhaseSet::reviewed()` say so, and a
+  release build refuses it
+  ([Testing](testing.md#phonics-data-the-checker-and-the-review-gate)). A value
+  still in `<angle brackets>` has not been given.
+
+`parse_words` and `parse_graphemes` read one file and report every problem, with
+its line, not the first. `PhaseSet::build` (or `load_directory`, which reads
+`phase-<x>.*.txt` from a directory) holds the files together to the checks of
+the design: each word is in the English dictionary, its graphemes spell it, each
+grapheme is in the word's phase or an earlier one, nothing is listed twice across
+phases. Phases are **cumulative** and ordered by name: a `PhaseIndex` holds the
+words and graphemes of its phase and every earlier one, with a `Dictionary` of
+the words, which is what a board is solved against, and the phase's `alphabet()`.
+`tools/data/check_phonics.ps1` applies the same checks outside the build.
+
+### Seeding
+
+`seed_board(index, options, recent, seed)` makes the board of Mode B. It is a
+pure function of the phase data, the options, the recent targets and a seed:
+
+1. **Choose** two or three target words of the index. Words with a grapheme that
+   makes a focus sound come first, and within each of those and the rest, words
+   that are not among the recent targets come first. A third target is taken
+   only from the focus words while the targets are all focus words.
+2. **Plant** each as a path of touching tiles, a tile shared where the letter
+   agrees, leaving room for the dead jewels.
+3. **Fill** the other tiles: `dead_cells` of them with the dead letter, the rest
+   from the filler (the phase's alphabet by default).
+4. **Verify** with `wjs::solve` against the phase's dictionary. Three to five
+   words is kept. Otherwise another board is made, up to `max_tries` (20)
+   verifications in all, and the nearest is returned with `fallback` set.
+
+Dead jewels are a letter no word of the phase uses, chosen by the caller and
+checked (`bad_dead_letter`); the library's `Board` stays A-Z and the application
+draws that letter as a jewel. Draws are `std::mt19937` taken modulo and shuffles
+are the library's own, never `std::uniform_int_distribution` or `std::shuffle`,
+so a seed is the same board on every compiler. `RecentTargets` is the ring
+buffer of the last ten boards' targets, which the caller keeps. What was
+measured of its share and cost is in
+[Testing](testing.md#seeding-what-was-measured).
+
+### Grapheme blocks
+
+`GraphemeBinder` binds a traced path into blocks as the finger moves: the
+letters of the tiles are matched greedily, longest first, against the
+multi-letter graphemes of the phase, and each run of whole tiles that spells one
+is a block. A tile that starts no grapheme is a block of its own, and a grapheme
+cannot start or end inside a tile. The brief's example: R, A, I, N is `R [AI] N`.
+A split digraph is not found in flight (it cannot be known until its last
+letter); the design draws it from the word's authored split, which the data
+format cannot yet hold.
+
+### Shake detection
+
+`detect_shakes(samples, options)` is a pure function over `(t, ax, ay, az)`
+accelerometer samples. Gravity is followed by a low-pass filter and taken away;
+a jolt is the remainder going over a threshold (1.2 g), jolts must alternate
+direction and come within 0.4 s of each other, and four make a shake. The result
+is each shake's start, end, jolt count and peak, and whether the trace ended while
+it may still be going, which is what a live caller asks of a short window of the
+latest samples. A knock, turning the device over, tilting it slowly, walking and a
+gentle wave are not shakes. The numbers are starting values, tuned on synthetic
+traces and not on a device. Reading the sensor is an operating-system service and
+belongs behind an interface in `src/platforms`, which is not written.
 
 ### Errors
 
@@ -173,6 +302,8 @@ of the operating system in CMake.
 | `wjs_cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
 | `wjs_app` | executable `WordJewelsSolver` | `WJS_BUILD_APP` |
 | `wjs_unit_tests` | executable | Catch2 |
+| `wjs_perf_tests` | executable | Catch2; work budgets and opt-in wall-time checks, linked to `wjs::lib` only |
+| `wjs::tracy` | interface library | Tracy's client when `WJS_ENABLE_TRACY` is on, otherwise nothing |
 | `wjs_app_tests` | executable | Catch2, with `WJS_BUILD_APP` |
 | `wjs::warnings`, `wjs::sanitizers`, `wjs::coverage` | interface libraries | Flags, linked into every first-party target |
 
@@ -196,6 +327,11 @@ These do not exist, and nothing in the tree stands in for them:
   the picture has to produce the text `Board::parse` accepts, or a `Board`.
   The recognition stack is not chosen, and its choice carries licensing
   questions (see [Licensing](licensing.md)).
+- **Phonics phase data.** The reader, the checks, the seeding, the binder and the
+  shake detector exist and are tested, and no front end uses them yet. No phase
+  file exists, and none is written here: the content has to be written and
+  reviewed by someone qualified to do it before a child uses it. The audio
+  clips, the sound-it-out sequence and the dashboard are not built.
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
   early-reader tier lists (animals, colours, shapes, and so on); nothing reads
   them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.

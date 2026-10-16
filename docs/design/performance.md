@@ -8,6 +8,13 @@ documents and its
 [`tests/perf`](https://github.com/iainchesworthlabs/cubeulator/tree/main/tests/perf).
 Proposals unless marked **Fact**.
 
+**Status.** The macro-free wrapper, the opt-in profiling build and the
+performance tier are implemented, and what was checked where is marked below:
+[Profiling](../profiling.md) says how to use them and
+[Testing](../testing.md#performance-tests) how to read the tier. The sections
+that were written as a plan keep their wording, with **Built** notes where the
+build differed from the plan or settled something.
+
 **Every number below that is about a tablet or a phone is an estimate.** Nothing
 has been measured on one, and the MVP's iPad is not named in this repository.
 
@@ -15,7 +22,18 @@ has been measured on one, and the MVP's iPad is not named in this repository.
 
 **Fact, measured for this document** on one Windows 11 desktop, a Release build
 (MSVC 19.51, `/O2`), by a throw-away program that links the library's own
-sources and is **not committed**. The first case of the tier below replaces it.
+sources and is **not committed**. The performance tier below replaces it.
+
+**Built, and re-measured by the tier on the same machine and compiler
+(2026-10-16):** every work figure below reproduces exactly. The corpus draws
+its letters in integer arithmetic where the throw-away program scaled a double,
+and that changed no board of the 800. The maxima over 200 boards are 514 / 1,548
+/ 2,859 / 5,174 visits, the four rich boards make 2,832 / 5,496 / 9,443 / 12,350
+visits and find 1,126 / 1,464 / 1,788 / 327 words, and the two empty boards make
+100 and 256. Loading ENABLE took 65 to 68 ms in the tier's runs (the
+throw-away program saw 55 to 65 ms). The tier also runs, and passes, under GCC
+15.2 on Ubuntu 26.04 with the same counts (a container of the CI image, and the
+`Performance` CI leg).
 
 | | Result |
 | --- | --- |
@@ -138,12 +156,37 @@ first site's line; a test can scan for duplicate names. When no profiler is
 connected a zone costs the guard of a function-local static and Tracy's
 connection check.
 
+**Built, and checked.** Compiled warning-free (`/W4 /WX`, `-Wall -Wextra
+-Wpedantic -Werror ...`) against the **real Tracy v0.13.1 headers** (vcpkg
+`tracy[on-demand]`, crash handler off) with MSVC 19.51, GCC 15.2 and Apple
+clang 21 (Xcode), each running all 43 tests of its profiling preset: the
+dispatch-only `profiling-*` legs of `ci.yml`, and the first two also locally.
+The disabled variant is what every Debug leg compiles. Three things the plan
+did not have:
+
+- **A collision, found.** Tracy's header defines a macro `ZoneName`, which is
+  what the first version of the wrapper called its name type, and it did not
+  compile. It is `StaticName` now, and [Profiling](../profiling.md#adding-instrumentation)
+  lists the names to keep clear of.
+- **Names are checked by the compiler.** A zone's name is a template argument;
+  the other names (`frame_mark("UI")`, `plot("x", n)`, `thread_name("main")`)
+  convert from a string literal only, so a temporary string, whose pointer Tracy
+  would keep, does not compile.
+- **The variants are named `profiling-enabled/` and `profiling-disabled/`**,
+  chosen by `WJS_ENABLE_TRACY` in `cmake/Tracy.cmake`. The `profiling-recorder/`
+  of point 4 is not built: nothing targets the browser yet.
+
 ## What to instrument
 
 Names are `<layer>.<thing>`, lower case, dotted, string literals, as in
 Cubeulator. They are what the CSV and the GUI show and what the tier's
 baseline reads, so a rename is deliberate. A zone goes where there is work, not
 on an inner loop.
+
+**Built:** `solver.solve` (the zone's value is the words found; the visits are
+the plot `solver.visits`, because a zone carries one number) and
+`data.load_dictionary` (the words), in `wjs::solve` and `Dictionary::load`, and
+nothing else: the rest of the table is added with the code it times.
 
 | Layer | Zones, with the value each carries |
 | --- | --- |
@@ -186,7 +229,8 @@ and a budget is several times the ratio.
   own), so a seed is the same board on MSVC, libstdc++ and libc++.
 - **A work counter in the library**: a thread-local tally the search adds to
   once as it ends, nothing per visit, and nothing in the application reads it.
-  (Cubeulator's `search_work.hpp`.) Not written.
+  (Cubeulator's `search_work.hpp`.) **Built:** `wjs/solver_work.hpp`; the search
+  counts into a member and the solve adds the total.
 - **The build decides whether a clock is meaningful**, as `constexpr bool`s from
   compile definitions CMake passes (`WJS_PERF_OPTIMISED`,
   `WJS_PERF_INSTRUMENTED`), read with no preprocessor. Debug and sanitizer
@@ -196,7 +240,11 @@ and a budget is several times the ratio.
 - **Budgets a quarter above the measurement**, and moved only when the work
   genuinely changed, by a person, never to make a red run green.
 
-### Work budgets, proposed
+### Work budgets
+
+**Built:** every row that can be measured is in `tests/perf/budgets.hpp` with
+the figure it is a quarter above; the rows about seeding and binding wait for
+the code that makes them.
 
 | Metric | Measured | Budget (a quarter above) |
 | --- | --- | --- |
@@ -209,20 +257,25 @@ and a budget is several times the ratio.
 | `board.seed.viable` of every accepted board | | Within 3 to 5, always |
 | `phonics.bind` comparisons for a path of 9 | | A count, set when written |
 
-### Time ratios, starting values
+### Time ratios
 
-Measured against **a stand-in** calibration (hash-table inserts, an append and
-a copy; 21.7 ms), fastest of 15 alternating runs:
+**Built, and measured** (the tier's own calibration, in a Release build, three
+runs, MSVC 19.51 on the Windows 11 desktop above; the heavy calibration drifted
+from 84 to 125 ms between runs, which is what a ratio is for). A solve is one
+solve, against the light calibration (13 to 17 ms); the load is against the
+heavy one (a working set of tens of megabytes):
 
-| Task | Ratio measured | Budget |
-| --- | --- | --- |
-| Loading ENABLE | 2.54 | 10 |
-| Solving a 4x4 built to be rich | 0.026 | 1.0 |
-| Solving a 6x6 built to be rich | 0.072 | 1.0 |
+| Task | Alone | Ratio measured | Budget |
+| --- | --- | --- | --- |
+| Loading ENABLE | 66 to 68 ms | 0.65 to 0.78 | 5.0 |
+| Solving a 4x4 built to be rich | 0.57 to 0.59 ms | 0.042 to 0.043 | 0.3 |
+| Solving a 6x6 built to be rich | 1.6 ms | 0.115 to 0.120 | 0.8 |
 
-The real calibration is Cubeulator's (`calibration_workload`, light and heavy);
-these ratios move with it and are **to be re-measured** when the tier is built.
-A load that costs a copy per node is a factor of several, which these absorb.
+Fastest of 5 runs (the load) and of 15 runs of 50 solves, alternating with the
+calibration. The proposal's starting values (10, 1.0, 1.0) were against a
+stand-in calibration that this replaces; each budget is now six to eight times
+what it measures. A load that costs a copy per node, or a solve that allocates
+per visit, is a factor of several, which these absorb.
 
 ### What the tier does not hold
 
@@ -237,7 +290,13 @@ screen is the one automatable exception, and it needs the window and Qt.
 
 - Every device figure above.
 - The size of the phase index, and so the seeding's tries.
-- Whether the macro-free zone behaves on GCC and Apple clang and against the
-  real Tracy headers. That is the first thing to compile.
+- ~~Whether the macro-free zone behaves on GCC and Apple clang and against the
+  real Tracy headers.~~ **Settled** on MSVC, GCC and Apple clang, against the
+  real headers (see "A macro-free route").
+- **A profiler needs about a second to find a program that has just started**,
+  and in on-demand mode what happens before it connects is not recorded, so a
+  program that is over in a tenth of a second (`wjs-cli`) cannot be captured as
+  it is. `wjs-cli --repeat <n>` exists for this; the zones of the application
+  will not have the problem. See [Profiling](../profiling.md#capturing-a-trace).
 - Whether Qt Quick 3D's first frames on the iPad need a baked light probe, as
   they did on Cubeulator's software renderer.
