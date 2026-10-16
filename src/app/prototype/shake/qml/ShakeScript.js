@@ -7,24 +7,28 @@
 // board and seed the same way.
 //
 // There is no physics engine, and the board is decided before the play starts.
-// Everything is computed from the board, the seed and the time, in one of two
-// ways (layout.weighted):
+// Where a die ends is its cell, always. How it gets there is computed from the
+// board, the seed and the device's motion, in one of two ways (layout.weighted):
 //
 //   staged    every position and angle is a prescribed curve of the time: a
 //             sine rattle, a fall on a parabola, one rebound.
-//   weighted  a few lines of integration of our own, at a fixed 240 steps a
-//             second, seeded and so replayable: dice that are thrown about a
-//             box, bounce off its floor, lid and walls and off one another,
-//             spin when they hit something, and then slot into their cells
-//             under springs, with bounces that die away. Where a die ends is
-//             still its cell, always; the integration only decides how it gets
-//             there.
+//   weighted  a rigid-ish body simulation of our own, at a fixed 480 steps a
+//             second, in the box's own frame: the dice are accelerated by the
+//             *negative of what the accelerometer reads* (so gravity, tilt, a
+//             shove and a jolt are all one thing), and by the centrifugal,
+//             Coriolis and Euler terms of the gyroscope's rotation. They
+//             slide with friction, leave the floor, hit the lid, the walls and
+//             one another, spin when they hit, and slot into their cells under
+//             springs once the lid is off.
 //
-// The one live input is the device's motion: `agitation` and the tilt change
-// how hard the box rattles and for how long, and never where a die lands.
+// The device's motion comes in as samples (feed): the accelerometer's reading
+// in g, gravity included, and the gyroscope's in rad/s, about 100 a second.
+// With no device (the Shake button, a test, a replay) a seeded stand-in makes
+// the same kind of stream (mockSampleAt): strokes with sharp turnarounds, spikes
+// and noise, so a replay of a board and seed is the same shake.
 //
 //   state = create(board, seed, layout)   the script for a play, at time zero
-//   advance(state, dtMs, agitation, tiltX, tiltY)   moves it on; collects events
+//   advance(state, dtMs, tracker)         moves it on; collects events
 //   evaluate(state)                       writes the pose of everything now
 //
 // The pose is in state.px, py, pz (the die's centre, in the layout's pixels
@@ -140,6 +144,9 @@ function create(board, seed, layout) {
         end = Math.max(end, die.startMs + die.fallMs);
     }
     state.dropMs = state.reduced ? dropFadeMs : end;
+    state.seed = seed;
+    state.useMock = layout.mock !== false;      // no device: the seeded stand-in
+    state.mockBurstMs = layout.mockBurstMs || 0;
     state.mode = 'staged';
     if (layout.weighted && !layout.reduced) {
         initWeighted(state, board, seed, layout);
@@ -148,23 +155,150 @@ function create(board, seed, layout) {
     return state;
 }
 
+// ---- The device's motion -----------------------------------------------------
+// Samples are the accelerometer's specific force in g (what it reads: gravity
+// included, so a device lying face up reads 0, 0, 1; x to the right, y up the
+// screen, z out of the screen) and the gyroscope's rate in rad/s.
+var sampleMs = 10;                // the nominal interval, 100 samples a second
+var shakeStillLevel = 0.25;       // g of "hand" (gravity taken out) below which it is not being shaken
+var shakeStartLevel = 0.8;        // and above which a shake has started
+
+function newTracker() {
+    return { queue: [], f: [0, 0, 1], w: [0, 0, 0], wPrev: [0, 0, 0], g: [0, 0, 1], energy: 0, level: 0, count: 0 };
+}
+
+function feed(tracker, ax, ay, az, wx, wy, wz) {
+    tracker.queue.push({ f: [ax, ay, az], w: [wx, wy, wz] });
+    if (tracker.queue.length > 256) {
+        tracker.queue.shift();
+    }
+    tracker.f = [ax, ay, az];
+    tracker.wPrev = tracker.w;
+    tracker.w = [wx, wy, wz];
+    // Gravity is what the reading settles to; the rest is the hand.
+    for (var i = 0; i < 3; ++i) {
+        tracker.g[i] += (tracker.f[i] - tracker.g[i]) * 0.02;
+    }
+    var ux = ax - tracker.g[0];
+    var uy = ay - tracker.g[1];
+    var uz = az - tracker.g[2];
+    tracker.energy += (ux * ux + uy * uy + uz * uz - tracker.energy) * 0.08;
+    tracker.level = Math.sqrt(tracker.energy);
+    tracker.count += 1;
+}
+
+function resetTracker(tracker) {
+    tracker.queue = [];
+    tracker.f = [0, 0, 1];
+    tracker.w = [0, 0, 0];
+    tracker.wPrev = [0, 0, 0];
+    tracker.g = [0, 0, 1];
+    tracker.energy = 0;
+    tracker.level = 0;
+}
+
+// A uniform number in [0, 1) from a seed, a sample number and a channel: the
+// stand-in's noise, so that it is a function of the seed and the time.
+function hash(seed, k, channel) {
+    var h = Math.imul((seed | 0) ^ 0x9E3779B9, 0x85EBCA6B) ^ Math.imul(k | 0, 0xC2B2AE35)
+        ^ Math.imul(channel + 1, 0x27D4EB2F);
+    h ^= h >>> 15;
+    h = Math.imul(h, 0x2C1B3C6D);
+    h ^= h >>> 12;
+    h = Math.imul(h, 0x297A2A67);
+    h ^= h >>> 15;
+    return (h >>> 0) / 4294967296;
+}
+
+// The stand-in for a hand shaking a device: sample number k of the stream for a
+// seed. A burst of strokes (a few hertz, with a third harmonic so the turns are
+// sharp) on all three axes, a slow tilt of the device, sharp spikes, a little
+// noise on every sample, and a twist on the gyroscope that goes with the
+// strokes. burstMs of 0 is a burst of 0.7 to 1.0 s from the seed.
+function mockSampleAt(seed, k, burstMs) {
+    var t = k * sampleMs / 1000;
+    var burst = (burstMs > 0 ? burstMs : 700 + 300 * hash(seed, 0, 90)) / 1000;
+    var two = 2 * Math.PI;
+    var env = 0;
+    if (t < burst) {
+        env = smooth(t / 0.1) * (1 - smooth((t - (burst - 0.12)) / 0.12));
+    }
+    var f1 = 4.2 + 1.8 * hash(seed, 0, 91);
+    var f2 = 3.4 + 1.6 * hash(seed, 0, 92);
+    var f3 = 6.0 + 2.0 * hash(seed, 0, 93);
+    var p = [];
+    for (var i = 0; i < 9; ++i) {
+        p.push(two * hash(seed, 0, 100 + i));
+    }
+    var ax = env * 2.4 * (0.75 * Math.sin(two * f1 * t + p[0]) + 0.25 * Math.sin(two * 3 * f1 * t + p[3]));
+    var ay = env * 2.0 * (0.70 * Math.sin(two * f2 * t + p[1]) + 0.30 * Math.sin(two * 2.6 * f2 * t + p[4]));
+    var az = env * 1.8 * (0.8 * Math.sin(two * f3 * t + p[2]) + 0.2 * Math.sin(two * 2.7 * f3 * t + p[6]));
+    // Spikes: a sample, and half of it on the next.
+    for (var back = 0; back < 2; ++back) {
+        var kk = k - back;
+        if (kk >= 0 && hash(seed, kk, 3) < 0.09 * env) {
+            var magnitude = (0.8 + 1.4 * hash(seed, kk, 4)) * (hash(seed, kk, 5) < 0.5 ? -1 : 1) * (back === 0 ? 1 : 0.5);
+            var axis = Math.floor(hash(seed, kk, 6) * 3);
+            if (axis === 0) { ax += magnitude; } else if (axis === 1) { ay += magnitude; } else { az += magnitude; }
+        }
+    }
+    // The device tips a little as it is shaken.
+    var roll = 0.17 * Math.sin(two * 0.6 * t + p[5]);
+    var pitch = 0.14 * Math.sin(two * 0.45 * t + p[6]);
+    var gx = -Math.sin(roll);
+    var gy = Math.sin(pitch);
+    var gz = Math.sqrt(Math.max(0, 1 - gx * gx - gy * gy));
+    var noise = 0.05;
+    var f = [gx + ax + noise * (hash(seed, k, 7) * 2 - 1),
+             gy + ay + noise * (hash(seed, k, 8) * 2 - 1),
+             gz + az + noise * (hash(seed, k, 9) * 2 - 1)];
+    var w = [env * 2.6 * Math.sin(two * f2 * t + p[7]) + 0.04 * (hash(seed, k, 10) * 2 - 1),
+             env * 2.2 * Math.sin(two * f1 * t + p[8]) + 0.04 * (hash(seed, k, 11) * 2 - 1),
+             env * 1.4 * Math.sin(two * f3 * t + p[0]) + 0.04 * (hash(seed, k, 12) * 2 - 1)];
+    return { f: f, w: w };
+}
+
+// The samples of the stand-in stream that fall in (fromMs, toMs], fed in order.
+function mockFill(tracker, seed, burstMs, fromMs, toMs) {
+    var first = Math.floor(fromMs / sampleMs) + 1;
+    var last = Math.floor(toMs / sampleMs);
+    for (var k = first; k <= last; ++k) {
+        var sample = mockSampleAt(seed, k, burstMs);
+        feed(tracker, sample.f[0], sample.f[1], sample.f[2], sample.w[0], sample.w[1], sample.w[2]);
+    }
+}
+
+// What the staged script takes from the stream: how hard (0 to 1) and which
+// way the device is tipped (each -1 to 1).
+function agitationOf(tracker) {
+    return Math.min(1, tracker.level / 1.2);
+}
+
+function tiltXOf(tracker) {
+    return Math.max(-1, Math.min(1, -tracker.g[0] / 0.14));
+}
+
+function tiltYOf(tracker) {
+    return Math.max(-1, Math.min(1, tracker.g[1] / 0.14));
+}
+
 // ---- Weighted motion ---------------------------------------------------------
-// Lengths are in tiles (one die's edge), times in seconds, angles in degrees.
-// The time is slowed to about a third of a real die's, so that a fall of a tile
-// is a fifth of a second and can be seen at 60 Hz; it is the shape of the
-// motion (the acceleration, the stop, the rebound, the spin) that carries the
-// weight.
-var simStepMs = 1000 / 240;
-var gravity = 40;                 // tiles/s^2
-var driveLateral = 60;            // peak push of the shaken box, tiles/s^2
-var driveVertical = 95;           // must beat gravity to throw a die
-var cavitySlack = 0.2;            // how far a die may stray past its cell
+// Lengths are in tiles (one die's edge, taken as 20 mm), times in seconds,
+// angles in degrees. A tile is 20 mm, so 1 g is 490 tiles/s^2 and time is real:
+// a die falls a tile in 64 ms and a hop of a tile and a half is a sixth of a
+// second. Slowing time would make a shake at a few hertz too quick for the dice
+// to follow, which is the opposite of heavy.
+var simStepMs = 1000 / 480;
+var gTiles = 9810 / 20;           // tiles/s^2 in 1 g
+var cavitySlack = 0.2;            // how far a die may stray from the middle of its cell
 var dieRadius = 0.52;
 var slotStiffness = 700;          // the funnel into a cell, 1/s^2
 var slotDamping = 45;
 var restitutionWall = 0.4;
 var restitutionDie = 0.45;
 var restitutionLid = 0.3;
+var floorFriction = 0.3;
+var bounceSpeed = 8;              // tiles/s of impact that spins a die fully
 
 function wrapDegrees(a) {
     return ((a + 180) % 360 + 360) % 360 - 180;
@@ -174,10 +308,14 @@ function initWeighted(state, board, seed, layout) {
     state.mode = 'weighted';
     state.simAcc = 0;
     state.simSteps = 0;
-    state.limitX = (state.columns - 1) / 2 * layout.pitch / layout.tile + cavitySlack;
-    state.limitY = (state.rows - 1) / 2 * layout.pitch / layout.tile + cavitySlack;
     state.ceiling = layout.lidTiles - 0.03 - 0.5;   // the lid's underside, to a die's centre
     state.lastStartMs = 0;
+    state.f = [0, 0, 1];
+    state.w = [0, 0, 0];
+    state.alpha = [0, 0, 0];
+    state.tipX = 0;
+    state.tipY = 0;
+    state.vibe = 0;
     for (var i = 0; i < state.count; ++i) {
         var d = state.dice[i];
         state.lastStartMs = Math.max(state.lastStartMs, d.startMs);
@@ -197,38 +335,29 @@ function initWeighted(state, board, seed, layout) {
 
 // A die has hit something at `speed`: it spins a little, more the harder.
 function kick(d, speed) {
-    var amount = Math.min(1, speed / 3);
-    d.wpsi += (d.rng() * 2 - 1) * 300 * amount;
-    d.wphx += (d.rng() * 2 - 1) * 160 * amount;
-    d.wphy += (d.rng() * 2 - 1) * 160 * amount;
+    var amount = Math.min(1, speed / bounceSpeed);
+    d.wpsi += (d.rng() * 2 - 1) * 240 * amount;
+    d.wphx += (d.rng() * 2 - 1) * 180 * amount;
+    d.wphy += (d.rng() * 2 - 1) * 180 * amount;
 }
 
-function weightedEnvelope(state) {
-    var inStage = state.clock - state.stageStart;
-    var energy = 0.75 + 0.25 * state.smoothAgitation;
-    if (state.stage === 'shake') {
-        return Math.min(1, inStage / 120) * energy;
-    }
-    if (state.stage === 'lid') {
-        return (1 - smooth(inStage / lidMs)) * energy;
-    }
-    return 0;
-}
-
+// One fixed step of the box's frame. `f` is the accelerometer's reading in g,
+// `w` and `alpha` the gyroscope's rate and its change.
 function stepWeighted(state) {
     var h = simStepMs / 1000;
-    var ts = state.simSteps * h;
-    var env = weightedEnvelope(state);
     var rest = 0.5;
-    // The shaken box: how it is accelerated, and so how the dice in it are
-    // pushed the other way.
-    var two = 2 * Math.PI;
-    var bx = env * driveLateral * (0.6 * Math.sin(two * 4.3 * ts) + 0.4 * Math.sin(two * 7.1 * ts + 1.1)) + state.tiltX * 6;
-    var by = env * driveLateral * (0.6 * Math.sin(two * 3.7 * ts + 0.7) + 0.4 * Math.sin(two * 6.3 * ts + 2.0)) - state.tiltY * 6;
-    var bz = env * driveVertical * Math.sin(two * 5.0 * ts + 0.3);
-    var ceiling = state.stage === 'shake' ? state.ceiling : 1000;
     var settling = state.stage === 'settle';
+    var ceiling = state.stage === 'shake' ? state.ceiling : 4;
     var inStage = state.clock - state.stageStart;
+    // Once the lid is lifting the device is put down: the reading fades to flat.
+    var follow = state.stage === 'shake' ? 1
+        : (state.stage === 'lid' ? 1 - smooth(inStage / lidMs) : 0);
+    var fx = state.f[0] * follow;
+    var fy = state.f[1] * follow;
+    var fz = 1 + (state.f[2] - 1) * follow;
+    var wx = state.w[0] * follow, wy = state.w[1] * follow, wz = state.w[2] * follow;
+    var alx = state.alpha[0] * follow, aly = state.alpha[1] * follow, alz = state.alpha[2] * follow;
+    var restSpeed = 3 * Math.max(0.2, fz) * gTiles * h;
 
     for (var i = 0; i < state.count; ++i) {
         var d = state.dice[i];
@@ -238,9 +367,22 @@ function stepWeighted(state) {
         }
         var cellX = d.cx / state.tile;
         var cellY = d.cy / state.tile;
-        var ax = -bx + 25 * (cellX - d.x) - 0.6 * d.vx;
-        var ay = -by + 25 * (cellY - d.y) - 0.6 * d.vy;
-        var az = -gravity - bz;
+        // What the dice feel in the box's frame: minus what the accelerometer
+        // reads, and the pseudo-forces of the box's spin (centrifugal, Coriolis,
+        // Euler), the position taken from the middle of the box's floor.
+        var rx = d.x, ry = d.y, rz = d.z;
+        var cfx = -(wy * (wx * ry - wy * rx) - wz * (wz * rx - wx * rz));
+        var cfy = -(wz * (wy * rz - wz * ry) - wx * (wx * ry - wy * rx));
+        var cfz = -(wx * (wz * rx - wx * rz) - wy * (wy * rz - wz * ry));
+        var cox = -2 * (wy * d.vz - wz * d.vy);
+        var coy = -2 * (wz * d.vx - wx * d.vz);
+        var coz = -2 * (wx * d.vy - wy * d.vx);
+        var eux = -(aly * rz - alz * ry);
+        var euy = -(alz * rx - alx * rz);
+        var euz = -(alx * ry - aly * rx);
+        var ax = -fx * gTiles + cfx + cox + eux + 10 * (cellX - d.x) - 0.6 * d.vx;
+        var ay = -fy * gTiles + cfy + coy + euy + 10 * (cellY - d.y) - 0.6 * d.vy;
+        var az = -fz * gTiles + cfz + coz + euz;
         if (d.active) {
             ax += slotStiffness * (cellX - d.x) - slotDamping * d.vx;
             ay += slotStiffness * (cellY - d.y) - slotDamping * d.vy;
@@ -252,28 +394,31 @@ function stepWeighted(state) {
         d.y += d.vy * h;
         d.z += d.vz * h;
 
-        // The floor.
+        // The floor, with friction against the weight on it.
         var onFloor = false;
         if (d.z <= rest) {
             d.z = rest;
             onFloor = true;
             if (d.vz < 0) {
                 var impact = -d.vz;
-                if (impact < 0.35) {
+                if (impact < restSpeed) {
                     d.vz = 0;
                 } else {
                     d.vz = impact * d.bounce;
-                    d.vx *= 0.8;
-                    d.vy *= 0.8;
                     kick(d, impact);
-                    if (d.active && !d.landed) {
+                    if (impact > 4 && d.active && !d.landed) {
                         d.landed = true;
                         state.events.push({ kind: 'landed', index: i, pitch: d.pitchValue });
                     }
                 }
             }
-            d.vx *= 1 - 5 * h;
-            d.vy *= 1 - 5 * h;
+            var slide = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
+            if (slide > 0) {
+                var drop = (d.active ? 0 : 1) * floorFriction * Math.max(0, fz) * gTiles * h;
+                var scale = slide > drop ? (slide - drop) / slide : 0;
+                d.vx *= scale;
+                d.vy *= scale;
+            }
         }
         // The lid, while it is on.
         if (d.z > ceiling) {
@@ -283,16 +428,19 @@ function stepWeighted(state) {
                 d.vz = -d.vz * restitutionLid;
             }
         }
-        // The walls of the box.
-        if (d.x > state.limitX) { d.x = state.limitX; if (d.vx > 0) { kick(d, d.vx * 0.5); d.vx = -d.vx * restitutionWall; } }
-        if (d.x < -state.limitX) { d.x = -state.limitX; if (d.vx < 0) { kick(d, -d.vx * 0.5); d.vx = -d.vx * restitutionWall; } }
-        if (d.y > state.limitY) { d.y = state.limitY; if (d.vy > 0) { kick(d, d.vy * 0.5); d.vy = -d.vy * restitutionWall; } }
-        if (d.y < -state.limitY) { d.y = -state.limitY; if (d.vy < 0) { kick(d, -d.vy * 0.5); d.vy = -d.vy * restitutionWall; } }
+        // The walls of its pocket: the box is a grid of loose cells, so a die
+        // can slide and bump its neighbours but cannot trade places with one.
+        var lowX = cellX - cavitySlack, highX = cellX + cavitySlack;
+        var lowY = cellY - cavitySlack, highY = cellY + cavitySlack;
+        if (d.x > highX) { d.x = highX; if (d.vx > 0) { kick(d, d.vx * 0.5); d.vx = -d.vx * restitutionWall; } }
+        if (d.x < lowX) { d.x = lowX; if (d.vx < 0) { kick(d, -d.vx * 0.5); d.vx = -d.vx * restitutionWall; } }
+        if (d.y > highY) { d.y = highY; if (d.vy > 0) { kick(d, d.vy * 0.5); d.vy = -d.vy * restitutionWall; } }
+        if (d.y < lowY) { d.y = lowY; if (d.vy < 0) { kick(d, -d.vy * 0.5); d.vy = -d.vy * restitutionWall; } }
 
         // Turning: yaw is free but for friction, and funnelled once slotting;
         // the tips flop flat on the floor and spin on in the air.
         d.psi += d.wpsi * h;
-        d.wpsi *= 1 - (onFloor ? 7 : 1.5) * h;
+        d.wpsi *= 1 - (onFloor ? 10 : 1.5) * h;
         d.phx += d.wphx * h;
         d.phy += d.wphy * h;
         if (onFloor || d.active) {
@@ -342,11 +490,8 @@ function stepWeighted(state) {
     state.simSteps += 1;
 }
 
-function advanceWeighted(state, dtMs, agitation, tiltX, tiltY) {
+function advanceWeighted(state, dtMs, tracker) {
     state.clock += dtMs;
-    state.smoothAgitation += (agitation - state.smoothAgitation) * Math.min(1, dtMs / 90);
-    state.tiltX = tiltX;
-    state.tiltY = tiltY;
     var inStage = state.clock - state.stageStart;
     if (state.stage === 'shake') {
         state.tickAccumulator += dtMs;
@@ -354,7 +499,7 @@ function advanceWeighted(state, dtMs, agitation, tiltX, tiltY) {
             state.tickAccumulator -= rattleTickMs;
             state.events.push({ kind: 'rattled' });
         }
-        if (inStage >= shakeMinMs && (agitation < 0.15 || inStage >= shakeMaxMs)) {
+        if (inStage >= shakeMinMs && (tracker.level < shakeStillLevel || inStage >= shakeMaxMs)) {
             enter(state, 'lid');
         }
     } else if (state.stage === 'lid') {
@@ -362,11 +507,32 @@ function advanceWeighted(state, dtMs, agitation, tiltX, tiltY) {
             enter(state, 'settle');
         }
     }
+    // The samples that arrived this frame, spread over it: the physics takes
+    // each as the reading from its place in the frame to the next.
+    var samples = tracker.queue;
+    tracker.queue = [];
+    var steps = Math.max(1, Math.round((state.simAcc + dtMs) / simStepMs));
+    var done = 0;
     state.simAcc += dtMs;
     while (state.simAcc >= simStepMs) {
         state.simAcc -= simStepMs;
+        done += 1;
+        if (samples.length > 0) {
+            var index = Math.min(samples.length - 1, Math.floor(done / steps * samples.length));
+            var sample = samples[index];
+            var previousW = state.w;
+            state.f = sample.f;
+            state.w = sample.w;
+            state.alpha = [Math.max(-100, Math.min(100, (sample.w[0] - previousW[0]) / (sampleMs / 1000))),
+                           Math.max(-100, Math.min(100, (sample.w[1] - previousW[1]) / (sampleMs / 1000))),
+                           Math.max(-100, Math.min(100, (sample.w[2] - previousW[2]) / (sampleMs / 1000)))];
+        }
         stepWeighted(state);
     }
+    // What the box shows of the device: how it is tipped, and a shiver.
+    state.tipX = Math.asin(Math.max(-1, Math.min(1, state.f[1] / Math.max(0.2, Math.sqrt(state.f[0] * state.f[0] + state.f[1] * state.f[1] + state.f[2] * state.f[2]))))) * 180 / Math.PI;
+    state.tipY = Math.asin(Math.max(-1, Math.min(1, -state.f[0] / Math.max(0.2, Math.sqrt(state.f[0] * state.f[0] + state.f[1] * state.f[1] + state.f[2] * state.f[2]))))) * 180 / Math.PI;
+    state.vibe = tracker.level;
     if (state.stage === 'settle') {
         var settleFor = state.clock - state.stageStart;
         var still = true;
@@ -399,9 +565,7 @@ function advanceWeighted(state, dtMs, agitation, tiltX, tiltY) {
 
 function evaluateWeighted(state) {
     var tile = state.tile;
-    var seconds = state.clock / 1000;
     var inStage = state.clock - state.stageStart;
-    var env = weightedEnvelope(state);
     for (var i = 0; i < state.count; ++i) {
         var d = state.dice[i];
         var height = Math.max(0, d.z - 0.5);
@@ -416,12 +580,13 @@ function evaluateWeighted(state) {
         state.shadowRadius[i] = tile * 0.47 * (1 - 0.1 * Math.min(1.5, airborne));
         state.shadowOpacity[i] = 0.34 / (1 + 1.2 * airborne);
     }
-    // The box: a tip of about eight degrees that dies away as the lid goes,
-    // plus the lean the device is tilted to.
-    var rattleX = env * boxDegrees * 0.8 * Math.sin(6.2832 * 5.3 * seconds);
-    var rattleY = env * boxDegrees * 0.8 * Math.sin(6.2832 * 4.1 * seconds + 1.3);
-    state.boxRx = Math.max(-boxDegrees, Math.min(boxDegrees, rattleX - state.tiltY * 5));
-    state.boxRy = Math.max(-boxDegrees, Math.min(boxDegrees, rattleY + state.tiltX * 5));
+    // The box is shown tipped the way the device is, up to about eight degrees,
+    // with a shiver in proportion to how hard it is being shaken.
+    var shiver = state.stage === 'shake' ? Math.min(1, state.vibe / 1.2) : 0;
+    var seconds = state.clock / 1000;
+    var limit = 10;
+    state.boxRx = Math.max(-limit, Math.min(limit, state.tipX + shiver * 1.2 * Math.sin(6.2832 * 23 * seconds)));
+    state.boxRy = Math.max(-limit, Math.min(limit, state.tipY + shiver * 1.2 * Math.sin(6.2832 * 19 * seconds + 1.3)));
     // The lid.
     var lidU = state.stage === 'shake' ? 0 : (state.stage === 'lid' ? inStage / lidMs : 1);
     var lift = smooth(lidU);
@@ -451,11 +616,24 @@ function finish(state) {
 }
 
 // Moves the script on by dtMs of the device's motion.
-function advance(state, dtMs, agitation, tiltX, tiltY) {
+// Moves the script on by dtMs. The tracker is the device's motion: samples fed
+// to it are what the dice answer to. With no device (layout.mock) the seeded
+// stand-in feeds it.
+function advance(state, dtMs, tracker) {
+    if (state.useMock) {
+        mockFill(tracker, state.seed, state.mockBurstMs, state.clock, state.clock + dtMs);
+    }
     if (state.mode === 'weighted') {
-        advanceWeighted(state, dtMs, agitation, tiltX, tiltY);
+        advanceWeighted(state, dtMs, tracker);
         return;
     }
+    // Staged: how hard and which way the device is tipped, from the stream.
+    tracker.queue = [];
+    advanceStaged(state, dtMs, agitationOf(tracker), tiltXOf(tracker), tiltYOf(tracker));
+}
+
+// Moves the staged script on by dtMs of the device's motion.
+function advanceStaged(state, dtMs, agitation, tiltX, tiltY) {
     state.clock += dtMs;
     state.smoothAgitation += (agitation - state.smoothAgitation) * Math.min(1, dtMs / 90);
     var inStage = state.clock - state.stageStart;
@@ -654,9 +832,10 @@ function evaluate(state) {
 // The script at `ms` into a play, the device still.
 function at(board, seed, layout, ms) {
     var state = create(board, seed, layout);
+    var tracker = newTracker();
     var frameMs = 1000 / 60;
     for (var t = 0; t < ms; t += frameMs) {
-        advance(state, Math.min(frameMs, ms - t), 0, 0, 0);
+        advance(state, Math.min(frameMs, ms - t), tracker);
     }
     evaluate(state);
     return state;
@@ -666,9 +845,10 @@ function at(board, seed, layout, ms) {
 // with the device still. The same board, seed and layout give the same string.
 function digest(board, seed, layout) {
     var state = create(board, seed, layout);
+    var tracker = newTracker();
     var sum = 0x811C9DC5;
     for (var frame = 0; state.stage !== "idle" && frame < 1000; ++frame) {
-        advance(state, 1000 / 60, 0, 0, 0);
+        advance(state, 1000 / 60, tracker);
         evaluate(state);
         for (var i = 0; i < state.count; ++i) {
             var values = [state.px[i], state.py[i], state.pz[i], state.rx[i], state.ry[i], state.rz[i]];

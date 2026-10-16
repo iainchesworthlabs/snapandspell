@@ -12,7 +12,7 @@ import "ShakeScript.js" as Script
 // and the letters on the dice are the ones it was handed. Nothing outside this
 // file touches the scene, and everything it needs is in this file's interface:
 //
-//   in    play(board, seed), show(board), reducedMotion, agitation, tilt
+//   in    play(board, seed), show(board), reducedMotion, pushMotion(...)
 //   out   settled(), landed(index, pitch), rattled(), busy, and the geometry the
 //         2D layer over it lays out by: boardRect, tileSize, tileGap, and how
 //         far past its item the scene draws: overdraw
@@ -24,9 +24,13 @@ import "ShakeScript.js" as Script
 // script that `seed` makes and that has no renderer in it, so a replay is the
 // same frame for frame (digest() shows it) and a 2D scene would draw the same
 // script. This file turns the script's poses into Qt Quick 3D nodes.
-// The rattle is the one live part: `agitation` and `tilt` are the device's
-// motion (the accelerometer, or a mouse drag standing in for it), and they
-// decide how hard the box rattles and for how long, never where a die lands.
+// The rattle is the one live part, and it answers the device's motion sample
+// for sample: pushMotion() takes the accelerometer's reading and the
+// gyroscope's, about a hundred a second, and the dice are accelerated by the
+// negative of the reading (gravity, tilt, a shove and a jolt are all one thing)
+// and by the spin. The motion decides how the dice move and how long the box
+// rattles, never where a die lands. With no device (the Shake button, a test)
+// a seeded stand-in makes the stream, so that a replay is the same shake.
 //
 // The View3D is made once and kept: a new board is a new set of dice inside it.
 Item {
@@ -35,11 +39,15 @@ Item {
     // ---- The seam: in ------------------------------------------------------
     // Cross-fades instead of moving (docs/design/application.md, "Motion").
     property bool reducedMotion: false
-    // How hard the device is being shaken now, 0 (still) to 1 (as hard as the
-    // device reports). Holds the rattle on past its minimum, up to its maximum.
-    property real agitation: 0
-    // How far the device is tilted, each axis -1 to 1. Leans the box.
-    property vector2d tilt: Qt.vector2d(0, 0)
+
+    // One sample of the device's motion: the accelerometer's reading in g,
+    // gravity included (a device lying face up reads 0, 0, 1; x to the right,
+    // y up the screen, z out of the screen), and the gyroscope's in rad/s.
+    // Call it for every sample the sensors give, about a hundred a second.
+    function pushMotion(ax, ay, az, wx, wy, wz) {
+        Script.feed(tracker, ax, ay, az, wx, wy, wz);
+        lastMotionMs = Date.now();
+    }
 
     // ---- The seam: out -----------------------------------------------------
     // The dice have stopped. Emitted once, at the end of the settle.
@@ -69,7 +77,13 @@ Item {
     // box before the first frame, and `settled` follows the last of them.
     function play(board, seed) {
         frames.running = false;
-        begin(board, seed);
+        // A device that has sent a sample in the last 300 ms is the shake; if
+        // none has, the stand-in shakes (a button, a test, a replay).
+        const live = Date.now() - lastMotionMs < 300;
+        if (!live) {
+            Script.resetTracker(tracker);
+        }
+        begin(board, seed, !live);
         stage = current.stage;
         apply();
         frames.running = true;
@@ -121,6 +135,9 @@ Item {
     // Weighted motion: the dice are thrown about the box, bounce, collide and
     // slot into their cells (ShakeScript.js). False is the prescribed curves.
     property bool weighted: true
+    // How long the stand-in's burst of shaking lasts, when there is no device:
+    // 0 takes 0.7 to 1.0 s from the seed.
+    property real mockBurstMs: 0
     // While the first board is shown, draw the lid, the shadows and the dice
     // through their blended paths for three frames at 2% opacity (Qt skips
     // anything under 1%), so the first shake does not pay for creating them.
@@ -153,20 +170,25 @@ Item {
     // The script being played (see script()), or null before the first board.
     property var current: null
     property int warmFrames: 0
+    // The device's motion as it has come in (see pushMotion), and when.
+    property var tracker: Script.newTracker()
+    property double lastMotionMs: -1e9
     property bool warmedOnce: false
 
     // ---- Driving the scene --------------------------------------------------
     // What the script needs of the layout, in this item's pixels.
     function layout() {
         return { tile: tile, gap: gap, pitch: pitch, reduced: reducedMotion, weighted: weighted,
-                 lidTiles: 2.45 };
+                 lidTiles: 2.45, mock: true, mockBurstMs: mockBurstMs };
     }
 
-    function begin(board, seed) {
+    function begin(board, seed, standIn) {
         boardRows = board.rows;
         boardColumns = board.columns;
         boardTiles = board.tiles;
-        current = Script.create(board, seed, layout());
+        const settings = layout();
+        settings.mock = standIn !== false;
+        current = Script.create(board, seed, settings);
         // The dice are made as the count changes; a die that is not there yet
         // is posed when it arrives (onObjectAdded below).
     }
@@ -214,7 +236,7 @@ Item {
                 return;
             }
         }
-        Script.advance(state, dtMs, root.agitation, root.tilt.x, root.tilt.y);
+        Script.advance(state, dtMs, tracker);
         Script.evaluate(state);
         apply();
         stage = state.stage;
