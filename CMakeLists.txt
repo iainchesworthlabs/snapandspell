@@ -120,6 +120,11 @@ add_subdirectory(src/platforms)
 # platform-free.
 add_subdirectory(src/lib)
 
+# The scanner: finds a board in a camera frame and reads its letters. Its own
+# library, so the solver library above stays free of image code, and with no
+# dependency of its own to fetch.
+add_subdirectory(src/scan)
+
 find_program(WJS_PWSH NAMES pwsh)
 if(WJS_REQUIRE_REVIEWED_PHONICS)
     if(NOT WJS_PWSH)
