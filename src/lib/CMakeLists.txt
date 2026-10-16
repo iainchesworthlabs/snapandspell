@@ -12,6 +12,7 @@ configure_file(
 add_library(wjs_lib STATIC
     src/board.cpp
     src/dictionary.cpp
+    src/game_rules.cpp
     src/grapheme_binder.cpp
     src/path.cpp
     src/phase_data.cpp
