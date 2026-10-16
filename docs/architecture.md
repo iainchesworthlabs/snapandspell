@@ -13,7 +13,7 @@ src/
     include/wjs/         board.hpp  dice.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp  game_rules.hpp
-                         solver_work.hpp  profiling_types.hpp
+                         solver_work.hpp  binder_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
     src/                 board.cpp  dice.cpp  draw.hpp (internal)  dictionary.cpp
                          scoring.cpp  solver.cpp
@@ -134,7 +134,9 @@ Pruning by the trie is what keeps the search small; there is no other
 optimisation. The search counts its **visits**, the tile steps that stayed
 inside the trie, and `wjs/solver_work.hpp` tallies them per thread, once per
 solve; the performance tests hold budgets on that count
-([Testing](testing.md#performance-tests)). On the corpus of 3x3 to 6x6 boards
+([Testing](testing.md#performance-tests)). The grapheme binder tallies its
+comparisons the same way (`wjs/binder_work.hpp`), once per bind, and the seeding
+reports its verifications and solves in its result. On the corpus of 3x3 to 6x6 boards
 the worst solve is about 5,200 visits and 0.9 ms; a 6x6 built to hold 1,788
 words is about 9,400 visits and 1.6 ms. Nothing larger than 6x6 has been
 measured.

@@ -52,7 +52,7 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 | `tests/unit/dice_data_test.cpp` | The shipped dice, `data/dice` | Each size has the dice for its board and six different faces to a die with a vowel among them; 300 boards a size rolled and solved against the dictionary hold about the words a random board does; two boards pinned. Reads the shipped files by their path in the checkout, as the performance tier does |
 | `tests/unit/paths_test.cpp` | `wjs::platform::executable_path` | That it names the running test program: absolute, an existing file, called `wjs_unit_tests` |
 | `tests/app/solver_model_test.cpp` | The window's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
-| `tests/perf/` | The solver and the word list, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
+| `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding) and binds its blocks, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
 | `tests/profiling/check_presets.cmake` | `CMakePresets.json`, `vcpkg.json`, `cmake/Tracy.cmake` | See below: `profiling.shipped_presets` |
 | `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `src/` | See below: `profiling.zone_names` |
 | `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
@@ -152,7 +152,7 @@ design](design/performance.md). **Two halves, and the split is the design:**
 
 | | Holds | Exact? | Runs |
 | --- | --- | --- | --- |
-| **Work budgets** | What the code *does*: visits, words found, the word list's words and trie nodes, and a digest of every result | Yes, on every machine and compiler | In every `ctest` of an optimised build |
+| **Work budgets** | What the code *does*: visits, words found, the word list's words and trie nodes, verifications and solves spent seeding, comparisons made binding, and a digest of every result | Yes, on every machine and compiler | In every `ctest` of an optimised build |
 | **Wall-time checks** | What it *takes*, as a multiple of a calibration workload run in the same process | No, and loose on purpose | Only when asked: `WJS_PERF_TIMING=1`, or a `*-perf` test preset |
 
 ```sh
@@ -177,6 +177,15 @@ The same boards on every machine, compiler and standard library:
   counts, in integer arithmetic. It is a test corpus, not a set of dice.
 - **Four boards built to hold many words** (4x4, 5x5 and two 6x6) and **two with
   none** (one letter throughout).
+- **The standard board** (the default mode): the shipped dice,
+  `data/dice/3x3.txt` to `6x6.txt`, rolled with the same seeds as the random
+  boards (`7919 * i + n`), 200 a size, each solved against the full word list.
+- **The phonics board** (a parent's switch): a test phase of the 249 words of
+  three or more letters of ENABLE spelled only with S, A, T, P, I and N (the
+  proxy index of [Seeding: what was measured](#seeding-what-was-measured)), built
+  by walking the trie; 100 seeds of each size 3x3 to 6x6 with the options of
+  `wjs::phonics_board_options`. And, for the binder, three paths of nine tiles
+  against a test set of 39 graphemes (31 of more than one letter and not split).
 
 ### What is counted
 
@@ -188,6 +197,23 @@ The same boards on every machine, compiler and standard library:
 | `solve.words.rich.*` | Exactly 1,126, 1,464, 1,788, 327 |
 | `solve.visits.empty.*`, `solve.words.empty.*` | Exactly 100 and 256; 0 |
 | `solve.digest` | Exactly. An FNV-1a digest of every word, score and path over the whole corpus, in the order `solve()` returns them |
+| `roll.visits.max.<n>x<n>` over 200 rolls, **standard board** | A quarter above: 589, 2,050, 4,690, 8,080 |
+| The dice digest | Exactly. The same digest over every solution of the rolled boards |
+| `seed.tries.total`, `seed.solves.total`, `seed.visits.total`, `seed.visits.max`, `seed.fallbacks` by size, **phonics board** | A quarter above each (docs/design/performance.md has the figures); a 3x3's verifications are the cap of 100 seeds of 20 tries |
+| `seed.tries.max.<n>x<n>`, `seed.out_of_range.<n>x<n>`, `seed.phase.words` | At most 20 (the cap), exactly 0, exactly 249 |
+| The seeding digest | Exactly. An FNV-1a digest of every board seeded: its tiles, targets, dead jewels, the words found, tries and solves |
+| `bind.comparisons.<path>.9`, **phonics board** | A quarter above: 349, 63, 234 for a path of no block, all blocks and a mix |
+
+Every metric is for one **board mode**, and the report and a failure say which.
+The standard board is the default mode; the phonics board is a parent's switch,
+so its rows are not the standard board's work and vice versa. A **verification**
+is one solve of a candidate board; a **solve** is any call to `wjs::solve`,
+including the guided fill's trial of a letter on a tile; the seeding reports
+both (`SeededBoard::tries`, `SeededBoard::solves`) and the performance case
+holds `solves` to the solver's own tally. A **comparison** is a grapheme held
+against the letters at the start of a block; the binder tallies them in
+`wjs/binder_work.hpp` once per bind, and a case recounts them from the blocks
+that came back.
 
 A **visit** is a tile step that stayed inside the dictionary's trie: the
 letters of the path so far, with the tile's own, still begin some word. The
@@ -469,8 +495,9 @@ fix a number here.
   list. It is not the frame time of the window, a launch, or anything on a
   device, and nothing has been measured on a tablet or a phone
   ([performance design](design/performance.md)). Boards larger than 6x6 are not
-  in the corpus. Seeding is held by the unit tests and was measured once by a
-  program that is not committed (above).
+  in the corpus. Seeding is held by the unit tests, and its work (verifications,
+  solves, visits, fallbacks) by the performance tier on a proxy phase of 249
+  words; its milliseconds were measured by a program that is not committed.
 - **Real word lists.** The tests use made-up lists of a dozen words. The
   behaviour on a list of a few hundred thousand words has not been checked by
   a test.

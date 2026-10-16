@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "perf_build.hpp"
+#include "wjs/binder_work.hpp"
 #include "wjs/solver_work.hpp"
 
 namespace wjs::perf {
@@ -113,6 +114,67 @@ std::uint64_t recount_visits(const wjs::Board& board, const wjs::Dictionary& dic
     return Recount(board, dictionary).run();
 }
 
+// ---------------------------------------------------------------------------
+// Seeding work
+// ---------------------------------------------------------------------------
+
+SeedRun measure_seed(const wjs::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
+    const auto options = wjs::phonics_board_options(index, size);
+    // A phase that cannot make the options, or a seeding that is refused, is a
+    // mistake in the corpus; there is nothing to recover to.
+    if (!options) {
+        std::abort();
+    }
+    wjs::reset_solve_work();
+    auto seeded = wjs::seed_board(index, *options, wjs::RecentTargets{}, seed);
+    if (!seeded) {
+        std::abort();
+    }
+    const auto work = wjs::solve_work();
+    return {.board = *std::move(seeded), .visits = work.visits, .solver_solves = work.solves};
+}
+
+// ---------------------------------------------------------------------------
+// Binder work
+// ---------------------------------------------------------------------------
+
+BindRun measure_bind(const wjs::GraphemeBinder& binder, std::span<const std::string> tiles) {
+    wjs::reset_bind_work();
+    BindRun run;
+    run.blocks = binder.bind(tiles);
+    run.comparisons = wjs::bind_work().comparisons;
+    return run;
+}
+
+std::uint64_t recount_comparisons(std::span<const wjs::Grapheme> graphemes,
+                                  std::span<const wjs::GraphemeBinder::Block> blocks) {
+    // What the binder holds, from its own description (grapheme_binder.hpp):
+    // the multi-letter graphemes that are not split, longest first, then in
+    // letter order, each once. The letters of a Grapheme are lower-case as
+    // written.
+    std::vector<std::string> held;
+    for (const wjs::Grapheme& grapheme : graphemes) {
+        if (grapheme.letters.size() > 1 && !grapheme.split()) {
+            held.push_back(grapheme.letters);
+        }
+    }
+    std::ranges::sort(held, [](const std::string& a, const std::string& b) {
+        return a.size() != b.size() ? a.size() > b.size() : a < b;
+    });
+    held.erase(std::ranges::unique(held).begin(), held.end());
+
+    std::uint64_t comparisons = 0;
+    for (const wjs::GraphemeBinder::Block& block : blocks) {
+        if (!block.linked()) {
+            comparisons += held.size();
+            continue;
+        }
+        const auto at = std::ranges::find(held, block.grapheme);
+        comparisons += static_cast<std::uint64_t>(at - held.begin()) + 1;
+    }
+    return comparisons;
+}
+
 void Digest::byte(std::uint8_t value) noexcept {
     state_ ^= value;
     state_ *= 1099511628211ULL;
@@ -125,13 +187,17 @@ void Digest::number(std::uint64_t value) noexcept {
     }
 }
 
+void Digest::text(const std::string& value) {
+    for (const char letter : value) {
+        byte(static_cast<std::uint8_t>(letter));
+    }
+    byte(0);
+}
+
 void Digest::add(const std::vector<wjs::FoundWord>& found) {
     number(found.size());
     for (const wjs::FoundWord& word : found) {
-        for (const char letter : word.word) {
-            byte(static_cast<std::uint8_t>(letter));
-        }
-        byte(0);
+        text(word.word);
         number(static_cast<std::uint64_t>(word.score));
         number(word.path.size());
         for (const wjs::Position position : word.path) {
@@ -139,6 +205,29 @@ void Digest::add(const std::vector<wjs::FoundWord>& found) {
             number(position.column);
         }
     }
+}
+
+void Digest::add(const wjs::SeededBoard& seeded) {
+    number(seeded.board.rows());
+    number(seeded.board.columns());
+    for (std::size_t row = 0; row < seeded.board.rows(); ++row) {
+        for (std::size_t column = 0; column < seeded.board.columns(); ++column) {
+            text(seeded.board.tile({row, column}));
+        }
+    }
+    number(seeded.targets.size());
+    for (const std::string& target : seeded.targets) {
+        text(target);
+    }
+    number(seeded.dead.size());
+    for (const wjs::Position position : seeded.dead) {
+        number(position.row);
+        number(position.column);
+    }
+    number(seeded.tries);
+    number(seeded.solves);
+    number(seeded.fallback ? 1U : 0U);
+    add(seeded.viable);
 }
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace wjs::perf {
@@ -22,12 +23,30 @@ enum class Bound {
     exactly,
 };
 
+// The board mode a budget is for (docs/design/performance.md, "What was
+// measured"). The two modes do different work and a figure for one says nothing
+// about the other, so every metric names its own.
+enum class BoardMode {
+    // The default: dice, 3x3 to 6x6, solved against the full word list.
+    standard,
+    // A parent's switch: a seeded board of a phase, grapheme-bound, solved
+    // against the phase's index.
+    phonics,
+};
+
+[[nodiscard]] constexpr std::string_view to_string(BoardMode mode) noexcept {
+    return mode == BoardMode::standard ? "standard" : "phonics";
+}
+
 struct Metric {
     // "<group>.<thing>.<statistic>", e.g. "solve.visits.max.4x4".
     std::string name;
     double measured = 0.0;
     double budget = 0.0;
     Bound bound = Bound::at_most;
+    // The board mode the work is part of. Every metric states one; the
+    // dictionary and the solve are the standard board's.
+    BoardMode mode = BoardMode::standard;
     // The corpus seed that gave `measured` where it is a maximum, so a failure
     // can be reproduced with the report.
     unsigned seed = kNoSeed;
@@ -57,6 +76,28 @@ struct Metric {
 // The digest of every solution over the whole corpus: random boards, boards
 // built to hold many words and boards with none (measure.hpp, Digest).
 [[nodiscard]] std::uint64_t corpus_digest();
+
+// STANDARD BOARD. The most visits of a solve of a rolled board of each size,
+// over kBoardsPerSize rolls of the project's dice (a roll followed by a solve
+// against the full word list: what making a standard board costs).
+[[nodiscard]] std::vector<Metric> dice_board_metrics();
+
+// The digest of every solution over the rolled boards (all four sizes).
+[[nodiscard]] std::uint64_t dice_digest();
+
+// PHONICS BOARD. What seeding did for kSeedsPerSize seeds of each size on the
+// test phase, with the options of phonics_board_options: verifications and
+// solves spent, the solver's visits, the boards that fell back, and the cap on
+// tries.
+[[nodiscard]] std::vector<Metric> seeding_metrics();
+
+// The digest of every board seeded over that corpus: tiles, targets, the words
+// found, tries and solves.
+[[nodiscard]] std::uint64_t seeding_digest();
+
+// PHONICS BOARD. The binder's comparisons for each path of nine tiles
+// (corpus.hpp, kBindPaths).
+[[nodiscard]] std::vector<Metric> binder_metrics();
 
 // --- time: a ratio to the calibration workload, opt-in -----------------------
 

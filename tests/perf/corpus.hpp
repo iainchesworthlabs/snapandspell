@@ -5,10 +5,14 @@
 
 #include <array>
 #include <cstddef>
+#include <string>
 #include <string_view>
 #include <vector>
 
 #include "wjs/board.hpp"
+#include "wjs/dice.hpp"
+#include "wjs/grapheme_binder.hpp"
+#include "wjs/phase_data.hpp"
 
 namespace wjs::perf {
 
@@ -52,5 +56,64 @@ inline constexpr std::array<RichBoard, 2> kEmptyBoards = {{
     {"4x4 all E", 4, "E E E E/E E E E/E E E E/E E E E"},
     {"6x6 all A", 6, "A A A A A A/A A A A A A/A A A A A A/A A A A A A/A A A A A A/A A A A A A"},
 }};
+
+// ---------------------------------------------------------------------------
+// The standard board: the project's dice
+// ---------------------------------------------------------------------------
+
+// The dice of a size (data/dice/<n>x<n>.txt, the shipped files), loaded once.
+// The process ends if a file cannot be read or holds the wrong number of dice:
+// the tier has nothing to say without them.
+[[nodiscard]] const wjs::DiceSet& dice_set(std::size_t size);
+
+// Board `index` of a size is a roll of those dice with the seed
+// corpus_seed(size, index), the same seeds as the random boards: kBoardsPerSize
+// of each size, 3x3 to 6x6.
+[[nodiscard]] wjs::Board dice_board(std::size_t size, unsigned index);
+
+// ---------------------------------------------------------------------------
+// The phonics board: a test phase, seeds and paths
+// ---------------------------------------------------------------------------
+
+// Seeds of each size, seed `index` being corpus_seed(size, index). Fewer than
+// the random boards because a seeding is up to twenty solves and a guided fill
+// is up to a hundred more.
+inline constexpr unsigned kSeedsPerSize = 100;
+
+// TEST DATA, as every phase in this repository is. The phase the seeding is
+// measured on is the "proxy index" of docs/testing.md ("Seeding: what was
+// measured"): the words of three or more letters in ENABLE that are spelled
+// only with S, A, T, P, I and N, each letter a grapheme of its own. The words
+// are found by walking the dictionary's trie, so it is the same words for the
+// same word list, and the case that holds the count of them (kPhonicsWords in
+// budgets.hpp) is what says a changed list changed the corpus.
+[[nodiscard]] const wjs::PhaseIndex& phonics_phase();
+
+// A path of nine tiles for the binder, as the letters of its tiles in order,
+// separated by spaces.
+struct BindPath {
+    std::string_view name;
+    std::string_view tiles;
+};
+
+// None of the tiles starts a multi-letter grapheme, so each is compared with
+// every grapheme the binder holds; every tile binds into a block of two or
+// three; and a mix of both.
+inline constexpr std::array<BindPath, 3> kBindPaths = {{
+    {"none", "S A T P I N S A T"},
+    {"all", "C H A I R S H E E"},
+    {"mixed", "S H I P R A I N S"},
+}};
+
+[[nodiscard]] std::vector<std::string> bind_tiles(const BindPath& path);
+
+// TEST DATA: graphemes of a phase, with placeholder sounds. Thirty-one of more
+// than one letter (digraphs and trigraphs of the kind phases three to five
+// teach, so that the binder holds about as many as a real phase would), six
+// single letters, and two split digraphs, which the binder leaves out.
+[[nodiscard]] const std::vector<wjs::Grapheme>& bind_graphemes();
+
+// A binder over those graphemes.
+[[nodiscard]] const wjs::GraphemeBinder& phonics_binder();
 
 }  // namespace wjs::perf
