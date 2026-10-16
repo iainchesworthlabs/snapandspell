@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include "wjs/dice.hpp"
+#include "wjs/dice_sets.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/game_session.hpp"
 #include "wjs/phase_data.hpp"
@@ -87,6 +89,7 @@ constexpr wjs::Day friday = 20742;  // 2026-10-16
 
 wjs::BoardRecord hand_record(std::vector<wjs::Find> finds = {}) {
     wjs::BoardRecord record;
+    record.mode = wjs::BoardMode::phonics;
     record.phase = "A";
     record.size = BoardSize::three;
     record.tiles = std::string(hand_tiles);
@@ -98,14 +101,26 @@ wjs::BoardRecord hand_record(std::vector<wjs::Find> finds = {}) {
 wjs::SessionSnapshot playing_snapshot(std::vector<wjs::Find> finds = {}) {
     wjs::SessionSnapshot snapshot;
     snapshot.state = SessionState::playing;
+    snapshot.mode = wjs::BoardMode::phonics;
     snapshot.size = BoardSize::three;
     snapshot.seed = 77;
     snapshot.board = hand_record(std::move(finds));
     return snapshot;
 }
 
+// The session these cases play is the phonics one, over the phase above.
+wjs::SessionData phonics_data() {
+    return {.dictionary = english(), .phase = &phase_a()};
+}
+
+wjs::SessionOptions phonics_options() {
+    wjs::SessionOptions options;
+    options.mode = wjs::BoardMode::phonics;
+    return options;
+}
+
 wjs::GameSession restore(const wjs::SessionSnapshot& snapshot) {
-    auto restored = wjs::GameSession::restore(snapshot, phase_a(), english());
+    auto restored = wjs::GameSession::restore(snapshot, phonics_data(), phonics_options());
     REQUIRE(restored.has_value());
     return *std::move(restored);
 }
@@ -216,8 +231,8 @@ TEST_CASE(
 TEST_CASE("a board the session cannot take back is refused", "[session-store]") {
     const wjs::BoardSnapshot good = *wjs::snapshot_of(hand_record());
 
-    wjs::BoardSnapshot five = good;
-    five.size = 5;
+    wjs::BoardSnapshot seven = good;  // the session is played at 3x3 to 6x6
+    seven.size = 7;
     wjs::BoardSnapshot zero = good;
     zero.size = 0;
     wjs::BoardSnapshot negative = good;
@@ -230,7 +245,7 @@ TEST_CASE("a board the session cannot take back is refused", "[session-store]") 
     bad_total.viable_total = -1;
 
     for (const wjs::BoardSnapshot& snapshot :
-         {five, zero, negative, unlisted, partial, bad_total}) {
+         {seven, zero, negative, unlisted, partial, bad_total}) {
         CHECK_FALSE(wjs::record_of(snapshot).has_value());
     }
     // The total may be left as 0: the list is then taken to be all of it.
@@ -295,14 +310,14 @@ TEST_CASE("a state the session does not save has no saved session", "[session-st
 TEST_CASE("a saved session the session cannot take back is refused", "[session-store]") {
     wjs::SavedSession good = *wjs::saved_session_of(playing_snapshot());
 
-    wjs::SavedSession size_five = good;
-    size_five.size = 5;
-    size_five.board->size = 5;
+    wjs::SavedSession size_seven = good;
+    size_seven.size = 7;
+    size_seven.board->size = 7;
     wjs::SavedSession unlisted = good;
     unlisted.board->viable.clear();
 
     CHECK(wjs::session_snapshot_of(good).has_value());
-    CHECK_FALSE(wjs::session_snapshot_of(size_five).has_value());
+    CHECK_FALSE(wjs::session_snapshot_of(size_seven).has_value());
     CHECK_FALSE(wjs::session_snapshot_of(unlisted).has_value());
 }
 
@@ -329,7 +344,7 @@ TEST_CASE("a game in progress goes through the store's file and is brought back 
 
     REQUIRE(after.has_value());
     CHECK(*after == before);
-    auto restored = wjs::GameSession::restore(*after, phase_a(), english());
+    auto restored = wjs::GameSession::restore(*after, phonics_data(), phonics_options());
     REQUIRE(restored.has_value());
     CHECK(restored->state() == SessionState::playing);
     CHECK(restored->stars() == session.stars());
@@ -340,7 +355,7 @@ TEST_CASE("a game in progress goes through the store's file and is brought back 
 }
 
 TEST_CASE("a board the session dealt itself comes back through the store", "[session-store]") {
-    auto created = wjs::GameSession::create(phase_a(), english());
+    auto created = wjs::GameSession::create(phonics_data(), phonics_options());
     REQUIRE(created.has_value());
     wjs::GameSession session = *std::move(created);
     REQUIRE(session.shake().has_value());
@@ -360,7 +375,7 @@ TEST_CASE("a board the session dealt itself comes back through the store", "[ses
 
     REQUIRE(after.has_value());
     CHECK(*after == before);
-    CHECK(wjs::GameSession::restore(*after, phase_a(), english()).has_value());
+    CHECK(wjs::GameSession::restore(*after, phonics_data(), phonics_options()).has_value());
 }
 
 TEST_CASE("the board of a session is recorded once however often it is sent", "[session-store]") {
@@ -413,4 +428,269 @@ TEST_CASE("clearing a session's board is a cleared board in the store, and a bes
     CHECK(store.best_stars(3) == session.stars());
     REQUIRE(store.data().days.size() == 1);
     CHECK(store.data().days.front().boards_cleared == 1);
+}
+
+// ---------------------------------------------------------------------------
+// The standard board
+
+namespace {
+
+// The same board, with `X` where the phonics board has its dead letter: a
+// standard board has no dead jewel. The words of this file's dictionary on it
+// are the five that the phase has.
+constexpr std::string_view standard_tiles = "P A T/X I N/X X X";
+
+const wjs::DiceSets& test_dice() {
+    static const wjs::DiceSets dice = [] {
+        std::vector<wjs::DiceSet> sets;
+        for (std::size_t side = 3; side <= 6; ++side) {
+            std::string text;
+            for (std::size_t die = 0; die < side * side; ++die) {
+                text += "p a t i n s x\n";
+            }
+            auto set = wjs::DiceSet::parse(text);
+            REQUIRE(set.has_value());
+            sets.push_back(*std::move(set));
+        }
+        auto made = wjs::DiceSets::make(std::move(sets));
+        REQUIRE(made.has_value());
+        return *std::move(made);
+    }();
+    return dice;
+}
+
+wjs::SessionData standard_data() {
+    return {.dictionary = english(), .dice = &test_dice()};
+}
+
+wjs::BoardRecord standard_record(std::vector<wjs::Find> finds = {}) {
+    wjs::BoardRecord record;
+    record.mode = wjs::BoardMode::standard;
+    record.size = BoardSize::three;
+    record.tiles = std::string(standard_tiles);
+    record.viable_total = 5;
+    record.finds = std::move(finds);
+    return record;
+}
+
+wjs::SessionSnapshot standard_snapshot(std::vector<wjs::Find> finds = {}) {
+    wjs::SessionSnapshot snapshot;
+    snapshot.state = SessionState::playing;
+    snapshot.mode = wjs::BoardMode::standard;
+    snapshot.size = BoardSize::three;
+    snapshot.seed = 77;
+    snapshot.board = standard_record(std::move(finds));
+    return snapshot;
+}
+
+wjs::GameSession restore_standard(const wjs::SessionSnapshot& snapshot) {
+    auto restored = wjs::GameSession::restore(snapshot, standard_data(), {});
+    REQUIRE(restored.has_value());
+    return *std::move(restored);
+}
+
+}  // namespace
+
+TEST_CASE("a standard board's record is a snapshot with no phase and the count of its words",
+          "[session-store][standard]") {
+    const auto snapshot =
+        wjs::snapshot_of(standard_record({jewel("PAT"), jewel("PIN", true, friday + 1)}));
+
+    REQUIRE(snapshot.has_value());
+    CHECK(snapshot->phase.empty());
+    CHECK(snapshot->size == 3);
+    CHECK(snapshot->tiles == standard_tiles);
+    // The store lists none of a standard board's words and keeps how many there were.
+    CHECK(snapshot->viable.empty());
+    CHECK(snapshot->viable_total == 5);
+    REQUIRE(snapshot->finds.size() == 2);
+    CHECK(snapshot->finds[1].assisted);
+}
+
+TEST_CASE("a record whose mode and phase disagree cannot go to the store",
+          "[session-store][standard]") {
+    // The store tells the two boards by the phase, so these would be kept as the other one.
+    wjs::BoardRecord standard_with_phase = standard_record();
+    standard_with_phase.phase = "A";
+    wjs::BoardRecord phonics_without_phase = hand_record();
+    phonics_without_phase.phase.clear();
+
+    CHECK_FALSE(wjs::snapshot_of(standard_with_phase).has_value());
+    CHECK_FALSE(wjs::snapshot_of(phonics_without_phase).has_value());
+}
+
+TEST_CASE("a standard record goes to the store and back as it was", "[session-store][standard]") {
+    for (const wjs::BoardRecord& record :
+         {standard_record(), standard_record({jewel("PAT")}),
+          standard_record({jewel("TAP", true, 5), jewel("NIP"), jewel("PAN", false, 6)})}) {
+        const auto snapshot = wjs::snapshot_of(record);
+        REQUIRE(snapshot.has_value());
+
+        const auto back = wjs::record_of(*snapshot);
+
+        REQUIRE(back.has_value());
+        CHECK(back->mode == wjs::BoardMode::standard);
+        CHECK(*back == record);
+    }
+}
+
+TEST_CASE("a standard board with neither a count nor a list of its words cannot come back",
+          "[session-store][standard]") {
+    wjs::BoardSnapshot snapshot = *wjs::snapshot_of(standard_record());
+    CHECK(wjs::record_of(snapshot).has_value());
+
+    snapshot.viable_total = 0;
+    CHECK_FALSE(wjs::record_of(snapshot).has_value());
+    snapshot.viable_total = -1;
+    CHECK_FALSE(wjs::record_of(snapshot).has_value());
+
+    // A list and no count: the list is taken to be all of it, as the store does.
+    snapshot.viable_total = 0;
+    snapshot.viable = {"NIP", "PAN", "PAT"};
+    const auto listed = wjs::record_of(snapshot);
+    REQUIRE(listed.has_value());
+    CHECK(listed->viable_total == 3U);
+    CHECK(listed->viable.empty());
+}
+
+TEST_CASE("each state of a standard game goes to the saved session and back as it was",
+          "[session-store][standard]") {
+    wjs::SessionSnapshot playing = standard_snapshot({jewel("PAT")});
+    playing.lit = "PIN";
+
+    wjs::SessionSnapshot resting =
+        standard_snapshot({jewel("PAT"), jewel("PIN"), jewel("PAN"), jewel("NIP"), jewel("TAP")});
+    resting.state = SessionState::resting;
+
+    for (const wjs::SessionSnapshot& snapshot : {playing, resting}) {
+        const auto saved = wjs::saved_session_of(snapshot);
+        REQUIRE(saved.has_value());
+        // No phase, no list of words, and how many there were.
+        REQUIRE(saved->board.has_value());
+        CHECK(saved->board->phase.empty());
+        CHECK(saved->board->viable.empty());
+        CHECK(saved->board->viable_total == 5);
+
+        const auto back = wjs::session_snapshot_of(*saved);
+
+        REQUIRE(back.has_value());
+        CHECK(back->mode == wjs::BoardMode::standard);
+        CHECK(*back == snapshot);
+    }
+}
+
+TEST_CASE("a game in the box has no board to say which mode it was", "[session-store][standard]") {
+    // It comes back with the default, and restore plays the mode it is given.
+    wjs::SessionSnapshot box;
+    box.state = SessionState::box;
+    box.mode = wjs::BoardMode::phonics;
+    box.size = BoardSize::five;
+    box.seed = 9;
+    const auto saved = wjs::saved_session_of(box);
+    REQUIRE(saved.has_value());
+    auto store = wjs::Store::in_memory();
+    REQUIRE(store.save_session(saved));
+    const auto back = wjs::session_snapshot_of(*store.session());
+    REQUIRE(back.has_value());
+    CHECK(back->mode == wjs::BoardMode::standard);
+    CHECK(back->size == BoardSize::five);
+    CHECK(back->seed == 9U);
+}
+
+TEST_CASE("the store does not yet keep a standard game in progress", "[session-store][standard]") {
+    // Store::save_session keeps a board in progress only if it lists every word
+    // of it, which a phonics board's few are, and the saved board of the file
+    // needs the list. A standard board holds tens to hundreds of words and lists
+    // none, so the store refuses it and keeps nothing, and the app starts the
+    // next run in the box. The session itself comes back from such a snapshot
+    // (the cases around this one); the store is what has to learn to keep the
+    // count in place of the list.
+    const auto saved = wjs::saved_session_of(standard_snapshot({jewel("PAT")}));
+    REQUIRE(saved.has_value());
+    auto store = wjs::Store::in_memory();
+
+    CHECK_FALSE(store.save_session(saved));
+    CHECK_FALSE(store.session().has_value());
+}
+
+TEST_CASE("a standard game's saved session is brought back by the session",
+          "[session-store][standard]") {
+    wjs::GameSession session = restore_standard(standard_snapshot());
+    REQUIRE(session.trace(pat, friday).kind == wjs::TraceKind::found);
+    REQUIRE(session.request_help().has_value());
+    const wjs::SessionSnapshot before = session.snapshot();
+    REQUIRE(before.lit.has_value());
+
+    const auto saved = wjs::saved_session_of(before);
+    REQUIRE(saved.has_value());
+    const auto after = wjs::session_snapshot_of(*saved);
+
+    REQUIRE(after.has_value());
+    CHECK(*after == before);
+    auto restored = wjs::GameSession::restore(*after, standard_data(), {});
+    REQUIRE(restored.has_value());
+    CHECK(restored->mode() == wjs::BoardMode::standard);
+    CHECK(restored->state() == SessionState::playing);
+    CHECK(restored->stars() == session.stars());
+    REQUIRE(restored->finds().size() == 1);
+    CHECK(restored->finds()[0].word == "PAT");
+    CHECK(restored->finds()[0].when == friday);
+    CHECK(restored->lit_tile() == session.lit_tile());
+
+    // Under the other switch the same saved game is refused, and the app starts again.
+    const auto switched = wjs::GameSession::restore(*after, phonics_data(), phonics_options());
+    REQUIRE_FALSE(switched.has_value());
+    CHECK(switched.error() == wjs::SessionError::wrong_mode);
+}
+
+TEST_CASE("a standard board the session dealt itself comes back from its saved session",
+          "[session-store][standard]") {
+    wjs::SessionOptions options;
+    options.seed = 3;
+    auto created = wjs::GameSession::create(standard_data(), options);
+    REQUIRE(created.has_value());
+    wjs::GameSession session = *std::move(created);
+    REQUIRE(session.shake().has_value());
+    REQUIRE(session.still());
+    REQUIRE(session.landed());
+    const auto words = wjs::solve(*session.board(), english());
+    REQUIRE_FALSE(words.empty());
+    session.trace(words.front().path, friday);
+    const wjs::SessionSnapshot before = session.snapshot();
+
+    const auto saved = wjs::saved_session_of(before);
+    REQUIRE(saved.has_value());
+    const auto after = wjs::session_snapshot_of(*saved);
+
+    REQUIRE(after.has_value());
+    CHECK(*after == before);
+    CHECK(wjs::GameSession::restore(*after, standard_data(), {}).has_value());
+}
+
+TEST_CASE("a standard board is recorded once however often it is sent, and clearing it is a best",
+          "[session-store][standard]") {
+    wjs::GameSession session = restore_standard(standard_snapshot());
+    auto store = wjs::Store::in_memory();
+    const auto send = [&] { return store.record(*wjs::snapshot_of(*session.record()), friday); };
+
+    session.trace(pat, friday);
+    const auto first = send();
+    CHECK(first.stored);
+    CHECK(first.stars_added == 1);
+    CHECK(send().stars_added == 0);  // the same board again adds nothing
+    REQUIRE(store.data().boards.size() == 1);
+    // The history keeps the board by its count and none of its words.
+    CHECK(store.data().boards.front().phase.empty());
+    CHECK(store.data().boards.front().tiles == "P,A,T/X,I,N/X,X,X");
+    CHECK(store.data().boards.front().viable_total == 5);
+    CHECK(store.data().boards.front().viable.empty());
+    CHECK_FALSE(store.data().boards.front().cleared);
+
+    for (const wjs::FoundWord& word : wjs::solve(*session.board(), english())) {
+        session.trace(word.path, friday);
+        send();
+    }
+    REQUIRE(session.state() == SessionState::cleared);
+    CHECK(store.data().boards.front().cleared);
+    CHECK(store.best_stars(3) == session.stars());
 }

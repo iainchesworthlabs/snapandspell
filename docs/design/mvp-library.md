@@ -215,9 +215,16 @@ where the design put them after it. After the author's answers:
 
 Nothing of the author's is waiting on this page. What is not built:
 
-- **The standard board's play**: the touch tracing, the tray and the stars on a
-  dice board are application work, as for the phonics board; the library has
-  what they call.
+- **The standard board's play**: the library's game session plays it, 3x3 to 6x6,
+  with the default mode, the same states, trace, stars and help, and a record that
+  counts its words ([Architecture](../architecture.md#game-session)). It names every
+  dictionary word of three letters or more a child finds, which is the accepted risk
+  above made concrete: no word is withheld. The touch tracing, the tray and the
+  stars on a dice board are application work, as for the phonics board, and the
+  screens do not play it yet. A standard board is cleared only by every word of
+  the dictionary on it (about 30 on a 3x3 and 470 on a 6x6), so how a standard
+  board ends is a question for [Game](game.md); and the store keeps no standard
+  game in progress yet.
 - **A `QU` face** in the dice, if the author wants one in every set (the real game
   has one): a rule in `make_dice.ps1`.
 - **Block lists and a child-appropriate cut** of the dictionary: after the MVP,

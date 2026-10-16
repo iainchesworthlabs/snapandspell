@@ -10,7 +10,7 @@ end and in the [roadmap](roadmap.md).
 ```text
 src/
   lib/                 wjs:: the game logic. GUI-free and OS-free
-    include/wjs/         board.hpp  dice.hpp  dictionary.hpp  scoring.hpp  solver.hpp
+    include/wjs/         board.hpp  dice.hpp  dice_sets.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp  game_rules.hpp
                          game_session.hpp
@@ -18,7 +18,7 @@ src/
                          parent_gate.hpp  dashboard.hpp
                          solver_work.hpp  binder_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
-    src/                 board.cpp  dice.cpp  draw.hpp (internal)  dictionary.cpp
+    src/                 board.cpp  dice.cpp  dice_sets.cpp  draw.hpp (internal)  dictionary.cpp
                          scoring.cpp  solver.cpp
                          path.cpp  phase_data.cpp  seeding.cpp
                          grapheme_binder.cpp  shake.cpp  game_rules.cpp
@@ -224,6 +224,14 @@ Q shown as `QU`, a seed to each size, and the source's hash and the method in th
 header ([Data](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/data/README.md)).
 `data.dice` holds the files to what the tool makes. The faces of a printed set are
 not used: in the scanner mode the board is read from the table.
+
+`DiceSets` (`dice_sets.hpp`) is the four of them together, one `DiceSet` for each
+side from 3 to 6, which is what the game session takes for the standard board.
+`DiceSets::make(sets)` checks that there is one for each side and none twice
+(`DiceError::wrong_count`, or `not_square` for a set that makes no board);
+`DiceSets::load_directory(dir)` reads `3x3.txt` to `6x6.txt` of a directory such as
+`data/dice`; `find(side)` answers the set, or null for a side the standard board is
+not played at.
 
 ### Phase data
 
@@ -443,26 +451,46 @@ on [Testing](testing.md#game-rules-what-is-pinned).
 
 ### Game session
 
-`game_session.hpp` is the state machine of Solo Play (Mode B, the phonics board)
-that the screens bind to. One class, `wjs::GameSession`, deals a board, takes a
-traced path and answers it, keeps the finds and says when the board is cleared.
-It holds no Qt, plays no sound, draws nothing and **reads no clock**: what varies
-is handed in, which is the seed of the deal (`SessionOptions::seed`), the moment
-of a find (`Stamp`, an `int64` the caller gives to `trace` and gets back, never
-read or ordered) and the pace of the presentation, which is the screens' (they
-tell it when the shake, the drop and the celebration are over). The same options
-and the same events do the same on every compiler. It persists nothing: it hands
-the store plain values (below) and takes one back. It is single-threaded and
-holds the phase data and the dictionary by reference, which must outlive it.
+`game_session.hpp` is the state machine of Solo Play (Mode B) that the screens
+bind to. One class, `wjs::GameSession`, deals a board, takes a traced path and
+answers it, keeps the finds and says when the board is cleared. It plays either
+**board mode** (`SessionOptions::mode`, which is `wjs::BoardMode` and the parent's
+switch, `Settings::board`): the **standard board**, the default (decided 2026-10-16),
+a roll of the project's dice at 3x3 to 6x6 against the full dictionary; and the
+**phonics board**, the seeded 3x3 and 4x4 of a phase against that phase's words.
+The states, the trace, the stars, the help, the record and the snapshot are the same
+for both; the deal and the words that count are what differ. It holds no Qt, plays
+no sound, draws nothing and **reads no clock**: what varies is handed in, which is
+the seed of the deal (`SessionOptions::seed`), the moment of a find (`Stamp`, an
+`int64` the caller gives to `trace` and gets back, never read or ordered) and the
+pace of the presentation, which is the screens' (they tell it when the shake, the
+drop and the celebration are over). The same options and the same events do the same
+on every compiler. It persists nothing: it hands the store plain values (below) and
+takes one back. It is single-threaded and holds the dictionary, the dice and the
+phase data by reference, which must outlive it.
+
+What it is played against is a `SessionData`: the dictionary always, the `DiceSets`
+for the standard board and the `PhaseIndex` for the phonics board. The mode needs its
+own and ignores the other, so an app that holds both hands both over and lets the
+parent's switch choose.
 
 ```cpp
-auto session = wjs::GameSession::create(phase, english, {.size = wjs::BoardSize::three,
-                                                         .seed = random_seed});
+const wjs::SessionData data{.dictionary = english, .dice = &dice, .phase = &phase};
+auto session = wjs::GameSession::create(data, {.mode = settings.board,
+                                               .size = wjs::BoardSize::three,
+                                               .seed = random_seed});
 session->shake();                         // box -> shaking: the board is dealt here
 session->still(); session->landed();      // shaking -> dropping -> playing
-auto outcome = session->trace(path, today);  // viable / real, not today's / not a word
+auto outcome = session->trace(path, today);  // found / a real word, not counted / not a word
 auto tile = session->request_help();      // the start tile, never the word
 ```
+
+`create` refuses a mode whose data is missing (`bad_dice`, `bad_phase`) and options the
+mode cannot play (`bad_options`: no rolls on the standard board; an empty range or
+no seedings on the phonics board; a size the mode is not played at, which is 5x5 and
+6x6 on the phonics board). The phonics board's `min_viable`, `max_viable`,
+`max_seedings` and `focus_sounds` are not read by the standard board, and the
+standard board's `max_rolls` is not read by the phonics board.
 
 **The states** are those of [Game](design/game.md#the-flow), in its ids
 (`to_string(SessionState)` gives `"solo.box"` and so on). `solo.word-found` is
@@ -473,7 +501,7 @@ leaves everything as it was, so a screen may send it late or twice.
 
 | Event | From | To |
 | --- | --- | --- |
-| `choose_size(BoardSize)` | `box` | `box` (3x3 or 4x4; only here) |
+| `choose_size(BoardSize)` | `box` | `box` (3x3 to 6x6 on the standard board, 3x3 and 4x4 on the phonics board; only here) |
 | `shake()` | `box` | `shaking` (deals the board; an error leaves the box) |
 | `still()` | `shaking` | `dropping` (how long it shook is the screens') |
 | `landed()` | `dropping` | `playing` |
@@ -490,21 +518,23 @@ From `cleared` and `resting` the screens leave Solo Play without the session
 
 | `TraceKind` | When | `find` | Stars |
 | --- | --- | --- | --- |
-| `found` | a word of the phase's index, on the board, not found yet | the `Find` just recorded | those of its tier (`stars()`; `sticker()` if the tier carries one) |
+| `found` | a word that counts, on the board, not found yet | the `Find` just recorded | those of its tier (`stars()`; `sticker()` if the tier carries one) |
 | `found_again` | the same, already in the tray | the earlier `Find` | none |
-| `real_not_todays` | a real word that is not one of today's, **of any length** | none | none |
+| `real_not_todays` | a real word that does not count, **of any length**: on the phonics board one that is not in the phase's index, on the standard board a word of fewer than three letters | none | none |
 | `not_a_word` | anything else, including a path that is not a path | none | none |
 | `ignored` | not in `playing`, or a path of fewer than two tiles | none | none |
 
-The classification is `classify_path` of [Game rules](#game-rules) against
-`WordSets::phonics`, with two readings of the session's own:
+The classification is `classify_path` of [Game rules](#game-rules) against the
+mode's word set (`WordSets::standard` or `WordSets::phonics`), with two readings of
+the session's own:
 
 - **A real word is never `not_a_word`.** The rules call a word of two letters
   `not_a_word`, because it cannot count and has no tier. The session reads the
   spelling again and answers a real two-letter word (`at`, `in`) as
   `real_not_todays`: the soft tick, no word. A child who is told a real word is
   not one has been taught something false, and the answer names nothing either
-  way.
+  way. On the standard board these two-letter words are all that kind is: every
+  real word of three letters or more counts there.
 - **A path of one tile, or none, is `ignored`**, not a word attempt. A touch on
   a tile is to hear its letter ([Game](design/game.md#tracing-and-tapping)), and
   a trace cancelled by lifting outside the board is no attempt; the dashboard
@@ -512,10 +542,20 @@ The classification is `classify_path` of [Game rules](#game-rules) against
   letter's sound, which is the screens'.
 
 `Find` is `{word, assisted, when}`, with `tier()` and `reward()` derived from the
-letter count and never stored. `word` is upper-case and is a word of the phase,
-because a word is named only when it is: `real_not_todays` and `not_a_word` carry
-none, and nothing else the session hands out (the record, the snapshot, the
-tray, the help) holds a word outside the phase index.
+letter count and never stored. `word` is upper-case and is a word that counts, because
+a word is named only when it does: `real_not_todays` and `not_a_word` carry none, and
+nothing else the session hands out (the record, the snapshot, the tray, the help)
+holds a word that does not count.
+
+**What counts on the standard board is every word of the dictionary of three letters
+or more, and the session names each one.** The author decided the full dictionary, as
+it is (ENABLE), with no block list in the MVP ([MVP library](design/mvp-library.md#accepted-risk-the-full-dictionary-and-what-a-child-is-shown)):
+a word a child traces is a find, and is shown and said, if the dictionary has it, and
+the dictionary has entries no child should meet. No block list exists, none is added
+here, and so the session withholds nothing. That is the accepted risk of the MVP and
+the gate to wider use (roadmap G2); a list of words to withhold would belong in
+the word set (`WordSets`), not in the session. The answers the session gives to a
+real word are otherwise the same on both boards.
 
 **The help.** `request_help()` is the start-tile help of the rules: the tile of
 the shortest viable word not yet found, nearest the top left, the same one until
@@ -525,55 +565,88 @@ found while its tile is lit is an **assisted** find (`Find::assisted`), which is
 what the dashboard counts as not unassisted. `SessionOptions::help` is the
 parent's switch; off, it returns nothing.
 
-**The deal.** `shake()` seeds the board before anything moves, with
-`seed_board` and the options of `phonics_board_options` for the size (targets of
-three letters, the guided fill, no dead jewels on a board that lands), the
-session's range (`min_viable` 3, `max_viable` 5) and the parent's focus sounds.
-Seeding lands three to five words only some of the time (23% of 3x3 seeds and
-92% of 4x4 seeds on the 249-word proxy of
-[Testing](testing.md#seeding-what-was-measured)), so the session **seeds again,
-with the next seed of its stream, up to `max_seedings` (5) times** and keeps the
-board nearest the range, which is the first that lands. A board that holds no
-word is never dealt: the seeding plants its targets, and a board that held none
-would be `no_board`. `last_deal()` reports how it went (`DealReport`: seedings,
-verifications, solves, the words held, `in_range`). The stream is
-`std::mt19937`'s first output, so a seed is one run of boards on every compiler;
-the targets of recent boards are remembered within a session
-(`RecentTargets`) so the next board is not made of the same words.
+**Cleared.** The last viable word moves the session to `cleared`. On the phonics
+board that is three to five words. On the standard board it is **every word of the
+dictionary on the board**, which is about 30 on a 3x3, 105 on a 4x4, 250 on a 5x5 and
+470 on a 6x6 for the project's dice (`design/mvp-library.md`), so a board there is
+nearly always ended by the child putting the lid back on and almost never by
+clearing it. The session does not decide that: the end of a standard board is a
+question for the design ([Game](design/game.md)), and a record whose `finds` equal its
+words says it was cleared whatever the way it ended.
+
+**The deal.** `shake()` deals the board before anything moves, and a board that holds
+no word is never dealt. It is a pure function of the stream of seeds, the size and (on
+the phonics board) the recent targets, so nothing of the session changes until the deal is
+done: a refusal leaves the session in the box. `last_deal()` reports how it went
+(`DealReport`).
+
+- **Standard.** The dice of the size chosen on the box (`DiceSets::find`) are rolled
+  with `wjs::deal_standard_board` (`wjs::roll`, and a solve of the roll against the
+  dictionary; rolled again with `next_deal_seed` of the last seed until the board holds
+  a word, up to `SessionOptions::max_rolls`, 20). With the project's dice and the full
+  dictionary 3.8% of 3x3 rolls and 0.15% of 4x4 rolls hold none, and no 5x5 or 6x6 did
+  in 5,000 and 2,000. The board has no dead jewels and no recent targets, and the
+  session lands no range of words: it holds as many as it holds. The report
+  has `rolls` (boards rolled) and `solves` (one a roll), `seedings` and `tries` are 0,
+  and `in_range` is always true. The next board is rolled from the seed after the
+  one that made this board.
+- **Phonics.** `seed_board` with the options of `phonics_board_options` for the size
+  (targets of three letters, the guided fill, no dead jewels on a board that lands), the
+  session's range (`min_viable` 3, `max_viable` 5) and the parent's focus sounds.
+  Seeding lands three to five words only some of the time (23% of 3x3 seeds and
+  92% of 4x4 seeds on the 249-word proxy of
+  [Testing](testing.md#seeding-what-was-measured)), so the session **seeds again,
+  with the next seed of its stream, up to `max_seedings` (5) times** and keeps the
+  board nearest the range, which is the first that lands. The seeding plants its targets,
+  so it deals a word or `no_board`. The report has `seedings`, `tries`, `solves` and
+  `in_range`. The targets of recent boards are remembered within a session
+  (`RecentTargets`) so the next board is not made of the same words.
+
+Both streams are `std::mt19937`'s first output (`next_deal_seed`), so a seed is one run of
+boards on every compiler.
 
 **What the store keeps.** Two plain values, strings, numbers and flags only, so
 any file format will do:
 
-- `record()` is a `BoardRecord`: the phase, the size, the tiles as
-  `Board::parse` reads them (`"P A T/B I N/B B B"`; the dead letter is the first
-  of A-Z that no word of the phase uses), **every word of the phase on the board**
-  (`viable`, upper-case, alphabetical) and the finds with their `when` and
-  `assisted`. It is what the history and the dashboard are made from
-  ([Dashboard](design/dashboard.md#the-store)): "met" and "found" are counted
-  from `viable` and `finds`. It is there from the moment the dice land, and stays
-  after `back()` or `again()` until the next shake, so the store saves it when a
-  board ends however it ends. Nothing but a board that reached `playing` has one.
-- `snapshot()` is a `SessionSnapshot`: the state, the size, the seed the next
-  board is dealt from, the board in play (a `BoardRecord`) and the word whose
-  start tile is lit. `GameSession::restore(snapshot, phase, dictionary, options)`
-  brings the session back. Only `box`, `playing` and `resting` are saved:
-  `shaking` and `dropping` save as the box (the board was never seen, and the
-  seed has moved on), `cleared` as `resting`. A restore **solves the board again**
-  against the phase, so it refuses a snapshot of another phase (`wrong_phase`),
-  a board that no longer holds the words recorded (`board_changed`) and one that
-  is not a snapshot of a session (`bad_snapshot`: a find that is not on the
-  board, a word twice, a state that does not fit its board). It does not keep
-  the recent targets, so the board after a restored one may be made of words the
-  original would have avoided.
+- `record()` is a `BoardRecord`: the **mode**, the phase (empty on the standard
+  board), the size, the tiles as `Board::parse` reads them (`"P A T/B I N/B B B"`;
+  on the phonics board the dead letter is the first of A-Z that no word of the phase
+  uses; a tile of a die may be two or three letters, `"QU"`), the words that
+  counted on the board and the finds with their `when` and `assisted`. On the
+  phonics board the words are **every word of the phase on the board** (`viable`,
+  upper-case, alphabetical). On the standard board they are **not listed**: a board
+  holds tens to hundreds, the store keeps none of them, so `viable` is empty and
+  `viable_total` says how many (`viable_count()` gives the count either way, and
+  `cleared()` compares the finds with it). It is what the history and the dashboard
+  are made from ([Dashboard](design/dashboard.md#the-store)): "met" and "found" are
+  counted from `viable` and `finds`. It is there from the moment the dice land, and
+  stays after `back()` or `again()` until the next shake, so the store saves it when
+  a board ends however it ends. Nothing but a board that reached `playing` has one.
+- `snapshot()` is a `SessionSnapshot`: the state, the mode, the size, the seed the
+  next board is dealt from, the board in play (a `BoardRecord`) and the word whose
+  start tile is lit. `GameSession::restore(snapshot, data, options)` brings the
+  session back, playing `options.mode`. Only `box`, `playing` and `resting` are
+  saved: `shaking` and `dropping` save as the box (the board was never seen, and
+  the seed has moved on), `cleared` as `resting`. A restore **solves the board
+  again** against the mode's word set, so it refuses a snapshot of the other board
+  mode (`wrong_mode`: the parent switched since), a phonics snapshot of another phase
+  (`wrong_phase`), a board that no longer holds the words recorded (`board_changed`:
+  the words themselves on the phonics board, their number on the standard) and one
+  that is not a snapshot of a session (`bad_snapshot`: a find that is not on the
+  board, a word twice, a state that does not fit its board, a record and a snapshot
+  of two modes, a standard record that lists words or says none, a size the mode is
+  not played at). A game in the box has no board to say which mode it was in, and
+  restore plays the mode it is given. It does not keep the recent targets, so the
+  board after a restored one may be made of words the original would have avoided.
 
 **Not the session's.** Which words are stickered on the device and the best
 stars for a size are the store's to know (the session has the board's `stars()`
 and the tier's `sticker()`, and nothing across boards). History is the store's
 list of records. The grapheme blocks of a path are `GraphemeBinder`'s, called
-by the screens. Time, sound and animation are theirs. The standard board
-(the default) is a roll of dice and is not dealt by this class: the session is
-the phonics board's, and the deal is the one function in it that knows which
-board it is.
+by the screens, and the standard board has none to bind. Time, sound and animation
+are theirs. What the session does not do for the standard board is also written
+down in [Not built yet](#not-built-yet): the screens do not play it, and the store
+does not keep a standard game in progress.
 
 ### The store
 
@@ -720,6 +793,11 @@ there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down
 | `blocks(path)` | `GraphemeBinder` over the phase | |
 | `history()` | | the store's boards, newest first, and their finds; the phase's dead letter is a dead jewel on a board of that phase |
 
+This game is the **phonics board**: it is made over a phase and gives the session
+`BoardMode::phonics` whatever the options say, because the standard board (the
+session's default) needs the dice and no phase, and is not wired to the screens yet
+(see [Not built yet](#not-built-yet)).
+
 **Where a run begins.** After every call that can change the game, `RealSoloGame`
 brings the store's game in progress (`Store::save_session`) to what
 `GameSession::snapshot()` says: a board on the table with its finds and the lit
@@ -853,6 +931,19 @@ These do not exist, and nothing in the tree stands in for them:
   reviewed by someone qualified to do it before a child uses it. The audio
   clips and the sound-it-out sequence are not built. The parent dashboard is built
   and shows nothing of the sounds until a phase exists.
+- **The standard board on the screens, and in the store.** The library's session
+  plays it, with tests, and it is the session's default mode; the screens do not
+  yet. `RealSoloGame` is built over a phase (it binds the phase's graphemes into
+  blocks) and plays the phonics board, whatever `Settings::board` says, and the
+  program is started with a phase directory or runs on the fake. A standard game
+  needs the dice (`DiceSets::load_directory`, `data/dice`), no phase and no
+  blocks, so the adapter and `SoloGameSetup` have to learn to make one. And
+  `Store::save_session` keeps a game in progress only for a board whose words it
+  lists, which is a phonics board's few: it refuses a standard board's snapshot
+  (which carries the count and no list), so a standard game is not brought back
+  after a restart. The session's `restore` takes it, and the store has to learn to
+  keep the count (and its file, to write a saved board with no list). Neither is
+  done here.
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
   early-reader tier lists (animals, colours, shapes, and so on); nothing reads
   them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.

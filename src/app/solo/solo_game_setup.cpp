@@ -72,7 +72,10 @@ std::expected<std::unique_ptr<SoloGameSetup>, std::string> SoloGameSetup::open(
     // The session is made from what the settings say each time (make()), but a
     // phase that cannot make a board fails the same way every time, and here it
     // can be said.
-    const auto trial = wjs::GameSession::create(*index, *dictionary);
+    wjs::SessionOptions phonics;
+    phonics.mode = wjs::BoardMode::phonics;
+    const auto trial =
+        wjs::GameSession::create({.dictionary = *dictionary, .phase = index}, phonics);
     if (!trial) {
         return std::unexpected("Phase " + name +
                                " cannot be played: " + std::string(to_string(trial.error())) + ".");
@@ -85,6 +88,9 @@ std::expected<std::unique_ptr<SoloGameSetup>, std::string> SoloGameSetup::open(
 std::unique_ptr<SoloGame> SoloGameSetup::make() {
     const wjs::Settings& settings = store_.settings();
     wjs::SessionOptions options;
+    // The screens play the phonics board over the phase they were given; the
+    // standard board is not wired to them yet, whatever Settings::board says.
+    options.mode = wjs::BoardMode::phonics;
     options.size = size_of(settings.board_size);
     options.seed = seed_ ? *seed_ : std::random_device{}();
     options.help = settings.help;
@@ -100,8 +106,8 @@ std::unique_ptr<SoloGame> SoloGameSetup::make() {
                 // The tile is lit by a press the parent no longer allows.
                 snapshot->lit.reset();
             }
-            if (auto restored =
-                    wjs::GameSession::restore(*snapshot, *phase_, dictionary_, options)) {
+            if (auto restored = wjs::GameSession::restore(
+                    *snapshot, {.dictionary = dictionary_, .phase = phase_}, options)) {
                 return std::make_unique<RealSoloGame>(*std::move(restored), options.help, *phase_,
                                                       store_, today_);
             }

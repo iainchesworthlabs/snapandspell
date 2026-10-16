@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "corpus.hpp"
 #include "perf_build.hpp"
 #include "wjs/binder_work.hpp"
 #include "wjs/game_session.hpp"
@@ -139,21 +140,23 @@ SeedRun measure_seed(const wjs::PhaseIndex& index, std::size_t size, std::uint32
 // Session work
 // ---------------------------------------------------------------------------
 
-SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
-    const auto board_size = wjs::board_size_for(size);
-    if (!board_size) {
-        std::abort();
-    }
-    wjs::SessionOptions options;
-    options.size = *board_size;
-    options.seed = seed;
-    auto created = wjs::GameSession::create(index, english(), options);
+namespace {
+
+// One board of a session, dealt and played through: the deal, every word of the
+// board traced (with the help asked for before every other one), a word again, a
+// touch, the snapshots, and the restore. `active` is the word list that counts
+// on the board: the phase's index on the phonics board, the dictionary on the
+// standard. The process ends if the session cannot be made or refuses the deal.
+SessionRun run_session(const wjs::SessionData& data, const wjs::SessionOptions& options,
+                       const wjs::Dictionary& active) {
+    auto created = wjs::GameSession::create(data, options);
     if (!created) {
         std::abort();
     }
     wjs::GameSession session = *std::move(created);
 
     SessionRun run;
+    run.mode = options.mode;
 
     // The deal: the shake and nothing else.
     wjs::reset_solve_work();
@@ -169,7 +172,7 @@ SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size, std::
     if (!session.still() || !session.landed()) {
         std::abort();
     }
-    const std::vector<wjs::FoundWord> words = wjs::solve(*session.board(), index.dictionary());
+    const std::vector<wjs::FoundWord> words = wjs::solve(*session.board(), active);
     run.words = words.size();
 
     wjs::reset_solve_work();
@@ -197,8 +200,7 @@ SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size, std::
 
     // Bringing the board back: one solve.
     wjs::reset_solve_work();
-    const auto restored =
-        wjs::GameSession::restore(run.after_first_find, index, english(), options);
+    const auto restored = wjs::GameSession::restore(run.after_first_find, data, options);
     if (!restored) {
         std::abort();
     }
@@ -207,16 +209,44 @@ SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size, std::
     return run;
 }
 
-std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
-                                 std::uint32_t seed) {
+[[nodiscard]] wjs::SessionOptions options_of(wjs::BoardMode mode, std::size_t size,
+                                             std::uint32_t seed) {
     const auto board_size = wjs::board_size_for(size);
     if (!board_size) {
         std::abort();
     }
     wjs::SessionOptions options;
+    options.mode = mode;
     options.size = *board_size;
     options.seed = seed;
-    auto created = wjs::GameSession::create(index, english(), options);
+    return options;
+}
+
+}  // namespace
+
+SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
+    return run_session({.dictionary = english(), .phase = &index},
+                       options_of(wjs::BoardMode::phonics, size, seed), index.dictionary());
+}
+
+SessionRun measure_standard_session(std::size_t size, std::uint32_t seed) {
+    return run_session({.dictionary = english(), .dice = &dice_sets()},
+                       options_of(wjs::BoardMode::standard, size, seed), english());
+}
+
+std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
+                                 std::uint32_t seed) {
+    auto created = wjs::GameSession::create({.dictionary = english(), .phase = &index},
+                                            options_of(wjs::BoardMode::phonics, size, seed));
+    if (!created || !created->shake()) {
+        std::abort();
+    }
+    return created->last_deal()->viable;
+}
+
+std::size_t measure_standard_session_deal(std::size_t size, std::uint32_t seed) {
+    auto created = wjs::GameSession::create({.dictionary = english(), .dice = &dice_sets()},
+                                            options_of(wjs::BoardMode::standard, size, seed));
     if (!created || !created->shake()) {
         std::abort();
     }
@@ -338,6 +368,11 @@ void Digest::add(const wjs::SessionSnapshot& snapshot) {
             number(find.assisted ? 1U : 0U);
             number(static_cast<std::uint64_t>(find.when));
         }
+        // What only the standard board's record says. Added for it alone, so that
+        // the phonics digest is what it was before the mode existed.
+        if (record.mode == wjs::BoardMode::standard) {
+            number(record.viable_total);
+        }
     }
     number(snapshot.lit ? 1U : 0U);
     if (snapshot.lit) {
@@ -346,6 +381,9 @@ void Digest::add(const wjs::SessionSnapshot& snapshot) {
 }
 
 void Digest::add(const SessionRun& run) {
+    if (run.mode == wjs::BoardMode::standard) {
+        number(run.deal.rolls);  // the standard deal's own count, in the place of the seedings
+    }
     number(run.deal.seedings);
     number(run.deal.tries);
     number(run.deal.solves);

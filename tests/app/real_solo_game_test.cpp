@@ -164,8 +164,19 @@ const Path pab{{0, 0}, {0, 1}, {1, 0}};  // PAB, no word
 const Path apart{{0, 0}, {0, 2}};        // not touching: not a path
 const Path one_tile{{0, 0}};             // a touch to hear a letter
 
+// The options of a phonics session: the game under test plays that board.
+wjs::SessionOptions phonics(wjs::SessionOptions options = {}) {
+    options.mode = wjs::BoardMode::phonics;
+    return options;
+}
+
+wjs::SessionData data_of(const wjs::PhaseIndex& phase) {
+    return {.dictionary = english(), .phase = &phase};
+}
+
 wjs::BoardRecord hand_record(std::string_view phase, std::vector<wjs::Find> finds = {}) {
     wjs::BoardRecord record;
+    record.mode = wjs::BoardMode::phonics;
     record.phase = std::string(phase);
     record.size = BoardSize::three;
     record.tiles = std::string(hand_tiles);
@@ -189,16 +200,18 @@ wjs::GameSession hand_session(std::string_view phase, std::vector<wjs::Find> fin
                               const wjs::SessionOptions& options = {}) {
     wjs::SessionSnapshot snapshot;
     snapshot.state = SessionState::playing;
+    snapshot.mode = wjs::BoardMode::phonics;
     snapshot.size = BoardSize::three;
     snapshot.seed = 77;
     snapshot.board = hand_record(phase, std::move(finds));
-    auto restored = wjs::GameSession::restore(snapshot, phase_named(phase), english(), options);
+    auto restored =
+        wjs::GameSession::restore(snapshot, data_of(phase_named(phase)), phonics(options));
     REQUIRE(restored.has_value());
     return *std::move(restored);
 }
 
 wjs::GameSession dealing_session(const wjs::SessionOptions& options = {}) {
-    auto created = wjs::GameSession::create(phase_a(), english(), options);
+    auto created = wjs::GameSession::create(data_of(phase_a()), phonics(options));
     REQUIRE(created.has_value());
     return *std::move(created);
 }
@@ -1427,6 +1440,39 @@ TEST_CASE("a game that cannot come back is forgotten and a new one begins in the
             CHECK(run(options).state == SoloState::playing);
         }
     }
+}
+
+TEST_CASE("a saved game of the other board mode is not played by this one", "[app][real]") {
+    // The screens play the phonics board, and the store refuses a standard game in
+    // progress (it lists none of its words), so this program never saves one. A file
+    // that holds one, a later program's or one edited by hand, has a board with no
+    // phase. It must not be played as a phonics board: the session says it is the
+    // other mode, and the run opens in the box with the record cleared.
+    const TempDirectory directory;
+    const auto options = kept_options(directory);
+    run(options, [](const Run& run) {
+        run.deal();
+        run.find(1);
+    });
+
+    {
+        auto opened = wjs::Store::open(options.store);
+        REQUIRE(opened.store.session().has_value());
+        wjs::StoreData data = opened.store.data();
+        data.session->board->phase.clear();
+        std::ofstream file(options.store, std::ios::binary | std::ios::trunc);
+        file << wjs::serialize_store(data);
+    }
+    const auto kept = wjs::Store::open(options.store);
+    REQUIRE(kept.store.session().has_value());
+    REQUIRE(kept.store.session()->board.has_value());
+    REQUIRE(kept.store.session()->board->phase.empty());
+
+    const Seen after = run(options);
+    CHECK(after.state == SoloState::box);
+    CHECK(after.tiles.empty());
+    CHECK(after.found.empty());
+    CHECK_FALSE(wjs::Store::open(options.store).store.session().has_value());
 }
 
 TEST_CASE("a start tile the parent no longer allows is not lit when the game comes back",

@@ -79,12 +79,17 @@ namespace {
 }  // namespace
 
 std::optional<BoardSnapshot> snapshot_of(const BoardRecord& record) {
+    // The store tells a standard board by its empty phase, so a record whose mode
+    // and phase disagree would be kept as the other board.
+    if ((record.mode == BoardMode::standard) != record.phase.empty()) {
+        return std::nullopt;
+    }
     BoardSnapshot snapshot;
     snapshot.phase = record.phase;
     snapshot.size = static_cast<int>(side(record.size));
     snapshot.tiles = record.tiles;
     snapshot.viable = record.viable;
-    snapshot.viable_total = static_cast<int>(record.viable.size());
+    snapshot.viable_total = static_cast<int>(record.viable_count());
     for (const Find& find : record.finds) {
         const std::optional<Day> day = day_of(find.when);
         if (!day) {
@@ -100,22 +105,40 @@ std::optional<BoardRecord> record_of(const BoardSnapshot& snapshot) {
         return std::nullopt;
     }
     const std::optional<BoardSize> size = board_size_for(static_cast<std::size_t>(snapshot.size));
-    // The session needs every word the board held, and the store lists them only
-    // up to a bound: a board whose list is not the whole of it cannot be brought back.
-    if (!size || snapshot.viable.empty() ||
-        (snapshot.viable_total != 0 &&
-         static_cast<std::size_t>(snapshot.viable_total) != snapshot.viable.size())) {
+    if (!size || snapshot.viable_total < 0) {
         return std::nullopt;
     }
 
     BoardRecord record;
-    record.phase = snapshot.phase;
     record.size = *size;
     record.tiles = session_tiles(snapshot.tiles);
-    for (const std::string& word : snapshot.viable) {
-        record.viable.push_back(upper(word));
+    if (snapshot.phase.empty()) {
+        // A standard board: the store lists none of its words and keeps how many
+        // there were, which is what the session checks the board against.
+        const std::size_t total = snapshot.viable_total != 0
+                                      ? static_cast<std::size_t>(snapshot.viable_total)
+                                      : snapshot.viable.size();
+        if (total == 0) {
+            return std::nullopt;
+        }
+        record.mode = BoardMode::standard;
+        record.viable_total = total;
+    } else {
+        // A phonics board: the session needs every word the board held, and the
+        // store lists them only up to a bound: a board whose list is not the whole
+        // of it cannot be brought back.
+        if (snapshot.viable.empty() ||
+            (snapshot.viable_total != 0 &&
+             static_cast<std::size_t>(snapshot.viable_total) != snapshot.viable.size())) {
+            return std::nullopt;
+        }
+        record.mode = BoardMode::phonics;
+        record.phase = snapshot.phase;
+        for (const std::string& word : snapshot.viable) {
+            record.viable.push_back(upper(word));
+        }
+        std::sort(record.viable.begin(), record.viable.end());
     }
-    std::sort(record.viable.begin(), record.viable.end());
     for (const FoundSnapshot& find : snapshot.finds) {
         record.finds.push_back({upper(find.word), find.assisted, static_cast<Stamp>(find.day)});
     }
@@ -160,6 +183,7 @@ std::optional<SessionSnapshot> session_snapshot_of(const SavedSession& saved) {
         if (!snapshot.board) {
             return std::nullopt;
         }
+        snapshot.mode = snapshot.board->mode;
     }
     if (saved.lit) {
         snapshot.lit = upper(*saved.lit);

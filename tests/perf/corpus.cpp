@@ -82,24 +82,26 @@ wjs::Board rich_board(const RichBoard& rich) {
 // The standard board
 // ---------------------------------------------------------------------------
 
-const wjs::DiceSet& dice_set(std::size_t size) {
-    static const std::vector<wjs::DiceSet> sets = [] {
-        std::vector<wjs::DiceSet> loaded;
-        loaded.reserve(kSizes.size());
-        for (const std::size_t side : kSizes) {
-            const std::string name = std::to_string(side) + "x" + std::to_string(side) + ".txt";
-            auto set =
-                wjs::DiceSet::load_file(std::filesystem::path(std::string(kDiceDirectory)) / name);
-            // A set that does not load, or is not a board of its name, is a
-            // mistake in the data or this file, and every case would fail on it.
-            if (!set || set->side() != side) {
-                std::abort();
-            }
-            loaded.push_back(*std::move(set));
+const wjs::DiceSets& dice_sets() {
+    static const wjs::DiceSets sets = [] {
+        auto loaded =
+            wjs::DiceSets::load_directory(std::filesystem::path(std::string(kDiceDirectory)));
+        // A set that does not load, or is not a board of its name, is a mistake
+        // in the data or this file, and every case would fail on it.
+        if (!loaded) {
+            std::abort();
         }
-        return loaded;
+        return *std::move(loaded);
     }();
-    return sets.at(size - kSizes.front());
+    return sets;
+}
+
+const wjs::DiceSet& dice_set(std::size_t size) {
+    const wjs::DiceSet* set = dice_sets().find(size);
+    if (set == nullptr) {
+        std::abort();
+    }
+    return *set;
 }
 
 wjs::Board dice_board(std::size_t size, unsigned index) {

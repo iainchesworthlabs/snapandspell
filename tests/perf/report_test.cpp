@@ -59,6 +59,9 @@ void print_timing() {
     print_metrics(
         "timing: PHONICS BOARD, one deal of a session board against the calibration workload",
         wjs::perf::session_timing_metrics());
+    print_metrics(
+        "timing: STANDARD BOARD, one deal of a session board against the calibration workload",
+        wjs::perf::standard_session_timing_metrics());
 
     print_metrics("timing: reading a frame (one read against the heavy calibration workload)",
                   wjs::perf::scan_timing_metrics());
@@ -104,6 +107,12 @@ TEST_CASE("report: what every metric measures now", "[.perf-report]") {
     std::cout << std::format(
         "\ndigest of every board a session dealt and played: {} (kSessionDigest)\n",
         wjs::perf::session_digest());
+    print_metrics("STANDARD BOARD (the default): the game session, by size",
+                  wjs::perf::standard_session_metrics());
+    std::cout << std::format(
+        "\ndigest of every board a standard session dealt and played: {} "
+        "(kStandardSessionDigest)\n",
+        wjs::perf::standard_session_digest());
     print_metrics("PHONICS BOARD (a parent's switch): the binder, a path of nine tiles",
                   wjs::perf::binder_metrics());
     print_timing();

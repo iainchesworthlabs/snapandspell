@@ -189,9 +189,9 @@ as the finger moves. The column below says which.
 | `board.seed` | zone | phonics | `wjs::seed_board`, once per board | the verifications it spent (1 to `max_tries`) |
 | `board.verify` | zone | phonics | each verification inside `board.seed` | the words of the phase found on that board |
 | `phonics.bind` | zone | phonics | `GraphemeBinder::bind`, so every call that binds a path | the comparisons it made: a grapheme held against the tiles at a block |
-| `board.deal` | zone | phonics | `GameSession::shake`, once per board | the seedings it spent (1 to `max_seedings`) |
-| `board.restore` | zone | phonics | `GameSession::restore` | none |
-| `input.submit` | zone | phonics | `GameSession::trace` of two tiles or more in `playing`; not for an event that is refused or a touch of one tile | the number of tiles in the path |
+| `board.deal` | zone | both | `GameSession::shake`, once per board | the seedings it spent on the phonics board (1 to `max_seedings`), the rolls on the standard board (1 to `max_rolls`) |
+| `board.restore` | zone | both | `GameSession::restore` | none |
+| `input.submit` | zone | both | `GameSession::trace` of two tiles or more in `playing`; not for an event that is refused or a touch of one tile | the number of tiles in the path |
 
 `board.seed` has no plot of its own. The solves it makes, the verifications and
 the guided fill's trials, are `solver.solve` zones inside it, each with its

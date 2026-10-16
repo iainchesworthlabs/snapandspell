@@ -11,6 +11,7 @@
 
 #include "wjs/board.hpp"
 #include "wjs/dice.hpp"
+#include "wjs/dice_sets.hpp"
 #include "wjs/grapheme_binder.hpp"
 #include "wjs/phase_data.hpp"
 
@@ -66,6 +67,10 @@ inline constexpr std::array<RichBoard, 2> kEmptyBoards = {{
 // the tier has nothing to say without them.
 [[nodiscard]] const wjs::DiceSet& dice_set(std::size_t size);
 
+// All four sets, as the game session takes them (wjs::DiceSets), from the same
+// files and loaded once.
+[[nodiscard]] const wjs::DiceSets& dice_sets();
+
 // Board `index` of a size is a roll of those dice with the seed
 // corpus_seed(size, index), the same seeds as the random boards: kBoardsPerSize
 // of each size, 3x3 to 6x6.
@@ -89,9 +94,11 @@ inline constexpr unsigned kSeedsPerSize = 100;
 // budgets.hpp) is what says a changed list changed the corpus.
 [[nodiscard]] const wjs::PhaseIndex& phonics_phase();
 
-// The sizes the game session plays: the first release's 3x3 and 4x4
-// (wjs::BoardSize). The seeds are corpus_seed(size, index) for the first
-// kSeedsPerSize indexes, the same seeds the seeding rows use.
+// The sizes the game session plays on the PHONICS board: the first release's 3x3
+// and 4x4 (wjs::BoardSize). The seeds are corpus_seed(size, index) for the first
+// kSeedsPerSize indexes, the same seeds the seeding rows use. The STANDARD
+// board's session is played at every size of kSizes, 3x3 to 6x6, on the same
+// seeds.
 inline constexpr std::array<std::size_t, 2> kSessionSizes = {3, 4};
 
 // A path of nine tiles for the binder, as the letters of its tiles in order,
