@@ -103,10 +103,10 @@ struct SeedOptions {
 
     // Fill the tiles the words leave by asking the solver: each is given a
     // letter, chosen at random from those that leave the board no more than
-    // max_viable words, in a random order, or a dead jewel if every letter would
-    // go over. It makes fuller boards than the random fill at the same share,
-    // at the price of a solve for each letter of the filler at each tile. Needs
-    // a dead letter, as the dead jewels it may add are drawn as jewels; the
+    // max_viable words, in a random order, preferring a letter of the phase to
+    // one it does not use, or a dead jewel if every letter would go over. It makes fuller boards
+    // than the random fill at the same share, at the price of a solve for each letter of the filler
+    // at each tile. Needs a dead letter, as the dead jewels it may add are drawn as jewels; the
     // filler is read as a set of letters, so repeating one weighs nothing. The
     // words planted are at least min_viable, so the count cannot fall short.
     bool guided_fill = false;
@@ -145,6 +145,17 @@ struct SeededBoard {
     // each letter at each tile.
     std::size_t solves = 0;
 };
+
+// The options chosen for the phonics board (docs/design/mvp-library.md): targets
+// of three letters at most, planted apart; the solver-guided fill; and every
+// letter but one as filler, so that letters the phase has not taught may appear
+// where a letter of the phase would make too many words, and no tile need be a
+// dead jewel. The letter left out is the first of A-Z that no word of the phase
+// uses, and is the dead letter; there is none to leave out if the phase uses all
+// 26, and then this is SeedError::bad_dead_letter. The caller still chooses the
+// range, the focus sounds and the tries.
+[[nodiscard]] std::expected<SeedOptions, SeedError> phonics_board_options(const PhaseIndex& index,
+                                                                          std::size_t size);
 
 [[nodiscard]] std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                                                                const SeedOptions& options,

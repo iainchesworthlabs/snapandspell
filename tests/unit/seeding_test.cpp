@@ -684,3 +684,83 @@ TEST_CASE("a guided fill with letters outside the phase leaves no dead jewel",
         CHECK(board.dead.empty());
     }
 }
+
+TEST_CASE("the phonics board options keep one letter out and let the rest in",
+          "[seeding][guided]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+
+    const auto options = wjs::phonics_board_options(index, 4);
+
+    REQUIRE(options.has_value());
+    CHECK(options->size == 4);
+    CHECK(options->guided_fill);
+    CHECK(options->max_target_letters == 3);
+    CHECK(options->dead_cells == 0);
+    // The phase's letters are AINPST, so the first letter no word uses is B.
+    CHECK(options->dead_letter == 'B');
+    CHECK(options->filler.size() == 25);
+    CHECK(options->filler.find('B') == std::string::npos);
+    CHECK(options->filler.find('Z') != std::string::npos);
+}
+
+TEST_CASE("a phonics board has the phase's letters first and no dead jewels", "[seeding][guided]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    const auto options = wjs::phonics_board_options(index, 4);
+    REQUIRE(options.has_value());
+
+    std::size_t fallbacks = 0;
+    std::size_t taught = 0;
+    std::size_t tiles = 0;
+    for (std::uint32_t seed_value = 1; seed_value <= 100; ++seed_value) {
+        const auto board = seed(index, *options, seed_value);
+
+        INFO("seed " << seed_value << " board " << text_of(board.board));
+        if (board.fallback) {
+            ++fallbacks;
+        }
+        CHECK(board.dead.empty());
+        for (std::size_t row = 0; row < 4; ++row) {
+            for (std::size_t column = 0; column < 4; ++column) {
+                const char letter = board.board.tile({row, column})[0];
+                CHECK(letter != options->dead_letter);
+                ++tiles;
+                if (index.alphabet().find(letter) != std::string::npos) {
+                    ++taught;
+                }
+            }
+        }
+        // Every word of the phase on the board is a word of the phase: nothing
+        // about an untaught letter can add one.
+        for (const auto& found : board.viable) {
+            CHECK(index.find_word(found.word) != nullptr);
+        }
+    }
+
+    CHECK(fallbacks <= 10);
+    // The letters of the phase come first, and the others fill what is left.
+    CHECK(taught * 10 >= tiles * 4);
+}
+
+TEST_CASE("a phase that uses every letter has none to keep out", "[seeding][guided]") {
+    std::string graphemes = "# phase: A\n";
+    for (char letter = 'a'; letter <= 'z'; ++letter) {
+        graphemes += std::string(1, letter) + "  /t/  clip:t\n";
+    }
+    std::istringstream graphemes_in(graphemes);
+    std::istringstream words_in("# phase: A\nabc  a b c\n");
+    const auto parsed_graphemes = wjs::parse_graphemes(graphemes_in, "g");
+    const auto parsed_words = wjs::parse_words(words_in, "w");
+    REQUIRE(parsed_graphemes.has_value());
+    REQUIRE(parsed_words.has_value());
+    wjs::Dictionary dictionary;
+    dictionary.insert("abc");
+    const auto built = wjs::PhaseSet::build({*parsed_graphemes}, {*parsed_words}, dictionary);
+    REQUIRE(built.has_value());
+
+    const auto options = wjs::phonics_board_options(*built->find("A"), 4);
+
+    REQUIRE_FALSE(options.has_value());
+    CHECK(options.error() == wjs::SeedError::bad_dead_letter);
+}

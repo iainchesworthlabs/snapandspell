@@ -261,6 +261,35 @@ std::string_view to_string(SeedError error) noexcept {
     return "unknown seeding error";
 }
 
+std::expected<SeedOptions, SeedError> phonics_board_options(const PhaseIndex& index,
+                                                            std::size_t size) {
+    const std::string& alphabet = index.alphabet();
+    char dead_letter = '\0';
+    for (char letter = 'A'; letter <= 'Z'; ++letter) {
+        if (alphabet.find(letter) == std::string::npos) {
+            dead_letter = letter;
+            break;
+        }
+    }
+    if (dead_letter == '\0') {
+        // The phase uses every letter, so there is none to keep out of a word.
+        return std::unexpected(SeedError::bad_dead_letter);
+    }
+
+    SeedOptions options;
+    options.size = size;
+    options.dead_cells = 0;
+    options.dead_letter = dead_letter;
+    options.guided_fill = true;
+    options.max_target_letters = 3;
+    for (char letter = 'A'; letter <= 'Z'; ++letter) {
+        if (letter != dead_letter) {
+            options.filler += letter;
+        }
+    }
+    return options;
+}
+
 std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                                                  const SeedOptions& options,
                                                  const RecentTargets& recent, std::uint32_t seed) {
@@ -477,11 +506,21 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                         fits.push_back(letter);
                     }
                 }
-                if (fits.empty()) {
+                // A letter of the phase is preferred; one it does not use (which
+                // adds no word, so always fits) only when no letter of the phase
+                // does, and a dead jewel only if there is none of those either.
+                std::vector<char> taught;
+                for (const char letter : fits) {
+                    if (alphabet.find(letter) != std::string::npos) {
+                        taught.push_back(letter);
+                    }
+                }
+                const std::vector<char>& chosen_from = taught.empty() ? fits : taught;
+                if (chosen_from.empty()) {
                     grid.cells[cell] = dead_letter;
                     attempt.dead.push_back(Position{cell / options.size, cell % options.size});
                 } else {
-                    grid.cells[cell] = fits[draw.below(fits.size())];
+                    grid.cells[cell] = chosen_from[draw.below(chosen_from.size())];
                 }
             }
             std::ranges::sort(attempt.dead, [](const Position& a, const Position& b) {
