@@ -119,6 +119,10 @@ The six questions this page first asked, and what was done.
 | 4 | Is the review header the right attestation, and is `source` required? | `reviewed-by` is fine; `source` is required | A file that claims a review needs `reviewed-by`, `reviewed-on` and `source`; test data needs none |
 | 5 | Split digraphs and graphemes with more than one sound, before the first phase file? | Yes | `cake  c a_ k _e` and `snow  s n ow:2`; reader, checker, tests and [Phonics](phonics.md#the-data) |
 | 6 | Should CI build a release preset, so the review gate runs there? | Yes | Already so: the `Performance (Linux, GCC)` leg, added with the profiling tier, configures, builds and tests `linux-gcc-release`, which sets the switch and runs `data.phonics` with `-RequireReviewed`. Not a required check |
+| 7 | Is the MVP's Mode B the phonics board alone, or the standard dice board by default with phonics as a parent's switch? | **The standard board is the default; phonics is the parent's switch.** Section 12.4 of the brief reads as the former; the author chose the latter | Recorded in the design pages (index, game, phonics, dashboard, performance). The brief and the roadmap's MVP paragraph still say the former and are not edited |
+| 8 | May a phonics phase be planted only with 3-letter words? | Yes. They are letters, not sounds, so a word such as `the` or `cow` (a digraph and a letter) is one | `max_target_letters = 3` is in `phonics_board_options` |
+| 9 | May a phonics board have letters outside the phase on it? | Yes | The guided fill prefers the phase's letters and uses others only where a letter of the phase would make too many words; no dead jewels |
+| 10 | Should the performance pages name the board mode each budget is for? | Yes | [Performance](performance.md) has a table of what each board mode solves against and loads, and labels the seeding rows |
 
 ## The guided fill, tried (question 3)
 
@@ -134,50 +138,73 @@ short version:
   tiles dead jewels, against four letters on the board for the random fill.
   With letters outside the phase in the filler, none are dead at all.
 - **The price is the targets.** Only 3-letter words (Spark words) are planted;
-  longer words still count if found. Whether that is acceptable for a phase is
-  the reviewer's, and it is a question below.
+  longer words still count if found. The author accepted it (question 8); the
+  literacy reviewer may still revisit it.
 
-## Board modes: what this page assumed, and what the author said
+## Board modes, decided
 
-This page, and the MVP brief it reads (12.4), treat Mode B as the phonics board:
-seeded so that it holds three to five words of a phase's index. The author's
-account of the game is wider (2026-10-16): there are two **game modes** (playing
-alone; playing with other people, which is Mode A) and, separately, two **board
-modes**:
+There are two **game modes** (playing alone; playing with other people, which is
+Mode A, the scanner) and, separately, two **board modes** (the author, 2026-10-16):
 
-- **Standard**: letters on cubes, 3x3, 4x4, 5x5 or 6x6, as in the real game. This
-  is the **default**.
-- **Phonics**: the seeded, grapheme-bound board, which a parent switches on to
-  help a child learning phonics join sounds into words. An alternate mode, "a
-  nice idea", whose place the author is unsure of.
+- **Standard**: letters on cubes, 3x3, 4x4, 5x5 or 6x6, as in the real game. The
+  **default**.
+- **Phonics**: the seeded, grapheme-bound board that a parent switches on to help
+  a child who is learning phonics join sounds into words. The audience is a
+  child towards the end of Prep and moving to Year 1, who knows most of the
+  sounds already.
 
-What this changes, as far as it can be seen from here:
+What follows from it, and what the library already does:
 
-- **Seeding and dead jewels belong to the phonics board mode only.** A standard
-  board has no dead jewels and no target of three to five words; it is dice, and
-  a board holds dozens of words. The seeding library is not on its path.
-- **Standard mode loads the full word list.** The performance page's premise
-  that "loading the dictionary is not even on the critical path" holds only for
-  the phonics board. In the default mode the dictionary load (55 to 65 ms, 18 MB
-  measured) and the solve of a 5x5 or 6x6 board (up to 0.85 ms measured) are the
-  work. The performance budgets, and the profiling tier's cases, were written for
-  the other premise and should say which mode each is for.
-- **The MVP brief (12.4) gives Mode B the seeded board and the phase index.**
-  That is the phonics board mode. Whether the MVP ships the standard board as
-  well, or the phonics board alone, is not said by the brief; the dice are listed
-  after the MVP in [Board](board.md).
-- **Sizes.** The phonics board was designed and measured at 3x3 and 4x4. The
-  guided fill lands 5x5 and 6x6 easily, so a phonics board is not limited to the
-  MVP's sizes by the library.
+- **Seeding and dead jewels belong to the phonics board only.** A standard board
+  is a roll of dice, has no dead jewels and no target of three to five words. The
+  seeding library is not on its path.
+- **`phonics_board_options(index, size)`** is the phonics board as decided:
+  targets of three letters at most, the guided fill, every letter but one as
+  filler (the first that no word of the phase uses, which is the dead letter), so
+  that untaught letters appear only where a letter of the phase would make too
+  many words. Measured on the proxies in
+  [Testing](../testing.md#fuller-boards-a-guided-fill-and-short-targets): the
+  phase's letters are 72% to 82% of the tiles, no tile is dead on a board that
+  lands, and 90% or more of seeds land on a 4x4 and larger.
+- **Standard mode loads the full word list**, so the dictionary load (55 to 65 ms
+  and 18 MB measured) is on its path to the first board, which the performance
+  design had said it was not. [Performance](performance.md) now says which mode
+  each budget is for.
+- **Brief 12.4 and 12.5** still describe Mode B as the seeded phonics board and
+  list "open dictionary solver for early levels" as out. The author's choice
+  makes a standard board the MVP's default, so both lines are out of date. They
+  have not been edited, as the brief is the author's text.
+
+## What the standard board needs, and is not built
+
+The library has the solver, the path check, the shake detector and the scanner's
+seam (`Board::parse`). A standard board needs three things it does not have, and
+all three are now MVP scope, where the design put them after it:
+
+1. **A dice model.** Boards of 3x3 to 6x6 from dice, with a `Qu` face. The design
+   recommended dice made by this project from the dictionary's letter counts
+   (`data/dice/<n>x<n>.txt`, its source and seed in the header), because the
+   faces of a printed set are a legal question and a list found online has no
+   origin. That recommendation has not been put to the author.
+2. **The standard board's word list.** The brief's 12.1 and 12.5 have the
+   child's words as a hand-filtered phase index. A standard board has no phase.
+   The candidates are the child-facing lists in `data/lexicon` (a core tier and
+   ten categories, 689 words, unreviewed) and the full dictionary behind a block
+   list. This decides the load time and memory (see the performance note), what a
+   child is told about a word they trace, and how many words a 4x4 holds that
+   count (measured: 31 on a 3x3 and 120 on a 4x4 of any dictionary word).
+3. **The size range.** The brief gives the MVP 3x3 and 4x4 and the rest after it.
+   The author's account is 3x3 to 6x6. Whether the MVP's standard board offers
+   all four sizes is not said.
 
 ## Questions for the author (open)
 
 | # | Question | Default |
 | --- | --- | --- |
-| 7 | **Board modes.** Is the MVP's Mode B the phonics board alone, or the standard dice board as the default with phonics as the parent's switch? The brief (12.4) reads as the former; the answer decides what the first iPad build plays and where dictionary loading sits | The library supports both; nothing in the application exists |
-| 8 | **Targets of three letters.** May a phonics phase be planted only with 3-letter words (Spark words), the longer ones still counting if found? It is what makes boards of mostly letters land | Off; `max_target_letters` is 0 |
-| 9 | **Letters outside the phase on a phonics board.** The guided fill leaves no dead jewel if untaught letters may appear. Is that acceptable to the reviewer, against a quarter of the tiles being dead jewels? | Off; the filler is the phase's alphabet |
-| 10 | **Performance premise.** Should the performance page and the profiling tier name the board mode each budget is for, with the standard board's dictionary load on the critical path? | Not changed |
+| 11 | **Brief 12.4 and 12.5 and the roadmap's MVP paragraph.** May they be amended to say the MVP's board is the standard board by default, with the phonics board as the parent's switch, and the open-dictionary line moved out of "left out"? | Not edited |
+| 12 | **The standard board's word list.** The child-facing lexicon, or the full dictionary behind a block list? Neither has been reviewed for a 5-year-old | Not chosen; nothing reads either |
+| 13 | **Dice.** May the project make its own dice from the dictionary's letter counts, as the design recommends, rather than use the faces of a set the author owns? | Not built |
+| 14 | **Sizes.** Does the MVP's standard board offer 3x3 to 6x6, or 3x3 and 4x4 as the brief says? | The library takes any size to 16 |
 
 ## What was measured
 

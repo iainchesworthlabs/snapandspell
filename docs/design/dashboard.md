@@ -104,7 +104,8 @@ use this sound yet".
 | Setting | Values | Default |
 | --- | --- | --- |
 | Help | On (the start tile) or Off. After the MVP, a dial of five stops | On |
-| Phase | A or B (generic names; contents are the reviewer's) | A |
+| Board | Standard (dice) or Phonics (a phase's words, grapheme blocks, sounding out) | Standard |
+| Phase | A or B (generic names; contents are the reviewer's). Used by the Phonics board | A |
 | Focus sounds | A subset of the phase's graphemes | None |
 | Board size | 3x3 or 4x4 | 3x3, then the last used |
 | Sound it out | Full, the word only, off | Full |

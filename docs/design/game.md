@@ -7,6 +7,13 @@ Written from [product requirements](../product-requirements.md) sections 3, 4,
 to the numbered questions are on [Answers](answers.md); this page is the
 working.
 
+> **Decided 2026-10-16.** The first release's board is the **standard board**
+> (dice) by default, and the **phonics board** described on this page and in
+> [Phonics](phonics.md) is a parent's switch. Where this page says "Mode B
+> boards are seeded", it means the phonics board; a standard board is a roll of
+> dice and holds as many words as it holds. The two game modes (alone, with
+> others) are separate from the two board modes.
+
 ## What the first release plays
 
 Section 12 narrows the full brief. Where this page says **MVP** it means that

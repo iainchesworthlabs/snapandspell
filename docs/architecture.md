@@ -234,7 +234,10 @@ Two options make fuller boards (measured in
 `max_target_letters` limits the targets to short words, and `guided_fill` gives
 each tile left a letter the solver says keeps the count in range, making a tile
 dead only if no letter fits, with the planted words kept apart where there is
-room. Both are off by default.
+room. Both are off by default, and `phonics_board_options(index, size)` is the
+two together with every letter but one as filler, which is the phonics board as
+decided: the phase's letters first, others only where a letter of the phase
+would make too many words, and no dead jewel on a board that lands.
 
 Dead jewels are a letter no word of the phase uses, chosen by the caller and
 checked (`bad_dead_letter`); the library's `Board` stays A-Z and the application

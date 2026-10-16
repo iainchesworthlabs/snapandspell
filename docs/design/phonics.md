@@ -1,5 +1,11 @@
 # Phonics: the mechanism
 
+> **Decided 2026-10-16.** Phonics is a **board mode a parent switches on**, not
+> the only board: the standard board (dice, 3x3 to 6x6) is the default. This
+> page is about the phonics board. Its boards are planted with words of three
+> letters at most, and letters the phase has not taught may appear on them
+> (see [MVP library](mvp-library.md)).
+
 How a phonics phase becomes a board, how a trace becomes a grapheme block, and
 how a found word is "sounded out". Written from
 [product requirements](../product-requirements.md) sections 7.3, 12.1 and 12.4.

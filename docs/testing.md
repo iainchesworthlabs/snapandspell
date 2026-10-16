@@ -342,12 +342,31 @@ A seed that does not land is reported as a fallback, as before.
 
 Put letters outside the phase in the filler (the design's "letters not yet
 taught") and a tile always has a letter that forms no word of the phase, so
-nothing is made dead at all; the board then holds untaught letters, which is the
-reviewer's question. That combination is tested on the test data, not measured
-on the proxies.
+nothing is made dead at all; the board then holds untaught letters. The fill
+takes a letter of the phase when one fits and an outside letter only when none
+does, so the phase's letters stay the most of the board.
 
-What it does not settle: the proxies are sizes, not a proposed index; whether a
-phase planted only with 3-letter words is acceptable; and a tablet.
+**The phonics board as decided** (the author, 2026-10-16: targets of three
+letters, and untaught letters acceptable) is `phonics_board_options(index,
+size)`: those two options with the whole alphabet as filler, less the first
+letter the phase does not use, which is the dead letter. Measured on the same
+proxies, 400 seeds (200 for 5x5 and 6x6):
+
+| Index | 3x3 | 4x4 | 5x5 | 6x6 |
+| --- | --- | --- | --- | --- |
+| Landed, 249 | 23% | 92% | 100% | 100% |
+| Landed, 122 | 75% | 90% | 100% | 91% |
+| Landed, 68 | 56% | 90% | 100% | 91% |
+| Tiles that are letters of the phase | 72% to 82% | 72% to 79% | 72% to 78% | 74% to 76% |
+| Dead jewels on a board that landed | 0 | 0 | 0 | 0 |
+| Mean time, 249 / 122 / 68 | 0.7 / 0.5 / 0.4 ms | 1.4 / 1.3 / 1.2 ms | 3.0 / 3.3 / 3.0 ms | 6.7 / 6.9 / 5.9 ms |
+
+The time is higher than the table above because there are 25 letters to try at
+each tile, not six. A seed that does not land is a fallback and its tiles are
+dead jewels, as before.
+
+What it does not settle: the proxies are sizes, not a proposed index; and a
+tablet, where the 5x5 and 6x6 times are three to five times these.
 
 ## Sanitizers, warnings and Debug
 
