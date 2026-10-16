@@ -606,6 +606,7 @@ ApplicationWindow {
     }
 
     property bool changeBegan: false
+    property double showCallMs: 0
 
     // Waits 300 ms (so nothing of the last board is in the frames), then asks
     // for the new board and records the frames of the next 300 ms.
@@ -619,11 +620,17 @@ ApplicationWindow {
                 stats.begin();
                 window.boardSize = window.changeJob.size;
                 window.seed = 500 + window.changeJob.run;
-                window.scene.show(window.currentBoard());
+                const askedAt = stats.now();
+                const board = window.currentBoard();
+                window.scene.show(board);
+                window.showCallMs = stats.now() - askedAt;
                 changeTimer.restart();
                 return;
             }
             const measured = stats.end();
+            // How long the board and show() held the GUI thread (the dice and
+            // the atlas's items made), before any frame.
+            measured.showCallMs = window.showCallMs;
             measured.size = window.changeJob.size;
             measured.run = window.changeJob.run;
             window.changeResults.push(measured);
