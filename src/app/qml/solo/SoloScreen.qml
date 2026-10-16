@@ -114,8 +114,17 @@ FocusScope {
             function closedBox() {
                 return { rows: root.solo.boardSize, columns: root.solo.boardSize, tiles: [] };
             }
+            // What is on the table when the screen opens: the lid on, as it is in the
+            // box, or, for a game brought back from the run before, the board already
+            // down and still. Resting shows no scene, so the box is there for Again.
+            function opening() {
+                if (root.solo.state === "playing") {
+                    return { rows: root.solo.rows, columns: root.solo.columns, tiles: root.solo.tiles };
+                }
+                return closedBox();
+            }
             Component.onCompleted: {
-                show(closedBox());
+                show(opening());
                 root.solo.setGeometry(tileSize, tileGap);
             }
         }

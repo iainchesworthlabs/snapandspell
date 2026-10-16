@@ -25,6 +25,11 @@ namespace wjs::app {
 //   - the sound-it-out blocks of that path, as the finger moves.
 //
 // Tile indices are row * columns + column, from the top left.
+//
+// It starts where the game is. Over a new game that is the box. Over one brought
+// back from the run before it is `playing`, with the board, the tray and the lit
+// tile as they were left and nothing to shake, or `resting`: the screens open on
+// it, and the scene is given the board with `show` and not `play`.
 class SoloModel : public QObject {
     Q_OBJECT
     QML_ELEMENT
