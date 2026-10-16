@@ -32,7 +32,7 @@ platform fragment's to change, not this page's, and is left for the author.
 | --- | --- | --- |
 | The scene | `src/app/prototype/shake/qml/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die sharing one six-sided cube mesh, a face atlas, a baked light probe. Draws the poses the script gives it |
 | The script | `qml/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or a small integrator of our own (weighted); and which face of each die is up and how it is turned over on the way. Plain JavaScript, no QML and no renderer |
-| The faces | `qml/FaceAtlas.qml`, `qml/Die.qml` | One texture for the board's dice, a block of 3 x 2 cells for each, a cell to a face; each die's cube samples its own block. A dead jewel is a die of six cells of four facets |
+| The faces | `qml/FaceAtlas.qml`, `qml/Die.qml` | One texture for the board's dice, a block of 3 x 2 cells for each, a cell to a face; each die's cube samples its own block. A dead jewel is a die of six cells of four facets, drawn once and shared. The scene holds two atlases, so that a board can be drawn ahead (`prepare`) |
 | The harness | `qml/ShakeWindow.qml`, `frame_stats.*`, `dice_roller.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, the library's dice roll (`DiceRoller`, which links `wjs::lib` and embeds `data/dice`), and the timing and measurement runs |
 | The probe | `tools/lightprobe`, `qml/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
 
@@ -48,6 +48,7 @@ when the prototype is built (`tests/app/shake_script_test.cpp`).
 | --- | --- | --- |
 | `play(board, seed)` | function | Shake, lid, drop, settle, for `board = { rows, columns, tiles, faces, up }`: for each tile, row-major, its letters, the six faces of the die on it, and which is up ([Real faces](#real-faces)). The dice are in the box at the first frame |
 | `show(board)` | function | The board already down, with no motion: a resumed game, a rotated window |
+| `prepare(board)` | function | Optional. Draws the board's faces ahead of `play` or `show` of that board, so that the frame in which it arrives has less to do ([the real faces](#the-real-faces)); nothing changes on screen. A board that was not prepared is drawn when it arrives, as before |
 | `reducedMotion` | in | The cross-fading variant of every stage |
 | `pushMotion(ax, ay, az, wx, wy, wz)` | function | One sample of the device's motion, about a hundred a second: the accelerometer's reading in g, gravity included (face up and still it reads 0, 0, 1; x right, y up the screen, z out of it), and the gyroscope's in rad/s. The dice answer to it sample for sample, and the rattle holds on, up to 3 s, while it reads as shaking. With none, a seeded stand-in shakes |
 | `settled()` | signal | Once per play, when the dice have stopped |
@@ -156,12 +157,12 @@ phonics board is still a stand-in (below).
 | Part | How it is made |
 | --- | --- |
 | The mesh | One cube of six sides, built in QML by `ProceduralMesh` from the script's `sides` table (24 vertices, shared by every die), so the mesh and the orientations agree on which side is which face. It replaces `#Cube`, whose six sides all show the whole texture |
-| The atlas | A block of 3 x 2 cells for each die, a cell to a face. A die's texture offset and scale pick its block, as they picked its cell; the mesh's coordinates pick the cell in it |
+| The atlas | A block of 3 x 2 cells for each die, a cell to a face. A die's texture offset and scale pick its block, as they picked its cell; the mesh's coordinates pick the cell in it. The atlas is a layer, drawn once into one texture that every die's `Texture` reads, and its cells are items made as a board needs them and kept ([the cost](#the-real-faces)) |
 | Which face is up | A quaternion for each die from the script, set on the cube under the Euler tips and yaw the body already had, so those are unchanged. At rest it is the face the board says, the letter upright |
 | Weighted | A die starts on a random face with a random quarter turn of yaw, and turns a quarter turn about a horizontal axis, the way it was going, at each knock over 3.5 tiles/s (floor, lid, wall, neighbour; a half turn over 14). On its hop home it turns the short way to its up face, and lands on it |
 | Staged | A die lies on a random face in the box and turns over as it falls, landing with its up face on top |
 | Reduced motion | Nothing tumbles: the dice fade in on their up faces |
-| A dead jewel | A die of six jewel cells, so every way up is the jewel |
+| A dead jewel | A die of six jewel cells, so every way up is the jewel. The jewel is drawn once into a texture of one cell, and each jewel cell shows that texture |
 
 **The faces move nothing.** They are drawn from generators of their own and
 nothing in the motion reads them. The poses of the previous script (positions
@@ -231,6 +232,7 @@ build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --out shots    
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --frames 30 --size 720x900 --out frames   # every frame, for a video
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --digest --out digest    # replay check, and the faces
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --change --sizes 3,4,5,6 --out change   # the cost of changing the board
+build\windows-msvc-release\bin\ShakePrototype.exe --auto --change --prepare --sizes 3,4,5,6 --out prepare   # the same, with each board prepared a frame ahead (the frames of prepare() are the result's "prepare")
 build\windows-msvc-release\bin\ShakePrototype.exe --boards phonics   # the stand-in board of the earlier tables (the default is the library's dice)
 ```
 
@@ -476,21 +478,131 @@ screen, and what the render thread spent on that frame.
 The frames after the first are nearly the same as before (the largest
 render-thread time of the next four was under 2 ms everywhere but at 6x6, where
 it was 1.5 ms before, and 9.1 ms with the stand-in and 4.5 ms with the library's
-dice). So **a new board costs two to
-three and a half times what it did**, and the frame in which it is drawn is over
-the [33 ms budget](performance.md#budgets) at 6x6 and at 5x5 with the stand-in's
+dice). So, as the faces were added, **a new board cost two to three and a half
+times what it did**, and the frame in which it is drawn was over the
+[33 ms budget](performance.md#budgets) at 6x6 and at 5x5 with the stand-in's
 jewels, at the budget at 5x5 with the library's dice, and under it at 3x3 and
 4x4 (the stand-in's means there, 28 and 26 ms, are close to it). `play()` sets
-the board, so the first frame of a shake carries it. What makes the stand-in
-dearer than the library's board is the jewel: each dead die is six `Shape`s of
-four facets, about 0.6 ms a cell by the difference at 4x4 (two dead dice, 12
-cells, 6.4 ms more; the boards' letters differ too). Two things would take it
-back, and neither is done: set the board (so that the atlas is drawn) a frame or
-more before the shake starts, behind the layout stage that is the application's;
-and draw the jewel once and share it.
+the board, so the first frame of a shake carries it. What made the stand-in
+dearer than the library's board is the jewel: each dead die is six
+`Shape`s of four facets, about 0.6 ms a cell by the difference at 4x4 (two dead
+dice, 12 cells, 6.4 ms more; the boards' letters differ too). The next
+subsection is what was done about it.
 
 **Not measured:** the GPU's time for a frame with the bigger atlas, the atlas's
 memory and upload on a device, and anything on an iPad, a tablet or a phone.
+
+### The real faces, made cheaper
+
+The frame in which a board changes is the cost above, and three things were
+tried on it, in this order, keeping what measured better. Each is a commit of
+the branch. The harness's `--change` mode is as it was, and it also records how
+long the `show()` call itself held the GUI thread, which is the part of the
+frame before the first frame is drawn.
+
+| Step | What it is | Kept |
+| --- | --- | --- |
+| 1. The jewel once | The jewel is drawn into a texture of one cell, not live, and each of a dead die's six cells shows that texture (a `ShaderEffect`, whose own shaders show its `source`) instead of a `Shape` of four paths | Yes: the stand-in's frame 8 to 14 ms shorter, and nothing changes for the library's dice |
+| 2. Prepare, and the atlas as a layer | `prepare(board)` draws a board's faces a frame or more before `play` or `show` of it ([the interface](#the-interface)). Making it work found the larger saving: an atlas that is only a `Texture`'s `sourceItem`, with no layer, seems to be drawn once for each `Texture`, and each die has one. The atlases are now layers, in the window's tree a long way off its left edge, so one texture is drawn and every die reads it | Yes: the render thread's time for the frame fell from 12 to 3 ms (3x3) and from 35 to 5 ms (6x6, library dice), and `prepare` then takes more than half off the shake's first frame (6x6: 31.2 to 13.3 ms) |
+| 3. The cells kept | The atlas's cells (a cream face with its letter, or a jewel) are made as a board needs them and kept, and a smaller board hides the ones it does not use, where each board made them all. Each cell is two items, the face and its letter, with no `Loader`, and the places and letters of all of them are worked out in one pass | Yes: the `show()` call from 25 to 13 ms (6x6), and no cell is made for a board of a size that has been shown before |
+
+**Tried and not kept.** The first form of `prepare` left Quick 3D drawing the
+atlas, as it did, and put a cube a hundredth the size under the floor that used
+the spare atlas's texture, so that it would be drawn a frame early. It was not:
+the render thread's time was 4 ms for the frame of `prepare` at 6x6 and 43 ms
+for the frame of `show` after it, against 39 ms for that frame without
+`prepare` (the stand-in's board). Making the atlases layers (step 2) is what
+makes them draw when they change.
+
+**How it was measured.** The same harness (`ShakePrototype.exe --auto --change
+--sizes 3,4,5,6`, with `--boards phonics` and `--boards standard`, and
+`--prepare` for the frames of `prepare`), the same desktop and build flags as
+the rest of this page, three processes of each build, six boards of each size in
+each (18 of each cell). The builds were each copied to a name of their own and
+run one after another in each round (before, step 1, step 2, step 3, and the
+last two again with `--prepare`), so that anything that drifted touched all of
+them. A run was thrown away and made again if another prototype was seen drawing,
+or a build or ctest running, in any second of it (33 of 69 attempts: this desktop
+is shared). "Before" is the previous subsection's "after" (`c5bb73b`), measured
+again in this series: its means are 3 to 12 ms higher than in the table above
+(at 6x6, library dice 61.8 ms against 57.7 ms and the stand-in 87.4 ms against
+75.5 ms), which is the spread between series on this machine. **Nothing was measured on an iPad**, a tablet or a phone,
+and not the GPU's time: these are times on a desktop with a fast GPU, and the
+work that moved is mostly CPU.
+
+Means, in ms, of the time from `show()` to the first frame on screen, with the
+part of it that is the `show()` call (the GUI thread's) in brackets:
+
+| Library dice | Before | 1. Jewel once | 2. One layer | 3. Cells kept (final) |
+| --- | --- | --- | --- | --- |
+| 3x3 | 27.9 (9.8) | 24.5 (9.6) | 13.5 (8.5) | **9.2 (5.4)** |
+| 4x4 | 23.1 (10.7) | 21.8 (10.8) | 14.5 (10.7) | **9.7 (5.0)** |
+| 5x5 | 36.8 (16.5) | 37.9 (17.4) | 21.4 (16.7) | **13.1 (9.1)** |
+| 6x6 | 61.8 (24.9) | 63.9 (25.1) | 31.2 (24.7) | **19.0 (12.9)** |
+
+| The stand-in (two dead dice) | Before | 1. Jewel once | 2. One layer | 3. Cells kept (final) |
+| --- | --- | --- | --- | --- |
+| 3x3 | 34.8 (10.1) | 27.0 (10.0) | 13.6 (9.0) | **9.9 (5.7)** |
+| 4x4 | 33.9 (12.0) | 23.8 (11.1) | 15.6 (11.6) | **9.8 (5.3)** |
+| 5x5 | 53.7 (17.9) | 42.4 (18.1) | 23.0 (18.0) | **12.9 (8.5)** |
+| 6x6 | 87.4 (26.1) | 73.1 (27.3) | 33.0 (26.4) | **19.4 (13.8)** |
+
+The render thread's own time for that frame (recording and submitting it, as
+above), before and at the end: the library dice's 12.3, 9.1, 17.7 and 34.9 ms
+become 2.6, 2.7, 3.2 and 5.0 ms at 3x3 to 6x6, and the stand-in's 19.4, 17.5,
+31.2 and 57.1 ms become 2.7, 2.6, 3.4 and 4.7 ms. **Every size is now under the
+[33 ms budget](performance.md#budgets) in its mean, and the stand-in costs what
+the library's dice do** (the jewel's 7 to 26 ms is now 0 to 1).
+
+**The first board of a size.** The cells are made the first time a board needs
+them, so the first board at a size larger than any before it in the process
+costs more than the rest. Means over the three processes for the final build
+(the first board of each size is the first of the six, and the run goes 3, 4, 5,
+6), library dice and then the stand-in:
+
+| | 3x3 | 4x4 | 5x5 | 6x6 |
+| --- | --- | --- | --- | --- |
+| The first board of the size | 9.2, 8.9 ms | 9.6, 9.1 ms | 22.5, 20.6 ms | 35.5, 32.9 ms |
+| The five that follow | 9.2, 10.1 ms | 9.7, 10.0 ms | 11.2, 11.4 ms | 15.8, 16.7 ms |
+
+So a 6x6 board that is the first of its size is at the budget (33 to 36 ms),
+and any later board of any size is well under it. The application could pay it
+where one-time costs already go (the first board,
+[above](#what-changed-in-the-seam)), by having the scene's first `show()` make a
+6x6 board's worth of cells. That was not done here: it trades about 20 ms at
+start-up for the same 20 ms the first time a larger board appears.
+
+**With `prepare`.** Each board was given to `prepare()`, 300 ms went by, and
+then it was shown (`show()` of the board made again, so that the scene knows it
+by its faces). Means, in ms, of the frame of `prepare` (from the call to the
+frame on screen, so including the call) and then the frame of `show`, final
+build:
+
+| | 3x3 | 4x4 | 5x5 | 6x6 |
+| --- | --- | --- | --- | --- |
+| Library dice: `prepare`, then `show` | 6.5, 8.3 | 6.8, 7.7 | 8.1, 9.1 | 10.3, 12.6 |
+| The stand-in: `prepare`, then `show` | 8.3, 8.8 | 8.8, 7.7 | 9.5, 11.0 | 12.0, 15.4 |
+| Without `prepare` (above): library dice, stand-in | 9.2, 9.9 | 9.7, 9.8 | 13.1, 12.9 | 19.0, 19.4 |
+
+The first 6x6 board, which makes the cells, costs 19 to 23 ms in the frame of
+`prepare` and 13 to 15 ms in the frame of `show` after it, so neither frame is
+over the budget; without `prepare` it is one frame of 33 to 36 ms. What
+`prepare` buys is the shake's first frame, by about a third at 6x6 (19.0 to
+12.6 ms, library dice), for a second frame of 10 ms somewhere the application
+chooses. It holds a second atlas (14 MB of texture at 6x6, at a pixel ratio of
+1). On a display with a higher pixel ratio a layer is drawn at that ratio in each
+direction by default, and what ratio Quick 3D's own layer used was not checked;
+that, and the memory on a device, are not measured.
+
+**What did not change.** The stills of the 4x4 and 6x6 boards, library dice and
+stand-in (11 of each: the shake through the rattle, the lid, the drop and the
+settle, and the board with its 2D tiles over it) are the same as those of the
+branch before this (no channel differs by more than 1/255), and show every
+letter upright and not mirrored, the digraphs and the Qu face, and the jewels.
+The first frame after `show()`, grabbed before any other frame is drawn, equals
+the settled frame (24 pairs, with and without `prepare`: no channel differs).
+The poses, the replay checksums and the scene's seam are untouched: `prepare` is
+an addition, and `play()` and `show()` mean what they did.
 
 ## What it looked like
 

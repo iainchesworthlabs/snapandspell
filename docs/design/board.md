@@ -237,6 +237,14 @@ reads a face that is not up. What faces the phonics board's dice have is an open
 choice (the dice-and-faces design page, on its own branch at the time of
 writing); the scene takes whatever six it is given.
 
+The faces of a board are drawn into one texture, which the frame in which the
+board arrives would otherwise make and draw. The scene therefore also takes an
+optional `scene.prepare(board)`, with the board about to be played, a frame or
+more before `play` or `show` of it: it draws the texture ahead and changes
+nothing on screen. A board that was not prepared is drawn when it arrives, so
+the meaning of `play` and `show` is the same with or without it. What it saves
+is in [Shake prototype](shake-prototype.md#the-real-faces).
+
 ### Rendered 3D, or drawn in 2D
 
 | | A: Qt Quick 3D | B: 2D Qt Quick, scripted |
