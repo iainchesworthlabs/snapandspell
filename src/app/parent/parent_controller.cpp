@@ -351,8 +351,12 @@ void ParentController::applySettings(wjs::Settings settings) {
             phases_ != nullptr ? phases_->find(settings.phase) : nullptr) {
         settings = wjs::restrict_focus_sounds(std::move(settings), *index);
     }
+    const bool changed = !(settings == store_->settings());
     store_->update_settings(settings);
     refresh();
+    if (changed) {
+        emit storeEdited();
+    }
 }
 
 bool ParentController::setSetting(const QString& key, const QVariant& value) {
@@ -444,11 +448,13 @@ bool ParentController::toggleFocusSound(const QString& sound) {
 void ParentController::resetBoardsAndFinds() {
     store_->reset_boards_and_finds();
     refresh();
+    emit storeEdited();
 }
 
 void ParentController::resetStarsAndStickers() {
     store_->reset_stars_and_stickers();
     refresh();
+    emit storeEdited();
 }
 
 }  // namespace wjs::app

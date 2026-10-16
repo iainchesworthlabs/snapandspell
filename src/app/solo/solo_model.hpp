@@ -25,6 +25,11 @@ namespace wjs::app {
 //   - the sound-it-out blocks of that path, as the finger moves.
 //
 // Tile indices are row * columns + column, from the top left.
+//
+// It starts where the game is. Over a new game that is the box. Over one brought
+// back from the run before it is `playing`, with the board, the tray and the lit
+// tile as they were left and nothing to shake, or `resting`: the screens open on
+// it, and the scene is given the board with `show` and not `play`.
 class SoloModel : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -119,6 +124,13 @@ public:
     // Again from resting, or leaving it for home: the box is ready next time.
     Q_INVOKABLE void again();
 
+    // --- what the parent changes
+    // The parent changed a setting or reset what is kept (ParentController::
+    // storeEdited). The next game is made from the store as it is now: a new one
+    // at once when the box has its lid on, as the parent area is reached from it,
+    // and otherwise when it next has. A game in play is never taken from a child.
+    Q_INVOKABLE void storeEdited();
+
 signals:
     void stateChanged();
     void sizeChanged();
@@ -149,12 +161,14 @@ private:
     void resetTracer();
     void refreshHistory();
     void refreshHelp();
+    void renewGameIfDue();
     [[nodiscard]] QVariantList indices(std::span<const Position> path) const;
     [[nodiscard]] QString lettersAt(Position position) const;
 
     std::unique_ptr<SoloGame> game_;
     PathTracer tracer_;
     bool presenting_ = false;  // solo.word-found
+    bool renew_due_ = false;   // the store was edited since the game was made
     int board_version_ = 0;
     int help_tile_ = -1;
     QString last_cue_tile_;

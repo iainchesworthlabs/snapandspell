@@ -672,9 +672,9 @@ The library knows nothing of any of it, and no game rule is in the QML.
 | --- | --- | --- |
 | The port | `solo/solo_game.hpp` | `SoloGame`, a Qt-free abstract class in the names of the game design: the states of the flow (box, shaking, dropping, playing, cleared, resting), `shake`, `settled`, `submit(path)` answered as viable, real-but-not-today's or not-a-word (the last two carry no word), `startTile`, `lidOn`, `again`, the tray and the history. It decides nothing |
 | The real game | `solo/real_solo_game.*` | `RealSoloGame`, the port over `wjs::GameSession`: it turns the session's names into the port's and is the one place that hands the session's records to the store. It decides nothing. See *Wiring the library's session* below |
-| The setup | `solo/solo_game_setup.*` | `SoloGameSetup`: loads the word list, the phases of a data directory and the store, owns them for the run, and makes a `RealSoloGame` from the parent's settings. Qt-free |
+| The setup | `solo/solo_game_setup.*` | `SoloGameSetup`: loads the word list and the phases of a data directory, owns them for the run, holds the program's store by reference, and makes a `RealSoloGame` from the parent's settings. Qt-free |
 | The fake | `solo/fake_solo_game.*` | A stand-in for the library's session, for the tests and for the program when it is given no phase. Its words are test data: today's are the five early-reader words the design names, a few more are real, and the boards are two fixed grids turned by the seed. It publishes no phonics list |
-| The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue` |
+| The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue`. When the parent changes the store (`storeEdited()`), it takes its next game from the program's maker |
 | The touch logic | `solo/path_tracer.*` | Trace and tap in order, both always on. A hit circle smaller than the tile and a larger one it must leave, so a diagonal slide takes the diagonal tile and a wobble near an edge does nothing; a fast move is walked in small steps so no tile is jumped; sliding back takes the last tile off; lifting outside the board cancels; a tapped path ends with the last tile tapped again or the Done jewel; a trace may carry on from a tapped path; a dead jewel is never in a path. The radii are starting values for a small finger and are the one thing the tests cannot settle |
 | The layout rule | `solo/board_layout.*`, `solo/solo_layout.*` | [Board design](design/board.md#layouts-and-sizes) as a pure function, tested on the page's reference windows, and one copy for the screens and the scene. A size is offered only if its tile is 48 dp or more |
 | The board scene | `qml/scene/BoardScene.qml` | One component: given a finished board and a seed, play the shake, the lid and the drop and say when the dice are settled. The 2D placeholder, with the members of [Shake prototype](design/shake-prototype.md#the-interface); the 3D scene being built apart plugs in at the same seam. `app.scene_contract` holds both files to the list. An empty board is the box with its lid on |
@@ -693,9 +693,10 @@ TextToSpeech are not in the tree and the recordings wait for the literacy review
 No device shake: `wjs::detect_shakes` exists and the sensor interface in
 `src/platforms` does not, so Shake is a button (and Space) everywhere. No bundled
 type: Andika is named in `Theme` and Qt falls back to the platform's face until
-its licence is read and the glyph check is done. The family game's picture and the
-parent's button are on `home` and are shown only when `Navigation.scanAvailable`
-and `Navigation.parentAvailable` are set, by whoever adds those screens. No
+its licence is read and the glyph check is done. The family game's picture is on
+`home` and is shown only when `Navigation.scanAvailable` is set, by whoever adds
+that screen; the parent's button, on `home` and in the corner of the box, is shown
+(`Navigation.parentAvailable`) and goes to the parent area, below. No
 phase is played unless the program is given one (below), so by default the
 screens run on the fake.
 
@@ -707,6 +708,7 @@ there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down
 
 | Port | Session | And the store |
 | --- | --- | --- |
+| `chooseSize(side)` | `choose_size()`, in the box only | `Settings::board_size` (the last used), by `Store::update_settings` |
 | `shake()` | `shake()`; an error (`no_board`) stays in the box and answers `false` | |
 | `settled()` | `still()`, then `landed()`: each applies in its own state and ignores the other | |
 | `submit(path)` | `trace(path, today)`: `found` and `found_again` are viable (`alreadyFound` for the second), `real_not_todays` and `not_a_word` keep their names, `ignored` is `notAWord`; the word only for a viable one, lower-case | `Store::record` after each find: `newBest` is `RecordOutcome::new_best` on the board that cleared, `sticker` is a Power word in `new_words` |
@@ -717,6 +719,38 @@ there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down
 | `board()` | `board()`, a dead jewel (`dead_tiles()`) as `""`, the seed of `last_deal()` | |
 | `blocks(path)` | `GraphemeBinder` over the phase | |
 | `history()` | | the store's boards, newest first, and their finds; the phase's dead letter is a dead jewel on a board of that phase |
+
+**Where a run begins.** After every call that can change the game, `RealSoloGame`
+brings the store's game in progress (`Store::save_session`) to what
+`GameSession::snapshot()` says: a board on the table with its finds and the lit
+tile (`playing`), or the resting screen, which is also how a board that has just
+cleared is kept. A game in the box is **not** saved: the store holds none and what
+it held is cleared. There is nothing on the table to bring back; the size the box
+offers is the settings' (the child's last choice, written as it is made, so a
+change the parent makes in the dashboard is not overruled by an old box); and the
+next deal's seed is a new one each run, or the one `--seed` gives. `shaking` and
+`dropping` are the box, as the session saves them. A game the store cannot keep
+whole is cleared rather than left as the game before it. The session is saved
+before a find is recorded, so the history is never ahead of the game; the board
+left with the lid is recorded before the session is cleared, so it is never behind.
+
+`SoloGameSetup::make()` is where the game comes back. If the store holds a game in
+progress and `GameSession::restore()` accepts it (the same phase, a board the
+phase's words still fit, a record a session makes) the game is that one, as it was
+left, with the parent's help switch and sounds as they are now: a lit tile the
+parent has since switched off is dropped. If it does not (`wrong_phase`,
+`board_changed`, `bad_snapshot`, or a snapshot the store's values cannot make) a new
+game begins in the box and the old record is cleared by it, and the child is told
+nothing. The one thing a restore does not bring back is the seed of the scene's
+shake and drop, which a board already on the table does not need.
+
+The screens open on it. `SoloModel` over a game that is not in the box sets up what
+a shake would have (the touch geometry, the lit tile) in its constructor, so it is
+`playing` or `resting` from the start. `SoloScreen` gives the scene `show(board)`,
+the board already down with no motion, when it opens on `playing`, and the closed
+box otherwise; `play(board, seed)` is still only for a shake. So the scene's
+interface, which `app.scene_contract` holds, did not change. The run itself still
+begins on `home`: Solo Play, pressed there, opens on the board that was left.
 
 The unit of the stamp is the **day**: `wjs::Day`, days since 1970-01-01 on the
 device's calendar, which is what the store keeps of when and the most it will
@@ -729,6 +763,7 @@ before that. So a run plays the real session only when it is told where a phase
 is, and otherwise the fake:
 
 ```text
+WordJewelsSolver [--store <file>]
 WordJewelsSolver --phase-directory <dir> [--phase <name>] [--dictionary <file>]
                  [--store <file>] [--seed <number>]
 ```
@@ -736,29 +771,41 @@ WordJewelsSolver --phase-directory <dir> [--phase <name>] [--dictionary <file>]
 `<dir>` holds `phase-<x>.graphemes.txt` and `phase-<x>.words.txt` (the
 [format](#phase-data)). `--phase` defaults to the phase in
 the store's settings, `--dictionary` to `dictionaries/en.txt` beside the program,
-`--store` to the per-user file (`wjs::default_store_path`), and `--seed` to a random
-one; a fixed seed makes a run repeat. Files without a complete review header are
-test data, and the program says so on its error output. A directory that cannot be
-loaded, or a phase that cannot make a board, stops the program with a message and
-exit code 2: it does not fall back to the fake, which would hide the mistake. Run
-against test data, give `--store` a file of its own, or the finds go to the
-store of the person's real profile.
+and `--seed` to a random one; a fixed seed makes a run repeat. Files without a
+complete review header are test data, and the program says so on its error output.
+A directory that cannot be loaded, or a phase that cannot make a board, stops the
+program with a message and exit code 2: it does not fall back to the fake, which
+would hide the mistake.
+
+`--store` is the program's one store, with a phase or without: it defaults to the
+per-user file (`wjs::default_store_path`), and it is the file the game keeps its
+finds in and the parent area keeps the settings in. Run against test data, give
+`--store` a file of its own, or the finds go to the store of the person's real
+profile.
 
 What the game does with the parent's settings: the size to offer first, the help
-switch and the sounds in focus are read when the game is made, once per run, so a
-change made in the parent area is seen by the next run. What it does not do: it
-does not write the size the child last chose back to the settings, and it does not
-save the game in progress or bring one back (`Store::save_session` and
-`GameSession::restore` are there for it); a run begins in the box. The parent
-area's screens are not routed from the window yet; when they are, the one `Store`
-is `SoloGameSetup::store()`, to hand to `ParentController::useStore()`.
+switch and the sounds in focus are read when a game is made. A game is made at the
+start of the run (the one the last run left in progress, brought back as it was, if
+there was one) and again, when the parent has changed a setting or reset what is
+kept, as soon as the box has its lid on (`SoloModel::storeEdited()`, told by
+`ParentController::storeEdited()`; a game in play is not taken from a child). The
+phase is read once, at the start, so a change of the Phase setting is seen by the
+next run. The size the child last chose on the box is written back to
+`Settings::board_size`, and a game in progress is saved and brought back (above), so
+a run closed in the middle of a board shows the same board with the same finds.
 
 The parent area (the gate, the dashboard, the settings and the about page) is a QML
 module of its own, `WordJewelsSolver.Parent`, in `src/app/parent` (C++) and
 `src/app/qml/parent` (screens), linked by one line of `src/app/CMakeLists.txt`.
 `ParentController` is the shape Qt Quick wants over the library's rules, plus the
 clock; `ParentArea.qml` is one screen with a controller and a `closed()` signal. The
-program makes one `Store` and shares it with the game. Its tests are in
+program makes one `Store` in `main.cpp` and shares it with the game (the setup holds it
+by reference) and with the controller (`useStore()`), which it also gives the calendar
+and the phases the game plays; the controller is handed to the window as an initial
+property. `Main.qml` shows the parent area as the `parent` screen, reached from home and
+from the box by the corner button and closed back to where it came from, and binds
+`Theme.reducedMotion` and `Theme.textScale` to the parent's Motion override and Text
+size. The gate is the parent area's own. Its tests are in
 `wjs_app_tests`, and a stub shell (`tests/app/parent_ui`) draws the screens without a
 display. See [The parent area as built](design/parent-area.md).
 

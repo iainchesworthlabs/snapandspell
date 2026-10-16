@@ -53,8 +53,25 @@ that release, so that its rules (branch protection, required checks) can apply.
   The program plays it only when started with `--phase-directory <dir>` (with `--phase`,
   `--store`, `--seed`): the repository has no phase, because the phase files have to be written
   and reviewed by a person qualified to do it, so without one the fake is played as before.
-  The game in progress is not saved or brought back yet. See
+  See [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
+- **A Solo Play run begins where the last one ended**, when the real session is played: the game
+  in progress (a board on the table with its finds and the lit start tile, or the resting
+  screen) is kept in the store after each change and brought back by
+  `GameSession::restore()`, and a record that cannot come back (another phase, a changed
+  board, a bad snapshot) quietly starts a new game in the box. The screens open on a board
+  already down, with no shake, and the size the child chooses on the box is written back to
+  the settings as the last used. See
   [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
+- **The parent area, reachable from the Solo Play window**, on one store: the corner button
+  on home and in the box goes to the gate (the parent area's own, which nothing in the window
+  opens), then the dashboard, the settings and about, and Back returns to where the person
+  came from. The program opens one `wjs::Store` (`--store <file>`, or the per-user file, with a
+  phase or without) and the game and the parent area work on it, so a setting changed there is
+  what the next game is made from (the help switch, the size to offer first, the sounds in
+  focus) and a find the game recorded is on the dashboard. The Motion override and the Text
+  size are applied to every screen through `Theme`. The operating system's own reduced-motion
+  and text-size settings are not read, and a change of the Phase setting is seen by the next
+  run. See [docs/design/parent-area.md](docs/design/parent-area.md#integration).
 - **The parent area, on the device and nowhere else**, inside the first release's
   frozen privacy rules (no voice, no export, no network, no time played, no limit):
   a small versioned **store** (`wjs/store.hpp`) of finds, the last twenty boards, stars,

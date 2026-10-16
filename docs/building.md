@@ -155,7 +155,8 @@ build/windows-msvc-release/bin/WordJewelsSolver.exe --phase-directory <dir> --st
 ```
 
 Give `--store` a file of its own when the phase is test data, or what is found
-goes into the store of your own profile.
+goes into the store of your own profile. `--store` applies with no phase too: it is
+the file the parent area keeps its settings in, and the stand-in game is made from them.
 
 ## Dependencies
 
