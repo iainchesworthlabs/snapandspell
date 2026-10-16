@@ -11,16 +11,24 @@ configure_file(
 
 add_library(wjs_lib STATIC
     src/board.cpp
+    src/dashboard.cpp
     src/deal.cpp
+    src/dice.cpp
     src/dictionary.cpp
     src/game_rules.cpp
+    src/game_session.cpp
     src/grapheme_binder.cpp
+    src/parent_gate.cpp
     src/path.cpp
     src/phase_data.cpp
     src/scoring.cpp
+    src/settings.cpp
     src/shake.cpp
     src/seeding.cpp
-    src/solver.cpp)
+    src/session_store.cpp
+    src/solver.cpp
+    src/store.cpp
+    src/store_format.cpp)
 add_library(wjs::lib ALIAS wjs_lib)
 
 # Which wjs/profiling.hpp the zones in the sources resolve to: CMake chooses the

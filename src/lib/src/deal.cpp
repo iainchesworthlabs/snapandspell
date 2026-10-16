@@ -46,4 +46,13 @@ std::expected<DealtBoard, DealError> deal_playable(const WordSets& words,
     return std::unexpected(DealError::no_board);
 }
 
+std::expected<DealtBoard, DealError> deal_standard_board(const DiceSet& dice, const WordSets& words,
+                                                         std::uint32_t seed,
+                                                         const DealOptions& options) {
+    const BoardMaker rolled = [&dice](std::uint32_t s) {
+        return roll(dice, s).transform_error([](DiceError) { return DealError::bad_board; });
+    };
+    return deal_playable(words, rolled, seed, options);
+}
+
 }  // namespace wjs

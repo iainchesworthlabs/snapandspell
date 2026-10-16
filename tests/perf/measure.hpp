@@ -17,10 +17,16 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <span>
+#include <string>
 #include <vector>
 
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
+#include "wjs/game_session.hpp"
+#include "wjs/grapheme_binder.hpp"
+#include "wjs/phase_data.hpp"
+#include "wjs/seeding.hpp"
 #include "wjs/solver.hpp"
 
 namespace wjs::perf {
@@ -57,16 +63,109 @@ struct SolveWork {
 [[nodiscard]] std::uint64_t recount_visits(const wjs::Board& board,
                                            const wjs::Dictionary& dictionary);
 
+// ---------------------------------------------------------------------------
+// Seeding work (the phonics board)
+// ---------------------------------------------------------------------------
+
+// One seeding with the options of wjs::phonics_board_options for the board's
+// size, no recent targets, and the work counter reset first and read after.
+// The process ends if the options or the seeding are refused: the corpus
+// cannot be said to have been seeded.
+struct SeedRun {
+    wjs::SeededBoard board;
+    // The solver's own tally for the call: the visits of every solve it made,
+    // and how many solves that was. `board.solves` is the seeding's count of
+    // the same thing, which work_test cross-checks.
+    std::uint64_t visits = 0;
+    std::uint64_t solver_solves = 0;
+};
+
+[[nodiscard]] SeedRun measure_seed(const wjs::PhaseIndex& index, std::size_t size,
+                                   std::uint32_t seed);
+
+// ---------------------------------------------------------------------------
+// Binder work (the phonics board)
+// ---------------------------------------------------------------------------
+
+// The comparisons of one bind of `tiles`, from the library's tally, with the
+// blocks it returned.
+struct BindRun {
+    std::vector<wjs::GraphemeBinder::Block> blocks;
+    std::uint64_t comparisons = 0;
+};
+
+[[nodiscard]] BindRun measure_bind(const wjs::GraphemeBinder& binder,
+                                   std::span<const std::string> tiles);
+
+// The comparisons the blocks of a bind say it made, written out from the
+// definition and nothing the library counts: the graphemes the binder holds are
+// the multi-letter ones that are not split, lower-case, longest first and then
+// in letter order; a block that starts no grapheme was held against every one,
+// and a block that starts one was held against those before it and itself. The
+// library's tally must equal it (game_work_test.cpp).
+[[nodiscard]] std::uint64_t recount_comparisons(std::span<const wjs::Grapheme> graphemes,
+                                                std::span<const wjs::GraphemeBinder::Block> blocks);
+
+// ---------------------------------------------------------------------------
+// Session work (the phonics board)
+// ---------------------------------------------------------------------------
+
+// One board of the game session, dealt and played through, and what each part
+// cost the solver. The solver's tally is reset before the part and read after
+// it, so each figure is the work of that part and nothing else.
+struct SessionRun {
+    // The session's own account of the deal, and the solver's: the visits and
+    // solves of the shake. `deal.solves` is the session's count of the same
+    // solves, which game_work_test cross-checks.
+    wjs::DealReport deal;
+    std::uint64_t deal_visits = 0;
+    std::uint64_t deal_solves = 0;
+
+    // Everything after the shake: still, landed, a find for each word of the
+    // board (with the start-tile help asked for before every other one), a word
+    // traced again, a touch of one tile, a snapshot after the first find, the
+    // record, rest, and the last snapshot. Not one of them solves.
+    std::uint64_t play_visits = 0;
+    std::uint64_t play_solves = 0;
+
+    // restore() of the snapshot taken after the first find: the one solve that
+    // reads the board again.
+    std::uint64_t restore_visits = 0;
+    std::uint64_t restore_solves = 0;
+
+    std::size_t words = 0;  // the words of the phase on the board
+    // The kinds each trace came to, in order, and the two snapshots.
+    std::vector<wjs::TraceKind> kinds;
+    wjs::SessionSnapshot after_first_find;
+    wjs::SessionSnapshot at_rest;
+};
+
+// A session of the given size, seeded with `seed`, dealt and played as above. The
+// process ends if the session cannot be made or refuses the deal: the corpus
+// cannot be said to have been played.
+[[nodiscard]] SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size,
+                                         std::uint32_t seed);
+
+// One session's shake, for the timing rows: a session of this size seeded with
+// `seed`, dealt once. Returns the words of the phase on the board.
+[[nodiscard]] std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
+                                               std::uint32_t seed);
+
 // An FNV-1a digest of what solve() returned: each word, its score and its path,
-// in order. Add one result after another for the corpus' digest.
+// in order, and of what seed_board() made. Add one result after another for a
+// corpus' digest.
 class Digest {
 public:
     void add(const std::vector<wjs::FoundWord>& found);
+    void add(const wjs::SeededBoard& seeded);
+    void add(const SessionRun& run);
     [[nodiscard]] std::uint64_t value() const noexcept { return state_; }
 
 private:
     void byte(std::uint8_t value) noexcept;
     void number(std::uint64_t value) noexcept;
+    void text(const std::string& value);
+    void add(const wjs::SessionSnapshot& snapshot);
 
     std::uint64_t state_ = 14695981039346656037ULL;
 };

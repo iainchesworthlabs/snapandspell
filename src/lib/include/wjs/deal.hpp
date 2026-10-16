@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "wjs/board.hpp"
+#include "wjs/dice.hpp"
 #include "wjs/game_rules.hpp"
 #include "wjs/solver.hpp"
 
@@ -19,10 +20,10 @@
 // wjs::roll does not look.
 //
 // The retry rule is the same whoever makes the board, so it takes the maker as a
-// parameter and knows nothing of dice. The standard board's deal is this with a
-// maker that calls wjs::roll(dice, s) and maps its DiceError to
-// DealError::bad_board (`.transform_error`), once dice.hpp is on the base. The
-// phonics board needs none of it: seed_board plants its targets.
+// parameter and knows nothing of dice. The standard board's deal,
+// deal_standard_board, is this with a maker that calls wjs::roll(dice, s) and
+// maps its DiceError to DealError::bad_board. The phonics board needs none of
+// it: seed_board plants its targets.
 
 namespace wjs {
 
@@ -77,5 +78,11 @@ using BoardMaker = std::function<std::expected<Board, DealError>(std::uint32_t s
                                                                  const BoardMaker& make_board,
                                                                  std::uint32_t seed,
                                                                  const DealOptions& options = {});
+
+// The standard board: deal_playable over wjs::roll(dice, s). Dice that make no
+// board (DiceSet::side() zero or above 16) are DealError::bad_board.
+[[nodiscard]] std::expected<DealtBoard, DealError> deal_standard_board(
+    const DiceSet& dice, const WordSets& words, std::uint32_t seed,
+    const DealOptions& options = {});
 
 }  // namespace wjs

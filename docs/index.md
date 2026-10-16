@@ -9,7 +9,10 @@ type the board in, and the program finds and scores the words.
 
 !!! note "Status: pre-release, nothing released yet"
     The solver is real and tested. Camera input, reading letters from a
-    picture, installers and an English word list do not exist yet. It has been
+    picture, installers and an English word list do not exist yet. (A scanning
+    library that reads a board from a frame is built and tested on drawn frames only:
+    no camera is connected to it and it has not seen a real board. See
+    [Scanner design](design/scanner.md).) It has been
     built and run on Windows with MSVC only; the Linux and macOS code is
     written but has not been built. It has not been tried with children.
     [Architecture](architecture.md) says what is built, and the

@@ -4,6 +4,10 @@ What a parent sees and sets, how it is guarded, what it measures and how it
 must be worded. Written from [product requirements](../product-requirements.md)
 sections 7.4, 10 and 12. Proposals unless marked **Fact**.
 
+**As built:** [The parent area as built](parent-area.md) records the store, the
+gate, the numbers and the screens, where the build chose between readings of this
+page, and what is for the reviewer.
+
 **Scope.** The MVP's dashboard is **on the device and nowhere else**
 (section 12.2): no export, no printable summary, no e-mail, no voice clip, no
 time played and no limit. Those stay in the brief and are deferred, not removed
@@ -104,7 +108,8 @@ use this sound yet".
 | Setting | Values | Default |
 | --- | --- | --- |
 | Help | On (the start tile) or Off. After the MVP, a dial of five stops | On |
-| Phase | A or B (generic names; contents are the reviewer's) | A |
+| Board | Standard (dice) or Phonics (a phase's words, grapheme blocks, sounding out) | Standard |
+| Phase | A or B (generic names; contents are the reviewer's). Used by the Phonics board | A |
 | Focus sounds | A subset of the phase's graphemes | None |
 | Board size | 3x3 or 4x4 | 3x3, then the last used |
 | Sound it out | Full, the word only, off | Full |

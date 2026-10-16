@@ -7,6 +7,17 @@ Written from [product requirements](../product-requirements.md) sections 3, 4,
 to the numbered questions are on [Answers](answers.md); this page is the
 working.
 
+> **Decided 2026-10-16.** The first release's board is the **standard board**
+> (dice) by default, and the **phonics board** described on this page and in
+> [Phonics](phonics.md) is a parent's switch. Where this page says "Mode B
+> boards are seeded", it means the phonics board; a standard board is a roll of
+> dice and holds as many words as it holds. The two game modes (alone, with
+> others) are separate from the two board modes. The standard board solves
+> against the full dictionary, with no block list in the MVP (a decision of the
+> author; see [MVP library](mvp-library.md)), so every dictionary word of three
+> letters or more counts there and the "real, not today's" cue below is the
+> phonics board's.
+
 ## What the first release plays
 
 Section 12 narrows the full brief. Where this page says **MVP** it means that
@@ -177,7 +188,7 @@ Two ways to make a word, both always on, so no gesture is required:
 - Sliding back onto the previous tile takes the last tile off the path.
   Lifting outside the board cancels with no penalty. A tile cannot be used
   twice and a non-neighbour is ignored, not an error. The library will check a
-  path with `validate_path` (roadmap M1; not yet written).
+  path with `validate_path` (written; `wjs::validate_path`).
 - The hit area is a circle smaller than the tile, and the path stays on a tile
   until the finger leaves a larger circle, so a diagonal slide does not skip a
   tile. The two radii are **starting values for a small finger**, the one thing
@@ -328,8 +339,9 @@ not kept (roadmap section 8), there is no audio capture, and nothing is sent.
 - The size is counted from the picture and shown first; nothing is solved until
   the board is confirmed (question 11).
 - An OCR error would otherwise feed a wrong board to the solver (question 67),
-  so **the check is never skipped in the MVP.** No tile accuracy has been
-  measured; nothing is built.
+  so **the check is never skipped in the MVP.** The reader and the data flow of
+  this screen are built and measured on synthetic frames ([Scanner](scanner.md));
+  no tile accuracy has been measured on real dice.
 - Nothing on this screen is for the child, and no message says the app could
   not read something because of what the child did.
 

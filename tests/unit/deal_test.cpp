@@ -2,13 +2,16 @@
 #include <cstddef>
 #include <cstdint>
 #include <expected>
+#include <filesystem>
 #include <initializer_list>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 #include "wjs/board.hpp"
 #include "wjs/deal.hpp"
+#include "wjs/dice.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/game_rules.hpp"
 
@@ -17,6 +20,8 @@
 // word for some, and a list of two words that is not the game's.
 
 namespace {
+
+constexpr std::string_view data_directory = WJS_DATA_DIRECTORY;
 
 constexpr std::string_view empty_board = "X X X/X X X/X X X";
 constexpr std::string_view cat_board = "C A T/X X X/X X X";
@@ -248,4 +253,94 @@ TEST_CASE("each error has a name", "[deal]") {
     CHECK(wjs::to_string(wjs::DealError::bad_options) == "bad_options");
     CHECK(wjs::to_string(wjs::DealError::bad_board) == "bad_board");
     CHECK(wjs::to_string(wjs::DealError::no_board) == "no_board");
+}
+
+// ---------------------------------------------------------------------------
+// The standard board: the same rule over wjs::roll and the project's own dice
+
+namespace {
+
+std::string text_of(const wjs::Board& board) {
+    std::string text;
+    for (std::size_t row = 0; row < board.rows(); ++row) {
+        if (row > 0) {
+            text += '/';
+        }
+        for (std::size_t column = 0; column < board.columns(); ++column) {
+            if (column > 0) {
+                text += ' ';
+            }
+            text += board.tile({row, column});
+        }
+    }
+    return text;
+}
+
+wjs::DiceSet shipped_dice(std::size_t side) {
+    const auto name = std::to_string(side) + "x" + std::to_string(side) + ".txt";
+    auto set = wjs::DiceSet::load_file(std::filesystem::path(data_directory) / "dice" / name);
+    REQUIRE(set.has_value());
+    return *std::move(set);
+}
+
+const wjs::Dictionary& english() {
+    static const wjs::Dictionary dictionary = [] {
+        auto loaded = wjs::Dictionary::load_file(std::filesystem::path(data_directory) /
+                                                 "dictionaries" / "en.txt");
+        REQUIRE(loaded.has_value());
+        return *std::move(loaded);
+    }();
+    return dictionary;
+}
+
+}  // namespace
+
+TEST_CASE("no board dealt from the shipped 3x3 dice is empty", "[deal][data]") {
+    const auto dice = shipped_dice(3);
+    const auto words = wjs::WordSets::standard(english());
+
+    std::size_t rerolled = 0;
+    for (std::uint32_t seed = 1; seed <= 2000; ++seed) {
+        const auto dealt = wjs::deal_standard_board(dice, words, seed);
+        REQUIRE(dealt.has_value());
+        CHECK(!dealt->viable.empty());
+        if (dealt->rolls > 1) {
+            ++rerolled;
+        }
+    }
+    // About one roll in 26 is empty, so some of 2000 seeds are dealt again.
+    CHECK(rerolled > 0);
+}
+
+TEST_CASE("the standard deal is pinned to two seeds", "[deal][data]") {
+    const auto dice = shipped_dice(3);
+    const auto words = wjs::WordSets::standard(english());
+
+    const auto plain = wjs::deal_standard_board(dice, words, 12345);
+    REQUIRE(plain.has_value());
+    CHECK(plain->rolls == 1);
+    CHECK(text_of(plain->board) == "N J L/E H S/S U E");
+
+    // Seed 43 rolls D L M/P C S/G S S, which holds no word of three letters.
+    CHECK(text_of(*wjs::roll(dice, 43)) == "D L M/P C S/G S S");
+    const auto again = wjs::deal_standard_board(dice, words, 43);
+    REQUIRE(again.has_value());
+    CHECK(again->rolls == 2);
+    CHECK(text_of(again->board) == "S U G/D L S/M G I");
+}
+
+TEST_CASE("the standard deal refuses dice that make no board", "[deal]") {
+    const auto dictionary = small_dictionary();
+    const auto words = wjs::WordSets::standard(dictionary);
+    // Ten dice are not a square.
+    std::string text;
+    for (int die = 0; die < 10; ++die) {
+        text += "a b c d e f\n";
+    }
+    auto ten = wjs::DiceSet::parse(text);
+    REQUIRE(ten.has_value());
+
+    const auto dealt = wjs::deal_standard_board(*ten, words, 1);
+    REQUIRE(!dealt.has_value());
+    CHECK(dealt.error() == wjs::DealError::bad_board);
 }

@@ -13,6 +13,10 @@ endforeach()
 target_sources(wjs_platform PRIVATE ${_wjs_platform_sources})
 target_include_directories(wjs_platform PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/interfaces")
 target_compile_features(wjs_platform PUBLIC cxx_std_23)
+# The camera and board_reader interfaces are written in terms of the scanner's
+# frame and reading types, so the platform layer sits on wjs_scan (which sits on
+# the game library, and includes no platform header).
+target_link_libraries(wjs_platform PUBLIC wjs_scan)
 target_compile_definitions(wjs_platform PRIVATE ${WJS_PLATFORM_COMPILE_DEFINITIONS})
 target_link_libraries(wjs_platform
     PRIVATE

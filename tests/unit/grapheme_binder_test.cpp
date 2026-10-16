@@ -154,6 +154,16 @@ TEST_CASE("single letters are not blocks", "[binder]") {
     CHECK(shown(binder, {"A", "I"}) == "[AI]");
 }
 
+TEST_CASE("a split digraph is not found in flight", "[binder][split]") {
+    // It cannot be known until its last tile is traced, and the design draws it
+    // from the word's authored split, so the binder leaves it out.
+    const auto graphemes = graphemes_of({"ai", "a_e"});
+    const wjs::GraphemeBinder binder(graphemes);
+
+    CHECK(shown(binder, {"C", "A", "K", "E"}) == "C A K E");
+    CHECK(shown(binder, {"R", "A", "I", "N"}) == "R [AI] N");
+}
+
 TEST_CASE("a block says which grapheme it is", "[binder]") {
     const auto graphemes = graphemes_of({"ai"});
     const wjs::GraphemeBinder binder(graphemes);

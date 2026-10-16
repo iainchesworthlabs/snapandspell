@@ -2,9 +2,18 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
+#include <filesystem>
 #include <numeric>
 #include <random>
+#include <span>
+#include <sstream>
 #include <string>
+#include <utility>
+
+#include "measure.hpp"
+#include "perf_build.hpp"
+#include "wjs/dictionary.hpp"
 
 namespace wjs::perf {
 namespace {
@@ -67,6 +76,170 @@ wjs::Board random_board(std::size_t size, unsigned index) {
 
 wjs::Board rich_board(const RichBoard& rich) {
     return parse_or_die(rich.text);
+}
+
+// ---------------------------------------------------------------------------
+// The standard board
+// ---------------------------------------------------------------------------
+
+const wjs::DiceSet& dice_set(std::size_t size) {
+    static const std::vector<wjs::DiceSet> sets = [] {
+        std::vector<wjs::DiceSet> loaded;
+        loaded.reserve(kSizes.size());
+        for (const std::size_t side : kSizes) {
+            const std::string name = std::to_string(side) + "x" + std::to_string(side) + ".txt";
+            auto set =
+                wjs::DiceSet::load_file(std::filesystem::path(std::string(kDiceDirectory)) / name);
+            // A set that does not load, or is not a board of its name, is a
+            // mistake in the data or this file, and every case would fail on it.
+            if (!set || set->side() != side) {
+                std::abort();
+            }
+            loaded.push_back(*std::move(set));
+        }
+        return loaded;
+    }();
+    return sets.at(size - kSizes.front());
+}
+
+wjs::Board dice_board(std::size_t size, unsigned index) {
+    auto board = wjs::roll(dice_set(size), corpus_seed(size, index));
+    if (!board) {
+        std::abort();
+    }
+    return *std::move(board);
+}
+
+// ---------------------------------------------------------------------------
+// The phonics board
+// ---------------------------------------------------------------------------
+
+namespace {
+
+// The letters of the test phase, in the order a graphemes file lists them.
+constexpr std::string_view phase_letters = "AINPST";
+
+[[nodiscard]] char to_lower(char c) noexcept {
+    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+}
+
+// Every word of three or more letters the trie holds that is spelled with the
+// phase's letters only, in byte order: a walk in letter order that reports a
+// word before the words that extend it.
+void collect_words(const wjs::Dictionary& dictionary, wjs::Dictionary::Cursor at,
+                   std::string& spelled, std::vector<std::string>& words) {
+    if (spelled.size() >= wjs::min_phase_word_letters && dictionary.is_word(at)) {
+        words.push_back(spelled);
+    }
+    for (const char letter : phase_letters) {
+        const wjs::Dictionary::Cursor next = dictionary.step(at, letter);
+        if (next == wjs::Dictionary::no_node) {
+            continue;
+        }
+        spelled.push_back(letter);
+        collect_words(dictionary, next, spelled, words);
+        spelled.pop_back();
+    }
+}
+
+// A phase's graphemes file text, a line to each of the letters, with
+// placeholder sounds.
+[[nodiscard]] std::string graphemes_text(const std::vector<std::string>& letters) {
+    std::string text = "# phase: A\n";
+    for (std::size_t i = 0; i < letters.size(); ++i) {
+        const std::string sound = "t" + std::to_string(i + 1);
+        text += letters[i] + "  /" + sound + "/  clip:" + sound + "\n";
+    }
+    return text;
+}
+
+template <typename Parsed, typename Parse>
+[[nodiscard]] Parsed parse_or_abort(const std::string& text, Parse parse) {
+    std::istringstream in(text);
+    auto parsed = parse(in, "perf corpus");
+    if (!parsed) {
+        std::abort();
+    }
+    return *std::move(parsed);
+}
+
+[[nodiscard]] wjs::PhaseSet build_phonics_phase() {
+    std::vector<std::string> letters;
+    for (const char letter : phase_letters) {
+        letters.emplace_back(1, to_lower(letter));
+    }
+
+    std::vector<std::string> words;
+    std::string spelled;
+    collect_words(english(), wjs::Dictionary::root, spelled, words);
+    // A line a word, lower-case as a words file is written: the word, then its
+    // letters, each a grapheme.
+    std::string words_text = "# phase: A\n";
+    for (const std::string& word : words) {
+        std::string lower;
+        std::string split;
+        for (const char letter : word) {
+            lower += to_lower(letter);
+            if (!split.empty()) {
+                split += ' ';
+            }
+            split += to_lower(letter);
+        }
+        words_text += lower + "  " + split + "\n";
+    }
+
+    const std::vector<wjs::GraphemesFile> graphemes = {
+        parse_or_abort<wjs::GraphemesFile>(graphemes_text(letters), wjs::parse_graphemes)};
+    const std::vector<wjs::WordsFile> files = {
+        parse_or_abort<wjs::WordsFile>(words_text, wjs::parse_words)};
+    auto built = wjs::PhaseSet::build(graphemes, files, english());
+    if (!built) {
+        std::abort();
+    }
+    return *std::move(built);
+}
+
+// The graphemes of the binder's test set, in the order a graphemes file holds
+// them (byte order of the letters). Singles and split digraphs are in it on
+// purpose: the binder is given a phase's whole list and keeps the multi-letter
+// ones.
+constexpr std::array<std::string_view, 39> binder_letters = {
+    "a",  "a_e", "ai",  "air", "ar",  "au", "aw", "ay", "ch", "ea", "ear", "ee",  "er",
+    "ew", "i",   "i_e", "ie",  "igh", "ir", "n",  "ng", "oa", "oe", "oi",  "oo",  "or",
+    "ou", "ow",  "oy",  "p",   "ph",  "s",  "sh", "t",  "th", "ue", "ur",  "ure", "wh"};
+
+}  // namespace
+
+const wjs::PhaseIndex& phonics_phase() {
+    static const wjs::PhaseSet set = build_phonics_phase();
+    static const wjs::PhaseIndex* const index = set.find("A");
+    return *index;
+}
+
+std::vector<std::string> bind_tiles(const BindPath& path) {
+    std::vector<std::string> tiles;
+    std::string_view rest = path.tiles;
+    while (!rest.empty()) {
+        const std::size_t space = rest.find(' ');
+        tiles.emplace_back(rest.substr(0, space));
+        rest = space == std::string_view::npos ? std::string_view{} : rest.substr(space + 1);
+    }
+    return tiles;
+}
+
+const std::vector<wjs::Grapheme>& bind_graphemes() {
+    static const std::vector<wjs::Grapheme> graphemes = [] {
+        const std::vector<std::string> letters(binder_letters.begin(), binder_letters.end());
+        auto file =
+            parse_or_abort<wjs::GraphemesFile>(graphemes_text(letters), wjs::parse_graphemes);
+        return file.graphemes;
+    }();
+    return graphemes;
+}
+
+const wjs::GraphemeBinder& phonics_binder() {
+    static const wjs::GraphemeBinder binder{std::span<const wjs::Grapheme>(bind_graphemes())};
+    return binder;
 }
 
 }  // namespace wjs::perf

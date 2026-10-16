@@ -34,6 +34,8 @@ not removed.
 | [Shake prototype](shake-prototype.md) | The board scene built in Qt Quick 3D behind its seam, what it cost on one desktop, and what a 2D swap-in must keep |
 | [Application](application.md) | Screens, touch targets, type and school fonts, colour, motion, accessibility, sound, privacy built in and checked, Qt modules |
 | [Dashboard](dashboard.md) | The parent area: the gate, what is shown and how it is worded, settings, what is deferred |
+| [The parent area as built](parent-area.md) | The store, the gate, the dashboard's numbers, the screens and the privacy checks as built: the choices made, what each test holds, what is for the reviewer, what is not verified |
+| [Scanner](scanner.md) | Mode A's board reader: the library, the confirm-and-correct model, the camera and reader interfaces, the accuracy target and the synthetic corpus, what was measured, and what the iPad still has to do |
 | [Performance](performance.md) | Budgets, the Tracy zones, the macro-free route, the performance tier |
 | [Path](path.md) | The route from the MVP to the full product across several releases, and what the MVP must leave open |
 | [Layouts](layouts.svg) | The two-thirds / one-third arrangement at four window shapes, to scale |
@@ -42,16 +44,20 @@ not removed.
 
 1. **Two modes, one board component.** Mode B (Solo Play) rolls a board and the
    child finds words; Mode A (the scanner) reads a real board and helps. They
-   share the board, the solver, the tray and the help.
-2. **The MVP is small on purpose.** An iPad, 3x3 and 4x4, a hand-filtered
-   Phase A index, three to five words a board, one help (the start tile),
-   stars by tier, and a calm resting screen when the board is cleared. Nothing
-   pulls the child back.
-3. **A board is made, not shaken.** The library **seeds** it: plants words of
-   the active phase, fills the rest (dead jewels are recommended for Phase A)
-   and **verifies** with the solver that it holds three to five. Measured:
-   blind draws land there about one time in four at best, so verification is
-   the method.
+   share the board, the solver, the tray and the help. Separately, there are two
+   **board modes** (decided 2026-10-16): the **standard** board, letters on dice,
+   is the default; the **phonics** board is a parent's switch.
+2. **The MVP is small on purpose.** An iPad, 3x3 and 4x4, a standard board with
+   the phonics board as the parent's switch, one help (the start tile), stars by
+   tier, and a calm resting screen when the board is cleared. Nothing pulls the
+   child back. (The brief's 12.4 reads as the phonics board alone; the author
+   chose the standard board as the default.)
+3. **A phonics board is made, not shaken.** The library **seeds** it: plants words
+   of the active phase (three letters at most), fills the rest with a
+   solver-guided fill that prefers the phase's letters and lets others in, and
+   **verifies** with the solver that it holds three to five. Measured: blind draws
+   land there about one time in four at best; the guided fill and short targets
+   land 90% or more on a 4x4 and larger. A standard board is dice, not seeded.
 4. **A traced word is one of three things**: viable (counts), real but not
    today's (a soft tick, no word shown), or not a word (the path fades). A real
    word is never called "not a word", and no unsuitable dictionary word is ever
