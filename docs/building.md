@@ -96,7 +96,7 @@ Pass these to the configure step, for example
 | `WJS_BUILD_CLI` | `ON` | Build `wjs-cli` |
 | `WJS_BUILD_APP` | `OFF` | Build the Qt Quick window. Needs Qt 6.12 |
 | `WJS_BUILD_TESTS` | `ON` | Build the test suites, and register the platform tests. Turning it off also stops vcpkg building Catch2 |
-| `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the 3D board-scene prototype as `ShakePrototype`. Needs `WJS_BUILD_APP=ON` and Qt Quick 3D; the program it makes is GPL-3.0 only. See [the prototype](design/shake-prototype.md#building-and-running) |
+| `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the 3D board-scene prototype as `ShakePrototype`. Needs `WJS_BUILD_APP=ON` and Qt Quick 3D; the program it makes is GPL-3.0 only. See [the prototype](design/shake-prototype.md#how-it-was-measured) |
 | `WJS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
 | `WJS_ENABLE_COVERAGE` | `OFF` | gcov instrumentation. Only the `linux-gcc-coverage` preset turns it on |
 

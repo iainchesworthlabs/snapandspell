@@ -59,8 +59,9 @@ not removed.
 5. **Phonics is data.** Phases, graphemes and words are reviewed files the
    build refuses to ship unreviewed. The code binds a trace into blocks and
    sounds a word out; it knows no letter or sound.
-6. **The shake is scripted, not simulated**, and the scene is one component
-   with a narrow interface. 3D (Qt Quick 3D) for the MVP's private build,
+6. **The shake's outcome is decided, not simulated**: the dice move by a small
+   simulation of our own, and a guide takes each to its cell. The scene is one
+   component with a narrow interface. 3D (Qt Quick 3D) for the MVP's private build,
    **decided by the author**, with the licence decision (GPL-3.0 only for a
    build that links it) taken at D2 before any store.
 7. **Privacy is built in and checked in CI from the first build**: no audio

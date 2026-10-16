@@ -19,18 +19,20 @@ import "ShakeScript.js" as Script
 //
 // board is { rows, columns, tiles }, tiles row-major, one string a tile.
 //
-// The drop is a pure function of the board, the seed and the time. There is no
-// physics engine: every position and angle is computed by ShakeScript.js, a
-// script that `seed` makes and that has no renderer in it, so a replay is the
-// same frame for frame (digest() shows it) and a 2D scene would draw the same
-// script. This file turns the script's poses into Qt Quick 3D nodes.
-// The rattle is the one live part, and it answers the device's motion sample
-// for sample: pushMotion() takes the accelerometer's reading and the
-// gyroscope's, about a hundred a second, and the dice are accelerated by the
-// negative of the reading (gravity, tilt, a shove and a jolt are all one thing)
-// and by the spin. The motion decides how the dice move and how long the box
-// rattles, never where a die lands. With no device (the Shake button, a test)
-// a seeded stand-in makes the stream, so that a replay is the same shake.
+// The dice are simulated, from first principles (src/app/prototype/shake/sim):
+// sixteen rigid cubes in a box with a floor, walls and a lid, accelerated by the
+// negative of what the device's accelerometer reads and by the turning of its
+// gyroscope, colliding, sliding and tumbling by the equations of motion, with
+// the same step and the same arithmetic each time, so a replay of a board, a
+// seed and a motion is the same shake (digest() shows it). When the shaking is
+// over each die is sent to a cell of the board, hopping and sliding there past
+// the others: the physics decides how it looks, never where a die ends. ShakeScript.js
+// holds the clock and the stages and has no renderer in it, so a 2D scene
+// would draw the same script. This file turns the script's poses into Qt Quick
+// 3D nodes. The rattle answers the device's motion sample for sample:
+// pushMotion() takes the accelerometer's reading and the gyroscope's, about a
+// hundred a second. With no device (the Shake button, a test) a seeded stand-in
+// makes the stream.
 //
 // The View3D is made once and kept: a new board is a new set of dice inside it.
 Item {
@@ -111,6 +113,11 @@ Item {
         return Script.digest(board, seed, layout());
     }
 
+    // Every die's pose at every frame of a play, as text (see ShakeScript.trace).
+    function trace(board, seed) {
+        return Script.trace(board, seed, layout());
+    }
+
     // Puts the scene where the script for a board and seed is `ms` into the
     // play, with the device still, and holds it there. For tests and for
     // pictures: the same board, seed and time always give the same picture.
@@ -132,8 +139,9 @@ Item {
     // "baked" (the same, prefiltered in advance and read from a file).
     property string probeMode: "baked"
     property real cameraDistance: 2.2   // times the board's side
-    // Weighted motion: the dice are thrown about the box, bounce, collide and
-    // slot into their cells (ShakeScript.js). False is the prescribed curves.
+    // Simulated dice: rigid cubes thrown about the box by the device's motion
+    // that collide and then go to their cells (ShakeScript.js, DiceSim). False
+    // is the prescribed curves.
     property bool weighted: true
     // How long the stand-in's burst of shaking lasts, when there is no device:
     // 0 takes 0.7 to 1.0 s from the seed.
@@ -180,7 +188,8 @@ Item {
     // What the script needs of the layout, in this item's pixels.
     function layout() {
         return { tile: tile, gap: gap, pitch: pitch, reduced: reducedMotion, weighted: weighted,
-                 lidTiles: 2.45, slackTiles: slackTiles, mock: true, mockBurstMs: mockBurstMs };
+                 lidTiles: 2.45, slackTiles: slackTiles, mock: true, mockBurstMs: mockBurstMs,
+                 sim: diceSim };
     }
 
     function begin(board, seed, standIn) {
@@ -190,6 +199,13 @@ Item {
         const settings = layout();
         settings.mock = standIn !== false;
         current = Script.create(board, seed, settings);
+        // A new play starts with every letter square on every die.
+        for (let i = 0; i < diceRepeater.count; ++i) {
+            const die = diceRepeater.objectAt(i);
+            if (die) {
+                die.geometry.clearTurns();
+            }
+        }
         // The dice are made as the count changes; a die that is not there yet
         // is posed when it arrives (onObjectAdded below).
     }
@@ -211,6 +227,7 @@ Item {
             } else {
                 die.body.eulerRotation = Qt.vector3d(state.rx[i], state.ry[i], state.rz[i]);
             }
+            die.cell = state.cell ? state.cell[i] : i;
             die.body.visible = state.opacity[i] > 0.001;
             die.body.opacity = warm ? 0.98 : state.opacity[i];
             const lift = Math.max(0, state.pz[i] - tile / 2);
@@ -218,6 +235,17 @@ Item {
             const radius = state.shadowRadius[i] / 50;
             die.shadow.scale = Qt.vector3d(radius, radius, 0.02);
             die.shadow.opacity = warm ? Math.max(state.shadowOpacity[i], 0.02) : state.shadowOpacity[i];
+        }
+        // The letter on the face that is up is turned to read upright.
+        if (state.turnChanges && state.turnChanges.length > 0) {
+            for (let k = 0; k < state.turnChanges.length; ++k) {
+                const change = state.turnChanges[k];
+                const die = diceRepeater.objectAt(change.die);
+                if (die) {
+                    die.geometry.setTurns(change.face, change.turns);
+                }
+            }
+            state.turnChanges = [];
         }
         boxNode.eulerRotation = Qt.vector3d(state.boxRx, state.boxRy, 0);
         lidHinge.eulerRotation = Qt.vector3d(state.lidAngle, 0, 0);
@@ -277,6 +305,11 @@ Item {
     onBoardTilesChanged: Qt.callLater(apply)
 
     // ---- The scene ----------------------------------------------------------
+    // The dice's physics; the script drives it.
+    DiceSim {
+        id: diceSim
+    }
+
     // The atlas is not part of the scene's tree; the textures read it.
     property Item atlasItem: FaceAtlas {
         tiles: root.boardTiles

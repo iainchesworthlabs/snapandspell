@@ -9,6 +9,8 @@
 # else here is the harness around it: a window with a Shake button, the mouse
 # drag that stands in for the accelerometer, and the frame timing.
 
+add_subdirectory(sim)
+
 qt_add_executable(wjs_shake_prototype
     main.cpp)
 set_target_properties(wjs_shake_prototype PROPERTIES OUTPUT_NAME ShakePrototype)
@@ -25,6 +27,10 @@ qt_add_qml_module(wjs_shake_prototype
     RESOURCES
         qml/lightprobe/sky.ktx
     SOURCES
+        dice_sim.cpp
+        dice_sim.hpp
+        die_geometry.cpp
+        die_geometry.hpp
         frame_stats.cpp
         frame_stats.hpp)
 
@@ -36,6 +42,7 @@ target_link_libraries(wjs_shake_prototype
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Quick3D
+        wjs_dice_world
         wjs::warnings
         wjs::sanitizers
         wjs::coverage)

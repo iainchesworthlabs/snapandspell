@@ -46,6 +46,20 @@ if(WJS_BUILD_APP)
     catch_discover_tests(wjs_app_tests)
 endif()
 
+# The shake prototype's dice simulation: plain C++, tested without Qt or a window.
+if(TARGET wjs_dice_world)
+    add_executable(wjs_dice_tests prototype/dice_world_test.cpp)
+    target_link_libraries(wjs_dice_tests
+        PRIVATE
+            wjs_dice_world
+            wjs::warnings
+            wjs::sanitizers
+            wjs::coverage
+            Catch2::Catch2WithMain)
+    wjs_deploy_sanitizer_runtime(wjs_dice_tests)
+    catch_discover_tests(wjs_dice_tests)
+endif()
+
 # Every platform fragment satisfies the platform contract, on whichever host
 # this runs (a build only includes the one fragment for its own platform).
 add_test(NAME platform.fragments

@@ -6,24 +6,23 @@
 // way to draw it and a 2D scene would be another, and the two replay the same
 // board and seed the same way.
 //
-// There is no physics engine, and the board is decided before the play starts.
-// Where a die ends is its cell, always. How it gets there is computed from the
-// board, the seed and the device's motion, in one of two ways (layout.weighted):
+// Where a die ends is its cell, always: the board is decided before the play
+// starts. How it gets there is computed from the board, the seed and the
+// device's motion, in one of two ways (layout.weighted):
 //
 //   staged    every position and angle is a prescribed curve of the time: a
-//             sine rattle, a fall on a parabola, one rebound.
-//   weighted  dice simulated by us at a fixed 480 steps a second, in the
-//             box's own frame. Each die is a square in the plan (it turns, so
-//             its corners are what meet the walls and its neighbours) with a
-//             height: it slides with friction, leaves the floor, hits the lid,
-//             stacks on a neighbour and slides off, and bumps and turns what
-//             it meets with a proper impulse. It is accelerated by the
-//             *negative of what the accelerometer reads* (so gravity, tilt, a
-//             shove and a jolt are all one thing) and by the centrifugal,
-//             Coriolis and Euler terms of the gyroscope's rotation. Its tip
-//             (how far it is rocked off the floor) follows its impacts through
-//             damped springs. When the shaking stops each die hops to its own
-//             cell, in a seeded order, and lands there.
+//             sine rattle, a fall on a parabola, one rebound. No physics.
+//   weighted  the dice are simulated (layout.sim, a DiceSim: rigid cubes in a
+//             box, src/app/prototype/shake/sim/dice_world.hpp), in the box's own
+//             frame. Each is accelerated by the *negative of what the
+//             accelerometer reads* (so gravity, tilt, a shove and a jolt are all
+//             one thing) and by the centrifugal, Coriolis and Euler terms of
+//             the gyroscope's rotation; it slides, tumbles, hits the lid, the
+//             walls and the others, with a mass, an inertia and a friction. When
+//             the shaking stops each die is given a cell of the board (the
+//             assignment that makes the dice travel least), the lid goes, and
+//             each hops and slides to its own cell in a seeded order, turning
+//             flat and square on the way.
 //
 // The device's motion comes in as samples (feed): the accelerometer's reading
 // in g, gravity included, and the gyroscope's in rad/s, about 100 a second.
@@ -36,10 +35,15 @@
 //   evaluate(state)                       writes the pose of everything now
 //
 // The pose is in state.px, py, pz (the die's centre, in the layout's pixels
-// from the centre of the board, y up, z up from the floor), rx, ry, rz
-// (degrees), opacity, shadowRadius, shadowOpacity, and state.boxRx, boxRy,
-// lidAngle, lidLift, lidOpacity, leanFraction. The events (state.events) are
-// { kind: "rattled" }, { kind: "landed", index, pitch } and { kind: "settled" }.
+// from the centre of the board, y up, z up from the floor) and, for the
+// simulated dice, the quaternion state.qw, qx, qy, qz (state.useQuaternion), or,
+// for the staged ones, rx, ry, rz (degrees); then opacity, shadowRadius,
+// shadowOpacity, and state.boxRx, boxRy, lidAngle, lidLift, lidOpacity,
+// leanFraction. For simulated dice, state.cell[i] is the cell of the board whose
+// tile die i shows, and state.turnChanges the faces whose letters are to be
+// turned a quarter turn at a time (BoardScene gives them to the dice). The
+// events (state.events) are { kind: "rattled" }, { kind: "landed", index, pitch }
+// and { kind: "settled" }.
 
 // The stages and their durations: starting values to tune on a device
 // (docs/design/board.md, "The stages").
@@ -224,7 +228,7 @@ function hash(seed, k, channel) {
 // with the strokes. burstMs of 0 is a burst of 0.6 to 0.9 s from the seed.
 function mockSampleAt(seed, k, burstMs) {
     var t = k * sampleMs / 1000;
-    var burst = (burstMs > 0 ? burstMs : 600 + 300 * hash(seed, 0, 90)) / 1000;
+    var burst = (burstMs > 0 ? burstMs : 700 + 300 * hash(seed, 0, 90)) / 1000;
     var two = 2 * Math.PI;
     var env = 0;
     if (t < burst) {
@@ -238,11 +242,11 @@ function mockSampleAt(seed, k, burstMs) {
     // The phase is the integral of a frequency that wanders around f0.
     var phase = two * f0 * t - 0.6 / 0.9 * Math.cos(two * 0.9 * t + p[1]);
     var stroke = Math.sin(phase) + 0.12 * Math.sin(2 * phase + p[2]);
-    var amount = 1.2 * env * (0.85 + 0.15 * Math.sin(two * 1.3 * t + p[3]));
+    var amount = 1.7 * env * (0.85 + 0.15 * Math.sin(two * 1.3 * t + p[3]));
     var axis = p[0] + 0.9 * Math.sin(two * 0.7 * t + p[4]);
     var ax = amount * stroke * Math.cos(axis);
     var ay = amount * stroke * Math.sin(axis);
-    var az = 2.6 * amount * Math.sin(phase + 1.2);
+    var az = 1.2 * amount * Math.sin(phase + 1.2);
     var ripple = 0.08 * env * Math.sin(two * 23 * t + p[5]);
     ax += ripple; ay -= ripple;
     // A small knock, one or two samples.
@@ -296,513 +300,161 @@ function tiltYOf(tracker) {
 }
 
 // ---- Weighted motion: dice in a box --------------------------------------------
-// Lengths are in tiles (one die's edge, taken as 20 mm), times in seconds. A
-// tile is 20 mm, so 1 g is 490 tiles/s^2 and time is real: a die falls a tile
-// in 64 ms. A die is a unit square in the plan, of mass 1 and moment of inertia
-// 1/6, with a height, and a tip that is only for the eye.
-var simStepMs = 1000 / 480;
-var gTiles = 9810 / 20;           // tiles/s^2 in 1 g
-var restitutionFloor = 0.38;
-var restitutionDie = 0.35;
-var restitutionWall = 0.3;
-var restitutionLid = 0.25;
-var frictionFloor = 0.5;
-var frictionDie = 0.3;
-var frictionWall = 0.2;
-var restThreshold = 3;            // tiles/s: below this a contact does not bounce
-var inverseInertia = 6;
-var linearDamping = 0.15;         // per second
-var yawDampingFloor = 6;
-var yawDampingAir = 0.6;
-var maxYawRate = 25;              // rad/s: about 0.4 of a turn a frame at 60 Hz
-var maxSlide = 30;                // tiles/s: half a tile a frame at 60 Hz, what the eye can follow
-var tipStiffness = 500;           // the tip follows impacts through a spring,
-var tipDamping = 45;              // critically damped: it rocks and settles, it does not buzz
-var maxTip = 0.6;                 // rad
-var pairPasses = 3;               // rounds of pushing crowded dice apart
-var hopRiseNear = 0.3;           // how far above where it is a die hops to reseat, tiles
-var hopRiseFar = 1.0;             // and to cross the box
-var hopDelayMs = 90;              // the lid is up before the first die hops
-var landingBounceMs = 100;
+// The dice are simulated by DiceSim (src/app/prototype/shake/dice_sim.hpp, over
+// sim/dice_world.hpp): sixteen rigid cubes in a box with a floor, four walls and
+// a lid, in the box's own frame. This script holds the clock and the stages,
+// feeds the device's samples to the simulation, asks it for the poses, and
+// decides what the box, the lid and the camera are doing. Lengths in the
+// simulation are die edges.
+var weightedMinMs = 400;          // the least a shake lasts: dice have no use for a longer one, they stop when the hand does
+var hopDelayMs = 120;            // after the lid starts to go: the lid is clear before the first die hops
+var settleGraceMs = 1800;         // after the last die has started for its cell, then everything is put there
+var lidReleaseU = 0.4;            // how far through the lid stage the dice may rise past where the lid was
 
 function initWeighted(state, board, seed, layout) {
     state.mode = 'weighted';
-    state.simAcc = 0;
-    state.simSteps = 0;
-    state.halfX = ((state.columns - 1) * layout.pitch / layout.tile + 1) / 2 + layout.slackTiles;
-    state.halfY = ((state.rows - 1) * layout.pitch / layout.tile + 1) / 2 + layout.slackTiles;
-    state.lidZ = layout.lidTiles - 0.03;              // the lid's underside
+    state.sim = layout.sim;
+    state.sim.reset(state.rows, state.columns, layout.pitch / layout.tile, layout.slackTiles, layout.lidTiles - 0.03, seed);
+    state.sim.setLid(true);
+    state.sim.setReading(0, 0, 1, 0, 0, 0, 0, 0, 0);
+    state.useQuaternion = true;
+    state.qw = new Array(state.count);
+    state.qx = new Array(state.count);
+    state.qy = new Array(state.count);
+    state.qz = new Array(state.count);
+    state.poses = [];
+    // The cell of the atlas each die shows, and the face of it that is up with
+    // the quarter turns of its letter (BoardScene gives them to the dice).
+    state.cell = [];
+    state.shown = [];
+    state.turnChanges = [];
+    state.landed = [];
     state.lastStartMs = 0;
+    state.lidReleased = false;
     state.f = [0, 0, 1];
     state.w = [0, 0, 0];
     state.alpha = [0, 0, 0];
+    state.vibe = 0;
     state.tipX = 0;
     state.tipY = 0;
-    state.vibe = 0;
-    state.hits = 0;
     for (var i = 0; i < state.count; ++i) {
-        var d = state.dice[i];
-        state.lastStartMs = Math.max(state.lastStartMs, d.startMs);
-        d.hx = d.cx / layout.tile;                    // its cell
-        d.hy = d.cy / layout.tile;
-        d.rng = random((seed | 0) * 31 + i * 7919 + 17);
-        // Dice are not alike: a little bouncier or grippier than its neighbour,
-        // which, with the knocks they give one another, is what keeps a box of
-        // dice from moving as one. At rest each is exactly on its cell.
-        d.x = d.hx;
-        d.y = d.hy;
-        d.z = 0.5;
-        d.psi = 0;
-        d.vx = 0; d.vy = 0; d.vz = 0; d.wpsi = 0;
-        d.phx = 0; d.phy = 0; d.wphx = 0; d.wphy = 0;
-        d.bounceVariety = 0.8 + 0.4 * d.rng();
-        d.gripVariety = 0.8 + 0.4 * d.rng();
-        d.grounded = true;
-        d.hop = null;           // while hopping home: where from, and how long
-        d.launchAt = -1;
-        d.done = false;
-        d.landed = false;
+        state.cell.push(i);
+        state.shown.push(-1);
+        state.landed.push(false);
+        state.lastStartMs = Math.max(state.lastStartMs, state.dice[i].startMs);
     }
+    readPoses(state);
 }
 
-// The kick a tip gets from an impact: a die rocks the way it was hit.
-function rock(d, speed, nx, ny) {
-    var amount = Math.min(1, speed / 12);
-    d.wphx += (ny * 6 + (d.rng() * 2 - 1) * 2) * amount;
-    d.wphy += (-nx * 6 + (d.rng() * 2 - 1) * 2) * amount;
-}
-
-// A contact in the plan between die a and die b (or a fixed wall, b = null) at
-// the point (px, py), the normal (nx, ny) pointing from a to b (a to the wall):
-// gives the impulse, friction and yaw that go with it, and returns the impulse.
-function contactImpulse(a, b, px, py, nx, ny, restitution, friction) {
-    var rax = px - a.x, ray = py - a.y;
-    var vax = a.vx - a.wpsi * ray, vay = a.vy + a.wpsi * rax;
-    var vbx = 0, vby = 0, rbx = 0, rby = 0;
-    if (b) {
-        rbx = px - b.x; rby = py - b.y;
-        vbx = b.vx - b.wpsi * rby; vby = b.vy + b.wpsi * rbx;
-    }
-    var rvx = vbx - vax, rvy = vby - vay;
-    var vn = rvx * nx + rvy * ny;
-    if (vn >= 0) {
-        return 0;
-    }
-    var ran = rax * ny - ray * nx;
-    var denom = 1 + inverseInertia * ran * ran;
-    var rbn = 0;
-    if (b) {
-        rbn = rbx * ny - rby * nx;
-        denom += 1 + inverseInertia * rbn * rbn;
-    }
-    var e = vn < -restThreshold ? restitution : 0;
-    var j = -(1 + e) * vn / denom;
-    a.vx -= j * nx; a.vy -= j * ny;
-    a.wpsi -= inverseInertia * ran * j;
-    if (b) {
-        b.vx += j * nx; b.vy += j * ny;
-        b.wpsi += inverseInertia * rbn * j;
-    }
-    // friction along the contact
-    var tx = -ny, ty = nx;
-    rvx = (b ? b.vx - b.wpsi * rby : 0) - (a.vx - a.wpsi * ray);
-    rvy = (b ? b.vy + b.wpsi * rbx : 0) - (a.vy + a.wpsi * rax);
-    var vt = rvx * tx + rvy * ty;
-    var rat = rax * ty - ray * tx;
-    var denomT = 1 + inverseInertia * rat * rat;
-    if (b) {
-        var rbt = rbx * ty - rby * tx;
-        denomT += 1 + inverseInertia * rbt * rbt;
-    }
-    var jt = -vt / denomT;
-    var limit = friction * j;
-    jt = Math.max(-limit, Math.min(limit, jt));
-    a.vx -= jt * tx; a.vy -= jt * ty;
-    a.wpsi -= inverseInertia * (rax * ty - ray * tx) * jt;
-    if (b) {
-        b.vx += jt * tx; b.vy += jt * ty;
-        b.wpsi += inverseInertia * (rbx * ty - rby * tx) * jt;
-    }
-    return j;
-}
-
-// One fixed step of the box's frame. state.f is the accelerometer's reading in
-// g, state.w and state.alpha the gyroscope's rate and its change.
-function stepWeighted(state) {
-    var h = simStepMs / 1000;
-    var inStage = state.clock - state.stageStart;
-    // Once the lid is lifting the device is put down: the reading fades to flat.
-    var follow = state.stage === 'shake' ? 1
-        : (state.stage === 'lid' ? 1 - smooth(inStage / lidMs) : 0);
-    var fx = state.f[0] * follow;
-    var fy = state.f[1] * follow;
-    var fz = 1 + (state.f[2] - 1) * follow;
-    var wx = state.w[0] * follow, wy = state.w[1] * follow, wz = state.w[2] * follow;
-    var alx = state.alpha[0] * follow, aly = state.alpha[1] * follow, alz = state.alpha[2] * follow;
+function readPoses(state) {
+    var p = state.sim.poses();
     var n = state.count;
-    var dampLinear = 1 - linearDamping * h;
-    var ceiling = state.stage === 'shake' ? state.lidZ - 0.5 : 1000;
-
+    var poses = new Array(7 * n);
+    for (var k = 0; k < 7 * n; ++k) {
+        poses[k] = p[k];
+    }
+    state.poses = poses;
     for (var i = 0; i < n; ++i) {
-        var d = state.dice[i];
-        if (d.hop !== null || d.done) {
-            continue;
-        }
-        // What the dice feel in the box's frame: minus what the accelerometer
-        // reads, and the pseudo-forces of the box's spin (centrifugal,
-        // Coriolis, Euler), the position taken from the middle of the box's floor.
-        var rx = d.x, ry = d.y, rz = d.z;
-        var ax = -fx * gTiles - (wy * (wx * ry - wy * rx) - wz * (wz * rx - wx * rz))
-            - 2 * (wy * d.vz - wz * d.vy) - (aly * rz - alz * ry);
-        var ay = -fy * gTiles - (wz * (wy * rz - wz * ry) - wx * (wx * ry - wy * rx))
-            - 2 * (wz * d.vx - wx * d.vz) - (alz * rx - alx * rz);
-        var az = -fz * gTiles - (wx * (wz * rx - wx * rz) - wy * (wy * rz - wz * ry))
-            - 2 * (wx * d.vy - wy * d.vx) - (alx * ry - aly * rx);
-        d.vx = (d.vx + ax * h) * dampLinear;
-        d.vy = (d.vy + ay * h) * dampLinear;
-        d.vz = (d.vz + az * h) * dampLinear;
-        d.x += d.vx * h;
-        d.y += d.vy * h;
-        d.z += d.vz * h;
-        d.psi += d.wpsi * h;
-        // the tip leans against an acceleration, and rocks from impacts
-        var leanX = Math.max(-0.25, Math.min(0.25, -ay / gTiles * 0.25));
-        var leanY = Math.max(-0.25, Math.min(0.25, ax / gTiles * 0.25));
-        d.wphx += (-tipStiffness * (d.phx - leanX) - tipDamping * d.wphx) * h;
-        d.wphy += (-tipStiffness * (d.phy - leanY) - tipDamping * d.wphy) * h;
-        d.phx += d.wphx * h;
-        d.phy += d.wphy * h;
-        d.phx = Math.max(-maxTip, Math.min(maxTip, d.phx));
-        d.phy = Math.max(-maxTip, Math.min(maxTip, d.phy));
-
-        // The floor, with friction against the weight on it.
-        var onFloor = false;
-        if (d.z <= 0.5) {
-            d.z = 0.5;
-            onFloor = true;
-            if (d.vz < 0) {
-                var impact = -d.vz;
-                if (impact > restThreshold) {
-                    d.vz = impact * restitutionFloor * d.bounceVariety;
-                    // an impact grips: some of the sliding speed goes
-                    var slideNow = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
-                    if (slideNow > 1e-6) {
-                        var lose = Math.min(slideNow, frictionFloor * d.gripVariety * (1 + restitutionFloor) * impact);
-                        d.vx *= 1 - lose / slideNow;
-                        d.vy *= 1 - lose / slideNow;
-                    }
-                    rock(d, impact, d.vx / Math.max(1, Math.sqrt(d.vx * d.vx + d.vy * d.vy)), d.vy / Math.max(1, Math.sqrt(d.vx * d.vx + d.vy * d.vy)));
-                    d.wpsi += (d.rng() * 2 - 1) * Math.min(6, impact * 0.25);
-                    state.hits += 1;
-                } else {
-                    d.vz = 0;
-                }
-            }
-            var slide = Math.sqrt(d.vx * d.vx + d.vy * d.vy);
-            if (slide > 0) {
-                var drop = frictionFloor * d.gripVariety * Math.max(0, fz) * gTiles * h;
-                var keep = slide > drop ? (slide - drop) / slide : 0;
-                d.vx *= keep;
-                d.vy *= keep;
-            }
-        }
-        // The lid, while it is on.
-        if (d.z > ceiling) {
-            d.z = ceiling;
-            if (d.vz > 0) {
-                rock(d, d.vz, 0, 0);
-                d.vz = -d.vz * restitutionLid;
-            }
-        }
-        d.wpsi *= 1 - (onFloor ? yawDampingFloor : yawDampingAir) * h;
-        d.wpsi = Math.max(-maxYawRate, Math.min(maxYawRate, d.wpsi));
-        d.grounded = onFloor;
+        state.qw[i] = poses[7 * i + 3];
+        state.qx[i] = poses[7 * i + 4];
+        state.qy[i] = poses[7 * i + 5];
+        state.qz[i] = poses[7 * i + 6];
     }
-
-    // The walls of the box, met by a die's corners.
-    wallsOf(state);
-    // Nothing moves faster than the eye can follow at 60 Hz, or turns faster.
-    for (var y = 0; y < n; ++y) {
-        var dy2 = state.dice[y];
-        dy2.wpsi = Math.max(-maxYawRate, Math.min(maxYawRate, dy2.wpsi));
-        var speed = Math.sqrt(dy2.vx * dy2.vx + dy2.vy * dy2.vy);
-        if (speed > maxSlide) {
-            dy2.vx *= maxSlide / speed;
-            dy2.vy *= maxSlide / speed;
-        }
-    }
-
-    // Dice push one another apart: in the plan by their corners, or, if one is
-    // above the other, by the height.
-    for (var pass = 0; pass < pairPasses; ++pass) {
-        for (var a = 0; a < n; ++a) {
-            var da = state.dice[a];
-            if (da.hop !== null || da.done) {
-                continue;
-            }
-            for (var b2 = a + 1; b2 < n; ++b2) {
-                var db = state.dice[b2];
-                if (db.hop !== null || db.done) {
-                    continue;
-                }
-                pairContact(state, da, db, pass === 0);
-            }
-        }
-    }
-    state.simSteps += 1;
 }
 
-// A die and the walls: each of its four sides against the box, by the corners.
-function wallsOf(state) {
+// Which face of each die is up, and how its letter has to be turned to read
+// upright: noted when it changes, so that the scene can turn it.
+function noteFaces(state) {
+    var faces = state.sim.faces();
     for (var i = 0; i < state.count; ++i) {
-        var d = state.dice[i];
-        if (d.hop !== null || d.done) {
-            continue;
-        }
-        var c = Math.cos(d.psi), s = Math.sin(d.psi);
-        var ex = 0.5 * (Math.abs(c) + Math.abs(s));
-        // The four walls, as (axis, side).
-        for (var wall = 0; wall < 4; ++wall) {
-            var horizontal = wall < 2;
-            var side = (wall & 1) ? -1 : 1;
-            var limit = horizontal ? state.halfX : state.halfY;
-            var position = horizontal ? d.x : d.y;
-            var reach = ex;                   // a rotated square's half extent is the same on both axes
-            var over = side * position + reach - limit;
-            if (over <= 0) {
-                continue;
-            }
-            // the corner that is furthest into the wall
-            var best = -1e9, cornerX = 0, cornerY = 0;
-            for (var q = 0; q < 4; ++q) {
-                var lx = (q & 1) ? 0.5 : -0.5, ly = (q & 2) ? 0.5 : -0.5;
-                var gx = c * lx - s * ly, gy = s * lx + c * ly;
-                var score = side * (horizontal ? gx : gy);
-                if (score > best) { best = score; cornerX = gx; cornerY = gy; }
-            }
-            if (horizontal) {
-                d.x -= side * over;
-            } else {
-                d.y -= side * over;
-            }
-            // the normal points from the die to the wall
-            var nx = horizontal ? side : 0, ny = horizontal ? 0 : side;
-            var speedIn = d.vx * nx + d.vy * ny;
-            if (speedIn > 0) {
-                var impulse = contactImpulse(d, null, d.x + cornerX, d.y + cornerY, nx, ny, restitutionWall, frictionWall);
-                rock(d, speedIn, nx, ny);
-                if (impulse > 0) {
-                    state.hits += 1;
-                }
-            }
+        var code = faces[3 * i] * 4 + faces[3 * i + 1];
+        if (state.shown[i] !== code) {
+            state.shown[i] = code;
+            state.turnChanges.push({ die: i, face: faces[3 * i], turns: faces[3 * i + 1] });
         }
     }
 }
 
-// Two dice: if their squares overlap in the plan and their heights overlap,
-// push them out of one another along the way that takes least, and give the
-// impulse. Dice more than a die apart in height do not touch.
-function pairContact(state, a, b, first) {
-    var dz = b.z - a.z;
-    var apart = Math.abs(dz);
-    if (apart >= 1) {
-        return;
-    }
-    var dx = b.x - a.x, dy = b.y - a.y;
-    if (dx * dx + dy * dy > 2.02) {
-        return;
-    }
-    var ca = Math.cos(a.psi), sa = Math.sin(a.psi);
-    var cb = Math.cos(b.psi), sb = Math.sin(b.psi);
-    // the four axes, each a face normal of one of the squares
-    var best = 1e9, bnx = 0, bny = 0, fromA = true;
-    for (var k = 0; k < 4; ++k) {
-        var ux, uy, owner;
-        if (k === 0) { ux = ca; uy = sa; owner = true; }
-        else if (k === 1) { ux = -sa; uy = ca; owner = true; }
-        else if (k === 2) { ux = cb; uy = sb; owner = false; }
-        else { ux = -sb; uy = cb; owner = false; }
-        var ra = 0.5 * (Math.abs(ux * ca + uy * sa) + Math.abs(-ux * sa + uy * ca));
-        var rb = 0.5 * (Math.abs(ux * cb + uy * sb) + Math.abs(-ux * sb + uy * cb));
-        var distance = dx * ux + dy * uy;
-        var depth = ra + rb - Math.abs(distance);
-        if (depth <= 0) {
-            return;
+function landedEvents(state) {
+    var faces = state.sim.faces();
+    for (var i = 0; i < state.count; ++i) {
+        if (faces[3 * i + 2] === 1 && !state.landed[i]) {
+            state.landed[i] = true;
+            state.events.push({ kind: 'landed', index: state.cell[i], pitch: state.dice[i].pitchValue });
         }
-        if (depth < best) {
-            best = depth;
-            bnx = distance >= 0 ? ux : -ux;
-            bny = distance >= 0 ? uy : -uy;
-            fromA = owner;
-        }
-    }
-    var depthZ = 1 - apart;
-    if (depthZ < best) {
-        // one sits on the other: push them apart in height
-        var upper = dz > 0 ? b : a;
-        var lower = dz > 0 ? a : b;
-        var half = depthZ * 0.5;
-        upper.z += half;
-        lower.z -= half;
-        if (lower.z < 0.5) {
-            upper.z += 0.5 - lower.z;
-            lower.z = 0.5;
-        }
-        var relative = upper.vz - lower.vz;
-        if (relative < 0) {
-            var e = relative < -restThreshold ? restitutionDie : 0;
-            var jz = -(1 + e) * relative / 2;
-            upper.vz += jz;
-            lower.vz -= jz;
-            if (lower.z <= 0.5) {
-                lower.vz = Math.max(0, lower.vz);
-            }
-        }
-        // sliding on one another: the two drag one another along
-        var tx = upper.vx - lower.vx, ty = upper.vy - lower.vy;
-        var drag = Math.min(1, frictionDie * Math.max(0, -relative) * 0.05 + 0.02);
-        upper.vx -= tx * drag; upper.vy -= ty * drag;
-        lower.vx += tx * drag; lower.vy += ty * drag;
-        return;
-    }
-    // in the plan: the point of contact is the deepest corner of the other
-    // square, taken on the side that the normal leaves from
-    var px = 0, py = 0, score = -1e9;
-    var from = fromA ? b : a;                    // the square whose corner meets the face
-    var cf = fromA ? cb : ca, sf = fromA ? sb : sa;
-    var sign = fromA ? -1 : 1;                   // toward the other square along -n or +n
-    for (var q = 0; q < 4; ++q) {
-        var lx = (q & 1) ? 0.5 : -0.5, ly = (q & 2) ? 0.5 : -0.5;
-        var gx = cf * lx - sf * ly, gy = sf * lx + cf * ly;
-        var t = sign * (gx * bnx + gy * bny);
-        if (t > score) { score = t; px = from.x + gx; py = from.y + gy; }
-    }
-    // push apart (a toward -n, b toward +n), then the impulse
-    var move = best * 0.5 * (first ? 1 : 0.6);
-    a.x -= bnx * move; a.y -= bny * move;
-    b.x += bnx * move; b.y += bny * move;
-    var impulse = contactImpulse(a, b, px, py, bnx, bny, restitutionDie, frictionDie);
-    if (impulse > 0.5) {
-        var along = Math.abs(a.vx * bnx + a.vy * bny) + Math.abs(b.vx * bnx + b.vy * bny);
-        rock(a, along * 0.5, bnx, bny);
-        rock(b, along * 0.5, -bnx, -bny);
-        state.hits += 1;
     }
 }
 
-// A die lets go of the physics and hops home: a ballistic arc from where it is
-// to its own cell, turning flat and upright on the way.
-function startHop(state, d, index) {
-    var distance = Math.sqrt((d.hx - d.x) * (d.hx - d.x) + (d.hy - d.y) * (d.hy - d.y));
-    var rise = Math.min(hopRiseFar, hopRiseNear + 0.55 * distance) * (0.9 + 0.2 * d.rng());
-    var z0 = Math.max(0.5, d.z);
-    var up = Math.sqrt(2 * rise / gTiles);
-    var down = Math.sqrt(2 * (z0 + rise - 0.5) / gTiles);
-    // yaw by the shortest way round
-    var psi = d.psi - 2 * Math.PI * Math.round(d.psi / (2 * Math.PI));
-    d.hop = {
-        t0: state.clock,
-        T: (up + down) * 1000,
-        x0: d.x, y0: d.y, z0: z0,
-        vz: gTiles * up,
-        psi0: psi, phx0: d.phx, phy0: d.phy,
-        wobble: (d.rng() * 2 - 1),
-        index: index
-    };
+// What the simulation is told the device reads, for a stretch of time.
+function feedSim(state, follow, seconds) {
+    var f = state.f;
+    var w = state.w;
+    var a = state.alpha;
+    state.sim.setReading(f[0] * follow, f[1] * follow, 1 + (f[2] - 1) * follow,
+                         w[0] * follow, w[1] * follow, w[2] * follow,
+                         a[0] * follow, a[1] * follow, a[2] * follow);
+    state.sim.advance(seconds);
 }
 
 function advanceWeighted(state, dtMs, tracker) {
     state.clock += dtMs;
     var inStage = state.clock - state.stageStart;
+    var sim = state.sim;
     if (state.stage === 'shake') {
         state.tickAccumulator += dtMs;
         if (state.tickAccumulator >= rattleTickMs) {
             state.tickAccumulator -= rattleTickMs;
             state.events.push({ kind: 'rattled' });
         }
-        if (inStage >= shakeMinMs && (tracker.level < shakeStillLevel || inStage >= shakeMaxMs)) {
+        if (inStage >= weightedMinMs && (tracker.level < shakeStillLevel || inStage >= shakeMaxMs)) {
             enter(state, 'lid');
-            // Each die hops home in the seeded order, once the lid is up.
+            // Which die is to be on which cell, by the least travel; then each
+            // starts for its cell in the seeded order, once the lid is clear.
+            var cells = sim.assignCells();
+            var delays = [];
             for (var i = 0; i < state.count; ++i) {
-                state.dice[i].launchAt = state.clock + hopDelayMs + state.dice[i].startMs;
+                state.cell[i] = cells[i];
+                delays.push((hopDelayMs + state.dice[i].startMs) / 1000);
             }
+            sim.guide(delays);
         }
     } else if (state.stage === 'lid') {
+        if (!state.lidReleased && inStage >= lidMs * lidReleaseU) {
+            state.lidReleased = true;
+            sim.setLid(false);
+        }
         if (inStage >= lidMs) {
             enter(state, 'settle');
         }
     }
-    // The samples that arrived this frame, spread over it: the physics takes
-    // each as the reading from its place in the frame to the next.
+    inStage = state.clock - state.stageStart;
+
+    // The samples that arrived this frame, each for its share of it. Once the lid
+    // is going the device is put down: the reading fades to flat.
+    var follow = state.stage === 'shake' ? 1 : (state.stage === 'lid' ? 1 - smooth(inStage / lidMs) : 0);
     var samples = tracker.queue;
     tracker.queue = [];
-    var steps = Math.max(1, Math.round((state.simAcc + dtMs) / simStepMs));
-    var done = 0;
-    state.simAcc += dtMs;
-    while (state.simAcc >= simStepMs) {
-        state.simAcc -= simStepMs;
-        done += 1;
-        if (samples.length > 0) {
-            var index = Math.min(samples.length - 1, Math.floor(done / steps * samples.length));
-            var sample = samples[index];
+    if (samples.length === 0) {
+        feedSim(state, follow, dtMs / 1000);
+    } else {
+        var share = dtMs / 1000 / samples.length;
+        for (var s = 0; s < samples.length; ++s) {
+            var sample = samples[s];
             var previousW = state.w;
             state.f = sample.f;
             state.w = sample.w;
             state.alpha = [Math.max(-100, Math.min(100, (sample.w[0] - previousW[0]) / (sampleMs / 1000))),
                            Math.max(-100, Math.min(100, (sample.w[1] - previousW[1]) / (sampleMs / 1000))),
                            Math.max(-100, Math.min(100, (sample.w[2] - previousW[2]) / (sampleMs / 1000)))];
-        }
-        for (var s = 0; s < state.count; ++s) {
-            var ds = state.dice[s];
-            if (ds.launchAt >= 0 && ds.hop === null && !ds.done && state.clock >= ds.launchAt) {
-                startHop(state, ds, s);
-            }
-        }
-        stepWeighted(state);
-    }
-    // Where the hopping dice are now: arcs, not physics.
-    var remaining = 0;
-    for (var j = 0; j < state.count; ++j) {
-        var dj = state.dice[j];
-        if (dj.done) {
-            continue;
-        }
-        remaining += 1;
-        if (dj.hop === null) {
-            continue;
-        }
-        var hop = dj.hop;
-        var tau = (state.clock - hop.t0) / 1000;
-        var T = hop.T / 1000;
-        if (tau < T) {
-            var u = smooth(tau / T);
-            dj.x = hop.x0 + (dj.hx - hop.x0) * (tau / T);
-            dj.y = hop.y0 + (dj.hy - hop.y0) * (tau / T);
-            dj.z = hop.z0 + hop.vz * tau - 0.5 * gTiles * tau * tau;
-            dj.psi = hop.psi0 * (1 - u);
-            dj.phx = hop.phx0 * (1 - u);
-            dj.phy = hop.phy0 * (1 - u);
-        } else {
-            if (!dj.landed) {
-                dj.landed = true;
-                state.events.push({ kind: 'landed', index: j, pitch: dj.pitchValue });
-            }
-            var after = (state.clock - hop.t0 - hop.T) / landingBounceMs;
-            if (after < 1) {
-                // a small rebound and a settling wobble, then it is down
-                dj.x = dj.hx; dj.y = dj.hy; dj.psi = 0;
-                dj.z = 0.5 + 0.07 * Math.sin(Math.PI * after) * (1 - after);
-                dj.phx = 0.06 * hop.wobble * Math.sin(2 * Math.PI * 1.5 * after) * (1 - after);
-                dj.phy = 0;
-            } else {
-                dj.x = dj.hx; dj.y = dj.hy; dj.z = 0.5;
-                dj.psi = 0; dj.phx = 0; dj.phy = 0;
-                dj.vx = 0; dj.vy = 0; dj.vz = 0; dj.wpsi = 0;
-                dj.done = true;
-                remaining -= 1;
-            }
+            feedSim(state, follow, share);
         }
     }
+    readPoses(state);
+    if (state.stage === 'settle' || state.stage === 'lid') {
+        noteFaces(state);
+        landedEvents(state);
+    }
+
     // What the box shows of the device: how it is held, which is gravity as the
     // reading settles to it, not each stroke (the dice answer to the strokes).
     var gv = tracker.g;
@@ -810,22 +462,16 @@ function advanceWeighted(state, dtMs, tracker) {
     state.tipX = Math.asin(Math.max(-1, Math.min(1, gv[1] / norm))) * 180 / Math.PI;
     state.tipY = Math.asin(Math.max(-1, Math.min(1, -gv[0] / norm))) * 180 / Math.PI;
     state.vibe = tracker.level;
+
     if (state.stage === 'settle' || state.stage === 'lid') {
-        if (remaining === 0) {
+        if (sim.allDone()) {
             enter(state, 'idle');
             state.events.push({ kind: 'settled' });
-        } else if (state.stage === 'settle' && state.clock - state.stageStart > state.lastStartMs + 1200) {
-            for (var k = 0; k < state.count; ++k) {
-                var e = state.dice[k];
-                e.x = e.hx; e.y = e.hy; e.z = 0.5;
-                e.psi = 0; e.phx = 0; e.phy = 0;
-                e.vx = 0; e.vy = 0; e.vz = 0; e.wpsi = 0;
-                e.hop = null; e.done = true;
-                if (!e.landed) {
-                    e.landed = true;
-                    state.events.push({ kind: 'landed', index: k, pitch: e.pitchValue });
-                }
-            }
+        } else if (state.stage === 'settle' && state.clock - state.stageStart > state.lastStartMs + settleGraceMs) {
+            sim.finish();
+            readPoses(state);
+            noteFaces(state);
+            landedEvents(state);
             enter(state, 'idle');
             state.events.push({ kind: 'settled' });
         }
@@ -835,17 +481,14 @@ function advanceWeighted(state, dtMs, tracker) {
 function evaluateWeighted(state) {
     var tile = state.tile;
     var inStage = state.clock - state.stageStart;
-    var toDegrees = 180 / Math.PI;
+    var p = state.poses;
     for (var i = 0; i < state.count; ++i) {
-        var d = state.dice[i];
-        var height = Math.max(0, d.z - 0.5);
+        var o = 7 * i;
+        var height = Math.max(0, p[o + 2] - 0.5);
         var airborne = Math.min(2, height);
-        state.px[i] = d.x * tile;
-        state.py[i] = d.y * tile;
-        state.pz[i] = d.z * tile;
-        state.rx[i] = d.phx * toDegrees;
-        state.ry[i] = d.phy * toDegrees;
-        state.rz[i] = d.psi * toDegrees;
+        state.px[i] = p[o] * tile;
+        state.py[i] = p[o + 1] * tile;
+        state.pz[i] = p[o + 2] * tile;
         state.opacity[i] = 1;
         state.shadowRadius[i] = tile * 0.47 * (1 - 0.1 * Math.min(1.5, airborne));
         state.shadowOpacity[i] = 0.34 / (1 + 1.2 * airborne);
@@ -863,7 +506,7 @@ function evaluateWeighted(state) {
     state.lidLift = tile * 0.9 * lift;
     state.lidOpacity = state.stage === 'shake' ? 1
         : (state.stage === 'lid' ? 1 - smooth((lidU - 0.55) / 0.45) : 0);
-    // The camera comes upright as the dice hop home.
+    // The camera comes upright as the dice go home.
     if (state.stage === 'shake' || state.stage === 'lid') {
         state.leanFraction = 1;
     } else if (state.stage === 'settle') {
@@ -880,6 +523,14 @@ function enter(state, name) {
 
 // A play that has already ended: the dice down, nothing moving.
 function finish(state) {
+    if (state.mode === 'weighted') {
+        state.sim.finish();
+        readPoses(state);
+        noteFaces(state);
+        for (var i = 0; i < state.count; ++i) {
+            state.landed[i] = true;
+        }
+    }
     enter(state, "idle");
     evaluate(state);
 }
@@ -1110,6 +761,27 @@ function at(board, seed, layout, ms) {
     return state;
 }
 
+// Every die's pose at every frame of a play at 60 Hz with the stand-in's shake,
+// one line a frame: the stage, then for each die x y z (pixels) and the
+// quaternion w x y z. For looking at the motion, not for the scene.
+function trace(board, seed, layout) {
+    var state = create(board, seed, layout);
+    var tracker = newTracker();
+    var rows = [];
+    for (var frame = 0; state.stage !== "idle" && frame < 1000; ++frame) {
+        advance(state, 1000 / 60, tracker);
+        evaluate(state);
+        var row = [state.stage];
+        for (var i = 0; i < state.count; ++i) {
+            row.push(state.px[i].toFixed(3), state.py[i].toFixed(3), state.pz[i].toFixed(3),
+                     state.useQuaternion ? state.qw[i].toFixed(5) : "1", state.useQuaternion ? state.qx[i].toFixed(5) : "0",
+                     state.useQuaternion ? state.qy[i].toFixed(5) : "0", state.useQuaternion ? state.qz[i].toFixed(5) : "0");
+        }
+        rows.push(row.join(" "));
+    }
+    return rows.join("\n");
+}
+
 // A checksum of every pose a board and seed produce, frame by frame at 60 Hz
 // with the device still. The same board, seed and layout give the same string.
 function digest(board, seed, layout) {
@@ -1120,7 +792,9 @@ function digest(board, seed, layout) {
         advance(state, 1000 / 60, tracker);
         evaluate(state);
         for (var i = 0; i < state.count; ++i) {
-            var values = [state.px[i], state.py[i], state.pz[i], state.rx[i], state.ry[i], state.rz[i]];
+            var values = state.useQuaternion
+                ? [state.px[i], state.py[i], state.pz[i], state.qw[i] * 100, state.qx[i] * 100, state.qy[i] * 100, state.qz[i] * 100]
+                : [state.px[i], state.py[i], state.pz[i], state.rx[i], state.ry[i], state.rz[i]];
             for (var v = 0; v < values.length; ++v) {
                 sum = Math.imul(sum ^ (Math.round(values[v] * 100) | 0), 0x01000193);
             }

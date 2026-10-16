@@ -362,7 +362,7 @@ ApplicationWindow {
             }
 
             Switch {
-                text: qsTr("Weighted")
+                text: qsTr("Simulated dice")
                 checked: window.weighted
                 onToggled: {
                     window.weighted = checked;
@@ -472,6 +472,10 @@ ApplicationWindow {
                        + "; seed 101: " + other + (other !== first ? " (differs)" : " (SAME)")
                        + "; reduced seed 100: " + reducedFirst + " then " + reducedAgain
                        + (reducedFirst === reducedAgain ? " (same)" : " (DIFFERENT)"));
+        }
+        scene.reducedMotion = false;
+        for (const seed of [100, 101, 102, 103]) {
+            stats.writeText(outDir + "/trace-" + seed + ".txt", scene.trace(makeBoard(4, 7, 2), seed));
         }
         const text = lines.join("\n") + "\n";
         console.log("DIGEST\n" + text);

@@ -30,8 +30,9 @@ platform fragment's to change, not this page's, and is left for the author.
 
 | Part | Where | What it is |
 | --- | --- | --- |
-| The scene | `src/app/prototype/shake/qml/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die sharing the `#Cube` mesh, a letter atlas, a baked light probe. Draws the poses the script gives it |
-| The script | `qml/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or a small integrator of our own (weighted). Plain JavaScript, no QML and no renderer |
+| The scene | `src/app/prototype/shake/qml/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die, a letter atlas, a baked light probe. Draws the poses the script gives it |
+| The script | `qml/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or the simulated dice. Keeps the clock, the stages, the box, the lid and the camera. Plain JavaScript, no QML and no renderer |
+| The dice | `sim/` (the `wjs_dice_world` library), `dice_sim.*`, `die_geometry.*` | Rigid cubes in a box, simulated from first principles by sequential impulses, in about 1,400 lines of plain C++ with no Qt, and two thin objects over it for QML: the simulation, and the mesh of a bevelled die whose six letters each turn a quarter turn at a time. Tested without a window by `tests/prototype/dice_world_test.cpp` |
 | The faces | `qml/FaceAtlas.qml`, `qml/Die.qml` | One texture for the board's tiles, each die sampling its own cell; a dead jewel is a cell of four facets |
 | The harness | `qml/ShakeWindow.qml`, `frame_stats.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, and the timing and measurement runs |
 | The probe | `tools/lightprobe`, `qml/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
@@ -50,7 +51,7 @@ jewel.
 | `reducedMotion` | in | The cross-fading variant of every stage |
 | `pushMotion(ax, ay, az, wx, wy, wz)` | function | One sample of the device's motion, about a hundred a second: the accelerometer's reading in g, gravity included (face up and still it reads 0, 0, 1; x right, y up the screen, z out of it), and the gyroscope's in rad/s. The dice answer to it sample for sample, and the rattle holds on, up to 3 s, while it reads as shaking. With none, a seeded stand-in shakes |
 | `settled()` | signal | Once per play, when the dice have stopped |
-| `landed(index, pitch)` | signal | A die has hit the floor: its place in the board, and a pitch for its click |
+| `landed(index, pitch)` | signal | A die has come down on its cell: its place in the board, and a pitch for its click |
 | `rattled()` | signal | The box rattles, at most 8 a second, for the haptic tap |
 | `busy`, `rows`, `columns`, `tileSize`, `tileGap`, `boardRect` | read-only | The geometry by [the rule](board.md#the-rule), for the 2D layer that traces over the scene |
 | `overdraw` | read-only | How far past its item the scene draws, on every side (half a tile), so a die tumbling at the edge and the tipping rim are not cut off. The item is still the board's area; the application must not `clip` it |
@@ -61,82 +62,161 @@ are settings of the 3D implementation and are not part of the seam. `seek(board,
 
 ### The two scripts
 
-**Weighted** (the default) and **staged** are two ways of making the same
-play, chosen by `weighted`; reduced motion is the same cross-fade in both. The
-harness has a switch for it so they can be compared in one window.
+**Simulated** (the default; the property is still called `weighted`) and
+**staged** are two ways of making the same play, chosen by `weighted`; reduced
+motion is the same cross-fade in both. The harness has a switch for it so they
+can be compared in one window.
 
 **Staged** is [the stages of the board page](board.md#the-stages) as prescribed
 curves: dice hover a tile above their cells and jitter on sine waves, then fall
 in a seeded order on a parabola with one rebound, and the camera comes upright
 over the fall.
 
-**Weighted** is the same play with the stages kept (rattle for 0.7 s or while
-the device shakes, up to 3 s; the lid; the dice go home) and the motion between
-them simulated, at a fixed 480 steps a second, in the box's own frame, from what
-the device does:
+**Simulated** is the same play with the stages kept (the shake for as long as
+the device shakes, 0.4 s at least and 3 s at most; the lid; the dice go home)
+and the dice in between simulated, from first principles, as rigid cubes in a
+box. This is the fourth version of the motion, and the first that is a
+physical model (see [What it looked like](#what-it-looked-like)).
 
-- **The input is the device's own signal.** A die's acceleration in the box is
-  *minus what the accelerometer reads*: gravity, a tilt, a shove and a jolt are
-  one thing, and a spike in the reading is a spike in the dice. The gyroscope
-  adds the centrifugal, Coriolis and Euler terms of the box's spin. That is six
-  axes, sampled about a hundred times a second, and the dice take each sample
-  as it comes, so a jerky hand is a jerky shake.
-- **A box with room in it.** The cavity is 0.6 of a tile wider than the board
-  on every side, and a lid 2.4 tiles up. A die is a square in the plan with a
-  height: it slides with friction against its weight, leaves the floor when the
-  box is thrown away from it, hits the lid and the walls, and stacks on a
-  neighbour and slides off. Dice can trade places, as real ones do.
-- **Contact is an impulse.** Where two dice, or a die and a wall, meet, the
-  corners that meet are found and each side gets an impulse along the normal and
-  friction along the face, at that point, so a corner that hits first turns the
-  die. The tip (how far it is rocked off the floor) follows its impacts through
-  a critically damped spring, so it rocks and settles and does not buzz.
-- **Real time, within what the eye can follow.** A tile is taken as 20 mm, so
-  1 g is 490 tiles a second squared and a die falls a tile in 64 ms. Nothing
-  slides faster than 30 tiles a second (half a tile a frame at 60 Hz) or turns
-  faster than 25 rad/s. (The first version slowed time to a third, which makes a
-  shake at a few hertz too quick for the dice to follow: it reads light.)
-- **Home.** When the reading goes still the lid lifts and each die, in the
-  seeded order and from wherever it has got to, hops to its own cell on an arc
-  over the others, turning flat and upright as it goes, and lands there with a
-  small rebound. The board is decided before the play, so a die that has traded
-  places in the box goes back to its own cell; there is no relabelling.
+- **Rigid cubes with mass.** A die is a cube of one tile's edge and one unit of
+  mass, so its moment of inertia is 1/6 about every axis through its centre (a
+  cube has no gyroscopic term). A tile is taken as 20 mm, so 1 g is 490.5 tiles
+  a second squared and time is real: a die falls a tile in 64 ms. Position,
+  orientation (a quaternion), velocity and angular velocity are integrated at a
+  fixed 1,200 steps a second in double precision; the scene sees 20 steps a
+  frame.
+- **The input is the device's own signal.** In the box's frame a die is
+  accelerated by *minus what the accelerometer reads*: gravity, a tilt, a shove
+  and a jolt are one thing, and a spike in the reading is a spike in the dice.
+  The gyroscope adds the centrifugal, Coriolis and Euler terms of the box's
+  turning, to the position and to the die's own spin. That is six axes, about a
+  hundred samples a second, each taken as the reading for its share of a
+  frame, so a jerky hand is a jerky shake.
+- **A box with room in it.** A floor, four walls 0.6 of a tile past the board on
+  every side, and a lid 2.42 tiles up, so a die can leave the floor, stack on
+  another and slide off, hit the lid, and tumble.
+- **Contact.** Two dice are tested on all fifteen separating axes; a face
+  against a face is clipped to up to four contact points and an edge across an
+  edge gives one. A die's eight corners are tested against each plane of the
+  box. Points within 0.03 of a tile of touching are held too, so a die cannot
+  close on a surface in one step. Each contact is solved by sequential
+  impulses: an impulse along the normal that can only push, and two friction
+  impulses held inside the cone of the normal impulse, accumulated and carried
+  to the next step for the contacts that persist (warm starting), six passes a
+  step, with what overlap is left pushed out in position alone so it adds no
+  energy. A fast impact bounces by the contact's restitution, and the closing
+  speed it is taken from is read before any carried impulse is applied. Floor
+  0.35 restitution, 0.5 friction; walls 0.30 and 0.2; lid 0.25 and 0.2; dice
+  against dice 0.40 and 0.3. **These are starting values, not measured from real
+  dice.** Each die's grip and bounce differ from the next's by up to 15%,
+  seeded, as no two real ones are alike.
+- **Home (the guide).** The physics decides how a play looks and never where a
+  die ends, because the board is decided before the play. When the reading goes
+  still, each die is given a cell (the assignment that makes the dice travel
+  least in the plan, by the Hungarian method) and shows that cell's tile from
+  then on, the lid lifts, and from a moment of its own in the seeded order each
+  die is kicked up (a hop of 0.3 to 1.0 of a tile, by how far it has to go),
+  pulled toward its cell by a spring in the plan and turned flat and square to
+  the board by a spring on its orientation, its friction nearly off. The dice
+  still collide on the way. A die held up behind others that want its place
+  (two that have to change sides, say) hops again, higher, over them. When
+  every die has been on its cell, flat and still, for 40 ms, they are put
+  exactly there and the play is over. If that has not happened 1.8 s after the
+  last die started, they are put there anyway; the slowest of 400 plays in the
+  simulation alone took 1.7 s in all, so it has not been needed.
+- **The letters.** Every face of a die carries the tile of the cell it is going
+  to, so nothing shows when the assignment is made under the lid. A die is a
+  `DieGeometry`, a cube with a small bevel whose six faces each have a
+  quarter-turn setting for the letter. Once the lid is going, the face that is
+  up has its letter turned to read upright for the way the die would lie if it
+  were squared to the board, so by the time a die is down its letter reads
+  upright, and a die that lands on a side shows the letter on that side.
 
 With no device there is a stand-in, `mockSampleAt(seed, k)`, a function of the
 seed and the sample number. It is meant to be a hand, not a signal generator:
-a burst of 0.6 to 0.9 s of strokes at three to five hertz that wanders, back
-and forth along an axis that drifts, reaching 1.2 g at the turns, with the up
-and down of the arm (to 3 g) so that dice leave the floor, a little ripple from
+a burst of 0.7 to 1.0 s of strokes at three to five hertz that wanders, back
+and forth along an axis that drifts, reaching 1.7 g at the turns, with the up
+and down of the arm (to 2 g) so that dice leave the floor, a little ripple from
 the box, small knocks now and then, noise on every sample, a slow tip of the
 device, and a twist on the gyroscope that goes with the strokes. The Shake
 button, a replay and the tests use it, so they are the same shake every time;
 a real device, or the drag in the harness, is live.
 
-It is still seeded and replays: the same board, seed and stream give the same
-checksum, because the integration is a fixed step with a generator for each
-die. It is not a physics engine and does not decide where a die lands; that is
-its cell, always.
+It is seeded and replays: the same board, seed and stream give the same
+checksum, because the step is fixed, the arithmetic is double precision, and
+the only random numbers are a generator seeded from the seed. That holds for
+one build on one machine; it is **not** promised across compilers or
+processors, whose floating-point rounding (fused multiply-add, for one) can
+differ, and a replay that has to be exact across them would need the dice
+stored, or an integer simulation.
 
-| Play (weighted) | Measured, play to `settled` | What it is |
+| Play (simulated) | Measured, play to `settled` | What it is |
 | --- | --- | --- |
-| 4x4, full motion | 1.5 to 1.7 s | A 0.6 to 0.9 s burst, about 0.2 s for the reading to go still, the lid and the hops (the lid lifts while the first dice are going) |
-| 3x3, full motion | 1.3 to 1.5 s | The same |
+| 4x4, full motion | 1.66 to 1.85 s | A 0.9 to 1.07 s shake, the 0.25 s of the lid, and 0.53 to 0.65 s for the dice to go home (the lid lifts while the first dice go) |
+| 3x3, full motion | 1.46 to 1.66 s | The same |
 | Either, reduced motion | 0.55 to 0.57 s | 0.30 rattle, 0.12 lid fade, 0.12 dice fade |
-| Rattle held at full | 3.6 to 3.8 s | A 4 s burst, cut at the 3 s limit, then the lid and the hops |
+| Rattle held at full | 3.6 to 3.9 s | A 4 s burst, cut at the 3 s limit, then the lid and the hops |
 
 (Staged: 1.97 s at 4x4 and 1.73 s at 3x3, with a 0.87 s drop.)
 
 How it moves, from the script run by itself, four seeds on the 4x4, as the
-screen at 60 Hz sees it:
+screen at 60 Hz sees it (a tile is the die's edge):
 
 | | |
 | --- | --- |
-| Shake, then the lid, then home | 0.85 to 1.0 s, then 0.25 s, then 0.5 s |
-| Two dice overlapping in the plan by more than 0.02 of a tile | 0 to 4% of solver steps; never by 0.1 |
-| Distance a die moves in a frame | median 0.01 to 0.03 of a tile, 95th percentile 0.32 to 0.42, none over 0.6 |
-| Turn in a frame | none over 0.5 rad |
-| Dice off the floor by more than 0.15 of a tile | 24 to 30% of die-frames |
-| Share of a die's movement that is faster than about 15 Hz (the buzz) | 0.5 to 1.1% |
+| Shake, then the lid, then home | 0.90 to 1.07 s, then 0.25 s, then 0.53 to 0.65 s |
+| Speed of a die, peak; 95th percentile | 41 to 48 tiles a second; 26 to 31 (the hops home are the fastest part) |
+| Distance a die moves in a frame | median 0.01 to 0.03 of a tile, 95th percentile 0.43 to 0.51, none over 0.81 |
+| Turn in a frame | 95th percentile 4.3 to 6.0 rad/s; none over 0.46 rad a frame |
+| Acceleration seen at 60 Hz (second difference), 99th percentile | 3.5 to 4.5 g |
+| Dice off the floor by more than 0.15 of a tile | 21 to 22% of die-frames; all sixteen at once at some frame in every play |
+| Highest a die's centre gets | 1.94 to 1.97 tiles (the lid is at 2.42) |
+| What an average die does in a play | 10 to 14 tiles of path; 86 to 137 degrees of turning |
+| Deepest overlap between two dice, or past a wall, over 300 plays of 4x4 and 100 of 3x3 (every 50 ms) | 0.04 of a tile between dice or into a wall; 0.025 of a tile outside the box |
+| Plays in which the dice did not all reach their cells, in the simulation alone with 0.9 s shakes from a different stand-in (the tests') | 0 of 300 (4x4) and 0 of 100 (3x3); the slowest took 1.6 and 1.7 s from the end of the shake |
+
+### The dice, checked against paper
+
+The simulation is validated by what can be worked out on paper, in
+`tests/prototype/dice_world_test.cpp` (20 cases, 1,746 checks, 2.5 s, run by
+`ctest` with the rest when the option is on), and the numbers below are what
+those cases measure, with identical dice (the 15% variety off) and no air:
+
+| Case | Paper says | The simulation gives |
+| --- | --- | --- |
+| Free fall, 0.1 s | s = g t²/2, 17.5475 tiles from 20 | 17.5271; the 0.8% of the fall is the first-order step, half of g h t |
+| The box accelerates (0.5, -0.25) g | the die goes the other way by half of 0.5 g t² | -1.2365 and 0.6182 against -1.2263 and 0.6131 |
+| A box turning at 2 rad/s, a die 3 tiles out | centrifugal: ω² r t = 0.1200 in 10 ms | 0.1200; the Coriolis term's sign and the Euler term's size are checked too |
+| A free die spinning at 3.74 rad/s for 1 s | the same spin, turned by 3.74 rad | off by less than 0.00001 rad |
+| A die dropped flat, from 2 tiles, restitution 0.35 | rebounds e² h = 0.2450 | 0.2494 (+1.8%) |
+| A die sliding from 20 tiles/s, friction 0.5 | stops after v²/(2 μ g) = 0.8155 | 0.8071 (-1.0%) |
+| A slope of 20° (tan 0.36, under the friction 0.5) | holds | moved 0.00000 in 1.5 s |
+| A slope of 35° (tan 0.70, over it) | slides g (sin a − μ cos a) t²/2 = 3.6199 in 0.3 s | 3.6302 (+0.3%) |
+| Two dice head on, 10 tiles/s, restitution 0.4 | 3.000 and 7.000 afterwards | 3.001 and 6.999; momentum 10.0000 |
+| An off-centre hit | momentum conserved, energy not made | (12.00000, 0, 0) of (12, 0, 0); 72.0 to 47.1 |
+| A stack of three dice, 2 s | stands | drift 0.0002, height error 0.0002 |
+| A die 0.3 off the centre of the one under it | stands (the centre of mass is over the support) | 0.30025, no turn |
+| A die tipped 20°, 40°, 50°, 70° on an edge, 2 s | falls flat, onto its own face below 45° and onto another above | flat to 0.003 rad, as predicted |
+| A die thrown at the lid and the walls | stays in the box | never more than 0.05 of a tile out (the check's limit) |
+| Sixteen dice shaken hard | stay in the box, out of one another | 0.04 of a tile at the deepest |
+| A replay | is the same replay | the same checksum, a different one for another shake |
+| The least-cost assignment | is the least cost | equals the best of all 720 permutations, 30 random matrices |
+| The die that is up, and its letter's turns | the letter reads upright | 60 random orientations |
+
+What this is **not**: it is not compared with a real die, a real box, or a
+real hand. It does not model a die's rounded corners (the bevel is drawn, not
+simulated), felt or board compliance, air, a shaker's walls being anything but
+rigid, or sound. The friction and bounce are plausible starting values and
+the author is the judge of whether it *feels* right.
+
+**Cost.** In plain C++ in Release on this desktop, a 4x4 play costs 1.39 ms
+of a frame on average (20 steps), 2.9 ms at the 99th percentile and 4.7 ms at
+worst, which is 69 µs a step; a 3x3 costs 0.67 ms on average. This is on the
+GUI thread, with the script, and a tablet's core is slower, so it is the first
+thing to measure on one. Four passes instead of six cost 1.08 ms in the same
+test, with the dice a little less exact (a die at rest flat to 0.011 rad and
+the deepest overlap 0.037 of a tile), and 600 steps a second would halve it
+again; neither was tried at the scene.
 
 ## How it was measured
 
@@ -145,7 +225,7 @@ screen at 60 Hz sees it:
 | Machine | Windows 11 Pro for Workstations 10.0.26200; AMD Ryzen 9 5950X (16 cores, 32 threads); NVIDIA GeForce RTX 4090 (driver 32.0.16.1742). Shared with other work, not quiesced |
 | Renderer | Qt RHI on Direct3D 11, threaded render loop, flip-model swap chain, MSAA Medium. Qt reports the window's display at 60 Hz (a vsync of 16.68 ms) |
 | Software | Qt 6.12.0 (`msvc2022_64` of the shared tree), MSVC 19.51, Release (`/O2`), QML compiled to C++ ahead of time |
-| Window | 560 x 900 logical pixels, the scene in the top two thirds. The tables are from the **staged** script, which was the only one when they were taken; the weighted one is under [the weighted script](#the-weighted-script-in-the-same-harness) |
+| Window | 560 x 900 logical pixels, the scene in the top two thirds. The tables are from the **staged** script, which was the only one when they were taken; the simulated dice are under [the simulated dice in the same harness](#the-simulated-dice-in-the-same-harness) |
 | Also tried | Qt's bundled Mesa llvmpipe through OpenGL (`QSG_RHI_BACKEND=opengl`, `QT_OPENGL=software`), as a stand-in for a device with a weak GPU; **not** a model of an iPad |
 
 Frame times are the interval between `frameSwapped` signals. The render thread's
@@ -163,7 +243,9 @@ build\windows-msvc-release\bin\ShakePrototype.exe                       # to pla
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --runs 6 --out results   # timing
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --out shots      # stills
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --frames 30 --size 720x900 --out frames   # every frame, for a video
-build\windows-msvc-release\bin\ShakePrototype.exe --auto --digest --out digest    # replay check
+build\windows-msvc-release\bin\ShakePrototype.exe --auto --digest --out digest    # replay check, and a trace of every pose
+build\windows-msvc-release\bin\wjs_dice_tests.exe                                  # the dice's physics against paper, no window
+ctest --preset windows-msvc-release                                                 # everything, with the option on
 ```
 
 ## What it cost
@@ -239,20 +321,24 @@ GPU time of a frame with 16 dice and MSAA, and the first-frame cost above.
 
 ### Replay
 
-`--auto --digest` checksums every pose of a play, frame by frame at 60 Hz with
-the device still. The same board and seed gave the same checksum twice, a
+`--auto --digest` checksums every pose of a play (the quaternions too, when the
+dice are simulated), frame by frame at 60 Hz with the device still, and writes
+the pose of every die at every frame (`trace-100.txt` and three more) for
+looking at the motion. The same board and seed gave the same checksum twice, a
 different seed a different one, and reduced motion its own:
 
 | Script | Board | Seed 100, then again | Seed 101 | Reduced, seed 100, then again |
 | --- | --- | --- | --- | --- |
 | Staged | 3x3 | `7cfdfd74`, `7cfdfd74` | `c5dc0064` | `4a2172c5`, `4a2172c5` |
 | Staged | 4x4 | `ea3b8ceb`, `ea3b8ceb` | `cd5e72f7` | `e5250505`, `e5250505` |
-| Weighted, on the stand-in stream | 3x3 | `8a6a57`, `8a6a57` | `b2bb6402` | `25436ec5`, `25436ec5` |
-| Weighted, on the stand-in stream | 4x4 | `bb86ad02`, `bb86ad02` | `ce6d71b1` | `856e1c45`, `856e1c45` |
+| Simulated, on the stand-in stream | 3x3 | `692770d0`, `692770d0` | `416b0b00` | `25436ec5`, `25436ec5` |
+| Simulated, on the stand-in stream | 4x4 | `47abc34e`, `47abc34e` | `123a126d` | `856e1c45`, `856e1c45` |
 
 A checksum is of the poses in pixels, so it is for one scene size: the staged
-rows are from the first window and the weighted from the later one (which is
-why the reduced rows, the same script in both, differ between them).
+rows are from the first window and the simulated from the later one (which is
+why the reduced rows, the same script in both, differ between them). The
+simulated rows are for this build on this machine, as [above](#the-two-scripts)
+says.
 
 Moving the script out of the scene file into `ShakeScript.js` left the stills
 identical, pixel for pixel but one pixel one level off. What the checksum does
@@ -323,14 +409,23 @@ either). This is a limit of that Mesa and not of CPU renderers in general
 prefiltered at run time can stop the scene drawing where the GL is old, and a
 file cannot. The baked probe ran on it as above.
 
-### The weighted script in the same harness
+### The simulated dice in the same harness
 
-Direct3D 11, the baked probe, four plays of each case after the first: 2,978
-frames, the longest interval 23 ms (two frames of 20 and 23 ms, in a held
-shake), and the render thread's mean is 0.35 to 0.6 ms a frame, the same as
-staged. The simulation (8 steps a frame, 16 dice, pair tests only between dice
-within a die and a half of each other) does not show in the frame times.
-Checksums for replay are in [Replay](#replay).
+Direct3D 11, the baked probe, three processes of six plays of each case, each
+process's first play left out: 12,962 frames. The longest interval was 26.0 ms
+(two intervals were over 25 ms in all: that one, in a 4x4 play, and a 25.2 ms
+one in a reduced-motion play; none was over 33 ms), and the render thread's
+mean is 0.41 to 0.67 ms a frame, with a worst frame of 3.0 ms: the same as
+staged. (The display ran at 10 to 12 ms in these runs and 16.7 ms in the tables
+above: the [two cadences](#two-cadences).) Making the scene took 3.4 to 4.3 ms
+and its first frame 230 to 276 ms after that, as before.
+
+The simulation does not show in those numbers, because it runs on the GUI
+thread, ahead of the frame, and they are the render thread's. Its own cost is
+under [the two scripts](#the-two-scripts): 1.39 ms of a frame on average for a
+4x4 play, and the whole prototype, playing, uses 10 to 25% of one core and 1 to
+3% of the GPU's 3D engine on this machine, and idle it uses under 1% of a core
+and none of the GPU. Checksums for replay are in [Replay](#replay).
 
 ## What it looked like
 
@@ -362,27 +457,50 @@ that rang, and the box itself shivered with every stroke. Hence the dice in a
 box with room, contact as impulses, a hand with no spikes, a tip that does not
 ring, and a still box.
 
-![The weighted shake, 4x4, straight down: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
+The fourth look, at the dice in a box with room: **it still did not model
+the dice rolling about in the volume.** The author's words: the dice should
+roll about in the box when it is shaken, and the answer is to model it from
+first principles, with the weights, the mass and the inertia of real dice. The
+squares in the plan, however well their contacts were handled, could slide and
+turn and never roll, tip over an edge, land on a side or tumble in three
+dimensions, and the hop home was a scripted arc. Hence the rigid cubes of
+[the two scripts](#the-two-scripts), checked against what can be worked out on
+paper before they were put in the scene.
+
+(The author also said the desktop became laggy while this was being tested and
+demonstrated. The scene is not what did it: playing, it uses 10 to 25% of one
+core and 1 to 3% of the GPU's 3D engine, and idle it uses nothing. It was the
+builds, the test runs and the stills and videos, which used every core. They
+now run at below-normal priority and with at most eight jobs.)
+
+![The simulated shake, 4x4, straight down: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
 
 Stills at fixed times of one board (`--auto --shots`), so they are the same on
 every run. They were read from stills by whoever built the scene, not by a
-child, and nobody has yet watched the weighted motion: that is the author's to
+child, and nobody has yet watched the simulated motion: that is the author's to
 judge by running it. **Nothing plays `landed`, and sound is much of what makes
 a die feel heavy:** Qt Multimedia is not in the shared tree, so the prototype
 is silent, and the feel is judged without it.
 
-- **Weighted, straight down (above).** The dice jostle in a box with room, in
-  a stream of small slides, turns and knocks, with some of them off the floor
-  (bigger, and with their shadows moved away from them) (350 to 1000 ms); then
-  the lid goes, and each die hops from wherever it has got to to its own cell,
-  the dice that had traded places crossing over the others on the way, and
-  lands with a small rebound (1150 to 1650 ms). Height is shown only by size
-  and by the shadow, because the camera is straight down.
-- **Faults.** Dice are squares in the plan and never rolled over, so what shows
-  of a tumble is a turn and a rock; the hop home is a clean arc and is the
-  most scripted-looking part; two dice can cross for a moment in the air on the
-  way home; the dead jewel is a cube with four facets painted on, which looks
-  wrong from the side; and nothing is heard.
+- **Simulated, straight down (above).** The dice start in their cells; in
+  the first third of a second they are shoved, begin to turn, and some tip up
+  on an edge (350 ms); the box tips with the device and the whole pack slides
+  against the low side, with dice stacked on one another and tilted, and a
+  layer of them rising toward the lid and coming down (800 to 1150 ms); then
+  the lid goes, and each die in turn is kicked up and slides and tumbles across
+  to its own cell, over and between the others, turning flat as it goes, and
+  comes down square to the board (1300 to 1650 ms). Height is shown by size
+  (the camera is 2.2 board-widths away) and by the shadow.
+- **Faults.** The hops home are the most scripted-looking part: the guide is a
+  spring and a kick, and a die hopping over others can look like a spring
+  toy; all sixteen rise together in a vertical stroke, because in the box's
+  frame the same acceleration pushes every die the same way, and the balance
+  of up and sideways in the stand-in is a guess; a die's bevel is drawn, not
+  simulated, so a corner meeting a corner is a sharp one; the dead jewel is a
+  cube with four facets painted on, which looks wrong from the side; the top
+  of the stack reaches the camera's size at the lid (a die at the lid is a
+  third bigger) and can overlap the controls in the harness; and nothing is
+  heard.
 
 Staged, leaning 24 degrees, for comparison:
 
@@ -405,13 +523,18 @@ What a 2D `BoardScene` has to keep:
    type, so the contract is the list and a test that loads either file and
    checks it. The build picks the file (two files, one type name, chosen in
    CMake), not a preprocessor test.
-2. **The same script.** `ShakeScript.js` has no renderer in it: `create`,
-   `advance` and `evaluate` give each die's position, three angles, opacity and
-   shadow, and the box, lid and camera. A 2D scene draws that: `px`, `py` as
-   `x`, `y`; `pz` as `scale` and the shadow's size and opacity; `rz` as
-   `rotation`; `rx` and `ry` dropped, or a skew; the lid as a rectangle that
-   fades. Then a replay is the same, the landing order and the clicks are the
-   same, and `digest()` is the same string in both.
+2. **The same script, and the same dice.** `ShakeScript.js` has no renderer
+   in it: `create`, `advance` and `evaluate` give each die's position and
+   orientation (three angles when staged, a quaternion when simulated), its
+   opacity and shadow, which cell's tile it shows (`cell`) and which faces are
+   to be turned (`turnChanges`, for the 3D mesh), and the box, lid and camera.
+   The simulated dice are plain C++ with no Qt (`wjs_dice_world`), so a 2D scene
+   uses the same simulation. It draws `px`, `py` as `x`, `y`; `pz` as `scale`
+   and the shadow's size and opacity; the yaw (`rz` when staged, the heading of
+   the quaternion when simulated) as `rotation`; the tilt dropped, or a skew;
+   the tile of `cell`; the lid as a rectangle that fades. Then a replay is the
+   same, the landing order and the clicks are the same, and `digest()` is the
+   same string in both.
 3. **The same geometry.** `boardRect`, `tileSize` and `tileGap` by the same
    rule, and a die at rest exactly on its tile, since the tile layer, the path
    and the panel are 2D in both and do not move.
@@ -425,11 +548,13 @@ What a 2D `BoardScene` has to keep:
    of every stage, 0.54 s in all.
 
 What it does not carry: `lean`, `probeMode`, `cameraDistance`, `warmUp`, and
-the 3D-only files (`Die.qml`, `FaceAtlas.qml`, the probe). It loses the lit
-solid and the true tumble about the horizontal axes; the stages and their
-durations are the same. The weighted script is a shared part, not a 3D one: a
-2D scene draws the same positions, yaw, heights (as scale and shadow) and
-events from it.
+the 3D-only files (`Die.qml`, `DieGeometry`, `FaceAtlas.qml`, the probe). It
+loses the lit solid and the sight of a die rolling over; the stages and their
+durations are the same. The simulation is a shared part, not a 3D one: a 2D
+scene draws the same positions, yaw, heights (as scale and shadow) and events
+from it, and its dice still collide, stack and tumble where nobody can see them
+turn over, which is a strange thing to pay for, so a 2D scene may well prefer
+the staged script and give up the physics too.
 
 ### What changed in the seam
 
@@ -453,6 +578,13 @@ built on it:
   any device. The next step is a build for iOS (the shared tree has no kit) and
   Qt's GPU timestamps on the device.
 - Power and heat, memory beyond what is noted, and a second desktop GPU.
+- Whether the simulated dice *feel* right. The friction and the bounce are
+  plausible starting values and were not compared with real dice, a real box
+  or a real hand; the physics was checked against what can be worked out on
+  paper ([above](#the-dice-checked-against-paper)) and nothing else.
+- The simulation's cost on a tablet's core (1.39 ms of a frame on average on
+  this desktop, 2.9 ms at the 99th percentile), and its replays on another
+  compiler or processor, which are not promised to match.
 - A real accelerometer and gyroscope. The scene takes samples; what has been
   fed to it is the seeded stand-in and a mouse (a pointer path differentiated
   twice), and a person's hand on the drag is unjudged ([above](#the-drag)).
