@@ -50,6 +50,22 @@ parent, they hold base forms only (no plurals), and a word can be in more than
 one category (`star` is in `nature` and `shapes`). Nothing in the program reads
 them yet; the [roadmap](../docs/roadmap.md) (M2) says how they are to be used.
 
+## `dice/`: the standard board's dice
+
+| | |
+| --- | --- |
+| What | The dice of a standard board: `3x3.txt`, `4x4.txt`, `5x5.txt` and `6x6.txt`, one die a line, six faces a die |
+| Made by | `tools/data/make_dice.ps1`, from the letter counts of `dictionaries/en.txt` (the method is in each file's header) |
+| Source | `dictionaries/en.txt`, SHA-256 `3F16130220645692ED49C7134E24A18504C2CA55B3C012F7290E3E77C63B1A89`, recorded in each file |
+| Seed | Recorded in each file; each size has its own |
+| Terms | The project's own work, from a list recorded above as public domain. They are not any product's distribution of letters |
+
+The tool can be run again and `tools/data/make_dice.ps1 -Check` (the `data.dice`
+test) says whether a file is what it makes from the dictionary as it is now, so
+a changed dictionary shows as stale dice. The faces of a set the family owns are
+not here: in the scanner mode they are read from the table, and the app does not
+mix letters there.
+
 ## `phonics/`: phase data (none yet)
 
 Where the phonics phases are to go: `phase-<x>.graphemes.txt` and

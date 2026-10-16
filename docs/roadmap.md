@@ -34,6 +34,7 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | CI, repository rules, documentation | Running; rulesets applied and enforced | First CI run green (12 checks); branch-name rule verified by a rejected push. The `main` and `develop` protections are applied but not exercised |
 | Touch UI, dice, shake, tracing, audio, rewards | Not started | |
 | Path validation and shake detection (the library parts of M1) | Done, **on synthetic data**: `validate_path`, `detect_shakes` | Catch2 cases. The detector's thresholds are starting values that have to be tuned on a device |
+| Dice for the standard board: a set model, a roll, the project's own dice for 3x3 to 6x6 | Done | Catch2 cases, `data.dice`, boards of 300 rolls a size solved against the dictionary |
 | Phonics machinery: phase-file reader and checker, review gate, seeding, grapheme binder | Done, **on test data**. No phase file exists, and none may be added without a reviewer (G7) | Catch2 cases, `data.phonics` and `data.phonics.checker`, the gate exercised on a release build. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
 | Child-appropriate lexicon and hints | Not started | |
 | Camera scan | Not started | |
@@ -105,8 +106,10 @@ it, and collect a jewel.
   certificate and profile. Qt's iOS kit for 6.12.0 has to be installed in CI
   (its availability for 6.12 is **unverified**; the labs notes say to check each
   host and module with `aqt list-qt` and a real install before bumping).
-- Dice model, shake detection, `validate_path`, with unit tests. Shake
-  detection and `validate_path` are done; the dice model is not.
+- Dice model, shake detection, `validate_path`, with unit tests. All three are
+  done: the dice model reads a set of dice and rolls a board (`wjs::roll`), and
+  the project's own dice for 3x3 to 6x6 are in `data/dice`, made from the
+  dictionary's letter counts.
 - Touch tracing with generous tolerance, tested on a real tablet with small
   fingers (the one thing no unit test can settle).
 - Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.

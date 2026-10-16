@@ -123,6 +123,10 @@ The six questions this page first asked, and what was done.
 | 8 | May a phonics phase be planted only with 3-letter words? | Yes. They are letters, not sounds, so a word such as `the` or `cow` (a digraph and a letter) is one | `max_target_letters = 3` is in `phonics_board_options` |
 | 9 | May a phonics board have letters outside the phase on it? | Yes | The guided fill prefers the phase's letters and uses others only where a letter of the phase would make too many words; no dead jewels |
 | 10 | Should the performance pages name the board mode each budget is for? | Yes | [Performance](performance.md) has a table of what each board mode solves against and loads, and labels the seeding rows |
+| 11 | May the brief (12.4, 12.5) and the roadmap's MVP paragraph be amended? | Yes | Section 12.7 of the brief; 12.4 and 12.5 point at it; the roadmap's MVP paragraph and M1 list say it |
+| 12 | The standard board's word list? | The full dictionary, as it is (ENABLE). Block lists, and a child-appropriate cut, later, after the MVP | Nothing to build: the standard board solves against `data/dictionaries/en.txt`. The risk is below |
+| 13 | May the project make its own dice from the dictionary's letter counts? | Yes. The faces of a set the author owns are for the scanner mode, where the board is physical and the app does not mix letters | `tools/data/make_dice.ps1` and `data/dice/3x3` to `6x6`; the model and the roll |
+| 14 | The standard board's sizes in the MVP? | 3x3 to 6x6 | The dice exist for all four; the library takes them |
 
 ## The guided fill, tried (question 3)
 
@@ -175,36 +179,47 @@ What follows from it, and what the library already does:
   makes a standard board the MVP's default, so both lines are out of date. They
   have not been edited, as the brief is the author's text.
 
-## What the standard board needs, and is not built
+## Accepted risk: the full dictionary and what a child is shown
+
+With the full dictionary as the standard board's word list, a word a child traces
+is a word if the dictionary has it, and it is shown and said. The dictionary has
+entries no child should meet (the brief names three), and the design had avoided
+this by curating the lists. The author has put block lists, and a
+child-appropriate cut, after the MVP, so the MVP, a private build, shows what the
+dictionary holds. It stays the gate to wider use (roadmap G2). Two consequences
+for the design: the "real, not today's" cue of [Game](game.md) has nothing to do
+on the standard board, where every real word counts; and no block list means no
+word is withheld, not that none is unsuitable.
+
+## What the standard board needed, and what is built
 
 The library has the solver, the path check, the shake detector and the scanner's
-seam (`Board::parse`). A standard board needs three things it does not have, and
-all three are now MVP scope, where the design put them after it:
+seam (`Board::parse`). A standard board needed three things, all MVP scope now,
+where the design put them after it. After the author's answers:
 
-1. **A dice model.** Boards of 3x3 to 6x6 from dice, with a `Qu` face. The design
-   recommended dice made by this project from the dictionary's letter counts
-   (`data/dice/<n>x<n>.txt`, its source and seed in the header), because the
-   faces of a printed set are a legal question and a list found online has no
-   origin. That recommendation has not been put to the author.
-2. **The standard board's word list.** The brief's 12.1 and 12.5 have the
-   child's words as a hand-filtered phase index. A standard board has no phase.
-   The candidates are the child-facing lists in `data/lexicon` (a core tier and
-   ten categories, 689 words, unreviewed) and the full dictionary behind a block
-   list. This decides the load time and memory (see the performance note), what a
-   child is told about a word they trace, and how many words a 4x4 holds that
-   count (measured: 31 on a 3x3 and 120 on a 4x4 of any dictionary word).
-3. **The size range.** The brief gives the MVP 3x3 and 4x4 and the rest after it.
-   The author's account is 3x3 to 6x6. Whether the MVP's standard board offers
-   all four sizes is not said.
+1. **A dice model: built.** `wjs::DiceSet` and `wjs::roll`, and the project's own
+   dice for 3x3 to 6x6 in `data/dice`, made by `tools/data/make_dice.ps1` from
+   the dictionary's letter counts, as the design recommended, with the source
+   hash, the method and the seed in each header. Boards from them hold about the
+   words a random board does (30, 105, 254 and 471 on average). No `QU` tile
+   appeared in 1,000 boards of any size; a rule to carry one is not written.
+2. **The standard board's word list: the full dictionary**, decided. The
+   dictionary's load is on the standard board's path (the performance note), and
+   the risk is above.
+3. **The size range: 3x3 to 6x6**, decided; the dice exist for all four.
 
-## Questions for the author (open)
+## Open
 
-| # | Question | Default |
-| --- | --- | --- |
-| 11 | **Brief 12.4 and 12.5 and the roadmap's MVP paragraph.** May they be amended to say the MVP's board is the standard board by default, with the phonics board as the parent's switch, and the open-dictionary line moved out of "left out"? | Not edited |
-| 12 | **The standard board's word list.** The child-facing lexicon, or the full dictionary behind a block list? Neither has been reviewed for a 5-year-old | Not chosen; nothing reads either |
-| 13 | **Dice.** May the project make its own dice from the dictionary's letter counts, as the design recommends, rather than use the faces of a set the author owns? | Not built |
-| 14 | **Sizes.** Does the MVP's standard board offer 3x3 to 6x6, or 3x3 and 4x4 as the brief says? | The library takes any size to 16 |
+Nothing of the author's is waiting on this page. What is not built:
+
+- **The standard board's play**: the touch tracing, the tray and the stars on a
+  dice board are application work, as for the phonics board; the library has
+  what they call.
+- **A `QU` face** in the dice, if the author wants one in every set (the real game
+  has one): a rule in `make_dice.ps1`.
+- **Block lists and a child-appropriate cut** of the dictionary: after the MVP,
+  and the gate to wider use.
+- **The literacy review** of the phonics board's content, as before.
 
 ## What was measured
 

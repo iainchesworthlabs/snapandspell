@@ -28,7 +28,8 @@ build/windows-msvc-debug/bin/wjs_unit_tests --list-tests
 build/windows-msvc-debug/bin/wjs_unit_tests "[solver]"
 ```
 
-The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`,
+The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dice]`
+(and `[data]` for the cases that read the shipped data),
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
 `[shake]`, `[platform]` and `[profiling]`, and `[app]` in `wjs_app_tests`.
 
@@ -46,6 +47,8 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`,
 | `tests/unit/grapheme_binder_test.cpp` | `wjs::GraphemeBinder` | The brief's `R [AI] N`, order, longest first, greedy from the left, blocks that are whole tiles (`Qu`), single letters ignored, a block growing as the path does, every path of up to four tiles covered in order |
 | `tests/unit/shake_test.cpp` | `wjs::detect_shakes` | Synthetic traces: a shake, one still, a gentle wave, walking, a knock, turning over, a slow tilt, two shakes, a pause, sample rates and jitter, units, a harder threshold, damaged samples |
 | `tests/unit/profiling_test.cpp` | `wjs/profiling.hpp` | That the variant CMake chose is the one it was asked for, that every call can be made with no profiler connected, and that a zone cannot be copied or moved |
+| `tests/unit/dice_test.cpp` | `wjs::DiceSet`, `wjs::roll` | The file format (a face of several letters, commas, comments, a byte-order mark), each way a set is refused, a roll using each die once and showing one of its faces, a function of the seed, two boards pinned so a change of compiler shows, every face shown over many rolls |
+| `tests/unit/dice_data_test.cpp` | The shipped dice, `data/dice` | Each size has the dice for its board and six different faces to a die with a vowel among them; 300 boards a size rolled and solved against the dictionary hold about the words a random board does; two boards pinned. Reads the shipped files by their path in the checkout, as the performance tier does |
 | `tests/unit/paths_test.cpp` | `wjs::platform::executable_path` | That it names the running test program: absolute, an existing file, called `wjs_unit_tests` |
 | `tests/app/solver_model_test.cpp` | The window's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
 | `tests/perf/` | The solver and the word list, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
@@ -54,6 +57,7 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`,
 | `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
 | `tools/checks/check_platform_isolation.ps1` | The source tree | See below: `platform.isolation` |
 | `tools/data/check_wordlists.ps1` | `data/dictionaries` and `data/lexicon` | `data.wordlists`: lowercase a-z, sorted, unique, and every lexicon word in the dictionary |
+| `tools/data/make_dice.ps1 -Check` | `data/dice` | `data.dice`: each file is what the tool makes from the dictionary as it is, so the recorded source hash and the dice both match |
 | `tools/data/check_phonics.ps1` | `data/phonics` | See below: `data.phonics` |
 | `tools/data/test_check_phonics.ps1` | The phonics checker itself | See below: `data.phonics.checker` |
 
@@ -368,6 +372,27 @@ dead jewels, as before.
 What it does not settle: the proxies are sizes, not a proposed index; and a
 tablet, where the 5x5 and 6x6 times are three to five times these.
 
+## The dice: what was measured
+
+The project's dice (`data/dice`) were checked by rolling each size 1,000 times
+(seeds 1 to 1,000) and solving every board against the dictionary, once, with a
+throw-away program; `dice_data_test.cpp` holds the same to loose bounds on 300
+boards a size. One Windows 11 desktop, Release.
+
+| Board | Words a board holds, mean | 10th / 50th / 90th percentile | Boards with no word | Vowels (A E I O U) among tiles |
+| --- | --- | --- | --- | --- |
+| 3x3 | 30 | 7 / 26 / 58 | 3.3% | 30% |
+| 4x4 | 105 | 41 / 98 / 182 | 0.3% | 29% |
+| 5x5 | 254 | 137 / 243 / 389 | 0% | 40% |
+| 6x6 | 471 | 291 / 458 / 669 | 0% | 38% |
+
+These are about what the design measured for boards of letters drawn by the
+dictionary's letter counts (31, 120, 254 and 435), which the dice are made from.
+A `QU` tile did not appear in 1,000 boards of any size: with six different
+letters dealt by count, Q is dealt about once in 1,000 faces, so no set of the
+four has one. The model takes a `QU` face and the tool shows a Q as one; whether
+a set should be made to carry one is a rule the tool does not yet have.
+
 ## Sanitizers, warnings and Debug
 
 Debug builds run the tests under AddressSanitizer (and UBSan on GCC and Clang),
@@ -392,8 +417,9 @@ fix a number here.
 - Name each `TEST_CASE` as a sentence that says what is true, and give it a
   tag. The name is what CTest shows.
 - A test that needs a file writes it to the system's temporary directory and
-  removes it, as `dictionary_test.cpp` does. No test reads a real word list:
-  tests build their dictionaries from a few words in the test itself.
+  removes it, as `dictionary_test.cpp` does. No test reads a real word list
+  but the ones about the shipped data themselves (`[data]`, and the performance
+  tier): the rest build their dictionaries from a few words in the test itself.
 - A test must not need a camera, a network or a word list that is not in the
   tree.
 - A change in behaviour comes with the test that shows it; a bug fix with the

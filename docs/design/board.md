@@ -54,9 +54,13 @@ alternatives are on [Phonics](phonics.md#seeding). What this page needs from it:
   board can be replayed and tested.
 - The animation is given a finished board (below).
 
-### Dice (after the MVP)
+### Dice (the standard board, in the MVP: decided 2026-10-16)
 
-For the open dictionary, boards come from dice, as in the physical game.
+The standard board, the MVP's default, comes from dice, as in the physical game.
+The author chose the third source below, the project's own dice, and
+`tools/data/make_dice.ps1` and `data/dice` are built. The faces of a set the
+author owns are for the scanner mode, where a physical board is on the table and
+the app reads it with OCR and does not mix letters.
 
 | Source | What it is | Standing |
 | --- | --- | --- |

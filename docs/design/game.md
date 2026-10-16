@@ -12,7 +12,11 @@ working.
 > [Phonics](phonics.md) is a parent's switch. Where this page says "Mode B
 > boards are seeded", it means the phonics board; a standard board is a roll of
 > dice and holds as many words as it holds. The two game modes (alone, with
-> others) are separate from the two board modes.
+> others) are separate from the two board modes. The standard board solves
+> against the full dictionary, with no block list in the MVP (a decision of the
+> author; see [MVP library](mvp-library.md)), so every dictionary word of three
+> letters or more counts there and the "real, not today's" cue below is the
+> phonics board's.
 
 ## What the first release plays
 

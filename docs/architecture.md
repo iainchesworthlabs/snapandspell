@@ -10,12 +10,13 @@ end and in the [roadmap](roadmap.md).
 ```text
 src/
   lib/                 wjs:: the game logic. GUI-free and OS-free
-    include/wjs/         board.hpp  dictionary.hpp  scoring.hpp  solver.hpp
+    include/wjs/         board.hpp  dice.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp
                          solver_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
-    src/                 board.cpp  dictionary.cpp  scoring.cpp  solver.cpp
+    src/                 board.cpp  dice.cpp  draw.hpp (internal)  dictionary.cpp
+                         scoring.cpp  solver.cpp
                          path.cpp  phase_data.cpp  seeding.cpp
                          grapheme_binder.cpp  shake.cpp
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
@@ -36,7 +37,8 @@ cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        Tracy.cmake, FindQt6.cmake
 tests/                 unit/  app/  platform/  perf/  profiling/
 tools/checks/          check_platform_isolation.ps1
-tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test
+tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
+                       make_dice.ps1
 tools/hooks/, policy/  git hooks and the commit and PR text rule
 ```
 
@@ -154,6 +156,25 @@ the tiles spell, upper-case, a two-letter tile such as `Qu` adding both letters;
 otherwise a `PathError` (`empty`, `off_board`, `repeated_tile`, `not_adjacent`)
 for the first fault. `are_neighbours` is the one-step question, for a touch
 handler that asks it a tile at a time.
+
+### Dice
+
+`DiceSet` is a set of dice, each with faces of one to three letters (the Boggle
+`Qu` face is the tile `QU`), read from a text file, one die a line (`parse`,
+`load`, `load_file`). `roll(dice, seed)` shakes them onto a square board: the
+dice are put in a random order, a die to a tile, and each shows one face. It is a
+pure function of the set and the seed, with the library's own `Draw`
+(`std::mt19937` taken modulo, and a shuffle that is not `std::shuffle`), so a seed
+is the same board on every compiler. The set must hold a square number of dice, so
+the 3x3 is its own set and not a window on the 4x4.
+
+The library holds no set. The project's are `data/dice/<n>x<n>.txt` for 3x3 to
+6x6, made by `tools/data/make_dice.ps1` from the dictionary's letter counts: six
+different letters to a die dealt in proportion to the counts, a vowel on each, a
+Q shown as `QU`, a seed to each size, and the source's hash and the method in the
+header ([Data](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/data/README.md)).
+`data.dice` holds the files to what the tool makes. The faces of a printed set are
+not used: in the scanner mode the board is read from the table.
 
 ### Phase data
 
