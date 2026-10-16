@@ -4,8 +4,13 @@ include(Catch)
 add_executable(wjs_unit_tests
     unit/board_test.cpp
     unit/dictionary_test.cpp
+    unit/grapheme_binder_test.cpp
+    unit/path_test.cpp
     unit/paths_test.cpp
+    unit/phase_data_test.cpp
     unit/scoring_test.cpp
+    unit/shake_test.cpp
+    unit/seeding_test.cpp
     unit/solver_test.cpp)
 
 target_link_libraries(wjs_unit_tests
@@ -64,6 +69,25 @@ if(WJS_PWSH)
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/check_wordlists.ps1"
             -Root "${PROJECT_SOURCE_DIR}")
+
+    # The phonics data under data/phonics, and the checker that reads it. There
+    # is none yet: the files have to be written and reviewed by a person
+    # qualified to do it. With the review gate on (a release configuration),
+    # a file without its review header fails here as well as in the build.
+    set(WJS_PHONICS_CHECK_ARGS "")
+    if(WJS_REQUIRE_REVIEWED_PHONICS)
+        list(APPEND WJS_PHONICS_CHECK_ARGS -RequireReviewed)
+    endif()
+    add_test(NAME data.phonics
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${PROJECT_SOURCE_DIR}/tools/data/check_phonics.ps1"
+            -Root "${PROJECT_SOURCE_DIR}" ${WJS_PHONICS_CHECK_ARGS})
+
+    # The checker held to a table of cases on throw-away data: the review gate
+    # must refuse what it should, so the gate itself is tested.
+    add_test(NAME data.phonics.checker
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${PROJECT_SOURCE_DIR}/tools/data/test_check_phonics.ps1")
 
     add_test(NAME platform.isolation
         COMMAND "${WJS_PWSH}" -NoProfile -File
