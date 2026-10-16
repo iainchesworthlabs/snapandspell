@@ -16,8 +16,13 @@ qt_add_qml_module(wjs_app
         solver_model.cpp
         solver_model.hpp)
 
+# The parent area: the gate, the dashboard and the settings, a module of its own
+# (src/app/parent) for the screen shell to show when a parent asks.
+add_subdirectory(parent)
+
 target_link_libraries(wjs_app
     PRIVATE
+        wjs_parentplugin
         wjs::lib
         wjs::platform
         Qt6::Core

@@ -3,18 +3,23 @@ include(Catch)
 
 add_executable(wjs_unit_tests
     unit/board_test.cpp
+    unit/calendar_test.cpp
+    unit/dashboard_test.cpp
     unit/dice_data_test.cpp
     unit/dice_test.cpp
     unit/dictionary_test.cpp
     unit/grapheme_binder_test.cpp
+    unit/parent_gate_test.cpp
     unit/path_test.cpp
     unit/paths_test.cpp
     unit/phase_data_test.cpp
     unit/profiling_test.cpp
     unit/scoring_test.cpp
+    unit/settings_test.cpp
     unit/shake_test.cpp
     unit/seeding_test.cpp
-    unit/solver_test.cpp)
+    unit/solver_test.cpp
+    unit/store_test.cpp)
 
 # Whether the profiling calls are meant to have Tracy behind them in this
 # build: the option CMake was given, passed in as a value (profiling_test.cpp).
@@ -105,10 +110,16 @@ catch_discover_tests(wjs_perf_tests DISCOVERY_MODE PRE_TEST ADD_TAGS_AS_LABELS
 # when the application is.
 if(WJS_BUILD_APP)
     add_executable(wjs_app_tests
+        app/parent_controller_test.cpp
+        app/parent_ui/demo_data.cpp
         app/solver_model_test.cpp
+        "${PROJECT_SOURCE_DIR}/src/app/parent/parent_controller.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solver_model.cpp")
     set_target_properties(wjs_app_tests PROPERTIES AUTOMOC ON)
-    target_include_directories(wjs_app_tests PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
+    target_include_directories(wjs_app_tests PRIVATE
+        "${PROJECT_SOURCE_DIR}/src/app"
+        "${PROJECT_SOURCE_DIR}/src/app/parent"
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/parent_ui")
     target_link_libraries(wjs_app_tests
         PRIVATE
             wjs::lib
@@ -123,6 +134,43 @@ if(WJS_BUILD_APP)
     # Qt's DLLs have to be beside the binary before catch_discover_tests runs it.
     wjs_platform_deploy_qt_runtime(wjs_app_tests "")
     catch_discover_tests(wjs_app_tests)
+
+    # The parent area's screens in a stub shell (app/parent_ui): a program to
+    # look at them with, and, with --check, a test that walks the gate, the
+    # dashboard, the settings and the about page without a display, checks what
+    # they say, and fails on any warning from QML. Not part of the application.
+    qt_policy(SET QTP0001 NEW)
+    qt_add_executable(wjs_parent_preview
+        app/parent_ui/demo_data.cpp
+        app/parent_ui/preview_main.cpp)
+    set_target_properties(wjs_parent_preview PROPERTIES AUTOMOC ON)
+    set_source_files_properties(app/parent_ui/PreviewHost.qml PROPERTIES QT_RESOURCE_ALIAS PreviewHost.qml)
+    qt_add_qml_module(wjs_parent_preview
+        URI ParentPreview
+        VERSION 1.0
+        QML_FILES app/parent_ui/PreviewHost.qml)
+    # A console program, so that the check's findings reach the test log.
+    set_target_properties(wjs_parent_preview PROPERTIES WIN32_EXECUTABLE OFF)
+    target_include_directories(wjs_parent_preview PRIVATE "${PROJECT_SOURCE_DIR}/src/app/parent")
+    target_link_libraries(wjs_parent_preview
+        PRIVATE
+            wjs_parentplugin
+            wjs::lib
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Qml
+            Qt6::Quick
+            wjs::warnings
+            wjs::sanitizers
+            wjs::coverage)
+    wjs_deploy_sanitizer_runtime(wjs_parent_preview)
+    wjs_platform_deploy_qt_runtime(wjs_parent_preview "${CMAKE_CURRENT_SOURCE_DIR}/app/parent_ui")
+
+    add_test(NAME parent.screens
+        COMMAND wjs_parent_preview --check --out "${CMAKE_CURRENT_BINARY_DIR}/parent-screens")
+    set_tests_properties(parent.screens PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
+        TIMEOUT 180)
 endif()
 
 # Every platform fragment satisfies the platform contract, on whichever host
@@ -146,6 +194,36 @@ add_test(NAME profiling.zone_names
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_zone_names.cmake")
+
+# The privacy rules of the first release that the source can say whether they
+# hold (docs/design/application.md, "Privacy, built in and checked"): no audio
+# captured, no network used, nothing exported, one file written and only by the
+# store. Runs on every host and in every CI leg, since it only reads the tree.
+add_test(NAME privacy.sources
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/privacy/check_sources.cmake")
+
+# The scan held to a table of cases on throw-away trees, so that a pattern that
+# stopped matching is a failure and not a pass.
+add_test(NAME privacy.sources.selftest
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/privacy"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/privacy/test_check_sources.cmake")
+
+# The sentences of the parent area are in one file and are the design's, with
+# none of the words an assessment, a grade or a gap is made of
+# (docs/design/dashboard.md, "Wording"), and the check held to cases of its own.
+add_test(NAME parent.wording
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/parent/check_wording.cmake")
+add_test(NAME parent.wording.selftest
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/parent-wording"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/parent/test_check_wording.cmake")
 
 # No preprocessor conditionals or defines, no OS headers outside the platform
 # section, no OS tests in CMake outside the selector. CI runs it as its own job

@@ -8,6 +8,9 @@ set(WJS_PLATFORM_QT_SEARCH_ROOTS
     "$ENV{HOME}/Qt" "/opt/Qt" "/usr/lib/qt6" "/usr/lib/x86_64-linux-gnu/qt6")
 set(WJS_PLATFORM_QT_ARCH_DIRS gcc_64)
 
+# The offscreen platform plugin takes its fonts from fontconfig.
+set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
+
 set(WJS_PLATFORM_SOURCES
     linux/paths_linux.cpp
     posix/console_posix.cpp)

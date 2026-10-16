@@ -8,6 +8,9 @@ set(WJS_PLATFORM_QT_SEARCH_ROOTS
     "$ENV{HOME}/Qt" "/opt/Qt" "/usr/local/opt/qt6" "/opt/homebrew/opt/qt6")
 set(WJS_PLATFORM_QT_ARCH_DIRS macos clang_64)
 
+# The offscreen platform plugin takes its fonts from the system's.
+set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
+
 set(WJS_PLATFORM_SOURCES
     macos/paths_macos.cpp
     posix/console_posix.cpp)
