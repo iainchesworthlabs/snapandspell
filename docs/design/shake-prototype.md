@@ -71,9 +71,9 @@ in a seeded order on a parabola with one rebound, and the camera comes upright
 over the fall.
 
 **Weighted** is the same play with the stages kept (rattle for 0.7 s or while
-the device shakes, up to 3 s; the lid; the dice slot in, in the seeded order)
-and the motion between them simulated, at a fixed 480 steps a second, in the
-box's own frame, from what the device does:
+the device shakes, up to 3 s; the lid; the dice go home) and the motion between
+them simulated, at a fixed 480 steps a second, in the box's own frame, from what
+the device does:
 
 - **The input is the device's own signal.** A die's acceleration in the box is
   *minus what the accelerometer reads*: gravity, a tilt, a shove and a jolt are
@@ -81,29 +81,36 @@ box's own frame, from what the device does:
   adds the centrifugal, Coriolis and Euler terms of the box's spin. That is six
   axes, sampled about a hundred times a second, and the dice take each sample
   as it comes, so a jerky hand is a jerky shake.
-- **Inertia, contact and spin.** A die slides on the floor with friction
-  against its weight, leaves it when the box is thrown away from it, hits the
-  lid, the walls of its pocket (a fifth of a tile either way, so it can bump a
-  neighbour and cannot trade places with one) and the dice next to it, and
-  spins by a seeded amount, more the harder it hit. It flops flat on the floor
-  within a tenth of a second.
-- **Real time.** A tile is taken as 20 mm, so 1 g is 490 tiles a second squared
-  and a die falls a tile in 64 ms. (The first version slowed time to a third,
-  which makes a shake at a few hertz too quick for the dice to follow: it
-  reads light.)
-- **Slotting in.** Once the lid is off, a spring funnels each die into its
-  cell, the first dice of the seeded order first (30 ms apart), and the yaw
-  springs back to upright. Everything is at rest when the springs and bounces
-  have died away, with a hard limit 0.7 s after the last die began, and then it
-  is exactly on its cell.
+- **A box with room in it.** The cavity is 0.6 of a tile wider than the board
+  on every side, and a lid 2.4 tiles up. A die is a square in the plan with a
+  height: it slides with friction against its weight, leaves the floor when the
+  box is thrown away from it, hits the lid and the walls, and stacks on a
+  neighbour and slides off. Dice can trade places, as real ones do.
+- **Contact is an impulse.** Where two dice, or a die and a wall, meet, the
+  corners that meet are found and each side gets an impulse along the normal and
+  friction along the face, at that point, so a corner that hits first turns the
+  die. The tip (how far it is rocked off the floor) follows its impacts through
+  a critically damped spring, so it rocks and settles and does not buzz.
+- **Real time, within what the eye can follow.** A tile is taken as 20 mm, so
+  1 g is 490 tiles a second squared and a die falls a tile in 64 ms. Nothing
+  slides faster than 30 tiles a second (half a tile a frame at 60 Hz) or turns
+  faster than 25 rad/s. (The first version slowed time to a third, which makes a
+  shake at a few hertz too quick for the dice to follow: it reads light.)
+- **Home.** When the reading goes still the lid lifts and each die, in the
+  seeded order and from wherever it has got to, hops to its own cell on an arc
+  over the others, turning flat and upright as it goes, and lands there with a
+  small rebound. The board is decided before the play, so a die that has traded
+  places in the box goes back to its own cell; there is no relabelling.
 
 With no device there is a stand-in, `mockSampleAt(seed, k)`, a function of the
-seed and the sample number: a burst of 0.7 to 1.0 s of strokes at four to six
-hertz on all three axes, with a third harmonic so the turnarounds are sharp,
-spikes of 0.8 to 2.2 g on one sample, noise on every sample, a slow tip of the
+seed and the sample number. It is meant to be a hand, not a signal generator:
+a burst of 0.6 to 0.9 s of strokes at three to five hertz that wanders, back
+and forth along an axis that drifts, reaching 1.2 g at the turns, with the up
+and down of the arm (to 3 g) so that dice leave the floor, a little ripple from
+the box, small knocks now and then, noise on every sample, a slow tip of the
 device, and a twist on the gyroscope that goes with the strokes. The Shake
-button, a replay and the tests use it, so they are the same shake every time; a
-real device, or the drag in the harness, is live.
+button, a replay and the tests use it, so they are the same shake every time;
+a real device, or the drag in the harness, is live.
 
 It is still seeded and replays: the same board, seed and stream give the same
 checksum, because the integration is a fixed step with a generator for each
@@ -112,14 +119,24 @@ its cell, always.
 
 | Play (weighted) | Measured, play to `settled` | What it is |
 | --- | --- | --- |
-| 4x4, full motion | 2.2 to 2.3 s | A 0.7 to 1.0 s burst, the box held until the reading is still (0.3 s), 0.25 lid, 0.9 slotting in |
-| 3x3, full motion | 2.3 to 2.5 s | The same |
-| Either, reduced motion | 0.56 s | 0.30 rattle, 0.12 lid fade, 0.12 dice fade |
-| Rattle held at full | 4.1 to 4.2 s | A 4 s burst, cut at the 3 s limit, then the lid and the slot |
+| 4x4, full motion | 1.5 to 1.7 s | A 0.6 to 0.9 s burst, about 0.2 s for the reading to go still, the lid and the hops (the lid lifts while the first dice are going) |
+| 3x3, full motion | 1.3 to 1.5 s | The same |
+| Either, reduced motion | 0.55 to 0.57 s | 0.30 rattle, 0.12 lid fade, 0.12 dice fade |
+| Rattle held at full | 3.6 to 3.8 s | A 4 s burst, cut at the 3 s limit, then the lid and the hops |
 
-(Staged: 1.97 s at 4x4 and 1.73 s at 3x3, with a 0.87 s drop. The weighted play
-is longer because it is a shake of a real length followed by a slot, and the
-board page's 1.7 s was for the drop alone, after the shake.)
+(Staged: 1.97 s at 4x4 and 1.73 s at 3x3, with a 0.87 s drop.)
+
+How it moves, from the script run by itself, four seeds on the 4x4, as the
+screen at 60 Hz sees it:
+
+| | |
+| --- | --- |
+| Shake, then the lid, then home | 0.85 to 1.0 s, then 0.25 s, then 0.5 s |
+| Two dice overlapping in the plan by more than 0.02 of a tile | 0 to 4% of solver steps; never by 0.1 |
+| Distance a die moves in a frame | median 0.01 to 0.03 of a tile, 95th percentile 0.32 to 0.42, none over 0.6 |
+| Turn in a frame | none over 0.5 rad |
+| Dice off the floor by more than 0.15 of a tile | 24 to 30% of die-frames |
+| Share of a die's movement that is faster than about 15 Hz (the buzz) | 0.5 to 1.1% |
 
 ## How it was measured
 
@@ -230,8 +247,8 @@ different seed a different one, and reduced motion its own:
 | --- | --- | --- | --- | --- |
 | Staged | 3x3 | `7cfdfd74`, `7cfdfd74` | `c5dc0064` | `4a2172c5`, `4a2172c5` |
 | Staged | 4x4 | `ea3b8ceb`, `ea3b8ceb` | `cd5e72f7` | `e5250505`, `e5250505` |
-| Weighted, on the stand-in stream | 3x3 | `62cd6fea`, `62cd6fea` | `5ddbfde1` | `25436ec5`, `25436ec5` |
-| Weighted, on the stand-in stream | 4x4 | `421ea932`, `421ea932` | `59fa7ead` | `856e1c45`, `856e1c45` |
+| Weighted, on the stand-in stream | 3x3 | `8a6a57`, `8a6a57` | `b2bb6402` | `25436ec5`, `25436ec5` |
+| Weighted, on the stand-in stream | 4x4 | `bb86ad02`, `bb86ad02` | `ce6d71b1` | `856e1c45`, `856e1c45` |
 
 A checksum is of the poses in pixels, so it is for one scene size: the staged
 rows are from the first window and the weighted from the later one (which is
@@ -256,8 +273,9 @@ to go when the hand does, and are held for as long as it keeps shaking, up to
 
 One measured play sent the window a scripted back-and-forth pointer path for
 two seconds (`dragBetween`, so the pointer path through the scene is exercised
-without a hand): the peak of the hand's shaking read 4.4 g, the play was 3.3 s,
-and the longest interval was 21 ms. How it *feels* in a hand is unjudged.
+without a hand): the hand's shaking peaked at 5.9 g, which is a mouse being
+swept across the board and not a hand holding a device, the play was 1.7 s, and
+the longest interval was 17 ms. How it *feels* in a hand is unjudged.
 
 ### The light probe
 
@@ -307,11 +325,12 @@ file cannot. The baked probe ran on it as above.
 
 ### The weighted script in the same harness
 
-Direct3D 11, the baked probe, four plays of each case after the first: 4,262
-frames, the longest interval 21.1 ms, and the render thread's mean is 0.4 to
-0.6 ms a frame, the same as staged. The integrator (8 steps a frame, 16 dice,
-120 pair tests a step) does not show in the frame times. Checksums for replay
-are in [Replay](#replay).
+Direct3D 11, the baked probe, four plays of each case after the first: 2,978
+frames, the longest interval 23 ms (two frames of 20 and 23 ms, in a held
+shake), and the render thread's mean is 0.35 to 0.6 ms a frame, the same as
+staged. The simulation (8 steps a frame, 16 dice, pair tests only between dice
+within a die and a half of each other) does not show in the frame times.
+Checksums for replay are in [Replay](#replay).
 
 ## What it looked like
 
@@ -330,6 +349,19 @@ against one another as that stream pushes them. Hence the input is now the
 device's own signal (six axes, a hundred samples a second), and the dice are
 simulated in the box's frame from it.
 
+The third look, at the version with the dice in pockets and spikes in the
+stand-in stream: **not good.** It shook for too long. It did not have the
+smoothness of real dice answering a sharp shake: it had a small, acute
+vibration, the dice were not free to move about the box (a real one is a
+volume, the dice move through it in three dimensions, fall back by gravity into
+their slots, and sometimes want a tap to seat), and the stand-in data may have
+been poor. What was wrong, found by measuring and not guessing: the dice
+buzzed against walls only a fifth of a tile away, the stream had single-sample
+spikes of up to 2 g that were each a shock, the tip was an underdamped spring
+that rang, and the box itself shivered with every stroke. Hence the dice in a
+box with room, contact as impulses, a hand with no spikes, a tip that does not
+ring, and a still box.
+
 ![The weighted shake, 4x4, straight down: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
 
 Stills at fixed times of one board (`--auto --shots`), so they are the same on
@@ -339,14 +371,18 @@ judge by running it. **Nothing plays `landed`, and sound is much of what makes
 a die feel heavy:** Qt Multimedia is not in the shared tree, so the prototype
 is silent, and the feel is judged without it.
 
-- **Weighted, straight down (above).** Dice slide, turn and bump (350 to
-  1000 ms) in a box with a visible rim, then slot into their cells in a seeded
-  order with the last stragglers turning upright (1150 to 1650 ms). Height is
-  shown only by size and shadow, because the camera is straight down.
-- **Faults.** Dice are discs to each other and squares to the eye, so corners
-  cross for a moment when two are turned; the dead jewel is a cube with four
-  facets painted on, which looks wrong from the side; and the rebound is a
-  fixed fraction, so every die lands about alike.
+- **Weighted, straight down (above).** The dice jostle in a box with room, in
+  a stream of small slides, turns and knocks, with some of them off the floor
+  (bigger, and with their shadows moved away from them) (350 to 1000 ms); then
+  the lid goes, and each die hops from wherever it has got to to its own cell,
+  the dice that had traded places crossing over the others on the way, and
+  lands with a small rebound (1150 to 1650 ms). Height is shown only by size
+  and by the shadow, because the camera is straight down.
+- **Faults.** Dice are squares in the plan and never rolled over, so what shows
+  of a tumble is a turn and a rock; the hop home is a clean arc and is the
+  most scripted-looking part; two dice can cross for a moment in the air on the
+  way home; the dead jewel is a cube with four facets painted on, which looks
+  wrong from the side; and nothing is heard.
 
 Staged, leaning 24 degrees, for comparison:
 
