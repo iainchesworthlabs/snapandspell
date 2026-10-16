@@ -11,7 +11,11 @@ set(WJS_PLATFORM_QT_ARCH_DIRS msvc2022_64 msvc2019_64)
 # finds none of its own on Windows.
 set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "QT_QPA_FONTDIR=$ENV{SystemRoot}/Fonts")
 
+# detail/ is what no platform differs in: no camera backend yet, and the portable
+# board reader (docs/design/scanner.md).
 set(WJS_PLATFORM_SOURCES
+    detail/board_reader_portable.cpp
+    detail/camera_unavailable.cpp
     windows/console_windows.cpp
     windows/paths_windows.cpp)
 

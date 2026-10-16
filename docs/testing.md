@@ -1,12 +1,13 @@
 # Testing
 
 The tests are Catch2 unit tests for the library, the platform layer and (when
-the Qt window is built) its model, a performance tier with its own binary, and
-checks about the build and the data itself. They run in CI on Windows (MSVC),
-Linux (GCC) and macOS (AppleClang), 159 tests each, of which the eight of the
-performance tier skip themselves in a Debug build (see
-[Performance tests](#performance-tests)); the Qt model tests run only where the
-window is built, which is Windows so far.
+the Qt window is built) its model, the scanner with a synthetic corpus, a
+performance tier with its own binary, and checks about the build and the data
+itself. They run in CI on Windows (MSVC), Linux (GCC) and macOS (AppleClang), 352
+tests each, of which the 23 of the performance tier and the five that hold the
+scanner to its accuracy target skip themselves in a Debug build (see
+[Performance tests](#performance-tests) and [The scanner](#the-scanner)); the Qt
+model tests run only where the window is built, which is Windows so far.
 
 ## Running them
 
@@ -27,6 +28,10 @@ unit-test program directly, with Catch2's own filters:
 build/windows-msvc-debug/bin/wjs_unit_tests --list-tests
 build/windows-msvc-debug/bin/wjs_unit_tests "[solver]"
 ```
+
+The scanner's tests are their own binary, `wjs_scan_tests`, tagged `[scan]` (with
+`[geometry]`, `[image]`, `[finder]`, `[font]`, `[glyph]`, `[reader]`, `[draft]`,
+`[platform]`, `[corpus]` and `[smoke]`); see [The scanner](#the-scanner).
 
 The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dice]`
 (and `[data]` for the cases that read the shipped data),
@@ -73,7 +78,9 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 | `tests/app/parent_ui/` | The parent area's screens | `parent.screens`: see below |
 | `tests/privacy/` | The source tree | `privacy.sources` and `privacy.sources.selftest`: see below |
 | `tests/parent/` | `ParentWording.qml` | `parent.wording` and `parent.wording.selftest`: see below |
-| `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
+| `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, and the scanner's work, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
+| `tests/scan/` | The scanner, the camera and `board_reader` interfaces and the synthetic corpus, as `wjs_scan_tests` | See below: [The scanner](#the-scanner) |
+| `tests/scan/check_privacy.cmake` | The scanner's sources and the camera and `board_reader` files | `scan.privacy`, `scan.privacy.catches_a_leak`: see [The scanner](#the-scanner) |
 | `tests/profiling/check_presets.cmake` | `CMakePresets.json`, `vcpkg.json`, `cmake/Tracy.cmake` | See below: `profiling.shipped_presets` |
 | `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `src/` | See below: `profiling.zone_names` |
 | `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
@@ -299,6 +306,8 @@ The same boards on every machine, compiler and standard library:
 | `session.seedings.max.<n>x<n>`, `session.empty.<n>x<n>`, `session.words.total.<n>x<n>` | At most 5 (the cap), exactly 0 (no board is dealt with no word), exactly 522 and 476 (the corpus, the phase and the seeding pinned together) |
 | `session.play.solves.<n>x<n>`, `session.play.visits.<n>x<n>`, `session.restore.solves.<n>x<n>` | Exactly 0, 0 and 100: tracing, asking for the help, recording and saving make no solve, and a restore makes one |
 | The session digest | Exactly. An FNV-1a digest of every deal (seedings, tries, solves, words, range), the kind of every trace, and the snapshots after the first find and at rest |
+| `scan.*` | Reading four fixed synthetic frames: the reads, boards answered and the pixels of the frames and working pictures are exact (they pin the corpus); the warped pixels, blobs, die candidates, cells read, template comparisons and pixel buffers are a quarter above (`wjs/scan/work.hpp`) (reading seeds and solves nothing, so these rows carry the default, standard, board mode) |
+| `time.read.4x4`, `time.read.6x6` | Opt-in, as the other wall-time rows: one read of a frame against the heavy calibration, budgets seven to eight times the measurement |
 
 Every metric is for one **board mode**, and the report and a failure say which.
 The standard board is the default mode; the phonics board is a parent's switch,
@@ -350,6 +359,65 @@ compiles warning-free.
 A short run of `wjs-cli` is over before a profiler attaches; the tier's binary
 runs for seconds, which makes it a good thing to capture:
 [Profiling](profiling.md#capturing-a-trace).
+
+## The scanner
+
+`wjs_scan_tests` is a binary of its own, linked against `wjs::scan`, `wjs::lib`,
+`wjs::platform` and the synthetic corpus (`wjs_scan_synth`), so that the corpus and its
+renderer stay out of `wjs_unit_tests` and the scanner can be built and run alone
+([Scanner design](design/scanner.md) is the page about what it holds and why).
+
+| Test file | What it holds down |
+| --- | --- |
+| `scan_geometry_test.cpp` | Hulls, the four-sided outline of a convex shape (a rounded rectangle reduces to the rectangle's corners; a triangle to nothing), which corner is first, the projective map and its inverse and the cases where none exists |
+| `scan_image_test.cpp` | When a frame is valid; luma of every pixel format, in either byte order and with a stride; shrinking, sampling, blurring; the local threshold (a smooth gradient is bright nowhere inside the picture); blobs (4-connected, area, hull, a hole not counting); the buffer count |
+| `scan_glyph_test.cpp` | The stroke font (26 letters and Qu, each in its box) and the glyph reader on a drawn die, no board and no perturbation: every glyph at every quarter turn and at awkward angles, the turn found, a lighter or heavier hand, no ink where there is none, a gradient of light |
+| `scan_finder_test.cpp` | The board found at its true corners in a frame of each condition; a bright rectangle a die's size and a pitch from the board not taken for part of it; the cells counted from the comb for 4, 5 and 6; what the finder knows narrowing the count; the centres of the dice found from their gaps; which corner is first; nothing found in a blank frame, a gradient or a room with a sheet of paper |
+| `scan_reader_test.cpp` | `read_board` end to end: the board that was drawn, the same picture as RGBA and with a padded stride, determinism, a given size, the doubt thresholds, a given glyph height, each error, a lattice of blank dice, and the counts a read keeps |
+| `scan_confirmation_test.cpp` | `BoardDraft`: from a reading, the doubted and unfilled tiles in order, a correction kept upper-case, each refused letter, accepting, clearing, a quarter turn each way and four of them, a corrected size, a typed-in grid, `confirm()`; the whole flow from a reading to the words on the board; and `static_assert`s that a `BoardReading` cannot become a `Board` |
+| `scan_platform_test.cpp` | The `camera` and `board_reader` interfaces held to their contract with no platform named: not capturing at start, an unlisted camera cannot be started, each error has words, and the portable reader is the library's reader unchanged |
+| `scan_corpus_test.cpp` | The accuracy target (below), and a smoke subset |
+
+```sh
+ctest --preset windows-msvc-release -R scan              # the scanner's tests, the corpus included
+build/windows-msvc-release/bin/wjs_scan_tests "[smoke]"  # the subset that runs in Debug too
+build/windows-msvc-release/bin/wjs_scan_tests "[.scan-report]"   # what the corpus measures now
+```
+
+**The target** is five numbers a condition (the board found, correct, silent errors,
+flagged, offered) over the synthetic **test** split: four conditions of 24 boards each,
+and 21 frames with no board. It runs in an optimised build only (the Release `Performance`
+leg of CI runs it on every push); a Debug build with the sanitizers **skips** those five
+cases, as the performance tier skips, and runs a smoke subset (a board of each condition,
+a frame with no board of each kind) so the pipeline runs clean under ASan. The limits are
+`kTargets` in `scan_corpus_test.cpp`; they move only with a reason written beside them in
+the design note, and never to turn a red run green.
+
+The corpus is the same frames on every machine: `std::mt19937` taken modulo, a seed from
+the condition, the split, the size and the index. Two splits: **tuning**, which the
+reader is developed against and the doubt thresholds are chosen on, and **test**, which
+is held to the target. The hidden cases are the tools (they assert nothing, and read the
+tuning split unless `WJS_SCAN_SPLIT=test` is set):
+
+| Case | Prints |
+| --- | --- |
+| `[.scan-report]` | The five numbers of each condition, and what drawing and reading the frames cost |
+| `[.scan-tune]` | For each bound on silent errors, the least doubt that stays under it: where to choose the thresholds |
+| `[.scan-confusions]` | Each wrong tile as truth -> read, how often each true letter is right, and why a frame was not read |
+| `[.scan-oracle]` | The glyph step alone, given the true corners and centres: what it gets right when the geometry is perfect |
+| `[.scan-negatives]` | How many frames with no board were answered with an error |
+| `[.recorded]` | The same numbers over real frames kept outside the repository, from `WJS_SCAN_RECORDED_DIR` (grey PGMs with a `.txt` truth beside each). Skips when unset, and **has not been run on anything** |
+
+`wjs_scan_render --out <directory>` writes the corpus as PNG files with the truth beside
+each, and `--sheet <file.png>` a contact sheet, to look at. **Recorded camera frames are
+never committed** (`.gitignore`, [Licensing](licensing.md#camera-input-and-letter-recognition)).
+
+**`scan.privacy`** runs `tests/scan/check_privacy.cmake`: the scanner's sources and the
+camera and `board_reader` files of every platform may not include a file or stream
+header, use a file class or API, capture audio or use a network class (a frame is never
+written, nothing is recorded, nothing is sent). `scan.privacy.catches_a_leak` runs it on a
+fixture tree whose one file opens an `ofstream` and expects it to fail. Both only read
+source, so they run on every host.
 
 ## Phonics data: the checker and the review gate
 
@@ -559,7 +627,8 @@ fix a number here.
 
 ## Adding a test
 
-- Put the file in `tests/unit/` (library and platform interface), `tests/app/`
+- Put the file in `tests/unit/` (library and platform interface), `tests/scan/`
+  (the scanner and its interfaces), `tests/app/`
   (the window's model) or `tests/platform/` (a case only one platform can run),
   and add it to the executable's source list in `tests/CMakeLists.txt`. The
   lists are explicit, not globbed.
@@ -584,6 +653,10 @@ fix a number here.
   sends it input: the screens were run on a Windows desktop and driven with the
   mouse and the keyboard by hand, at four window shapes, and that is all. Nothing
   was run on a touch screen, a tablet or a phone, or on Linux or macOS.
+- **The scanner on anything real.** No frame from a camera, no real dice, no iPad,
+  no light that was not drawn: every number is on synthetic frames
+  ([Scanner design](design/scanner.md#what-this-does-not-prove)). The iOS camera and
+  reader do not exist.
 - **The console code on Linux and macOS.** It does nothing there (a POSIX
   terminal already carries UTF-8), so there is nothing to observe. The path code
   is covered by `paths_test` in CI on both.

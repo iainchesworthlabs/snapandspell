@@ -47,6 +47,10 @@ wjs_deploy_sanitizer_runtime(wjs_unit_tests)
 
 catch_discover_tests(wjs_unit_tests)
 
+# The scanner: its library, the camera and board_reader interfaces, and the
+# synthetic corpus that holds it to its accuracy target.
+add_subdirectory(scan)
+
 # --- Performance tests: work budgets and a few relative timings -------------
 # wjs_perf_tests holds the tier that fails a change that makes the solver
 # meaningfully more expensive, the way a unit test fails a change that makes it
@@ -54,7 +58,8 @@ catch_discover_tests(wjs_unit_tests)
 # nodes), exact on every machine, and wall-time checks against a calibration
 # workload that only run on request. Its own binary so that it can be built and
 # run alone and so that nothing else's static state or allocator churn is in
-# the way of a stopwatch. wjs::lib only: no Qt and no platform layer.
+# the way of a stopwatch. wjs::lib and the scanner (with its synthetic corpus,
+# tests/scan/synth): no Qt and no platform layer.
 # docs/testing.md, "Performance tests".
 add_executable(wjs_perf_tests
     perf/corpus.cpp
@@ -68,6 +73,7 @@ add_executable(wjs_perf_tests
 target_link_libraries(wjs_perf_tests
     PRIVATE
         wjs::lib
+        wjs_scan_synth
         wjs::warnings
         wjs::sanitizers
         wjs::coverage

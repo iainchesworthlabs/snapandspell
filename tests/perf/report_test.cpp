@@ -59,6 +59,9 @@ void print_timing() {
     print_metrics(
         "timing: PHONICS BOARD, one deal of a session board against the calibration workload",
         wjs::perf::session_timing_metrics());
+
+    print_metrics("timing: reading a frame (one read against the heavy calibration workload)",
+                  wjs::perf::scan_timing_metrics());
     // The two calibrations on their own, so that a ratio can be read back into
     // milliseconds.
     for (const wjs::perf::Weight weight : {wjs::perf::Weight::light, wjs::perf::Weight::heavy}) {
@@ -82,6 +85,8 @@ TEST_CASE("report: what every metric measures now", "[.perf-report]") {
                   wjs::perf::random_board_metrics());
     print_metrics("boards built to hold many words, and boards with none",
                   wjs::perf::special_board_metrics());
+    print_metrics("the scanner: what reading four synthetic frames does",
+                  wjs::perf::scan_metrics());
     std::cout << std::format("\ndigest of every solution over the corpus: {} (kCorpusDigest)\n",
                              wjs::perf::corpus_digest());
     print_metrics(

@@ -259,4 +259,38 @@ inline constexpr int kSolvesPerRun = 50;
 inline constexpr int kDealsPerRun = 5;
 inline constexpr int kDealRuns = 9;
 
+// ---------------------------------------------------------------------------
+// The scanner, counted (wjs/scan/work.hpp)
+// ---------------------------------------------------------------------------
+
+// Reading four fixed synthetic frames (a 4x4, a 5x5, a 6x6, a 4x4 under glare,
+// metrics.cpp). The reads, and every one answering with a board, and the pixels of
+// the frames and of the working pictures, are exact: they pin the corpus. The rest
+// are what a read does, a quarter above what each measured (rounded up to three
+// significant figures), and are not exact because a decision at the edge of a
+// threshold (which look found the board, which height fitted best) can differ by a
+// compiler's last digit; a change that reads each cell at four times the angles, or
+// allocates a buffer a row, is a factor and not a few percent.
+inline constexpr std::uint64_t kScanReads = 4;
+inline constexpr std::uint64_t kScanFramePixels = 4ULL * 960 * 720;
+inline constexpr std::uint64_t kScanWorkingPixels = 4ULL * 480 * 360;
+// Beside each, what it measured (MSVC 19.51, /O2): the warped pixels are the board at
+// 480 x 480 and each of five looks for it at 240 x 240; the blobs are every bright
+// connected set the five looks found, and the dice candidates the die-shaped ones.
+inline constexpr std::uint64_t kScanWarpPixels = 2'600'000;  // measured 2,073,600
+inline constexpr std::uint64_t kScanBlobs = 3'240;           // measured 2,589
+inline constexpr std::uint64_t kScanDiceCandidates = 619;    // measured 495
+inline constexpr std::uint64_t kScanCellsRead = 323;         // measured 258
+inline constexpr std::uint64_t kScanComparisons = 418'000;   // measured 334,368
+inline constexpr std::uint64_t kScanBuffers = 125;           // measured 100
+inline constexpr std::uint64_t kScanBuffersMax = 32;         // measured 25
+
+// One read of a 4x4 and of a 6x6 frame, against the heavy calibration (a read walks
+// several pictures, none of which stays in cache). Measured 0.36 to 0.44 (45 to 50 ms)
+// and 0.46 to 0.55 (61 to 69 ms) against 102 to 150 ms, three runs, on the desktop
+// above; each budget is seven to eight times what it measures.
+inline constexpr TimeBudget kScanRead4Time = {3.0};
+inline constexpr TimeBudget kScanRead6Time = {4.0};
+inline constexpr int kScanRuns = 7;
+
 }  // namespace wjs::perf::budget

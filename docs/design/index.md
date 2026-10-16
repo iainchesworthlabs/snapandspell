@@ -35,6 +35,7 @@ not removed.
 | [Application](application.md) | Screens, touch targets, type and school fonts, colour, motion, accessibility, sound, privacy built in and checked, Qt modules |
 | [Dashboard](dashboard.md) | The parent area: the gate, what is shown and how it is worded, settings, what is deferred |
 | [The parent area as built](parent-area.md) | The store, the gate, the dashboard's numbers, the screens and the privacy checks as built: the choices made, what each test holds, what is for the reviewer, what is not verified |
+| [Scanner](scanner.md) | Mode A's board reader: the library, the confirm-and-correct model, the camera and reader interfaces, the accuracy target and the synthetic corpus, what was measured, and what the iPad still has to do |
 | [Performance](performance.md) | Budgets, the Tracy zones, the macro-free route, the performance tier |
 | [Path](path.md) | The route from the MVP to the full product across several releases, and what the MVP must leave open |
 | [Layouts](layouts.svg) | The two-thirds / one-third arrangement at four window shapes, to scale |

@@ -69,5 +69,6 @@ nav:
       - Application: design/application.md
       - Parent dashboard: design/dashboard.md
       - The parent area as built: design/parent-area.md
+      - Scanner: design/scanner.md
       - Performance: design/performance.md
       - From the MVP to the full product: design/path.md

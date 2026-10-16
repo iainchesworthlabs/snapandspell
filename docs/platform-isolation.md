@@ -21,9 +21,11 @@ This is a rule for every contributor, and it is enforced by a check (see
 ```text
 src/platforms/
   interfaces/wjs/platform/   what the program needs from a platform: one header each
-    console.hpp  paths.hpp
+    console.hpp  paths.hpp  camera.hpp  board_reader.hpp
   windows/ linux/ macos/     one implementation per interface, plus platform.cmake
   posix/                     implementations shared by Linux and macOS
+  detail/                    implementations shared by every platform that has nothing
+                             of its own to say (no camera yet, the portable board reader)
   CMakeLists.txt             builds wjs_platform from what the fragment names
 tests/platform/              test cases only one platform can run, and the fragment check
 ```
@@ -32,6 +34,14 @@ tests/platform/              test cases only one platform can run, and the fragm
 platform would otherwise copy (a console that needs nothing switched on, for
 instance), and each platform's `platform.cmake` names the file. Reach for a
 platform's own directory when the implementations genuinely differ.
+
+`detail/` is the same idea for what **every** platform shares for now: no camera
+backend yet (`camera_unavailable.cpp`: every function says `unavailable`) and the
+portable board reader (`board_reader_portable.cpp`, which forwards to the scanning
+library). Each fragment names them. When a platform gets a camera or a recogniser of its
+own (the iPad: `camera_ios.mm`, `board_reader_ios.mm`), its fragment names those and
+leaves `detail/` out; the isolation check has never needed a `platform.cmake` in
+`detail/` and does not look for the files in it to be named.
 
 ## How CMake selects
 

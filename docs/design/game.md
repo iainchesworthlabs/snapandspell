@@ -339,8 +339,9 @@ not kept (roadmap section 8), there is no audio capture, and nothing is sent.
 - The size is counted from the picture and shown first; nothing is solved until
   the board is confirmed (question 11).
 - An OCR error would otherwise feed a wrong board to the solver (question 67),
-  so **the check is never skipped in the MVP.** No tile accuracy has been
-  measured; nothing is built.
+  so **the check is never skipped in the MVP.** The reader and the data flow of
+  this screen are built and measured on synthetic frames ([Scanner](scanner.md));
+  no tile accuracy has been measured on real dice.
 - Nothing on this screen is for the child, and no message says the app could
   not read something because of what the child did.
 

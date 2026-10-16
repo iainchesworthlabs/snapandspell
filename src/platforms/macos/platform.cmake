@@ -11,7 +11,11 @@ set(WJS_PLATFORM_QT_ARCH_DIRS macos clang_64)
 # The offscreen platform plugin takes its fonts from the system's.
 set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
 
+# detail/ is what no platform differs in: no camera backend yet, and the portable
+# board reader (docs/design/scanner.md).
 set(WJS_PLATFORM_SOURCES
+    detail/board_reader_portable.cpp
+    detail/camera_unavailable.cpp
     macos/paths_macos.cpp
     posix/console_posix.cpp)
 
