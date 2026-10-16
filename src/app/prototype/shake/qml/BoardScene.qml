@@ -6,18 +6,26 @@ import "ShakeScript.js" as Script
 // The board scene: the one component the application would put the shake and
 // the drop in (docs/design/board.md, "Decided (the author, 2026-10-16)").
 //
-// What it is given: a finished board and a seed. What it does: plays the
-// shake, the lid and the drop, and says when the dice are settled. It decides
-// nothing about the game: a tile is an opaque string to it, "" is a dead jewel,
-// and the letters on the dice are the ones it was handed. Nothing outside this
-// file touches the scene, and everything it needs is in this file's interface:
+// What it is given: a finished board, the dice it was rolled with, and a seed.
+// What it does: plays the shake, the lid and the drop, and says when the dice
+// are settled. It decides nothing about the game: a face is an opaque string to
+// it, "" is a dead jewel, and the letters on the dice are the ones it was
+// handed. Nothing outside this file touches the scene, and everything it needs
+// is in this file's interface:
 //
 //   in    play(board, seed), show(board), reducedMotion, pushMotion(...)
 //   out   settled(), landed(index, pitch), rattled(), busy, and the geometry the
 //         2D layer over it lays out by: boardRect, tileSize, tileGap, and how
 //         far past its item the scene draws: overdraw
 //
-// board is { rows, columns, tiles }, tiles row-major, one string a tile.
+// board is { rows, columns, tiles, faces, up }, each of the three arrays with an
+// entry for each tile, row-major: tiles[t] is the letters of the finished
+// board's tile t, faces[t] the six strings on the die that is on it ("" is the
+// jewel, and a dead jewel is a die of six), and up[t] which of the six is up,
+// so that faces[t][up[t]] === tiles[t]. The scene draws each die with its six
+// faces, shows the others as it tumbles, and lands it with the up face on top,
+// the letter upright. It reads no letter and decides no face: they are the
+// library's roll (wjs::roll_with_placements), passed through.
 //
 // The drop is a pure function of the board, the seed and the time. There is no
 // physics engine: every position and angle is computed by ShakeScript.js, a
@@ -111,14 +119,19 @@ Item {
         return Script.digest(board, seed, layout());
     }
 
+    // What a play of the board and seed does to the faces, device still: how
+    // many dice end with their up face on top and the letter upright, and how
+    // many different faces each die showed uppermost on the way.
+    function faceReport(board, seed) {
+        return Script.faceReport(board, seed, layout());
+    }
+
     // Puts the scene where the script for a board and seed is `ms` into the
     // play, with the device still, and holds it there. For tests and for
     // pictures: the same board, seed and time always give the same picture.
     function seek(board, seed, ms) {
         frames.running = false;
-        boardRows = board.rows;
-        boardColumns = board.columns;
-        boardTiles = board.tiles;
+        setBoard(board);
         current = Script.at(board, seed, layout(), ms);
         stage = current.stage;
         apply();
@@ -146,7 +159,9 @@ Item {
     // ---- The board and the layout -----------------------------------------
     property int boardRows: 4
     property int boardColumns: 4
-    property var boardTiles: []
+    // The six faces of the die on each tile, and which is up (see above).
+    property var boardFaces: []
+    property var boardUp: []
 
     readonly property real shortSide: Math.max(1, Math.min(width, height))
     readonly property real inset: shortSide < 600 ? 12 : 24
@@ -182,10 +197,27 @@ Item {
                  lidTiles: 2.45, mock: true, mockBurstMs: mockBurstMs };
     }
 
-    function begin(board, seed, standIn) {
+    // The board's dice. A board whose faces do not make its tiles is drawn as
+    // given and reported: the scene lands the up face, so a mismatch would show
+    // the wrong letter without a sound.
+    function setBoard(board) {
         boardRows = board.rows;
         boardColumns = board.columns;
-        boardTiles = board.tiles;
+        boardFaces = board.faces;
+        boardUp = board.up;
+        if (board.tiles) {
+            for (let t = 0; t < board.tiles.length; ++t) {
+                if (board.faces[t][board.up[t]] !== board.tiles[t]) {
+                    console.warn("BoardScene: tile " + t + " is '" + board.tiles[t]
+                                 + "' but the face that is up is '" + board.faces[t][board.up[t]] + "'");
+                    break;
+                }
+            }
+        }
+    }
+
+    function begin(board, seed, standIn) {
+        setBoard(board);
         const settings = layout();
         settings.mock = standIn !== false;
         current = Script.create(board, seed, settings);
@@ -206,6 +238,8 @@ Item {
             }
             die.body.position = Qt.vector3d(state.px[i] - die.x, state.py[i] - die.y, state.pz[i]);
             die.body.eulerRotation = Qt.vector3d(state.rx[i], state.ry[i], state.rz[i]);
+            // Which face is up, and how the die is turned over getting there.
+            die.cube.rotation = Qt.quaternion(state.tw[i], state.tx[i], state.ty[i], state.tz[i]);
             die.body.visible = state.opacity[i] > 0.001;
             die.body.opacity = warm ? 0.98 : state.opacity[i];
             die.shadow.position = Qt.vector3d(state.px[i] - die.x, state.py[i] - die.y, 0.2);
@@ -268,12 +302,15 @@ Item {
 
     // The board changing size creates the dice; give them their poses as they
     // arrive.
-    onBoardTilesChanged: Qt.callLater(apply)
+    onBoardFacesChanged: Qt.callLater(apply)
 
     // ---- The scene ----------------------------------------------------------
+    // The mesh of a die, as plain arrays from the script.
+    readonly property var meshData: Script.cubeMesh()
+
     // The atlas is not part of the scene's tree; the textures read it.
     property Item atlasItem: FaceAtlas {
-        tiles: root.boardTiles
+        faces: root.boardFaces
         rows: root.boardRows
         columns: root.boardColumns
     }
@@ -357,9 +394,23 @@ Item {
             brightness: 0.3
         }
 
-        // Where the probe's texture lives.
+        // Where the probe's texture and the dice's mesh live.
         Node {
             id: probeHost
+
+            // The one cube every die shares, six sides each with its own cell
+            // of the die's block in the atlas. Made from the script's table of
+            // sides, so that it and the die's orientation agree on which side
+            // is which face.
+            ProceduralMesh {
+                id: dieMesh
+
+                primitiveMode: ProceduralMesh.Triangles
+                positions: root.meshData.positions.map(p => Qt.vector3d(p[0], p[1], p[2]))
+                normals: root.meshData.normals.map(p => Qt.vector3d(p[0], p[1], p[2]))
+                uv0s: root.meshData.uvs.map(t => Qt.vector2d(t[0], t[1]))
+                indexes: root.meshData.indexes
+            }
         }
 
         // The box, with the dice and the lid in it, tilts as one.
@@ -423,6 +474,7 @@ Item {
 
                 delegate: Die {
                     atlas: root.atlasItem
+                    mesh: dieMesh
                     columns: root.boardColumns
                     rows: root.boardRows
                     size: root.tile

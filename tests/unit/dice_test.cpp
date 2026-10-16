@@ -51,7 +51,6 @@ std::string text_of(const wjs::Board& board) {
     return text;
 }
 
-
 // "die:face" for each tile, row-major, space separated: a placement pin that
 // reads as itself when it fails.
 std::string placements_text(const wjs::RolledBoard& rolled) {

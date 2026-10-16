@@ -123,6 +123,28 @@ if(WJS_BUILD_APP)
     # Qt's DLLs have to be beside the binary before catch_discover_tests runs it.
     wjs_platform_deploy_qt_runtime(wjs_app_tests "")
     catch_discover_tests(wjs_app_tests)
+
+    # The 3D board scene's script, in Qt's own JavaScript engine, when the
+    # prototype is built: the dice's faces land and tumble and move nothing
+    # (app/shake_script_check.js). The paths are values CMake passes in.
+    if(WJS_BUILD_SHAKE_PROTOTYPE)
+        add_executable(wjs_shake_script_tests
+            app/shake_script_test.cpp)
+        target_compile_definitions(wjs_shake_script_tests PRIVATE
+            "WJS_SHAKE_SCRIPT=\"${PROJECT_SOURCE_DIR}/src/app/prototype/shake/qml/ShakeScript.js\""
+            "WJS_SHAKE_SCRIPT_CHECK=\"${CMAKE_CURRENT_SOURCE_DIR}/app/shake_script_check.js\"")
+        target_link_libraries(wjs_shake_script_tests
+            PRIVATE
+                Qt6::Core
+                Qt6::Qml
+                wjs::warnings
+                wjs::sanitizers
+                wjs::coverage
+                Catch2::Catch2WithMain)
+        wjs_deploy_sanitizer_runtime(wjs_shake_script_tests)
+        wjs_platform_deploy_qt_runtime(wjs_shake_script_tests "")
+        catch_discover_tests(wjs_shake_script_tests)
+    endif()
 endif()
 
 # Every platform fragment satisfies the platform contract, on whichever host

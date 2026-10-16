@@ -33,9 +33,23 @@
 //
 // The pose is in state.px, py, pz (the die's centre, in the layout's pixels
 // from the centre of the board, y up, z up from the floor), rx, ry, rz
-// (degrees), opacity, shadowRadius, shadowOpacity, and state.boxRx, boxRy,
-// lidAngle, lidLift, lidOpacity, leanFraction. The events (state.events) are
-// { kind: "rattled" }, { kind: "landed", index, pitch } and { kind: "settled" }.
+// (degrees), tw, tx, ty, tz (a quaternion: which of the die's six faces is up,
+// and how it is turned over on the way there), opacity, shadowRadius,
+// shadowOpacity, and state.boxRx, boxRy, lidAngle, lidLift, lidOpacity,
+// leanFraction. The events (state.events) are { kind: "rattled" },
+// { kind: "landed", index, pitch } and { kind: "settled" }.
+//
+// A die has six faces and the board says which is up (`board.faces[i]`, the six
+// strings of the die on tile i, and `board.up[i]`, the index of the one that
+// is). The script does not read the letters. It lays each die with its up face
+// on top and its letter upright when the play is over, and makes the die show
+// other faces on the way: in the weighted script a die turns a quarter or a
+// half turn at each knock it takes in the box, and then turns to its up face as
+// it slots in; in the staged script it lies on another face in the box and
+// turns over as it falls. Which face is on which side of the cube is `sides`
+// below, and the mesh and the atlas are made to agree with it. The faces have
+// generators of their own, so nothing about where a die goes or how it moves
+// depends on them.
 
 // The stages and their durations: starting values to tune on a device
 // (docs/design/board.md, "The stages").
@@ -69,7 +83,156 @@ function smooth(u) {
     return x * x * (3 - 2 * x);
 }
 
-// board is { rows, columns, tiles }; layout is { tile, gap, pitch, reduced,
+// ---- The faces of a die ------------------------------------------------------
+// Side k of the cube carries face k of the die. Each side has its outward
+// normal n, and the directions r (right) and u (up) its letter is read in when
+// the side is seen from outside, right-handed (r x u = n). Which faces are
+// opposite is the cube's and not the die's: the library says only which six
+// letters a die has, so which are neighbours is for show.
+var sides = [
+    { n: [0, 0, 1], r: [1, 0, 0], u: [0, 1, 0] },     // 0 top
+    { n: [0, 0, -1], r: [1, 0, 0], u: [0, -1, 0] },   // 1 bottom
+    { n: [0, -1, 0], r: [1, 0, 0], u: [0, 0, 1] },    // 2 toward the viewer
+    { n: [0, 1, 0], r: [-1, 0, 0], u: [0, 0, 1] },    // 3 away
+    { n: [1, 0, 0], r: [0, 1, 0], u: [0, 0, 1] },     // 4 right
+    { n: [-1, 0, 0], r: [0, -1, 0], u: [0, 0, 1] }    // 5 left
+];
+
+// The atlas holds a block of 3 x 2 cells for each die, side k in the cell at
+// column k % 3 and row floor(k / 3) from the top of the block.
+var blockColumns = 3;
+var blockRows = 2;
+
+// The mesh of one die: a cube of edge 100 (the scene scales it), four vertices
+// to a side, each side's texture coordinates in its own cell of the block.
+// Plain arrays: the scene makes them a mesh.
+function cubeMesh() {
+    var positions = [];
+    var normals = [];
+    var uvs = [];
+    var indexes = [];
+    for (var k = 0; k < sides.length; ++k) {
+        var side = sides[k];
+        var column = k % blockColumns;
+        var row = Math.floor(k / blockColumns);
+        var u0 = column / blockColumns;
+        var u1 = (column + 1) / blockColumns;
+        // The atlas is an item's texture and an item's rows count from the
+        // bottom of the texture: the top row of the block is the highest v.
+        var v0 = (blockRows - 1 - row) / blockRows;
+        var v1 = v0 + 1 / blockRows;
+        var corners = [[-1, -1, u0, v0], [1, -1, u1, v0], [1, 1, u1, v1], [-1, 1, u0, v1]];
+        var first = positions.length;
+        for (var c = 0; c < 4; ++c) {
+            var a = corners[c][0];
+            var b = corners[c][1];
+            positions.push([50 * (side.n[0] + a * side.r[0] + b * side.u[0]),
+                            50 * (side.n[1] + a * side.r[1] + b * side.u[1]),
+                            50 * (side.n[2] + a * side.r[2] + b * side.u[2])]);
+            normals.push([side.n[0], side.n[1], side.n[2]]);
+            uvs.push([corners[c][2], corners[c][3]]);
+        }
+        indexes.push(first, first + 1, first + 2, first, first + 2, first + 3);
+    }
+    return { positions: positions, normals: normals, uvs: uvs, indexes: indexes };
+}
+
+// Quaternions are [w, x, y, z].
+function quatMultiply(a, b) {
+    return [a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+            a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+            a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+            a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0]];
+}
+
+function quatAxis(x, y, z, degrees) {
+    var half = degrees * Math.PI / 360;
+    var s = Math.sin(half);
+    return [Math.cos(half), x * s, y * s, z * s];
+}
+
+// The rotation that takes r to x, u to y and n to z: the matrix whose rows are
+// r, u and n.
+function quatFromBasis(r, u, n) {
+    var trace = r[0] + u[1] + n[2];
+    var s;
+    if (trace > 0) {
+        s = Math.sqrt(trace + 1) * 2;
+        return [s / 4, (n[1] - u[2]) / s, (r[2] - n[0]) / s, (u[0] - r[1]) / s];
+    }
+    if (r[0] > u[1] && r[0] > n[2]) {
+        s = Math.sqrt(1 + r[0] - u[1] - n[2]) * 2;
+        return [(n[1] - u[2]) / s, s / 4, (r[1] + u[0]) / s, (r[2] + n[0]) / s];
+    }
+    if (u[1] > n[2]) {
+        s = Math.sqrt(1 + u[1] - r[0] - n[2]) * 2;
+        return [(r[2] - n[0]) / s, (r[1] + u[0]) / s, s / 4, (u[2] + n[1]) / s];
+    }
+    s = Math.sqrt(1 + n[2] - r[0] - u[1]) * 2;
+    return [(u[0] - r[1]) / s, (r[2] + n[0]) / s, (u[2] + n[1]) / s, s / 4];
+}
+
+// The way round the shorter arc from a to b, t from 0 to 1.
+function quatSlerp(a, b, t) {
+    var dot = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    var sign = dot < 0 ? -1 : 1;
+    dot = Math.abs(dot);
+    var wa;
+    var wb;
+    if (dot > 0.9995) {
+        wa = 1 - t;
+        wb = t * sign;
+    } else {
+        var angle = Math.acos(Math.min(1, dot));
+        var sine = Math.sin(angle);
+        wa = Math.sin((1 - t) * angle) / sine;
+        wb = Math.sin(t * angle) / sine * sign;
+    }
+    var w = wa * a[0] + wb * b[0];
+    var x = wa * a[1] + wb * b[1];
+    var y = wa * a[2] + wb * b[2];
+    var z = wa * a[3] + wb * b[3];
+    var length = Math.sqrt(w * w + x * x + y * y + z * z);
+    return [w / length, x / length, y / length, z / length];
+}
+
+// Whether two quaternions are the same turn (q and -q are).
+function quatSame(a, b) {
+    return Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]) > 0.99999;
+}
+
+// How a die lies with face k up and its letter upright, turned about the
+// vertical by `quarters` quarter turns.
+function faceUp(k, quarters) {
+    var side = sides[k];
+    var turn = quatFromBasis(side.r, side.u, side.n);
+    return quarters ? quatMultiply(quatAxis(0, 0, 1, 90 * quarters), turn) : turn;
+}
+
+// The vector v turned by the quaternion q.
+function quatRotate(q, v) {
+    var t = quatMultiply(quatMultiply(q, [0, v[0], v[1], v[2]]), [q[0], -q[1], -q[2], -q[3]]);
+    return [t[1], t[2], t[3]];
+}
+
+// Which side of a die turned by q is uppermost, and how far that side's
+// letter is turned from upright (degrees, 0 to 180).
+function topSide(q) {
+    var best = 0;
+    var height = -2;
+    for (var k = 0; k < sides.length; ++k) {
+        var z = quatRotate(q, sides[k].n)[2];
+        if (z > height) {
+            height = z;
+            best = k;
+        }
+    }
+    var right = quatRotate(q, sides[best].r);
+    return { side: best, height: height, tilt: Math.abs(Math.atan2(right[1], right[0]) * 180 / Math.PI) };
+}
+
+// board is { rows, columns, faces, up } (and tiles, which the script does not
+// read); layout is { tile, gap, pitch, reduced,
 // weighted, lidTiles }, in the pixels the scene is drawn in (lidTiles is the
 // height of the lid's middle above the floor, in tiles).
 function create(board, seed, layout) {
@@ -77,6 +240,7 @@ function create(board, seed, layout) {
     var columnCount = board.columns;
     var count = rowCount * columnCount;
     var rand = random(seed);
+    var faceRand = random((seed | 0) * 40503 + 2654435);
     var state = {
         count: count,
         rows: rowCount,
@@ -97,6 +261,7 @@ function create(board, seed, layout) {
         dropMs: 0,
         px: new Array(count), py: new Array(count), pz: new Array(count),
         rx: new Array(count), ry: new Array(count), rz: new Array(count),
+        tw: new Array(count), tx: new Array(count), ty: new Array(count), tz: new Array(count),
         opacity: new Array(count), shadowRadius: new Array(count), shadowOpacity: new Array(count),
         boxRx: 0, boxRy: 0, lidAngle: 0, lidLift: 0, lidOpacity: 1, leanFraction: 1
     };
@@ -122,8 +287,20 @@ function create(board, seed, layout) {
             fallMs: fallMinMs + rand() * (fallMaxMs - fallMinMs),
             startMs: 0,
             pitchValue: 0.9 + rand() * 0.25,
-            landed: false
+            landed: false,
+            // Which face is up at the end (the board's), and how the die lies
+            // in the box: some face up, turned a quarter turn this way or that.
+            target: faceUp(board.up && board.up[i] >= 0 && board.up[i] < sides.length ? board.up[i] : 0, 0),
+            start: faceUp(Math.floor(faceRand() * sides.length), Math.floor(faceRand() * 4)),
+            turn: null,
+            flipping: false,
+            flipFrom: null,
+            flipTo: null,
+            flipStart: 0,
+            flipLength: 0,
+            faceRng: random((seed | 0) * 7919 + i * 104729 + 31)
         });
+        state.dice[i].turn = state.dice[i].start;
     }
     // The order they fall in: a seeded shuffle, the same for the same seed.
     var order = [];
@@ -333,18 +510,82 @@ function initWeighted(state, board, seed, layout) {
     }
 }
 
-// A die has hit something at `speed`: it spins a little, more the harder.
+// How a die turns over, in seconds, while it is thrown about (a quarter turn,
+// or a half turn for a hard knock) and as it slots in (to its up face, whatever
+// it has been through); and how hard a knock turns it, in tiles/s.
+var tumbleSeconds = 0.09;
+var tumbleMinSpeed = 3.5;
+var tumbleHalfTurnSpeed = 14;
+var turnToFaceSeconds = 0.2;
+
+// Where the die is in a turn, at time ts.
+function turnPose(d, ts) {
+    if (!d.flipping) {
+        return d.turn;
+    }
+    return quatSlerp(d.flipFrom, d.flipTo, smooth((ts - d.flipStart) / d.flipLength));
+}
+
+// A die that is being thrown about has hit something at `speed`: it turns
+// over, about a horizontal axis and the way it was going (straight down, by a
+// coin toss), so that another face is up. One turn at a time: a knock that
+// comes while it is turning is another knock, not another turn.
+function tumble(d, speed) {
+    if (d.active || d.flipping || speed < tumbleMinSpeed) {
+        return;
+    }
+    var quarters = speed >= tumbleHalfTurnSpeed ? 2 : 1;
+    var around;
+    var sign;
+    if (Math.abs(d.vx) + Math.abs(d.vy) < 0.4) {
+        around = d.faceRng() < 0.5 ? 0 : 1;
+        sign = d.faceRng() < 0.5 ? -1 : 1;
+    } else if (Math.abs(d.vy) >= Math.abs(d.vx)) {
+        around = 0;                       // going along y: about the x axis
+        sign = d.vy > 0 ? -1 : 1;
+    } else {
+        around = 1;                       // going along x: about the y axis
+        sign = d.vx > 0 ? 1 : -1;
+    }
+    var turn = around === 0 ? quatAxis(1, 0, 0, sign * 90 * quarters)
+                            : quatAxis(0, 1, 0, sign * 90 * quarters);
+    d.flipFrom = d.turn;
+    d.flipTo = quatMultiply(turn, d.turn);
+    d.flipStart = d.now;
+    d.flipLength = tumbleSeconds * (quarters === 2 ? 1.4 : 1);
+    d.flipping = true;
+}
+
+// The die is slotting in: from however it lies now, it turns to its up face.
+function turnToFace(d, ts) {
+    var from = turnPose(d, ts);
+    d.flipping = false;
+    d.turn = from;
+    if (quatSame(from, d.target)) {
+        return;
+    }
+    d.flipFrom = from;
+    d.flipTo = d.target;
+    d.flipStart = ts;
+    d.flipLength = turnToFaceSeconds;
+    d.flipping = true;
+}
+
+// A die has hit something at `speed`: it spins a little, more the harder, and
+// turns over.
 function kick(d, speed) {
     var amount = Math.min(1, speed / bounceSpeed);
     d.wpsi += (d.rng() * 2 - 1) * 240 * amount;
     d.wphx += (d.rng() * 2 - 1) * 180 * amount;
     d.wphy += (d.rng() * 2 - 1) * 180 * amount;
+    tumble(d, speed);
 }
 
 // One fixed step of the box's frame. `f` is the accelerometer's reading in g,
 // `w` and `alpha` the gyroscope's rate and its change.
 function stepWeighted(state) {
     var h = simStepMs / 1000;
+    var ts = state.simSteps * h;
     var rest = 0.5;
     var settling = state.stage === 'settle';
     var ceiling = state.stage === 'shake' ? state.ceiling : 4;
@@ -361,9 +602,15 @@ function stepWeighted(state) {
 
     for (var i = 0; i < state.count; ++i) {
         var d = state.dice[i];
+        d.now = ts;
+        if (d.flipping && ts >= d.flipStart + d.flipLength) {
+            d.turn = d.flipTo;
+            d.flipping = false;
+        }
         if (settling && !d.active && inStage >= d.startMs) {
             d.active = true;
             d.psi = wrapDegrees(d.psi);
+            turnToFace(d, ts);
         }
         var cellX = d.cx / state.tile;
         var cellY = d.cy / state.tile;
@@ -541,6 +788,7 @@ function advanceWeighted(state, dtMs, tracker) {
             var cellX = d.cx / state.tile;
             var cellY = d.cy / state.tile;
             still = d.active
+                && !d.flipping
                 && Math.abs(d.x - cellX) < 0.004 && Math.abs(d.y - cellY) < 0.004
                 && Math.abs(d.z - 0.5) < 0.004
                 && Math.abs(d.vx) < 0.05 && Math.abs(d.vy) < 0.05 && Math.abs(d.vz) < 0.05
@@ -552,6 +800,8 @@ function advanceWeighted(state, dtMs, tracker) {
                 e.x = e.cx / state.tile; e.y = e.cy / state.tile; e.z = 0.5;
                 e.vx = 0; e.vy = 0; e.vz = 0;
                 e.psi = 0; e.phx = 0; e.phy = 0;
+                e.flipping = false;
+                e.turn = e.target;
                 if (!e.landed) {
                     e.landed = true;
                     state.events.push({ kind: 'landed', index: k, pitch: e.pitchValue });
@@ -576,6 +826,13 @@ function evaluateWeighted(state) {
         state.rx[i] = d.phx;
         state.ry[i] = d.phy;
         state.rz[i] = d.psi;
+        // Which face is up: at rest, the board's; before that, whichever the
+        // knocks have left it on.
+        var turn = state.stage === 'idle' ? d.target : turnPose(d, state.simSteps * simStepMs / 1000);
+        state.tw[i] = turn[0];
+        state.tx[i] = turn[1];
+        state.ty[i] = turn[2];
+        state.tz[i] = turn[3];
         state.opacity[i] = 1;
         state.shadowRadius[i] = tile * 0.47 * (1 - 0.1 * Math.min(1.5, airborne));
         state.shadowOpacity[i] = 0.34 / (1 + 1.2 * airborne);
@@ -738,6 +995,7 @@ function evaluate(state) {
         var rz = 0;
         var alpha = 1;
         var airborne = 0;     // 0 on the floor, 1 at the height of the box
+        var turn = die.target;   // which face is up: the board's, but in flight
 
         if (state.reduced) {
             // Nothing moves: the dice are on their cells and fade in once the
@@ -745,7 +1003,8 @@ function evaluate(state) {
             alpha = state.stage === "drop" ? smooth(inStage / dropFadeMs)
                 : (state.stage === "settle" || resting ? 1 : 0);
         } else if (dropMs < 0 || (dropMs !== Infinity && dropMs < die.startMs)) {
-            // In the box.
+            // In the box, on whichever face it was left.
+            turn = die.start;
             var rate = die.rate;
             var phase = die.phase;
             x += die.baseX + amplitude * state.gap * 0.35 * Math.sin(6.2832 * rate[0] * seconds + phase[0]) + tiltX * tile * 0.1;
@@ -774,6 +1033,8 @@ function evaluate(state) {
             rx = die.baseTipX * (1 - w) + die.spinX * Math.sin(Math.PI * w) * (1 - 0.3 * w);
             ry = die.baseTipY * (1 - w) + die.spinY * Math.sin(Math.PI * w) * (1 - 0.3 * w);
             airborne = Math.max(0, (z - rest) / (hoverZ - rest));
+            // It turns over as it falls, and has its face up when it lands.
+            turn = quatSlerp(die.start, die.target, smooth(w));
         } else {
             // Down. The letters straighten through the settle.
             rz = die.baseYaw * 0.35 * (1 - smooth(settleU));
@@ -784,6 +1045,10 @@ function evaluate(state) {
         state.rx[i] = rx;
         state.ry[i] = ry;
         state.rz[i] = rz;
+        state.tw[i] = turn[0];
+        state.tx[i] = turn[1];
+        state.ty[i] = turn[2];
+        state.tz[i] = turn[3];
         state.opacity[i] = alpha;
         // A shadow that is smaller and fainter the higher the die is.
         state.shadowRadius[i] = tile * 0.47 * (1 - 0.12 * airborne);
@@ -841,6 +1106,43 @@ function at(board, seed, layout, ms) {
     return state;
 }
 
+// What a play of a board and seed does to the faces, frame by frame at 60 Hz
+// with the device still: how many dice end with the board's face on top and the
+// letter upright, and how many different faces each showed uppermost on the way
+// (the sides that were the top at some frame; the tips of a die in flight are
+// not counted, so it is the least a viewer saw).
+function faceReport(board, seed, layout) {
+    var state = create(board, seed, layout);
+    var tracker = newTracker();
+    var seen = [];
+    for (var i = 0; i < state.count; ++i) {
+        seen.push({});
+    }
+    var frames = 0;
+    for (; state.stage !== "idle" && frames < 1000; ++frames) {
+        advance(state, 1000 / 60, tracker);
+        evaluate(state);
+        for (var k = 0; k < state.count; ++k) {
+            seen[k][topSide([state.tw[k], state.tx[k], state.ty[k], state.tz[k]]).side] = true;
+        }
+    }
+    evaluate(state);
+    var landed = 0;
+    var total = 0;
+    var most = 0;
+    for (var d = 0; d < state.count; ++d) {
+        var top = topSide([state.tw[d], state.tx[d], state.ty[d], state.tz[d]]);
+        if (top.side === board.up[d] && top.tilt < 0.01 && top.height > 0.9999) {
+            landed += 1;
+        }
+        var distinct = Object.keys(seen[d]).length;
+        total += distinct;
+        most = Math.max(most, distinct);
+    }
+    return { dice: state.count, landed: landed, facesSeenMean: total / state.count, facesSeenMost: most,
+             frames: frames, finished: state.stage === "idle" };
+}
+
 // A checksum of every pose a board and seed produce, frame by frame at 60 Hz
 // with the device still. The same board, seed and layout give the same string.
 function digest(board, seed, layout) {
@@ -851,7 +1153,8 @@ function digest(board, seed, layout) {
         advance(state, 1000 / 60, tracker);
         evaluate(state);
         for (var i = 0; i < state.count; ++i) {
-            var values = [state.px[i], state.py[i], state.pz[i], state.rx[i], state.ry[i], state.rz[i]];
+            var values = [state.px[i], state.py[i], state.pz[i], state.rx[i], state.ry[i], state.rz[i],
+                          state.tw[i], state.tx[i], state.ty[i], state.tz[i]];
             for (var v = 0; v < values.length; ++v) {
                 sum = Math.imul(sum ^ (Math.round(values[v] * 100) | 0), 0x01000193);
             }

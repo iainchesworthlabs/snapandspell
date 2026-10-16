@@ -16,7 +16,10 @@ ApplicationWindow {
     required property bool autoRun
     required property bool shotsOnly
     required property bool digestOnly
+    required property bool changeOnly
     required property int startBoard
+    required property string boardKind
+    required property var autoSizes
     required property int framesPerSecond
     required property string outDir
     required property string probeMode
@@ -35,16 +38,28 @@ ApplicationWindow {
 
     // ---- What is being shown -------------------------------------------------
     property int boardSize: startBoard
+    // "standard": the library's roll of the shipped dice. "phonics": a stand-in
+    // for the phonics board (see makeBoard), which is not the library's.
+    property string kind: boardKind
     property int seed: 7
     property bool reduced: false
     property bool showTiles: true
     property var scene: null
     property var litTiles: ({})
 
-    // A board in the shape the scene is given: { rows, columns, tiles }. This is
-    // a stand-in for the library's seeded board (docs/design/board.md, "The
-    // phase board"): a pool of phonics-ish tiles with a few digraphs and a Qu,
-    // and some dead jewels (""), chosen from the seed.
+    // The library's dice, embedded: the standard board is its roll.
+    DiceRoller {
+        id: dice
+    }
+
+    // A board in the shape the scene is given: { rows, columns, tiles, faces,
+    // up }. This is a stand-in for the library's seeded board
+    // (docs/design/board.md, "The phase board"): a pool of phonics-ish tiles
+    // with a few digraphs and a Qu, and some dead jewels (""), chosen from the
+    // seed. The library has no dice for it (the design's open choice is whether
+    // its dice are phase dice or decoy faces drawn for show), so this gives each
+    // tile a die whose other five faces are drawn from the pool: a stand-in, to
+    // exercise the scene, and not what the design will decide.
     function makeBoard(size, boardSeed, deadCount) {
         const pool = ["S", "A", "T", "P", "I", "N", "M", "D", "G", "O", "C", "K", "E", "U", "R",
                       "H", "B", "F", "L", "SH", "CH", "TH", "QU", "A", "O", "E", "I"];
@@ -62,11 +77,41 @@ ApplicationWindow {
         for (let d = 0; d < dead; ++d) {
             tiles[Math.floor(next() * count)] = "";
         }
-        return { rows: size, columns: size, tiles: tiles };
+        // A die for each tile: the tile on a face of its own, and others from
+        // the pool; a dead jewel is a die of six jewels.
+        const faces = [];
+        const up = [];
+        const letters = Array.from(new Set(pool));
+        for (let i = 0; i < count; ++i) {
+            const sides = [];
+            const where = Math.floor(next() * 6);
+            if (tiles[i] === "") {
+                sides.push("", "", "", "", "", "");
+            } else {
+                // Six different letters, as on a real die.
+                const unused = letters.filter(letter => letter !== tiles[i]);
+                for (let k = 0; k < 5; ++k) {
+                    sides.push(unused.splice(Math.floor(next() * unused.length), 1)[0]);
+                }
+                sides.splice(where, 0, tiles[i]);
+            }
+            faces.push(sides);
+            up.push(where);
+        }
+        return { rows: size, columns: size, tiles: tiles, faces: faces, up: up };
+    }
+
+    // The board for the size and seed now: the library's roll of the shipped
+    // dice for the standard board, the stand-in for the other.
+    function boardFor(size, boardSeed) {
+        if (kind === "standard" && dice.hasSet(size)) {
+            return dice.roll(size, boardSeed);
+        }
+        return makeBoard(size, boardSeed, 2);
     }
 
     function currentBoard() {
-        return makeBoard(boardSize, seed, 2);
+        return boardFor(boardSize, seed);
     }
 
     // ---- Making the scene, once ---------------------------------------------
@@ -342,11 +387,11 @@ ApplicationWindow {
             }
 
             ComboBox {
-                model: ["3 x 3", "4 x 4"]
-                currentIndex: window.boardSize === 3 ? 0 : 1
+                model: ["3 x 3", "4 x 4", "5 x 5", "6 x 6"]
+                currentIndex: Math.max(0, Math.min(3, window.boardSize - 3))
                 enabled: window.scene !== null && !window.scene.busy
                 onActivated: (index) => {
-                    window.boardSize = index === 0 ? 3 : 4;
+                    window.boardSize = index + 3;
                     window.scene.show(window.currentBoard());
                 }
             }
@@ -376,6 +421,16 @@ ApplicationWindow {
                 text: qsTr("2D tile layer")
                 checked: window.showTiles
                 onToggled: window.showTiles = checked
+            }
+
+            Switch {
+                text: qsTr("Library dice")
+                checked: window.kind === "standard"
+                enabled: window.scene !== null && !window.scene.busy
+                onToggled: {
+                    window.kind = checked ? "standard" : "phonics";
+                    window.scene.show(window.currentBoard());
+                }
             }
         }
 
@@ -458,8 +513,8 @@ ApplicationWindow {
     // script.
     function runDigest() {
         const lines = [];
-        for (const size of [3, 4]) {
-            const board = makeBoard(size, 7, 2);
+        for (const size of autoSizes) {
+            const board = boardFor(size, 7);
             scene.reducedMotion = false;
             const first = scene.digest(board, 100);
             const again = scene.digest(board, 100);
@@ -473,19 +528,121 @@ ApplicationWindow {
                        + "; reduced seed 100: " + reducedFirst + " then " + reducedAgain
                        + (reducedFirst === reducedAgain ? " (same)" : " (DIFFERENT)"));
         }
+        // The faces: that every die ends with the board's face up and upright,
+        // that the faces are the board's tiles, and what a viewer saw of the
+        // other faces on the way. For the library's dice and the stand-in.
+        for (const which of ["standard", "phonics"]) {
+            for (const size of autoSizes) {
+                const board = which === "standard" ? dice.roll(size, 7) : makeBoard(size, 7, 2);
+                if (!board.faces) {
+                    continue;
+                }
+                let tilesAreFaces = 0;
+                let distinct = 0;
+                for (let t = 0; t < board.tiles.length; ++t) {
+                    if (board.faces[t][board.up[t]] === board.tiles[t]) {
+                        tilesAreFaces += 1;
+                    }
+                    distinct += new Set(board.faces[t]).size;
+                }
+                scene.reducedMotion = false;
+                // The finished board, row by row, to compare with a still.
+                const rowsText = [];
+                for (let r = 0; r < board.rows; ++r) {
+                    rowsText.push(board.tiles.slice(r * board.columns, (r + 1) * board.columns).join(" "));
+                }
+                lines.push("board, " + which + " " + size + "x" + size + " seed 7: " + rowsText.join("/"));
+                const report = scene.faceReport(board, 100);
+                scene.reducedMotion = true;
+                const reduced = scene.faceReport(board, 100);
+                scene.reducedMotion = false;
+                lines.push("faces, " + which + " " + size + "x" + size + " seed 7 (play seed 100): "
+                           + tilesAreFaces + "/" + board.tiles.length + " tiles are the face up; "
+                           + "mean " + (distinct / board.tiles.length).toFixed(2) + " different letters on a die; "
+                           + report.landed + "/" + report.dice + " land face up and upright; "
+                           + "mean " + report.facesSeenMean.toFixed(2) + " faces on top in a play, most "
+                           + report.facesSeenMost + "; reduced "
+                           + reduced.landed + "/" + reduced.dice + ", " + reduced.facesSeenMean.toFixed(2));
+            }
+        }
         const text = lines.join("\n") + "\n";
         console.log("DIGEST\n" + text);
         stats.writeText(outDir + "/digest.txt", text);
         Qt.quit();
     }
 
+    // What it costs to change the board: the frames from show() of a new
+    // board, in which its dice's faces are drawn into the atlas again. For each
+    // size, runCount boards, one after the other (a new seed each, so the atlas
+    // is made new each time), written to change-<probe>.json.
+    property var changeJobs: []
+    property var changeJob: null
+    property var changeResults: []
+
+    function startChange() {
+        const queued = [];
+        for (let r = 0; r < runCount; ++r) {
+            for (const size of autoSizes) {
+                queued.push({ size: size, run: r });
+            }
+        }
+        changeJobs = queued;
+        showTiles = false;
+        nextChange();
+    }
+
+    function nextChange() {
+        if (changeJobs.length === 0) {
+            const report = { graphicsApi: stats.graphicsApi(), probeMode: probeMode, boards: kind,
+                             window: { width: width, height: height }, runs: changeResults };
+            stats.writeText(outDir + "/change-" + probeMode + ".json", JSON.stringify(report, null, 1));
+            console.log("RESULTS " + outDir + "/change-" + probeMode + ".json");
+            Qt.quit();
+            return;
+        }
+        changeJob = changeJobs.shift();
+        changeBegan = false;
+        changeTimer.restart();
+    }
+
+    property bool changeBegan: false
+
+    // Waits 300 ms (so nothing of the last board is in the frames), then asks
+    // for the new board and records the frames of the next 300 ms.
+    Timer {
+        id: changeTimer
+
+        interval: 300
+        onTriggered: {
+            if (!window.changeBegan) {
+                window.changeBegan = true;
+                stats.begin();
+                window.boardSize = window.changeJob.size;
+                window.seed = 500 + window.changeJob.run;
+                window.scene.show(window.currentBoard());
+                changeTimer.restart();
+                return;
+            }
+            const measured = stats.end();
+            measured.size = window.changeJob.size;
+            measured.run = window.changeJob.run;
+            window.changeResults.push(measured);
+            window.changeJob = null;
+            Qt.callLater(window.nextChange);
+        }
+    }
+
     function startAuto() {
+        if (changeOnly) {
+            startChange();
+            return;
+        }
         if (shotsOnly) {
             takeShots();
             return;
         }
         const queued = [];
-        for (const size of [3, 4]) {
+        for (const size of autoSizes) {
             for (const reducedMotion of [false, true]) {
                 for (let r = 0; r < runCount; ++r) {
                     queued.push({ size: size, reduced: reducedMotion, seed: 100 + r, index: r, rattle: false });
@@ -494,13 +651,14 @@ ApplicationWindow {
         }
         // Then a shake held as hard as the device can give it, which runs the
         // rattle to its three-second limit.
-        for (const size of [3, 4]) {
+        for (const size of autoSizes) {
             for (let r = 0; r < Math.min(runCount, 3); ++r) {
                 queued.push({ size: size, reduced: false, seed: 200 + r, index: r, rattle: true });
             }
         }
         // And one shake driven through the pointer, the way a hand does it.
-        queued.push({ size: 4, reduced: false, seed: 300, index: 0, rattle: false, drag: true });
+        queued.push({ size: autoSizes.indexOf(4) >= 0 ? 4 : autoSizes[0], reduced: false, seed: 300,
+                      index: 0, rattle: false, drag: true });
         jobs = queued;
         nextJob();
     }
@@ -565,6 +723,7 @@ ApplicationWindow {
         const report = {
             graphicsApi: stats.graphicsApi(),
             probeMode: probeMode,
+            boards: kind,
             lean: leanDegrees,
             window: { width: width, height: height },
             windowFirstFrameMs: windowFirstFrameMs,
