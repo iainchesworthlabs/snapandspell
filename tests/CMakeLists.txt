@@ -50,6 +50,7 @@ catch_discover_tests(wjs_unit_tests)
 # docs/testing.md, "Performance tests".
 add_executable(wjs_perf_tests
     perf/corpus.cpp
+    perf/game_work_test.cpp
     perf/measure.cpp
     perf/metrics.cpp
     perf/report_test.cpp
@@ -71,12 +72,14 @@ target_include_directories(wjs_perf_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/p
 # generator expression so that a multi-config generator is right per
 # configuration, and the instrumented flag is the options that put coverage or
 # Tracy in (the sanitizers only ever apply to Debug, which is not an optimised
-# configuration). The word list is the shipped one, by absolute path.
+# configuration). The word list and the dice are the shipped ones, by absolute
+# path.
 target_compile_definitions(wjs_perf_tests PRIVATE
     "WJS_PERF_OPTIMISED=$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,1,0>"
     "WJS_PERF_INSTRUMENTED=$<IF:$<OR:$<BOOL:${WJS_ENABLE_COVERAGE}>,$<BOOL:${WJS_ENABLE_TRACY}>>,1,0>"
     "WJS_PERF_BUILD_TYPE=\"$<CONFIG>\""
-    "WJS_PERF_DICTIONARY=\"${PROJECT_SOURCE_DIR}/data/dictionaries/en.txt\"")
+    "WJS_PERF_DICTIONARY=\"${PROJECT_SOURCE_DIR}/data/dictionaries/en.txt\""
+    "WJS_PERF_DICE_DIRECTORY=\"${PROJECT_SOURCE_DIR}/data/dice\"")
 
 # The one environment variable the tier reads, WJS_PERF_TIMING (measure.cpp),
 # is read with std::getenv, which MSVC's runtime deprecates in favour of a

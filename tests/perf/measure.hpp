@@ -17,10 +17,15 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <span>
+#include <string>
 #include <vector>
 
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
+#include "wjs/grapheme_binder.hpp"
+#include "wjs/phase_data.hpp"
+#include "wjs/seeding.hpp"
 #include "wjs/solver.hpp"
 
 namespace wjs::perf {
@@ -57,16 +62,62 @@ struct SolveWork {
 [[nodiscard]] std::uint64_t recount_visits(const wjs::Board& board,
                                            const wjs::Dictionary& dictionary);
 
+// ---------------------------------------------------------------------------
+// Seeding work (the phonics board)
+// ---------------------------------------------------------------------------
+
+// One seeding with the options of wjs::phonics_board_options for the board's
+// size, no recent targets, and the work counter reset first and read after.
+// The process ends if the options or the seeding are refused: the corpus
+// cannot be said to have been seeded.
+struct SeedRun {
+    wjs::SeededBoard board;
+    // The solver's own tally for the call: the visits of every solve it made,
+    // and how many solves that was. `board.solves` is the seeding's count of
+    // the same thing, which work_test cross-checks.
+    std::uint64_t visits = 0;
+    std::uint64_t solver_solves = 0;
+};
+
+[[nodiscard]] SeedRun measure_seed(const wjs::PhaseIndex& index, std::size_t size,
+                                   std::uint32_t seed);
+
+// ---------------------------------------------------------------------------
+// Binder work (the phonics board)
+// ---------------------------------------------------------------------------
+
+// The comparisons of one bind of `tiles`, from the library's tally, with the
+// blocks it returned.
+struct BindRun {
+    std::vector<wjs::GraphemeBinder::Block> blocks;
+    std::uint64_t comparisons = 0;
+};
+
+[[nodiscard]] BindRun measure_bind(const wjs::GraphemeBinder& binder,
+                                   std::span<const std::string> tiles);
+
+// The comparisons the blocks of a bind say it made, written out from the
+// definition and nothing the library counts: the graphemes the binder holds are
+// the multi-letter ones that are not split, lower-case, longest first and then
+// in letter order; a block that starts no grapheme was held against every one,
+// and a block that starts one was held against those before it and itself. The
+// library's tally must equal it (game_work_test.cpp).
+[[nodiscard]] std::uint64_t recount_comparisons(std::span<const wjs::Grapheme> graphemes,
+                                                std::span<const wjs::GraphemeBinder::Block> blocks);
+
 // An FNV-1a digest of what solve() returned: each word, its score and its path,
-// in order. Add one result after another for the corpus' digest.
+// in order, and of what seed_board() made. Add one result after another for a
+// corpus' digest.
 class Digest {
 public:
     void add(const std::vector<wjs::FoundWord>& found);
+    void add(const wjs::SeededBoard& seeded);
     [[nodiscard]] std::uint64_t value() const noexcept { return state_; }
 
 private:
     void byte(std::uint8_t value) noexcept;
     void number(std::uint64_t value) noexcept;
+    void text(const std::string& value);
 
     std::uint64_t state_ = 14695981039346656037ULL;
 };

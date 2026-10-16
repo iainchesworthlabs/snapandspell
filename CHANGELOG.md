@@ -89,7 +89,12 @@ that release, so that its rules (branch protection, required checks) can apply.
   which run in every optimised build and skip in Debug, and wall-time checks as
   a ratio to a calibration workload, which run only on request. The solver has a
   work counter (`wjs/solver_work.hpp`) for it. A Linux Release leg in CI runs
-  it. See [docs/testing.md](docs/testing.md#performance-tests).
+  it. The code that makes a board has its zones (`board.roll`, `board.seed`,
+  `board.verify`) and work budgets too, and so has the grapheme binder
+  (`phonics.bind`, `wjs/binder_work.hpp`): each is for one board mode, the
+  standard board (dice) being the default and the phonics board a parent's
+  switch. See [docs/testing.md](docs/testing.md#performance-tests) and
+  [docs/design/performance.md](docs/design/performance.md#the-game-rows).
 
 ### Changed
 

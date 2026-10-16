@@ -44,8 +44,9 @@ void print_metrics(const char* title, const std::vector<wjs::perf::Metric>& metr
         if (!metric.note.empty()) {
             where += (where.empty() ? "" : "  ") + metric.note;
         }
-        std::cout << std::format("  {:<38} {:>12.3f} / {:<12.3f} {:<14} {:>+7.0f}%  {}{}\n",
-                                 metric.name, metric.measured, metric.budget, metric.unit, headroom,
+        std::cout << std::format("  {:<34} {:<8} {:>12.3f} / {:<12.3f} {:<14} {:>+7.0f}%  {}{}\n",
+                                 metric.name, wjs::perf::to_string(metric.mode), metric.measured,
+                                 metric.budget, metric.unit, headroom,
                                  metric.holds() ? "" : "OVER  ", where);
     }
 }
@@ -80,6 +81,18 @@ TEST_CASE("report: what every metric measures now", "[.perf-report]") {
                   wjs::perf::special_board_metrics());
     std::cout << std::format("\ndigest of every solution over the corpus: {} (kCorpusDigest)\n",
                              wjs::perf::corpus_digest());
+    print_metrics(
+        "STANDARD BOARD (the default): a roll of the dice and a solve, most visits by size",
+        wjs::perf::dice_board_metrics());
+    std::cout << std::format(
+        "\ndigest of every solution over the rolled boards: {} (kDiceDigest)\n",
+        wjs::perf::dice_digest());
+    print_metrics("PHONICS BOARD (a parent's switch): seeding, by size",
+                  wjs::perf::seeding_metrics());
+    std::cout << std::format("\ndigest of every board seeded: {} (kSeedDigest)\n",
+                             wjs::perf::seeding_digest());
+    print_metrics("PHONICS BOARD (a parent's switch): the binder, a path of nine tiles",
+                  wjs::perf::binder_metrics());
     print_timing();
 }
 

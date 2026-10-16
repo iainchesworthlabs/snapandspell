@@ -13,7 +13,14 @@ performance tier are implemented, and what was checked where is marked below:
 [Profiling](../profiling.md) says how to use them and
 [Testing](../testing.md#performance-tests) how to read the tier. The sections
 that were written as a plan keep their wording, with **Built** notes where the
-build differed from the plan or settled something.
+build differed from the plan or settled something. The code that makes a board
+(the roll of the dice, the seeding) and the grapheme binder have their zones
+and work budgets too: see [The game rows](#the-game-rows).
+
+**Board modes.** The standard board (dice, 3x3 to 6x6) is the MVP's **default**
+and the seeded phonics board is a parent's switch (decided 2026-10-16). A
+budget is for one mode, and every row below and every metric in the tier says
+which.
 
 **Every number below that is about a tablet or a phone is an estimate.** Nothing
 has been measured on one, and the MVP's iPad is not named in this repository.
@@ -80,8 +87,8 @@ to be confirmed on the first device.
 | Launch to `home` drawn | 2 s | Cubeulator proposes 2 s on a desktop; the same figure is proposed here |
 | Full dictionary load (standard board: before its first board) | 1 s, off the UI thread; `home` is usable meanwhile | Estimate 0.2 to 0.33 s from 55 to 65 ms |
 | Phase index load (phonics board) | 10 ms | Hundreds of words |
-| Seeding a board (phonics board only) | 10 ms typical, 50 ms worst | Up to 20 verifications at 0.02 to 0.5 ms (measured, desktop); the guided fill is up to 7 ms on a 6x6 (measured, desktop) |
-| Making a standard board | 50 ms | A roll of dice and one solve; the solve is the cost (worst measured 0.85 ms on a 6x6). No dice set exists yet |
+| Seeding a board (**phonics** only) | 10 ms typical, 50 ms worst | Up to 20 verifications at 0.02 to 0.5 ms (measured, desktop); the guided fill is up to 7 ms on a 6x6 (measured, desktop). Re-measured by the tier's corpus: [The game rows](#the-game-rows) |
+| Making a standard board (**standard**, the default) | 50 ms | A roll of dice and one solve; the solve is the cost (worst measured 0.85 ms on a 6x6 of random letters; the dice's worst solves are in [The game rows](#the-game-rows)) |
 | Solving any board | 50 ms | Worst measured 1.7 ms; a multiple of 5 gives 9 ms |
 | Start of the sound-it-out sequence after the finger lifts | 100 ms | Proposal |
 | Capture to the check screen (the single capture) | 3 s | Proposal; **unmeasured**, Vision's speed on dice is not known |
@@ -195,16 +202,29 @@ on an inner loop.
 
 **Built:** `solver.solve` (the zone's value is the words found; the visits are
 the plot `solver.visits`, because a zone carries one number) and
-`data.load_dictionary` (the words), in `wjs::solve` and `Dictionary::load`, and
-nothing else: the rest of the table is added with the code it times.
+`data.load_dictionary` (the words), in `wjs::solve` and `Dictionary::load`; and,
+with the code that makes a board, `board.seed` (the verifications it spent),
+`board.verify` (the words of the phase found on one verified board),
+`board.roll` (the dice rolled) and `phonics.bind` (the comparisons it made), in
+`wjs::seed_board`, `wjs::roll` and `GraphemeBinder::bind`. The rest of the
+table is added with the code it times.
+
+`board.roll` is not in the plan's table: the dice did not exist when it was
+written. It is the standard board's, where `board.seed` and `board.verify` are
+the phonics board's, which is why the table's `board` row says so. A zone's
+value is the one number a person reading the trace will want next to its time:
+the comparisons for the bind (the figure the work budget holds, so a trace and
+a budget say the same number), where the solver's value is its output and its
+work is a plot. Seeding adds no plot of its own: its solves are `solver.solve`
+zones inside `board.seed`, each with its `solver.visits`.
 
 | Layer | Zones, with the value each carries |
 | --- | --- |
 | app | `app.startup`, `app.load_qml`, `app.scene_create` |
 | data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` |
-| board (phonics board only) | `board.seed` (tries), `board.verify` (viable words) |
+| board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.roll` (dice; **standard**) |
 | solver | `solver.solve` (words found; visits) |
-| phonics | `phonics.bind`, `phonics.segment`, `phonics.sequence` |
+| phonics (**phonics** board only) | `phonics.bind` (comparisons), `phonics.segment`, `phonics.sequence` |
 | input | `input.submit` (path length). Per-move work is a plot, `input.hit_test_us`, not a zone |
 | audio | `audio.play_clip` (clip id); a plot `audio.start_latency_ms` |
 | scene | `scene.shake`, `scene.drop`, `scene.settle`, `scene.celebrate` |
@@ -252,23 +272,137 @@ and a budget is several times the ratio.
 
 ### Work budgets
 
-**Built:** every row that can be measured is in `tests/perf/budgets.hpp` with
-the figure it is a quarter above; the rows about seeding and binding wait for
-the code that makes them. The solve and dictionary rows are the **standard
-board's** work; the `board.seed.*` and `phonics.*` rows are the **phonics
-board's**, and both are about measuring with boards of a phase, which needs a
-phase.
+**Built:** every row is in `tests/perf/budgets.hpp` with the figure it is a
+quarter above (rounded up to three significant figures for the game rows).
+Every metric names the **board mode** it is for. The standard board is the
+default, so its work comes first: the solve, the dictionary and the dice are the
+**standard board's**; the `seed.*` and `bind.*` rows are the **phonics board's**,
+a parent's switch, and are measured on a test phase (below), because the
+repository has none.
 
-| Metric | Measured | Budget (a quarter above) |
-| --- | --- | --- |
-| `dictionary.words` (ENABLE) | 172,823 | Exactly this; changes with the data |
-| `dictionary.nodes` | 387,889 | Exactly this |
-| `solve.visits.max` 3x3 / 4x4 / 5x5 / 6x6 over 200 boards | 514 / 1,548 / 2,859 / 5,174 | 640 / 1,940 / 3,580 / 6,470 |
-| `solve.visits` on the four built-to-be-rich boards | 2,832 / 5,496 / 9,443 / 12,350 | 3,550 / 6,900 / 11,800 / 15,500 |
-| `solve.words` on each of those four | 1,126 / 1,464 / 1,788 / 327 | Exactly (it pins the corpus) |
-| `board.seed.tries.max` over 28 seeds, each size and phase | Not measurable until a phase index exists | 20 (the algorithm's own cap), and `fallbacks` is 0 |
-| `board.seed.viable` of every accepted board | | Within 3 to 5, always |
-| `phonics.bind` comparisons for a path of 9 | | A count, set when written |
+| Metric | Mode | Measured | Budget (a quarter above) |
+| --- | --- | --- | --- |
+| `dictionary.words` (ENABLE) | standard | 172,823 | Exactly this; changes with the data |
+| `dictionary.nodes` | standard | 387,889 | Exactly this |
+| `solve.visits.max` 3x3 / 4x4 / 5x5 / 6x6 over 200 boards | standard | 514 / 1,548 / 2,859 / 5,174 | 640 / 1,940 / 3,580 / 6,470 |
+| `solve.visits` on the four built-to-be-rich boards | standard | 2,832 / 5,496 / 9,443 / 12,350 | 3,550 / 6,900 / 11,800 / 15,500 |
+| `solve.words` on each of those four | standard | 1,126 / 1,464 / 1,788 / 327 | Exactly (it pins the corpus) |
+| `roll.visits.max` 3x3 / 4x4 / 5x5 / 6x6: a roll of the dice, then a solve, over 200 seeds | standard | 471 / 1,636 / 3,748 / 6,457 | 589 / 2,050 / 4,690 / 8,080 |
+| digest of every solution over those boards | standard | 9710656603150208005 | Exactly |
+| `seed.phase.words`: the test phase | phonics | 249 | Exactly (it pins the phase) |
+| `seed.tries.total` over 100 seeds, 3x3 / 4x4 / 5x5 / 6x6 | phonics | 1,739 / 664 / 194 / 187 | 2,000 (the cap: see below) / 830 / 243 / 234 |
+| `seed.solves.total`, the same | phonics | 5,503 / 21,653 / 40,663 / 68,049 | 6,880 / 27,100 / 50,900 / 85,100 |
+| `seed.visits.total`, the same | phonics | 487,209 / 1,036,442 / 2,525,621 / 5,578,096 | 610,000 / 1,300,000 / 3,160,000 / 6,980,000 |
+| `seed.visits.max`, one seeding | phonics | 10,460 / 25,292 / 96,479 / 133,802 | 13,100 / 31,700 / 121,000 / 168,000 |
+| `seed.tries.max` | phonics | 20 / 20 / 7 / 7 | 20, the algorithm's own cap (`SeedOptions::max_tries`) |
+| `seed.fallbacks` of 100 | phonics | 77 / 5 / 0 / 0 | 97 / 7 / 0 / 0 (**not** the plan's 0: see below) |
+| `seed.out_of_range`: a board called a landing that is outside 3 to 5 words | phonics | 0 | Exactly 0, always |
+| digest of every board seeded | phonics | 15489434241397487766 | Exactly |
+| `bind.comparisons`, a path of 9: none / all / mixed | phonics | 279 / 50 / 187 | 349 / 63 / 234 |
+
+The plan's "viable words within 3 to 5, always" row (for `board.verify`) is
+`seed.out_of_range`, held as a count of boards outside the range that are not
+marked fallbacks.
+
+### The game rows
+
+The code that makes a board and shows its blocks exists now, and this is what
+was added for it and what it measured. **Built, and measured 2026-10-16** (a
+Release build, MSVC 19.51, the Windows 11 desktop above; the counts are exact on
+every machine, the milliseconds are this machine's, taken by a throw-away
+program that is not committed). The cases are in
+`tests/perf/game_work_test.cpp` and carry the tags `[standard]` or `[phonics]`.
+
+**Standard board (the default).** `wjs::roll` of the project's dice
+(`data/dice/<n>x<n>.txt`, the shipped files) with the seeds of the random
+boards (`7919 * i + n`, 200 a size), then `wjs::solve` against the full word
+list: what making a standard board costs. The zone is `board.roll` (the dice
+rolled).
+
+| Size | Most visits of a solve | Budget | Roll alone | Roll and solve, mean / worst |
+| --- | --- | --- | --- | --- |
+| 3x3 | 471 | 589 | 2.5 us | 0.03 / 0.08 ms |
+| 4x4 | 1,636 | 2,050 | 3.4 us | 0.11 / 0.26 ms |
+| 5x5 | 3,748 | 4,690 | 4.6 us | 0.29 / 0.59 ms |
+| 6x6 | 6,457 | 8,080 | 5.8 us | 0.53 / 1.02 ms |
+
+The roll is not the cost, as the plan said: a shuffle and a parse, a few
+microseconds, and the solve is the rest. The dice's worst solves are below the
+random boards' (514 / 1,548 / 2,859 / 5,174) on a 3x3 and up to a third above
+them from 4x4 up: a die has a vowel on it, so these boards hold more words than
+a draw by letter counts. The 50 ms budget for making a board is met by a factor
+of fifty on this desktop. The digest pins the dice files and the roll together;
+it moves when the files do (they are made from the dictionary:
+`data/README.md`).
+
+**Phonics board (a parent's switch): seeding.** The corpus is the proxy index
+of [Testing](../testing.md#seeding-what-was-measured): the 249 words of three
+or more letters of ENABLE that are spelled only with S, A, T, P, I and N, each
+letter a grapheme, built by walking the trie. It is test data, as every phase
+here is; it stands for "a few hundred words", which is the size the design
+guessed. The options are those of `phonics_board_options` for the size (the
+guided fill, targets of three letters at most, every letter but `B` as filler),
+the range 3 to 5 and 20 tries; 100 seeds a size. The zones are `board.seed` (the
+verifications it spent) and `board.verify` (the words of the phase found on one
+board), with the solver's own zones inside.
+
+| Size | Verifications (max one) | Solves | Visits, total / worst seeding | Fallbacks of 100 | Time a seeding, mean / worst |
+| --- | --- | --- | --- | --- | --- |
+| 3x3 | 1,739 (20) | 5,503 | 487,209 / 10,460 | 77 | 0.7 / 1.2 ms |
+| 4x4 | 664 (20) | 21,653 | 1,036,442 / 25,292 | 5 | 1.3 / 2.3 ms |
+| 5x5 | 194 (7) | 40,663 | 2,525,621 / 96,479 | 0 | 3.0 / 7.4 ms |
+| 6x6 | 187 (7) | 68,049 | 5,578,096 / 133,802 | 0 | 6.6 / 12.1 ms |
+
+What it says:
+
+- **The plan's "fallbacks is 0" does not hold on the small boards, and the
+  budgets are what was measured.** 77 of 100 seeds of a 3x3 and 5 of 100 of a
+  4x4 end as the nearest board, not one in range. This agrees with
+  [Testing](../testing.md#fuller-boards-a-guided-fill-and-short-targets)
+  (23% and 92% landed with targets of three letters): a phase of this size
+  leaves a 3x3 only a few words to choose from. The 5x5 and 6x6 land every
+  time. Nothing here says the 3x3 is wrong for the phonics board, only that the
+  seeding mostly gives up on it with this phase; whether that board is wanted
+  is the author's.
+- **The budget on a 3x3's verifications is the cap.** A quarter above 1,739
+  is 2,174, which is more than 100 seeds of 20 tries can make, so it is set to
+  that 2,000 and cannot fail. What holds the 3x3 is its solves and visits,
+  which the guided fill's trials leave unbounded.
+- **Verifications are not the cost; the guided fill is.** A 6x6 spends under
+  two verifications a seeding and 680 solves, because the fill tries each of up
+  to 25 letters on each tile left. On this desktop a seeding is within the 10
+  ms typical and 50 ms worst of the budgets table; at the estimated 3 to 5
+  times a desktop core a 6x6 would be 20 to 33 ms typical, which is over the 10
+  ms. That is the plan's own worry about the lowest device, now with a figure.
+  These times are two to three times the guided-fill table in
+  [Testing](../testing.md#fuller-boards-a-guided-fill-and-short-targets) for
+  the same words, which was taken before `phonics_board_options` fixed the
+  options (its filler is 25 letters).
+- **No accepted board was outside the range**, on any size.
+
+**Phonics board: binding.** `GraphemeBinder::bind` of a path of nine tiles
+against a test set of 39 graphemes, of which the binder holds the 31 that have
+more than one letter and are not split. The zone is `phonics.bind`, carrying the
+comparisons; the work counter is `wjs/binder_work.hpp`, written once as a bind
+ends, as the solver's is.
+
+| Path | Blocks | Comparisons | Budget | Time a bind |
+| --- | --- | --- | --- | --- |
+| none: `S A T P I N S A T` | 9 | 279 (9 x 31) | 349 | 1.5 us |
+| all: `C H A I R S H E E` | 4 | 50 | 63 | 0.9 us |
+| mixed: `S H I P R A I N S` | 7 | 187 | 234 | 1.0 us |
+
+A tile that starts no grapheme is held against every grapheme the binder
+holds, so the work is tiles times graphemes at worst, and that is the binder's
+only growth: a phase of 100 multi-letter graphemes would cost about 900
+comparisons a path. A case recounts the comparisons from the blocks that came
+back and the order the binder documents, with nothing the library counts.
+
+**What was not added.** No wall-time check was added for these rows: the two
+that exist (the load and the solve) are as they were, opt-in. The counts above
+see the order-of-magnitude slowdown a ratio would, and a seeding is dominated by
+the solver, which has them. The standard board's word list is still the full
+dictionary until the author chooses a list; the dice rows are against it.
 
 ### Time ratios
 
@@ -302,7 +436,9 @@ screen is the one automatable exception, and it needs the window and Qt.
 ## Unknowns
 
 - Every device figure above.
-- The size of the phase index, and so the seeding's tries.
+- The size of the phase index, and so the seeding's tries. **Measured** on a
+  proxy of 249 words ([The game rows](#the-game-rows)); the real phases'
+  sizes are not known, and a smaller or larger index moves every `seed.*` row.
 - The standard board's word list: the full dictionary or a list cut from it
   decides its load time and memory, and is not yet chosen
   ([MVP library](mvp-library.md)).
