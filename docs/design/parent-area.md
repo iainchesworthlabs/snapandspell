@@ -255,7 +255,7 @@ checked now:
 | No audio recording | A scan of first-party source and manifests for the capture classes, calls and permission strings | `privacy.sources` |
 | No network capability | The same scan for the network classes and headers, a URL literal in code, the Qt modules whose job is the network, the manifest permissions | `privacy.sources` |
 | Zero export | The same scan for printing, sharing, saving through a dialog, the clipboard, a URL handed to the system, mail, a launched program, and any file written outside `src/lib/src/store.cpp` | `privacy.sources` |
-| The checks themselves | 48 cases on throw-away trees: each rule finds its violation and leaves alone a comment, the store's own source, the prototype, a name inside a longer word | `privacy.sources.selftest` |
+| The checks themselves | 50 cases on throw-away trees: each rule finds its violation and leaves alone a comment, the store's own source, the prototype, a name inside a longer word | `privacy.sources.selftest` |
 | Local store | Round trip, migration, damage, newer version, nothing left in the directory | the `[store]` cases of `wjs_unit_tests` |
 | Store size cap | The worst case the bounds allow is under the cap and reads back; a file over it is refused; a busy few months is under 32 KiB | the `[bounds]` cases |
 | Nothing but what the design says | The file has only the lines the design lists, and no time of day (no colon, no ten-digit number) | the `[privacy]` cases |

@@ -133,6 +133,10 @@ wjs_case("a name inside a longer word" CLEAN "src/lib/src/ok.cpp"
     "int MyQNetworkAccessManagerish = 0; int nQAudioInputs = 1; int popen_count = 2;")
 wjs_case("Qt Qml and Qt Quick are fine" CLEAN "src/app/CMakeLists.txt"
     "target_link_libraries(app PRIVATE Qt6::Qml Qt6::Quick)")
+wjs_case("the scanner's privacy checker names what it forbids" CLEAN "tests/scan/check_privacy.cmake"
+    "\"network|QNetworkAccessManager|QTcpSocket\" \"audio capture|QAudioInput\"")
+wjs_case("the scanner's deliberate leak" CLEAN "tests/scan/privacy_fixture/src/scan/leak.cpp"
+    "QNetworkAccessManager manager; QAudioInput input;")
 wjs_case("the prototype is a program of its own" CLEAN "src/app/prototype/shake/frames.cpp"
     "file.open(QIODevice::WriteOnly);")
 wjs_case("documentation is not scanned" CLEAN "docs/x.md" "QNetworkAccessManager QAudioInput")

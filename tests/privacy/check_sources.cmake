@@ -178,8 +178,11 @@ list(REMOVE_DUPLICATES _files)
 # The checker and its self-test name every forbidden thing: not scanned. Nor is
 # src/app/prototype/, which is a program of its own for trying the 3D board
 # (docs/design/shake-prototype.md), never part of the application, and writes
-# its frames to disk to look at them.
-list(FILTER _files EXCLUDE REGEX "^(tests/privacy|src/app/prototype)/")
+# its frames to disk to look at them. Nor are the scanner's own privacy checker and
+# its deliberate leak (tests/scan): the checker names what the scanner must not do
+# as patterns, as this one does, and the fixture is the leak it must catch.
+list(FILTER _files EXCLUDE REGEX
+    "^(tests/privacy|src/app/prototype|tests/scan/privacy_fixture)/|^tests/scan/check_privacy[.]cmake$")
 
 set(_store_source "src/lib/src/store.cpp")
 

@@ -210,8 +210,10 @@ a source scan can hold ([Application design](design/application.md#privacy-built
 no audio capture, no network class or header or URL literal or network Qt module or
 manifest permission, no export route (printing, sharing, a save dialog, the clipboard,
 a URL handed to the system, mail, a launched program), and no file written outside
-`src/lib/src/store.cpp`. A comment line is skipped; the checker, its self-test and the
-3D prototype (`src/app/prototype`, a program of its own) are not scanned. It is a
+`src/lib/src/store.cpp`. A comment line is skipped; the checker, its self-test, the
+3D prototype (`src/app/prototype`, a program of its own) and the scanner's own privacy
+checker and its deliberate leak (`tests/scan`, which name the forbidden things as data) are
+not scanned. It is a
 pattern scan, not a proof, and Qt Qml links Qt Network itself, so the rule is "no
 capability and no use", not "no module". **`privacy.sources.selftest`** holds each rule to
 a violation it must find and to the cases it must leave alone, so a pattern that stops
