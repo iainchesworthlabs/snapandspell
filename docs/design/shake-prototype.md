@@ -180,18 +180,18 @@ with seed 100:
 
 | Board | Tiles that are their die's face up | Different letters on a die (mean) | Land face up, upright | Faces uppermost in a play (mean, most) |
 | --- | --- | --- | --- | --- |
-| Library dice 3x3 | 9 of 9 | 6.00 | 9 of 9 | 3.89, 5 |
-| Library dice 4x4 | 16 of 16 | 6.00 | 16 of 16 | 3.56, 4 |
-| Library dice 5x5 | 25 of 25 | 6.00 | 25 of 25 | 3.60, 5 |
-| Library dice 6x6 | 36 of 36 | 6.00 | 36 of 36 | 3.69, 6 |
-| Stand-in 3x3, 4x4, 5x5, 6x6 | all | 5.4 to 5.7 (a dead die has one) | all | 3.5 to 3.7, 5 |
+| Library dice 3x3 | 9 of 9 | 6.00 | 9 of 9 | 5.00, 6 |
+| Library dice 4x4 | 16 of 16 | 6.00 | 16 of 16 | 4.50, 6 |
+| Library dice 5x5 | 25 of 25 | 6.00 | 25 of 25 | 4.60, 6 |
+| Library dice 6x6 | 36 of 36 | 6.00 | 36 of 36 | 4.97, 6 |
+| Stand-in 3x3, 4x4, 5x5, 6x6 | all | 5.4 to 5.7 (a dead die has one) | all | 4.6 to 4.9, 6 |
 
 Under reduced motion nothing tumbles (one face, 1.00) and every die lands as
 asked. The staged script shows a die about two faces (the one it lay on and the
 one it lands on, and what the turn passes between). The same checks, on six
-boards (3x3 and 4x4, three seeds each), are the ctest case `the shake script lands each die on the face the roll
-says and tumbles the others`; it fails if the up face is ignored, and if the
-tumble is switched off.
+boards (3x3 and 4x4, three seeds each), are the ctest case "the shake script
+lands each die on the face the roll says and tumbles the others"; it fails if
+the up face is ignored, and if the tumble is switched off.
 
 **What it does not do.** The opposite faces of a die are the cube's arrangement,
 not the die's (the library says which six letters a die has and nothing about
@@ -313,16 +313,16 @@ different seed a different one, and reduced motion its own:
 
 | Script, board (seed 7) | Seed 100, then again | Seed 101 | Reduced, seed 100, then again |
 | --- | --- | --- | --- |
-| Weighted, library dice 3x3 | `5fd8c3e1`, `5fd8c3e1` | `12fd47c0` | `c710afd9`, `c710afd9` |
-| Weighted, library dice 4x4 | `58701394`, `58701394` | `4e36e488` | `b226c069`, `b226c069` |
-| Weighted, library dice 5x5 | `3a8cdaca`, `3a8cdaca` | `5a2b5351` | `fe1247e5`, `fe1247e5` |
-| Weighted, library dice 6x6 | `c893506e`, `c893506e` | `b340b41a` | `709173dd`, `709173dd` |
-| Weighted, stand-in 3x3 | `1673e020`, `1673e020` | `ab28dc78` | `d92b509d`, `d92b509d` |
-| Weighted, stand-in 4x4 | `599afebd`, `599afebd` | `aae31721` | `683142cd`, `683142cd` |
-| Staged, library dice 3x3 | `f12b979f`, `f12b979f` | `5e950637` | `c710afd9`, `c710afd9` |
-| Staged, library dice 4x4 | `181612b1`, `181612b1` | `804b374c` | `b226c069`, `b226c069` |
-| Staged, stand-in 3x3 | `c6d9fb7b`, `c6d9fb7b` | `f633b21e` | `d92b509d`, `d92b509d` |
-| Staged, stand-in 4x4 | `add084cb`, `add084cb` | `279c1970` | `683142cd`, `683142cd` |
+| Weighted, library dice 3x3 | `38cde292`, `38cde292` | `efd90ab4` | `c710afd9`, `c710afd9` |
+| Weighted, library dice 4x4 | `d3fba177`, `d3fba177` | `f015d079` | `b226c069`, `b226c069` |
+| Weighted, library dice 5x5 | `987c1268`, `987c1268` | `4dd96e54` | `fe1247e5`, `fe1247e5` |
+| Weighted, library dice 6x6 | `b11deba2`, `b11deba2` | `a74de28b` | `709173dd`, `709173dd` |
+| Weighted, stand-in 3x3 | `8aea8`, `8aea8` | `b5fd164b` | `d92b509d`, `d92b509d` |
+| Weighted, stand-in 4x4 | `2af519a0`, `2af519a0` | `ac922da6` | `683142cd`, `683142cd` |
+| Staged, library dice 3x3 | `e5396714`, `e5396714` | `50fbac07` | `c710afd9`, `c710afd9` |
+| Staged, library dice 4x4 | `ed068f95`, `ed068f95` | `6b6fb2aa` | `b226c069`, `b226c069` |
+| Staged, stand-in 3x3 | `53647a7e`, `53647a7e` | `16f63790` | `d92b509d`, `d92b509d` |
+| Staged, stand-in 4x4 | `dc06b383`, `dc06b383` | `668a9f2` | `683142cd`, `683142cd` |
 
 A checksum is of the poses in pixels (for the harness's window, 560 x 900) **and
 now of each die's orientation**, so every earlier checksum is replaced, not only
@@ -413,15 +413,15 @@ Checksums for replay are in [Replay](#replay).
 
 ### The real faces
 
-What six cells to a die cost, against the branch as it was before them (its tip
-`6a1c7cd`, built beside this one with the same compiler and flags, with the same
-`--change` mode patched into its harness so the two measure the same way). Three
-processes of each, one after the other on this desktop, with nothing else
-drawing and no build running, which was checked every second of every run (a run
-in which anything was seen was thrown away and made again: another worktree's
-`ShakePrototype` had been running and had stopped runs by name). The "after" is
-two boards: the stand-in the earlier tables used (two dead jewels, each now a die
-of six jewel cells) and the library's dice.
+What six cells to a die cost, against the branch as it was without them (its tip
+when this was merged, `ac4e881`, built beside this one with the same compiler
+and flags, with the same `--change` mode patched into its harness so the two
+measure the same way). Three processes of each, one after the other on this
+desktop, with nothing else drawing and no build running, which was checked every
+second of every run (a run in which anything was seen was thrown away and made
+again; an earlier series had been broken by another worktree's `ShakePrototype`).
+The "after" is two boards: the stand-in the earlier tables used (two dead jewels,
+each now a die of six jewel cells) and the library's dice.
 
 **The atlas is six times the pixels.**
 
@@ -432,59 +432,62 @@ of six jewel cells) and the library's dice.
 | 5x5 | 640 x 640, 25 cells | 1,920 x 1,280, 150 cells | 1.6 MB, 9.8 MB |
 | 6x6 | 768 x 768, 36 cells | 2,304 x 1,536, 216 cells | 2.4 MB, 14.2 MB |
 
-**The frames of a play do not show it.** Every play but the first of each
+**A frame of a play costs about a tenth more.** Every play but the first of each
 process, 30 plays a process, the stand-in's shake (the render thread's time to
 record and submit a frame, as above; GPU time was not measured):
 
 | | Before | After, stand-in board | After, library dice |
 | --- | --- | --- | --- |
-| Frames | 13,604 | 10,398 | 11,119 |
-| Render thread, median | 0.52 ms | 0.44 ms | 0.55 ms |
-| mean | 0.71 ms | 0.55 ms | 0.74 ms |
-| p95 | 0.93 ms | 0.81 ms | 1.00 ms |
-| p99 | 7.8 ms | 4.0 ms | 8.2 ms |
-| largest | 70.7 ms | 30.2 ms | 16.4 ms |
-| Intervals over 33 ms | 4 | 2 | 2 |
+| Frames | 13,107 | 14,156 | 13,394 |
+| Render thread, median | 0.44 ms | 0.49 ms | 0.47 ms |
+| mean | 0.46 ms | 0.52 ms | 0.55 ms |
+| p95 | 0.67 ms | 0.83 ms | 0.84 ms |
+| p99 | 0.97 ms | 1.12 ms | 1.33 ms |
+| largest | 2.5 ms | 2.4 ms | 59.1 ms |
+| Intervals over 33 ms | 0 | 0 | 4 |
 
-The median is the same to a tenth of a millisecond. The means and the tails
-differ from one process to the next and not from one version to the next: one
-process of each kind (the third before, the third stand-in, the first library
-dice) had a tail of 5 to 10 ms (at p95 for two of them, at p99 for the third)
-that its siblings did not, as if something else on the machine had taken turns
-with it, and the largest intervals of all (80, 55 and 159 ms) were single frames. The display ran at
-10 ms in two of the nine processes and at 16.7 ms in seven (the "two cadences"
-above), so the intervals are not compared. Creating the view is unchanged:
-loading the component 17 ms before and 16 ms after, creating the objects 3.3 and
-3.4 to 4.0 ms, and the first frame after it 232 ms before and 226 and 235 ms
-after (213 to 226 ms of it the render thread's).
+The median is 0.03 to 0.05 ms higher, in every kind of play (by 0.01 to 0.09 ms
+in the mean): what the cube of six sides and an extra turn for each die add to
+the frame. The one large number is one process of the nine, which had a stall (a
+115.8 ms interval and a 59.1 ms frame, with 44 intervals over 20 ms) that its
+two siblings and the other six processes did not; the cause was not found (an
+earlier series of this measurement, against the branch's previous tip, had a
+stall of the same kind in one process of the *before*).
+The display ran at 100 Hz (10 ms) in all but the first process of the before,
+which was a mix of the two cadences (the "two cadences" above), so the intervals
+are not compared. Creating the view is unchanged within its spread: loading the
+component 16, 16 and 17 ms (before, stand-in, library dice), creating the
+objects 3.5, 3.9 and 4.0 ms, and the first frame after it 237, 251 and 240 ms
+(228 to 238 ms of it the render thread's).
 
 **The cost is in the frame in which the board changes.** `--auto --change` shows
 a new board and records the frames after it, six boards of each size in each of
-three processes (18 boards of each size for each kind). That frame draws the new board's faces into the
-atlas. Means: the time from `show()` to the first frame on screen, and what the
-render thread spent on that frame.
+three processes (18 boards of each size for each kind). That frame draws the new
+board's faces into the atlas. Means: the time from `show()` to the first frame on
+screen, and what the render thread spent on that frame.
 
 | Board | Before | After, stand-in board | After, library dice |
 | --- | --- | --- | --- |
-| 3x3 | 17.8 ms, 6.1 ms | 31.1 ms, 18.0 ms | 22.7 ms, 11.1 ms |
-| 4x4 | 11.9 ms, 5.1 ms | 29.8 ms, 16.5 ms | 19.3 ms, 8.1 ms |
-| 5x5 | 19.4 ms, 8.7 ms | 47.3 ms, 29.3 ms | 32.9 ms, 16.1 ms |
-| 6x6 | 26.7 ms, 13.9 ms | 77.5 ms, 50.6 ms | 57.3 ms, 32.1 ms |
+| 3x3 | 11.7 ms, 5.7 ms | 28.1 ms, 16.6 ms | 21.9 ms, 11.2 ms |
+| 4x4 | 11.8 ms, 5.0 ms | 26.2 ms, 14.5 ms | 19.0 ms, 8.1 ms |
+| 5x5 | 17.1 ms, 8.7 ms | 46.6 ms, 29.3 ms | 33.5 ms, 16.5 ms |
+| 6x6 | 26.1 ms, 13.5 ms | 75.5 ms, 49.5 ms | 57.7 ms, 32.3 ms |
 
-The frames after the first are the same as before (the render thread's largest
-of the next four frames was 0 to 2.5 ms in all of them). So **a new board costs
-two to three and a half times what it did**, and the frame in which it is drawn
-is over the [33 ms budget](performance.md#budgets) at 6x6 and at 5x5 with the
-stand-in's jewels, at the budget at 5x5 with the library's dice, and under it at
-3x3 and 4x4 (the stand-in's means there, 31 and 30 ms, are close to it, and one
-4x4 board took 62 ms).
-`play()` sets the board, so the first frame of a shake carries it. What makes
-the stand-in dearer than the library's board is the jewel: each dead die is six
-`Shape`s of four facets, about 0.7 ms a cell by the difference at 4x4 (two dead
-dice, 12 cells, 8 ms more; the boards' letters differ too). Two things would take it back, and
-neither is done: set the board (so that the atlas is drawn) a frame or more
-before the shake starts, behind the layout stage that is the application's; and
-draw the jewel once and share it.
+The frames after the first are nearly the same as before (the largest
+render-thread time of the next four was under 2 ms everywhere but at 6x6, where
+it was 1.5 ms before, and 9.1 ms with the stand-in and 4.5 ms with the library's
+dice). So **a new board costs two to
+three and a half times what it did**, and the frame in which it is drawn is over
+the [33 ms budget](performance.md#budgets) at 6x6 and at 5x5 with the stand-in's
+jewels, at the budget at 5x5 with the library's dice, and under it at 3x3 and
+4x4 (the stand-in's means there, 28 and 26 ms, are close to it). `play()` sets
+the board, so the first frame of a shake carries it. What makes the stand-in
+dearer than the library's board is the jewel: each dead die is six `Shape`s of
+four facets, about 0.6 ms a cell by the difference at 4x4 (two dead dice, 12
+cells, 6.4 ms more; the boards' letters differ too). Two things would take it
+back, and neither is done: set the board (so that the atlas is drawn) a frame or
+more before the shake starts, behind the layout stage that is the application's;
+and draw the jewel once and share it.
 
 **Not measured:** the GPU's time for a frame with the bigger atlas, the atlas's
 memory and upload on a device, and anything on an iPad, a tablet or a phone.
@@ -528,9 +531,10 @@ different letters, and a shake mixes the dice and the faces. Hence
 
 The library's roll of the 4x4 dice with seed 7 (`M D O O / C A R T / R N E U /
 L D R P`). At 0 ms the dice sit in the box on other faces than the ones they
-will land on, and the shake shows side faces (350 to 1000 ms); they land on the
-rolled face, the letter upright. The same with the stand-in board, whose two
-dead dice are six jewels each (and whose decoy faces include `QU` and `TH`):
+will land on, and the shake shows side faces (350 to 1000 ms); then each die
+hops home, turning over in the air (1150 to 1450 ms), and lands on the rolled
+face, the letter upright. The same with the stand-in board, whose two dead dice
+are six jewels each (and whose decoy faces include `QU` and `TH`):
 
 ![The same with the stand-in board](shake-prototype-filmstrip-jewels.png)
 
@@ -555,8 +559,9 @@ is silent, and the feel is judged without it.
   painted on, which looks wrong from the side; and nothing is heard.
 - **The faces.** Read from the stills by whoever built it: letters upright and
   not mirrored on every top face at rest; side faces read as letters during the
-  tumble; at 6x6 the last dice are still turning at 2.3 s. How the turning reads
-  at 60 Hz, and to a child, is unjudged.
+  tumble and the hop; a die turns over about a horizontal axis in a quarter turn
+  at a time, so the turning is in steps. How it reads at 60 Hz, and to a child,
+  is unjudged.
 
 Staged, leaning 24 degrees, for comparison:
 
