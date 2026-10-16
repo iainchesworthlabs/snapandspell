@@ -142,6 +142,20 @@ that release, so that its rules (branch protection, required checks) can apply.
   board cleared and then resting, and hands the store a `BoardRecord` and a
   `SessionSnapshot` it can restore. Persists nothing. See
   [docs/architecture.md](docs/architecture.md#game-session).
+- **The game session plays the standard board**, the default of the first release
+  (decided 2026-10-16), as well as the phonics board: `SessionOptions::mode` (the
+  parent's switch, `wjs::BoardMode`, default standard) and `SessionData`, which holds
+  the dictionary, the new `DiceSets` (the project's `data/dice`, one set for each side
+  from 3 to 6) and the phase. The standard board is a roll of the dice at 3x3 to 6x6,
+  rolled again until it holds a word (`wjs::deal_standard_board`), against the full
+  dictionary, so **every dictionary word of three letters or more counts and is named**,
+  with no block list, as the author accepted for the MVP. The states, trace, stars, help,
+  record and snapshot are the same; `BoardRecord` and `SessionSnapshot` say the mode, and a
+  standard record counts its words (`viable_total`) instead of listing them. `restore`
+  refuses the other mode (`wrong_mode`). `GameSession::create` and `restore` take a
+  `SessionData` in place of a phase and a dictionary. The screens still play the phonics
+  board only, and `Store::save_session` does not yet keep a standard game in progress.
+  See [docs/architecture.md](docs/architecture.md#game-session).
 - **A performance-test tier** (`wjs_perf_tests`, `tests/perf`): exact work
   budgets on what the solver does (visits, words, trie nodes, and a digest of
   every result) over a fixed corpus of 800 random boards and six built ones,

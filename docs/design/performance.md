@@ -88,7 +88,7 @@ to be confirmed on the first device.
 | Full dictionary load (standard board: before its first board) | 1 s, off the UI thread; `home` is usable meanwhile | Estimate 0.2 to 0.33 s from 55 to 65 ms |
 | Phase index load (phonics board) | 10 ms | Hundreds of words |
 | Seeding a board (**phonics** only) | 10 ms typical, 50 ms worst | Up to 20 verifications at 0.02 to 0.5 ms (measured, desktop); the guided fill is up to 7 ms on a 6x6 (measured, desktop). Re-measured by the tier's corpus: [The game rows](#the-game-rows) |
-| Making a standard board (**standard**, the default) | 50 ms | A roll of dice and one solve; the solve is the cost (worst measured 0.85 ms on a 6x6 of random letters; the dice's worst solves are in [The game rows](#the-game-rows)) |
+| Making a standard board (**standard**, the default) | 50 ms | A roll of dice and one solve; the solve is the cost (worst measured 0.85 ms on a 6x6 of random letters; the dice's worst solves are in [The game rows](#the-game-rows)). The session's whole deal, measured: 0.05 ms on a 3x3 to 0.67 ms on a 6x6 |
 | Solving any board | 50 ms | Worst measured 1.7 ms; a multiple of 5 gives 9 ms |
 | Start of the sound-it-out sequence after the finger lifts | 100 ms | Proposal |
 | Capture to the check screen (the single capture) | 3 s | Proposal. **Measured, desktop only:** the portable reader reads a 4x4 frame in 45 to 50 ms and a 6x6 in 61 to 69 ms (MSVC, Release, [Scanner design](scanner.md#what-was-measured)). A tablet and Vision's speed on dice are **unmeasured** |
@@ -207,9 +207,9 @@ with the code that makes a board, `board.seed` (the verifications it spent),
 `board.verify` (the words of the phase found on one verified board),
 `board.roll` (the dice rolled) and `phonics.bind` (the comparisons it made), in
 `wjs::seed_board`, `wjs::roll` and `GraphemeBinder::bind`; and, with the game
-session, `board.deal` (the seedings a deal spent), `input.submit` (the length of
-a traced path) and `board.restore`, in `GameSession::shake`, `trace` and
-`restore`; and, with the scanner, `scan.find_board` and `scan.read_tiles`, in
+session, `board.deal` (the seedings a deal spent on the phonics board, the rolls on
+the standard), `input.submit` (the length of a traced path) and `board.restore`, in
+`GameSession::shake`, `trace` and `restore`; and, with the scanner, `scan.find_board` and `scan.read_tiles`, in
 `wjs::scan::find_board` and `read_board`. The rest of the table is added with the code it times.
 
 `board.roll` is not in the plan's table: the dice did not exist when it was
@@ -225,7 +225,7 @@ zones inside `board.seed`, each with its `solver.visits`.
 | --- | --- |
 | app | `app.startup`, `app.load_qml`, `app.scene_create` |
 | data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` (bytes written), `data.load_store` (bytes read), `data.build_dashboard` (sounds); the last three are built, in the parent area's store and dashboard |
-| board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.deal` (seedings; **phonics**, the session), `board.restore` (**phonics**, the session), `board.roll` (dice; **standard**) |
+| board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.deal` (the session: seedings on the **phonics** board, rolls on the **standard**), `board.restore` (the session, either board), `board.roll` (dice; **standard**) |
 | solver | `solver.solve` (words found; visits) |
 | phonics (**phonics** board only) | `phonics.bind` (comparisons), `phonics.segment`, `phonics.sequence` |
 | input | `input.submit` (path length; built, in `GameSession::trace`). Per-move work is a plot, `input.hit_test_us`, not a zone |
@@ -445,11 +445,56 @@ What it says:
   3x3's misses here are an upper bound, and the 4x4's 0 is not a promise for a
   smaller index.
 
+**Standard board: the game session.** The default mode. `wjs::GameSession` over
+the project's dice (`wjs::DiceSets`, `data/dice`) and the full dictionary deals a
+board with `wjs::deal_standard_board`: it rolls the dice of the chosen size and
+solves the roll, and rolls again, with the next seed of its stream, until the board
+holds a word, up to 20 rolls (`SessionOptions::max_rolls`). It lands no range of
+words. The corpus is the dice rows' seeds, 100 sessions each of 3x3, 4x4, 5x5 and 6x6,
+seeded `7919 * i + n`, each dealt, played to the resting screen (a find for every
+word of the dictionary on the board) and restored once (`tests/perf/game_work_test.cpp`,
+tags `[session][standard]`). The zones are `board.deal` (the rolls it made),
+`input.submit` and `board.restore`, as for the phonics board.
+
+| Size | Rolls (max one) | Visits, total / worst deal | Words on the 100 boards (a board) | Restore, visits | Time a deal |
+| --- | --- | --- | --- | --- | --- |
+| 3x3 | 108 (3) | 18,755 / 446 | 3,432 (34) | 18,567 | 0.05 ms |
+| 4x4 | 100 (1) | 57,089 / 1,109 | 10,897 (109) | 57,089 | 0.15 ms |
+| 5x5 | 100 (1) | 161,035 / 3,748 | 26,311 (263) | 161,035 | 0.35 ms |
+| 6x6 | 100 (1) | 298,302 / 6,457 | 48,121 (481) | 298,302 | 0.67 ms |
+
+What it says:
+
+- **The standard deal costs one solve, and a 3x3 sometimes two.** 3.8% of 3x3 rolls
+  of the project's dice hold no word of three letters or more, so 8 of the 100 3x3
+  boards were rolled again (the worst three times); 0.15% of 4x4 rolls do, and none
+  of these 300 boards on a 4x4 or larger did. A deal is a roll (a shuffle of the
+  dice) and a solve, 0.05 to 0.67 ms on this desktop: two orders of magnitude under
+  the 50 ms of the budget table, and under the phonics board's 1.2 to 1.3 ms, which
+  seeds and solves up to five times. The worst deal of a 5x5 and a 6x6 is the very
+  board that is worst in the dice rows (3,748 and 6,457 visits), because the first
+  roll of a corpus seed is the dice rows' board.
+- **Playing makes no solve, however many words there are.** Tracing, asking for the
+  help, `record()`, `snapshot()` and `rest()` read what the deal kept: 0 solves and 0
+  visits over all 400 boards, which hold 88,761 words between them (up to 481 on one
+  6x6), held exactly. A **restore** makes one solve (100 of 100 for each size), the
+  cost of the board again, which is the cost of its deal when it landed first
+  time.
+- **A board with no word was never dealt**, on any seed, and the words of the
+  dictionary on the 400 boards are exactly the figures above, which pins the dice,
+  the roll, the dictionary and the deal together. They move with the dice files and
+  the dictionary (`data/README.md`), by a person's decision.
+- **The record of a standard board lists no words** (`viable_total` counts them), so
+  saving it after each find costs what the finds cost and not what the board holds;
+  the store keeps no list either.
+- The phonics rows above are unchanged by the standard board: the phonics digest of
+  the tier is the number it was before the session knew a second mode.
+
 **What was not added.** No wall-time check was added for the roll, the seeding or
 the binder: the counts above see the order-of-magnitude slowdown a ratio would,
 and a seeding is dominated by the solver, which has them. The game session has
-one, opt-in like the others (below), because a deal is the one path of the game
-that a child waits for. The standard board's word list is still the full
+one for each board mode, opt-in like the others (below), because a deal is the one
+path of the game that a child waits for. The standard board's word list is still the full
 dictionary until the author chooses a list; the dice rows are against it.
 
 ### Time ratios
@@ -466,6 +511,7 @@ heavy one (a working set of tens of megabytes):
 | Solving a 4x4 built to be rich | 0.57 to 0.59 ms | 0.042 to 0.043 | 0.3 |
 | Solving a 6x6 built to be rich | 1.6 ms | 0.115 to 0.120 | 0.8 |
 | Dealing a session board, 3x3 and 4x4 (**phonics**; one deal, the first five corpus seeds) | 1.2 and 1.3 ms | 0.087 and 0.086 | 0.6 and 0.6 |
+| Dealing a session board, 3x3 to 6x6 (**standard**; one deal, the first five corpus seeds) | 0.05, 0.15, 0.35 and 0.67 ms | 0.003, 0.010, 0.023 and 0.046 | 0.03, 0.08, 0.15 and 0.30 |
 
 Fastest of 5 runs (the load) and of 15 runs of 50 solves, alternating with the
 calibration. The proposal's starting values (10, 1.0, 1.0) were against a
