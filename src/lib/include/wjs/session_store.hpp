@@ -30,10 +30,18 @@
 //     calendar, wjs/calendar.hpp): the session never reads it and the store keeps a
 //     day and nothing finer. A stamp that is not a day (outside 32 bits) cannot be
 //     stored, and the conversion says so.
-//   - **The list of words a board held.** The store lists a board's words (it needs them
-//     to say which sounds a board had) and the session needs every one of them to
-//     restore; a record whose list was not kept (more words than the store lists) cannot
-//     come back as a session.
+//   - **The list of words a board held.** The store lists a phonics board's words (it
+//     needs them to say which sounds a board had) and the session needs every one of
+//     them to restore; a record whose list was not kept (more words than the store
+//     lists) cannot come back as a session.
+//   - **The board mode.** The store keeps none: a board with a phase is a phonics
+//     board, and a board with an empty phase is a standard one. A record whose mode
+//     and phase disagree cannot be stored (`snapshot_of` answers nullopt). A standard
+//     board holds tens to hundreds of words and neither side lists them: the record
+//     and the store's board both say how many (`viable_total`), which is what
+//     `restore()` checks the board against. A saved game in the box has no board to
+//     tell the mode from, and comes back with the default; `restore()` plays the mode
+//     it is given.
 //
 // Each function answers nullopt, and changes nothing, for what the other side cannot
 // hold. A state of the session that is not saved (shaking, dropping, cleared) has no

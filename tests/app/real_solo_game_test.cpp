@@ -154,8 +154,19 @@ const Path pab{{0, 0}, {0, 1}, {1, 0}};  // PAB, no word
 const Path apart{{0, 0}, {0, 2}};        // not touching: not a path
 const Path one_tile{{0, 0}};             // a touch to hear a letter
 
+// The options of a phonics session: the game under test plays that board.
+wjs::SessionOptions phonics(wjs::SessionOptions options = {}) {
+    options.mode = wjs::BoardMode::phonics;
+    return options;
+}
+
+wjs::SessionData data_of(const wjs::PhaseIndex& phase) {
+    return {.dictionary = english(), .phase = &phase};
+}
+
 wjs::BoardRecord hand_record(std::string_view phase, std::vector<wjs::Find> finds = {}) {
     wjs::BoardRecord record;
+    record.mode = wjs::BoardMode::phonics;
     record.phase = std::string(phase);
     record.size = BoardSize::three;
     record.tiles = std::string(hand_tiles);
@@ -179,16 +190,18 @@ wjs::GameSession hand_session(std::string_view phase, std::vector<wjs::Find> fin
                               const wjs::SessionOptions& options = {}) {
     wjs::SessionSnapshot snapshot;
     snapshot.state = SessionState::playing;
+    snapshot.mode = wjs::BoardMode::phonics;
     snapshot.size = BoardSize::three;
     snapshot.seed = 77;
     snapshot.board = hand_record(phase, std::move(finds));
-    auto restored = wjs::GameSession::restore(snapshot, phase_named(phase), english(), options);
+    auto restored =
+        wjs::GameSession::restore(snapshot, data_of(phase_named(phase)), phonics(options));
     REQUIRE(restored.has_value());
     return *std::move(restored);
 }
 
 wjs::GameSession dealing_session(const wjs::SessionOptions& options = {}) {
-    auto created = wjs::GameSession::create(phase_a(), english(), options);
+    auto created = wjs::GameSession::create(data_of(phase_a()), phonics(options));
     REQUIRE(created.has_value());
     return *std::move(created);
 }

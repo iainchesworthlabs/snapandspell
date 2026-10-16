@@ -111,6 +111,20 @@ struct Metric {
 // every trace, and the snapshots after the first find and at rest.
 [[nodiscard]] std::uint64_t session_digest();
 
+// STANDARD BOARD. What the game session spent over kSeedsPerSize sessions of each
+// size it plays on this board (3x3 to 6x6, kSizes), each dealt from its corpus
+// seed against the project's dice and the full word list, and played through to
+// the resting screen: the rolls a deal took (a roll is a solve), the solver's
+// visits to deal, the words that counted on the boards (exact: it pins the dice,
+// the roll, the dictionary and the deal together), and that the play and the save
+// make no solve at all, a restore makes one, and every record says the mode and
+// the count the deal made.
+[[nodiscard]] std::vector<Metric> standard_session_metrics();
+
+// The digest of every board a standard session dealt and played, as the phonics
+// one's is.
+[[nodiscard]] std::uint64_t standard_session_digest();
+
 // --- the scanner, counted (wjs/scan/work.hpp) ---------------------------------
 
 // What reading four fixed synthetic frames costs the reader (a 4x4, a 5x5, a 6x6
@@ -131,5 +145,10 @@ struct Metric {
 // times, until a board lands in range) of each size in kSessionSizes, against
 // the light calibration. One deal's ratio.
 [[nodiscard]] std::vector<Metric> session_timing_metrics();
+
+// STANDARD BOARD. Dealing a session's board (the shake: a roll, a solve, and
+// another roll for the few boards that hold no word) of each size 3x3 to 6x6,
+// against the light calibration. One deal's ratio.
+[[nodiscard]] std::vector<Metric> standard_session_timing_metrics();
 
 }  // namespace wjs::perf

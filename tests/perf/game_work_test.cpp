@@ -190,3 +190,79 @@ TEST_CASE("phonics board: the solves a session reports are the solves the solver
         }
     }
 }
+
+// --- standard board: the game session ----------------------------------------
+
+TEST_CASE("standard board: a session deals and plays within its budget",
+          "[perf][session][standard]") {
+    skip_unless_optimised();
+    check_within_budget(wjs::perf::standard_session_metrics());
+}
+
+TEST_CASE("standard board: every board a session deals and plays is the one it was",
+          "[perf][session][standard]") {
+    skip_unless_optimised();
+    const std::uint64_t digest = wjs::perf::standard_session_digest();
+    INFO("digest " << digest
+                   << "; if the session, the roll, the dice or the dictionary were meant to "
+                      "change, set kStandardSessionDigest");
+    CHECK(digest == wjs::perf::budget::kStandardSessionDigest);
+}
+
+TEST_CASE("standard board: the solves a session reports are the solves the solver counted",
+          "[perf][session][standard]") {
+    skip_unless_optimised();
+    // The budgets hold the deal's own count of its solves next to the solver's
+    // visits. This is what says the first is the number of solves the second is
+    // the visits of: every roll the deal made was solved once through solve(), and
+    // the deal made no other.
+    for (const std::size_t size : wjs::perf::kSizes) {
+        for (unsigned index = 0; index < 10; ++index) {
+            const unsigned seed = wjs::perf::corpus_seed(size, index);
+            const wjs::perf::SessionRun run = wjs::perf::measure_standard_session(size, seed);
+            INFO("size " << size << ", corpus seed " << seed);
+            CHECK(run.mode == wjs::BoardMode::standard);
+            CHECK(run.deal.solves == run.deal_solves);
+            CHECK(run.deal.rolls == run.deal.solves);
+            CHECK(run.deal.rolls >= 1U);
+            CHECK(run.deal.rolls <= wjs::SessionOptions{}.max_rolls);
+            // The standard deal seeds nothing, has no range, and keeps the board
+            // as soon as it holds a word.
+            CHECK(run.deal.seedings == 0U);
+            CHECK(run.deal.tries == 0U);
+            CHECK(run.deal.in_range);
+            CHECK(run.deal.viable == run.words);
+            CHECK(run.words >= 1U);
+        }
+    }
+}
+
+TEST_CASE("standard board: a session deals the board the library rolls from the seed that made it",
+          "[perf][session][standard]") {
+    skip_unless_optimised();
+    // The board of a session is wjs::roll of the project's dice with the seed of
+    // the roll that held a word, and that is the corpus seed itself unless the first
+    // roll held none: so the standard rows above are about the dice rows' boards.
+    for (const std::size_t size : wjs::perf::kSizes) {
+        for (unsigned index = 0; index < 10; ++index) {
+            const unsigned seed = wjs::perf::corpus_seed(size, index);
+            const wjs::perf::SessionRun run = wjs::perf::measure_standard_session(size, seed);
+            INFO("size " << size << ", corpus seed " << seed);
+            const auto rolled = wjs::roll(wjs::perf::dice_set(size), run.deal.seed);
+            REQUIRE(rolled.has_value());
+            REQUIRE(run.after_first_find.board.has_value());
+            std::string tiles;
+            for (std::size_t row = 0; row < rolled->rows(); ++row) {
+                tiles += row == 0 ? "" : "/";
+                for (std::size_t column = 0; column < rolled->columns(); ++column) {
+                    tiles += column == 0 ? "" : " ";
+                    tiles += rolled->tile({row, column});
+                }
+            }
+            CHECK(run.after_first_find.board->tiles == tiles);
+            if (run.deal.rolls == 1U) {
+                CHECK(run.deal.seed == seed);
+            }
+        }
+    }
+}

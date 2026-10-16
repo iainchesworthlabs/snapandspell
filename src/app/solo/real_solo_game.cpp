@@ -91,7 +91,12 @@ RealSoloGame::RealSoloGame(wjs::GameSession session, bool help_allowed,
 std::expected<RealSoloGame, wjs::SessionError> RealSoloGame::create(
     const wjs::PhaseIndex& phase, const wjs::Dictionary& dictionary, wjs::Store& store,
     const wjs::SessionOptions& options, std::function<wjs::Day()> today) {
-    auto session = wjs::GameSession::create(phase, dictionary, options);
+    // This game is made over a phase and binds its blocks with the phase's
+    // graphemes, so it plays the phonics board whatever mode the options name. The
+    // standard board needs the dice and no phase, and is not wired here yet.
+    wjs::SessionOptions phonics = options;
+    phonics.mode = wjs::BoardMode::phonics;
+    auto session = wjs::GameSession::create({.dictionary = dictionary, .phase = &phase}, phonics);
     if (!session) {
         return std::unexpected(session.error());
     }

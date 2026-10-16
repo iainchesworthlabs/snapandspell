@@ -215,6 +215,60 @@ inline constexpr std::uint64_t kSessionMaxSeedings = 5;
 inline constexpr std::uint64_t kSessionDigest = 4119037603476531768ULL;
 
 // ---------------------------------------------------------------------------
+// STANDARD BOARD (the default): the game session
+// ---------------------------------------------------------------------------
+
+// What the session spent dealing and playing kSeedsPerSize boards of each size
+// (kSizes order, 3x3 to 6x6) against the project's dice and the full word list:
+// sessions seeded with corpus_seed, the default options (a roll that holds a word,
+// up to SessionOptions::max_rolls rolls), every board played through to the
+// resting screen, which is every word of the dictionary on it. Each figure a
+// quarter above what it measured, rounded up to three significant figures, except
+// the exact ones.
+//
+//   rolls_total     boards rolled, summed (a board that holds a word at the first
+//                   roll is one); a roll is a solve
+//   rolls_max       the most rolls any one board took, with the corpus seed of the
+//                   one that took them
+//   visits_total    the solver's visits to deal them all
+//   visits_max      the visits of the one deal that cost the most
+//   words_total     the words of the dictionary on all of them: exact, it pins the
+//                   dice, the roll, the dictionary and the deal together
+//   restore_visits  the visits of restoring each board once
+struct StandardSessionBudget {
+    std::uint64_t rolls_total;
+    std::uint64_t rolls_max;
+    std::uint64_t visits_total;
+    std::uint64_t visits_max;
+    std::uint64_t words_total;
+    std::uint64_t restore_visits;
+};
+
+//
+// 3x3 is the only size that ever rolls twice: 3.8% of its rolls hold no word, and 8
+// of the 100 boards took a second roll or a third (108 rolls; the worst took 3). A
+// 4x4 rolls again for 0.15% of its rolls and none of these 100 did, and a 5x5 and a
+// 6x6 not at all, so their rolls are the 100 boards themselves. The visits are the
+// solver's over the rolls and so are the dice rows' (kDiceMaxVisitsPerSize): the
+// worst deal of a 5x5 and of a 6x6 is the very board that is worst there, and the
+// restore of a board that landed first time is the same solve again.
+inline constexpr std::array<StandardSessionBudget, 4> kStandardSessionBudgets = {{
+    // 3x3: 108 / 3 / 18,755 / 446 / 3,432 / 18,567
+    {135, 4, 23'500, 558, 3'432, 23'300},
+    // 4x4: 100 / 1 / 57,089 / 1,109 / 10,897 / 57,089
+    {125, 2, 71'400, 1'390, 10'897, 71'400},
+    // 5x5: 100 / 1 / 161,035 / 3,748 / 26,311 / 161,035
+    {125, 2, 202'000, 4'690, 26'311, 202'000},
+    // 6x6: 100 / 1 / 298,302 / 6,457 / 48,121 / 298,302
+    {125, 2, 373'000, 8'080, 48'121, 373'000},
+}};
+
+// A digest of every board a standard session dealt and played: the deal, the kind
+// of every trace, and the snapshots after the first find and at rest. Exact; it
+// moves with the session, the roll, the dice or the dictionary, deliberately.
+inline constexpr std::uint64_t kStandardSessionDigest = 8917212598945270856ULL;
+
+// ---------------------------------------------------------------------------
 // Time, as a multiple of the calibration workload (perf/measure.hpp)
 // ---------------------------------------------------------------------------
 
@@ -249,6 +303,18 @@ inline constexpr TimeBudget kSolveRich6Time = {0.8};
 // several times that, as the solves' are.
 inline constexpr TimeBudget kDeal3Time = {0.6};
 inline constexpr TimeBudget kDeal4Time = {0.6};
+
+// And dealing one STANDARD session board (the shake: a roll and a solve, and a
+// second for the few boards that hold no word) of each size, 3x3 to 6x6, against
+// the same light calibration and in the same batches. Measured 0.003, 0.010, 0.023
+// and 0.046 for one deal (0.050, 0.150, 0.350 and 0.672 ms against 14 ms); the
+// budgets are six to ten times that.
+inline constexpr std::array<TimeBudget, 4> kStandardDealTimes = {{
+    {0.03},
+    {0.08},
+    {0.15},
+    {0.30},
+}};
 
 // How many timed runs each takes, after one that is thrown away; and how many
 // solves make one timed run of a solve (a solve is under a millisecond).

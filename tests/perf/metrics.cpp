@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -353,6 +354,9 @@ namespace {
 struct SessionTotals {
     std::uint64_t seedings = 0;
     std::uint64_t most_seedings = 0;
+    std::uint64_t rolls = 0;
+    std::uint64_t most_rolls = 0;
+    unsigned most_rolls_seed = kNoSeed;
     std::uint64_t tries = 0;
     std::uint64_t solves = 0;
     std::uint64_t visits = 0;
@@ -361,58 +365,96 @@ struct SessionTotals {
     std::uint64_t out_of_range = 0;
     std::uint64_t empty = 0;
     std::uint64_t words = 0;
+    std::uint64_t most_words = 0;
     std::uint64_t play_visits = 0;
     std::uint64_t play_solves = 0;
     std::uint64_t restore_solves = 0;
     std::uint64_t restore_visits = 0;
+    // Boards whose record or snapshot said the other mode than the session played, or
+    // whose words the record does not count as the deal did: none.
+    std::uint64_t mismatched = 0;
 };
 
 struct SessionCorpus {
-    std::array<SessionTotals, kSessionSizes.size()> sizes{};
+    std::vector<SessionTotals> sizes;
     std::uint64_t digest = 0;
 };
 
-// Made once, like the seeding corpus: the metrics and the digest read the same
+// The sessions of one mode over `sizes`, each size kSeedsPerSize boards from its
+// corpus seeds, each dealt and played through by `measure(size, seed)`. Made once
+// for a mode, like the seeding corpus: the metrics and the digest read the same
 // sessions.
+template <typename Measure>
+[[nodiscard]] SessionCorpus make_session_corpus(std::span<const std::size_t> sizes,
+                                                Measure&& measure) {
+    SessionCorpus made;
+    Digest digest;
+    for (const std::size_t size : sizes) {
+        SessionTotals totals;
+        for (unsigned index = 0; index < kSeedsPerSize; ++index) {
+            const unsigned seed = corpus_seed(size, index);
+            const SessionRun run = measure(size, seed);
+
+            totals.seedings += run.deal.seedings;
+            totals.most_seedings = std::max<std::uint64_t>(totals.most_seedings, run.deal.seedings);
+            totals.rolls += run.deal.rolls;
+            if (run.deal.rolls > totals.most_rolls) {
+                totals.most_rolls = run.deal.rolls;
+                totals.most_rolls_seed = seed;
+            }
+            totals.tries += run.deal.tries;
+            totals.solves += run.deal_solves;
+            totals.visits += run.deal_visits;
+            if (run.deal_visits > totals.most_visits) {
+                totals.most_visits = run.deal_visits;
+                totals.most_visits_seed = seed;
+            }
+            if (!run.deal.in_range) {
+                ++totals.out_of_range;
+            }
+            if (run.words == 0) {
+                ++totals.empty;
+            }
+            totals.words += run.words;
+            totals.most_words = std::max<std::uint64_t>(totals.most_words, run.words);
+            totals.play_visits += run.play_visits;
+            totals.play_solves += run.play_solves;
+            totals.restore_visits += run.restore_visits;
+            totals.restore_solves += run.restore_solves;
+            // Every board the session handed out says what the deal did.
+            const bool standard = run.mode == wjs::BoardMode::standard;
+            const bool says_so = run.after_first_find.board.has_value() &&
+                                 run.after_first_find.mode == run.mode &&
+                                 run.after_first_find.board->mode == run.mode &&
+                                 run.after_first_find.board->viable_count() == run.deal.viable &&
+                                 run.at_rest.board.has_value() &&
+                                 run.at_rest.board->viable_count() == run.deal.viable &&
+                                 run.at_rest.board->phase.empty() == standard;
+            if (!says_so || run.deal.viable != run.words) {
+                ++totals.mismatched;
+            }
+            digest.add(run);
+        }
+        made.sizes.push_back(totals);
+    }
+    made.digest = digest.value();
+    return made;
+}
+
 [[nodiscard]] const SessionCorpus& session_corpus() {
     static const SessionCorpus corpus = [] {
         const wjs::PhaseIndex& phase = phonics_phase();
-        SessionCorpus made;
-        Digest digest;
-        for (std::size_t which = 0; which < kSessionSizes.size(); ++which) {
-            const std::size_t size = kSessionSizes[which];
-            SessionTotals& totals = made.sizes[which];
-            for (unsigned index = 0; index < kSeedsPerSize; ++index) {
-                const unsigned seed = corpus_seed(size, index);
-                const SessionRun run = measure_session(phase, size, seed);
-
-                totals.seedings += run.deal.seedings;
-                totals.most_seedings =
-                    std::max<std::uint64_t>(totals.most_seedings, run.deal.seedings);
-                totals.tries += run.deal.tries;
-                totals.solves += run.deal_solves;
-                totals.visits += run.deal_visits;
-                if (run.deal_visits > totals.most_visits) {
-                    totals.most_visits = run.deal_visits;
-                    totals.most_visits_seed = seed;
-                }
-                if (!run.deal.in_range) {
-                    ++totals.out_of_range;
-                }
-                if (run.words == 0) {
-                    ++totals.empty;
-                }
-                totals.words += run.words;
-                totals.play_visits += run.play_visits;
-                totals.play_solves += run.play_solves;
-                totals.restore_visits += run.restore_visits;
-                totals.restore_solves += run.restore_solves;
-                digest.add(run);
-            }
-        }
-        made.digest = digest.value();
-        return made;
+        return make_session_corpus(kSessionSizes, [&](std::size_t size, unsigned seed) {
+            return measure_session(phase, size, seed);
+        });
     }();
+    return corpus;
+}
+
+[[nodiscard]] const SessionCorpus& standard_session_corpus() {
+    static const SessionCorpus corpus = make_session_corpus(
+        kSizes,
+        [](std::size_t size, unsigned seed) { return measure_standard_session(size, seed); });
     return corpus;
 }
 
@@ -458,12 +500,66 @@ std::vector<Metric> session_metrics() {
                                 kSeedsPerSize, "solves"));
         metrics.push_back(at_most("session.restore.visits." + label, mode, totals.restore_visits,
                                   allowed.restore_visits, "visits"));
+        // Every record and snapshot says the mode and the count the deal made.
+        metrics.push_back(
+            exact("session.mismatched." + label, mode, totals.mismatched, 0, "boards"));
     }
     return metrics;
 }
 
 std::uint64_t session_digest() {
     return session_corpus().digest;
+}
+
+std::vector<Metric> standard_session_metrics() {
+    constexpr BoardMode mode = BoardMode::standard;
+    const SessionCorpus& corpus = standard_session_corpus();
+
+    std::vector<Metric> metrics;
+    for (std::size_t which = 0; which < kSizes.size(); ++which) {
+        const std::string label = size_label(kSizes[which]);
+        const SessionTotals& totals = corpus.sizes[which];
+        const budget::StandardSessionBudget& allowed = budget::kStandardSessionBudgets[which];
+
+        // A roll is a solve, so the rolls are what the deal cost beyond the first
+        // board, and the visits are the solver's own tally of them.
+        metrics.push_back(at_most("session.standard.rolls.total." + label, mode, totals.rolls,
+                                  allowed.rolls_total, "rolls"));
+        // The most rolls any one board took, which is a quarter above what the worst
+        // measured and far under the session's own cap (SessionOptions::max_rolls):
+        // a roll that holds no word is rare, and several in a row are rarer.
+        metrics.push_back(at_most("session.standard.rolls.max." + label, mode, totals.most_rolls,
+                                  allowed.rolls_max, "rolls", totals.most_rolls_seed));
+        metrics.push_back(at_most("session.standard.visits.total." + label, mode, totals.visits,
+                                  allowed.visits_total, "visits"));
+        metrics.push_back(at_most("session.standard.visits.max." + label, mode, totals.most_visits,
+                                  allowed.visits_max, "visits", totals.most_visits_seed));
+        // A board with no word on it is never dealt.
+        metrics.push_back(
+            exact("session.standard.empty." + label, mode, totals.empty, 0, "boards"));
+        // Exact: it pins the dice, the roll, the dictionary and the deal together.
+        metrics.push_back(exact("session.standard.words.total." + label, mode, totals.words,
+                                allowed.words_total, "words"));
+        // Tracing, asking for help, recording and saving read what the deal kept,
+        // however many words there are: no solve at all.
+        metrics.push_back(
+            exact("session.standard.play.solves." + label, mode, totals.play_solves, 0, "solves"));
+        metrics.push_back(
+            exact("session.standard.play.visits." + label, mode, totals.play_visits, 0, "visits"));
+        // A restore reads the board again with one solve.
+        metrics.push_back(exact("session.standard.restore.solves." + label, mode,
+                                totals.restore_solves, kSeedsPerSize, "solves"));
+        metrics.push_back(at_most("session.standard.restore.visits." + label, mode,
+                                  totals.restore_visits, allowed.restore_visits, "visits"));
+        // Every record and snapshot says the mode and the count the deal made.
+        metrics.push_back(
+            exact("session.standard.mismatched." + label, mode, totals.mismatched, 0, "boards"));
+    }
+    return metrics;
+}
+
+std::uint64_t standard_session_digest() {
+    return standard_session_corpus().digest;
 }
 
 std::vector<Metric> binder_metrics() {
@@ -541,6 +637,32 @@ std::vector<Metric> session_timing_metrics() {
         // metric is one deal's, and the note says what that was.
         Metric metric =
             ratio("time.deal." + size_label(size), BoardMode::phonics, time, *allowed[which]);
+        metric.measured = time.ratio / static_cast<double>(budget::kDealsPerRun);
+        metric.note += std::format("; one deal {:.3f} ms",
+                                   time.task_ms / static_cast<double>(budget::kDealsPerRun));
+        metrics.push_back(std::move(metric));
+    }
+    return metrics;
+}
+
+std::vector<Metric> standard_session_timing_metrics() {
+    std::vector<Metric> metrics;
+    for (std::size_t which = 0; which < kSizes.size(); ++which) {
+        const std::size_t size = kSizes[which];
+        const RelativeTime time = time_against_calibration(
+            [&] {
+                std::size_t words = 0;
+                for (int i = 0; i < budget::kDealsPerRun; ++i) {
+                    words += measure_standard_session_deal(
+                        size, corpus_seed(size, static_cast<unsigned>(i)));
+                }
+                return words;
+            },
+            budget::kDealRuns, Weight::light);
+        // The task is kDealsPerRun deals, so the ratio is for the batch; the
+        // metric is one deal's, and the note says what that was.
+        Metric metric = ratio("time.deal.standard." + size_label(size), BoardMode::standard, time,
+                              budget::kStandardDealTimes[which]);
         metric.measured = time.ratio / static_cast<double>(budget::kDealsPerRun);
         metric.note += std::format("; one deal {:.3f} ms",
                                    time.task_ms / static_cast<double>(budget::kDealsPerRun));

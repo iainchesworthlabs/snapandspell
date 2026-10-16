@@ -107,13 +107,17 @@ struct BindRun {
                                                 std::span<const wjs::GraphemeBinder::Block> blocks);
 
 // ---------------------------------------------------------------------------
-// Session work (the phonics board)
+// Session work (both board modes)
 // ---------------------------------------------------------------------------
 
 // One board of the game session, dealt and played through, and what each part
 // cost the solver. The solver's tally is reset before the part and read after
 // it, so each figure is the work of that part and nothing else.
 struct SessionRun {
+    // The board mode of the session: the library's, not the metrics' (which names
+    // the same two).
+    wjs::BoardMode mode = wjs::BoardMode::phonics;
+
     // The session's own account of the deal, and the solver's: the visits and
     // solves of the shake. `deal.solves` is the session's count of the same
     // solves, which game_work_test cross-checks.
@@ -133,23 +137,28 @@ struct SessionRun {
     std::uint64_t restore_visits = 0;
     std::uint64_t restore_solves = 0;
 
-    std::size_t words = 0;  // the words of the phase on the board
+    std::size_t words = 0;  // the words that count on the board: the phase's, or the dictionary's
     // The kinds each trace came to, in order, and the two snapshots.
     std::vector<wjs::TraceKind> kinds;
     wjs::SessionSnapshot after_first_find;
     wjs::SessionSnapshot at_rest;
 };
 
-// A session of the given size, seeded with `seed`, dealt and played as above. The
-// process ends if the session cannot be made or refuses the deal: the corpus
-// cannot be said to have been played.
+// A PHONICS session of the given size, seeded with `seed`, dealt and played as
+// above. The process ends if the session cannot be made or refuses the deal: the
+// corpus cannot be said to have been played.
 [[nodiscard]] SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size,
                                          std::uint32_t seed);
 
+// The same for a STANDARD session: the project's dice (corpus.hpp, dice_sets) of
+// the size, the full word list, the same play.
+[[nodiscard]] SessionRun measure_standard_session(std::size_t size, std::uint32_t seed);
+
 // One session's shake, for the timing rows: a session of this size seeded with
-// `seed`, dealt once. Returns the words of the phase on the board.
+// `seed`, dealt once. Returns the words that count on the board.
 [[nodiscard]] std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
                                                std::uint32_t seed);
+[[nodiscard]] std::size_t measure_standard_session_deal(std::size_t size, std::uint32_t seed);
 
 // An FNV-1a digest of what solve() returned: each word, its score and its path,
 // in order, and of what seed_board() made. Add one result after another for a

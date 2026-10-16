@@ -1,21 +1,14 @@
 #include "wjs/game_session.hpp"
 
 #include <algorithm>
-#include <random>
 #include <utility>
 
+#include "wjs/deal.hpp"
 #include "wjs/path.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
 namespace {
-
-// The seed after `seed`: the first output of std::mt19937 seeded with it, which
-// the standard fixes, so a run of boards is the same on every compiler.
-[[nodiscard]] std::uint32_t next_seed(std::uint32_t seed) {
-    std::mt19937 engine(seed);
-    return static_cast<std::uint32_t>(engine());
-}
 
 // How far a count of words is from the range: zero inside it.
 [[nodiscard]] std::size_t distance_from_range(std::size_t count, std::size_t low,
@@ -75,6 +68,109 @@ namespace {
     return seed;
 }
 
+// A board dealt, whichever board it is: what the session keeps of it.
+struct Dealt {
+    Board board;
+    std::vector<Position> dead;        // phonics only
+    std::vector<FoundWord> viable;     // every word that counts, never empty
+    std::vector<std::string> targets;  // phonics only: for the recent targets
+    DealReport report;
+    std::uint32_t next_seed = 0;  // where the stream goes from here
+};
+
+// The phonics board: seed again, with the next seed of the stream, until a board
+// lands in range, and keep the nearest if none does. The deal is a pure function
+// of the stream, the size and the recent targets, so nothing of the session is
+// changed until it is done: a refusal leaves the session in the box.
+[[nodiscard]] std::expected<Dealt, SessionError> deal_phonics(const PhaseIndex& phase,
+                                                              const SessionOptions& options,
+                                                              BoardSize size,
+                                                              const RecentTargets& recent,
+                                                              std::uint32_t seed) {
+    const auto seed_option = seed_options(phase, options, size);
+    if (!seed_option) {
+        return std::unexpected(SessionError::bad_phase);
+    }
+
+    std::optional<SeededBoard> best;
+    std::size_t best_distance = 0;
+    DealReport report;
+    for (std::size_t seeding = 0; seeding < options.max_seedings; ++seeding) {
+        auto seeded = seed_board(phase, *seed_option, recent, seed);
+        if (!seeded) {
+            return std::unexpected(SessionError::no_board);
+        }
+        ++report.seedings;
+        report.tries += seeded->tries;
+        report.solves += seeded->solves;
+        const std::size_t distance =
+            distance_from_range(seeded->viable.size(), options.min_viable, options.max_viable);
+        const std::uint32_t used = seed;
+        seed = next_deal_seed(seed);
+        if (!best || distance < best_distance) {
+            best_distance = distance;
+            report.seed = used;
+            best = *std::move(seeded);
+        }
+        if (distance == 0) {
+            break;
+        }
+    }
+    if (!best) {
+        return std::unexpected(SessionError::no_board);
+    }
+
+    report.viable = best->viable.size();
+    report.in_range = best_distance == 0;
+    return Dealt{.board = std::move(best->board),
+                 .dead = std::move(best->dead),
+                 .viable = std::move(best->viable),
+                 .targets = std::move(best->targets),
+                 .report = report,
+                 .next_seed = seed};
+}
+
+// The standard board: roll the dice of the size and solve the roll against the
+// dictionary, and roll again, with the next seed of the stream, until the board
+// holds a word. Nothing else is asked of it: there is no range of words to land.
+[[nodiscard]] std::expected<Dealt, SessionError> deal_standard(const DiceSets& dice,
+                                                               const Dictionary& dictionary,
+                                                               const SessionOptions& options,
+                                                               BoardSize size, std::uint32_t seed) {
+    const DiceSet* set = dice.find(side(size));
+    if (set == nullptr) {
+        return std::unexpected(SessionError::bad_dice);
+    }
+    const WordSets words = WordSets::standard(dictionary);
+    const DealOptions deal_options{.min_viable = 1, .max_rolls = options.max_rolls};
+    auto dealt = deal_standard_board(*set, words, seed, deal_options);
+    if (!dealt) {
+        switch (dealt.error()) {
+            case DealError::bad_options:
+                return std::unexpected(SessionError::bad_options);
+            case DealError::bad_board:
+                return std::unexpected(SessionError::bad_dice);
+            case DealError::no_board:
+                return std::unexpected(SessionError::no_board);
+        }
+        return std::unexpected(SessionError::no_board);
+    }
+
+    DealReport report;
+    report.rolls = dealt->rolls;
+    report.solves = dealt->rolls;  // deal_playable solves each board it rolls, once
+    report.viable = dealt->viable.size();
+    report.in_range = true;
+    report.seed = dealt->seed;
+    const std::uint32_t next = next_deal_seed(dealt->seed);
+    return Dealt{.board = std::move(dealt->board),
+                 .dead = {},
+                 .viable = std::move(dealt->viable),
+                 .targets = {},
+                 .report = report,
+                 .next_seed = next};
+}
+
 }  // namespace
 
 std::string_view to_string(SessionState state) noexcept {
@@ -116,44 +212,69 @@ std::string_view to_string(SessionError error) noexcept {
         case SessionError::wrong_state:
             return "the event does not apply in this state";
         case SessionError::bad_options:
-            return "the range of words is empty, or there are no seedings";
+            return "the options cannot make a board: an empty range of words, no seedings or "
+                   "rolls, or a size the board is not played at";
         case SessionError::bad_phase:
-            return "the phase cannot make a board";
+            return "the phase is missing or cannot make a board";
+        case SessionError::bad_dice:
+            return "the dice are missing or make no board";
         case SessionError::no_board:
             return "no board could be dealt";
         case SessionError::bad_snapshot:
             return "the snapshot is not one a session makes";
+        case SessionError::wrong_mode:
+            return "the snapshot is of the other board mode";
         case SessionError::wrong_phase:
             return "the snapshot is of another phase";
         case SessionError::board_changed:
-            return "the phase's words on the board are not the ones recorded";
+            return "the words on the board are not the ones recorded";
     }
     return "unknown session error";
 }
 
-GameSession::GameSession(const PhaseIndex& phase, const Dictionary& dictionary,
-                         SessionOptions options)
-    : phase_(&phase),
-      dictionary_(&dictionary),
+GameSession::GameSession(const SessionData& data, SessionOptions options)
+    : dictionary_(&data.dictionary),
+      dice_(data.dice),
+      phase_(data.phase),
       options_(std::move(options)),
       size_(options_.size),
       seed_(options_.seed) {}
 
-std::expected<GameSession, SessionError> GameSession::create(const PhaseIndex& phase,
-                                                             const Dictionary& dictionary,
+std::expected<GameSession, SessionError> GameSession::create(const SessionData& data,
                                                              const SessionOptions& options) {
-    if (options.min_viable > options.max_viable || options.max_viable == 0 ||
-        options.max_seedings == 0) {
+    if (!is_played_at(options.mode, options.size)) {
         return std::unexpected(SessionError::bad_options);
     }
-    // Both sizes have to be makeable, so that a size chosen on the box never
-    // fails for a reason that was there from the start.
-    for (const BoardSize size : {BoardSize::three, BoardSize::four}) {
-        if (!seed_options(phase, options, size)) {
+    if (options.mode == BoardMode::standard) {
+        if (options.max_rolls == 0) {
+            return std::unexpected(SessionError::bad_options);
+        }
+        // Every size has to have its dice, so that a size chosen on the box never
+        // fails for a reason that was there from the start.
+        if (data.dice == nullptr) {
+            return std::unexpected(SessionError::bad_dice);
+        }
+    } else {
+        if (options.min_viable > options.max_viable || options.max_viable == 0 ||
+            options.max_seedings == 0) {
+            return std::unexpected(SessionError::bad_options);
+        }
+        if (data.phase == nullptr) {
             return std::unexpected(SessionError::bad_phase);
         }
+        // Both sizes have to be makeable, for the same reason.
+        for (const BoardSize size : {BoardSize::three, BoardSize::four}) {
+            if (!seed_options(*data.phase, options, size)) {
+                return std::unexpected(SessionError::bad_phase);
+            }
+        }
     }
-    return GameSession(phase, dictionary, options);
+    return GameSession(data, options);
+}
+
+WordSets GameSession::words() const noexcept {
+    return options_.mode == BoardMode::standard ? WordSets::standard(*dictionary_)
+                                                : WordSets::phonics(*dictionary_, *phase_);
 }
 
 const Board* GameSession::board() const noexcept {
@@ -185,7 +306,7 @@ std::optional<Position> GameSession::lit_tile() const {
 }
 
 bool GameSession::choose_size(BoardSize size) {
-    if (state_ != SessionState::box) {
+    if (state_ != SessionState::box || !is_played_at(options_.mode, size)) {
         return false;
     }
     size_ = size;
@@ -198,61 +319,34 @@ std::expected<void, SessionError> GameSession::shake() {
     }
     auto zone = profiling::zone<"board.deal">();
 
-    const auto seed_option = seed_options(*phase_, options_, size_);
-    if (!seed_option) {
-        return std::unexpected(SessionError::bad_phase);
+    const bool standard = options_.mode == BoardMode::standard;
+    auto dealt = standard ? deal_standard(*dice_, *dictionary_, options_, size_, seed_)
+                          : deal_phonics(*phase_, options_, size_, recent_, seed_);
+    if (!dealt) {
+        return std::unexpected(dealt.error());
     }
-
-    // Seed again with the next seed of the stream until a board lands in range,
-    // and keep the nearest if none does. The deal is a pure function of the
-    // stream, the size and the recent targets, so nothing is changed until it is
-    // done: a refusal leaves the session in the box.
-    std::optional<SeededBoard> best;
-    std::size_t best_distance = 0;
-    DealReport report;
-    std::uint32_t seed = seed_;
-    for (std::size_t seeding = 0; seeding < options_.max_seedings; ++seeding) {
-        auto seeded = seed_board(*phase_, *seed_option, recent_, seed);
-        if (!seeded) {
-            return std::unexpected(SessionError::no_board);
-        }
-        ++report.seedings;
-        report.tries += seeded->tries;
-        report.solves += seeded->solves;
-        const std::size_t distance =
-            distance_from_range(seeded->viable.size(), options_.min_viable, options_.max_viable);
-        const std::uint32_t used = seed;
-        seed = next_seed(seed);
-        if (!best || distance < best_distance) {
-            best_distance = distance;
-            report.seed = used;
-            best = *std::move(seeded);
-        }
-        if (distance == 0) {
-            break;
-        }
-    }
-    // A board that holds no word is never dealt. The seeding plants its targets,
-    // so this is a seeding that failed to keep them, which it does not do.
-    if (!best || best->viable.empty()) {
+    // A board that holds no word is never dealt, by either deal. The standard
+    // deal rolls again until the board holds one, and the phonics seeding plants
+    // its targets, so this is a deal that failed to keep to that, which neither
+    // does.
+    if (dealt->viable.empty()) {
         return std::unexpected(SessionError::no_board);
     }
+    zone.Value(standard ? dealt->report.rolls : dealt->report.seedings);
 
-    report.viable = best->viable.size();
-    report.in_range = best_distance == 0;
-    zone.Value(report.seedings);
-
-    recent_.record(best->targets);
-    seed_ = seed;
-    board_ = std::move(best->board);
-    dead_ = std::move(best->dead);
-    viable_ = std::move(best->viable);
+    if (!standard) {
+        recent_.record(dealt->targets);
+    }
+    seed_ = dealt->next_seed;
+    board_ = std::move(dealt->board);
+    dead_ = std::move(dealt->dead);
+    viable_ = std::move(dealt->viable);
     found_ = FoundWords{};
     finds_.clear();
     stars_ = 0;
     lit_.reset();
     played_ = false;
-    report_ = report;
+    report_ = dealt->report;
     state_ = SessionState::shaking;
     return {};
 }
@@ -288,8 +382,7 @@ TraceOutcome GameSession::trace(std::span<const Position> path, Stamp when) {
     auto zone = profiling::zone<"input.submit">();
     zone.Value(path.size());
 
-    const WordSets words = WordSets::phonics(*dictionary_, *phase_);
-    const Classification classified = classify_path(*board_, path, words);
+    const Classification classified = classify_path(*board_, path, words());
     switch (classified.state) {
         case WordState::viable: {
             if (const Find* earlier = find_of(classified.word)) {
@@ -322,8 +415,9 @@ TraceOutcome GameSession::trace(std::span<const Position> path, Stamp when) {
     // The rules call a word of fewer than three letters "not a word", because it
     // cannot count. It can still be a real one ("at"), and a child who is told a
     // real word is not one has been taught something false, so a real word is
-    // answered as a real word that is not today's, whatever its length. Nothing
-    // is named either way.
+    // answered as a real word that is not today's, whatever its length, on either
+    // board. (On the standard board these are all there is: every real word of
+    // three letters or more counts.) Nothing is named either way.
     if (!classified.fault) {
         const auto spelled = validate_path(*board_, path);
         if (spelled && dictionary_->contains(*spelled)) {
@@ -373,10 +467,17 @@ bool GameSession::back() {
 
 BoardRecord GameSession::make_record() const {
     BoardRecord record;
-    record.phase = phase_->phase();
+    record.mode = options_.mode;
     record.size = size_;
     record.tiles = tiles_text(*board_);
-    record.viable = sorted_words(viable_);
+    if (options_.mode == BoardMode::standard) {
+        // A standard board has no phase, and holds tens to hundreds of words that
+        // nothing lists: it says how many.
+        record.viable_total = viable_.size();
+    } else {
+        record.phase = phase_->phase();
+        record.viable = sorted_words(viable_);
+    }
     record.finds = finds_;
     return record;
 }
@@ -390,6 +491,7 @@ std::optional<BoardRecord> GameSession::record() const {
 
 SessionSnapshot GameSession::snapshot() const {
     SessionSnapshot snapshot;
+    snapshot.mode = options_.mode;
     snapshot.size = size_;
     snapshot.seed = seed_;
     switch (state_) {
@@ -415,16 +517,22 @@ SessionSnapshot GameSession::snapshot() const {
 }
 
 std::expected<GameSession, SessionError> GameSession::restore(const SessionSnapshot& snapshot,
-                                                              const PhaseIndex& phase,
-                                                              const Dictionary& dictionary,
+                                                              const SessionData& data,
                                                               const SessionOptions& options) {
     auto zone = profiling::zone<"board.restore">();
 
-    auto created = create(phase, dictionary, options);
+    auto created = create(data, options);
     if (!created) {
         return std::unexpected(created.error());
     }
     GameSession session = *std::move(created);
+    const bool standard = options.mode == BoardMode::standard;
+    // A size the mode is not played at (a standard snapshot's 5x5, under the
+    // phonics switch) cannot be dealt from, so it is not a snapshot this session
+    // can come back from.
+    if (!is_played_at(options.mode, snapshot.size)) {
+        return std::unexpected(SessionError::bad_snapshot);
+    }
     session.size_ = snapshot.size;
     session.seed_ = snapshot.seed;
 
@@ -440,10 +548,24 @@ std::expected<GameSession, SessionError> GameSession::restore(const SessionSnaps
     }
 
     const BoardRecord& record = *snapshot.board;
-    if (record.phase != phase.phase()) {
-        return std::unexpected(SessionError::wrong_phase);
+    // The snapshot and its board have to agree on the mode before either is
+    // compared with the session's.
+    if (snapshot.mode != record.mode) {
+        return std::unexpected(SessionError::bad_snapshot);
+    }
+    if (record.mode != options.mode) {
+        return std::unexpected(SessionError::wrong_mode);
+    }
+    if (standard ? !record.phase.empty() : record.phase != data.phase->phase()) {
+        return std::unexpected(standard ? SessionError::bad_snapshot : SessionError::wrong_phase);
     }
     if (record.size != snapshot.size) {
+        return std::unexpected(SessionError::bad_snapshot);
+    }
+    // What a session writes: a phonics record lists its words and says no total
+    // (or the same one); a standard record lists none and says how many.
+    if (standard ? (!record.viable.empty() || record.viable_total == 0)
+                 : (record.viable_total != 0 && record.viable_total != record.viable.size())) {
         return std::unexpected(SessionError::bad_snapshot);
     }
 
@@ -451,9 +573,10 @@ std::expected<GameSession, SessionError> GameSession::restore(const SessionSnaps
     if (!parsed || parsed->rows() != side(record.size) || parsed->columns() != side(record.size)) {
         return std::unexpected(SessionError::bad_snapshot);
     }
-    const WordSets words = WordSets::phonics(dictionary, phase);
-    std::vector<FoundWord> viable = viable_words(*parsed, words);
-    if (viable.empty() || sorted_words(viable) != record.viable) {
+    std::vector<FoundWord> viable = viable_words(*parsed, session.words());
+    const bool same_words =
+        standard ? viable.size() == record.viable_total : sorted_words(viable) == record.viable;
+    if (viable.empty() || !same_words) {
         return std::unexpected(SessionError::board_changed);
     }
 
@@ -488,13 +611,16 @@ std::expected<GameSession, SessionError> GameSession::restore(const SessionSnaps
         lit = on_board->word;
     }
 
-    // A dead jewel is a tile of the letter the phase leaves out.
-    const auto seed_option = seed_options(phase, options, record.size);
-    const std::string dead_letter(1, seed_option->dead_letter);
-    for (std::size_t row = 0; row < parsed->rows(); ++row) {
-        for (std::size_t column = 0; column < parsed->columns(); ++column) {
-            if (parsed->tile({row, column}) == dead_letter) {
-                session.dead_.push_back({row, column});
+    // On the phonics board a dead jewel is a tile of the letter the phase leaves
+    // out. The standard board has none.
+    if (!standard) {
+        const auto seed_option = seed_options(*data.phase, options, record.size);
+        const std::string dead_letter(1, seed_option->dead_letter);
+        for (std::size_t row = 0; row < parsed->rows(); ++row) {
+            for (std::size_t column = 0; column < parsed->columns(); ++column) {
+                if (parsed->tile({row, column}) == dead_letter) {
+                    session.dead_.push_back({row, column});
+                }
             }
         }
     }
