@@ -10,12 +10,13 @@ end and in the [roadmap](roadmap.md).
 ```text
 src/
   lib/                 wjs:: the game logic. GUI-free and OS-free
-    include/wjs/         board.hpp  dictionary.hpp  scoring.hpp  solver.hpp
+    include/wjs/         board.hpp  dice.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp
                          solver_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
-    src/                 board.cpp  dictionary.cpp  scoring.cpp  solver.cpp
+    src/                 board.cpp  dice.cpp  draw.hpp (internal)  dictionary.cpp
+                         scoring.cpp  solver.cpp
                          path.cpp  phase_data.cpp  seeding.cpp
                          grapheme_binder.cpp  shake.cpp
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
@@ -36,7 +37,8 @@ cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        Tracy.cmake, FindQt6.cmake
 tests/                 unit/  app/  platform/  perf/  profiling/
 tools/checks/          check_platform_isolation.ps1
-tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test
+tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
+                       make_dice.ps1
 tools/hooks/, policy/  git hooks and the commit and PR text rule
 ```
 
@@ -155,6 +157,25 @@ otherwise a `PathError` (`empty`, `off_board`, `repeated_tile`, `not_adjacent`)
 for the first fault. `are_neighbours` is the one-step question, for a touch
 handler that asks it a tile at a time.
 
+### Dice
+
+`DiceSet` is a set of dice, each with faces of one to three letters (the Boggle
+`Qu` face is the tile `QU`), read from a text file, one die a line (`parse`,
+`load`, `load_file`). `roll(dice, seed)` shakes them onto a square board: the
+dice are put in a random order, a die to a tile, and each shows one face. It is a
+pure function of the set and the seed, with the library's own `Draw`
+(`std::mt19937` taken modulo, and a shuffle that is not `std::shuffle`), so a seed
+is the same board on every compiler. The set must hold a square number of dice, so
+the 3x3 is its own set and not a window on the 4x4.
+
+The library holds no set. The project's are `data/dice/<n>x<n>.txt` for 3x3 to
+6x6, made by `tools/data/make_dice.ps1` from the dictionary's letter counts: six
+different letters to a die dealt in proportion to the counts, a vowel on each, a
+Q shown as `QU`, a seed to each size, and the source's hash and the method in the
+header ([Data](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/data/README.md)).
+`data.dice` holds the files to what the tool makes. The faces of a printed set are
+not used: in the scanner mode the board is read from the table.
+
 ### Phase data
 
 A phonics phase is data: which graphemes it teaches and which words it offers,
@@ -177,26 +198,37 @@ phase-<x>.words.txt         pain  p ai n
 
 - A grapheme is lowercase letters, its sound is written between slashes (any
   bytes, so a phonetic alphabet passes through), its clip id is `clip:<id>`.
-  Two graphemes may share a clip. A grapheme has one sound: a letter group that
-  makes two sounds cannot yet be written.
+  Two graphemes may share a clip.
 - A word is three or more lowercase letters (nothing shorter can be counted)
   followed by its graphemes, or by `tricky` and nothing else: a word that does
-  not decode, spoken whole and never sounded out. A split digraph cannot yet be
-  written, and is refused by name.
-- Both files are sorted in byte order and hold nothing twice.
+  not decode, spoken whole and never sounded out. The graphemes, joined, spell
+  the word.
+- **A split digraph** is written as its two halves around the letters between,
+  `cake  c a_ k _e`, and is the grapheme `a_e` in the graphemes file. The halves
+  are one grapheme: `WordGrapheme` carries where each half sits in the word
+  (`first` and `second`). It is not found while tracing (below).
+- **A grapheme that makes more than one sound** is listed once for each sound,
+  and a word line says which, counting from 1 in the order of that grapheme's
+  lines: `snow  s n ow:2`, `a_:2` for a split digraph. A grapheme with several
+  sounds has to be told which; with one, the number is optional. A later phase
+  may add a sound to a grapheme, and an earlier phase's words cannot use it.
+- Both files are sorted in byte order, and hold no word twice, and no grapheme
+  with the same sound twice.
 - A header is `key: value` pairs, several to a line. A file with no
-  `reviewed-by` and `reviewed-on` (the second a date, `YYYY-MM-DD`) is **test
+  `reviewed-by`, `reviewed-on` (a date, `YYYY-MM-DD`) and `source` is **test
   data**: `PhaseHeader::reviewed()` and `PhaseSet::reviewed()` say so, and a
   release build refuses it
   ([Testing](testing.md#phonics-data-the-checker-and-the-review-gate)). A value
-  still in `<angle brackets>` has not been given.
+  still in `<angle brackets>` has not been given. Test data need not say where
+  it came from; a file that claims a review has to.
 
 `parse_words` and `parse_graphemes` read one file and report every problem, with
 its line, not the first. `PhaseSet::build` (or `load_directory`, which reads
 `phase-<x>.*.txt` from a directory) holds the files together to the checks of
-the design: each word is in the English dictionary, its graphemes spell it, each
-grapheme is in the word's phase or an earlier one, nothing is listed twice across
-phases. Phases are **cumulative** and ordered by name: a `PhaseIndex` holds the
+the design: each word is in the English dictionary, each grapheme is in the
+word's phase or an earlier one and a grapheme with several sounds there is told
+which, nothing is listed twice across phases. (That the graphemes spell the word
+is held at parsing, where the line is.) Phases are **cumulative** and ordered by name: a `PhaseIndex` holds the
 words and graphemes of its phase and every earlier one, with a `Dictionary` of
 the words, which is what a board is solved against, and the phase's `alphabet()`.
 `tools/data/check_phonics.ps1` applies the same checks outside the build.
@@ -218,6 +250,16 @@ pure function of the phase data, the options, the recent targets and a seed:
    words is kept. Otherwise another board is made, up to `max_tries` (20)
    verifications in all, and the nearest is returned with `fallback` set.
 
+Two options make fuller boards (measured in
+[Testing](testing.md#fuller-boards-a-guided-fill-and-short-targets)):
+`max_target_letters` limits the targets to short words, and `guided_fill` gives
+each tile left a letter the solver says keeps the count in range, making a tile
+dead only if no letter fits, with the planted words kept apart where there is
+room. Both are off by default, and `phonics_board_options(index, size)` is the
+two together with every letter but one as filler, which is the phonics board as
+decided: the phase's letters first, others only where a letter of the phase
+would make too many words, and no dead jewel on a board that lands.
+
 Dead jewels are a letter no word of the phase uses, chosen by the caller and
 checked (`bad_dead_letter`); the library's `Board` stays A-Z and the application
 draws that letter as a jewel. Draws are `std::mt19937` taken modulo and shuffles
@@ -236,7 +278,8 @@ is a block. A tile that starts no grapheme is a block of its own, and a grapheme
 cannot start or end inside a tile. The brief's example: R, A, I, N is `R [AI] N`.
 A split digraph is not found in flight (it cannot be known until its last
 letter); the design draws it from the word's authored split, which the data
-format cannot yet hold.
+holds as the two halves and where each sits (`WordGrapheme::first` and
+`second`), and the binder leaves such a grapheme out.
 
 ### Shake detection
 

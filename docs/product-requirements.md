@@ -741,6 +741,10 @@ worked out without a pull to continue (questions 62 and 63).
 
 ### 12.4 Play modes
 
+Section 12.7, decided later, says which board these modes play on: Mode B below
+describes the **phonics board**, which is a parent's switch, and the **standard
+board** is the default.
+
 **Mode A: Family Assistant and Scanner.**
 
 1. The parent uses the iPad camera to snap the physical Boggle board.
@@ -765,7 +769,8 @@ worked out without a pull to continue (questions 62 and 63).
   with one help level, the starting tile (question 68). It contains the
   camera-to-board pipeline, which is the riskiest part of the whole product and
   has not been started; the MVP includes it.
-- Mode B offers 3x3 and 4x4 only; 5x5 and 6x6 come after the MVP.
+- Mode B's phonics board offers 3x3 and 4x4, where it was designed and measured;
+  the standard board offers 3x3 to 6x6 (12.7).
 - RAIN needs R, which is not a SATPIN letter, so Mode B's demonstration word is
   a Phase B word and cannot come from the Phase A index. Phase A would show the
   same effect with SATPIN-only words such as PAIN, SAINT or STAIN (question 60).
@@ -784,8 +789,8 @@ As read; each is a deferral under the assumption of question 62.
 | The "read aloud" voice recording (7.4) | Out: no voice capture |
 | The printable PDF and e-mail to a teacher (7.4) | Out: no export |
 | Time played and the parent-set limit (7.4) | Out: no timers or limits |
-| Open dictionary solver for early levels | Out: the Phase A index |
-| Boards of 5x5 and 6x6 (5) | Out: 3x3 and 4x4 |
+| Open dictionary solver for early levels | **In, as the standard board's word list** (12.7): the full dictionary, unmodified. Out: a block list and a child-appropriate cut of it. The phase index is the phonics board's |
+| Boards of 5x5 and 6x6 (5) | **In, for the standard board** (12.7). The phonics board is designed at 3x3 and 4x4 |
 | Tailorable help levels (4, 6) | One level: the starting tile |
 | Camera on a stand, watching the lid come off (4) | A single capture (assumed) |
 | Worlds, mascot, stickers by theme (7.2) | Not mentioned in the categorisation; to confirm whether any are in the MVP |
@@ -805,3 +810,35 @@ any child uses them, and before audio is recorded (question 69):
 - the hand-filtered word lists, for suitability as well as for correctness;
 - the wording of anything shown to a parent as a finding about a child.
 
+
+### 12.7 Board modes
+
+Decided by the author on 2026-10-16, after the categorisation above. It changes
+12.4 and 12.5 where they say so.
+
+There are two play modes (12.4: alone, or with other people) and, separately,
+two **board modes**:
+
+| | Standard board (the default) | Phonics board (a parent's switch) |
+| --- | --- | --- |
+| Letters | Dice, as in the real game | Seeded so that a board holds three to five words of the active phase (12.3) |
+| Words | The full dictionary (ENABLE, unmodified) | The hand-filtered phase index (12.1) |
+| Sounds | None | Grapheme blocks and sounding out (7.3) |
+| Sizes in the MVP | 3x3, 4x4, 5x5 and 6x6 | 3x3 and 4x4 |
+
+- The standard board is the game. The phonics board is for a child learning
+  phonics, towards the end of Prep and into Year 1, and a parent turns it on.
+- **The dice are the project's own**: made from the dictionary's letter counts,
+  with the source, hash and seed recorded, and not copied from a product's
+  distribution. The faces of a set the family owns are for Mode A, where a
+  physical board is on the table: the app does not mix letters there, it reads
+  the mixed board with OCR so that everyone plays on the real one.
+- **No block list in the MVP.** A standard board accepts every dictionary word of
+  three or more letters and shows and says the words a child finds, and the
+  dictionary has entries no child should meet (12.1). The author has put block
+  lists, and a child-appropriate cut of the dictionary, after the MVP. That is
+  accepted for the MVP, a private build, and remains the gate to wider use
+  (roadmap G2).
+- The phonics board's targets are words of three letters at most (a digraph and
+  a letter, as in a word such as `the`, is three letters), and letters the phase
+  has not taught may appear on it where a taught letter would make too many words.

@@ -1,5 +1,11 @@
 # Phonics: the mechanism
 
+> **Decided 2026-10-16.** Phonics is a **board mode a parent switches on**, not
+> the only board: the standard board (dice, 3x3 to 6x6) is the default. This
+> page is about the phonics board. Its boards are planted with words of three
+> letters at most, and letters the phase has not taught may appear on them
+> (see [MVP library](mvp-library.md)).
+
 How a phonics phase becomes a board, how a trace becomes a grapheme block, and
 how a found word is "sounded out". Written from
 [product requirements](../product-requirements.md) sections 7.3, 12.1 and 12.4.
@@ -53,9 +59,10 @@ A checker, `tools/data/check_phonics.ps1`, in the style of
   phase's (phases are cumulative: a word is in a phase if all its graphemes
   are);
 - no duplicate words; sorted, as the other lists are;
-- a file with no `reviewed-by` and `reviewed-on` is a **test file**: the
-  release configurations refuse to build with one in the data. That is the
-  review gate as a build rule, not a hope.
+- a file with no `reviewed-by`, `reviewed-on` (as `YYYY-MM-DD`) and `source` is
+  a **test file**: the release configurations refuse to build with one in the
+  data. That is the review gate as a build rule, not a hope. A file that claims
+  a review has to say where its list came from; test data need not.
 
 Tests use phase files of a dozen words written in the test itself, as the
 repository's rule for word lists says, and they are marked as test data.
@@ -68,6 +75,18 @@ on the word line if it is wanted (`base` = the word it is an inflection of).
 
 **Tricky words** (ones that do not decode) carry no grapheme split and are
 marked `tricky`; they are spoken whole and are never "sounded out".
+
+**Decided 2026-10-16, built:** two things the format could not say.
+
+- **A split digraph** is written as its two halves around the letters between,
+  `cake  c a_ k _e`, and is the grapheme `a_e` in the grapheme file. The letters
+  of the halves, with the underscores gone, spell the word, and the data keeps
+  where each half sits so the arc can be drawn when the word is complete.
+- **A grapheme that makes more than one sound** is listed once for each sound
+  (`ow  /…/  clip:…`, twice), and a word line says which, counting from 1 in the
+  order of that grapheme's lines: `snow  s n ow:2`. A grapheme with several
+  sounds has to be told which. A later phase may add a sound to a grapheme that
+  an earlier phase has; the earlier phase's words cannot use it.
 
 ## Measured, from the repository's own data
 
@@ -93,10 +112,13 @@ phase's index that is on the board.
    to share a tile where the letter agrees.
 3. **Fill** the other cells (options below).
 4. **Verify.** Solve the board against the phase index. Accept if every target
-   is found and the number of viable words is from 3 to 5. Otherwise change one
-   filler cell and verify again, up to 20 times, then start again from step 1.
-5. **Fall back.** After 20 starts keep the board whose count was nearest the
-   range, and record that it was a fallback so a test can count them.
+   is found and the number of viable words is from 3 to 5. Otherwise start
+   again from step 1, up to 20 verifications in all. (As first written this
+   step changed one filler cell and verified again; measured, that was no
+   better than starting again, and the library does not by default.)
+5. **Fall back.** After 20 verifications keep the board whose count was
+   nearest the range, and record that it was a fallback so a test can count
+   them.
 
 The roll is a pure function of the phase data, the board size, the focus
 sounds, the ring buffer and a seed. The library can therefore replay and test
@@ -129,6 +151,18 @@ so four or five solves a board at about 0.03 to 0.5 ms each). And it is not
 reached by chance at the ends: a 4x4 with no dead cells never lands in it.
 Planting should raise the share well above blind draws; that has **not**
 been measured.
+
+**Measured since, built.** Planted boards land 40% to 50% of verifications only
+where the dead jewels leave about four letters; at the counts above they land
+2% to 9%, below the blind share, because a planted board always holds its
+targets and the letters round them add words. A **guided fill** (each tile a
+letter the solver says keeps the count under a ceiling) and targets of **three
+letters at most**, kept apart on the board, land 90% or more of seeds on a 4x4
+and larger with about a quarter of the tiles dead jewels, and none at all if
+letters outside the phase may be used. The numbers are in
+[Testing](../testing.md#fuller-boards-a-guided-fill-and-short-targets), and both
+options are in the library and off by default; planting only 3-letter words is
+the reviewer's to accept.
 
 ### What fills the other cells
 

@@ -57,8 +57,9 @@ constexpr std::string_view words_b =
 
 wjs::Dictionary english() {
     wjs::Dictionary dictionary;
-    for (const std::string_view word : {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain",
-                                        "paint", "saint", "stain", "xyz", "qqq"}) {
+    for (const std::string_view word :
+         {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain", "xyz",
+          "qqq", "cake", "like", "snow", "cow"}) {
         dictionary.insert(word);
     }
     return dictionary;
@@ -107,6 +108,15 @@ std::vector<std::string> grapheme_problems(const std::string& text) {
     return result;
 }
 
+// The letters of each grapheme of a word, in order.
+std::vector<std::string> letters_of(const wjs::PhaseWord& word) {
+    std::vector<std::string> letters;
+    for (const auto& grapheme : word.graphemes) {
+        letters.push_back(grapheme.letters);
+    }
+    return letters;
+}
+
 bool mentions(const std::vector<std::string>& problems, std::string_view text) {
     return std::ranges::any_of(problems, [&](const std::string& problem) {
         return problem.find(text) != std::string::npos;
@@ -149,10 +159,13 @@ TEST_CASE("a words file is read as words split into graphemes", "[phase]") {
     REQUIRE(file.words.size() == 4);
     CHECK(file.header.phase == "A");
     CHECK(file.words[0].word == "pain");
-    CHECK(file.words[0].graphemes == std::vector<std::string>{"p", "ai", "n"});
+    CHECK(letters_of(file.words[0]) == std::vector<std::string>{"p", "ai", "n"});
     CHECK_FALSE(file.words[0].tricky);
     CHECK(file.words[3].word == "stain");
-    CHECK(file.words[3].graphemes == std::vector<std::string>{"s", "t", "ai", "n"});
+    CHECK(letters_of(file.words[3]) == std::vector<std::string>{"s", "t", "ai", "n"});
+    // Where each grapheme's first letter is in the word.
+    CHECK(file.words[3].graphemes[2].first == 2);
+    CHECK_FALSE(file.words[3].graphemes[2].split());
     CHECK(file.words[0].line == 2);
 }
 
@@ -189,7 +202,7 @@ TEST_CASE("blank lines, comments, tabs, a byte-order mark and carriage returns a
 
     CHECK(file.header.phase == "A");
     REQUIRE(file.words.size() == 1);
-    CHECK(file.words[0].graphemes == std::vector<std::string>{"n", "i", "p"});
+    CHECK(letters_of(file.words[0]) == std::vector<std::string>{"n", "i", "p"});
 }
 
 TEST_CASE("the review header is read, whatever the layout of its line", "[phase][review]") {
@@ -260,6 +273,26 @@ TEST_CASE("a review that is half given or not a date is a problem, not a pass", 
             "# phase: A\n# reviewed-by: Test Person   reviewed-on: 2026-13-01\nnip  n i p\n");
         CHECK(mentions(problems, "YYYY-MM-DD"));
     }
+
+    SECTION("a reviewer and a date and no source") {
+        const auto problems = word_problems(
+            "# phase: A\n# reviewed-by: Test Person   reviewed-on: 2026-10-20\nnip  n i p\n");
+        CHECK(mentions(problems, "says where its list came from"));
+    }
+
+    SECTION("a source still in angle brackets is no source") {
+        const auto problems = word_problems(
+            "# phase: A\n# reviewed-by: Test Person   reviewed-on: 2026-10-20   source: <where>\n"
+            "nip  n i p\n");
+        CHECK(mentions(problems, "says where its list came from"));
+    }
+}
+
+TEST_CASE("test data needs no source", "[phase][review]") {
+    const auto file = read_words("# phase: A\n# source: a list written in the test\nnip  n i p\n");
+
+    CHECK_FALSE(file.header.reviewed());
+    CHECK(file.header.source == "a list written in the test");
 }
 
 TEST_CASE("a file has to say which phase it is", "[phase]") {
@@ -293,11 +326,16 @@ TEST_CASE("a bad line in a words file is reported with its line", "[phase]") {
     }
 
     SECTION("a grapheme that is not lowercase letters") {
-        // A split digraph is the shape a person would reach for; it is refused
-        // by name so that it is not silently read some other way.
+        // A split digraph is written as its two halves; the joined shape a
+        // person would reach for is refused by name, with the way to write it.
         const auto problems = word_problems("# phase: A\ntap  t a_e p\n");
         CHECK(mentions(problems, "'a_e'"));
-        CHECK(mentions(problems, "split digraph"));
+        CHECK(mentions(problems, "halves of a split digraph"));
+    }
+
+    SECTION("graphemes that do not spell the word") {
+        const auto problems = word_problems("# phase: A\nnip  n i t\n");
+        CHECK(mentions(problems, "2: the graphemes of 'nip' spell 'nit'"));
     }
 
     SECTION("tricky with a split as well") {
@@ -340,10 +378,15 @@ TEST_CASE("a bad line in a graphemes file is reported with its line", "[phase]")
         CHECK(mentions(grapheme_problems("# phase: A\nai  /t7/  t7\n"), "'clip:<id>'"));
     }
 
-    SECTION("a grapheme twice") {
+    SECTION("a grapheme with the same sound twice") {
         const auto problems =
-            grapheme_problems("# phase: A\nai  /t7/  clip:t7\nai  /t8/  clip:t8\n");
-        CHECK(mentions(problems, "3: 'ai' is listed twice (first on line 2)"));
+            grapheme_problems("# phase: A\nai  /t7/  clip:t7\nai  /t7/  clip:t8\n");
+        CHECK(mentions(problems, "3: 'ai' with the sound /t7/ is listed twice (first on line 2)"));
+    }
+
+    SECTION("a split digraph with letters either side of nothing") {
+        CHECK(mentions(grapheme_problems("# phase: A\n_e  /t7/  clip:t7\n"), "underscore between"));
+        CHECK(mentions(grapheme_problems("# phase: A\na_  /t7/  clip:t7\n"), "underscore between"));
     }
 
     SECTION("graphemes out of order") {
@@ -354,6 +397,19 @@ TEST_CASE("a bad line in a graphemes file is reported with its line", "[phase]")
     SECTION("two graphemes may share a clip") {
         const auto file = read_graphemes("# phase: A\nai  /t7/  clip:t7\nay  /t7/  clip:t7\n");
         CHECK(file.graphemes.size() == 2);
+    }
+
+    SECTION("one grapheme may be listed again for another sound") {
+        const auto file = read_graphemes("# phase: A\now  /t8/  clip:t8\now  /t9/  clip:t9\n");
+        REQUIRE(file.graphemes.size() == 2);
+        CHECK(file.graphemes[0].sound == "/t8/");
+        CHECK(file.graphemes[1].sound == "/t9/");
+    }
+
+    SECTION("a split digraph is a grapheme with an underscore") {
+        const auto file = read_graphemes("# phase: A\na_e  /t7/  clip:t7\n");
+        REQUIRE(file.graphemes.size() == 1);
+        CHECK(file.graphemes[0].split());
     }
 }
 
@@ -384,7 +440,7 @@ TEST_CASE("a phase set is cumulative: a later phase holds the earlier phases' wo
     CHECK(b->graphemes().size() == 7);
     REQUIRE(b->find_word("SIT") != nullptr);  // a phase A word, found in B, in either case
     REQUIRE(b->find_word("pain") != nullptr);
-    CHECK(b->find_word("pain")->graphemes == std::vector<std::string>{"p", "ai", "n"});
+    CHECK(letters_of(*b->find_word("pain")) == std::vector<std::string>{"p", "ai", "n"});
     CHECK(b->find_grapheme("ai")->clip == "t7");
 
     CHECK(built->find("C") == nullptr);
@@ -421,13 +477,6 @@ TEST_CASE("a word must be in the dictionary", "[phase]") {
     files.words[0] = read_words("# phase: A\nnip  n i p\nzap  z a p\n", "a.words");
 
     CHECK(mentions(build_problems(files), "a.words:3: 'zap' is not in the dictionary"));
-}
-
-TEST_CASE("a word's graphemes must spell it", "[phase]") {
-    auto files = phases_a_and_b();
-    files.words[0] = read_words("# phase: A\nnip  n i t\n", "a.words");
-
-    CHECK(mentions(build_problems(files), "the graphemes of 'nip' spell 'nit'"));
 }
 
 TEST_CASE("a word may use only graphemes of its phase or an earlier one", "[phase]") {
@@ -469,9 +518,10 @@ TEST_CASE("a word may be listed once across all the phases", "[phase]") {
 TEST_CASE("a grapheme may be defined once across all the phases", "[phase]") {
     auto files = phases_a_and_b();
     files.graphemes[1] =
-        read_graphemes("# phase: B\nai  /t7/  clip:t7\nn  /t9/  clip:t9\n", "b.graphemes");
+        read_graphemes("# phase: B\nai  /t7/  clip:t7\nn  /t3/  clip:t9\n", "b.graphemes");
 
-    CHECK(mentions(build_problems(files), "b.graphemes:3: 'n' is already defined (a.graphemes:4)"));
+    CHECK(mentions(build_problems(files),
+                   "b.graphemes:3: 'n' with the sound /t3/ is already defined (a.graphemes:4)"));
 }
 
 TEST_CASE("a phase has at most one file of each kind", "[phase]") {
@@ -656,4 +706,167 @@ TEST_CASE("a directory that does not exist is a problem", "[phase]") {
 
     REQUIRE_FALSE(built.has_value());
     CHECK(mentions({built.error().front().message}, "no such directory"));
+}
+
+TEST_CASE("a split digraph is written as two halves around what is between", "[phase][split]") {
+    const auto file = read_words("# phase: A\ncake  c a_ k _e\n");
+
+    REQUIRE(file.words.size() == 1);
+    const auto& graphemes = file.words[0].graphemes;
+    REQUIRE(graphemes.size() == 3);
+    CHECK(letters_of(file.words[0]) == std::vector<std::string>{"c", "a_e", "k"});
+
+    // Its first half is the second letter, its second half the fourth.
+    CHECK(graphemes[1].split());
+    CHECK(graphemes[1].first == 1);
+    CHECK(graphemes[1].second == 3);
+    CHECK(graphemes[2].first == 2);
+    CHECK_FALSE(graphemes[0].split());
+}
+
+TEST_CASE("a split digraph may have a digraph between its halves", "[phase][split]") {
+    const auto file = read_words("# phase: A\nlike  l i_ k _e\n");
+
+    CHECK(letters_of(file.words[0]) == std::vector<std::string>{"l", "i_e", "k"});
+    CHECK(file.words[0].graphemes[1].second == 3);
+}
+
+TEST_CASE("a split digraph that is not written properly is a problem", "[phase][split]") {
+    SECTION("opened and never closed") {
+        CHECK(mentions(word_problems("# phase: A\ncake  c a_ k e\n"), "opened and not closed"));
+    }
+
+    SECTION("closed and never opened") {
+        CHECK(mentions(word_problems("# phase: A\ncake  c a k _e\n"),
+                       "closes a split digraph that was not opened"));
+    }
+
+    SECTION("with nothing between the halves") {
+        CHECK(mentions(word_problems("# phase: A\ncake  c a_ _e k\n"), "nothing between them"));
+    }
+
+    SECTION("inside another") {
+        CHECK(mentions(word_problems("# phase: A\ncake  c a_ k i_ _e\n"), "inside another"));
+    }
+
+    SECTION("with halves that do not spell the word") {
+        CHECK(mentions(word_problems("# phase: A\ncake  c a_ k _i\n"),
+                       "the graphemes of 'cake' spell 'caki'"));
+    }
+
+    SECTION("with a number on the second half") {
+        CHECK(mentions(word_problems("# phase: A\ncake  c a_ k _e:2\n"), "is not a grapheme"));
+    }
+}
+
+TEST_CASE("a split digraph is a grapheme of its phase like any other", "[phase][split]") {
+    Files files;
+    files.graphemes.push_back(
+        read_graphemes("# phase: A\na_e  /t7/  clip:t7\nc  /t1/  clip:t1\nk  /t2/  clip:t2\n"));
+    // Sorted by letters: '_' comes before 'c', and "a_e" before "c".
+    files.words.push_back(read_words("# phase: A\ncake  c a_ k _e\n"));
+
+    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+
+    REQUIRE(built.has_value());
+    const auto& index = *built->find("A");
+    const auto* cake = index.find_word("cake");
+    REQUIRE(cake != nullptr);
+    const auto* sound = index.sound_of(cake->graphemes[1]);
+    REQUIRE(sound != nullptr);
+    CHECK(sound->letters == "a_e");
+    CHECK(sound->sound == "/t7/");
+
+    // The alphabet is letters; the underscore is not one.
+    CHECK(index.alphabet() == "ACEK");
+}
+
+TEST_CASE("a split digraph that no phase defines is refused", "[phase][split]") {
+    Files files;
+    files.graphemes.push_back(read_graphemes("# phase: A\nc  /t1/  clip:t1\nk  /t2/  clip:t2\n"));
+    files.words.push_back(read_words("# phase: A\ncake  c a_ k _e\n"));
+
+    CHECK(mentions(build_problems(files), "grapheme 'a_e' of 'cake' is not in phase A"));
+}
+
+TEST_CASE("a grapheme with two sounds is listed twice and a word picks one", "[phase][sounds]") {
+    Files files;
+    files.graphemes.push_back(read_graphemes(
+        "# phase: A\nc  /t1/  clip:t1\nn  /t3/  clip:t3\now  /t8/  clip:t8\now  /t9/  clip:t9\n"
+        "s  /t5/  clip:t5\nw  /t4/  clip:t4\n"));
+    files.words.push_back(read_words("# phase: A\ncow  c ow:2\nsnow  s n ow:1\n"));
+
+    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+
+    REQUIRE(built.has_value());
+    const auto& index = *built->find("A");
+    CHECK(index.sounds_of("ow").size() == 2);
+    CHECK(index.sounds_of("OW").size() == 2);
+    CHECK(index.sounds_of("zz").empty());
+
+    const auto* cow = index.find_word("cow");
+    const auto* snow = index.find_word("snow");
+    REQUIRE(cow != nullptr);
+    REQUIRE(snow != nullptr);
+    CHECK(cow->graphemes[1].sound == 1);
+    CHECK(index.sound_of(cow->graphemes[1])->sound == "/t9/");
+    CHECK(index.sound_of(snow->graphemes[2])->sound == "/t8/");
+    // A grapheme with one sound needs no number.
+    CHECK(index.sound_of(cow->graphemes[0])->sound == "/t1/");
+}
+
+TEST_CASE("a word has to say which sound when a grapheme has several", "[phase][sounds]") {
+    Files files;
+    files.graphemes.push_back(
+        read_graphemes("# phase: A\nc  /t1/  clip:t1\now  /t8/  clip:t8\now  /t9/  clip:t9\n"));
+
+    SECTION("a number is missing") {
+        files.words.push_back(read_words("# phase: A\ncow  c ow\n"));
+        CHECK(mentions(build_problems(files), "has 2 sounds in phase A: say which"));
+    }
+
+    SECTION("a number is too big") {
+        files.words.push_back(read_words("# phase: A\ncow  c ow:3\n"));
+        CHECK(mentions(build_problems(files), "is numbered 3 and has only 2 sound(s)"));
+    }
+
+    SECTION("a number on a grapheme with one sound is fine when it is 1") {
+        files.graphemes[0] = read_graphemes("# phase: A\nc  /t1/  clip:t1\now  /t8/  clip:t8\n");
+        files.words.push_back(read_words("# phase: A\ncow  c:1 ow:1\n"));
+        CHECK(wjs::PhaseSet::build(files.graphemes, files.words, english()).has_value());
+    }
+
+    SECTION("a number that is not a number") {
+        CHECK(mentions(word_problems("# phase: A\ncow  c ow:0\n"), "is not a grapheme"));
+        CHECK(mentions(word_problems("# phase: A\ncow  c ow:x\n"), "is not a grapheme"));
+        CHECK(mentions(word_problems("# phase: A\ncow  c ow:\n"), "is not a grapheme"));
+    }
+}
+
+TEST_CASE("a second sound may come in a later phase, and the earlier phase cannot use it",
+          "[phase][sounds]") {
+    Files files;
+    files.graphemes.push_back(
+        read_graphemes("# phase: A\nc  /t1/  clip:t1\now  /t8/  clip:t8\n", "a.graphemes"));
+    files.graphemes.push_back(read_graphemes("# phase: B\now  /t9/  clip:t9\n", "b.graphemes"));
+
+    SECTION("the later phase picks between them") {
+        files.words.push_back(read_words("# phase: A\ncow  c ow:1\n", "a.words"));
+        files.words.push_back(read_words("# phase: B\nsnow  s n ow:2\n", "b.words"));
+        files.graphemes[0] = read_graphemes(
+            "# phase: A\nc  /t1/  clip:t1\nn  /t3/  clip:t3\now  /t8/  clip:t8\n"
+            "s  /t5/  clip:t5\n",
+            "a.graphemes");
+
+        const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+
+        REQUIRE(built.has_value());
+        CHECK(built->find("A")->sounds_of("ow").size() == 1);
+        CHECK(built->find("B")->sounds_of("ow").size() == 2);
+    }
+
+    SECTION("the earlier phase does not have the second sound yet") {
+        files.words.push_back(read_words("# phase: A\ncow  c ow:2\n", "a.words"));
+        CHECK(mentions(build_problems(files), "is numbered 2 and has only 1 sound(s) in phase A"));
+    }
 }

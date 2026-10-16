@@ -22,7 +22,8 @@ $checker = Join-Path $PSScriptRoot 'check_phonics.ps1'
 $pwsh = (Get-Process -Id $PID).Path
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
 
-$dictionaryWords = 'nip', 'pan', 'pat', 'pin', 'sat', 'sit', 'tap', 'pain', 'paint', 'saint', 'stain', 'xyz'
+$dictionaryWords = 'nip', 'pan', 'pat', 'pin', 'sat', 'sit', 'tap', 'pain', 'paint', 'saint', 'stain', 'xyz',
+    'cake', 'like', 'snow', 'cow'
 
 $gradeLine = '# reviewed-by: Test Person   reviewed-on: 2026-10-20   source: written in the test'
 
@@ -139,7 +140,10 @@ try {
     Test-Case 'a date without a reviewer is a problem' 1 (With-File $good 'phase-a.words.txt' ("# phase: A`n# reviewed-on: 2026-10-20`n$wordsA`n")) @('give both reviewed-by and reviewed-on')
     Test-Case 'a date that is not a date is a problem' 1 (With-File $good 'phase-a.words.txt' ("# phase: A`n# reviewed-by: Test Person   reviewed-on: last week`n$wordsA`n")) @('YYYY-MM-DD')
     Test-Case 'a day the month does not have is a problem' 1 (With-File $good 'phase-a.words.txt' ("# phase: A`n# reviewed-by: Test Person   reviewed-on: 2026-02-29`n$wordsA`n")) @('YYYY-MM-DD')
-    Test-Case 'a leap day is a date' 0 (With-File $good 'phase-a.words.txt' ("# phase: A`n# reviewed-by: Test Person   reviewed-on: 2028-02-29`n$wordsA`n")) @('OK:')
+    Test-Case 'a leap day is a date' 0 (With-File $good 'phase-a.words.txt' ("# phase: A`n# reviewed-by: Test Person   reviewed-on: 2028-02-29   source: a test`n$wordsA`n")) @('OK:')
+    Test-Case 'a reviewer and a date and no source is a problem' 1 (With-File $good 'phase-a.words.txt' ("# phase: A`n# reviewed-by: Test Person   reviewed-on: 2026-10-20`n$wordsA`n")) @("says where its list came from")
+    Test-Case 'a source still in angle brackets is no source' 1 (With-File $good 'phase-a.words.txt' ("# phase: A`n# reviewed-by: Test Person   reviewed-on: 2026-10-20   source: <where>`n$wordsA`n")) @("says where its list came from")
+    Test-Case 'test data needs no source' 0 (With-File $good 'phase-a.words.txt' ("# phase: A`n# source: a list written in the test`n$wordsA`n")) @('OK:')
 
     Write-Host 'The header and the file names'
     Test-Case 'no phase line is a problem' 1 (With-File $good 'phase-a.words.txt' $wordsA) @("no '# phase: <name>' header")
@@ -154,7 +158,8 @@ try {
     Test-Case 'a word that is not lowercase letters' 1 (& $badWords "Nip  n i p") @("phase-a.words.txt:2", "'Nip' is not a lowercase a-z word")
     Test-Case 'a word too short to be counted' 1 (& $badWords "it  i t") @('fewer than 3 letters')
     Test-Case 'a word with nothing after it' 1 (& $badWords "nip") @('has no graphemes')
-    Test-Case 'a split digraph is refused by name' 1 (& $badWords "tap  t a_e p") @("'a_e'", 'split digraph')
+    Test-Case 'a split digraph written joined is refused, with the way to write it' 1 (& $badWords "tap  t a_e p") @("'a_e'", 'halves of a split digraph')
+    Test-Case 'a word whose graphemes do not spell it' 1 (& $badWords "nip  n i t") @("phase-a.words.txt:2", "the graphemes of 'nip' spell 'nit'")
     Test-Case 'tricky with a split as well' 1 (& $badWords "xyz  x tricky") @('stands alone')
     Test-Case 'a word twice' 1 (& $badWords "nip  n i p`nnip  n i p") @("'nip' is listed twice (first on line 2)")
     Test-Case 'words out of order' 1 (& $badWords "sit  s i t`nnip  n i p") @("'nip' is out of order (after 'sit')")
@@ -162,17 +167,46 @@ try {
     Test-Case 'a clip without its prefix' 1 (With-File $good 'phase-a.graphemes.txt' (New-File 'A' "a  /t1/  t1")) @("'clip:<id>'")
     Test-Case 'the wrong number of graphemes fields' 1 (With-File $good 'phase-a.graphemes.txt' (New-File 'A' "a  /t1/")) @('a grapheme line is')
     Test-Case 'graphemes out of order' 1 (With-File $good 'phase-a.graphemes.txt' (New-File 'A' "n  /t3/  clip:t3`na  /t1/  clip:t1")) @("'a' is out of order (after 'n')")
+    Test-Case 'a grapheme with the same sound twice' 1 (With-File $good 'phase-b.graphemes.txt' (New-File 'B' "ai  /t7/  clip:t7`nai  /t7/  clip:t8")) @("'ai' with the sound /t7/ is listed twice (first on line 2)")
     Test-Case 'two graphemes may share a clip' 0 (With-File $good 'phase-b.graphemes.txt' (New-File 'B' "ai  /t7/  clip:t7`nay  /t7/  clip:t7")) @('OK:')
     Test-Case 'comments, tabs, a byte-order mark and CRLF are tolerated' 0 (With-File $good 'phase-a.words.txt' ([string][char]0xFEFF + "# phase: A`r`n`r`n# a comment`r`nnip`tn  i`tp`r`n")) @('OK:')
 
     Write-Host 'The cross-file checks'
     Test-Case 'a word not in the dictionary' 1 (& $badWords "nip  n i p`nzap  z a p") @("phase-a.words.txt:3", "'zap' is not in the dictionary")
-    Test-Case "a word's graphemes that do not spell it" 1 (& $badWords "nip  n i t") @("the graphemes of 'nip' spell 'nit'")
     Test-Case "an earlier phase's word using a later phase's grapheme" 1 (& $badWords "pain  p ai n") @("grapheme 'ai' of 'pain' is not in phase A or an earlier phase")
     Test-Case "a later phase's word may use an earlier phase's graphemes" 0 $good @('OK:')
     Test-Case 'a word listed in two phases' 1 (With-File $good 'phase-b.words.txt' (New-File 'B' "nip  n i p`npain  p ai n")) @("phase-b.words.txt:2", "'nip' is already listed (phase-a.words.txt:2)")
-    Test-Case 'a grapheme defined in two phases' 1 (With-File $good 'phase-b.graphemes.txt' (New-File 'B' "ai  /t7/  clip:t7`nn  /t9/  clip:t9")) @("'n' is already defined (phase-a.graphemes.txt:4)")
+    Test-Case 'a grapheme defined with the same sound in two phases' 1 (With-File $good 'phase-b.graphemes.txt' (New-File 'B' "ai  /t7/  clip:t7`nn  /t3/  clip:t9")) @("'n' with the sound /t3/ is already defined (phase-a.graphemes.txt:4)")
+    Test-Case 'a grapheme may be defined again with another sound' 0 (With-File $good 'phase-b.graphemes.txt' (New-File 'B' "ai  /t7/  clip:t7`nz  /t8/  clip:t8`nz  /t9/  clip:t9")) @('OK:')
+    Test-Case 'a word that uses a grapheme defined again must say which' 1 (With-File $good 'phase-b.graphemes.txt' (New-File 'B' "ai  /t7/  clip:t7`nn  /t9/  clip:t9")) @("grapheme 'n' of 'pain' has 2 sounds in phase B: say which")
     Test-Case 'a tricky word not in the dictionary' 1 (& $badWords "nip  n i p`nzzz  tricky") @("'zzz' is not in the dictionary")
+
+    Write-Host 'Split digraphs'
+    $splitGraphemes = "a  /t1/  clip:t1`na_e  /t8/  clip:t8`nc  /t9/  clip:t9`ni  /t2/  clip:t2`nk  /t7/  clip:t7`nn  /t3/  clip:t3`np  /t4/  clip:t4`ns  /t5/  clip:t5`nt  /t6/  clip:t6"
+    $withSplit = With-File (With-File $good 'phase-a.graphemes.txt' (New-File 'A' $splitGraphemes)) 'phase-a.words.txt' (New-File 'A' "cake  c a_ k _e`n$wordsA")
+    Test-Case 'a split digraph in two halves passes' 0 $withSplit @('OK:', '12 word(s)')
+    $splitWord = {
+        param([string]$Line)
+        With-File (With-File $good 'phase-a.graphemes.txt' (New-File 'A' $splitGraphemes)) 'phase-a.words.txt' (New-File 'A' "$Line`n$wordsA")
+    }
+    Test-Case 'a split digraph opened and not closed' 1 (& $splitWord "cake  c a_ k e") @('opened and not closed')
+    Test-Case 'a split digraph closed and not opened' 1 (& $splitWord "cake  c a k _e") @('closes a split digraph that was not opened')
+    Test-Case 'a split digraph with nothing between its halves' 1 (& $splitWord "cake  c a_ _e k") @('nothing between them')
+    Test-Case 'a split digraph inside another' 1 (& $splitWord "cake  c a_ k i_ _e") @('inside another')
+    Test-Case 'a split digraph whose halves do not spell the word' 1 (& $splitWord "cake  c a_ k _i") @("the graphemes of 'cake' spell 'caki'")
+    Test-Case 'a split digraph that no phase defines' 1 (With-File $good 'phase-a.words.txt' (New-File 'A' "cake  c a_ k _e`n$wordsA")) @("grapheme 'c' of 'cake' is not in phase A", "grapheme 'a_e' of 'cake' is not in phase A")
+
+    Write-Host 'A grapheme with more than one sound'
+    $soundGraphemes = "ai  /t7/  clip:t7`nc  /t1/  clip:t1`now  /t8/  clip:t8`now  /t9/  clip:t9"
+    $withSounds = With-File $good 'phase-b.graphemes.txt' (New-File 'B' $soundGraphemes)
+    $soundWords = {
+        param([string]$Body)
+        With-File $withSounds 'phase-b.words.txt' (New-File 'B' $Body)
+    }
+    Test-Case 'a word that picks one of two sounds' 0 (& $soundWords "cow  c ow:2`npain  p ai n`npaint  p ai n t`nsaint  s ai n t`nsnow  s n ow:1`nstain  s t ai n") @('OK:')
+    Test-Case 'a word that does not say which of two sounds' 1 (& $soundWords "cow  c ow`npain  p ai n") @("has 2 sounds in phase B: say which")
+    Test-Case 'a number past the sounds there are' 1 (& $soundWords "cow  c ow:3`npain  p ai n") @("is numbered 3 and has only 2 sound(s)")
+    Test-Case 'a number that is not a number' 1 (& $soundWords "cow  c ow:0`npain  p ai n") @("is not a grapheme")
 
     Write-Host 'The repository itself'
     $script:count++

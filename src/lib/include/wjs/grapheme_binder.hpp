@@ -38,7 +38,8 @@ public:
     };
 
     // The multi-letter graphemes of `graphemes` are kept; a single letter is a
-    // tile on its own already, so it is not a block.
+    // tile on its own already, so it is not a block, and a split digraph is not
+    // found in flight, so it is left out.
     explicit GraphemeBinder(std::span<const Grapheme> graphemes);
     explicit GraphemeBinder(const PhaseIndex& index);
 

@@ -32,6 +32,12 @@ review lifts one**. Only R6 does, one feature at a time.
 
 ## The releases
 
+> **Decided 2026-10-16.** R1's board is the **standard dice board** (3x3 to 6x6,
+> the project's own dice, the full dictionary), and the phonics board is a
+> parent's switch. R3's "dice" and "open dictionary" items below are therefore in
+> R1; what stays in R3 is a block list and a child-appropriate cut of the
+> dictionary, which the open dictionary needed.
+
 ### R1: the MVP
 
 Section 12, as designed in [Game](game.md), [Phonics](phonics.md) and
