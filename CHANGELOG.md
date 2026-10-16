@@ -31,9 +31,9 @@ that release, so that its rules (branch protection, required checks) can apply.
   its cells are kept from one board to the next, the jewel is drawn once, and an
   optional `prepare(board)` draws a board's faces a frame before `play()` or
   `show()` of it. On the author's desktop, `show()` of a 6x6 board to its first
-  frame went from 62 ms to 19 ms with the library's dice (87 ms to 19 ms with
+  frame went from 61 ms to 19 ms with the library's dice (78 ms to 19 ms with
   the stand-in board), and every size is under the 33 ms budget; the first board
-  of a size is the dearest (36 ms at 6x6). Nothing was measured on an iPad. See
+  of a size is the dearest (31 ms at 6x6). Nothing was measured on an iPad. See
   [docs/design/shake-prototype.md](docs/design/shake-prototype.md#the-real-faces-made-cheaper).
 - **The Solo Play screens of the game** in Qt Quick (`WJS_BUILD_APP=ON`):
   `home`, and `solo.box`, `solo.playing` and `solo.resting` with the moments

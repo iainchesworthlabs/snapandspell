@@ -408,10 +408,10 @@ Item {
     //
     // Each is a layer, drawn once into one texture that every die's Texture
     // reads. An atlas that is only a Texture's `sourceItem`, with no parent and
-    // no layer, cost far more, and more the more dice there were (the 6 x 6
-    // board's frame was 41 ms of the render thread's and this is 6 ms; the 3 x 3
-    // board's, with a ninth of the dice, 14 ms against 5): each of a board's
-    // textures seems to draw it for itself. The atlases are in the window's
+    // no layer, cost far more, and more the more dice there were (the render
+    // thread's time for the frame of a new 6 x 6 board was 33 to 35 ms and with
+    // a layer it is 5 ms; for a 3 x 3 board, with a ninth of the dice, 12 ms and
+    // 3 ms): each of a board's textures seems to draw it for itself. The atlases are in the window's
     // tree, a long way off its left edge; Quick 3D puts a source item that has
     // no parent under the window's root item in any case, and keeps it out of
     // sight.

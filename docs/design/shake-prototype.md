@@ -593,14 +593,14 @@ screen, and what the render thread spent on that frame.
 | 5x5 | 22.4 ms, 12.2 ms | 54.1 ms, 32.9 ms | 38.3 ms, 19.0 ms |
 | 6x6 | 36.1 ms, 19.1 ms | 89.8 ms, 58.4 ms | 66.9 ms, 37.3 ms |
 
-So, as the faces were added, **a new board cost between one and a quarter and three times what it
-did** (the render thread, 4x4 with the library's dice: 7.0 to 8.6 ms; 6x6 with
-the stand-in: 19.1 to 58.4 ms), and the frame in which it is drawn is over the
-[33 ms budget](performance.md#budgets) at 5x5 and 6x6, and close to it with the
-stand-in's jewels at 3x3 and 4x4 (32.5 and 32.7 ms on average, and 65 ms for one
-4x4 board); the baseline at 6x6 was already at 36 ms. `play()` sets the board,
-so the first frame of a shake carries it. What makes the stand-in dearer than
-the library's board is the jewel: each dead die is six `Shape`s of four facets,
+So, as the faces were added, **a new board cost between one and a quarter and
+three times what it did** (the render thread, 4x4 with the library's dice: 7.0
+to 8.6 ms; 6x6 with the stand-in: 19.1 to 58.4 ms), and the frame in which it
+was drawn was over the [33 ms budget](performance.md#budgets) at 5x5 and 6x6,
+and close to it with the stand-in's jewels at 3x3 and 4x4 (32.5 and 32.7 ms on
+average, and 65 ms for one 4x4 board); the baseline at 6x6 was already at
+36 ms. `play()` sets the board, so the first frame of a shake carries it. What
+made the stand-in dearer than the library's board was the jewel: each dead die is six `Shape`s of four facets,
 about 0.7 ms a cell by the difference at 4x4 (two dead dice, 12 cells, 8.8 ms
 more; the boards' letters differ too). The next subsection is what was
 done about it.
@@ -615,7 +615,9 @@ The frame in which a board changes is the cost above, and three things were
 tried on it, in this order, keeping what measured better. Each is a commit of
 the branch. The harness's `--change` mode is as it was, and it also records how
 long the `show()` call itself held the GUI thread, which is the part of the
-frame before the first frame is drawn.
+frame before the first frame is drawn. The tables up to "On the merged branch"
+are of the first series, made on the branch as it was when this was begun; the
+merged branch was measured again after it.
 
 | Step | What it is | Kept |
 | --- | --- | --- |
@@ -720,6 +722,72 @@ The first frame after `show()`, grabbed before any other frame is drawn, equals
 the settled frame (24 pairs, with and without `prepare`: no channel differs).
 The poses, the replay checksums and the scene's seam are untouched: `prepare` is
 an addition, and `play()` and `show()` mean what they did.
+
+**On the merged branch.** The tables above were made on the branch as it was
+when this was begun (`c5bb73b`, the dice in a box with room). The dice faces
+branch has since been merged with the rigid-cube simulation (`c241223`: a die is
+a bevelled mesh of its own, and the simulation runs on the GUI thread), which
+changes what a new board costs apart from the atlas, so this was measured again
+on the merged branch. The same harness and method (three processes of each
+build, six boards of each size in each, run one after another in each round, a
+run thrown away and made again if anything else was seen drawing or building:
+9 of 27 attempts), "before" the dice faces branch's own build (`c241223`, from
+the tree of the worktree that built it, which had no change since) and "after"
+this branch's, with the three steps in it. The harness's `show()` call time is
+not in "before" (that build does not record it).
+
+Means, in ms, of the time from `show()` to the first frame on screen, and of the
+render thread's time for that frame (the `show()` call, which is the GUI
+thread's part of the first, is for "after" only):
+
+| Library dice | Before | After | The render thread, before and after | `show()` call, after |
+| --- | --- | --- | --- | --- |
+| 3x3 | 24.0 | 11.8 | 11.5, 2.7 | 5.6 |
+| 4x4 | 21.1 | 12.2 | 8.5, 2.8 | 5.2 |
+| 5x5 | 36.7 | 14.6 | 18.0, 3.7 | 8.9 |
+| 6x6 | 61.2 | 19.0 | 32.7, 4.8 | 12.4 |
+
+| The stand-in (two dead dice) | Before | After | The render thread, before and after | `show()` call, after |
+| --- | --- | --- | --- | --- |
+| 3x3 | 29.9 | 11.4 | 17.3, 2.7 | 5.9 |
+| 4x4 | 27.6 | 10.8 | 14.4, 2.9 | 5.5 |
+| 5x5 | 47.4 | 15.0 | 28.7, 3.6 | 9.2 |
+| 6x6 | 77.8 | 18.8 | 49.7, 4.8 | 12.8 |
+
+Every size is under the budget in its mean, and the stand-in costs what the
+library's dice do. The frame is 1 to 3 ms longer than before the merge at 3x3
+and 4x4 (11 to 12 ms where it was 9 to 10), which is probably the dice's and not
+the atlas's: each die is now a mesh of its own. The first board of a size larger than any before it in
+the process makes the cells: 21 to 22 ms at 5x5 and 30 to 31 ms at 6x6 (library
+dice 22.1 and 31.4 ms, stand-in 21.3 and 30.3 ms), against 13 to 14 ms and
+16.5 ms for the boards that follow it, and against 49 to 52 ms and 73 to 78 ms
+for the first board before.
+
+With `prepare` (each board prepared, 300 ms, then shown), the frame of `prepare`
+(from the call) and then the frame of `show`:
+
+| | 3x3 | 4x4 | 5x5 | 6x6 |
+| --- | --- | --- | --- | --- |
+| Library dice: `prepare`, then `show` | 11.2, 11.1 | 8.8, 10.9 | 12.2, 11.3 | 14.2, 14.7 |
+| The stand-in: `prepare`, then `show` | 9.5, 11.0 | 10.9, 10.4 | 10.4, 11.5 | 11.9, 14.5 |
+| Without `prepare` (above): library dice, stand-in | 11.8, 11.4 | 12.2, 10.8 | 14.6, 15.0 | 19.0, 18.8 |
+
+On this branch `prepare` is worth less than it was: it takes nearly a quarter off
+the shake's first frame at 5x5 and 6x6 (6x6, library dice: 19.0 to 14.7 ms) and
+nothing that the spread of the runs does not hide at 3x3 and 4x4, for a frame of
+9 to 14 ms before. Where it matters is the first board of a size: the first
+6x6 board is a frame of 18 to 23 ms for `prepare` and then 14 to 15 ms for
+`show`, where without it that board is one frame of 30 to 31 ms. It holds a
+second atlas, as above.
+
+**What did not change on the merged branch.** The stills of the 4x4 and 6x6
+boards, library dice and stand-in (44), against the dice faces branch's own
+build: no channel differs by more than 2/255 and no pixel by more than 8/255,
+and every letter, the digraphs, the Qu face and the jewels are upright and not
+mirrored. The first frame after `show()`, grabbed before any other frame is
+drawn, equals the settled frame (48 pairs, with and without `prepare`: no
+channel differs by more than 1/255). The 688 tests of the merged tree pass (the
+4 timing tests skip by design), and nothing was measured on an iPad.
 
 ## What it looked like
 
