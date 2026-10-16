@@ -14,11 +14,14 @@ QtObject {
     id: root
 
     // --- what the person or the system chooses ------------------------------
-    // Set by the parent area's Motion setting once it exists: System follows the
-    // operating system, Reduced forces it. Nothing here is a child's choice.
+    // Set by Main.qml from the parent area's Motion setting: System follows the
+    // operating system (SystemMotion), Reduced forces it. Nothing here is a child's
+    // choice.
     property bool reducedMotion: false
-    // The system's text size times the app's own (1, 1.25 or 1.5), clamped to
-    // 0.85 to 2.0.
+    // The app's own text size (1, 1.25 or 1.5), which the design says is to be
+    // multiplied by the system's and clamped to 0.85 to 2.0. Qt 6.12 does not say what
+    // the system's is (docs/design/parent-area.md, "Integration"), so for now this is
+    // the app's own alone.
     property real textScale: 1.0
 
     readonly property bool dark: SystemColourScheme.dark

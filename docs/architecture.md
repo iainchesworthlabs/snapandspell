@@ -48,6 +48,7 @@ src/
                          path_tracer.*, board_layout.*, solo_layout.*
     solver_model.*       the solver's model (no screen uses it now; it keeps its tests)
     system_colour_scheme.*  whether the system is in dark mode
+    system_motion.*      whether the system asks for reduced motion
     parent/              the parent area's controller and its QML module (CMake)
     qml/parent/          the parent area's screens and their wording
   platforms/           everything that differs between operating systems
@@ -882,8 +883,10 @@ by reference) and with the controller (`useStore()`), which it also gives the ca
 and the phases the game plays; the controller is handed to the window as an initial
 property. `Main.qml` shows the parent area as the `parent` screen, reached from home and
 from the box by the corner button and closed back to where it came from, and binds
-`Theme.reducedMotion` and `Theme.textScale` to the parent's Motion override and Text
-size. The gate is the parent area's own. Its tests are in
+`Theme.reducedMotion` and `Theme.textScale` to the parent's Motion setting and Text
+size: Reduced forces reduced motion on and System follows the operating system's
+(`SystemMotion`, over Qt's `QAccessibilityHints`), while the system's text size is not
+read (Qt 6.12 does not expose it). The gate is the parent area's own. Its tests are in
 `wjs_app_tests`, and a stub shell (`tests/app/parent_ui`) draws the screens without a
 display. See [The parent area as built](design/parent-area.md).
 

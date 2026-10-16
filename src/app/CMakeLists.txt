@@ -63,7 +63,9 @@ qt_add_qml_module(wjs_app
         solver_model.cpp
         solver_model.hpp
         system_colour_scheme.cpp
-        system_colour_scheme.hpp)
+        system_colour_scheme.hpp
+        system_motion.cpp
+        system_motion.hpp)
 
 # The QML compiler's generated C++ includes src/app/solo's headers by bare name
 # (the type registrations), so that directory is on the include path.

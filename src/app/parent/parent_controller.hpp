@@ -65,6 +65,12 @@ class ParentController : public QObject {
     Q_PROPERTY(QString storeNote READ storeNote NOTIFY storeNoteChanged)
 
     // --- what the program applies from the settings -----------------------------
+    // The Motion setting, "system" or "reduced". Only the window knows what the
+    // system itself asks for, so it is the one that decides what System comes to
+    // (qml/Main.qml).
+    Q_PROPERTY(QString motion READ motion NOTIFY settingsChanged)
+    // The parent chose Reduced: motion is reduced whatever the system says. False
+    // for System, which is not a choice for or against.
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY settingsChanged)
     Q_PROPERTY(double textScale READ textScale NOTIFY settingsChanged)
 
@@ -147,6 +153,7 @@ public:
     [[nodiscard]] bool phonicsAvailable() const noexcept { return phases_ != nullptr; }
     [[nodiscard]] QStringList schoolFonts() const { return {}; }
     [[nodiscard]] QString storeNote() const;
+    [[nodiscard]] QString motion() const;
     [[nodiscard]] bool reducedMotion() const;
     [[nodiscard]] double textScale() const;
     [[nodiscard]] QString version() const;

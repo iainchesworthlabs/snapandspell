@@ -58,10 +58,11 @@ that release, so that its rules (branch protection, required checks) can apply.
   came from. The program opens one `wjs::Store` (`--store <file>`, or the per-user file, with a
   phase or without) and the game and the parent area work on it, so a setting changed there is
   what the next game is made from (the help switch, the size to offer first, the sounds in
-  focus) and a find the game recorded is on the dashboard. The Motion override and the Text
-  size are applied to every screen through `Theme`. The operating system's own reduced-motion
-  and text-size settings are not read, and a change of the Phase setting is seen by the next
-  run. See [docs/design/parent-area.md](docs/design/parent-area.md#integration).
+  focus) and a find the game recorded is on the dashboard. The Motion setting and the Text
+  size are applied to every screen through `Theme`: Reduced forces reduced motion on, and
+  System follows the operating system's own reduced-motion preference (as Qt reports it, and
+  while the program runs). The system's text size is not read, because Qt 6.12 does not expose
+  it, and a change of the Phase setting is seen by the next run. See [docs/design/parent-area.md](docs/design/parent-area.md#integration).
 - **The parent area, on the device and nowhere else**, inside the first release's
   frozen privacy rules (no voice, no export, no network, no time played, no limit):
   a small versioned **store** (`wjs/store.hpp`) of finds, the last twenty boards, stars,

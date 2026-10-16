@@ -35,12 +35,14 @@ ApplicationWindow {
         onCue: (kind, detail) => Feedback.cue(kind, detail)
     }
 
-    // What the parent chooses for the whole program: the Motion override (the
-    // system's own setting is not read yet) and the Text size.
+    // What the parent chooses for the whole program: the Motion setting and the Text
+    // size. Reduced forces reduced motion on; System follows what the operating
+    // system asks for (SystemMotion), and the system's text size is not read.
     Binding {
         target: Theme
         property: "reducedMotion"
         value: window.parentController.reducedMotion
+               || (window.parentController.motion === "system" && SystemMotion.reduced)
     }
     Binding {
         target: Theme

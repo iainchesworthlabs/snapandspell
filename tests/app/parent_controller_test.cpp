@@ -406,6 +406,30 @@ TEST_CASE("the screens read the text size and the motion from the settings",
     CHECK(controller.reducedMotion());
 }
 
+// The window decides what System comes to (it alone knows what the system asks
+// for), so the controller must say which of the two the parent chose.
+TEST_CASE("the motion setting is told as a name, and System is not a choice for reduced",
+          "[app][parent][settings]") {
+    ParentController controller;
+    CHECK(controller.motion() == "system");
+    CHECK_FALSE(controller.reducedMotion());
+
+    int changes = 0;
+    QObject::connect(&controller, &ParentController::settingsChanged, [&changes] { ++changes; });
+
+    REQUIRE(controller.setSetting("motion", "reduced"));
+    CHECK(controller.motion() == "reduced");
+    CHECK(controller.reducedMotion());
+    CHECK(changes >= 1);
+
+    REQUIRE(controller.setSetting("motion", "system"));
+    CHECK(controller.motion() == "system");
+    CHECK_FALSE(controller.reducedMotion());
+
+    // The property the window binds to carries the same name.
+    CHECK(controller.property("motion").toString() == "system");
+}
+
 // ---------------------------------------------------------------------------
 // The two resets
 

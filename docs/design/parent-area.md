@@ -63,12 +63,35 @@ The parent area is routed from the Solo Play window, on one store.
   store's copy, but the game on the screen goes only with its lid, and its next change
   saves it again). Opening the dashboard is a read and not an edit. The phase is read once, at the start of the run: a change of
   the Phase setting is seen by the next run.
-- **The tokens.** `Main.qml` binds `Theme.reducedMotion` to the Motion override
-  (`controller.reducedMotion`) and `Theme.textScale` to the Text size
-  (`controller.textScale`), so every screen that draws from `Theme` follows them
-  without being touched. The operating system's own reduced-motion and text-size
-  settings are not read yet: these are the parent's choice only. The parent screens
-  bind their own `ParentTheme.textScale` as before.
+- **The tokens.** `Main.qml` binds `Theme.reducedMotion` to the Motion setting and
+  `Theme.textScale` to the Text size (`controller.textScale`), so every screen that
+  draws from `Theme` follows them without being touched. The parent screens bind
+  their own `ParentTheme.textScale` as before.
+- **Motion: System follows the system.** Reduced forces reduced motion on
+  (`controller.reducedMotion`: the parent chose it). System is not a choice for or
+  against, so it comes to whatever the operating system asks for: `SystemMotion`
+  (`src/app/system_motion.*`, beside `SystemColourScheme`) is a QML singleton over
+  `QAccessibilityHints::motionPreference`, which Qt 6.12 has, with a `reduced`
+  property that notifies (QML does not get the change notification of
+  `Qt.styleHints`, which is why it is a wrapper). `Main.qml` binds
+  `Theme.reducedMotion` to `controller.reducedMotion || (controller.motion ===
+  "system" && SystemMotion.reduced)`. The OR is in the window because only the window
+  has both: the controller is the settings' and `SystemMotion` is the system's, and
+  neither should know of the other. If the platform cannot say, Qt reports no preference and
+  System is full motion. A change of the system's setting while the program runs
+  reaches the screens when Qt reports it (`motionPreferenceChanged`). The design's
+  rule that System is the default is [application.md](application.md#motion)'s.
+- **Text size: the system's is not read.** The design multiplies the system's text
+  size by the app's (1, 1.25 or 1.5) and clamps to 0.85 to 2.0. Qt 6.12 does not
+  say what the system's text size is: `QStyleHints` has the colour scheme and
+  `QAccessibilityHints` the contrast and motion preferences, and nothing in either, or
+  in the platform theme's hints, is a text scale. The application font Qt reads from
+  the platform theme is a base size that differs by platform, which is no scale. `Theme.textScale` is therefore the app's
+  own size alone, and `Theme.qml` says so. Reading it would be a platform service
+  (the Windows text scale factor, Android's font scale, iOS's preferred content size
+  category, GNOME's text scaling factor are the ones we know of; none has been
+  tried here) behind an interface under `src/platforms`, as the user data directory
+  is; that is its own piece of work.
 
 ## The store
 
