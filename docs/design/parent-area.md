@@ -29,28 +29,46 @@ passive tracking and no several children. None is built, not even behind a flag.
 The library stays Qt-free and OS-free. The module is linked into the application
 by one line in `src/app/CMakeLists.txt`.
 
-## Integration (not done here)
+## Integration
 
-The Solo Play session owns `Main.qml` and the home screen. `ParentArea.qml` is one
-screen with one signal, so wiring it in is a few lines in that shell once both
-are on `develop`:
+The parent area is routed from the Solo Play window, on one store.
 
-```qml
-import WordJewelsSolver.Parent
-// in the screen switch:  case "parent": return parentScreen
-Component {
-    id: parentScreen
-    ParentArea { controller: parentController; onClosed: Navigation.back() }
-}
-```
-
-and `Home`'s `parentRequested()` goes to the gate (`Navigation.go("parent")`,
-`parentAvailable: true`). `ParentController` is shared with the game: the program
-makes **one** `wjs::Store` and hands it to both (`useStore`), so the two never write
-the file separately. The shell also applies two settings the controller exposes:
-`reducedMotion` (the parent's Motion override; the system's own setting is the
-shell's to read) and `textScale` (1, 1.25, 1.5). These screens apply the text
-scale to themselves already.
+- **The screen.** `Main.qml` has a `parent` case that shows
+  `ParentArea { controller: window.parentController; onClosed: Navigation.back() }`.
+  Home's corner button and the box's both emit `parentRequested()`, which goes to
+  `Navigation.go("parent")`; `Navigation.parentAvailable` is true. Closing goes
+  back to where the person came from (home, or the box), by Back, Esc or the system
+  back, and shuts the gate again. The gate is the parent area's own and nothing in
+  the shell opens it: `ParentArea` shows the gate until the controller says it is
+  unlocked.
+- **The store.** `main.cpp` opens **one** `wjs::Store` for the program before
+  anything else: `--store <file>`, otherwise the per-user file, otherwise (no place
+  to keep one) a store that is never written. `SoloGameSetup` holds it by reference
+  and `ParentController::useStore()` is given it with the status it was opened with
+  (the note the parent sees if the file was damaged or newer), so the two never
+  write the file separately. The stand-in game, which is what runs when no phase is
+  given, is made from the same store, so the parent's settings reach it as they
+  reach the real one. The controller is made in `main.cpp` and handed to the window
+  as the initial property `parentController`; it has the program's calendar
+  (`useCalendar`) and the phases the game plays (`usePhases`; none with the
+  stand-in, so the dashboard has no sounds and the Phonics board cannot be chosen).
+- **The next game.** A setting the parent changes, or a reset, is told by
+  `ParentController::storeEdited()`; the window passes it to
+  `SoloModel::storeEdited()`, which takes a new game from the program's maker, made
+  from the store as it is now (the help switch, the size to offer first and the
+  sounds in focus: `SoloGameSetup::make()`). It does so at once when the box has its
+  lid on, which is where the parent area is reached from, and otherwise when the box
+  next has: a game in play is not taken from a child (that includes one brought back
+  from the run before and not yet played out: a reset made while it waits clears the
+  store's copy, but the game on the screen goes only with its lid, and its next change
+  saves it again). Opening the dashboard is a read and not an edit. The phase is read once, at the start of the run: a change of
+  the Phase setting is seen by the next run.
+- **The tokens.** `Main.qml` binds `Theme.reducedMotion` to the Motion override
+  (`controller.reducedMotion`) and `Theme.textScale` to the Text size
+  (`controller.textScale`), so every screen that draws from `Theme` follows them
+  without being touched. The operating system's own reduced-motion and text-size
+  settings are not read yet: these are the parent's choice only. The parent screens
+  bind their own `ParentTheme.textScale` as before.
 
 ## The store
 

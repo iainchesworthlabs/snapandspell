@@ -1,3 +1,4 @@
+#include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -21,6 +22,7 @@
 #include <vector>
 
 #include "fake_solo_game.hpp"
+#include "parent_controller.hpp"
 #include "real_solo_game.hpp"
 #include "solo_game_factory.hpp"
 #include "solo_game_setup.hpp"
@@ -809,7 +811,8 @@ TEST_CASE("the setup loads a phase from a directory and makes a game from it", "
     const TempDirectory directory;
     write_data(directory);
 
-    auto opened = wjs::app::SoloGameSetup::open(options_in(directory));
+    wjs::Store store = wjs::Store::in_memory();
+    auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
     REQUIRE(opened.has_value());
     auto& setup = **opened;
 
@@ -818,7 +821,7 @@ TEST_CASE("the setup loads a phase from a directory and makes a game from it", "
     CHECK(setup.unreviewed_files().size() == 4);
     // With no phase named, the settings' phase: "A" on a new device.
     CHECK(setup.phase().phase() == "A");
-    CHECK(setup.store_status() == wjs::LoadStatus::created);
+    CHECK(setup.phases().phases().size() == 2);
 
     // Two games of one fixed seed deal the same board.
     const auto first = setup.make();
@@ -833,21 +836,16 @@ TEST_CASE("the setup loads a phase from a directory and makes a game from it", "
 TEST_CASE("the setup makes each game from the parent's settings", "[app][real]") {
     const TempDirectory directory;
     write_data(directory);
-    const auto file = directory.path() / "store.wjs";
-    {
-        auto opened = wjs::Store::open(file);
-        wjs::Settings settings = opened.store.settings();
-        settings.help = false;
-        settings.board_size = 4;
-        settings.phase = "B";
-        opened.store.update_settings(settings);
-    }
+    wjs::Store store = wjs::Store::in_memory();
+    wjs::Settings settings = store.settings();
+    settings.help = false;
+    settings.board_size = 4;
+    settings.phase = "B";
+    store.update_settings(settings);
 
     auto options = options_in(directory);
-    options.store = file;
-    auto opened = wjs::app::SoloGameSetup::open(options);
+    auto opened = wjs::app::SoloGameSetup::open(options, store);
     REQUIRE(opened.has_value());
-    CHECK((*opened)->store_status() == wjs::LoadStatus::loaded);
     CHECK((*opened)->phase().phase() == "B");
 
     const auto game = (*opened)->make();
@@ -856,7 +854,7 @@ TEST_CASE("the setup makes each game from the parent's settings", "[app][real]")
 
     // A phase named on the command line wins over the settings.
     options.phase = "A";
-    auto named = wjs::app::SoloGameSetup::open(options);
+    auto named = wjs::app::SoloGameSetup::open(options, store);
     REQUIRE(named.has_value());
     CHECK((*named)->phase().phase() == "A");
 }
@@ -864,11 +862,12 @@ TEST_CASE("the setup makes each game from the parent's settings", "[app][real]")
 TEST_CASE("a game made by the setup writes its finds to the store's file", "[app][real]") {
     const TempDirectory directory;
     write_data(directory);
-    auto options = options_in(directory);
-    options.store = directory.path() / "kept" / "store.wjs";
+    const auto options = options_in(directory);
+    const auto file = directory.path() / "kept" / "store.wjs";
 
     {
-        auto opened = wjs::app::SoloGameSetup::open(options);
+        auto kept = wjs::Store::open(file);
+        auto opened = wjs::app::SoloGameSetup::open(options, kept.store);
         REQUIRE(opened.has_value());
         const auto game = (*opened)->make();
         REQUIRE(game->shake());
@@ -883,9 +882,10 @@ TEST_CASE("a game made by the setup writes its finds to the store's file", "[app
     }
 
     // The next run reads the board back from the file.
-    auto reopened = wjs::app::SoloGameSetup::open(options);
+    auto kept = wjs::Store::open(file);
+    CHECK(kept.status == wjs::LoadStatus::loaded);
+    auto reopened = wjs::app::SoloGameSetup::open(options, kept.store);
     REQUIRE(reopened.has_value());
-    CHECK((*reopened)->store_status() == wjs::LoadStatus::loaded);
     const auto game = (*reopened)->make();
     const auto history = game->history();
     REQUIRE(history.size() == 1);
@@ -896,11 +896,12 @@ TEST_CASE("the setup says why it cannot load", "[app][real]") {
     using Catch::Matchers::ContainsSubstring;
     const TempDirectory directory;
     write_data(directory);
+    wjs::Store store = wjs::Store::in_memory();
 
     SECTION("no word list") {
         auto options = options_in(directory);
         options.dictionary = directory.path() / "missing.txt";
-        const auto opened = wjs::app::SoloGameSetup::open(options);
+        const auto opened = wjs::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("could not be read"));
         CHECK_THAT(opened.error(), ContainsSubstring("--dictionary"));
@@ -908,27 +909,27 @@ TEST_CASE("the setup says why it cannot load", "[app][real]") {
     SECTION("no calendar") {
         auto options = options_in(directory);
         options.today = nullptr;
-        const auto opened = wjs::app::SoloGameSetup::open(options);
+        const auto opened = wjs::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("calendar"));
     }
     SECTION("no phase directory") {
         auto options = options_in(directory);
         options.phase_directory = directory.path() / "nowhere";
-        const auto opened = wjs::app::SoloGameSetup::open(options);
+        const auto opened = wjs::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("no such directory"));
     }
     SECTION("a file with a problem names it") {
         write(directory.path() / "phonics" / "phase-a.words.txt", "# phase: A\npat  p a x\n");
-        const auto opened = wjs::app::SoloGameSetup::open(options_in(directory));
+        const auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("phase-a.words.txt"));
     }
     SECTION("a phase that is not there") {
         auto options = options_in(directory);
         options.phase = "Z";
-        const auto opened = wjs::app::SoloGameSetup::open(options);
+        const auto opened = wjs::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("no phase Z"));
         CHECK_THAT(opened.error(), ContainsSubstring("A B"));
@@ -952,10 +953,89 @@ TEST_CASE("the setup says why it cannot load", "[app][real]") {
         write(every.path() / "phonics" / "phase-a.graphemes.txt", graphemes);
         write(every.path() / "phonics" / "phase-a.words.txt", words);
         write(every.path() / "en.txt", list);
-        const auto opened = wjs::app::SoloGameSetup::open(options_in(every));
+        const auto opened = wjs::app::SoloGameSetup::open(options_in(every), store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("cannot be played"));
     }
+}
+
+// --- the parent area on the game's store ------------------------------------------
+
+TEST_CASE("the parent area on the game's store sees what the game recorded",
+          "[app][real][parent]") {
+    Table table("A");
+    wjs::app::ParentController controller;
+    controller.useCalendar(device_day, 1);
+    controller.useStore(&table.store);
+    controller.usePhases(&phases());
+    REQUIRE(controller.dashboard().value("empty").toBool());
+
+    REQUIRE(table.game.submit(pat).kind == WordKind::viable);
+
+    // The dashboard is worked out when it is opened, as of then.
+    controller.refresh();
+    const QVariantMap dashboard = controller.dashboard();
+    CHECK_FALSE(dashboard.value("empty").toBool());
+    const QVariantMap week = dashboard.value("week").toMap();
+    CHECK(week.value("newWords").toInt() == 1);
+    CHECK(week.value("longestWord").toString() == "pat");
+    const QVariantList vault = dashboard.value("vault").toList();
+    REQUIRE(vault.size() == 1);
+    CHECK(vault.at(0).toMap().value("word").toString() == "pat");
+}
+
+TEST_CASE("a setting the parent changes is what the setup makes the next game from",
+          "[app][real][parent]") {
+    const TempDirectory directory;
+    write_data(directory);
+    wjs::Store store = wjs::Store::in_memory();
+    auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
+    REQUIRE(opened.has_value());
+    auto& setup = **opened;
+    wjs::app::ParentController controller;
+    controller.useStore(&store);
+    controller.usePhases(&setup.phases());
+
+    const auto before = setup.make();
+    CHECK(before->helpAllowed());
+    CHECK(before->size() == 3);
+
+    CHECK(controller.setSetting("help", false));
+    CHECK(controller.setSetting("boardSize", 4));
+
+    const auto next = setup.make();
+    CHECK_FALSE(next->helpAllowed());
+    CHECK(next->size() == 4);
+    // The game that was made before is the game it was.
+    CHECK(before->helpAllowed());
+    CHECK(before->size() == 3);
+}
+
+TEST_CASE("a change in the parent area is the box's next game, through the model",
+          "[app][real][parent]") {
+    const TempDirectory directory;
+    write_data(directory);
+    wjs::Store store = wjs::Store::in_memory();
+    auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
+    REQUIRE(opened.has_value());
+    auto& setup = **opened;
+
+    // The program's wiring: the maker is the setup's, and the shell tells the model
+    // what the controller says (Main.qml's Connections).
+    const wjs::app::ScopedSoloGameMaker installed([&setup] { return setup.make(); });
+    wjs::app::SoloModel model;
+    wjs::app::ParentController controller;
+    controller.useStore(&store);
+    controller.usePhases(&setup.phases());
+    QObject::connect(&controller, &wjs::app::ParentController::storeEdited, &model,
+                     &wjs::app::SoloModel::storeEdited);
+    REQUIRE(model.state() == "box");
+    CHECK(model.helpAllowed());
+
+    CHECK(controller.setSetting("help", false));
+
+    CHECK(model.state() == "box");
+    CHECK_FALSE(model.helpAllowed());
 }
 
 // --- the game in progress ------------------------------------------------------
@@ -1120,22 +1200,42 @@ struct Run {
 
 using Play = std::function<void(const Run&)>;
 
+// What a run is made from: the setup's options and the store file the runs share.
+struct RunOptions : wjs::app::SoloGameOptions {
+    std::filesystem::path store;
+};
+
+// What the program has when it starts: the store opened from its file (main.cpp) and
+// the setup over it. Held in place, because the setup points at the store.
+struct OpenedRun {
+    wjs::OpenResult store;
+    std::unique_ptr<wjs::app::SoloGameSetup> setup;
+
+    explicit OpenedRun(const RunOptions& options) : store(wjs::Store::open(options.store)) {
+        auto opened = wjs::app::SoloGameSetup::open(options, store.store);
+        REQUIRE(opened.has_value());
+        setup = *std::move(opened);
+    }
+    OpenedRun(const OpenedRun&) = delete;
+    OpenedRun& operator=(const OpenedRun&) = delete;
+};
+
 // A run: the setup opened as the program opens it, its game made and played with
 // `play`, and everything closed again. What the game showed when it was left.
-Seen run(const wjs::app::SoloGameOptions& options, const Play& play = {}) {
-    auto opened = wjs::app::SoloGameSetup::open(options);
-    REQUIRE(opened.has_value());
-    const auto game = (*opened)->make();
+Seen run(const RunOptions& options, const Play& play = {}) {
+    const OpenedRun opened(options);
+    const auto game = opened.setup->make();
     if (play) {
-        play(Run{**opened, *game});
+        play(Run{*opened.setup, *game});
     }
     return seen(*game);
 }
 
 // The options of a run over a store file of its own, which the runs share.
-wjs::app::SoloGameOptions kept_options(const TempDirectory& directory) {
+RunOptions kept_options(const TempDirectory& directory) {
     write_data(directory);
-    auto options = options_in(directory);
+    RunOptions options;
+    static_cast<wjs::app::SoloGameOptions&>(options) = options_in(directory);
     options.store = directory.path() / "store.wjs";
     return options;
 }
@@ -1368,9 +1468,8 @@ TEST_CASE("the model opens on the game that was left, with no shake", "[app][rea
         });
         REQUIRE(before.lit.has_value());
 
-        auto opened = wjs::app::SoloGameSetup::open(options);
-        REQUIRE(opened.has_value());
-        wjs::app::SoloModel model((*opened)->make());
+        const OpenedRun opened(options);
+        wjs::app::SoloModel model(opened.setup->make());
         model.setGeometry(100, 10);
 
         CHECK(model.state() == "playing");
@@ -1400,9 +1499,8 @@ TEST_CASE("the model opens on the game that was left, with no shake", "[app][rea
             run.find(run.words().size());
         });
 
-        auto opened = wjs::app::SoloGameSetup::open(options);
-        REQUIRE(opened.has_value());
-        wjs::app::SoloModel model((*opened)->make());
+        const OpenedRun opened(options);
+        wjs::app::SoloModel model(opened.setup->make());
 
         CHECK(model.state() == "resting");
         CHECK_FALSE(model.found().isEmpty());

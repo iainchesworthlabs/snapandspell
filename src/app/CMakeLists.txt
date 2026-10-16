@@ -14,9 +14,12 @@ set_source_files_properties(
     qml/kit/Theme.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
+# Main.qml shows the parent area, a module of its own that is built under
+# parent/ (added below): qmllint looks for it there.
 qt_add_qml_module(wjs_app
     URI WordJewelsSolver
     VERSION 1.0
+    IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}/parent"
     QML_FILES
         qml/Home.qml
         qml/Main.qml

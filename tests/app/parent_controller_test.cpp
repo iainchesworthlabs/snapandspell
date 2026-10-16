@@ -440,6 +440,35 @@ TEST_CASE("a reset keeps the settings", "[app][parent][reset]") {
 }
 
 // ---------------------------------------------------------------------------
+// What the game is told of an edit
+
+TEST_CASE("an edit of the store is told, and a read of it is not", "[app][parent][edited]") {
+    Fixture f;
+    int edited = 0;
+    QObject::connect(&f.controller, &ParentController::storeEdited, [&edited] { ++edited; });
+
+    // Opening a screen only reads.
+    f.controller.refresh();
+    CHECK(edited == 0);
+
+    CHECK(f.controller.setSetting("help", false));
+    CHECK(edited == 1);
+
+    // The value it already has is no edit, and a value refused is none either.
+    CHECK(f.controller.setSetting("help", false));
+    CHECK_FALSE(f.controller.setSetting("boardSize", 7));
+    CHECK(edited == 1);
+
+    CHECK(f.controller.toggleFocusSound("s"));
+    CHECK(edited == 2);
+
+    f.controller.resetBoardsAndFinds();
+    CHECK(edited == 3);
+    f.controller.resetStarsAndStickers();
+    CHECK(edited == 4);
+}
+
+// ---------------------------------------------------------------------------
 // The store, and what the parent is told of it
 
 TEST_CASE("a store in memory is said not to be saved", "[app][parent][store]") {

@@ -15,8 +15,8 @@ QtObject {
 
     // Whether a screen exists for these, so that Home shows a picture only when
     // pressing it does something. Whoever adds the screen sets them in the same
-    // change (the parent area's gate; the family game's scanner).
-    property bool parentAvailable: false
+    // change (the family game's scanner; the parent area's gate is routed in Main).
+    property bool parentAvailable: true
     property bool scanAvailable: false
 
     function go(id) {
