@@ -7,6 +7,7 @@ add_executable(wjs_unit_tests
     unit/dice_test.cpp
     unit/dictionary_test.cpp
     unit/game_rules_test.cpp
+    unit/game_session_test.cpp
     unit/grapheme_binder_test.cpp
     unit/path_test.cpp
     unit/paths_test.cpp
