@@ -35,7 +35,7 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 `wjs_app_tests`. The parent area's are
 `[calendar]`, `[settings]`, `[gate]`, `[store]` (with `[record]`, `[file]`, `[migration]`, `[bounds]`,
 `[reset]`, `[resume]` and `[privacy]`), `[dashboard]` (with `[sounds]`, `[week]`, `[vault]`, `[best]`,
-`[focus]`) and, in `wjs_app_tests`, `[parent]`.
+`[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`.
 
 ## What there is
 
@@ -60,6 +60,7 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 | `tests/unit/settings_test.cpp` | `wjs::Settings` | The defaults are the table's; every value a screen offers survives; any other becomes the default for it; names, sizes, text scales and focus sounds are brought within their bounds |
 | `tests/unit/parent_gate_test.cpp` | `wjs::Gate` | The layout on every screen shape; two fingers held two seconds open it, anything else does not (one finger, two on one spot, a third touch, a slide out, a lift and a press again); the accessibility action; and a property test, 400 random runs of touches, against an oracle written separately |
 | `tests/unit/store_test.cpp` | `wjs::Store`, `parse_store`, `serialize_store` | The format and its round trip; a file cut at every length and with every byte changed is refused; each record checked; a later version told apart; migration through a pretend older format; what a snapshot records (stars once, first-time words, bests, tallies, cleared boards, the bounds); the game in progress; each way a file on disk can be (missing, damaged, newer, older, unreadable, a refusing disk), kept whole and never overwritten; the worst case the bounds allow is under the cap; no time of day in the file |
+| `tests/unit/session_store_test.cpp` | `wjs::snapshot_of`, `record_of`, `saved_session_of`, `session_snapshot_of` | The copy between the game session's values and the store's: fields, the stars from each find's reward, a stamp that is not a day refused, a board and every saved state through the store and back as it was, the words back in upper case and in order, what cannot come back refused; and a real session (one restored from a hand-written board, one the session dealt itself) taken through the store's file and brought back by `restore()` |
 | `tests/unit/dashboard_test.cpp` | `wjs::build_dashboard`, `focus_sound_choices` | Each count of a sound (met, found, unassisted, often found, few words) on a made-up phase; the week on either first day of the week; the vault and the best; nothing said of a week without play |
 | `tests/app/solver_model_test.cpp` | The window's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
 | `tests/app/parent_controller_test.cpp` | The parent area's `ParentController` | The gate as the screens drive it, the dashboard and settings maps, every setting changed by name and every wrong value refused, the resets, what the parent is told of the store. Built only with `WJS_BUILD_APP` |

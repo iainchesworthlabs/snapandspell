@@ -20,6 +20,7 @@ add_executable(wjs_unit_tests
     unit/settings_test.cpp
     unit/shake_test.cpp
     unit/seeding_test.cpp
+    unit/session_store_test.cpp
     unit/solver_test.cpp
     unit/store_test.cpp)
 

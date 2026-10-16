@@ -30,8 +30,9 @@ that release, so that its rules (branch protection, required checks) can apply.
   licences and privacy) with every sentence a parent reads in one file for the literacy
   review. Privacy checks run in CI: a scan of the source for audio capture, the network
   and export routes, and a held-to-cases checker for it; the store's size cap and what
-  it may hold; the wording. See
-  [docs/design/parent-area.md](docs/design/parent-area.md).
+  it may hold; the wording. The copy between the game session's values and the store's
+  (`wjs/session_store.hpp`) brings a stored board back in the form `GameSession::restore()`
+  needs. See [docs/design/parent-area.md](docs/design/parent-area.md).
 - **A prototype of the 3D board scene**, built only with
   `-DWJS_BUILD_SHAKE_PROTOTYPE=ON` (and `WJS_BUILD_APP=ON`): the shake, the lid
   and the drop in Qt Quick 3D behind a one-component interface, scripted from a

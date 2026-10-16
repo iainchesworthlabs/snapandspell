@@ -14,7 +14,7 @@ src/
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp  game_rules.hpp
                          game_session.hpp
-                         calendar.hpp  settings.hpp  store.hpp
+                         calendar.hpp  settings.hpp  store.hpp  session_store.hpp
                          parent_gate.hpp  dashboard.hpp
                          solver_work.hpp  binder_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
@@ -23,7 +23,7 @@ src/
                          path.cpp  phase_data.cpp  seeding.cpp
                          grapheme_binder.cpp  shake.cpp  game_rules.cpp
                          game_session.cpp
-                         settings.cpp  store.cpp  store_format.cpp
+                         settings.cpp  store.cpp  store_format.cpp  session_store.cpp
                          parent_gate.cpp  dashboard.cpp
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
                          profiling-disabled/wjs/profiling.hpp  (empty)
@@ -533,6 +533,9 @@ whole and renamed into place. The game session hands it plain values
 (`BoardSnapshot`, `SavedSession`), and a find's moment is a `Day` from
 `wjs/calendar.hpp` (days since 1970-01-01, the device's calendar, with the week by
 the locale's first day). Where the file goes is `wjs::platform::user_data_directory()`.
+`session_store.hpp` is the copy between the game session's `BoardRecord` and
+`SessionSnapshot` and the store's values, and does what the session's `restore()` needs on
+the way back (upper-case words in alphabetical order, the session's own tile text).
 See [The parent area as built](design/parent-area.md#the-store).
 
 ### The parent gate

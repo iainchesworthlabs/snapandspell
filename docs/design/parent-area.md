@@ -18,6 +18,7 @@ passive tracking and no several children. None is built, not even behind a flag.
 | Settings, and which values are allowed | `wjs/settings.hpp`, `settings.cpp` | No |
 | The store: records, file format, migration, damage, atomic write | `wjs/store.hpp`, `store.cpp`, `store_format.cpp` | No |
 | The gate | `wjs/parent_gate.hpp`, `parent_gate.cpp` | No |
+| The copy between the game session's values and the store's | `wjs/session_store.hpp`, `session_store.cpp` | No |
 | The dashboard's numbers, the focus sounds | `wjs/dashboard.hpp`, `dashboard.cpp` | No |
 | Where the file goes | `wjs::platform::user_data_directory()`, one definition per platform under `src/platforms` | No |
 | The controller: gate events, dashboard and settings as maps, the resets, the clock | `src/app/parent/parent_controller.*` | Yes |
@@ -133,19 +134,26 @@ Windows; it is **not checked** on Linux or macOS here.
 `Store::record(BoardSnapshot, today)` after each find and when a board ends, and
 `Store::save_session(SavedSession)` for the game in progress. Both are plain values
 of strings, numbers and flags with the field names of the game session's own
-`BoardRecord` and `SessionSnapshot`, so an adapter is a field copy; the store does
-not include the game's headers (they are on another branch). A find's moment is a
-`Day`, the unit the game gives as its `Stamp`. The same board's snapshot may be
-sent again and again: only what is new is recorded.
+`BoardRecord` and `SessionSnapshot`, so the copy between them is mechanical; the store
+does not include the game's headers, and the copy is its own file, `wjs/session_store.hpp`
+(`snapshot_of`, `record_of`, `saved_session_of`, `session_snapshot_of`), which is the one
+place that knows both sets of types. A find's moment is a `Day`, the unit the game gives
+as its `Stamp`. The same board's snapshot may be sent again and again: only what is new
+is recorded.
 
-**What the adapter must do on the way back** (the game session's `restore()` compares
-its record with its own re-solve exactly): the store keeps a board's tiles as
-`S,A,T/P,I,N/T,A,P` (commas between tiles) and every word in lower case, so the adapter
-turns the tiles back into the session's own text (`S A T/P I N/T A P`, a space between
-tiles) and the viable words back to **upper case in alphabetical order**, or `restore()`
-answers `board_changed`. A board with no phase is a standard board; the session deals
-the phonics board only so far, and when it gains a board mode the adapter maps it to the
-phase ("" for standard).
+**What the copy does** (the game session's `restore()` compares its record with its own
+re-solve exactly): going to the store it takes each find's stars from its `reward()` (the
+session never stores them) and its stamp as a day (a stamp outside 32 bits cannot be
+stored, so the conversion answers nothing); the store brings words and tiles to its own
+form (lower case, `S,A,T/P,I,N/T,A,P`). Coming back it turns the tiles into the session's
+own text (`S A T/P I N/T A P`, a space between tiles) and the viable words into **upper
+case in alphabetical order**, or `restore()` answers `board_changed`. A board the store
+kept no list of (more words than it lists), a size of other than 3 or 4, and a state the
+session does not save (shaking, dropping, cleared; it saves those as the box and resting)
+are refused. A board with no phase is a standard board; the session deals the phonics
+board only so far, and when it gains a board mode this is where it maps to the phase
+(an empty one for standard). The test `[session-store]` takes a real session through the
+store's file and back, including one the session dealt itself, and `restore()` accepts it.
 
 ## The gate
 

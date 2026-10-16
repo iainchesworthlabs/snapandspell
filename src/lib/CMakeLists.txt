@@ -24,6 +24,7 @@ add_library(wjs_lib STATIC
     src/settings.cpp
     src/shake.cpp
     src/seeding.cpp
+    src/session_store.cpp
     src/solver.cpp
     src/store.cpp
     src/store_format.cpp)
