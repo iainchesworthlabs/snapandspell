@@ -99,9 +99,26 @@ struct Metric {
 // (corpus.hpp, kBindPaths).
 [[nodiscard]] std::vector<Metric> binder_metrics();
 
+// PHONICS BOARD. What the game session spent over kSeedsPerSize sessions of each
+// size it plays (3x3 and 4x4, kSessionSizes), each dealt from its corpus seed
+// and played through to the resting screen: seedings, verifications and solves
+// to deal, the solver's visits to deal, what a board that was not dealt in range
+// came to, and that the play and the save make no solve at all and a restore
+// makes one.
+[[nodiscard]] std::vector<Metric> session_metrics();
+
+// The digest of every board a session dealt and played: the deal, the kind of
+// every trace, and the snapshots after the first find and at rest.
+[[nodiscard]] std::uint64_t session_digest();
+
 // --- time: a ratio to the calibration workload, opt-in -----------------------
 
 [[nodiscard]] std::vector<Metric> load_timing_metrics();
 [[nodiscard]] std::vector<Metric> solve_timing_metrics();
+
+// PHONICS BOARD. Dealing a session's board (the shake: seeding, up to five
+// times, until a board lands in range) of each size in kSessionSizes, against
+// the light calibration. One deal's ratio.
+[[nodiscard]] std::vector<Metric> session_timing_metrics();
 
 }  // namespace wjs::perf

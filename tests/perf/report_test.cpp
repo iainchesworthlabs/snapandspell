@@ -56,6 +56,9 @@ void print_timing() {
                   wjs::perf::load_timing_metrics());
     print_metrics("timing: solves (one solve against the calibration workload)",
                   wjs::perf::solve_timing_metrics());
+    print_metrics(
+        "timing: PHONICS BOARD, one deal of a session board against the calibration workload",
+        wjs::perf::session_timing_metrics());
     // The two calibrations on their own, so that a ratio can be read back into
     // milliseconds.
     for (const wjs::perf::Weight weight : {wjs::perf::Weight::light, wjs::perf::Weight::heavy}) {
@@ -91,6 +94,11 @@ TEST_CASE("report: what every metric measures now", "[.perf-report]") {
                   wjs::perf::seeding_metrics());
     std::cout << std::format("\ndigest of every board seeded: {} (kSeedDigest)\n",
                              wjs::perf::seeding_digest());
+    print_metrics("PHONICS BOARD (a parent's switch): the game session, by size",
+                  wjs::perf::session_metrics());
+    std::cout << std::format(
+        "\ndigest of every board a session dealt and played: {} (kSessionDigest)\n",
+        wjs::perf::session_digest());
     print_metrics("PHONICS BOARD (a parent's switch): the binder, a path of nine tiles",
                   wjs::perf::binder_metrics());
     print_timing();

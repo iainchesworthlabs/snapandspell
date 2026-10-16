@@ -11,6 +11,7 @@
 
 #include "perf_build.hpp"
 #include "wjs/binder_work.hpp"
+#include "wjs/game_session.hpp"
 #include "wjs/solver_work.hpp"
 
 namespace wjs::perf {
@@ -135,6 +136,94 @@ SeedRun measure_seed(const wjs::PhaseIndex& index, std::size_t size, std::uint32
 }
 
 // ---------------------------------------------------------------------------
+// Session work
+// ---------------------------------------------------------------------------
+
+SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
+    const auto board_size = wjs::board_size_for(size);
+    if (!board_size) {
+        std::abort();
+    }
+    wjs::SessionOptions options;
+    options.size = *board_size;
+    options.seed = seed;
+    auto created = wjs::GameSession::create(index, english(), options);
+    if (!created) {
+        std::abort();
+    }
+    wjs::GameSession session = *std::move(created);
+
+    SessionRun run;
+
+    // The deal: the shake and nothing else.
+    wjs::reset_solve_work();
+    if (!session.shake()) {
+        std::abort();
+    }
+    run.deal_visits = wjs::solve_work().visits;
+    run.deal_solves = wjs::solve_work().solves;
+    run.deal = *session.last_deal();
+
+    // The words and their paths come from the solver, outside the counted part:
+    // the play is what the screens do, and they do not solve.
+    if (!session.still() || !session.landed()) {
+        std::abort();
+    }
+    const std::vector<wjs::FoundWord> words = wjs::solve(*session.board(), index.dictionary());
+    run.words = words.size();
+
+    wjs::reset_solve_work();
+    wjs::Stamp when = 0;
+    for (std::size_t which = 0; which < words.size(); ++which) {
+        if (which % 2 == 1) {
+            session.request_help();
+        }
+        run.kinds.push_back(session.trace(words[which].path, ++when).kind);
+        if (which == 0) {
+            // A word again, and a touch of one tile: neither is a find.
+            run.kinds.push_back(session.trace(words[0].path, ++when).kind);
+            const std::vector<wjs::Position> touch{words[0].path.front()};
+            run.kinds.push_back(session.trace(touch, ++when).kind);
+            run.after_first_find = session.snapshot();
+            (void)session.record();
+        }
+    }
+    if (session.state() != wjs::SessionState::cleared || !session.rest()) {
+        std::abort();
+    }
+    run.at_rest = session.snapshot();
+    run.play_visits = wjs::solve_work().visits;
+    run.play_solves = wjs::solve_work().solves;
+
+    // Bringing the board back: one solve.
+    wjs::reset_solve_work();
+    const auto restored =
+        wjs::GameSession::restore(run.after_first_find, index, english(), options);
+    if (!restored) {
+        std::abort();
+    }
+    run.restore_visits = wjs::solve_work().visits;
+    run.restore_solves = wjs::solve_work().solves;
+    return run;
+}
+
+std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
+                                 std::uint32_t seed) {
+    const auto board_size = wjs::board_size_for(size);
+    if (!board_size) {
+        std::abort();
+    }
+    wjs::SessionOptions options;
+    options.size = *board_size;
+    options.seed = seed;
+    auto created = wjs::GameSession::create(index, english(), options);
+    if (!created || !created->shake()) {
+        std::abort();
+    }
+    return created->last_deal()->viable;
+}
+
+// ---------------------------------------------------------------------------
 // Binder work
 // ---------------------------------------------------------------------------
 
@@ -228,6 +317,48 @@ void Digest::add(const wjs::SeededBoard& seeded) {
     number(seeded.solves);
     number(seeded.fallback ? 1U : 0U);
     add(seeded.viable);
+}
+
+void Digest::add(const wjs::SessionSnapshot& snapshot) {
+    number(static_cast<std::uint64_t>(snapshot.state));
+    number(wjs::side(snapshot.size));
+    number(snapshot.seed);
+    number(snapshot.board ? 1U : 0U);
+    if (snapshot.board) {
+        const wjs::BoardRecord& record = *snapshot.board;
+        text(record.phase);
+        text(record.tiles);
+        number(record.viable.size());
+        for (const std::string& word : record.viable) {
+            text(word);
+        }
+        number(record.finds.size());
+        for (const wjs::Find& find : record.finds) {
+            text(find.word);
+            number(find.assisted ? 1U : 0U);
+            number(static_cast<std::uint64_t>(find.when));
+        }
+    }
+    number(snapshot.lit ? 1U : 0U);
+    if (snapshot.lit) {
+        text(*snapshot.lit);
+    }
+}
+
+void Digest::add(const SessionRun& run) {
+    number(run.deal.seedings);
+    number(run.deal.tries);
+    number(run.deal.solves);
+    number(run.deal.viable);
+    number(run.deal.in_range ? 1U : 0U);
+    number(run.deal.seed);
+    number(run.words);
+    number(run.kinds.size());
+    for (const wjs::TraceKind kind : run.kinds) {
+        number(static_cast<std::uint64_t>(kind));
+    }
+    add(run.after_first_find);
+    add(run.at_rest);
 }
 
 // ---------------------------------------------------------------------------

@@ -162,6 +162,59 @@ inline constexpr std::array<std::uint64_t, 3> kBindComparisons = {
 };
 
 // ---------------------------------------------------------------------------
+// PHONICS BOARD (a parent's switch): the game session
+// ---------------------------------------------------------------------------
+
+// What the session spent dealing and playing kSeedsPerSize boards of each size
+// (kSessionSizes order) on the test phase: sessions seeded with corpus_seed,
+// the default options (a board of three to five words, up to
+// kSessionMaxSeedings seedings of up to 20 verifications each), every board
+// played through to the resting screen. Each figure a quarter above what it
+// measured, rounded up to three significant figures.
+//
+//   seedings_total  calls to seed_board, summed (a board that lands first time is one)
+//   tries_total     boards verified, summed
+//   solves_total    every solve of the deal, the solver's own count
+//   visits_total    the solver's visits to deal them all
+//   visits_max      the visits of the one deal that cost the most
+//   out_of_range    boards that held fewer than three or more than five words
+//                   after every seeding
+//   words_total     the words of the phase on all of them: exact, it pins the
+//                   corpus, the phase and the seeding together
+//   restore_visits  the visits of restoring each board once
+struct SessionBudget {
+    std::uint64_t seedings_total;
+    std::uint64_t tries_total;
+    std::uint64_t solves_total;
+    std::uint64_t visits_total;
+    std::uint64_t visits_max;
+    std::uint64_t out_of_range;
+    std::uint64_t words_total;
+    std::uint64_t restore_visits;
+};
+
+//
+// 3x3 is the board this phase deals worst, as it seeds worst: 35 of its 100 boards
+// are out of range after all five seedings (322 seedings for 100 boards), where
+// a single seeding left 77 of 100 as fallbacks (kSeedBudgets). The 4x4 lands
+// every one, in 106 seedings.
+inline constexpr std::array<SessionBudget, 2> kSessionBudgets = {{
+    // 3x3: 322 / 5,792 / 17,534 / 1,544,699 / 26,251 / 35 / 522 / 5,122
+    {403, 7'240, 22'000, 1'940'000, 32'900, 44, 522, 6'410},
+    // 4x4: 106 / 717 / 22,809 / 1,101,833 / 25,292 / 0 / 476 / 6,605
+    {133, 897, 28'600, 1'380'000, 31'700, 0, 476, 8'260},
+}};
+
+// The session's own cap on seedings for one board (SessionOptions::max_seedings):
+// the promise of the design, and no board may take more.
+inline constexpr std::uint64_t kSessionMaxSeedings = 5;
+
+// A digest of every board a session dealt and played: the deal, the kind of
+// every trace, and the snapshots after the first find and at rest. Exact; it
+// moves with the session, the seeding or the phase, deliberately.
+inline constexpr std::uint64_t kSessionDigest = 4119037603476531768ULL;
+
+// ---------------------------------------------------------------------------
 // Time, as a multiple of the calibration workload (perf/measure.hpp)
 // ---------------------------------------------------------------------------
 
@@ -190,10 +243,20 @@ inline constexpr TimeBudget kLoadTime = {5.0};
 inline constexpr TimeBudget kSolveRich4Time = {0.3};
 inline constexpr TimeBudget kSolveRich6Time = {0.8};
 
+// Dealing one session board (the shake, which seeds up to five times) against the
+// light calibration, for the first kDealsPerRun corpus seeds of the size. Measured
+// 0.087 and 0.086 for one deal (1.23 and 1.25 ms against 14 ms); the budget is
+// several times that, as the solves' are.
+inline constexpr TimeBudget kDeal3Time = {0.6};
+inline constexpr TimeBudget kDeal4Time = {0.6};
+
 // How many timed runs each takes, after one that is thrown away; and how many
 // solves make one timed run of a solve (a solve is under a millisecond).
 inline constexpr int kLoadRuns = 5;
 inline constexpr int kSolveRuns = 15;
 inline constexpr int kSolvesPerRun = 50;
+// And for the deal of a session board: deals in one timed run, and timed runs.
+inline constexpr int kDealsPerRun = 5;
+inline constexpr int kDealRuns = 9;
 
 }  // namespace wjs::perf::budget

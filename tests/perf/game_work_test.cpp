@@ -149,3 +149,44 @@ TEST_CASE("phonics board: the three paths bind as they were chosen to", "[perf][
     CHECK(linked);
     CHECK(single);
 }
+
+// --- phonics board: the game session ----------------------------------------
+
+TEST_CASE("phonics board: a session deals and plays within its budget",
+          "[perf][session][phonics]") {
+    skip_unless_optimised();
+    check_within_budget(wjs::perf::session_metrics());
+}
+
+TEST_CASE("phonics board: every board a session deals and plays is the one it was",
+          "[perf][session][phonics]") {
+    skip_unless_optimised();
+    const std::uint64_t digest = wjs::perf::session_digest();
+    INFO("digest " << digest
+                   << "; if the session, the seeding or the phase were meant to change, "
+                      "set kSessionDigest");
+    CHECK(digest == wjs::perf::budget::kSessionDigest);
+}
+
+TEST_CASE("phonics board: the solves a session reports are the solves the solver counted",
+          "[perf][session][phonics]") {
+    skip_unless_optimised();
+    // The budgets hold the deal's own count of its solves next to the solver's
+    // visits. This is what says the first is the number of solves the second is
+    // the visits of: every solve a deal spent went through solve(), and the
+    // deal made no other.
+    const wjs::PhaseIndex& phase = wjs::perf::phonics_phase();
+    for (const std::size_t size : wjs::perf::kSessionSizes) {
+        for (unsigned index = 0; index < 10; ++index) {
+            const unsigned seed = wjs::perf::corpus_seed(size, index);
+            const wjs::perf::SessionRun run = wjs::perf::measure_session(phase, size, seed);
+            INFO("size " << size << ", corpus seed " << seed);
+            CHECK(run.deal.solves == run.deal_solves);
+            CHECK(run.deal.seedings >= 1U);
+            CHECK(run.deal.seedings <= wjs::perf::budget::kSessionMaxSeedings);
+            // A board that is not in range is reported as one.
+            CHECK(run.deal.in_range == (run.words >= 3U && run.words <= 5U));
+            CHECK(run.deal.viable == run.words);
+        }
+    }
+}

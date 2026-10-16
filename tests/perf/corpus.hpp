@@ -89,6 +89,11 @@ inline constexpr unsigned kSeedsPerSize = 100;
 // budgets.hpp) is what says a changed list changed the corpus.
 [[nodiscard]] const wjs::PhaseIndex& phonics_phase();
 
+// The sizes the game session plays: the first release's 3x3 and 4x4
+// (wjs::BoardSize). The seeds are corpus_seed(size, index) for the first
+// kSeedsPerSize indexes, the same seeds the seeding rows use.
+inline constexpr std::array<std::size_t, 2> kSessionSizes = {3, 4};
+
 // A path of nine tiles for the binder, as the letters of its tiles in order,
 // separated by spaces.
 struct BindPath {
