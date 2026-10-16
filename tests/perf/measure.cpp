@@ -1,0 +1,213 @@
+#include "measure.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cstdlib>
+#include <string>
+#include <string_view>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include "perf_build.hpp"
+#include "wjs/solver_work.hpp"
+
+namespace wjs::perf {
+
+// ---------------------------------------------------------------------------
+// The dictionary
+// ---------------------------------------------------------------------------
+
+const wjs::Dictionary& english() {
+    static const wjs::Dictionary dictionary = [] {
+        auto loaded = wjs::Dictionary::load_file(std::string(kDictionaryPath));
+        // Nothing in this tier can say anything without the word list, and a
+        // case that dereferenced an empty result would only say it worse.
+        if (!loaded) {
+            std::abort();
+        }
+        return *std::move(loaded);
+    }();
+    return dictionary;
+}
+
+std::uint64_t trie_nodes(const wjs::Dictionary& dictionary) {
+    std::uint64_t nodes = 0;
+    std::vector<wjs::Dictionary::Cursor> pending{wjs::Dictionary::root};
+    while (!pending.empty()) {
+        const wjs::Dictionary::Cursor at = pending.back();
+        pending.pop_back();
+        ++nodes;
+        for (char letter = 'A'; letter <= 'Z'; ++letter) {
+            const wjs::Dictionary::Cursor next = dictionary.step(at, letter);
+            if (next != wjs::Dictionary::no_node) {
+                pending.push_back(next);
+            }
+        }
+    }
+    return nodes;
+}
+
+// ---------------------------------------------------------------------------
+// Solver work
+// ---------------------------------------------------------------------------
+
+SolveWork measure_solve(const wjs::Board& board, const wjs::Dictionary& dictionary) {
+    wjs::reset_solve_work();
+    const auto found = wjs::solve(board, dictionary);
+    return {.visits = wjs::solve_work().visits, .words = found.size()};
+}
+
+namespace {
+
+// The walk, as the definition of a visit reads: a tile is visited when the
+// letters stepped so far, with its own, are still the start of some word.
+class Recount {
+public:
+    Recount(const wjs::Board& board, const wjs::Dictionary& dictionary)
+        : board_(board), dictionary_(dictionary), used_(board.rows() * board.columns(), false) {}
+
+    std::uint64_t run() {
+        for (std::size_t row = 0; row < board_.rows(); ++row) {
+            for (std::size_t column = 0; column < board_.columns(); ++column) {
+                visit(row, column, wjs::Dictionary::root);
+            }
+        }
+        return visits_;
+    }
+
+private:
+    void visit(std::size_t row, std::size_t column, wjs::Dictionary::Cursor from) {
+        wjs::Dictionary::Cursor cursor = from;
+        for (const char letter : board_.tile({row, column})) {
+            cursor = dictionary_.step(cursor, letter);
+            if (cursor == wjs::Dictionary::no_node) {
+                return;
+            }
+        }
+        ++visits_;
+        used_[row * board_.columns() + column] = true;
+        for (std::size_t next_row = row == 0 ? 0 : row - 1; next_row <= row + 1; ++next_row) {
+            for (std::size_t next_column = column == 0 ? 0 : column - 1; next_column <= column + 1;
+                 ++next_column) {
+                const bool same = next_row == row && next_column == column;
+                if (same || !board_.contains({next_row, next_column}) ||
+                    used_[next_row * board_.columns() + next_column]) {
+                    continue;
+                }
+                visit(next_row, next_column, cursor);
+            }
+        }
+        used_[row * board_.columns() + column] = false;
+    }
+
+    const wjs::Board& board_;
+    const wjs::Dictionary& dictionary_;
+    std::vector<bool> used_;
+    std::uint64_t visits_ = 0;
+};
+
+}  // namespace
+
+std::uint64_t recount_visits(const wjs::Board& board, const wjs::Dictionary& dictionary) {
+    return Recount(board, dictionary).run();
+}
+
+void Digest::byte(std::uint8_t value) noexcept {
+    state_ ^= value;
+    state_ *= 1099511628211ULL;
+}
+
+void Digest::number(std::uint64_t value) noexcept {
+    // Eight bytes, low first: the same on every machine whatever its byte order.
+    for (int shift = 0; shift < 64; shift += 8) {
+        byte(static_cast<std::uint8_t>((value >> shift) & 0xFFU));
+    }
+}
+
+void Digest::add(const std::vector<wjs::FoundWord>& found) {
+    number(found.size());
+    for (const wjs::FoundWord& word : found) {
+        for (const char letter : word.word) {
+            byte(static_cast<std::uint8_t>(letter));
+        }
+        byte(0);
+        number(static_cast<std::uint64_t>(word.score));
+        number(word.path.size());
+        for (const wjs::Position position : word.path) {
+            number(position.row);
+            number(position.column);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Time
+// ---------------------------------------------------------------------------
+
+bool optimised_build() {
+    return kOptimised;
+}
+
+bool timing_meaningful() {
+    return kTimingMeaningful;
+}
+
+bool timing_requested() {
+    const char* value = std::getenv("WJS_PERF_TIMING");
+    if (value == nullptr) {
+        return false;
+    }
+    const std::string_view text = value;
+    return !text.empty() && text != "0";
+}
+
+std::uint64_t calibration_workload(Weight weight) {
+    // A xorshift stream feeds a hash set (inserts of mostly new keys, the shape
+    // of a trie's growth) and an arena of 48-byte records appended and read
+    // back (its nodes' shape). Light is about ten milliseconds and a few
+    // megabytes, which a cache holds; heavy is about ten times that and tens
+    // of megabytes, which loading a dictionary's trie is, and which a cache
+    // does not.
+    const std::size_t steps = weight == Weight::light ? 100'000 : 400'000;
+    struct Record {
+        std::array<std::uint8_t, 48> bytes;
+    };
+
+    std::uint64_t x = 0x9E3779B97F4A7C15ULL;
+    std::uint64_t sum = 0;
+    std::unordered_set<std::uint64_t> seen;
+    std::vector<Record> arena;
+    for (std::size_t i = 0; i < steps; ++i) {
+        x ^= x << 13U;
+        x ^= x >> 7U;
+        x ^= x << 17U;
+        const std::uint64_t key = x & 0xFFFFFFFULL;
+        if (seen.insert(key).second) {
+            Record record{};
+            record.bytes.fill(static_cast<std::uint8_t>(key));
+            arena.push_back(record);
+        }
+        const Record& back = arena.at((x >> 20U) % arena.size());
+        sum += back.bytes.at((x >> 40U) % back.bytes.size());
+    }
+    return sum + seen.size() + arena.size();
+}
+
+namespace detail {
+
+double median(std::vector<double> values) {
+    if (values.empty()) {
+        return 0.0;
+    }
+    std::ranges::sort(values);
+    const std::size_t middle = values.size() / 2;
+    if (values.size() % 2 == 1) {
+        return values.at(middle);
+    }
+    return (values.at(middle - 1) + values.at(middle)) / 2.0;
+}
+
+}  // namespace detail
+
+}  // namespace wjs::perf

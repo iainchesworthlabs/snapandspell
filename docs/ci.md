@@ -26,7 +26,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 
 | Workflow | Purpose | Runs on a private copy? |
 | --- | --- | --- |
-| `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs and a coverage report | yes |
+| `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report and the performance work budgets | yes |
 | `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
 | `commit-policy.yml` | no attribution in the PR title, PR body or any commit message of the PR | yes |
 | `codeql.yml` | CodeQL static analysis of the C++ | no - skipped |
@@ -65,12 +65,16 @@ with the rulesets.
 | `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. |
 | `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and passes its tests, and a gcovr report of `src/` is produced as the `coverage-report` artifact (HTML, plus `summary.json` and a table in the job summary). **Report only: there is no threshold.** |
+| `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one leg that builds a Release preset) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks run only in a manual run. **Not a required check** (the rulesets are as they were). |
 
-What a build-and-test leg's ctest contains: the Catch2 unit suite, and the two
-repository checks `platform.fragments` (every platform fragment satisfies the
-platform contract, on whichever host this is) and `platform.isolation` (the
-same script as the `platform-isolation` job; it needs `pwsh`, which every
-hosted image has).
+What a build-and-test leg's ctest contains: the Catch2 unit suite, the repository
+checks `platform.fragments` (every platform fragment satisfies the platform
+contract, on whichever host this is), `platform.isolation` (the same script as
+the `platform-isolation` job; it needs `pwsh`, which every hosted image has),
+`profiling.shipped_presets` (no preset that ships has Tracy in it) and
+`profiling.zone_names`, and the performance tier, which skips itself in a Debug
+build: the Debug legs prove it compiles on all three compilers, and the
+`Performance` leg runs it.
 
 ### Toolchain choices
 
@@ -105,7 +109,16 @@ gh workflow run ci.yml --ref <branch> -f legs=clang-format,linux
 ```
 
 `legs` is comma-separated with no spaces: `clang-format`, `platform-isolation`,
-`windows`, `linux`, `macos`, `coverage`, or `all` (the default). An unknown
+`windows`, `linux`, `macos`, `coverage`, `perf`, or `all` (the default).
+Three more legs exist only for a dispatch and are **not** part of `all`: the
+profiling builds (`windows-msvc-profiling`, `linux-gcc-profiling`,
+`macos-clang-profiling`: RelWithDebInfo with Tracy, [Profiling](profiling.md)),
+named `profiling-windows`, `profiling-linux` and `profiling-macos`, or
+`profiling` for all three. They configure, build warning-free against the real
+Tracy headers, and run all of ctest, which includes the test that the real
+variant of `wjs/profiling.hpp` is the one in use. A push does not pay for them:
+the client opens a network port, and vcpkg builds Tracy's tools for the host
+(on Linux that is a chain of ports that needs autoconf and Python's venv). An unknown
 name fails the run rather than running nothing. Jobs of a dispatched run are
 named `dispatch - <leg>`, deliberately not the names of the required checks: a
 run that skips legs would otherwise report "skipped" (which counts as a pass)
@@ -266,5 +279,6 @@ suspects, in order of likelihood:
 ## Not here yet
 
 clang-tidy (the `.clang-tidy` file exists; there is no job), the Release
-presets, packaging and the Qt application, a coverage threshold, and
+presets on Windows and macOS (Linux's is the `Performance` leg), packaging and
+the Qt application, a coverage threshold, and
 Android/iOS/web. Each is a new job or a flag flip, not a redesign.

@@ -13,10 +13,13 @@ src/
     include/wjs/         board.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp
+                         solver_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
     src/                 board.cpp  dictionary.cpp  scoring.cpp  solver.cpp
                          path.cpp  phase_data.cpp  seeding.cpp
                          grapheme_binder.cpp  shake.cpp
+    variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
+                         profiling-disabled/wjs/profiling.hpp  (empty)
   cli/                 main.cpp: wjs-cli
   app/                 the Qt Quick window (built only with WJS_BUILD_APP)
     qml/Main.qml         the window
@@ -30,8 +33,8 @@ src/
     posix/               console_posix.cpp (shared by Linux and macOS)
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
-                       FindQt6.cmake
-tests/                 unit/  app/  platform/
+                       Tracy.cmake, FindQt6.cmake
+tests/                 unit/  app/  platform/  perf/  profiling/
 tools/checks/          check_platform_isolation.ps1
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test
 tools/hooks/, policy/  git hooks and the commit and PR text rule
@@ -125,8 +128,22 @@ then alphabetically, and carries each word's path as a list of `Position`s.
 not depend on the path.
 
 Pruning by the trie is what keeps the search small; there is no other
-optimisation. No measurements of its cost on a large board or a full word list
-have been made.
+optimisation. The search counts its **visits**, the tile steps that stayed
+inside the trie, and `wjs/solver_work.hpp` tallies them per thread, once per
+solve; the performance tests hold budgets on that count
+([Testing](testing.md#performance-tests)). On the corpus of 3x3 to 6x6 boards
+the worst solve is about 5,200 visits and 0.9 ms; a 6x6 built to hold 1,788
+words is about 9,400 visits and 1.6 ms. Nothing larger than 6x6 has been
+measured.
+
+### Profiling
+
+`wjs/profiling.hpp` is the one place the code asks to be timed: `zone<"name">()`,
+`frame_mark()`, `plot()`, `message()` and `thread_name()`, as functions and not
+macros. There are two files of that name under `src/lib/variants/`, one with
+Tracy behind it and one empty, and CMake puts exactly one directory on the
+include path, so no source asks which it got. A normal build has the empty one.
+See [Profiling](profiling.md).
 
 ### Path
 
@@ -285,6 +302,8 @@ of the operating system in CMake.
 | `wjs_cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
 | `wjs_app` | executable `WordJewelsSolver` | `WJS_BUILD_APP` |
 | `wjs_unit_tests` | executable | Catch2 |
+| `wjs_perf_tests` | executable | Catch2; work budgets and opt-in wall-time checks, linked to `wjs::lib` only |
+| `wjs::tracy` | interface library | Tracy's client when `WJS_ENABLE_TRACY` is on, otherwise nothing |
 | `wjs_app_tests` | executable | Catch2, with `WJS_BUILD_APP` |
 | `wjs::warnings`, `wjs::sanitizers`, `wjs::coverage` | interface libraries | Flags, linked into every first-party target |
 

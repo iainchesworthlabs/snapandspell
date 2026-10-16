@@ -14,6 +14,26 @@
       "dependencies": [
         "catch2"
       ]
+    },
+    "profiling": {
+      "description": "Tracy profiler instrumentation (WJS_ENABLE_TRACY). Opt-in and never part of a shipped build: the profiling presets turn it on, so a normal build never pulls it in",
+      "dependencies": [
+        {
+          "name": "tracy",
+          "default-features": false,
+          "features": [
+            "on-demand"
+          ]
+        },
+        {
+          "name": "tracy",
+          "host": true,
+          "default-features": false,
+          "features": [
+            "cli-tools"
+          ]
+        }
+      ]
     }
   }
 }
