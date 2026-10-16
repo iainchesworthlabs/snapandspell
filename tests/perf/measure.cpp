@@ -10,6 +10,8 @@
 #include <vector>
 
 #include "perf_build.hpp"
+#include "wjs/binder_work.hpp"
+#include "wjs/game_session.hpp"
 #include "wjs/solver_work.hpp"
 
 namespace wjs::perf {
@@ -113,6 +115,155 @@ std::uint64_t recount_visits(const wjs::Board& board, const wjs::Dictionary& dic
     return Recount(board, dictionary).run();
 }
 
+// ---------------------------------------------------------------------------
+// Seeding work
+// ---------------------------------------------------------------------------
+
+SeedRun measure_seed(const wjs::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
+    const auto options = wjs::phonics_board_options(index, size);
+    // A phase that cannot make the options, or a seeding that is refused, is a
+    // mistake in the corpus; there is nothing to recover to.
+    if (!options) {
+        std::abort();
+    }
+    wjs::reset_solve_work();
+    auto seeded = wjs::seed_board(index, *options, wjs::RecentTargets{}, seed);
+    if (!seeded) {
+        std::abort();
+    }
+    const auto work = wjs::solve_work();
+    return {.board = *std::move(seeded), .visits = work.visits, .solver_solves = work.solves};
+}
+
+// ---------------------------------------------------------------------------
+// Session work
+// ---------------------------------------------------------------------------
+
+SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
+    const auto board_size = wjs::board_size_for(size);
+    if (!board_size) {
+        std::abort();
+    }
+    wjs::SessionOptions options;
+    options.size = *board_size;
+    options.seed = seed;
+    auto created = wjs::GameSession::create(index, english(), options);
+    if (!created) {
+        std::abort();
+    }
+    wjs::GameSession session = *std::move(created);
+
+    SessionRun run;
+
+    // The deal: the shake and nothing else.
+    wjs::reset_solve_work();
+    if (!session.shake()) {
+        std::abort();
+    }
+    run.deal_visits = wjs::solve_work().visits;
+    run.deal_solves = wjs::solve_work().solves;
+    run.deal = *session.last_deal();
+
+    // The words and their paths come from the solver, outside the counted part:
+    // the play is what the screens do, and they do not solve.
+    if (!session.still() || !session.landed()) {
+        std::abort();
+    }
+    const std::vector<wjs::FoundWord> words = wjs::solve(*session.board(), index.dictionary());
+    run.words = words.size();
+
+    wjs::reset_solve_work();
+    wjs::Stamp when = 0;
+    for (std::size_t which = 0; which < words.size(); ++which) {
+        if (which % 2 == 1) {
+            session.request_help();
+        }
+        run.kinds.push_back(session.trace(words[which].path, ++when).kind);
+        if (which == 0) {
+            // A word again, and a touch of one tile: neither is a find.
+            run.kinds.push_back(session.trace(words[0].path, ++when).kind);
+            const std::vector<wjs::Position> touch{words[0].path.front()};
+            run.kinds.push_back(session.trace(touch, ++when).kind);
+            run.after_first_find = session.snapshot();
+            (void)session.record();
+        }
+    }
+    if (session.state() != wjs::SessionState::cleared || !session.rest()) {
+        std::abort();
+    }
+    run.at_rest = session.snapshot();
+    run.play_visits = wjs::solve_work().visits;
+    run.play_solves = wjs::solve_work().solves;
+
+    // Bringing the board back: one solve.
+    wjs::reset_solve_work();
+    const auto restored =
+        wjs::GameSession::restore(run.after_first_find, index, english(), options);
+    if (!restored) {
+        std::abort();
+    }
+    run.restore_visits = wjs::solve_work().visits;
+    run.restore_solves = wjs::solve_work().solves;
+    return run;
+}
+
+std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
+                                 std::uint32_t seed) {
+    const auto board_size = wjs::board_size_for(size);
+    if (!board_size) {
+        std::abort();
+    }
+    wjs::SessionOptions options;
+    options.size = *board_size;
+    options.seed = seed;
+    auto created = wjs::GameSession::create(index, english(), options);
+    if (!created || !created->shake()) {
+        std::abort();
+    }
+    return created->last_deal()->viable;
+}
+
+// ---------------------------------------------------------------------------
+// Binder work
+// ---------------------------------------------------------------------------
+
+BindRun measure_bind(const wjs::GraphemeBinder& binder, std::span<const std::string> tiles) {
+    wjs::reset_bind_work();
+    BindRun run;
+    run.blocks = binder.bind(tiles);
+    run.comparisons = wjs::bind_work().comparisons;
+    return run;
+}
+
+std::uint64_t recount_comparisons(std::span<const wjs::Grapheme> graphemes,
+                                  std::span<const wjs::GraphemeBinder::Block> blocks) {
+    // What the binder holds, from its own description (grapheme_binder.hpp):
+    // the multi-letter graphemes that are not split, longest first, then in
+    // letter order, each once. The letters of a Grapheme are lower-case as
+    // written.
+    std::vector<std::string> held;
+    for (const wjs::Grapheme& grapheme : graphemes) {
+        if (grapheme.letters.size() > 1 && !grapheme.split()) {
+            held.push_back(grapheme.letters);
+        }
+    }
+    std::ranges::sort(held, [](const std::string& a, const std::string& b) {
+        return a.size() != b.size() ? a.size() > b.size() : a < b;
+    });
+    held.erase(std::ranges::unique(held).begin(), held.end());
+
+    std::uint64_t comparisons = 0;
+    for (const wjs::GraphemeBinder::Block& block : blocks) {
+        if (!block.linked()) {
+            comparisons += held.size();
+            continue;
+        }
+        const auto at = std::ranges::find(held, block.grapheme);
+        comparisons += static_cast<std::uint64_t>(at - held.begin()) + 1;
+    }
+    return comparisons;
+}
+
 void Digest::byte(std::uint8_t value) noexcept {
     state_ ^= value;
     state_ *= 1099511628211ULL;
@@ -125,13 +276,17 @@ void Digest::number(std::uint64_t value) noexcept {
     }
 }
 
+void Digest::text(const std::string& value) {
+    for (const char letter : value) {
+        byte(static_cast<std::uint8_t>(letter));
+    }
+    byte(0);
+}
+
 void Digest::add(const std::vector<wjs::FoundWord>& found) {
     number(found.size());
     for (const wjs::FoundWord& word : found) {
-        for (const char letter : word.word) {
-            byte(static_cast<std::uint8_t>(letter));
-        }
-        byte(0);
+        text(word.word);
         number(static_cast<std::uint64_t>(word.score));
         number(word.path.size());
         for (const wjs::Position position : word.path) {
@@ -139,6 +294,71 @@ void Digest::add(const std::vector<wjs::FoundWord>& found) {
             number(position.column);
         }
     }
+}
+
+void Digest::add(const wjs::SeededBoard& seeded) {
+    number(seeded.board.rows());
+    number(seeded.board.columns());
+    for (std::size_t row = 0; row < seeded.board.rows(); ++row) {
+        for (std::size_t column = 0; column < seeded.board.columns(); ++column) {
+            text(seeded.board.tile({row, column}));
+        }
+    }
+    number(seeded.targets.size());
+    for (const std::string& target : seeded.targets) {
+        text(target);
+    }
+    number(seeded.dead.size());
+    for (const wjs::Position position : seeded.dead) {
+        number(position.row);
+        number(position.column);
+    }
+    number(seeded.tries);
+    number(seeded.solves);
+    number(seeded.fallback ? 1U : 0U);
+    add(seeded.viable);
+}
+
+void Digest::add(const wjs::SessionSnapshot& snapshot) {
+    number(static_cast<std::uint64_t>(snapshot.state));
+    number(wjs::side(snapshot.size));
+    number(snapshot.seed);
+    number(snapshot.board ? 1U : 0U);
+    if (snapshot.board) {
+        const wjs::BoardRecord& record = *snapshot.board;
+        text(record.phase);
+        text(record.tiles);
+        number(record.viable.size());
+        for (const std::string& word : record.viable) {
+            text(word);
+        }
+        number(record.finds.size());
+        for (const wjs::Find& find : record.finds) {
+            text(find.word);
+            number(find.assisted ? 1U : 0U);
+            number(static_cast<std::uint64_t>(find.when));
+        }
+    }
+    number(snapshot.lit ? 1U : 0U);
+    if (snapshot.lit) {
+        text(*snapshot.lit);
+    }
+}
+
+void Digest::add(const SessionRun& run) {
+    number(run.deal.seedings);
+    number(run.deal.tries);
+    number(run.deal.solves);
+    number(run.deal.viable);
+    number(run.deal.in_range ? 1U : 0U);
+    number(run.deal.seed);
+    number(run.words);
+    number(run.kinds.size());
+    for (const wjs::TraceKind kind : run.kinds) {
+        number(static_cast<std::uint64_t>(kind));
+    }
+    add(run.after_first_find);
+    add(run.at_rest);
 }
 
 // ---------------------------------------------------------------------------

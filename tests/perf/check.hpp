@@ -47,7 +47,8 @@ inline void skip_unless_timing_wanted() {
 // gave a maximum, and both numbers.
 inline void check_within_budget(const std::vector<Metric>& metrics) {
     for (const Metric& metric : metrics) {
-        INFO("metric " << metric.name << " (" << metric.unit << ")"
+        INFO("metric " << metric.name << " (" << metric.unit << ", " << to_string(metric.mode)
+                       << " board)"
                        << (metric.bound == Bound::exactly ? ", must be exactly the budget" : "")
                        << (metric.seed == kNoSeed
                                ? std::string()
