@@ -177,7 +177,7 @@ Two ways to make a word, both always on, so no gesture is required:
 - Sliding back onto the previous tile takes the last tile off the path.
   Lifting outside the board cancels with no penalty. A tile cannot be used
   twice and a non-neighbour is ignored, not an error. The library will check a
-  path with `validate_path` (roadmap M1; not yet written).
+  path with `validate_path` (written; `wjs::validate_path`).
 - The hit area is a circle smaller than the tile, and the path stays on a tile
   until the finger leaves a larger circle, so a diagonal slide does not skip a
   tile. The two radii are **starting values for a small finger**, the one thing

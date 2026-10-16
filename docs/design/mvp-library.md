@@ -1,12 +1,10 @@
 # MVP library: what was built, and what the design left open
 
-Written 2026-10-16, with the library groundwork for Mode B. The design set
-itself (`docs/design/` on `feature/game-design`: game, phonics, board,
-performance, path) is not on this branch, so it is named here, not linked. This
-page is a note for the author. It records what turned out wrong or missing in
-the design once it was built, and the changes it would like made to the brief
-and the roadmap, **as questions**: neither `product-requirements.md` nor
-`roadmap.md` was edited.
+Written 2026-10-16, with the library groundwork for Mode B, and updated the same
+day with the author's answers to its questions. It records what turned out wrong
+or missing in the design ([Game](game.md), [Phonics](phonics.md),
+[Board](board.md), [Performance](performance.md), [Path](path.md)) once it was
+built, what the author decided, and what is still open.
 
 ## What was built
 
@@ -54,7 +52,9 @@ say that this is what the recommendation costs: a 4x4 that is mostly dead
 jewels. This is a question for the reviewer and the author (below), and it
 depends on the size of the index, which does not exist yet.
 
-**4. The data format cannot hold what the design says it holds.**
+**4. The data format could not hold what the design says it holds. Fixed, 2026-10-16.**
+(The two gaps below were closed by the author's answer to question 5; the other
+points were decisions this page made and still stand.)
 
 - *Split digraphs.* "The graphemes of a word, joined, spell the word" is false of
   a split digraph (`c a_e k` spells `ca_ek`), and "the arc over the K is drawn
@@ -81,7 +81,9 @@ depends on the size of the index, which does not exist yet.
 - *The reviewer's date.* "reviewed-on" is held to `YYYY-MM-DD`, as the
   repository's other dates are, so a typo fails the gate rather than passing it.
 
-**5. The "reviewed" gate needs PowerShell and a release configuration to be seen.**
+**5. The "reviewed" gate needs PowerShell and a release configuration to be seen.
+Settled, 2026-10-16: the `Performance (Linux, GCC)` leg builds `linux-gcc-release`,
+so CI runs it (question 6).**
 The build gate is a build step that runs the checker, and the release presets
 turn it on. CI builds Debug only (the Windows, Linux and macOS legs), so CI does
 not run the gate itself; `data.phonics` runs the checker in every leg, without
@@ -102,22 +104,80 @@ s maximum are for the scene, which composes them. The accelerometer's unit
 (`QAccelerometer` is understood to report metres per second squared with gravity
 in it) was read, not checked, which is why the unit is an option.
 
-**8. `validate_path` is written.** `game.md` and the roadmap say "not yet
-written".
+**8. `validate_path` is written.** `game.md` and the roadmap said "not yet
+written"; both now say it is.
 
-## Questions for the author
+## Decided by the author, 2026-10-16
 
-These are the changes to the brief and the roadmap that the work suggests. Each
-has the default this branch uses so that nothing waits.
+The six questions this page first asked, and what was done.
+
+| # | Question | Answer | Done |
+| --- | --- | --- | --- |
+| 1 | Roadmap M1: mark `validate_path` and shake detection done? | Yes | The roadmap's state table, requirement table and M1 list say so, with "on synthetic data" |
+| 2 | Roadmap M2b: mark the phonics machinery done "on test data"? | Yes | The roadmap says so, with the content still blocked on G7 |
+| 3 | Is a board that is mostly dead jewels acceptable? | Not decided: try the solver-guided fill first, to understand it | Built and measured; see below |
+| 4 | Is the review header the right attestation, and is `source` required? | `reviewed-by` is fine; `source` is required | A file that claims a review needs `reviewed-by`, `reviewed-on` and `source`; test data needs none |
+| 5 | Split digraphs and graphemes with more than one sound, before the first phase file? | Yes | `cake  c a_ k _e` and `snow  s n ow:2`; reader, checker, tests and [Phonics](phonics.md#the-data) |
+| 6 | Should CI build a release preset, so the review gate runs there? | Yes | Already so: the `Performance (Linux, GCC)` leg, added with the profiling tier, configures, builds and tests `linux-gcc-release`, which sets the switch and runs `data.phonics` with `-RequireReviewed`. Not a required check |
+
+## The guided fill, tried (question 3)
+
+Built as two options, both off by default: `guided_fill` and
+`max_target_letters`. The measurements are in
+[Testing](../testing.md#fuller-boards-a-guided-fill-and-short-targets). The
+short version:
+
+- **The guided fill alone does nothing.** The planted words already hold too
+  many words before any filler is placed; a fill cannot take a word away.
+- **Short targets, kept apart, are what work.** Targets of three letters at most
+  land 90% or more of seeds on a 4x4 and larger, with about a quarter of the
+  tiles dead jewels, against four letters on the board for the random fill.
+  With letters outside the phase in the filler, none are dead at all.
+- **The price is the targets.** Only 3-letter words (Spark words) are planted;
+  longer words still count if found. Whether that is acceptable for a phase is
+  the reviewer's, and it is a question below.
+
+## Board modes: what this page assumed, and what the author said
+
+This page, and the MVP brief it reads (12.4), treat Mode B as the phonics board:
+seeded so that it holds three to five words of a phase's index. The author's
+account of the game is wider (2026-10-16): there are two **game modes** (playing
+alone; playing with other people, which is Mode A) and, separately, two **board
+modes**:
+
+- **Standard**: letters on cubes, 3x3, 4x4, 5x5 or 6x6, as in the real game. This
+  is the **default**.
+- **Phonics**: the seeded, grapheme-bound board, which a parent switches on to
+  help a child learning phonics join sounds into words. An alternate mode, "a
+  nice idea", whose place the author is unsure of.
+
+What this changes, as far as it can be seen from here:
+
+- **Seeding and dead jewels belong to the phonics board mode only.** A standard
+  board has no dead jewels and no target of three to five words; it is dice, and
+  a board holds dozens of words. The seeding library is not on its path.
+- **Standard mode loads the full word list.** The performance page's premise
+  that "loading the dictionary is not even on the critical path" holds only for
+  the phonics board. In the default mode the dictionary load (55 to 65 ms, 18 MB
+  measured) and the solve of a 5x5 or 6x6 board (up to 0.85 ms measured) are the
+  work. The performance budgets, and the profiling tier's cases, were written for
+  the other premise and should say which mode each is for.
+- **The MVP brief (12.4) gives Mode B the seeded board and the phase index.**
+  That is the phonics board mode. Whether the MVP ships the standard board as
+  well, or the phonics board alone, is not said by the brief; the dice are listed
+  after the MVP in [Board](board.md).
+- **Sizes.** The phonics board was designed and measured at 3x3 and 4x4. The
+  guided fill lands 5x5 and 6x6 easily, so a phonics board is not limited to the
+  MVP's sizes by the library.
+
+## Questions for the author (open)
 
 | # | Question | Default |
 | --- | --- | --- |
-| 1 | **Roadmap, M1:** may `validate_path` and the shake detection (both library parts) be marked done, leaving the touch handler and the sensor? | Left as written; not edited |
-| 2 | **Roadmap, M2b:** may the phase reader, the checker, the review gate, the seeding and the binder be marked done "on test data", with the content still blocked on G7? | Left as written |
-| 3 | **Brief, 12.3 and 12.6:** is a board that is mostly dead jewels (four letters on a 3x3 or 4x4) acceptable, or should the index be smaller, or should the fill be guided by the solver (not built: each filler letter chosen so that it adds no word, which might give fuller boards at the same share)? | Dead jewels are a parameter; the board is whatever the caller asks for |
-| 4 | **Brief, 12.6:** does the header (`reviewed-by`, `reviewed-on` as a date, and `source`) say what the reviewer is to attest? Should `source` be required, as `data/README.md` asks of every list? | Reviewer and date are required; `source` is not |
-| 5 | **Phonics data:** may the format grow split digraphs and a grapheme with more than one sound (item 4 above) before the first phase file is written? Changing it afterwards means rewriting reviewed files | Not built |
-| 6 | **CI:** should one leg build a release preset, so that the review gate runs in CI and not only on a person's machine? | Not changed; workflows were not touched |
+| 7 | **Board modes.** Is the MVP's Mode B the phonics board alone, or the standard dice board as the default with phonics as the parent's switch? The brief (12.4) reads as the former; the answer decides what the first iPad build plays and where dictionary loading sits | The library supports both; nothing in the application exists |
+| 8 | **Targets of three letters.** May a phonics phase be planted only with 3-letter words (Spark words), the longer ones still counting if found? It is what makes boards of mostly letters land | Off; `max_target_letters` is 0 |
+| 9 | **Letters outside the phase on a phonics board.** The guided fill leaves no dead jewel if untaught letters may appear. Is that acceptable to the reviewer, against a quarter of the tiles being dead jewels? | Off; the filler is the phase's alphabet |
+| 10 | **Performance premise.** Should the performance page and the profiling tier name the board mode each budget is for, with the standard board's dictionary load on the critical path? | Not changed |
 
 ## What was measured
 
