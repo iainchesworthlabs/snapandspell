@@ -30,22 +30,23 @@ platform fragment's to change, not this page's, and is left for the author.
 
 | Part | Where | What it is |
 | --- | --- | --- |
-| The scene | `src/app/prototype/shake/qml/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die sharing the `#Cube` mesh, a letter atlas, a baked light probe. Draws the poses the script gives it |
-| The script | `qml/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or a small integrator of our own (weighted). Plain JavaScript, no QML and no renderer |
-| The faces | `qml/FaceAtlas.qml`, `qml/Die.qml` | One texture for the board's tiles, each die sampling its own cell; a dead jewel is a cell of four facets |
-| The harness | `qml/ShakeWindow.qml`, `frame_stats.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, and the timing and measurement runs |
+| The scene | `src/app/prototype/shake/qml/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die sharing one six-sided cube mesh, a face atlas, a baked light probe. Draws the poses the script gives it |
+| The script | `qml/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or a small integrator of our own (weighted); and which face of each die is up and how it is turned over on the way. Plain JavaScript, no QML and no renderer |
+| The faces | `qml/FaceAtlas.qml`, `qml/Die.qml` | One texture for the board's dice, a block of 3 x 2 cells for each, a cell to a face; each die's cube samples its own block. A dead jewel is a die of six cells of four facets |
+| The harness | `qml/ShakeWindow.qml`, `frame_stats.*`, `dice_roller.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, the library's dice roll (`DiceRoller`, which links `wjs::lib` and embeds `data/dice`), and the timing and measurement runs |
 | The probe | `tools/lightprobe`, `qml/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
 
 It is behind `-DWJS_BUILD_SHAKE_PROTOTYPE=ON`, off by default, and the default
 build is unchanged: the option adds one program and finds one more Qt module.
-The scene has no game rules in it: a tile is an opaque string and `""` is a dead
-jewel.
+The scene has no game rules in it: a face is an opaque string and `""` is a
+jewel (a dead jewel is a die of six). Its script is also run by a ctest case
+when the prototype is built (`tests/app/shake_script_test.cpp`).
 
 ### The interface
 
 | Member | Kind | Meaning |
 | --- | --- | --- |
-| `play(board, seed)` | function | Shake, lid, drop, settle, for `board = { rows, columns, tiles }`. The dice are in the box at the first frame |
+| `play(board, seed)` | function | Shake, lid, drop, settle, for `board = { rows, columns, tiles, faces, up }`: for each tile, row-major, its letters, the six faces of the die on it, and which is up ([Real faces](#real-faces)). The dice are in the box at the first frame |
 | `show(board)` | function | The board already down, with no motion: a resumed game, a rotated window |
 | `reducedMotion` | in | The cross-fading variant of every stage |
 | `pushMotion(ax, ay, az, wx, wy, wz)` | function | One sample of the device's motion, about a hundred a second: the accelerometer's reading in g, gravity included (face up and still it reads 0, 0, 1; x right, y up the screen, z out of it), and the gyroscope's in rad/s. The dice answer to it sample for sample, and the rattle holds on, up to 3 s, while it reads as shaking. With none, a seeded stand-in shakes |
@@ -56,8 +57,9 @@ jewel.
 | `overdraw` | read-only | How far past its item the scene draws, on every side (half a tile), so a die tumbling at the edge and the tipping rim are not cut off. The item is still the board's area; the application must not `clip` it |
 
 `lean`, `probeMode`, `cameraDistance`, `warmUp`, `weighted` and `mockBurstMs`
-are settings of the 3D implementation and are not part of the seam. `seek(board, seed, ms)` and
-`digest(board, seed)` are for tests and pictures.
+are settings of the 3D implementation and are not part of the seam.
+`seek(board, seed, ms)`, `digest(board, seed)` and `faceReport(board, seed)` are
+for tests and pictures.
 
 ### The two scripts
 
@@ -121,6 +123,70 @@ its cell, always.
 is longer because it is a shake of a real length followed by a slot, and the
 board page's 1.7 s was for the drop alone, after the shake.)
 
+## Real faces
+
+The first prototype put one letter on all six sides of a die, because it was
+given one string for each tile. A real die has six different letters and a shake
+leaves one up, so the scene is now given the dice, as
+[Board](board.md#what-the-scene-is-given) says: `faces[t]` is the six strings of
+the die on tile `t` and `up[t]` is which is up, with `faces[t][up[t]]` the tile's
+letters. The library supplies them: `wjs::roll_with_placements` returns the die
+and the face for each tile of a roll, and the harness's `DiceRoller` turns a roll
+of the shipped set (`data/dice`, embedded in the program) into that shape. The
+scene reads no letter. The standard board of the harness is that roll; the
+phonics board is still a stand-in (below).
+
+| Part | How it is made |
+| --- | --- |
+| The mesh | One cube of six sides, built in QML by `ProceduralMesh` from the script's `sides` table (24 vertices, shared by every die), so the mesh and the orientations agree on which side is which face. It replaces `#Cube`, whose six sides all show the whole texture |
+| The atlas | A block of 3 x 2 cells for each die, a cell to a face. A die's texture offset and scale pick its block, as they picked its cell; the mesh's coordinates pick the cell in it |
+| Which face is up | A quaternion for each die from the script, set on the cube under the Euler tips and yaw the body already had, so those are unchanged. At rest it is the face the board says, the letter upright |
+| Weighted | A die starts on a random face with a random quarter turn of yaw, and turns a quarter turn about a horizontal axis, the way it was going, at each knock over 3.5 tiles/s (floor, lid, pocket wall, neighbour; a half turn over 14). As it slots in it turns the short way to its up face in 0.2 s |
+| Staged | A die lies on a random face in the box and turns over as it falls, landing with its up face on top |
+| Reduced motion | Nothing tumbles: the dice fade in on their up faces |
+| A dead jewel | A die of six jewel cells, so every way up is the jewel |
+
+**The faces move nothing.** They are drawn from generators of their own and
+nothing in the motion reads them. The poses of the previous script (positions
+and the three angles, frame for frame at 60 Hz, for both scripts and both
+sizes, checked against the branch's script in Node) are the same numbers, and the
+landing is the same cells; what is new is the die's orientation, which the replay
+checksum now covers. A ctest case holds the same against the file itself: with
+another set of faces up on every die the positions and angles are equal at six
+times through a play.
+
+**What a viewer sees of the other faces.** `--auto --digest` plays a board and
+counts, frame by frame at 60 Hz with the device still, the faces that were
+uppermost at some frame (the tips of a die in flight, which show side faces
+too, are not counted). Seed 7 of the library's dice, and of the stand-in, played
+with seed 100:
+
+| Board | Tiles that are their die's face up | Different letters on a die (mean) | Land face up, upright | Faces uppermost in a play (mean, most) |
+| --- | --- | --- | --- | --- |
+| Library dice 3x3 | 9 of 9 | 6.00 | 9 of 9 | 3.89, 5 |
+| Library dice 4x4 | 16 of 16 | 6.00 | 16 of 16 | 3.56, 4 |
+| Library dice 5x5 | 25 of 25 | 6.00 | 25 of 25 | 3.60, 5 |
+| Library dice 6x6 | 36 of 36 | 6.00 | 36 of 36 | 3.69, 6 |
+| Stand-in 3x3, 4x4, 5x5, 6x6 | all | 5.4 to 5.7 (a dead die has one) | all | 3.5 to 3.7, 5 |
+
+Under reduced motion nothing tumbles (one face, 1.00) and every die lands as
+asked. The staged script shows a die about two faces (the one it lay on and the
+one it lands on, and what the turn passes between). The same checks, on six
+boards (3x3 and 4x4, three seeds each), are the ctest case `the shake script lands each die on the face the roll
+says and tumbles the others`; it fails if the up face is ignored, and if the
+tumble is switched off.
+
+**What it does not do.** A die is in its own pocket from the first frame (the
+weighted script's rule that the board's letters do not move), so the scene
+shows the faces mixing and each die turning, and does not show *which die is on
+which tile* being mixed: the library's roll decided that and the scene is told
+the result. The opposite faces of a die are the cube's arrangement, not the
+die's (the library says which six letters a die has and nothing about their
+neighbours). The phonics board's dice are a stand-in in the harness (a tile on
+one face and five others drawn from the harness's pool, six different letters);
+what faces the phonics board's dice have is an open choice that is not made
+here.
+
 ## How it was measured
 
 | | |
@@ -146,7 +212,9 @@ build\windows-msvc-release\bin\ShakePrototype.exe                       # to pla
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --runs 6 --out results   # timing
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --out shots      # stills
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --shots --frames 30 --size 720x900 --out frames   # every frame, for a video
-build\windows-msvc-release\bin\ShakePrototype.exe --auto --digest --out digest    # replay check
+build\windows-msvc-release\bin\ShakePrototype.exe --auto --digest --out digest    # replay check, and the faces
+build\windows-msvc-release\bin\ShakePrototype.exe --auto --change --sizes 3,4,5,6 --out change   # the cost of changing the board
+build\windows-msvc-release\bin\ShakePrototype.exe --boards phonics   # the stand-in board of the earlier tables (the default is the library's dice)
 ```
 
 ## What it cost
@@ -226,16 +294,27 @@ GPU time of a frame with 16 dice and MSAA, and the first-frame cost above.
 the device still. The same board and seed gave the same checksum twice, a
 different seed a different one, and reduced motion its own:
 
-| Script | Board | Seed 100, then again | Seed 101 | Reduced, seed 100, then again |
-| --- | --- | --- | --- | --- |
-| Staged | 3x3 | `7cfdfd74`, `7cfdfd74` | `c5dc0064` | `4a2172c5`, `4a2172c5` |
-| Staged | 4x4 | `ea3b8ceb`, `ea3b8ceb` | `cd5e72f7` | `e5250505`, `e5250505` |
-| Weighted, on the stand-in stream | 3x3 | `62cd6fea`, `62cd6fea` | `5ddbfde1` | `25436ec5`, `25436ec5` |
-| Weighted, on the stand-in stream | 4x4 | `421ea932`, `421ea932` | `59fa7ead` | `856e1c45`, `856e1c45` |
+| Script, board (seed 7) | Seed 100, then again | Seed 101 | Reduced, seed 100, then again |
+| --- | --- | --- | --- |
+| Weighted, library dice 3x3 | `5fd8c3e1`, `5fd8c3e1` | `12fd47c0` | `c710afd9`, `c710afd9` |
+| Weighted, library dice 4x4 | `58701394`, `58701394` | `4e36e488` | `b226c069`, `b226c069` |
+| Weighted, library dice 5x5 | `3a8cdaca`, `3a8cdaca` | `5a2b5351` | `fe1247e5`, `fe1247e5` |
+| Weighted, library dice 6x6 | `c893506e`, `c893506e` | `b340b41a` | `709173dd`, `709173dd` |
+| Weighted, stand-in 3x3 | `1673e020`, `1673e020` | `ab28dc78` | `d92b509d`, `d92b509d` |
+| Weighted, stand-in 4x4 | `599afebd`, `599afebd` | `aae31721` | `683142cd`, `683142cd` |
+| Staged, library dice 3x3 | `f12b979f`, `f12b979f` | `5e950637` | `c710afd9`, `c710afd9` |
+| Staged, library dice 4x4 | `181612b1`, `181612b1` | `804b374c` | `b226c069`, `b226c069` |
+| Staged, stand-in 3x3 | `c6d9fb7b`, `c6d9fb7b` | `f633b21e` | `d92b509d`, `d92b509d` |
+| Staged, stand-in 4x4 | `add084cb`, `add084cb` | `279c1970` | `683142cd`, `683142cd` |
 
-A checksum is of the poses in pixels, so it is for one scene size: the staged
-rows are from the first window and the weighted from the later one (which is
-why the reduced rows, the same script in both, differ between them).
+A checksum is of the poses in pixels (for the harness's window, 560 x 900) **and
+now of each die's orientation**, so every earlier checksum is replaced, not only
+by the new motion code: the board's faces are in it too, so the same seed on
+another roll is another checksum. The reduced rows are the same script under
+either name. What the checksum does not cover is the position and angles alone,
+which the faces leave as they were: with the faces left out of the checksum the
+poses of the previous script and of this one were equal, frame for frame, for
+both scripts and both sizes (checked in Node against the branch's script).
 
 Moving the script out of the scene file into `ShakeScript.js` left the stills
 identical, pixel for pixel but one pixel one level off. What the checksum does
@@ -313,6 +392,84 @@ frames, the longest interval 21.1 ms, and the render thread's mean is 0.4 to
 120 pair tests a step) does not show in the frame times. Checksums for replay
 are in [Replay](#replay).
 
+### The real faces
+
+What six cells to a die cost, against the branch as it was before them (its tip
+`6a1c7cd`, built beside this one with the same compiler and flags, with the same
+`--change` mode patched into its harness so the two measure the same way). Three
+processes of each, one after the other on this desktop, with nothing else
+drawing and no build running, which was checked every second of every run (a run
+in which anything was seen was thrown away and made again: another worktree's
+`ShakePrototype` had been running and had stopped runs by name). The "after" is
+two boards: the stand-in the earlier tables used (two dead jewels, each now a die
+of six jewel cells) and the library's dice.
+
+**The atlas is six times the pixels.**
+
+| Board | Before | Now | In memory (RGBA), before and now |
+| --- | --- | --- | --- |
+| 3x3 | 384 x 384, 9 cells | 1,152 x 768, 54 cells | 0.6 MB, 3.5 MB |
+| 4x4 | 512 x 512, 16 cells | 1,536 x 1,024, 96 cells | 1.0 MB, 6.3 MB |
+| 5x5 | 640 x 640, 25 cells | 1,920 x 1,280, 150 cells | 1.6 MB, 9.8 MB |
+| 6x6 | 768 x 768, 36 cells | 2,304 x 1,536, 216 cells | 2.4 MB, 14.2 MB |
+
+**The frames of a play do not show it.** Every play but the first of each
+process, 30 plays a process, the stand-in's shake (the render thread's time to
+record and submit a frame, as above; GPU time was not measured):
+
+| | Before | After, stand-in board | After, library dice |
+| --- | --- | --- | --- |
+| Frames | 13,604 | 10,398 | 11,119 |
+| Render thread, median | 0.52 ms | 0.44 ms | 0.55 ms |
+| mean | 0.71 ms | 0.55 ms | 0.74 ms |
+| p95 | 0.93 ms | 0.81 ms | 1.00 ms |
+| p99 | 7.8 ms | 4.0 ms | 8.2 ms |
+| largest | 70.7 ms | 30.2 ms | 16.4 ms |
+| Intervals over 33 ms | 4 | 2 | 2 |
+
+The median is the same to a tenth of a millisecond. The means and the tails
+differ from one process to the next and not from one version to the next: one
+process of each kind (the third before, the third stand-in, the first library
+dice) had a tail of 5 to 10 ms (at p95 for two of them, at p99 for the third)
+that its siblings did not, as if something else on the machine had taken turns
+with it, and the largest intervals of all (80, 55 and 159 ms) were single frames. The display ran at
+10 ms in two of the nine processes and at 16.7 ms in seven (the "two cadences"
+above), so the intervals are not compared. Creating the view is unchanged:
+loading the component 17 ms before and 16 ms after, creating the objects 3.3 and
+3.4 to 4.0 ms, and the first frame after it 232 ms before and 226 and 235 ms
+after (213 to 226 ms of it the render thread's).
+
+**The cost is in the frame in which the board changes.** `--auto --change` shows
+a new board and records the frames after it, six boards of each size in each of
+three processes (18 boards of each size for each kind). That frame draws the new board's faces into the
+atlas. Means: the time from `show()` to the first frame on screen, and what the
+render thread spent on that frame.
+
+| Board | Before | After, stand-in board | After, library dice |
+| --- | --- | --- | --- |
+| 3x3 | 17.8 ms, 6.1 ms | 31.1 ms, 18.0 ms | 22.7 ms, 11.1 ms |
+| 4x4 | 11.9 ms, 5.1 ms | 29.8 ms, 16.5 ms | 19.3 ms, 8.1 ms |
+| 5x5 | 19.4 ms, 8.7 ms | 47.3 ms, 29.3 ms | 32.9 ms, 16.1 ms |
+| 6x6 | 26.7 ms, 13.9 ms | 77.5 ms, 50.6 ms | 57.3 ms, 32.1 ms |
+
+The frames after the first are the same as before (the render thread's largest
+of the next four frames was 0 to 2.5 ms in all of them). So **a new board costs
+two to three and a half times what it did**, and the frame in which it is drawn
+is over the [33 ms budget](performance.md#budgets) at 6x6 and at 5x5 with the
+stand-in's jewels, at the budget at 5x5 with the library's dice, and under it at
+3x3 and 4x4 (the stand-in's means there, 31 and 30 ms, are close to it, and one
+4x4 board took 62 ms).
+`play()` sets the board, so the first frame of a shake carries it. What makes
+the stand-in dearer than the library's board is the jewel: each dead die is six
+`Shape`s of four facets, about 0.7 ms a cell by the difference at 4x4 (two dead
+dice, 12 cells, 8 ms more; the boards' letters differ too). Two things would take it back, and
+neither is done: set the board (so that the atlas is drawn) a frame or more
+before the shake starts, behind the layout stage that is the application's; and
+draw the jewel once and share it.
+
+**Not measured:** the GPU's time for a frame with the bigger atlas, the atlas's
+memory and upload on a device, and anything on an iPad, a tablet or a phone.
+
 ## What it looked like
 
 The author's first look at the staged version, running it: **it had no weight.**
@@ -330,7 +487,20 @@ against one another as that stream pushes them. Hence the input is now the
 device's own signal (six axes, a hundred samples a second), and the dice are
 simulated in the box's frame from it.
 
-![The weighted shake, 4x4, straight down: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
+The third look, the author's, at the version that took the device's signal:
+**every die shows the same letter on all six sides.** A real die has six
+different letters, and a shake mixes the dice and the faces. Hence
+[Real faces](#real-faces): the scene is given the dice, not only the board.
+
+![The weighted shake, 4x4, straight down, the library's dice: ten times, then the settled board with the 2D tile layer over it](shake-prototype-filmstrip.png)
+
+The library's roll of the 4x4 dice with seed 7 (`M D O O / C A R T / R N E U /
+L D R P`). At 0 ms the dice sit in the box on other faces than the ones they
+will land on, and the shake shows side faces (350 to 1000 ms); they land on the
+rolled face, the letter upright. The same with the stand-in board, whose two
+dead dice are six jewels each (and whose decoy faces include `QU` and `TH`):
+
+![The same with the stand-in board](shake-prototype-filmstrip-jewels.png)
 
 Stills at fixed times of one board (`--auto --shots`), so they are the same on
 every run. They were read from stills by whoever built the scene, not by a
@@ -345,8 +515,13 @@ is silent, and the feel is judged without it.
   shown only by size and shadow, because the camera is straight down.
 - **Faults.** Dice are discs to each other and squares to the eye, so corners
   cross for a moment when two are turned; the dead jewel is a cube with four
-  facets painted on, which looks wrong from the side; and the rebound is a
-  fixed fraction, so every die lands about alike.
+  facets painted on, which looks wrong from the side (the six sides of a dead
+  die are all that painting); and the rebound is a fixed fraction, so every die
+  lands about alike.
+- **The faces.** Read from the stills by whoever built it: letters upright and
+  not mirrored on every top face at rest; side faces read as letters during the
+  tumble; at 6x6 the last dice are still turning at 2.3 s. How the turning reads
+  at 60 Hz, and to a child, is unjudged.
 
 Staged, leaning 24 degrees, for comparison:
 
@@ -374,8 +549,11 @@ What a 2D `BoardScene` has to keep:
    shadow, and the box, lid and camera. A 2D scene draws that: `px`, `py` as
    `x`, `y`; `pz` as `scale` and the shadow's size and opacity; `rz` as
    `rotation`; `rx` and `ry` dropped, or a skew; the lid as a rectangle that
-   fades. Then a replay is the same, the landing order and the clicks are the
-   same, and `digest()` is the same string in both.
+   fades; the die's `tw`, `tx`, `ty`, `tz` read for which side is up (it lands
+   on the board's face) and, if the other faces are to be seen, as a letter that
+   changes where the turn passes a quarter. Then a replay is the same, the
+   landing order and the clicks are the same, and `digest()` is the same string
+   in both.
 3. **The same geometry.** `boardRect`, `tileSize` and `tileGap` by the same
    rule, and a die at rest exactly on its tile, since the tile layer, the path
    and the panel are 2D in both and do not move.
@@ -397,9 +575,15 @@ events from it.
 
 ### What changed in the seam
 
-The prototype suggested two changes to the seam before the application is
+The prototype suggested three changes to the seam before the application is
 built on it:
 
+- **Done: the scene is given the dice, not only the board.** `board` is
+  `{ rows, columns, tiles, faces, up }`, from the library's
+  `roll_with_placements`. The proposal was `play(board, faces, up, seed)`; the
+  faces and the face that is up travel inside the one object because `show`,
+  `seek`, `digest` and the 2D swap need them too. A board whose faces do not
+  make its tiles is drawn as given and logged once.
 - **Done: the scene draws past its item.** `overdraw` (half a tile) is how far,
   and the view is that much bigger on every side. The item is still the
   board's area and `boardRect` is still by the rule, so the layout is not
@@ -416,7 +600,11 @@ built on it:
 - **Anything on an iPad, a tablet or a phone**, and the GPU time of a frame on
   any device. The next step is a build for iOS (the shared tree has no kit) and
   Qt's GPU timestamps on the device.
-- Power and heat, memory beyond what is noted, and a second desktop GPU.
+- Power and heat, memory beyond what is noted, and a second desktop GPU. The
+  face atlas is six times the pixels it was (below); its memory on a device,
+  and its upload there, are not measured.
+- **Whether the other faces read.** The stills show a die's side letters while
+  it tumbles; nobody has watched it at 60 Hz, let alone at a child's eye height.
 - A real accelerometer and gyroscope. The scene takes samples; what has been
   fed to it is the seeded stand-in and a mouse (a pointer path differentiated
   twice), and a person's hand on the drag is unjudged ([above](#the-drag)).

@@ -52,7 +52,8 @@ alternatives are on [Phonics](phonics.md#seeding). What this page needs from it:
   the phase uses (the app maps it; the library is unchanged).
 - The roll is a pure function of the phase data and a seed, in the library, so a
   board can be replayed and tested.
-- The animation is given a finished board (below).
+- The animation is given a finished board and the dice it was rolled with
+  ([What the scene is given](#what-the-scene-is-given)).
 
 ### Dice (the standard board, in the MVP: decided 2026-10-16)
 
@@ -206,6 +207,36 @@ The board is decided by the library first. So:
 - Qt Quick 3D Physics, the engine in Qt's own set, is GPL-only like Qt Quick 3D
   (below) and is not in the shared tree.
 
+### What the scene is given
+
+A die has six faces with six different letters, and a shake leaves one up. The
+scene draws that, so it is given more than a finished board: the library's roll
+returns the dice with the board, and the scene takes them as they are.
+
+```text
+wjs::roll_with_placements(dice, seed) -> RolledBoard
+    board:      the Board, as wjs::roll returns it
+    placements: for each tile, row-major: the die on it (an index into the set)
+                and which of its faces is up
+
+scene.play(board, seed)         board = { rows, columns, tiles, faces, up }
+    tiles[t]: the letters of the finished board's tile t
+    faces[t]: the six strings on the die on that tile ("A", "QU", ...)
+    up[t]:    which of the six is up, so that faces[t][up[t]] == tiles[t]
+```
+
+The scene draws each die with its six faces, so the other letters are seen while
+it tumbles, and lands it with the face that is up on top, the letter upright.
+It decides nothing and reads no letter: the faces are the library's, passed
+through, and a library test holds that the face a placement names is the tile's
+letters, for 300 boards of each shipped size. A dead jewel (the phonics board's)
+is a die whose six faces are all the jewel. Which of a die's faces are
+neighbours, how a die lies in the box and how it turns over are for show and
+seeded in the scene: they are not part of the roll, and nothing in the game
+reads a face that is not up. What faces the phonics board's dice have is an open
+choice (the dice-and-faces design page, on its own branch at the time of
+writing); the scene takes whatever six it is given.
+
 ### Rendered 3D, or drawn in 2D
 
 | | A: Qt Quick 3D | B: 2D Qt Quick, scripted |
@@ -235,9 +266,10 @@ roadmap says no licence rule touches. The author expects 3D and a lit solid is
 what Cubeulator has. The cost comes only at a store submission, so:
 
 1. The board scene is one component with a narrow interface: *given a finished
-   board and a seed, play the shake and the drop, and report when the dice are
-   settled*. Nothing else in the application touches the scene; the game rules
-   stay in the library.
+   board, the six faces of the die on each tile and which of them is up, and a
+   seed, play the shake and the drop, and report when the dice are settled*.
+   Nothing else in the application touches the scene; the game rules stay in the
+   library.
 2. The scene is written in Qt Quick 3D first. A 2D implementation of the same
    interface is the fallback if D2 goes the other way, and the tile, the path and
    the panel are 2D in both.
@@ -252,8 +284,8 @@ at all; see [Application design](application.md#qt-modules).
 
 ### How it is drawn
 
-- **3D (A).** One `View3D`; each die a `Model` sharing one box mesh and a
-  letter texture atlas; a box and a lid; a light probe **baked in advance**, as
+- **3D (A).** One `View3D`; each die a `Model` sharing one six-sided cube mesh
+  and a face atlas with a block of six cells for each die; a box and a lid; a light probe **baked in advance**, as
   Cubeulator did (its `tools/lightprobe`, 128 x 128 texels a face, 1 MB), so Qt
   does no prefiltering at run time. No materials beyond a plain lit one. The
   view is created once and kept, not created for each screen (Cubeulator
