@@ -25,7 +25,6 @@ constexpr std::string_view data_directory = WJS_DATA_DIRECTORY;
 
 constexpr std::string_view empty_board = "X X X/X X X/X X X";
 constexpr std::string_view cat_board = "C A T/X X X/X X X";
-constexpr std::string_view dog_board = "D O G/X X X/X X X";
 constexpr std::string_view both_board = "C A T/D O G/X X X";
 
 wjs::Board board_of(std::string_view text) {
