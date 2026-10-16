@@ -33,6 +33,8 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | Android and iOS builds of this app | Not started | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad (its CHANGELOG records it; `docs/building.md` there is out of date on this) |
 | CI, repository rules, documentation | Running; rulesets applied and enforced | First CI run green (12 checks); branch-name rule verified by a rejected push. The `main` and `develop` protections are applied but not exercised |
 | Touch UI, dice, shake, tracing, audio, rewards | Not started | |
+| Path validation and shake detection (the library parts of M1) | Done, **on synthetic data**: `validate_path`, `detect_shakes` | Catch2 cases. The detector's thresholds are starting values that have to be tuned on a device |
+| Phonics machinery: phase-file reader and checker, review gate, seeding, grapheme binder | Done, **on test data**. No phase file exists, and none may be added without a reviewer (G7) | Catch2 cases, `data.phonics` and `data.phonics.checker`, the gate exercised on a release build. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
 | Child-appropriate lexicon and hints | Not started | |
 | Camera scan | Not started | |
 | An English word list | ENABLE in `data/dictionaries/`; category and tier lists in `data/lexicon/` | `tools/data/check_wordlists.ps1`. The authored lists are **unreviewed** by a teacher or parent |
@@ -44,10 +46,10 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | Migrate the solver to the tablet | Library is portable C++23, Qt-free | Android and iOS builds of the existing app | M1 |
 | Filter by syllables, difficulty, themes | Nothing | A word list with metadata: length, frequency band, syllables, phonics pattern, categories (animal, colour, shape) | M2 |
 | 3x3 or 4x4 board | `Board` accepts 1x1 to 16x16 | A dice model (real Boggle dice sets, random rotation, Qu face) in the library | M1 |
-| Shake, with the accelerometer | Nothing | Shake detection over accelerometer samples (pure logic, in the library, testable); sensor access through Qt Sensors or a platform interface; a desktop fallback (key or drag) | M1 |
+| Shake, with the accelerometer | Detection over samples is written and tested on synthetic traces (`detect_shakes`); nothing reads a sensor | Sensor access through Qt Sensors or a platform interface; the thresholds tuned on a device; a desktop fallback (key or drag) | M1 |
 | Haptic feedback | Nothing | A `haptics` interface with Android and iOS implementations under `src/platforms`, nothing on desktop | M1 |
 | Drop animation, glowing path, jewels, confetti | Nothing | 2D Qt Quick: Canvas/Shapes/Particles. Not Qt Quick 3D (see D2) | M1 |
-| Trace a path with loose tolerance | Nothing | A touch handler that snaps to the nearest tile within a radius, plus `validate_path` in the library | M1 |
+| Trace a path with loose tolerance | `validate_path` is written and tested; no touch handler | A touch handler that snaps to the nearest tile within a radius | M1 |
 | Letters speak their *phonetic sounds* | Nothing | Recorded phoneme audio. Speech synthesis says letter *names* ("see"), not sounds ("k"), so this is a recording job (D5) | M1 |
 | Read the found word aloud, name its category | Nothing | Speech synthesis or recordings, plus category tags from M2 | M1, M2 |
 | Legible early-reader typeface | Nothing | Andika or OpenDyslexic, both open fonts (licences to verify). Comic Sans is proprietary and cannot be bundled | M1 |
@@ -102,7 +104,8 @@ it, and collect a jewel.
   certificate and profile. Qt's iOS kit for 6.12.0 has to be installed in CI
   (its availability for 6.12 is **unverified**; the labs notes say to check each
   host and module with `aqt list-qt` and a real install before bumping).
-- Dice model, shake detection, `validate_path`, with unit tests.
+- Dice model, shake detection, `validate_path`, with unit tests. Shake
+  detection and `validate_path` are done; the dice model is not.
 - Touch tracing with generous tolerance, tested on a real tablet with small
   fingers (the one thing no unit test can settle).
 - Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.
@@ -142,6 +145,11 @@ is what each part depends on.
   a child's data would leave it, and needs the privacy review first.
 - **Phase names are generic**: Phonics Phase A and Phonics Phase B (PRD 12.1).
   Where each phonic sound sits is for the literacy review (G7).
+- **Built on test data, with the content still blocked on G7**: the reader and
+  checker for the phase files, the review header and the release build's
+  refusal of a file without it, the seeding of a board, and the binding of a
+  trace into grapheme blocks. No phase file exists. The sound-it-out sequence,
+  the audio and the dashboard are not built.
 
 ### M3: 0.1, the first release
 
