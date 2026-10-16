@@ -83,6 +83,16 @@ that release, so that its rules (branch protection, required checks) can apply.
   has it, which `profiling.shipped_presets` holds. The solver and the
   dictionary load carry the first zones, and `wjs-cli` has `--repeat <n>` so
   that a profiler has time to attach. See [docs/profiling.md](docs/profiling.md).
+- **The game session of Solo Play** (`wjs::GameSession`, `game_session.hpp`): the
+  state machine of Mode B from the closed box to the resting screen, with no Qt,
+  no clock and no platform code. It deals a seeded board (seeding again, up to
+  five times, to hold three to five words of the phase), takes a traced path and
+  answers it (a word of today's, a real word that is not today's, or not a word,
+  with no word named for the last two and a real word never called "not a
+  word"), awards stars by tier, lights the start tile on request, reports the
+  board cleared and then resting, and hands the store a `BoardRecord` and a
+  `SessionSnapshot` it can restore. Persists nothing. See
+  [docs/architecture.md](docs/architecture.md#game-session).
 - **A performance-test tier** (`wjs_perf_tests`, `tests/perf`): exact work
   budgets on what the solver does (visits, words, trie nodes, and a digest of
   every result) over a fixed corpus of 800 random boards and six built ones,

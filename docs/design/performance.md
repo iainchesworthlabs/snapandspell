@@ -206,8 +206,10 @@ the plot `solver.visits`, because a zone carries one number) and
 with the code that makes a board, `board.seed` (the verifications it spent),
 `board.verify` (the words of the phase found on one verified board),
 `board.roll` (the dice rolled) and `phonics.bind` (the comparisons it made), in
-`wjs::seed_board`, `wjs::roll` and `GraphemeBinder::bind`. The rest of the
-table is added with the code it times.
+`wjs::seed_board`, `wjs::roll` and `GraphemeBinder::bind`; and, with the game
+session, `board.deal` (the seedings a deal spent), `input.submit` (the length of
+a traced path) and `board.restore`, in `GameSession::shake`, `trace` and
+`restore`. The rest of the table is added with the code it times.
 
 `board.roll` is not in the plan's table: the dice did not exist when it was
 written. It is the standard board's, where `board.seed` and `board.verify` are
@@ -222,10 +224,10 @@ zones inside `board.seed`, each with its `solver.visits`.
 | --- | --- |
 | app | `app.startup`, `app.load_qml`, `app.scene_create` |
 | data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` |
-| board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.roll` (dice; **standard**) |
+| board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.deal` (seedings; **phonics**, the session), `board.restore` (**phonics**, the session), `board.roll` (dice; **standard**) |
 | solver | `solver.solve` (words found; visits) |
 | phonics (**phonics** board only) | `phonics.bind` (comparisons), `phonics.segment`, `phonics.sequence` |
-| input | `input.submit` (path length). Per-move work is a plot, `input.hit_test_us`, not a zone |
+| input | `input.submit` (path length; built, in `GameSession::trace`). Per-move work is a plot, `input.hit_test_us`, not a zone |
 | audio | `audio.play_clip` (clip id); a plot `audio.start_latency_ms` |
 | scene | `scene.shake`, `scene.drop`, `scene.settle`, `scene.celebrate` |
 | scan | `capture.read`, `scan.ocr`, `scan.parse_grid` (after the MVP, with `vision.*` as Cubeulator names them) |
@@ -398,10 +400,54 @@ only growth: a phase of 100 multi-letter graphemes would cost about 900
 comparisons a path. A case recounts the comparisons from the blocks that came
 back and the order the binder documents, with nothing the library counts.
 
-**What was not added.** No wall-time check was added for these rows: the two
-that exist (the load and the solve) are as they were, opt-in. The counts above
-see the order-of-magnitude slowdown a ratio would, and a seeding is dominated by
-the solver, which has them. The standard board's word list is still the full
+**Phonics board: the game session.** `wjs::GameSession` deals a board with
+`seed_board` and seeds again, with the next seed of its stream, until a board
+holds three to five words, up to five seedings (`SessionOptions::max_seedings`).
+The corpus is the same test phase and the sizes the first release plays: 100
+sessions each of 3x3 and 4x4, seeded `7919 * i + n`, each dealt, played to the
+resting screen and restored once (`tests/perf/game_work_test.cpp`, tag
+`[session]`). The zones are `board.deal` (the seedings it spent),
+`input.submit` (the length of the path traced) and `board.restore`.
+
+| Size | Seedings (max one) | Verifications | Solves | Visits, total / worst deal | Boards out of range of 100 | Time a deal, mean / worst |
+| --- | --- | --- | --- | --- | --- | --- |
+| 3x3 | 322 (5) | 5,792 | 17,534 | 1,544,699 / 26,251 | 35 | 3 / 7 ms |
+| 4x4 | 106 (3) | 717 | 22,809 | 1,101,833 / 25,292 | 0 | 1.4 / 2.4 ms |
+
+What it says:
+
+- **Seeding again is what makes three to five the rule rather than the hope.**
+  A single seeding leaves 77 of 100 3x3 boards out of range (the fallbacks of
+  the seeding rows above); five seedings leave 35, and the 4x4's 5 are all
+  landed by the third. By seedings allowed, the 3x3's misses are 77 / 58 / 49 /
+  38 / 35 / 25 for one to six (measured with a throw-away loop, not committed).
+  What a miss is: the nearest board, which still holds a word, and the session
+  reports it (`DealReport::in_range`); the screens do not show a count.
+- **The price is the 3x3 deal's solves and nothing else.** A 3x3 deal is 175
+  solves and a 4x4 deal 228, almost all of them the guided fill's trials of a
+  letter on a tile. The times are within the budget of 10 ms typical and 50 ms
+  worst on this desktop (measured while other sessions were building, so these
+  are indicative); at the estimated 3 to 5 times a desktop core the 3x3's worst is
+  about 35 ms, still within it. A deal runs before the shake begins, so it can be
+  done on a worker thread while the box is on screen; the library has no thread
+  in it.
+- **Playing makes no solve.** Tracing, asking for the help, `record()`,
+  `snapshot()` and `rest()` read what the deal kept: 0 solves and 0 visits over all
+  200 boards, held exactly. A **restore** makes one solve (100 of 100), the cost
+  of the board again: 5,122 visits for 100 3x3 boards and 6,605 for 100 4x4.
+- **A board with no word was never dealt**, on any seed, and the words of the
+  phase on the 200 boards are exactly 522 and 476, which pins the corpus, the
+  phase and the seeding together.
+- The proxy phase is a size, not a proposed index. A real Phase A of 68 to 122
+  words lands a 3x3 more often (56% to 75% of single seedings against 23%), so the
+  3x3's misses here are an upper bound, and the 4x4's 0 is not a promise for a
+  smaller index.
+
+**What was not added.** No wall-time check was added for the roll, the seeding or
+the binder: the counts above see the order-of-magnitude slowdown a ratio would,
+and a seeding is dominated by the solver, which has them. The game session has
+one, opt-in like the others (below), because a deal is the one path of the game
+that a child waits for. The standard board's word list is still the full
 dictionary until the author chooses a list; the dice rows are against it.
 
 ### Time ratios
@@ -417,6 +463,7 @@ heavy one (a working set of tens of megabytes):
 | Loading ENABLE | 66 to 68 ms | 0.65 to 0.78 | 5.0 |
 | Solving a 4x4 built to be rich | 0.57 to 0.59 ms | 0.042 to 0.043 | 0.3 |
 | Solving a 6x6 built to be rich | 1.6 ms | 0.115 to 0.120 | 0.8 |
+| Dealing a session board, 3x3 and 4x4 (**phonics**; one deal, the first five corpus seeds) | 1.2 and 1.3 ms | 0.087 and 0.086 | 0.6 and 0.6 |
 
 Fastest of 5 runs (the load) and of 15 runs of 50 solves, alternating with the
 calibration. The proposal's starting values (10, 1.0, 1.0) were against a

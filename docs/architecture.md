@@ -13,12 +13,14 @@ src/
     include/wjs/         board.hpp  dice.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp  game_rules.hpp
+                         game_session.hpp
                          solver_work.hpp  binder_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
     src/                 board.cpp  dice.cpp  draw.hpp (internal)  dictionary.cpp
                          scoring.cpp  solver.cpp
                          path.cpp  phase_data.cpp  seeding.cpp
                          grapheme_binder.cpp  shake.cpp  game_rules.cpp
+                         game_session.cpp
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
                          profiling-disabled/wjs/profiling.hpp  (empty)
   cli/                 main.cpp: wjs-cli
@@ -54,7 +56,7 @@ tools/hooks/, policy/  git hooks and the commit and PR text rule
    board, dictionary, scoring,         one implementation of each
    solver, path, phase data,           interfaces/ header, chosen by CMake
    seeding, grapheme binder, shake,
-   game rules
+   game rules, game session
 ```
 
 - **`wjs::lib`** (target `wjs_lib`, a static library) includes no operating
@@ -374,6 +376,140 @@ standard board's deal does not check yet (below).
 What is the library's reading of the design, and what the design left open, is
 on [Testing](testing.md#game-rules-what-is-pinned).
 
+### Game session
+
+`game_session.hpp` is the state machine of Solo Play (Mode B, the phonics board)
+that the screens bind to. One class, `wjs::GameSession`, deals a board, takes a
+traced path and answers it, keeps the finds and says when the board is cleared.
+It holds no Qt, plays no sound, draws nothing and **reads no clock**: what varies
+is handed in, which is the seed of the deal (`SessionOptions::seed`), the moment
+of a find (`Stamp`, an `int64` the caller gives to `trace` and gets back, never
+read or ordered) and the pace of the presentation, which is the screens' (they
+tell it when the shake, the drop and the celebration are over). The same options
+and the same events do the same on every compiler. It persists nothing: it hands
+the store plain values (below) and takes one back. It is single-threaded and
+holds the phase data and the dictionary by reference, which must outlive it.
+
+```cpp
+auto session = wjs::GameSession::create(phase, english, {.size = wjs::BoardSize::three,
+                                                         .seed = random_seed});
+session->shake();                         // box -> shaking: the board is dealt here
+session->still(); session->landed();      // shaking -> dropping -> playing
+auto outcome = session->trace(path, today);  // viable / real, not today's / not a word
+auto tile = session->request_help();      // the start tile, never the word
+```
+
+**The states** are those of [Game](design/game.md#the-flow), in its ids
+(`to_string(SessionState)` gives `"solo.box"` and so on). `solo.word-found` is
+not one: it is the few moments of presentation after a find, when the session is
+already `playing` (or `cleared` after the last word), so the session accepts a
+trace through it. Every event returns whether it applied, and one that does not
+leaves everything as it was, so a screen may send it late or twice.
+
+| Event | From | To |
+| --- | --- | --- |
+| `choose_size(BoardSize)` | `box` | `box` (3x3 or 4x4; only here) |
+| `shake()` | `box` | `shaking` (deals the board; an error leaves the box) |
+| `still()` | `shaking` | `dropping` (how long it shook is the screens') |
+| `landed()` | `dropping` | `playing` |
+| `trace(path, stamp)` | `playing` | `playing`, or `cleared` after the last viable word |
+| `request_help()` | `playing` | `playing` |
+| `rest()` | `cleared` | `resting` (about 3 s after the last jewel, the screens' timer) |
+| `again()` | `resting` | `box` |
+| `back()` | `shaking`, `dropping`, `playing` | `box` (the lid goes back on) |
+
+From `cleared` and `resting` the screens leave Solo Play without the session
+(`Back` there is `home`, not the box), so `back()` is refused.
+
+**What a trace is.** `trace` answers with a `TraceOutcome`:
+
+| `TraceKind` | When | `find` | Stars |
+| --- | --- | --- | --- |
+| `found` | a word of the phase's index, on the board, not found yet | the `Find` just recorded | those of its tier (`stars()`; `sticker()` if the tier carries one) |
+| `found_again` | the same, already in the tray | the earlier `Find` | none |
+| `real_not_todays` | a real word that is not one of today's, **of any length** | none | none |
+| `not_a_word` | anything else, including a path that is not a path | none | none |
+| `ignored` | not in `playing`, or a path of fewer than two tiles | none | none |
+
+The classification is `classify_path` of [Game rules](#game-rules) against
+`WordSets::phonics`, with two readings of the session's own:
+
+- **A real word is never `not_a_word`.** The rules call a word of two letters
+  `not_a_word`, because it cannot count and has no tier. The session reads the
+  spelling again and answers a real two-letter word (`at`, `in`) as
+  `real_not_todays`: the soft tick, no word. A child who is told a real word is
+  not one has been taught something false, and the answer names nothing either
+  way.
+- **A path of one tile, or none, is `ignored`**, not a word attempt. A touch on
+  a tile is to hear its letter ([Game](design/game.md#tracing-and-tapping)), and
+  a trace cancelled by lifting outside the board is no attempt; the dashboard
+  design drops "emerging" for the same reason. The cue for a touch is its
+  letter's sound, which is the screens'.
+
+`Find` is `{word, assisted, when}`, with `tier()` and `reward()` derived from the
+letter count and never stored. `word` is upper-case and is a word of the phase,
+because a word is named only when it is: `real_not_todays` and `not_a_word` carry
+none, and nothing else the session hands out (the record, the snapshot, the
+tray, the help) holds a word outside the phase index.
+
+**The help.** `request_help()` is the start-tile help of the rules: the tile of
+the shortest viable word not yet found, nearest the top left, the same one until
+that word is found. It returns a position, not the word (the child does the
+finding). The tile stays lit (`lit_tile()`) until its word is found, and a word
+found while its tile is lit is an **assisted** find (`Find::assisted`), which is
+what the dashboard counts as not unassisted. `SessionOptions::help` is the
+parent's switch; off, it returns nothing.
+
+**The deal.** `shake()` seeds the board before anything moves, with
+`seed_board` and the options of `phonics_board_options` for the size (targets of
+three letters, the guided fill, no dead jewels on a board that lands), the
+session's range (`min_viable` 3, `max_viable` 5) and the parent's focus sounds.
+Seeding lands three to five words only some of the time (23% of 3x3 seeds and
+92% of 4x4 seeds on the 249-word proxy of
+[Testing](testing.md#seeding-what-was-measured)), so the session **seeds again,
+with the next seed of its stream, up to `max_seedings` (5) times** and keeps the
+board nearest the range, which is the first that lands. A board that holds no
+word is never dealt: the seeding plants its targets, and a board that held none
+would be `no_board`. `last_deal()` reports how it went (`DealReport`: seedings,
+verifications, solves, the words held, `in_range`). The stream is
+`std::mt19937`'s first output, so a seed is one run of boards on every compiler;
+the targets of recent boards are remembered within a session
+(`RecentTargets`) so the next board is not made of the same words.
+
+**What the store keeps.** Two plain values, strings, numbers and flags only, so
+any file format will do:
+
+- `record()` is a `BoardRecord`: the phase, the size, the tiles as
+  `Board::parse` reads them (`"P A T/B I N/B B B"`; the dead letter is the first
+  of A-Z that no word of the phase uses), **every word of the phase on the board**
+  (`viable`, upper-case, alphabetical) and the finds with their `when` and
+  `assisted`. It is what the history and the dashboard are made from
+  ([Dashboard](design/dashboard.md#the-store)): "met" and "found" are counted
+  from `viable` and `finds`. It is there from the moment the dice land, and stays
+  after `back()` or `again()` until the next shake, so the store saves it when a
+  board ends however it ends. Nothing but a board that reached `playing` has one.
+- `snapshot()` is a `SessionSnapshot`: the state, the size, the seed the next
+  board is dealt from, the board in play (a `BoardRecord`) and the word whose
+  start tile is lit. `GameSession::restore(snapshot, phase, dictionary, options)`
+  brings the session back. Only `box`, `playing` and `resting` are saved:
+  `shaking` and `dropping` save as the box (the board was never seen, and the
+  seed has moved on), `cleared` as `resting`. A restore **solves the board again**
+  against the phase, so it refuses a snapshot of another phase (`wrong_phase`),
+  a board that no longer holds the words recorded (`board_changed`) and one that
+  is not a snapshot of a session (`bad_snapshot`: a find that is not on the
+  board, a word twice, a state that does not fit its board). It does not keep
+  the recent targets, so the board after a restored one may be made of words the
+  original would have avoided.
+
+**Not the session's.** Which words are stickered on the device and the best
+stars for a size are the store's to know (the session has the board's `stars()`
+and the tier's `sticker()`, and nothing across boards). History is the store's
+list of records. The grapheme blocks of a path are `GraphemeBinder`'s, called
+by the screens. Time, sound and animation are theirs. The standard board
+(the default) is a roll of dice and is not dealt by this class: the session is
+the phonics board's, and the deal is the one function in it that knows which
+board it is.
+
 ### Errors
 
 An expected failure (a board that cannot be read, a word list that cannot be
@@ -451,8 +587,8 @@ These do not exist, and nothing in the tree stands in for them:
   The recognition stack is not chosen, and its choice carries licensing
   questions (see [Licensing](licensing.md)).
 - **Phonics phase data.** The reader, the checks, the seeding, the binder, the
-  shake detector and the game rules exist and are tested, and no front end uses
-  them yet. No phase
+  shake detector, the game rules and the game session exist and are tested, and
+  no front end uses them yet. No phase
   file exists, and none is written here: the content has to be written and
   reviewed by someone qualified to do it before a child uses it. The audio
   clips, the sound-it-out sequence and the dashboard are not built.

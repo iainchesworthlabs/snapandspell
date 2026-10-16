@@ -31,7 +31,8 @@ build/windows-msvc-debug/bin/wjs_unit_tests "[solver]"
 The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dice]`
 (and `[data]` for the cases that read the shipped data),
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
-`[shake]`, `[rules]`, `[platform]` and `[profiling]`, and `[app]` in `wjs_app_tests`.
+`[shake]`, `[rules]`, `[session]`, `[platform]` and `[profiling]`, and `[app]` in
+`wjs_app_tests`.
 
 ## What there is
 
@@ -47,12 +48,13 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 | `tests/unit/grapheme_binder_test.cpp` | `wjs::GraphemeBinder` | The brief's `R [AI] N`, order, longest first, greedy from the left, blocks that are whole tiles (`Qu`), single letters ignored, a block growing as the path does, every path of up to four tiles covered in order |
 | `tests/unit/shake_test.cpp` | `wjs::detect_shakes` | Synthetic traces: a shake, one still, a gentle wave, walking, a knock, turning over, a slow tilt, two shakes, a pause, sample rates and jitter, units, a harder threshold, damaged samples |
 | `tests/unit/game_rules_test.cpp` | `wjs::classify_path`, `viable_words`, `tier_for_letters`, `reward_for`, `FoundWords`, `start_tile_help`, `is_cleared` | The three states on each word set (the standard board's has no middle state; the phonics board's holds only the index, and a real word outside it is "real, not today's" with no word handed back), a word under three letters never counting, each path fault by name, a `Qu` tile adding two letters (QUIT is Power), every one of the 10,305 paths of a 3 by 3 board against the solver on both word sets; the tier table and rewards; a word found once whatever its case and kept in order; the help (shortest in letters, then nearest the top left by distance and not by reading order, then alphabetical, the same in all 120 orders of its input, unmoved while other words are found, and following it finds every word and clears the board); cleared, and the empty board |
+| `tests/unit/game_session_test.cpp` | `wjs::GameSession` | Every edge of the flow and every event refused in every other state (a table of nine events by six states, a refused event changing nothing); the three kinds of trace, found again, and an ignored one; stars by tier on a board with words of three, four and five letters; clearing, the celebration, resting and again; the help (the same tile until its word is found, an assisted find, off at the parent's switch, followed to the end of the board); the deal (the same seed gives the same boards and outcomes, different seeds differ, three to five words over 600 seeds, never none, the range and the seedings the options', the focus sounds reaching the seeding, dead jewels); the record, and a snapshot restored in each state and refused in each way; and what it never says: every one of the 10,296 paths of two or more tiles on a 3 by 3 board answered as the two word lists say, and a word only in the dictionary never handed out |
 | `tests/unit/profiling_test.cpp` | `wjs/profiling.hpp` | That the variant CMake chose is the one it was asked for, that every call can be made with no profiler connected, and that a zone cannot be copied or moved |
 | `tests/unit/dice_test.cpp` | `wjs::DiceSet`, `wjs::roll` | The file format (a face of several letters, commas, comments, a byte-order mark), each way a set is refused, a roll using each die once and showing one of its faces, a function of the seed, two boards pinned so a change of compiler shows, every face shown over many rolls |
 | `tests/unit/dice_data_test.cpp` | The shipped dice, `data/dice` | Each size has the dice for its board and six different faces to a die with a vowel among them; 300 boards a size rolled and solved against the dictionary hold about the words a random board does; two boards pinned. Reads the shipped files by their path in the checkout, as the performance tier does |
 | `tests/unit/paths_test.cpp` | `wjs::platform::executable_path` | That it names the running test program: absolute, an existing file, called `wjs_unit_tests` |
 | `tests/app/solver_model_test.cpp` | The window's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
-| `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding) and binds its blocks, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
+| `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
 | `tests/profiling/check_presets.cmake` | `CMakePresets.json`, `vcpkg.json`, `cmake/Tracy.cmake` | See below: `profiling.shipped_presets` |
 | `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `src/` | See below: `profiling.zone_names` |
 | `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
@@ -100,6 +102,38 @@ The path check is held against the solver rather than restated: for every simple
 path of a 3 by 3 board, `classify_path` says `viable` exactly when the solver
 finds the path's word, and on the standard board never says
 `real_not_todays`.
+
+## Game session: what is pinned
+
+`game_session_test.cpp` uses no word list that is in the repository: the phases
+are the seven and four words the seeding tests use (TEST DATA, placeholder
+sounds), the dictionary is those eleven words and nine more written in the test,
+and most cases play a 3 by 3 board written out in the test and brought in through
+`restore`, so that its five words and their paths are known without asking the
+solver. The cases about dealing use the session's own boards and hold them to the
+solver. A few pin a reading the design left open or took two ways:
+
+| Reading | Pinned by |
+| --- | --- |
+| A real word is never answered "not a word", of any length. The rules (`classify_path`) call a word under three letters `not_a_word` because it cannot count; the session answers `real_not_todays` for it, the soft tick, and names nothing. | `a real word of two letters is a real word, not 'not a word'`, and the 10,296-path case, which holds the answer to the two word lists for every path |
+| A path of fewer than two tiles is `ignored`: a touch to hear a letter, or a trace cancelled outside the board, is not a word attempt | `a touch on one tile, or nothing, is not a word attempt` |
+| The word is named only when it is one of the phase's: `real_not_todays` and `not_a_word` carry none; the record, the snapshot, the tray and the help hold none either. A stand-in for a word a child must never meet is in the dictionary and traced, and is found nowhere the session hands out | `a word that is only in the dictionary is never handed out`, and `no path of the board is answered wrongly, or names a word that is not today's` |
+| The help answers with a tile, never the word; the word it is for is in the snapshot only, because the light has to come back with the board | `the help answers with a tile and never a word` |
+| A refused event changes nothing: not the state, the board, the finds or the seed | the table of events by states, which compares snapshots before and after |
+| `solo.word-found` is not a state: the session is already `playing` (or `cleared`), and a trace is accepted through the screens' few moments of showing a word | `a viable path is a find`, `the last viable word clears the board` |
+| A snapshot saves `shaking` and `dropping` as the box and `cleared` as `resting` | `a snapshot in shaking or dropping is the box`, `a snapshot in cleared is saved as resting` |
+| The recent targets are not saved: a restored session continues the same only from the box | `a snapshot brings a session back as it was, in each state` (it checks the next board from the box only, on purpose) |
+
+**The three-to-five guarantee** is a property over 300 seeds of each size on the
+test phase: every board holds a word (counted by the solver, not the session),
+the report says `in_range` exactly when the count is three to five, the seedings
+are at least one and at most `max_seedings`, and all 600 land. It holds for this
+phase because the phase is a handful of words; for a phase of a few hundred a 3x3
+does not always land (35 of 100 boards miss after five seedings on the 249-word
+proxy, and the 4x4 lands every one), which is reported, not hidden, and is held
+by the performance tier's budgets
+([Performance design](design/performance.md#the-game-rows)). A board in play may
+therefore hold fewer than three or more than five words; it never holds none.
 
 ## The build checks
 
@@ -186,6 +220,12 @@ The same boards on every machine, compiler and standard library:
   by walking the trie; 100 seeds of each size 3x3 to 6x6 with the options of
   `wjs::phonics_board_options`. And, for the binder, three paths of nine tiles
   against a test set of 39 graphemes (31 of more than one letter and not split).
+- **The game session** (phonics board): the same test phase, 100 sessions of each
+  of 3x3 and 4x4, session `i` seeded `7919 * i + n`, each dealt (`shake`) and
+  then played to the resting screen: a find for every word of the board (with
+  the help asked for before every other), a word traced again, a touch of one
+  tile, a snapshot after the first find, `rest`, and the last snapshot; then the
+  first snapshot restored.
 
 ### What is counted
 
@@ -203,6 +243,10 @@ The same boards on every machine, compiler and standard library:
 | `seed.tries.max.<n>x<n>`, `seed.out_of_range.<n>x<n>`, `seed.phase.words` | At most 20 (the cap), exactly 0, exactly 249 |
 | The seeding digest | Exactly. An FNV-1a digest of every board seeded: its tiles, targets, dead jewels, the words found, tries and solves |
 | `bind.comparisons.<path>.9`, **phonics board** | A quarter above: 349, 63, 234 for a path of no block, all blocks and a mix |
+| `session.seedings`, `.tries`, `.solves`, `.visits` (total and most) and `.out_of_range` by size, **phonics board** | A quarter above each (docs/design/performance.md has the figures); a session seeds again up to its cap of 5 when a board misses three to five words, so these are the price of that guarantee |
+| `session.seedings.max.<n>x<n>`, `session.empty.<n>x<n>`, `session.words.total.<n>x<n>` | At most 5 (the cap), exactly 0 (no board is dealt with no word), exactly 522 and 476 (the corpus, the phase and the seeding pinned together) |
+| `session.play.solves.<n>x<n>`, `session.play.visits.<n>x<n>`, `session.restore.solves.<n>x<n>` | Exactly 0, 0 and 100: tracing, asking for the help, recording and saving make no solve, and a restore makes one |
+| The session digest | Exactly. An FNV-1a digest of every deal (seedings, tries, solves, words, range), the kind of every trace, and the snapshots after the first find and at rest |
 
 Every metric is for one **board mode**, and the report and a failure say which.
 The standard board is the default mode; the phonics board is a parent's switch,
