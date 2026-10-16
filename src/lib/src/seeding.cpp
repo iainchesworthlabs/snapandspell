@@ -98,9 +98,13 @@ public:
           free_(grid.free_count()),
           on_path_(grid.cells.size(), false) {}
 
-    // Leaves the grid as it was and returns false if no path fits.
-    [[nodiscard]] bool plant(std::string_view word) {
+    // Leaves the grid as it was and returns false if no path fits. With `apart`
+    // the word may not newly touch a letter already planted (it may share one
+    // where the letter agrees), so words planted together do not make words
+    // between them.
+    [[nodiscard]] bool plant(std::string_view word, bool apart = false) {
         word_ = word;
+        apart_ = apart;
         steps_ = 0;
         std::vector<std::size_t> starts(grid_.cells.size());
         std::iota(starts.begin(), starts.end(), std::size_t{0});
@@ -123,9 +127,24 @@ private:
         }
         const char held = grid_.cells[cell];
         if (held == '\0') {
+            if (apart_ && touches_other_word(cell)) {
+                return false;
+            }
             return free_ > reserve_;
         }
         return held == word_[at];
+    }
+
+    // Whether a tile beside `cell` holds a letter that this word's path does not.
+    [[nodiscard]] bool touches_other_word(std::size_t cell) const {
+        std::array<std::size_t, 8> next{};
+        const std::size_t count = grid_.neighbours(cell, next);
+        for (std::size_t i = 0; i < count; ++i) {
+            if (grid_.cells[next[i]] != '\0' && !on_path_[next[i]]) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Takes `cell` for letter `at` and carries on from it. On success the
@@ -167,6 +186,7 @@ private:
     std::size_t free_;
     std::vector<bool> on_path_;
     std::string word_;
+    bool apart_ = false;
     std::size_t steps_ = 0;
 };
 
@@ -255,7 +275,10 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
 
     const std::string& alphabet = index.alphabet();
     const char dead_letter = to_upper(options.dead_letter);
-    if (options.dead_cells > 0) {
+    // A guided fill may make a tile dead when no letter fits, so it needs the
+    // dead letter whether or not dead jewels were asked for.
+    const bool needs_dead_letter = options.dead_cells > 0 || options.guided_fill;
+    if (needs_dead_letter) {
         if (!is_letter(dead_letter) || alphabet.find(dead_letter) != std::string::npos) {
             return std::unexpected(SeedError::bad_dead_letter);
         }
@@ -263,7 +286,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
 
     const std::string filler = options.filler.empty() ? alphabet : upper(options.filler);
     if (filler.empty() || !std::ranges::all_of(filler, is_letter) ||
-        (options.dead_cells > 0 && filler.find(dead_letter) != std::string::npos)) {
+        (needs_dead_letter && filler.find(dead_letter) != std::string::npos)) {
         return std::unexpected(SeedError::bad_filler);
     }
 
@@ -273,7 +296,8 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
     std::vector<Candidate> candidates;
     std::size_t shortest = cell_count;
     for (const PhaseWord& word : index.words()) {
-        if (word.word.size() > cell_count) {
+        if (word.word.size() > cell_count ||
+            (options.max_target_letters > 0 && word.word.size() > options.max_target_letters)) {
             continue;
         }
         Candidate candidate;
@@ -301,7 +325,20 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
 
     Draw draw(seed);
     std::size_t tries = 0;
+    std::size_t solves = 0;
     std::optional<Attempt> best;
+
+    // The words of the phase on a board of these letters.
+    const auto count_words = [&](std::span<const char> letters) -> std::size_t {
+        const auto parsed = Board::parse(board_text(letters, options.size));
+        ++solves;
+        return parsed ? solve(*parsed, index.dictionary(), solve_options).size() : 0;
+    };
+
+    // The letters a guided fill chooses between, each once.
+    std::string distinct = filler;
+    std::ranges::sort(distinct);
+    distinct.erase(std::ranges::unique(distinct).begin(), distinct.end());
 
     const auto verify = [&](Attempt& attempt) -> bool {
         const auto board = Board::parse(board_text(attempt.letters, options.size));
@@ -309,6 +346,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
         attempt.viable =
             board ? solve(*board, index.dictionary(), solve_options) : std::vector<FoundWord>{};
         ++tries;
+        ++solves;
 
         const std::size_t count = attempt.viable.size();
         attempt.distance = count < options.min_viable   ? options.min_viable - count
@@ -348,9 +386,12 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
         grid.cells.assign(cell_count, '\0');
         Planter planter(grid, draw, dead_target);
 
+        // A guided fill only ever adds words, so enough are planted at the
+        // start that the count cannot fall short.
+        const std::size_t base = min_targets + draw.below(max_targets - min_targets + 1);
         const std::size_t wanted =
-            std::min({min_targets + draw.below(max_targets - min_targets + 1), options.max_viable,
-                      candidates.size()});
+            std::min({options.guided_fill ? std::max(base, options.min_viable) : base,
+                      options.max_viable, candidates.size()});
 
         Attempt attempt;
         while (attempt.target_indices.size() < wanted) {
@@ -369,7 +410,12 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
             const std::size_t at = draw.below(from->size());
             const std::size_t chosen = (*from)[at];
             from->erase(from->begin() + static_cast<std::ptrdiff_t>(at));
-            if (planter.plant(candidates[chosen].letters)) {
+            // A guided fill cannot take words away, so the planting is kept apart
+            // where it can be, and made to touch only if there is no other way.
+            const bool planted =
+                (options.guided_fill && planter.plant(candidates[chosen].letters, true)) ||
+                planter.plant(candidates[chosen].letters);
+            if (planted) {
                 attempt.target_indices.push_back(chosen);
             }
         }
@@ -398,8 +444,53 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
             grid.cells[cell] = dead_letter;
             attempt.dead.push_back(Position{cell / options.size, cell % options.size});
         }
-        for (const std::size_t cell : attempt.filler) {
-            grid.cells[cell] = filler[draw.below(filler.size())];
+        if (options.guided_fill) {
+            // Every tile starts as a dead jewel, so the count is that of the words
+            // planted, and each is given, in a random order, a random letter from
+            // those that keep the count within a ceiling, or stays dead.
+            std::vector<std::size_t> order = attempt.filler;
+            draw.shuffle(std::span(order));
+            for (const std::size_t cell : order) {
+                grid.cells[cell] = dead_letter;
+            }
+            // The words planted may hold too many words between themselves, and
+            // no fill can take words away. That planting is given up on the cost
+            // of one solve, not of a fill.
+            const std::size_t baseline = count_words(grid.cells);
+            if (baseline > options.max_viable) {
+                for (const std::size_t cell : order) {
+                    attempt.dead.push_back(Position{cell / options.size, cell % options.size});
+                }
+                attempt.letters = grid.cells;
+                accepted = verify(attempt);
+                continue;
+            }
+            // Fill up to a count chosen between the words already there and the most
+            // wanted, so the boards are not all at the top of the range.
+            const std::size_t floor = std::max(baseline, options.min_viable);
+            const std::size_t ceiling = floor + draw.below(options.max_viable - floor + 1);
+            for (const std::size_t cell : order) {
+                std::vector<char> fits;
+                for (const char letter : distinct) {
+                    grid.cells[cell] = letter;
+                    if (count_words(grid.cells) <= ceiling) {
+                        fits.push_back(letter);
+                    }
+                }
+                if (fits.empty()) {
+                    grid.cells[cell] = dead_letter;
+                    attempt.dead.push_back(Position{cell / options.size, cell % options.size});
+                } else {
+                    grid.cells[cell] = fits[draw.below(fits.size())];
+                }
+            }
+            std::ranges::sort(attempt.dead, [](const Position& a, const Position& b) {
+                return a.row != b.row ? a.row < b.row : a.column < b.column;
+            });
+        } else {
+            for (const std::size_t cell : attempt.filler) {
+                grid.cells[cell] = filler[draw.below(filler.size())];
+            }
         }
         attempt.letters = grid.cells;
 
@@ -407,8 +498,9 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
 
         // Then change one filler tile at a time, which moves the count by a
         // word or two and costs one solve, before starting over.
-        for (std::size_t change = 0; !accepted && change < options.mutations_per_plant &&
-                                     tries < options.max_tries && !attempt.filler.empty();
+        for (std::size_t change = 0;
+             !accepted && !options.guided_fill && change < options.mutations_per_plant &&
+             tries < options.max_tries && !attempt.filler.empty();
              ++change) {
             const std::size_t cell = attempt.filler[draw.below(attempt.filler.size())];
             char letter = filler[draw.below(filler.size())];
@@ -429,8 +521,14 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
         return std::unexpected(SeedError::bad_size);
     }
 
-    SeededBoard result{
-        *std::move(board), {}, std::move(best->viable), std::move(best->dead), tries, false, false};
+    SeededBoard result{*std::move(board),
+                       {},
+                       std::move(best->viable),
+                       std::move(best->dead),
+                       tries,
+                       false,
+                       false,
+                       solves};
     std::size_t with_focus = 0;
     for (const std::size_t target : best->target_indices) {
         result.targets.push_back(candidates[target].word->word);

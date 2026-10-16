@@ -229,6 +229,13 @@ pure function of the phase data, the options, the recent targets and a seed:
    words is kept. Otherwise another board is made, up to `max_tries` (20)
    verifications in all, and the nearest is returned with `fallback` set.
 
+Two options make fuller boards (measured in
+[Testing](testing.md#fuller-boards-a-guided-fill-and-short-targets)):
+`max_target_letters` limits the targets to short words, and `guided_fill` gives
+each tile left a letter the solver says keeps the count in range, making a tile
+dead only if no letter fits, with the planted words kept apart where there is
+room. Both are off by default.
+
 Dead jewels are a letter no word of the phase uses, chosen by the caller and
 checked (`bad_dead_letter`); the library's `Board` stays A-Z and the application
 draws that letter as a jewel. Draws are `std::mt19937` taken modulo and shuffles

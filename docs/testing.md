@@ -42,7 +42,7 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`,
 | `tests/unit/solver_test.cpp` | `wjs::solve` | Adjacency, the minimum length, the path reported for a word, a tile used at most once, a word reached by several paths reported once, the `Qu` tile, the scoring scheme applied, an empty dictionary; and the work counter (`wjs/solver_work.hpp`): visits, solves and the largest, reset, and that each thread has its own |
 | `tests/unit/path_test.cpp` | `wjs::validate_path`, `wjs::are_neighbours` | The word a path spells (a `Qu` tile adds two letters), each fault (off the board, a tile twice, tiles that do not touch, no tiles), no wrap-around from the end of a row, and that every path the solver reports validates |
 | `tests/unit/phase_data_test.cpp` | `wjs::parse_words`, `parse_graphemes`, `PhaseSet` | The two file formats, the review header (all three on one line or one to a line, placeholders, a half-given or malformed review), each line problem with its line number, the cumulative phase index, each cross-file check, `reviewed()` and the files it names, loading a directory |
-| `tests/unit/seeding_test.cpp` | `wjs::seed_board`, `RecentTargets` | The same inputs give the same board (and two boards are pinned, so a change of compiler or algorithm shows), a range of three to five words unless the board says it fell back, targets that are words of the phase and are on the board, dead jewels, focus sounds, recent targets, the cap on tries, each refused option, variety over 300 seeds |
+| `tests/unit/seeding_test.cpp` | `wjs::seed_board`, `RecentTargets` | The same inputs give the same board (and two boards are pinned, so a change of compiler or algorithm shows), a range of three to five words unless the board says it fell back, targets that are words of the phase and are on the board, dead jewels, focus sounds, recent targets, the cap on tries, each refused option, variety over 300 seeds; the target-length limit, and the guided fill (count kept in range, dead jewels listed as they are on the board, a function of the seed, none with letters outside the phase) |
 | `tests/unit/grapheme_binder_test.cpp` | `wjs::GraphemeBinder` | The brief's `R [AI] N`, order, longest first, greedy from the left, blocks that are whole tiles (`Qu`), single letters ignored, a block growing as the path does, every path of up to four tiles covered in order |
 | `tests/unit/shake_test.cpp` | `wjs::detect_shakes` | Synthetic traces: a shake, one still, a gentle wave, walking, a knock, turning over, a slow tilt, two shakes, a pause, sample rates and jitter, units, a harder threshold, damaged samples |
 | `tests/unit/profiling_test.cpp` | `wjs/profiling.hpp` | That the variant CMake chose is the one it was asked for, that every call can be made with no profiler connected, and that a zone cannot be copied or moved |
@@ -301,9 +301,53 @@ What it says, and what it does not:
   and 50 ms worst on the lowest device, with a tablet at three to five times a
   desktop core (its estimate): the worst case would be over it there.
 - **Not measured**: seeding with a real index (none exists), with focus sounds on
-  a real phase, with recent targets over a session, on a tablet, or in Debug. A
-  fill that chooses each filler letter by solving, so that it adds no word, was
-  not built and might give fuller boards at the same share.
+  a real phase, with recent targets over a session, on a tablet, or in Debug.
+
+### Fuller boards: a guided fill and short targets
+
+The result above leaves a board with four letters in a field of dead jewels,
+which is not a board anyone would play. Two options exist to do better, and
+both were measured on the same proxies (400 seeds a row, Release, no dead
+jewels asked for, 200 seeds for 5x5 and 6x6):
+
+- `guided_fill` gives each tile left after planting a letter chosen at random
+  from those that keep the board's count under a ceiling (drawn between the
+  words already planted and the most wanted), tried tile by tile with the
+  solver; a tile no letter fits is made a dead jewel. The planted words are
+  also kept apart where the board has room.
+- `max_target_letters` limits the targets to words of that many letters or
+  fewer. Longer words are still words of the phase and still count if found.
+
+**The fill alone did nothing.** It cannot take a word away, and the words
+planted already hold too many: a planted word of four or more letters brings its
+shorter words and its inflections with it, so three targets of an index of
+hundreds hold more than five words before any filler is placed. What moved the
+result was the targets, three letters at most, and keeping them apart.
+
+| Index | Board | Landed, targets of 3 letters | Dead jewels (of the tiles) | Mean time |
+| --- | --- | --- | --- | --- |
+| 249 | 3x3 | 23% | 2.6 of 9 | 0.6 ms |
+| 249 | 4x4 | 92% | 4.4 of 16 | 0.6 ms |
+| 249 | 5x5 | 100% | 7.0 of 25 | 1.0 ms |
+| 249 | 6x6 | 100% | 9.6 of 36 | 2.1 ms |
+| 122 | 3x3 / 4x4 / 5x5 / 6x6 | 75% / 90% / 100% / 91% | 1.7 / 3.4 / 5.7 / 9.0 | 0.3 / 0.6 / 1.2 / 2.4 ms |
+| 68 | 3x3 / 4x4 / 5x5 / 6x6 | 56% / 90% / 100% / 91% | 1.9 / 3.3 / 5.5 / 8.7 | 0.4 / 0.5 / 0.9 / 1.8 ms |
+
+With targets of four letters the 4x4 lands 19% to 50% of the time, and with no
+limit 2% to 48%; the random fill, with any limit, landed 0% on a 4x4 or larger.
+So: **boards of about three quarters letters at 4x4 and larger, a few dead
+jewels, 90% or more of seeds in range**, at the price of planting only 3-letter
+words (what the design calls Spark words). The 3x3 stays crowded (23% to 75%).
+A seed that does not land is reported as a fallback, as before.
+
+Put letters outside the phase in the filler (the design's "letters not yet
+taught") and a tile always has a letter that forms no word of the phase, so
+nothing is made dead at all; the board then holds untaught letters, which is the
+reviewer's question. That combination is tested on the test data, not measured
+on the proxies.
+
+What it does not settle: the proxies are sizes, not a proposed index; whether a
+phase planted only with 3-letter words is acceptable; and a tablet.
 
 ## Sanitizers, warnings and Debug
 
