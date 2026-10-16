@@ -83,12 +83,13 @@ The rule stays: no `#if`, no `#define`, no OS code outside `src/platforms`.
 
 ## 6. Milestones
 
-**The MVP.** The author's categorisation of the first release is PRD section 12.
-It is narrower than M1 to M2b below in what it ships (a hand-filtered phonics
-index of SATPIN words, 3x3 and 4x4 boards, one help level, no voice recording,
-no export, no network capability, no timers) and wider in one respect: it
-includes the camera-to-board scanner (Mode A), which this roadmap had after Solo
-Play. The MVP is iPad first. Where a milestone below disagrees with section 12,
+**The MVP.** The author's categorisation of the first release is PRD section 12,
+as amended by section 12.7. It is narrower than M1 to M2b below in what it ships
+(a standard dice board, 3x3 to 6x6, against the full dictionary, with a
+hand-filtered SATPIN phonics board as a parent's switch; one help level, no
+voice recording, no export, no network capability, no timers, no block list) and
+wider in one respect: it includes the camera-to-board scanner (Mode A), which
+this roadmap had after Solo Play. The MVP is iPad first. Where a milestone below disagrees with section 12,
 section 12 wins; the milestones are the full product's order.
 
 ### M1: Solo Play on iPad and Android tablet (private builds)
@@ -111,7 +112,7 @@ it, and collect a jewel.
 - Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.
   The state school-font setting (PRD 7.1) needs each font's redistribution terms
   checked first, and is **not** part of the exit above until they are.
-- A 3x3 mode and a 4x4 mode.
+- Boards from 3x3 to 6x6: the MVP's standard board (PRD 12.7).
 
 ### M2: Child-appropriate words and hints
 
