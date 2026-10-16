@@ -3,6 +3,8 @@ include(Catch)
 
 add_executable(wjs_unit_tests
     unit/board_test.cpp
+    unit/dice_data_test.cpp
+    unit/dice_test.cpp
     unit/dictionary_test.cpp
     unit/grapheme_binder_test.cpp
     unit/path_test.cpp
@@ -27,6 +29,11 @@ target_link_libraries(wjs_unit_tests
         wjs::sanitizers
         wjs::coverage
         Catch2::Catch2WithMain)
+
+# The shipped data, by its path in this checkout, for the cases about the data
+# itself (dice_data_test.cpp), as the performance tier does for the dictionary.
+target_compile_definitions(wjs_unit_tests PRIVATE
+    "WJS_DATA_DIRECTORY=\"${PROJECT_SOURCE_DIR}/data\"")
 
 wjs_deploy_sanitizer_runtime(wjs_unit_tests)
 
@@ -147,6 +154,13 @@ find_program(WJS_PWSH NAMES pwsh)
 if(WJS_PWSH)
     # The word lists: lowercase a-z, sorted, unique, and every category and
     # tier word is in the dictionary.
+    # The project's dice are what tools/data/make_dice.ps1 makes from the
+    # dictionary as it is now: the source hash and the dice both have to match.
+    add_test(NAME data.dice
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${PROJECT_SOURCE_DIR}/tools/data/make_dice.ps1"
+            -Root "${PROJECT_SOURCE_DIR}" -Check)
+
     add_test(NAME data.wordlists
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/check_wordlists.ps1"

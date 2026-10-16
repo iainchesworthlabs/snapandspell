@@ -8,6 +8,8 @@
 #include <span>
 #include <utility>
 
+#include "draw.hpp"
+
 namespace wjs {
 namespace {
 
@@ -35,30 +37,7 @@ constexpr std::size_t plant_step_budget = 20000;
     return result;
 }
 
-// The only source of randomness: std::mt19937, whose output is fixed by the
-// standard, taken modulo. A draw is never part of a larger expression, so the
-// order the draws are made in does not depend on the compiler.
-class Draw {
-public:
-    explicit Draw(std::uint32_t seed) : engine_(seed) {}
-
-    // 0 to n - 1. n must be above 0.
-    [[nodiscard]] std::size_t below(std::size_t n) {
-        const auto value = static_cast<std::uint32_t>(engine_());
-        return static_cast<std::size_t>(value % static_cast<std::uint32_t>(n));
-    }
-
-    template <typename T>
-    void shuffle(std::span<T> items) {
-        for (std::size_t i = items.size(); i > 1; --i) {
-            const std::size_t j = below(i);
-            std::swap(items[i - 1], items[j]);
-        }
-    }
-
-private:
-    std::mt19937 engine_;
-};
+using detail::Draw;
 
 // The tiles of a board, row by row. A tile that holds nothing yet is 0.
 struct Grid {
