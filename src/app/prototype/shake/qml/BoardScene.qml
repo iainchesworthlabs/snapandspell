@@ -113,11 +113,14 @@ Item {
     // ---- Prototype settings, not part of the seam --------------------------
     // How far the camera leans from straight down while the dice are in the
     // air, in degrees. It comes upright as they settle, so the 2D layer lines up.
-    property real lean: 24
+    property real lean: 0
     // "none", "procedural" (Qt's sky, prefiltered on the first frame) or
     // "baked" (the same, prefiltered in advance and read from a file).
     property string probeMode: "baked"
-    property real cameraDistance: 2.6   // times the board's side
+    property real cameraDistance: 2.3   // times the board's side
+    // Weighted motion: the dice are thrown about the box, bounce, collide and
+    // slot into their cells (ShakeScript.js). False is the prescribed curves.
+    property bool weighted: true
     // While the first board is shown, draw the lid, the shadows and the dice
     // through their blended paths for three frames at 2% opacity (Qt skips
     // anything under 1%), so the first shake does not pay for creating them.
@@ -137,6 +140,11 @@ Item {
     readonly property real spanX: boardColumns * tile + (boardColumns - 1) * gap
     readonly property real spanY: boardRows * tile + (boardRows - 1) * gap
     readonly property real rimWidth: inset * 0.7
+    // The box's cavity is a little roomier than the board, so a die has
+    // something to slide into and bump against when it is shaken.
+    readonly property real slack: tile * 0.2
+    readonly property real boxX: spanX + 2 * slack
+    readonly property real boxY: spanY + 2 * slack
     readonly property real boxDepth: tile * 0.34
     readonly property real lidHeight: tile * 2.45
 
@@ -150,7 +158,8 @@ Item {
     // ---- Driving the scene --------------------------------------------------
     // What the script needs of the layout, in this item's pixels.
     function layout() {
-        return { tile: tile, gap: gap, pitch: pitch, reduced: reducedMotion };
+        return { tile: tile, gap: gap, pitch: pitch, reduced: reducedMotion, weighted: weighted,
+                 lidTiles: 2.45 };
     }
 
     function begin(board, seed) {
@@ -184,7 +193,7 @@ Item {
         }
         boxNode.eulerRotation = Qt.vector3d(state.boxRx, state.boxRy, 0);
         lidHinge.eulerRotation = Qt.vector3d(state.lidAngle, 0, 0);
-        lidHinge.position = Qt.vector3d(0, spanY / 2 + rimWidth, lidHeight + state.lidLift);
+        lidHinge.position = Qt.vector3d(0, boxY / 2 + rimWidth, lidHeight + state.lidLift);
         lid.opacity = warm ? Math.max(state.lidOpacity, 0.02) : state.lidOpacity;
         lidHinge.visible = warm || state.lidOpacity > 0.001;
         leanNow = lean * state.leanFraction;
@@ -339,8 +348,8 @@ Item {
             Model {
                 source: "#Cube"
                 position: Qt.vector3d(0, 0, -root.boxDepth * 0.15)
-                scale: Qt.vector3d((root.spanX + 2 * root.rimWidth) / 100,
-                                   (root.spanY + 2 * root.rimWidth) / 100,
+                scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100,
+                                   (root.boxY + 2 * root.rimWidth) / 100,
                                    root.boxDepth * 0.3 / 100)
                 castsShadows: false
                 receivesShadows: false
@@ -352,29 +361,29 @@ Item {
 
             Model {
                 source: "#Cube"
-                position: Qt.vector3d(0, root.spanY / 2 + root.rimWidth / 2, root.boxDepth / 2)
-                scale: Qt.vector3d((root.spanX + 2 * root.rimWidth) / 100, root.rimWidth / 100, root.boxDepth / 100)
+                position: Qt.vector3d(0, root.boxY / 2 + root.rimWidth / 2, root.boxDepth / 2)
+                scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100, root.rimWidth / 100, root.boxDepth / 100)
                 materials: rimMaterial
             }
 
             Model {
                 source: "#Cube"
-                position: Qt.vector3d(0, -root.spanY / 2 - root.rimWidth / 2, root.boxDepth / 2)
-                scale: Qt.vector3d((root.spanX + 2 * root.rimWidth) / 100, root.rimWidth / 100, root.boxDepth / 100)
+                position: Qt.vector3d(0, -root.boxY / 2 - root.rimWidth / 2, root.boxDepth / 2)
+                scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100, root.rimWidth / 100, root.boxDepth / 100)
                 materials: rimMaterial
             }
 
             Model {
                 source: "#Cube"
-                position: Qt.vector3d(root.spanX / 2 + root.rimWidth / 2, 0, root.boxDepth / 2)
-                scale: Qt.vector3d(root.rimWidth / 100, root.spanY / 100, root.boxDepth / 100)
+                position: Qt.vector3d(root.boxX / 2 + root.rimWidth / 2, 0, root.boxDepth / 2)
+                scale: Qt.vector3d(root.rimWidth / 100, root.boxY / 100, root.boxDepth / 100)
                 materials: rimMaterial
             }
 
             Model {
                 source: "#Cube"
-                position: Qt.vector3d(-root.spanX / 2 - root.rimWidth / 2, 0, root.boxDepth / 2)
-                scale: Qt.vector3d(root.rimWidth / 100, root.spanY / 100, root.boxDepth / 100)
+                position: Qt.vector3d(-root.boxX / 2 - root.rimWidth / 2, 0, root.boxDepth / 2)
+                scale: Qt.vector3d(root.rimWidth / 100, root.boxY / 100, root.boxDepth / 100)
                 materials: rimMaterial
             }
 
@@ -406,15 +415,15 @@ Item {
             Node {
                 id: lidHinge
 
-                position: Qt.vector3d(0, root.spanY / 2 + root.rimWidth, root.lidHeight)
+                position: Qt.vector3d(0, root.boxY / 2 + root.rimWidth, root.lidHeight)
 
                 Model {
                     id: lid
 
                     source: "#Cube"
-                    position: Qt.vector3d(0, -(root.spanY / 2 + root.rimWidth), 0)
-                    scale: Qt.vector3d((root.spanX + 2 * root.rimWidth) / 100,
-                                       (root.spanY + 2 * root.rimWidth) / 100,
+                    position: Qt.vector3d(0, -(root.boxY / 2 + root.rimWidth), 0)
+                    scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100,
+                                       (root.boxY + 2 * root.rimWidth) / 100,
                                        root.tile * 0.06 / 100)
                     castsShadows: false
                     receivesShadows: false

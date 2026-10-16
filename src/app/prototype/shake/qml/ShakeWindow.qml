@@ -22,6 +22,7 @@ ApplicationWindow {
     required property real leanDegrees
     required property int runCount
     required property bool warmUp
+    required property bool weighted
     required property int startWidth
     required property int startHeight
 
@@ -85,7 +86,8 @@ ApplicationWindow {
         const made = component.createObject(sceneHost, {
             probeMode: window.probeMode,
             lean: window.leanDegrees,
-            warmUp: window.warmUp
+            warmUp: window.warmUp,
+            weighted: window.weighted
         });
         const createdAt = stats.now();
         made.anchors.fill = sceneHost;
@@ -200,8 +202,10 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        // The scene draws past its item by its overdraw; leave room above it.
-        anchors.topMargin: window.scene ? window.scene.overdraw : 0
+        // The scene draws past its item by its overdraw (half a tile); leave
+        // room above it. A fixed share of the window, not the scene's own
+        // number, which depends on this item's size.
+        anchors.topMargin: parent.height * 0.07
         height: parent.height * 2 / 3 - anchors.topMargin
 
         DragHandler {
@@ -319,6 +323,17 @@ ApplicationWindow {
                 text: qsTr("Reduced motion")
                 checked: window.reduced
                 onToggled: window.reduced = checked
+            }
+
+            Switch {
+                text: qsTr("Weighted")
+                checked: window.weighted
+                onToggled: {
+                    window.weighted = checked;
+                    if (window.scene) {
+                        window.scene.weighted = checked;
+                    }
+                }
             }
 
             Switch {

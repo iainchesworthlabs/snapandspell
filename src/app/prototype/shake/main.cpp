@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
                                          QStringLiteral("mode"), QStringLiteral("baked"));
     const QCommandLineOption leanOption(
         QStringLiteral("lean"), QStringLiteral("Camera lean from straight down, in degrees."),
-        QStringLiteral("degrees"), QStringLiteral("24"));
+        QStringLiteral("degrees"), QStringLiteral("0"));
     const QCommandLineOption runsOption(QStringLiteral("runs"),
                                         QStringLiteral("Repetitions of each measured case."),
                                         QStringLiteral("count"), QStringLiteral("6"));
@@ -56,11 +56,17 @@ int main(int argc, char* argv[]) {
         QStringLiteral("1: draw the lid, shadows and blended dice once while the first board is "
                        "shown, so the first shake does not pay for them; 0: do not."),
         QStringLiteral("0|1"), QStringLiteral("1"));
+    const QCommandLineOption feelOption(
+        QStringLiteral("feel"),
+        QStringLiteral("weighted: dice thrown about the box that bounce and slot in; "
+                       "staged: prescribed curves."),
+        QStringLiteral("mode"), QStringLiteral("weighted"));
     const QCommandLineOption sizeOption(QStringLiteral("size"),
                                         QStringLiteral("Window size, WxH, in logical pixels."),
                                         QStringLiteral("WxH"), QStringLiteral("560x900"));
     parser.addOptions({autoOption, outOption, probeOption, leanOption, runsOption, shotsOption,
-                       digestOption, framesOption, boardOption, warmOption, sizeOption});
+                       digestOption, framesOption, boardOption, feelOption, warmOption,
+                       sizeOption});
     parser.process(application);
 
     const QStringList size = parser.value(sizeOption).split(QLatin1Char('x'));
@@ -75,6 +81,8 @@ int main(int argc, char* argv[]) {
     initial.insert(QStringLiteral("leanDegrees"), parser.value(leanOption).toDouble());
     initial.insert(QStringLiteral("runCount"), parser.value(runsOption).toInt());
     initial.insert(QStringLiteral("warmUp"), parser.value(warmOption) != QStringLiteral("0"));
+    initial.insert(QStringLiteral("weighted"),
+                   parser.value(feelOption) != QStringLiteral("staged"));
     initial.insert(QStringLiteral("startWidth"), size.value(0).toInt());
     initial.insert(QStringLiteral("startHeight"), size.value(1).toInt());
 
