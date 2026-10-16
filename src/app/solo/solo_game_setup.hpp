@@ -59,8 +59,9 @@ public:
     ~SoloGameSetup();
 
     // The game to play, over the phase and the store, with the parent's settings as
-    // they are now (the size to offer first, the help, the sounds in focus). The next
-    // run is the next to read a change made in the meantime.
+    // they are now (the size to offer first, the help, the sounds in focus). A change
+    // made in the meantime is read by the next game made: the program makes one when
+    // the parent has changed a setting (SoloModel::storeEdited), and at its next start.
     //
     // If the store holds a game in progress of the phase being played (a board on the
     // table, or the resting screen), that game, as it was left. Otherwise a new game

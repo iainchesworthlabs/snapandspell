@@ -68,10 +68,33 @@ private:
     std::vector<std::vector<std::string>> dice_;
 };
 
+// Which die lies on a tile of a rolled board, and which of its faces is up.
+struct Placement {
+    std::size_t die = 0;   // an index into the set: DiceSet::die(die)
+    std::size_t face = 0;  // an index into that die's faces: the one that is up
+
+    friend constexpr bool operator==(const Placement&, const Placement&) = default;
+};
+
+// A rolled board and where it came from. `placements` has one entry for each
+// tile, row-major, and `die(placements[t].die)[placements[t].face]` is the
+// letters of tile t. Every die of the set is used once. The faces that are not
+// up are the die's other faces, and nothing in the game reads them: they are
+// there for a scene that shows a die tumbling (docs/design/dice-and-faces.md).
+struct RolledBoard {
+    Board board;
+    std::vector<Placement> placements;
+};
+
 // Shakes the dice onto a square board: they are put in a random order, a die to
 // a tile, and each shows one of its faces. A pure function of the set and the
 // seed: std::mt19937 taken modulo and a shuffle of the library's own, so a seed
-// is the same board on every compiler.
+// is the same board and the same placements on every compiler.
+[[nodiscard]] std::expected<RolledBoard, DiceError> roll_with_placements(const DiceSet& dice,
+                                                                         std::uint32_t seed);
+
+// The board of roll_with_placements, for a caller that does not draw the dice:
+// for a seed, the same board as roll_with_placements(dice, seed)->board.
 [[nodiscard]] std::expected<Board, DiceError> roll(const DiceSet& dice, std::uint32_t seed);
 
 }  // namespace wjs

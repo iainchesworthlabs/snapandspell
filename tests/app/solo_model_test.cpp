@@ -545,3 +545,25 @@ TEST_CASE("with no edit the game goes on as it is, whatever the maker would make
     CHECK(chosen.made == 0);
     CHECK(f.model.helpAllowed());
 }
+
+TEST_CASE("a new game that was brought back is shown as the constructor shows one",
+          "[app][solo][edited]") {
+    int made = 0;
+    const wjs::app::ScopedSoloGameMaker installed([&made] {
+        ++made;
+        auto game = std::make_unique<FakeSoloGame>();
+        game->shake();
+        game->settled();
+        return game;
+    });
+    Fixture f;
+    const int version = f.model.boardVersion();
+
+    f.model.storeEdited();
+
+    CHECK(made == 1);
+    CHECK(f.model.state() == "playing");
+    CHECK(f.model.rows() == 3);
+    CHECK(f.model.tiles().size() == 9);
+    CHECK(f.model.boardVersion() == version + 1);
+}

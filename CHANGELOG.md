@@ -16,6 +16,15 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **Dice with six real faces, from the library to the scene.**
+  `wjs::roll_with_placements` returns the die on each tile and the face of it
+  that is up, with the board (`wjs::roll` is the same roll and gives the board it
+  always gave). The 3D scene prototype is given the six faces of each die and
+  which is up: a die carries its six different letters, shows other faces as it
+  is shaken, and lands with the rolled one up, the letter upright. A dead jewel
+  is a die of six jewels. Tested in the library (the faces named are the tiles'
+  letters, for 300 boards of each size) and in the scene's script. See
+  [docs/design/shake-prototype.md](docs/design/shake-prototype.md#real-faces).
 - **The Solo Play screens of the game** in Qt Quick (`WJS_BUILD_APP=ON`):
   `home`, and `solo.box`, `solo.playing` and `solo.resting` with the moments
   between them, the board and the panel split two thirds to one third at any window
@@ -85,9 +94,13 @@ that release, so that its rules (branch protection, required checks) can apply.
   [docs/design/scanner.md](docs/design/scanner.md).
 - **A prototype of the 3D board scene**, built only with
   `-DWJS_BUILD_SHAKE_PROTOTYPE=ON` (and `WJS_BUILD_APP=ON`): the shake, the lid
-  and the drop in Qt Quick 3D behind a one-component interface, scripted from a
-  seed with no physics engine, with a reduced-motion variant, a mouse drag
-  standing in for the accelerometer, frame timing, and a light probe baked by
+  and the drop in Qt Quick 3D behind a one-component interface. The dice are
+  rigid cubes in a box, simulated from first principles by a first-party C++
+  library (`wjs_dice_world`, no Qt, checked against closed-form physics by
+  20 test cases), driven by the device's accelerometer and gyroscope samples
+  (a seeded stand-in without a device) and guided to the cells of a board that
+  was decided before the play. A reduced-motion variant, a mouse drag standing
+  in for the accelerometer, frame timing, and a light probe baked by
   `tools/lightprobe`. The program links Qt Quick 3D and so is GPL-3.0 only. See
   [docs/design/shake-prototype.md](docs/design/shake-prototype.md).
 - **A solver library with no GUI and no operating system code** (`wjs::lib`).

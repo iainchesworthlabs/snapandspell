@@ -58,8 +58,10 @@ The parent area is routed from the Solo Play window, on one store.
   from the store as it is now (the help switch, the size to offer first and the
   sounds in focus: `SoloGameSetup::make()`). It does so at once when the box has its
   lid on, which is where the parent area is reached from, and otherwise when the box
-  next has: a game in play is not taken from a child. Opening the dashboard is a
-  read and not an edit. The phase is read once, at the start of the run: a change of
+  next has: a game in play is not taken from a child (that includes one brought back
+  from the run before and not yet played out: a reset made while it waits clears the
+  store's copy, but the game on the screen goes only with its lid, and its next change
+  saves it again). Opening the dashboard is a read and not an edit. The phase is read once, at the start of the run: a change of
   the Phase setting is seen by the next run.
 - **The tokens.** `Main.qml` binds `Theme.reducedMotion` to the Motion setting and
   `Theme.textScale` to the Text size (`controller.textScale`), so every screen that

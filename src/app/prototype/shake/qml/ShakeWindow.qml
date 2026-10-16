@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ShakePrototype
+import "ShakeScript.js" as Script
 
 // The harness around BoardScene: a window with a Shake button, a mouse drag
 // that stands in for the accelerometer, a 2D layer over the scene to show the
@@ -16,11 +17,16 @@ ApplicationWindow {
     required property bool shotsOnly
     required property bool digestOnly
     required property int startBoard
+    required property bool changeOnly
+    required property string boardKind
+    required property var autoSizes
+    required property int framesPerSecond
     required property string outDir
     required property string probeMode
     required property real leanDegrees
     required property int runCount
     required property bool warmUp
+    required property bool weighted
     required property int startWidth
     required property int startHeight
 
@@ -32,16 +38,29 @@ ApplicationWindow {
 
     // ---- What is being shown -------------------------------------------------
     property int boardSize: startBoard
+    // "standard": the library's roll of the shipped dice. "phonics": a stand-in
+    // for the phonics board (see makeBoard), which is not the library's.
+    property string kind: boardKind
     property int seed: 7
     property bool reduced: false
     property bool showTiles: true
     property var scene: null
     property var litTiles: ({})
 
-    // A board in the shape the scene is given: { rows, columns, tiles }. This is
-    // a stand-in for the library's seeded board (docs/design/board.md, "The
-    // phase board"): a pool of phonics-ish tiles with a few digraphs and a Qu,
-    // and some dead jewels (""), chosen from the seed.
+    // The library's dice, embedded: the standard board is its roll.
+    DiceRoller {
+        id: dice
+    }
+
+    // A board in the shape the scene is given: { rows, columns, tiles, faces,
+    // up }. This is a stand-in for the library's seeded board
+    // (docs/design/board.md, "The phase board"): a pool of phonics-ish tiles
+    // with a few digraphs and a Qu, and some dead jewels (""), chosen from the
+    // seed. The library has no dice for it (the design's open choice is whether
+    // its dice are phase dice or decoy faces drawn for show), so this gives each
+    // tile a die whose other five faces are drawn from the pool, six different
+    // letters: a stand-in, to exercise the scene, and not what the design will
+    // decide.
     function makeBoard(size, boardSeed, deadCount) {
         const pool = ["S", "A", "T", "P", "I", "N", "M", "D", "G", "O", "C", "K", "E", "U", "R",
                       "H", "B", "F", "L", "SH", "CH", "TH", "QU", "A", "O", "E", "I"];
@@ -59,11 +78,41 @@ ApplicationWindow {
         for (let d = 0; d < dead; ++d) {
             tiles[Math.floor(next() * count)] = "";
         }
-        return { rows: size, columns: size, tiles: tiles };
+        // A die for each tile: the tile on a face of its own, and others from
+        // the pool; a dead jewel is a die of six jewels.
+        const faces = [];
+        const up = [];
+        const letters = Array.from(new Set(pool));
+        for (let i = 0; i < count; ++i) {
+            const sides = [];
+            const where = Math.floor(next() * 6);
+            if (tiles[i] === "") {
+                sides.push("", "", "", "", "", "");
+            } else {
+                // Six different letters, as on a real die.
+                const unused = letters.filter(letter => letter !== tiles[i]);
+                for (let k = 0; k < 5; ++k) {
+                    sides.push(unused.splice(Math.floor(next() * unused.length), 1)[0]);
+                }
+                sides.splice(where, 0, tiles[i]);
+            }
+            faces.push(sides);
+            up.push(where);
+        }
+        return { rows: size, columns: size, tiles: tiles, faces: faces, up: up };
+    }
+
+    // The board for the size and seed: the library's roll of the shipped dice
+    // for the standard board, the stand-in for the other.
+    function boardFor(size, boardSeed) {
+        if (kind === "standard" && dice.hasSet(size)) {
+            return dice.roll(size, boardSeed);
+        }
+        return makeBoard(size, boardSeed, 2);
     }
 
     function currentBoard() {
-        return makeBoard(boardSize, seed, 2);
+        return boardFor(boardSize, seed);
     }
 
     // ---- Making the scene, once ---------------------------------------------
@@ -84,7 +133,8 @@ ApplicationWindow {
         const made = component.createObject(sceneHost, {
             probeMode: window.probeMode,
             lean: window.leanDegrees,
-            warmUp: window.warmUp
+            warmUp: window.warmUp,
+            weighted: window.weighted
         });
         const createdAt = stats.now();
         made.anchors.fill = sceneHost;
@@ -151,38 +201,87 @@ ApplicationWindow {
     }
 
     // ---- The device's motion, from the mouse --------------------------------
-    // Where the pointer is in the scene sets the tilt; how fast it moves sets
-    // the agitation, which decays when it stops.
-    property real dragAgitation: 0
-    property vector2d dragTilt: Qt.vector2d(0, 0)
-    // What the measurement run saw of them, for the run driven by the pointer.
-    property real peakAgitation: 0
+    // Dragging the board moves the "device" under the pointer. The pointer's
+    // position at each event is differentiated twice into an acceleration (the
+    // board is taken as 16 cm across), so the stream is as jerky as the hand:
+    // a spike at every start and stop. Where the pointer is in the scene tips
+    // the device up to 8 degrees, and its speed twists it. Every sample goes
+    // to the scene, and to a stand-in for the shake detector (the library's),
+    // which starts a play when the hand is shaking hard enough.
+    property var detector: Script.newTracker()
+    property bool armed: true
+    // What the measurement run saw of the hand, for the run driven by the pointer.
+    property real peakLevel: 0
     property real peakTilt: 0
-    onDragAgitationChanged: peakAgitation = Math.max(peakAgitation, dragAgitation)
-    onDragTiltChanged: peakTilt = Math.max(peakTilt, Math.abs(dragTilt.x), Math.abs(dragTilt.y))
 
+    QtObject {
+        id: pointer
+
+        property bool down: false
+        property double at: 0
+        property real x: 0
+        property real y: 0
+        property real vx: 0
+        property real vy: 0
+    }
+
+    function clampTo(value, limit) {
+        return Math.max(-limit, Math.min(limit, value));
+    }
+
+    // The pointer is at (px, py) in the scene now: one sample of the device.
+    function pointerSample(px, py, atMs) {
+        if (window.scene === null) {
+            return;
+        }
+        const dt = Math.max(0.002, (atMs - pointer.at) / 1000);
+        const vx = (px - pointer.x) / dt;
+        const vy = (py - pointer.y) / dt;
+        const ax = (vx - pointer.vx) / dt;
+        const ay = (vy - pointer.vy) / dt;
+        pointer.x = px;
+        pointer.y = py;
+        pointer.vx = vx;
+        pointer.vy = vy;
+        pointer.at = atMs;
+        const toG = 0.16 / Math.max(1, window.scene.boardRect.width) / 9.81;
+        const handX = clampTo(ax * toG, 5);
+        const handY = clampTo(-ay * toG, 5);
+        const roll = clampTo((px / sceneHost.width - 0.5) * 2, 1) * 0.14;
+        const pitch = clampTo((0.5 - py / sceneHost.height) * 2, 1) * 0.14;
+        const sx = -Math.sin(roll) + handX;
+        const sy = Math.sin(pitch) + handY;
+        // A mouse cannot lift the device. A hand that shakes one sideways also
+        // moves it up and down, in time with the strokes, so that is added: the
+        // up and down follows the sideways acceleration.
+        const lift = clampTo(0.8 * (handX + handY), 4);
+        const sz = Math.cos(roll) * Math.cos(pitch) + lift;
+        const wx = clampTo(-vy * 0.001, 4);
+        const wy = clampTo(vx * 0.001, 4);
+        window.scene.pushMotion(sx, sy, sz, wx, wy, 0);
+        Script.feed(window.detector, sx, sy, sz, wx, wy, 0);
+        window.peakLevel = Math.max(window.peakLevel, window.detector.level);
+        window.peakTilt = Math.max(window.peakTilt, Math.abs(roll), Math.abs(pitch));
+        if (window.armed && pointer.down && !window.scene.busy
+                && window.detector.level > Script.shakeStartLevel) {
+            window.armed = false;
+            window.seed += 1;
+            window.shake();
+        }
+    }
+
+    // While the hand is down or the dice are moving the device keeps sending
+    // samples (a hundred a second), so a hand that has stopped reads as stopped.
     Timer {
-        interval: 33
-        running: true
+        interval: 10
         repeat: true
-        onTriggered: window.dragAgitation = window.dragAgitation * 0.86
-    }
-
-    // Held by the measurement run, to rattle for as long as the script allows.
-    property real autoAgitation: 0
-
-    Binding {
-        target: window.scene
-        property: "agitation"
-        value: Math.max(window.dragAgitation, window.autoAgitation)
-        when: window.scene !== null
-    }
-
-    Binding {
-        target: window.scene
-        property: "tilt"
-        value: window.dragTilt
-        when: window.scene !== null
+        running: window.scene !== null && (window.scene.busy || pointer.down)
+        onTriggered: {
+            const now = stats.now();
+            if (now - pointer.at > 20) {
+                window.pointerSample(pointer.x, pointer.y, now);
+            }
+        }
     }
 
     Binding {
@@ -199,39 +298,33 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: parent.height * 2 / 3
+        // The scene draws past its item by its overdraw (0.8 of a tile); leave
+        // room above it. A fixed share of the window, not the scene's own
+        // number, which depends on this item's size.
+        anchors.topMargin: parent.height * 0.07
+        height: parent.height * 2 / 3 - anchors.topMargin
 
         DragHandler {
             id: drag
 
-            // The speed is read from where the pointer was and when, not from
-            // the handler's own velocity, which needs timestamps the event
-            // may not carry.
-            property point lastPoint: Qt.point(0, 0)
-            property double lastTime: 0
-
             target: null
             onCentroidChanged: {
-                if (!active) {
-                    return;
+                if (active) {
+                    window.pointerSample(centroid.position.x, centroid.position.y, stats.now());
                 }
-                const at = stats.now();
-                const elapsed = Math.max(1, at - lastTime);
-                const speed = Math.hypot(centroid.position.x - lastPoint.x,
-                                         centroid.position.y - lastPoint.y) / elapsed * 1000;
-                lastPoint = centroid.position;
-                lastTime = at;
-                window.dragAgitation = Math.min(1, Math.max(window.dragAgitation, speed / 1800));
-                window.dragTilt = Qt.vector2d(
-                    Math.max(-1, Math.min(1, (centroid.position.x / sceneHost.width - 0.5) * 2)),
-                    Math.max(-1, Math.min(1, (0.5 - centroid.position.y / sceneHost.height) * 2)));
             }
             onActiveChanged: {
+                pointer.down = active;
                 if (active) {
-                    lastPoint = centroid.position;
-                    lastTime = stats.now();
+                    pointer.x = centroid.position.x;
+                    pointer.y = centroid.position.y;
+                    pointer.vx = 0;
+                    pointer.vy = 0;
+                    pointer.at = stats.now();
+                    window.peakLevel = 0;
+                    window.peakTilt = 0;
                 } else {
-                    window.dragTilt = Qt.vector2d(0, 0);
+                    window.armed = true;
                 }
             }
         }
@@ -299,11 +392,11 @@ ApplicationWindow {
             }
 
             ComboBox {
-                model: ["3 x 3", "4 x 4"]
-                currentIndex: window.boardSize === 3 ? 0 : 1
+                model: ["3 x 3", "4 x 4", "5 x 5", "6 x 6"]
+                currentIndex: Math.max(0, Math.min(3, window.boardSize - 3))
                 enabled: window.scene !== null && !window.scene.busy
                 onActivated: (index) => {
-                    window.boardSize = index === 0 ? 3 : 4;
+                    window.boardSize = index + 3;
                     window.scene.show(window.currentBoard());
                 }
             }
@@ -319,9 +412,30 @@ ApplicationWindow {
             }
 
             Switch {
+                text: qsTr("Simulated dice")
+                checked: window.weighted
+                onToggled: {
+                    window.weighted = checked;
+                    if (window.scene) {
+                        window.scene.weighted = checked;
+                    }
+                }
+            }
+
+            Switch {
                 text: qsTr("2D tile layer")
                 checked: window.showTiles
                 onToggled: window.showTiles = checked
+            }
+
+            Switch {
+                text: qsTr("Library dice")
+                checked: window.kind === "standard"
+                enabled: window.scene !== null && !window.scene.busy
+                onToggled: {
+                    window.kind = checked ? "standard" : "phonics";
+                    window.scene.show(window.currentBoard());
+                }
             }
         }
 
@@ -404,8 +518,8 @@ ApplicationWindow {
     // script.
     function runDigest() {
         const lines = [];
-        for (const size of [3, 4]) {
-            const board = makeBoard(size, 7, 2);
+        for (const size of autoSizes) {
+            const board = boardFor(size, 7);
             scene.reducedMotion = false;
             const first = scene.digest(board, 100);
             const again = scene.digest(board, 100);
@@ -419,19 +533,124 @@ ApplicationWindow {
                        + "; reduced seed 100: " + reducedFirst + " then " + reducedAgain
                        + (reducedFirst === reducedAgain ? " (same)" : " (DIFFERENT)"));
         }
+        // The faces: that every die ends with the board's face up, that the faces
+        // are the board's tiles, and what a viewer saw of the other faces on the
+        // way. For the library's dice and the stand-in.
+        for (const which of ["standard", "phonics"]) {
+            for (const size of autoSizes) {
+                const board = which === "standard" ? dice.roll(size, 7) : makeBoard(size, 7, 2);
+                if (!board.faces) {
+                    continue;
+                }
+                let tilesAreFaces = 0;
+                let distinct = 0;
+                for (let t = 0; t < board.tiles.length; ++t) {
+                    if (board.faces[t][board.up[t]] === board.tiles[t]) {
+                        tilesAreFaces += 1;
+                    }
+                    distinct += new Set(board.faces[t]).size;
+                }
+                // The finished board, row by row, to compare with a still.
+                const rowsText = [];
+                for (let r = 0; r < board.rows; ++r) {
+                    rowsText.push(board.tiles.slice(r * board.columns, (r + 1) * board.columns).join(" "));
+                }
+                lines.push("board, " + which + " " + size + "x" + size + " seed 7: " + rowsText.join("/"));
+                scene.reducedMotion = false;
+                const report = scene.faceReport(board, 100);
+                scene.reducedMotion = true;
+                const reduced = scene.faceReport(board, 100);
+                scene.reducedMotion = false;
+                lines.push("faces, " + which + " " + size + "x" + size + " seed 7 (play seed 100): "
+                           + tilesAreFaces + "/" + board.tiles.length + " tiles are the face up; "
+                           + "mean " + (distinct / board.tiles.length).toFixed(2) + " different letters on a die; "
+                           + report.landed + "/" + report.dice + " land face up; "
+                           + "mean " + report.facesSeenMean.toFixed(2) + " faces on top in a play, most "
+                           + report.facesSeenMost + "; reduced "
+                           + reduced.landed + "/" + reduced.dice + ", " + reduced.facesSeenMean.toFixed(2));
+            }
+        }
+        scene.reducedMotion = false;
+        for (const seed of [100, 101, 102, 103]) {
+            stats.writeText(outDir + "/trace-" + seed + ".txt", scene.trace(makeBoard(4, 7, 2), seed));
+        }
         const text = lines.join("\n") + "\n";
         console.log("DIGEST\n" + text);
         stats.writeText(outDir + "/digest.txt", text);
         Qt.quit();
     }
 
+    // What it costs to change the board: the frames from show() of a new
+    // board, in which its dice's faces are drawn into the atlas again. For each
+    // size, runCount boards, one after the other (a new seed each, so the atlas
+    // is made new each time), written to change-<probe>.json.
+    property var changeJobs: []
+    property var changeJob: null
+    property var changeResults: []
+    property bool changeBegan: false
+
+    function startChange() {
+        const queued = [];
+        for (let r = 0; r < runCount; ++r) {
+            for (const size of autoSizes) {
+                queued.push({ size: size, run: r });
+            }
+        }
+        changeJobs = queued;
+        showTiles = false;
+        nextChange();
+    }
+
+    function nextChange() {
+        if (changeJobs.length === 0) {
+            const report = { graphicsApi: stats.graphicsApi(), probeMode: probeMode, boards: kind,
+                             window: { width: width, height: height }, runs: changeResults };
+            stats.writeText(outDir + "/change-" + probeMode + ".json", JSON.stringify(report, null, 1));
+            console.log("RESULTS " + outDir + "/change-" + probeMode + ".json");
+            Qt.quit();
+            return;
+        }
+        changeJob = changeJobs.shift();
+        changeBegan = false;
+        changeTimer.restart();
+    }
+
+    // Waits 300 ms (so nothing of the last board is in the frames), then asks
+    // for the new board and records the frames of the next 300 ms.
+    Timer {
+        id: changeTimer
+
+        interval: 300
+        onTriggered: {
+            if (!window.changeBegan) {
+                window.changeBegan = true;
+                stats.begin();
+                window.boardSize = window.changeJob.size;
+                window.seed = 500 + window.changeJob.run;
+                window.scene.show(window.currentBoard());
+                changeTimer.restart();
+                return;
+            }
+            const measured = stats.end();
+            measured.size = window.changeJob.size;
+            measured.run = window.changeJob.run;
+            window.changeResults.push(measured);
+            window.changeJob = null;
+            Qt.callLater(window.nextChange);
+        }
+    }
+
     function startAuto() {
+        if (changeOnly) {
+            startChange();
+            return;
+        }
         if (shotsOnly) {
             takeShots();
             return;
         }
         const queued = [];
-        for (const size of [3, 4]) {
+        for (const size of autoSizes) {
             for (const reducedMotion of [false, true]) {
                 for (let r = 0; r < runCount; ++r) {
                     queued.push({ size: size, reduced: reducedMotion, seed: 100 + r, index: r, rattle: false });
@@ -440,13 +659,14 @@ ApplicationWindow {
         }
         // Then a shake held as hard as the device can give it, which runs the
         // rattle to its three-second limit.
-        for (const size of [3, 4]) {
+        for (const size of autoSizes) {
             for (let r = 0; r < Math.min(runCount, 3); ++r) {
                 queued.push({ size: size, reduced: false, seed: 200 + r, index: r, rattle: true });
             }
         }
         // And one shake driven through the pointer, the way a hand does it.
-        queued.push({ size: 4, reduced: false, seed: 300, index: 0, rattle: false, drag: true });
+        queued.push({ size: autoSizes.indexOf(4) >= 0 ? 4 : autoSizes[0], reduced: false, seed: 300,
+                      index: 0, rattle: false, drag: true });
         jobs = queued;
         nextJob();
     }
@@ -461,7 +681,7 @@ ApplicationWindow {
         reduced = job.reduced;
         seed = job.seed;
         scene.reducedMotion = job.reduced;
-        autoAgitation = 0;
+        scene.mockBurstMs = 0;
         showTiles = false;
         scene.show(currentBoard());
         settleTimer.restart();
@@ -474,9 +694,11 @@ ApplicationWindow {
         interval: 350
         onTriggered: {
             stats.begin();
-            window.autoAgitation = window.job.rattle ? 1 : 0;
-            window.peakAgitation = 0;
+            // A shake held as long as the script allows: a long burst.
+            window.scene.mockBurstMs = window.job.rattle ? 4000 : 0;
+            window.peakLevel = 0;
             window.peakTilt = 0;
+            window.detector = Script.newTracker();
             window.shake();
             if (window.job.drag) {
                 // Across the scene and back for about two seconds.
@@ -491,12 +713,12 @@ ApplicationWindow {
             return;
         }
         const measured = stats.end();
-        autoAgitation = 0;
+        scene.mockBurstMs = 0;
         measured.size = job.size;
         measured.reduced = job.reduced;
         measured.rattle = job.rattle;
         measured.drag = job.drag === true;
-        measured.peakAgitation = peakAgitation;
+        measured.peakLevel = peakLevel;
         measured.peakTilt = peakTilt;
         measured.run = job.index;
         measured.playMs = stats.now() - playStartedAt;
@@ -509,6 +731,7 @@ ApplicationWindow {
         const report = {
             graphicsApi: stats.graphicsApi(),
             probeMode: probeMode,
+            boards: kind,
             lean: leanDegrees,
             window: { width: width, height: height },
             windowFirstFrameMs: windowFirstFrameMs,
@@ -524,7 +747,18 @@ ApplicationWindow {
     // Screenshots through one play, taken by seeking the script to fixed
     // times, so they are the same on every run and show the stages where they
     // are: the rattle, the lid, the drop in flight, the settle.
-    readonly property var shotTimes: [0, 350, 800, 1000, 1150, 1300, 1450, 1650, 1900, 2300]
+    readonly property var shotTimes: {
+        if (framesPerSecond <= 0) {
+            return [0, 350, 800, 1000, 1150, 1300, 1450, 1650, 1900, 2300];
+        }
+        // Every frame of the first 3 s: the shake, the lid, the
+        // drop and the settle, and a little of the board at rest.
+        const times = [];
+        for (let t = 0; t <= 3000; t += 1000 / framesPerSecond) {
+            times.push(Math.round(t));
+        }
+        return times;
+    }
     property int shotIndex: 0
 
     function takeShots() {
@@ -537,7 +771,7 @@ ApplicationWindow {
     Timer {
         id: shotTimer
 
-        interval: 120
+        interval: window.framesPerSecond > 0 ? 40 : 120
         onTriggered: {
             if (window.shotIndex >= window.shotTimes.length) {
                 window.showTiles = true;
@@ -554,9 +788,9 @@ ApplicationWindow {
     Timer {
         id: grabTimer
 
-        interval: 120
+        interval: window.framesPerSecond > 0 ? 40 : 120
         onTriggered: {
-            const name = "shot-" + String(window.shotIndex).padStart(2, "0") + "-" + window.shotTimes[window.shotIndex] + "ms.png";
+            const name = "shot-" + String(window.shotIndex).padStart(4, "0") + "-" + window.shotTimes[window.shotIndex] + "ms.png";
             stats.grab(window.outDir + "/" + name);
             window.shotIndex += 1;
             shotTimer.restart();

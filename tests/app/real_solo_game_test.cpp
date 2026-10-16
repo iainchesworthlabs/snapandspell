@@ -10,7 +10,6 @@
 #include <cctype>
 #include <chrono>
 #include <cstddef>
-#include <expected>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -1201,46 +1200,44 @@ struct Run {
 
 using Play = std::function<void(const Run&)>;
 
-// The options of a run over a store file of its own, which the runs share.
-struct KeptOptions : wjs::app::SoloGameOptions {
+// What a run is made from: the setup's options and the store file the runs share.
+struct RunOptions : wjs::app::SoloGameOptions {
     std::filesystem::path store;
 };
 
-KeptOptions kept_options(const TempDirectory& directory) {
-    write_data(directory);
-    KeptOptions options;
-    static_cast<wjs::app::SoloGameOptions&>(options) = options_in(directory);
-    options.store = directory.path() / "store.wjs";
-    return options;
-}
+// What the program has when it starts: the store opened from its file (main.cpp) and
+// the setup over it. Held in place, because the setup points at the store.
+struct OpenedRun {
+    wjs::OpenResult store;
+    std::unique_ptr<wjs::app::SoloGameSetup> setup;
 
-// The setup opened as the program opens it: the store from the file, then the setup
-// over it. The setup holds the store by reference, so the store is made first and
-// kept at one place until the setup is gone.
-class KeptSetup {
-public:
-    explicit KeptSetup(const KeptOptions& options)
-        : store_(std::make_unique<wjs::Store>(wjs::Store::open(options.store).store)),
-          opened_(wjs::app::SoloGameSetup::open(options, *store_)) {}
-
-    [[nodiscard]] bool ok() const { return opened_.has_value(); }
-    [[nodiscard]] wjs::app::SoloGameSetup& setup() { return **opened_; }
-
-private:
-    std::unique_ptr<wjs::Store> store_;
-    std::expected<std::unique_ptr<wjs::app::SoloGameSetup>, std::string> opened_;
+    explicit OpenedRun(const RunOptions& options) : store(wjs::Store::open(options.store)) {
+        auto opened = wjs::app::SoloGameSetup::open(options, store.store);
+        REQUIRE(opened.has_value());
+        setup = *std::move(opened);
+    }
+    OpenedRun(const OpenedRun&) = delete;
+    OpenedRun& operator=(const OpenedRun&) = delete;
 };
 
 // A run: the setup opened as the program opens it, its game made and played with
 // `play`, and everything closed again. What the game showed when it was left.
-Seen run(const KeptOptions& options, const Play& play = {}) {
-    KeptSetup kept(options);
-    REQUIRE(kept.ok());
-    const auto game = kept.setup().make();
+Seen run(const RunOptions& options, const Play& play = {}) {
+    const OpenedRun opened(options);
+    const auto game = opened.setup->make();
     if (play) {
-        play(Run{kept.setup(), *game});
+        play(Run{*opened.setup, *game});
     }
     return seen(*game);
+}
+
+// The options of a run over a store file of its own, which the runs share.
+RunOptions kept_options(const TempDirectory& directory) {
+    write_data(directory);
+    RunOptions options;
+    static_cast<wjs::app::SoloGameOptions&>(options) = options_in(directory);
+    options.store = directory.path() / "store.wjs";
+    return options;
 }
 
 // The store's file as a run left it, with its game in progress changed by `edit`.
@@ -1471,9 +1468,8 @@ TEST_CASE("the model opens on the game that was left, with no shake", "[app][rea
         });
         REQUIRE(before.lit.has_value());
 
-        KeptSetup kept(options);
-        REQUIRE(kept.ok());
-        wjs::app::SoloModel model(kept.setup().make());
+        const OpenedRun opened(options);
+        wjs::app::SoloModel model(opened.setup->make());
         model.setGeometry(100, 10);
 
         CHECK(model.state() == "playing");
@@ -1503,9 +1499,8 @@ TEST_CASE("the model opens on the game that was left, with no shake", "[app][rea
             run.find(run.words().size());
         });
 
-        KeptSetup kept(options);
-        REQUIRE(kept.ok());
-        wjs::app::SoloModel model(kept.setup().make());
+        const OpenedRun opened(options);
+        wjs::app::SoloModel model(opened.setup->make());
 
         CHECK(model.state() == "resting");
         CHECK_FALSE(model.found().isEmpty());

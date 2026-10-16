@@ -7,7 +7,21 @@
 #
 # The scene is qml/BoardScene.qml and is plain QML over Qt Quick 3D. Everything
 # else here is the harness around it: a window with a Shake button, the mouse
-# drag that stands in for the accelerometer, and the frame timing.
+# drag that stands in for the accelerometer, the frame timing, and the library's
+# dice roll (dice_roller.*), which gives the scene real dice to draw.
+
+# The project's own dice (data/dice), embedded, so the boards the prototype rolls
+# are the library's roll of the files the tests read, in the module's dice/
+# directory (dice_roller.cpp).
+set(WJS_SHAKE_DICE_FILES "")
+foreach(side 3 4 5 6)
+    set(dice_file "${PROJECT_SOURCE_DIR}/data/dice/${side}x${side}.txt")
+    set_source_files_properties("${dice_file}" PROPERTIES
+        QT_RESOURCE_ALIAS "dice/${side}x${side}.txt")
+    list(APPEND WJS_SHAKE_DICE_FILES "${dice_file}")
+endforeach()
+
+add_subdirectory(sim)
 
 qt_add_executable(wjs_shake_prototype
     main.cpp)
@@ -24,7 +38,14 @@ qt_add_qml_module(wjs_shake_prototype
         qml/ShakeWindow.qml
     RESOURCES
         qml/lightprobe/sky.ktx
+        ${WJS_SHAKE_DICE_FILES}
     SOURCES
+        dice_roller.cpp
+        dice_roller.hpp
+        dice_sim.cpp
+        dice_sim.hpp
+        die_geometry.cpp
+        die_geometry.hpp
         frame_stats.cpp
         frame_stats.hpp)
 
@@ -36,6 +57,8 @@ target_link_libraries(wjs_shake_prototype
         Qt6::Quick
         Qt6::QuickControls2
         Qt6::Quick3D
+        wjs::lib
+        wjs_dice_world
         wjs::warnings
         wjs::sanitizers
         wjs::coverage)
