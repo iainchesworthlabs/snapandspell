@@ -8,11 +8,13 @@ Finds every word on a Boggle board.
 The goal is to hold a real Boggle board up to a webcam, or a phone or tablet
 camera, and have it solve the board, as a learning aid for young children (five
 and six year olds) playing with an adult. That goal is not met yet: today you
-type the board in and it finds the words. The camera, and reading letters from
-a picture, are still to be built.
+type the board in and it finds the words. A reader that finds a board in a
+camera frame and reads its letters now exists (`src/scan`), tested on drawn
+frames only: no camera is connected to it and it has not seen a real board.
 
 > **Status: pre-release, nothing released yet.** The solver is real and
-> tested. The camera, letter recognition and installers do not exist yet. CI
+> tested. The camera and installers do not exist yet, and letter recognition is
+> built and tested on synthetic frames only. CI
 > builds and tests it on Windows (MSVC), Linux (GCC) and macOS (AppleClang).
 > [CHANGELOG.md](CHANGELOG.md) says what is in and what is not proven, and
 > [docs/roadmap.md](docs/roadmap.md) says what comes next.
@@ -25,9 +27,11 @@ a picture, are still to be built.
 | `wjs-cli`, a command-line front end | `src/cli` | Works; not covered by a test of its own |
 | Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Built and tested by CI on Windows, Linux and macOS |
 | The Solo Play screens in Qt Quick: home, the box, play (the board and the panel) and the resting screen, over a fake of the game until the library's session is wired | `src/app` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model, layout, touch and fake tests and a lint of the QML, run on a Windows desktop only; not packaged |
+| A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces | `src/scan`, `src/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; no camera backend; never tried on a real board ([design](docs/design/scanner.md)) |
 | Catch2 unit tests, a platform-contract test and the platform-isolation check | `tests`, `tools/checks` | Pass on Windows |
 
-Not built yet: camera input, recognising letters in an image, installers and
+Not built yet: a camera (the interface exists, with no backend), recognising
+letters in a real picture (the reader is tested on drawn frames only), installers and
 packages, and a phone, tablet or browser target. The English word list is ENABLE,
 which is in `data/dictionaries/`: see [data/README.md](data/README.md).
 

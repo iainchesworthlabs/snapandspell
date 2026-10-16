@@ -176,6 +176,16 @@ Artefacts: source, desktop builds, a signed Android APK on GitHub Releases
    child and a room), plus synthetic renders; a numeric tile-accuracy target
    set before starting.
 
+**Built so far (first slice), on synthetic frames only** ([Scanner design](design/scanner.md)):
+the library (steps 2 to 4 above, in `src/scan`, with no third-party dependency), the `camera`
+and `board_reader` interfaces (no camera on the desktops; the portable reader), the
+confirm-and-correct model (`BoardDraft`), a numeric target written first (item 5) and a
+synthetic corpus that holds the reader to it, work budgets in the performance tier, and the
+privacy scan. **Not done:** anything on a real camera or real dice; the iOS camera and Vision
+reader (they need a Mac and an iPad); recorded frames and a measurement on them; the dice's own
+typeface; a desktop webcam; stand-and-watch scanning. The target is met on the synthetic
+corpus and says nothing about real dice.
+
 ### M5: store distribution
 
 TestFlight, the App Store and Google Play. Not needed for anything above, and

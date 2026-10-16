@@ -13,7 +13,10 @@
 #include "corpus.hpp"
 #include "measure.hpp"
 #include "perf_build.hpp"
+#include "scene.hpp"
 #include "wjs/dictionary.hpp"
+#include "wjs/scan/reader.hpp"
+#include "wjs/scan/work.hpp"
 #include "wjs/seeding.hpp"
 
 namespace wjs::perf {
@@ -61,6 +64,30 @@ namespace {
         std::format("fastest {:.3f} ms against {:.3f} ms (medians {:.3f} / {:.3f})", time.task_ms,
                     time.calibration_ms, time.task_median_ms, time.calibration_median_ms);
     return metric;
+}
+
+// The frames the scanner's metrics read: fixed specs of the synthetic corpus
+// (tests/scan/synth), drawn from the tuning split so that the test split is not
+// read for anything but the target. A 4x4, a 5x5, a 6x6 and a 4x4 under glare.
+struct ScanFrame {
+    scan::synth::Condition condition;
+    std::size_t size;
+    unsigned index;
+};
+constexpr std::array<ScanFrame, 4> kScanFrames = {{
+    {scan::synth::Condition::upright, 4, 2},
+    {scan::synth::Condition::angled, 5, 14},
+    {scan::synth::Condition::loose, 6, 20},
+    {scan::synth::Condition::glare, 4, 3},
+}};
+
+[[nodiscard]] scan::synth::Rendered draw_scan_frame(const ScanFrame& which) {
+    scan::synth::Spec spec;
+    spec.condition = which.condition;
+    spec.split = scan::synth::Split::tuning;
+    spec.size = which.size;
+    spec.index = which.index;
+    return scan::synth::render(spec);
 }
 
 }  // namespace
@@ -117,6 +144,58 @@ std::vector<Metric> special_board_metrics() {
                                 work.words, 0, "words"));
     }
     return metrics;
+}
+
+std::vector<Metric> scan_metrics() {
+    // Draw the frames first, then count only the reads: drawing allocates buffers too.
+    std::vector<scan::synth::Rendered> frames;
+    for (const ScanFrame& which : kScanFrames) {
+        frames.push_back(draw_scan_frame(which));
+    }
+    // The template bank is built on first use; build it outside the count.
+    (void)scan::read_board(frames.front().image.view());
+
+    scan::ScanWork total;
+    std::uint64_t answered = 0;
+    for (const scan::synth::Rendered& frame : frames) {
+        scan::reset_scan_work();
+        const auto reading = scan::read_board(frame.image.view());
+        answered += reading.has_value() ? 1U : 0U;
+        const scan::ScanWork work = scan::scan_work();
+        total.reads += work.reads;
+        total.frame_pixels += work.frame_pixels;
+        total.working_pixels += work.working_pixels;
+        total.warp_pixels += work.warp_pixels;
+        total.blobs += work.blobs;
+        total.dice_candidates += work.dice_candidates;
+        total.cells_read += work.cells_read;
+        total.comparisons += work.comparisons;
+        total.buffers += work.buffers;
+        total.largest_buffers = std::max(total.largest_buffers, work.largest_buffers);
+    }
+    // Reading a frame seeds and solves nothing, so it does the same work whichever board
+    // mode the board is played in; the rows carry the default mode, as the dictionary's do.
+    return {
+        exact("scan.reads", BoardMode::standard, total.reads, budget::kScanReads, "reads"),
+        exact("scan.answered", BoardMode::standard, answered, budget::kScanReads, "boards"),
+        exact("scan.frame_pixels", BoardMode::standard, total.frame_pixels,
+              budget::kScanFramePixels, "pixels"),
+        exact("scan.working_pixels", BoardMode::standard, total.working_pixels,
+              budget::kScanWorkingPixels, "pixels"),
+        at_most("scan.warp_pixels", BoardMode::standard, total.warp_pixels, budget::kScanWarpPixels,
+                "pixels"),
+        at_most("scan.blobs", BoardMode::standard, total.blobs, budget::kScanBlobs, "blobs"),
+        at_most("scan.dice_candidates", BoardMode::standard, total.dice_candidates,
+                budget::kScanDiceCandidates, "blobs"),
+        at_most("scan.cells_read", BoardMode::standard, total.cells_read, budget::kScanCellsRead,
+                "cells"),
+        at_most("scan.comparisons", BoardMode::standard, total.comparisons,
+                budget::kScanComparisons, "comparisons"),
+        at_most("scan.buffers", BoardMode::standard, total.buffers, budget::kScanBuffers,
+                "buffers"),
+        at_most("scan.buffers.max", BoardMode::standard, total.largest_buffers,
+                budget::kScanBuffersMax, "buffers"),
+    };
 }
 
 std::uint64_t corpus_digest() {
@@ -466,6 +545,27 @@ std::vector<Metric> session_timing_metrics() {
         metric.note += std::format("; one deal {:.3f} ms",
                                    time.task_ms / static_cast<double>(budget::kDealsPerRun));
         metrics.push_back(std::move(metric));
+    }
+    return metrics;
+}
+
+std::vector<Metric> scan_timing_metrics() {
+    std::vector<Metric> metrics;
+    const struct {
+        std::size_t which;
+        const budget::TimeBudget& allowed;
+    } cases[] = {{0, budget::kScanRead4Time}, {2, budget::kScanRead6Time}};
+    for (const auto& one : cases) {
+        const ScanFrame& which = kScanFrames[one.which];
+        const scan::synth::Rendered frame = draw_scan_frame(which);
+        const RelativeTime time = time_against_calibration(
+            [&] {
+                const auto reading = scan::read_board(frame.image.view());
+                return reading ? reading->tiles.size() : 0U;
+            },
+            budget::kScanRuns, Weight::heavy);
+        metrics.push_back(
+            ratio("time.read." + size_label(which.size), BoardMode::standard, time, one.allowed));
     }
     return metrics;
 }

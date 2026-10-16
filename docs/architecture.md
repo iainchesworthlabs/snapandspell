@@ -23,6 +23,12 @@ src/
                          game_session.cpp
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
                          profiling-disabled/wjs/profiling.hpp  (empty)
+  scan/                wjs::scan: finds a board in a camera frame and reads its
+                       letters. Portable and Qt-free; links wjs::lib for Board
+    include/wjs/scan/    frame.hpp  image.hpp  geometry.hpp  segment.hpp
+                         board_finder.hpp  stroke_font.hpp  glyph_reader.hpp
+                         reading.hpp  reader.hpp  confirmation.hpp  work.hpp
+    src/                 one .cpp for each
   cli/                 main.cpp: wjs-cli
   app/                 the Qt Quick application (built only with WJS_BUILD_APP)
     qml/Main.qml         the window: a shell that shows the screen Navigation names
@@ -38,7 +44,9 @@ src/
     system_colour_scheme.*  whether the system is in dark mode
   platforms/           everything that differs between operating systems
     interfaces/wjs/platform/
-                         console.hpp  paths.hpp
+                         console.hpp  paths.hpp  camera.hpp  board_reader.hpp
+    detail/              what no platform differs in: camera_unavailable.cpp,
+                         board_reader_portable.cpp
     windows/             console_windows.cpp  paths_windows.cpp  platform.cmake
     linux/               paths_linux.cpp  platform.cmake
     macos/               paths_macos.cpp  platform.cmake
@@ -46,8 +54,9 @@ src/
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
                        Tracy.cmake, FindQt6.cmake
-tests/                 unit/  app/  platform/  perf/  profiling/
+tests/                 unit/  app/  platform/  perf/  profiling/  scan/
 tools/checks/          check_platform_isolation.ps1
+tools/scan/            render_corpus.cpp: wjs_scan_render, writes the synthetic corpus
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
                        make_dice.ps1
 tools/hooks/, policy/  git hooks and the commit and PR text rule
@@ -61,11 +70,12 @@ tools/hooks/, policy/  git hooks and the commit and PR text rule
        +---------------+---------------------+
        |                                     |
        v                                     v
-   wjs::lib                            wjs::platform
-   board, dictionary, scoring,         one implementation of each
-   solver, path, phase data,           interfaces/ header, chosen by CMake
-   seeding, grapheme binder, shake,
-   game rules, game session
+   wjs::lib  <---- wjs::scan  <----    wjs::platform
+   board, dictionary, scoring,    finds a board in a      one implementation of each
+   solver, path, phase data,      frame and reads it      interfaces/ header, chosen
+   seeding, grapheme binder,      (no dependency)         by CMake
+   shake, game rules,
+   game session
 ```
 
 - **`wjs::lib`** (target `wjs_lib`, a static library) includes no operating
@@ -75,6 +85,12 @@ tools/hooks/, policy/  git hooks and the commit and PR text rule
   target that includes OS headers. Its public interface is the headers in
   `src/platforms/interfaces/`; its sources are whichever files the selected
   platform's `platform.cmake` names. The library does not use it.
+- **`wjs::scan`** (target `wjs_scan`, a static library) finds a board in a camera
+  frame and reads each die's letter. It includes no operating system header and no
+  Qt, and **adds no third-party dependency** (`vcpkg.json` is unchanged). It links
+  `wjs::lib` for `Board` and nothing else; `wjs::lib` does not link it, so the
+  solver stays free of image code. `wjs::platform` links it, because the camera and
+  `board_reader` interfaces are written in terms of its frame and reading types.
 - **The front ends** link both. `wjs-cli` and the window ask the platform layer
   where the executable is (to find a word list beside it) and, in the CLI, to
   put the console in UTF-8; they hand everything else to the library.
@@ -519,6 +535,20 @@ by the screens. Time, sound and animation are theirs. The standard board
 the phonics board's, and the deal is the one function in it that knows which
 board it is.
 
+### The scanner
+
+`wjs::scan` (`src/scan`) reads a real board for Mode A: `read_board(frame, options)`
+finds the board in a camera frame (the largest convex quadrilateral of a lattice of
+dice), draws it square, counts and centres the cells, and reads each cell's one
+rotated glyph by template matching against the project's own stroke font, answering a
+`BoardReading`: letters, a confidence and runners-up for each tile, and which tiles
+the reader doubts. A reading is not a `Board`; the one way to a `Board` is
+`BoardDraft::confirm()`, the confirm-and-correct model the check screen binds to, so
+the solver sees only a board a person has looked at. It is a pure function of the
+frame, writes nothing, and is held to a numeric accuracy target on a synthetic
+corpus. [Scanner design](design/scanner.md) is the page for all of it, including
+what is **not** known (real dice, real light, the iPad).
+
 ### Errors
 
 An expected failure (a board that cannot be read, a word list that cannot be
@@ -541,9 +571,13 @@ An OS service the program needs is declared in a header under
 | --- | --- | --- | --- | --- |
 | `paths.hpp`: `executable_path()` | The absolute path of the running program, so data beside it can be found | `GetModuleFileNameW` | `/proc/self/exe` | `_NSGetExecutablePath` |
 | `console.hpp`: `use_utf8_console()` | Make the console read and write UTF-8 | `SetConsoleCP`, `SetConsoleOutputCP` | nothing to do (`posix/`) | nothing to do (`posix/`) |
+| `camera.hpp`: `enumerate_devices`, `start`, `stop`, `try_pop_latest_frame`, ... | Capture frames for Mode A | no camera backend yet (`detail/`): `unavailable` | the same | the same |
+| `board_reader.hpp`: `read(frame, options)` | Read a board from a frame | the portable reader (`detail/`) | the same | the same |
 
 Linux and macOS share `posix/console_posix.cpp`, named by both
-`platform.cmake` files.
+`platform.cmake` files; all three name the two files in `detail/`, which are what no
+platform differs in yet. An iOS camera and a Vision-based reader are Objective-C++ under
+`src/platforms/ios`, which does not exist ([Scanner design](design/scanner.md#what-is-left-for-a-mac-and-an-ipad)).
 
 ## The Qt Quick window
 
@@ -597,11 +631,15 @@ store.
 | Target | Kind | Notes |
 | --- | --- | --- |
 | `wjs_lib` (`wjs::lib`) | static library | The game logic |
-| `wjs_platform` (`wjs::platform`) | static library | The platform's implementations |
+| `wjs_platform` (`wjs::platform`) | static library | The platform's implementations; links `wjs_scan` |
+| `wjs_scan` (`wjs::scan`) | static library | The scanner: finds a board in a frame and reads it. No third-party dependency |
 | `wjs_cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
 | `wjs_app` | executable `WordJewelsSolver` | `WJS_BUILD_APP` |
 | `wjs_unit_tests` | executable | Catch2 |
-| `wjs_perf_tests` | executable | Catch2; work budgets and opt-in wall-time checks, linked to `wjs::lib` only |
+| `wjs_perf_tests` | executable | Catch2; work budgets and opt-in wall-time checks, linked to `wjs::lib` and the scanner with its synthetic corpus |
+| `wjs_scan_tests` | executable | Catch2; the scanner, the camera and `board_reader` interfaces, and the corpus that holds it to its target |
+| `wjs_scan_synth` | static library | The synthetic corpus (frames of a board of dice drawn from a seed) and the counting of the target. Test tool; nothing in `src` links it |
+| `wjs_scan_render` | executable | Writes the corpus to a directory as PNG files, to look at |
 | `wjs::tracy` | interface library | Tracy's client when `WJS_ENABLE_TRACY` is on, otherwise nothing |
 | `wjs_app_tests` | executable | Catch2, with `WJS_BUILD_APP` |
 | `wjs::warnings`, `wjs::sanitizers`, `wjs::coverage` | interface libraries | Flags, linked into every first-party target |
@@ -618,14 +656,13 @@ store.
 
 These do not exist, and nothing in the tree stands in for them:
 
-- **Camera input.** Cameras are an OS service, so by the rule in
-  [Platform isolation](platform-isolation.md) any camera API will sit behind an
-  interface in `src/platforms/interfaces/` with an implementation per platform.
-  How is not designed.
-- **Reading letters from a picture.** The seam is the board: whatever reads
-  the picture has to produce the text `Board::parse` accepts, or a `Board`.
-  The recognition stack is not chosen, and its choice carries licensing
-  questions (see [Licensing](licensing.md)).
+- **A camera.** The `camera` interface exists, and the three desktops answer
+  `unavailable` (no backend); the iOS camera (`AVCaptureSession`), a desktop
+  webcam and Android's are not written. Nothing has been run on a camera.
+- **Reading letters from a real picture.** The reader exists and is measured on
+  synthetic frames only ([Scanner design](design/scanner.md#what-was-measured)).
+  The iOS reader (Vision), recorded frames of real dice, the dice's own typeface and
+  the tuning that follows are not done, and need an iPad.
 - **Phonics phase data.** The reader, the checks, the seeding, the binder, the
   shake detector, the game rules and the game session exist and are tested, and
   no front end uses them yet. No phase

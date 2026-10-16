@@ -28,6 +28,18 @@ that release, so that its rules (branch protection, required checks) can apply.
   library's session is wired. It replaces the window that typed a board into a
   grid; `SolverModel` stays with its tests. There is no sound, no device shake and
   no bundled font yet. See [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
+- **The first working slice of Mode A's board reader** (`wjs::scan`, `src/scan`): finds a
+  board in a camera frame (the largest convex quadrilateral of a lattice of dice, drawn
+  square, its cells counted and centred), reads each die's one rotated letter by matching it
+  against the project's own stroke font, and answers a letter, a confidence, runners-up and a
+  doubt for each tile. `BoardDraft` is the confirm-and-correct model the check screen binds to
+  (the solver sees only a board a person has confirmed). It has no dependency of its own, and
+  the `camera` and `board_reader` interfaces under `src/platforms` (no camera on the desktops
+  yet; the portable reader). Held to a numeric accuracy target on a synthetic corpus drawn by a
+  generator in `tests/scan/synth`; no recorded frame is or will be committed. **Measured on
+  synthetic frames only: nothing has been run on a camera, an iPad or real dice.** The iOS camera
+  and Vision reader are written down and not built. See
+  [docs/design/scanner.md](docs/design/scanner.md).
 - **A prototype of the 3D board scene**, built only with
   `-DWJS_BUILD_SHAKE_PROTOTYPE=ON` (and `WJS_BUILD_APP=ON`): the shake, the lid
   and the drop in Qt Quick 3D behind a one-component interface, scripted from a

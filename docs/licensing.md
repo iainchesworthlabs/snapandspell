@@ -140,7 +140,13 @@ Rules for word lists:
 
 ## Camera input and letter recognition
 
-Neither is built, and the stack is not chosen. When it is:
+The first slice of both is built (`src/scan`) and **adds no third-party code**: the
+camera interface has no backend on the desktops, and the reader is the project's own
+C++23 over a byte buffer, matching glyphs against the project's own stroke font (a
+drawing of the project's, not a typeface of anyone's), with no trained model and no data
+file. So nothing here has a licence to record yet. An OpenCV-backed reader, a Vision
+reader on the iPad, or a font or model trained from the real dice would each add one
+([Scanner design](design/scanner.md#no-image-dependency)). When one is added:
 
 - record the licence of every library, and also of any trained model or data
   file: they often carry terms of their own, different from the code's, and

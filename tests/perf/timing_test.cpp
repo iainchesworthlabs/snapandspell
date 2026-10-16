@@ -32,3 +32,9 @@ TEST_CASE("dealing a board takes no more than a multiple of the calibration work
     wjs::perf::skip_unless_timing_wanted();
     wjs::perf::check_within_budget(wjs::perf::session_timing_metrics());
 }
+
+TEST_CASE("reading a frame takes no more than a multiple of the calibration workload",
+          "[perf][timing][scan]") {
+    wjs::perf::skip_unless_timing_wanted();
+    wjs::perf::check_within_budget(wjs::perf::scan_timing_metrics());
+}
