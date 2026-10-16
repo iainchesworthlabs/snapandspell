@@ -84,7 +84,7 @@ to be confirmed on the first device.
 | Making a standard board | 50 ms | A roll of dice and one solve; the solve is the cost (worst measured 0.85 ms on a 6x6). No dice set exists yet |
 | Solving any board | 50 ms | Worst measured 1.7 ms; a multiple of 5 gives 9 ms |
 | Start of the sound-it-out sequence after the finger lifts | 100 ms | Proposal |
-| Capture to the check screen (the single capture) | 3 s | Proposal; **unmeasured**, Vision's speed on dice is not known |
+| Capture to the check screen (the single capture) | 3 s | Proposal. **Measured, desktop only:** the portable reader reads a 4x4 frame in 45 to 50 ms and a 6x6 in 61 to 69 ms (MSVC, Release, [Scanner design](scanner.md#what-was-measured)). A tablet and Vision's speed on dice are **unmeasured** |
 | Camera frame, after the MVP | 33 ms, all of it | Cubeulator's `DirectScan` budget |
 | Memory for the dictionary | 32 MB | Measured 17.7 MB; a compact trie is an option if a device needs it |
 
@@ -196,7 +196,8 @@ on an inner loop.
 **Built:** `solver.solve` (the zone's value is the words found; the visits are
 the plot `solver.visits`, because a zone carries one number) and
 `data.load_dictionary` (the words), in `wjs::solve` and `Dictionary::load`, and
-nothing else: the rest of the table is added with the code it times.
+`scan.find_board` and `scan.read_tiles`, in `wjs::scan::find_board` and
+`read_board`; the rest of the table is added with the code it times.
 
 | Layer | Zones, with the value each carries |
 | --- | --- |
@@ -208,7 +209,7 @@ nothing else: the rest of the table is added with the code it times.
 | input | `input.submit` (path length). Per-move work is a plot, `input.hit_test_us`, not a zone |
 | audio | `audio.play_clip` (clip id); a plot `audio.start_latency_ms` |
 | scene | `scene.shake`, `scene.drop`, `scene.settle`, `scene.celebrate` |
-| scan | `capture.read`, `scan.ocr`, `scan.parse_grid` (after the MVP, with `vision.*` as Cubeulator names them) |
+| scan | **Built:** `scan.find_board`, `scan.read_tiles`. Not built: `capture.read` (no camera backend), and `vision.*` as Cubeulator names them, which the iOS reader will have |
 
 Frame sets: unnamed for the seeding loop's passes if useful, `UI` for the Qt
 Quick frame (`frameSwapped`, as Cubeulator), `Capture` for the camera.
@@ -219,7 +220,8 @@ The trace's information window carries the build (version, commit, dirty).
 ## The performance tier
 
 Modelled on Cubeulator's `tests/perf`: its own binary, `wjs_perf_tests`, linked
-against `wjs::lib` alone (no Qt, no window), every threshold in one file,
+against `wjs::lib` and the scanner with its synthetic corpus (no Qt, no window), every
+threshold in one file,
 `tests/perf/budgets.hpp`. **Two halves, and the split is the design.**
 
 | | Holds | Exact? | Runs |

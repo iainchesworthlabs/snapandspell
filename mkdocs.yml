@@ -68,5 +68,6 @@ nav:
       - Shake prototype: design/shake-prototype.md
       - Application: design/application.md
       - Parent dashboard: design/dashboard.md
+      - Scanner: design/scanner.md
       - Performance: design/performance.md
       - From the MVP to the full product: design/path.md

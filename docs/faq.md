@@ -9,7 +9,9 @@ the same from a grid, built only on request. See the
 
 **Does it use a camera?**
 No. Holding a board up to a webcam, or a phone or tablet camera, is the goal, and it is not
-built: there is no camera input and no reading of letters from a picture. The
+built: there is no camera input. A library that reads a board from a frame exists, tested on
+drawn frames only; nothing connects it to a camera and it has not seen a real board
+([scanner design](design/scanner.md)). The
 [architecture](architecture.md#not-built-yet) says what is missing, and the
 [roadmap](roadmap.md) says what is planned.
 
@@ -72,7 +74,9 @@ Found during testing and not fixed. Put the word list at a shorter path.
 **Is anything uploaded?**
 The project's own code does not open a network connection: the command-line
 program reads the files you name and writes to the console, and the window does
-the same. There is no camera input yet, so there are no pictures to handle.
+the same. There is no camera input yet, so there are no pictures to handle; the scanning
+library only reads a frame it is given, and a build check (`scan.privacy`) fails if its code
+opens a file, captures audio or uses the network.
 
 **Can I use the library in my own program?**
 There is no install step or exported package yet, so it can only be built as
