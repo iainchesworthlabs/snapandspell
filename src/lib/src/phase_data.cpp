@@ -84,6 +84,63 @@ constexpr std::size_t key_source = 3;
     return !text.empty() && std::ranges::all_of(text, [](char c) { return c >= 'a' && c <= 'z'; });
 }
 
+// Lowercase letters, or two runs of them with one underscore between (a split
+// digraph: "a_e").
+[[nodiscard]] bool is_grapheme_letters(std::string_view text) noexcept {
+    const auto underscore = text.find('_');
+    if (underscore == std::string_view::npos) {
+        return is_lower_letters(text);
+    }
+    return is_lower_letters(text.substr(0, underscore)) &&
+           is_lower_letters(text.substr(underscore + 1));
+}
+
+// What one token of a word line after the word is: a grapheme, the first half
+// of a split digraph or its second half, with the sound it picks if it says.
+struct Piece {
+    enum class Kind { whole, open, close };
+
+    Kind kind = Kind::whole;
+    std::string letters;  // without the underscore or the number
+    std::size_t sound = WordGrapheme::unspecified;
+};
+
+[[nodiscard]] std::optional<Piece> read_piece(std::string_view token) {
+    Piece piece;
+    const auto colon = token.find(':');
+    if (colon != std::string_view::npos) {
+        const auto number = token.substr(colon + 1);
+        if (number.empty() || number.size() > 2 || number.front() == '0' ||
+            !std::ranges::all_of(number, is_digit)) {
+            return std::nullopt;
+        }
+        piece.sound = static_cast<std::size_t>(std::stoul(std::string(number))) - 1;
+        token = token.substr(0, colon);
+    }
+    if (token.starts_with('_')) {
+        // The second half of a split digraph picks nothing: the first half does.
+        if (colon != std::string_view::npos || !is_lower_letters(token.substr(1))) {
+            return std::nullopt;
+        }
+        piece.kind = Piece::Kind::close;
+        piece.letters = std::string(token.substr(1));
+        return piece;
+    }
+    if (token.ends_with('_')) {
+        if (!is_lower_letters(token.substr(0, token.size() - 1))) {
+            return std::nullopt;
+        }
+        piece.kind = Piece::Kind::open;
+        piece.letters = std::string(token.substr(0, token.size() - 1));
+        return piece;
+    }
+    if (!is_lower_letters(token)) {
+        return std::nullopt;
+    }
+    piece.letters = std::string(token);
+    return piece;
+}
+
 [[nodiscard]] bool is_phase_name(std::string_view text) noexcept {
     return !text.empty() && std::ranges::all_of(text, [](char c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || is_digit(c);
@@ -225,6 +282,11 @@ void check_header(const PhaseHeader& header, const HeaderSeen& seen, const Repor
     if (on && !is_iso_date(header.reviewed_on)) {
         report(0, "reviewed-on must be a date written YYYY-MM-DD");
     }
+    // A reviewed list says where it came from, as data/README.md asks of every
+    // list. Test data need not.
+    if (by && on && header.source.empty()) {
+        report(0, "a reviewed file says where its list came from: add 'source: <where>'");
+    }
 }
 
 // The lines of a file, with the byte-order mark and the carriage returns of a
@@ -301,7 +363,7 @@ struct Place {
 }  // namespace
 
 bool PhaseHeader::reviewed() const noexcept {
-    return !reviewed_by.empty() && is_iso_date(reviewed_on);
+    return !reviewed_by.empty() && is_iso_date(reviewed_on) && !source.empty();
 }
 
 std::string to_string(const DataProblem& problem) {
@@ -318,6 +380,8 @@ std::expected<GraphemesFile, DataProblems> parse_graphemes(std::istream& in,
     DataProblems problems;
     const Report report(name, problems);
 
+    // A grapheme may be listed again for another sound, so a line is known by its
+    // letters and its sound together.
     std::map<std::string, std::size_t> first_line;
     std::string previous;
 
@@ -334,10 +398,10 @@ std::expected<GraphemesFile, DataProblems> parse_graphemes(std::istream& in,
         const auto clip = fields[2];
 
         bool good = true;
-        if (!is_lower_letters(letters)) {
+        if (!is_grapheme_letters(letters)) {
             report(line, in_quotes(letters) +
-                             " is not lowercase a-z letters (a split digraph "
-                             "cannot be written yet)");
+                             " is not lowercase a-z letters (or two runs of them with an "
+                             "underscore between, for a split digraph)");
             good = false;
         }
         if (!is_sound(sound)) {
@@ -353,9 +417,11 @@ std::expected<GraphemesFile, DataProblems> parse_graphemes(std::istream& in,
         }
 
         const std::string key(letters);
-        if (const auto found = first_line.find(key); found != first_line.end()) {
-            report(line, in_quotes(letters) + " is listed twice (first on line " +
-                             std::to_string(found->second) + ")");
+        const std::string pair = key + " " + std::string(sound);
+        if (const auto found = first_line.find(pair); found != first_line.end()) {
+            report(line, in_quotes(letters) + " with the sound " + std::string(sound) +
+                             " is listed twice (first on line " + std::to_string(found->second) +
+                             ")");
             return;
         }
         if (!previous.empty() && previous > key) {
@@ -363,7 +429,7 @@ std::expected<GraphemesFile, DataProblems> parse_graphemes(std::istream& in,
                    in_quotes(letters) + " is out of order (after " + in_quotes(previous) + ")");
         }
         previous = key;
-        first_line.emplace(key, line);
+        first_line.emplace(pair, line);
         file.graphemes.push_back(
             Grapheme{key, std::string(sound), std::string(clip.substr(clip_prefix.size())), line});
     });
@@ -411,21 +477,75 @@ std::expected<WordsFile, DataProblems> parse_words(std::istream& in, std::string
         if (fields.size() == 2 && fields[1] == tricky_marker) {
             entry.tricky = true;
         } else {
+            // The pieces after the word, in order: each is a grapheme, or one
+            // half of a split digraph. The letters of the pieces, in the order
+            // written, have to spell the word.
+            std::string spelt;
+            std::size_t at = 0;
+            std::optional<std::size_t> open;  // a split digraph's first half, not yet closed
+            bool between = false;             // a grapheme has come since it
             bool good = true;
-            for (const auto grapheme : std::span(fields).subspan(1)) {
-                if (grapheme == tricky_marker) {
+            for (const auto token : std::span(fields).subspan(1)) {
+                if (token == tricky_marker) {
                     report(line, in_quotes(word) + ": 'tricky' stands alone, with no split");
                     good = false;
                     break;
                 }
-                if (!is_lower_letters(grapheme)) {
-                    report(line, in_quotes(grapheme) + " in " + in_quotes(word) +
-                                     " is not lowercase a-z letters (a split digraph "
-                                     "cannot be written yet)");
+                const auto piece = read_piece(token);
+                if (!piece) {
+                    report(line, in_quotes(token) + " in " + in_quotes(word) +
+                                     " is not a grapheme: letters, with ':2' to pick a second "
+                                     "sound, or the halves of a split digraph as in 'a_' ... '_e'");
                     good = false;
                     break;
                 }
-                entry.graphemes.emplace_back(grapheme);
+
+                if (piece->kind == Piece::Kind::close) {
+                    if (!open) {
+                        report(line, in_quotes(token) + " in " + in_quotes(word) +
+                                         " closes a split digraph that was not opened");
+                        good = false;
+                        break;
+                    }
+                    if (!between) {
+                        report(line, "the halves of a split digraph in " + in_quotes(word) +
+                                         " have nothing between them");
+                        good = false;
+                        break;
+                    }
+                    WordGrapheme& split = entry.graphemes[*open];
+                    split.letters += "_" + piece->letters;
+                    split.second = at;
+                    open.reset();
+                } else {
+                    if (open && piece->kind == Piece::Kind::open) {
+                        report(line, in_quotes(token) + " in " + in_quotes(word) +
+                                         " opens a split digraph inside another");
+                        good = false;
+                        break;
+                    }
+                    WordGrapheme grapheme;
+                    grapheme.letters = piece->letters;
+                    grapheme.sound = piece->sound;
+                    grapheme.first = at;
+                    entry.graphemes.push_back(std::move(grapheme));
+                    if (piece->kind == Piece::Kind::open) {
+                        open = entry.graphemes.size() - 1;
+                        between = false;
+                    } else if (open) {
+                        between = true;
+                    }
+                }
+                spelt += piece->letters;
+                at += piece->letters.size();
+            }
+            if (good && open) {
+                report(line, "a split digraph in " + in_quotes(word) + " is opened and not closed");
+                good = false;
+            }
+            if (good && spelt != word) {
+                report(line, "the graphemes of " + in_quotes(word) + " spell " + in_quotes(spelt));
+                good = false;
             }
             if (!good) {
                 return;
@@ -461,6 +581,19 @@ const Grapheme* PhaseIndex::find_grapheme(std::string_view letters) const {
     const std::string key = lower(letters);
     const auto found = std::ranges::lower_bound(graphemes_, key, {}, &Grapheme::letters);
     return (found != graphemes_.end() && found->letters == key) ? &*found : nullptr;
+}
+
+std::span<const Grapheme> PhaseIndex::sounds_of(std::string_view letters) const {
+    const std::string key = lower(letters);
+    const auto range = std::ranges::equal_range(graphemes_, key, {}, &Grapheme::letters);
+    return {range.begin(), range.end()};
+}
+
+const Grapheme* PhaseIndex::sound_of(const WordGrapheme& grapheme) const {
+    const auto sounds = sounds_of(grapheme.letters);
+    const std::size_t which =
+        grapheme.sound == WordGrapheme::unspecified ? std::size_t{0} : grapheme.sound;
+    return which < sounds.size() ? &sounds[which] : nullptr;
 }
 
 const PhaseIndex* PhaseSet::find(std::string_view phase) const {
@@ -499,21 +632,26 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
     }
 
     PhaseSet result;
-    std::map<std::string, std::pair<Grapheme, Place>> known_graphemes;  // by letters
-    std::map<std::string, std::pair<PhaseWord, Place>> known_words;     // by word
+    // By letters, each with its sounds in the order they were defined.
+    std::map<std::string, std::vector<std::pair<Grapheme, Place>>> known_graphemes;
+    std::map<std::string, std::pair<PhaseWord, Place>> known_words;  // by word
 
     for (const auto& phase : names) {
         if (const auto found = grapheme_files.find(phase); found != grapheme_files.end()) {
             const auto& file = *found->second;
             for (const auto& grapheme : file.graphemes) {
                 const Place here{file.name, grapheme.line};
-                const auto [at, added] =
-                    known_graphemes.emplace(grapheme.letters, std::pair{grapheme, here});
-                if (!added) {
+                auto& sounds = known_graphemes[grapheme.letters];
+                const auto same = std::ranges::find_if(
+                    sounds, [&](const auto& known) { return known.first.sound == grapheme.sound; });
+                if (same != sounds.end()) {
                     problems.push_back({file.name, grapheme.line,
-                                        in_quotes(grapheme.letters) + " is already defined (" +
-                                            described(at->second.second) + ")"});
+                                        in_quotes(grapheme.letters) + " with the sound " +
+                                            grapheme.sound + " is already defined (" +
+                                            described(same->second) + ")"});
+                    continue;
                 }
+                sounds.emplace_back(grapheme, here);
             }
         }
 
@@ -526,19 +664,29 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
                 if (!english.contains(entry.word)) {
                     where(in_quotes(entry.word) + " is not in the dictionary");
                 }
-                if (!entry.tricky) {
-                    std::string spelt;
-                    for (const auto& grapheme : entry.graphemes) {
-                        spelt += grapheme;
-                        if (!known_graphemes.contains(grapheme)) {
-                            where("grapheme " + in_quotes(grapheme) + " of " +
-                                  in_quotes(entry.word) + " is not in phase " + phase +
-                                  " or an earlier phase");
-                        }
+                for (const WordGrapheme& grapheme : entry.graphemes) {
+                    const auto known = known_graphemes.find(grapheme.letters);
+                    if (known == known_graphemes.end()) {
+                        where("grapheme " + in_quotes(grapheme.letters) + " of " +
+                              in_quotes(entry.word) + " is not in phase " + phase +
+                              " or an earlier phase");
+                        continue;
                     }
-                    if (spelt != entry.word) {
-                        where("the graphemes of " + in_quotes(entry.word) + " spell " +
-                              in_quotes(spelt));
+                    // Which sound, where there is a choice.
+                    const std::size_t count = known->second.size();
+                    if (grapheme.sound == WordGrapheme::unspecified) {
+                        if (count > 1) {
+                            where("grapheme " + in_quotes(grapheme.letters) + " of " +
+                                  in_quotes(entry.word) + " has " + std::to_string(count) +
+                                  " sounds in phase " + phase + ": say which, as '" +
+                                  grapheme.letters + ":1' to '" + grapheme.letters + ":" +
+                                  std::to_string(count) + "'");
+                        }
+                    } else if (grapheme.sound >= count) {
+                        where("grapheme " + in_quotes(grapheme.letters) + " of " +
+                              in_quotes(entry.word) + " is numbered " +
+                              std::to_string(grapheme.sound + 1) + " and has only " +
+                              std::to_string(count) + " sound(s) in phase " + phase);
                     }
                 }
                 const Place here{file.name, entry.line};
@@ -555,10 +703,14 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
         PhaseIndex index;
         index.phase_ = phase;
         std::set<char> letters;
-        for (const auto& [key, entry] : known_graphemes) {
-            index.graphemes_.push_back(entry.first);
+        for (const auto& [key, sounds] : known_graphemes) {
+            for (const auto& sound : sounds) {
+                index.graphemes_.push_back(sound.first);
+            }
             for (const char c : key) {
-                letters.insert(to_upper(c));
+                if (c >= 'a' && c <= 'z') {
+                    letters.insert(to_upper(c));
+                }
             }
         }
         for (const auto& [key, entry] : known_words) {

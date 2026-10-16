@@ -49,10 +49,19 @@ each letter chosen by `rng() % 1,000,000` against ENABLE's letter counts. It
 is a test corpus, not a dice set. A 4x4 with no word costs a hundred visits.
 
 **What this says.** Solving is not the cost to budget: the worst board tried
-took 1.7 ms. **Loading the dictionary is** (about 60 ms and 18 MB), and in the
-MVP it is not even on the critical path: seeding and the scanner verify against
-the **phase index**, a few hundred words at most, and the full dictionary is
-needed only to tell "real, not today's" from "not a word".
+took 1.7 ms. **Loading the dictionary is** (about 60 ms and 18 MB). Whether it is
+on the critical path depends on the **board mode** (decided 2026-10-16: the
+standard board is the default, the phonics board a parent's switch):
+
+| Board mode | Solved against | Dictionary load | Seeding |
+| --- | --- | --- | --- |
+| **Standard** (default): dice, 3x3 to 6x6 | The child's word list, which is the full dictionary or a list cut from it | **On the path to the first board** | None: a roll of dice |
+| **Phonics** (parent's switch): seeded, grapheme-bound | The phase index, a few hundred words at most | Not on the path: the full list is needed only to tell "real, not today's" from "not a word" | Yes, below |
+| **Scanner** (Mode A) | The same as whichever board mode it is in; the phase index only in the phonics mode | As the board mode | None: it reads a real board |
+
+The measurements above were taken on boards of random letters against the full
+dictionary, which is the **standard** board's work; the seeding rows below are
+the phonics board's only.
 
 ## Budgets
 
@@ -69,9 +78,10 @@ to be confirmed on the first device.
 | A touch to a lit tile | 2 frames | Proposal |
 | A touch to its letter's sound | 100 ms | Proposal; audio latency is unmeasured and differs by platform |
 | Launch to `home` drawn | 2 s | Cubeulator proposes 2 s on a desktop; the same figure is proposed here |
-| Full dictionary load | 1 s, off the UI thread; `home` is usable meanwhile | Estimate 0.2 to 0.33 s from 55 to 65 ms |
-| Phase index load | 10 ms | Hundreds of words |
-| Seeding a board | 10 ms typical, 50 ms worst | Up to 20 verifications at about 0.5 ms (estimate) |
+| Full dictionary load (standard board: before its first board) | 1 s, off the UI thread; `home` is usable meanwhile | Estimate 0.2 to 0.33 s from 55 to 65 ms |
+| Phase index load (phonics board) | 10 ms | Hundreds of words |
+| Seeding a board (phonics board only) | 10 ms typical, 50 ms worst | Up to 20 verifications at 0.02 to 0.5 ms (measured, desktop); the guided fill is up to 7 ms on a 6x6 (measured, desktop) |
+| Making a standard board | 50 ms | A roll of dice and one solve; the solve is the cost (worst measured 0.85 ms on a 6x6). No dice set exists yet |
 | Solving any board | 50 ms | Worst measured 1.7 ms; a multiple of 5 gives 9 ms |
 | Start of the sound-it-out sequence after the finger lifts | 100 ms | Proposal |
 | Capture to the check screen (the single capture) | 3 s | Proposal; **unmeasured**, Vision's speed on dice is not known |
@@ -192,7 +202,7 @@ nothing else: the rest of the table is added with the code it times.
 | --- | --- |
 | app | `app.startup`, `app.load_qml`, `app.scene_create` |
 | data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` |
-| board | `board.seed` (tries), `board.verify` (viable words) |
+| board (phonics board only) | `board.seed` (tries), `board.verify` (viable words) |
 | solver | `solver.solve` (words found; visits) |
 | phonics | `phonics.bind`, `phonics.segment`, `phonics.sequence` |
 | input | `input.submit` (path length). Per-move work is a plot, `input.hit_test_us`, not a zone |
@@ -244,7 +254,10 @@ and a budget is several times the ratio.
 
 **Built:** every row that can be measured is in `tests/perf/budgets.hpp` with
 the figure it is a quarter above; the rows about seeding and binding wait for
-the code that makes them.
+the code that makes them. The solve and dictionary rows are the **standard
+board's** work; the `board.seed.*` and `phonics.*` rows are the **phonics
+board's**, and both are about measuring with boards of a phase, which needs a
+phase.
 
 | Metric | Measured | Budget (a quarter above) |
 | --- | --- | --- |
@@ -290,6 +303,9 @@ screen is the one automatable exception, and it needs the window and Qt.
 
 - Every device figure above.
 - The size of the phase index, and so the seeding's tries.
+- The standard board's word list: the full dictionary or a list cut from it
+  decides its load time and memory, and is not yet chosen
+  ([MVP library](mvp-library.md)).
 - ~~Whether the macro-free zone behaves on GCC and Apple clang and against the
   real Tracy headers.~~ **Settled** on MSVC, GCC and Apple clang, against the
   real headers (see "A macro-free route").

@@ -1,0 +1,24 @@
+# dice for a 4x4 board: 16 dice of 6 faces, one a line
+# made-by: tools/data/make_dice.ps1
+# source: data/dictionaries/en.txt
+# source-sha256: 3F16130220645692ED49C7134E24A18504C2CA55B3C012F7290E3E77C63B1A89
+# method: six different letters to a die, dealt in proportion to the source's letter counts,
+#   at least one of A E I O U on each, Q as the tile QU, faces of a die in letter order
+# prng: 32-bit LCG, state = state * 1664525 + 1013904223 mod 2^32; a draw below n is (state >> 8) mod n
+# seed: 31676
+D L N O P S
+C G H I P Y
+D E G K M S
+A I M O R S
+E L M R S U
+C H O R S Y
+E I L N O S
+E O R S T Y
+A C E L M T
+A B C I O P
+C D E K N S
+A D I L N V
+C D E L S T
+D G I N O S
+A B C R T U
+C L O P S T

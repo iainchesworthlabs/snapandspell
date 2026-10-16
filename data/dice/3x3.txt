@@ -1,0 +1,17 @@
+# dice for a 3x3 board: 9 dice of 6 faces, one a line
+# made-by: tools/data/make_dice.ps1
+# source: data/dictionaries/en.txt
+# source-sha256: 3F16130220645692ED49C7134E24A18504C2CA55B3C012F7290E3E77C63B1A89
+# method: six different letters to a die, dealt in proportion to the source's letter counts,
+#   at least one of A E I O U on each, Q as the tile QU, faces of a die in letter order
+# prng: 32-bit LCG, state = state * 1664525 + 1013904223 mod 2^32; a draw below n is (state >> 8) mod n
+# seed: 23757
+A C J R S Z
+C E I R S T
+A I L N P V
+A D G I R S
+B D E G H S
+E L N O U V
+C E G N S U
+D G I L R T
+A M N O P S

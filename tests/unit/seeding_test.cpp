@@ -344,7 +344,9 @@ TEST_CASE("targets prefer words with a focus sound", "[seeding]") {
         for (const auto& target : board.targets) {
             const auto* word = index.find_word(target);
             REQUIRE(word != nullptr);
-            CHECK(std::ranges::find(word->graphemes, "ai") != word->graphemes.end());
+            CHECK(std::ranges::any_of(word->graphemes, [](const wjs::WordGrapheme& grapheme) {
+                return grapheme.letters == "ai";
+            }));
         }
     }
 }
@@ -547,4 +549,218 @@ TEST_CASE("each seeding error has a message", "[seeding]") {
           wjs::SeedError::bad_dead_letter, wjs::SeedError::bad_filler}) {
         CHECK_FALSE(wjs::to_string(error).empty());
     }
+}
+
+TEST_CASE("targets can be limited to short words", "[seeding]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    auto options = options_for(4, 3);
+    options.max_target_letters = 3;
+
+    for (std::uint32_t seed_value = 1; seed_value <= 50; ++seed_value) {
+        const auto board = seed(index, options, seed_value);
+
+        INFO("seed " << seed_value);
+        for (const auto& target : board.targets) {
+            CHECK(target.size() <= 3);
+        }
+    }
+}
+
+TEST_CASE("a limit shorter than any word leaves nothing to plant", "[seeding]") {
+    const auto set = make_set();
+    auto options = options_for(4, 0);
+    options.max_target_letters = 2;
+
+    const auto result = wjs::seed_board(*set.find("B"), options, {}, 1);
+
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error() == wjs::SeedError::empty_index);
+}
+
+TEST_CASE("a guided fill keeps the count within the range and the words apart",
+          "[seeding][guided]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    auto options = options_for(4, 0);
+    options.guided_fill = true;
+    options.max_target_letters = 3;
+
+    std::size_t fallbacks = 0;
+    for (std::uint32_t seed_value = 1; seed_value <= 100; ++seed_value) {
+        const auto board = seed(index, options, seed_value);
+
+        INFO("seed " << seed_value << " board " << text_of(board.board));
+        fallbacks += board.fallback ? 1U : 0U;
+
+        // The fill never takes the count over the top of the range.
+        if (!board.fallback) {
+            CHECK(board.viable.size() >= options.min_viable);
+            CHECK(board.viable.size() <= options.max_viable);
+        }
+        CHECK(board.targets.size() >= options.min_viable);
+        CHECK(wjs::solve(board.board, index.dictionary()).size() == board.viable.size());
+
+        // The dead jewels listed are the tiles with the dead letter, and there may
+        // be more than were asked for (none were).
+        std::size_t dead_tiles = 0;
+        for (std::size_t row = 0; row < 4; ++row) {
+            for (std::size_t column = 0; column < 4; ++column) {
+                const bool dead = board.board.tile({row, column}) == "X";
+                dead_tiles += dead ? 1U : 0U;
+                const bool listed = std::ranges::any_of(board.dead, [&](const wjs::Position& p) {
+                    return p == wjs::Position{row, column};
+                });
+                CHECK(dead == listed);
+            }
+        }
+        CHECK(dead_tiles == board.dead.size());
+        CHECK(board.solves > board.tries);
+    }
+    CHECK(fallbacks <= 10);
+}
+
+TEST_CASE("a guided fill leaves most tiles as letters", "[seeding][guided]") {
+    // Not a claim about a real phase: on this one, with 3-letter targets, fewer
+    // than half the tiles are dead jewels, where the random fill needs 12 of 16
+    // to make a board of a few words.
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    auto options = options_for(4, 0);
+    options.guided_fill = true;
+    options.max_target_letters = 3;
+
+    std::size_t dead_tiles = 0;
+    for (std::uint32_t seed_value = 1; seed_value <= 50; ++seed_value) {
+        dead_tiles += seed(index, options, seed_value).dead.size();
+    }
+
+    CHECK(dead_tiles < 50 * 8);
+}
+
+TEST_CASE("a guided fill is a function of the seed like any other", "[seeding][guided]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    auto options = options_for(4, 0);
+    options.guided_fill = true;
+    options.max_target_letters = 3;
+
+    for (std::uint32_t seed_value = 1; seed_value <= 10; ++seed_value) {
+        const auto first = seed(index, options, seed_value);
+        const auto second = seed(index, options, seed_value);
+
+        CHECK(text_of(first.board) == text_of(second.board));
+        CHECK(first.solves == second.solves);
+    }
+}
+
+TEST_CASE("a guided fill needs a dead letter that the phase does not use", "[seeding][guided]") {
+    const auto set = make_set();
+    auto options = options_for(4, 0);  // no dead jewels asked for
+    options.guided_fill = true;
+    options.dead_letter = 'S';
+
+    const auto result = wjs::seed_board(*set.find("B"), options, {}, 1);
+
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error() == wjs::SeedError::bad_dead_letter);
+}
+
+TEST_CASE("a guided fill with letters outside the phase leaves no dead jewel",
+          "[seeding][guided]") {
+    // The "letters not yet taught" filler: letters no word of the phase uses can
+    // always be put somewhere, so nothing has to be made dead.
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    auto options = options_for(4, 0);
+    options.guided_fill = true;
+    options.max_target_letters = 3;
+    options.filler = "AINPSTBCDFGH";
+
+    for (std::uint32_t seed_value = 1; seed_value <= 30; ++seed_value) {
+        const auto board = seed(index, options, seed_value);
+
+        INFO("seed " << seed_value << " board " << text_of(board.board));
+        CHECK(board.dead.empty());
+    }
+}
+
+TEST_CASE("the phonics board options keep one letter out and let the rest in",
+          "[seeding][guided]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+
+    const auto options = wjs::phonics_board_options(index, 4);
+
+    REQUIRE(options.has_value());
+    CHECK(options->size == 4);
+    CHECK(options->guided_fill);
+    CHECK(options->max_target_letters == 3);
+    CHECK(options->dead_cells == 0);
+    // The phase's letters are AINPST, so the first letter no word uses is B.
+    CHECK(options->dead_letter == 'B');
+    CHECK(options->filler.size() == 25);
+    CHECK(options->filler.find('B') == std::string::npos);
+    CHECK(options->filler.find('Z') != std::string::npos);
+}
+
+TEST_CASE("a phonics board has the phase's letters first and no dead jewels", "[seeding][guided]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    const auto options = wjs::phonics_board_options(index, 4);
+    REQUIRE(options.has_value());
+
+    std::size_t fallbacks = 0;
+    std::size_t taught = 0;
+    std::size_t tiles = 0;
+    for (std::uint32_t seed_value = 1; seed_value <= 100; ++seed_value) {
+        const auto board = seed(index, *options, seed_value);
+
+        INFO("seed " << seed_value << " board " << text_of(board.board));
+        if (board.fallback) {
+            ++fallbacks;
+        }
+        CHECK(board.dead.empty());
+        for (std::size_t row = 0; row < 4; ++row) {
+            for (std::size_t column = 0; column < 4; ++column) {
+                const char letter = board.board.tile({row, column})[0];
+                CHECK(letter != options->dead_letter);
+                ++tiles;
+                if (index.alphabet().find(letter) != std::string::npos) {
+                    ++taught;
+                }
+            }
+        }
+        // Every word of the phase on the board is a word of the phase: nothing
+        // about an untaught letter can add one.
+        for (const auto& found : board.viable) {
+            CHECK(index.find_word(found.word) != nullptr);
+        }
+    }
+
+    CHECK(fallbacks <= 10);
+    // The letters of the phase come first, and the others fill what is left.
+    CHECK(taught * 10 >= tiles * 4);
+}
+
+TEST_CASE("a phase that uses every letter has none to keep out", "[seeding][guided]") {
+    std::string graphemes = "# phase: A\n";
+    for (char letter = 'a'; letter <= 'z'; ++letter) {
+        graphemes += std::string(1, letter) + "  /t/  clip:t\n";
+    }
+    std::istringstream graphemes_in(graphemes);
+    std::istringstream words_in("# phase: A\nabc  a b c\n");
+    const auto parsed_graphemes = wjs::parse_graphemes(graphemes_in, "g");
+    const auto parsed_words = wjs::parse_words(words_in, "w");
+    REQUIRE(parsed_graphemes.has_value());
+    REQUIRE(parsed_words.has_value());
+    wjs::Dictionary dictionary;
+    dictionary.insert("abc");
+    const auto built = wjs::PhaseSet::build({*parsed_graphemes}, {*parsed_words}, dictionary);
+    REQUIRE(built.has_value());
+
+    const auto options = wjs::phonics_board_options(*built->find("A"), 4);
+
+    REQUIRE_FALSE(options.has_value());
+    CHECK(options.error() == wjs::SeedError::bad_dead_letter);
 }

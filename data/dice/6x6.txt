@@ -1,0 +1,44 @@
+# dice for a 6x6 board: 36 dice of 6 faces, one a line
+# made-by: tools/data/make_dice.ps1
+# source: data/dictionaries/en.txt
+# source-sha256: 3F16130220645692ED49C7134E24A18504C2CA55B3C012F7290E3E77C63B1A89
+# method: six different letters to a die, dealt in proportion to the source's letter counts,
+#   at least one of A E I O U on each, Q as the tile QU, faces of a die in letter order
+# prng: 32-bit LCG, state = state * 1664525 + 1013904223 mod 2^32; a draw below n is (state >> 8) mod n
+# seed: 47514
+E M R S T U
+L N O R S U
+A C D E I V
+C I N R S W
+A E M O S T
+A E L R S Y
+A C E I K S
+A E K L N S
+B E I O S T
+A E H M O T
+E I O P S V
+A E L O S W
+A G P R S T
+C E I N O T
+A C L N R S
+A D E L N U
+D H I N S T
+A B H O R S
+A I N O R S
+D E I R T V
+A C I M P S
+E K P R S X
+A C D I L M
+A D E K O T
+E G I P S T
+G H I R S U
+E L O P S W
+A E I O S T
+A E N O S T
+A C E L R S
+C I N O S T
+A C D E M O
+C D E O S U
+C I L N P Z
+A D L M N S
+E H I M N R
