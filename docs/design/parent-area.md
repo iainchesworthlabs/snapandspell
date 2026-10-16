@@ -138,6 +138,15 @@ not include the game's headers (they are on another branch). A find's moment is 
 `Day`, the unit the game gives as its `Stamp`. The same board's snapshot may be
 sent again and again: only what is new is recorded.
 
+**What the adapter must do on the way back** (the game session's `restore()` compares
+its record with its own re-solve exactly): the store keeps a board's tiles as
+`S,A,T/P,I,N/T,A,P` (commas between tiles) and every word in lower case, so the adapter
+turns the tiles back into the session's own text (`S A T/P I N/T A P`, a space between
+tiles) and the viable words back to **upper case in alphabetical order**, or `restore()`
+answers `board_changed`. A board with no phase is a standard board; the session deals
+the phonics board only so far, and when it gains a board mode the adapter maps it to the
+phase ("" for standard).
+
 ## The gate
 
 [dashboard.md](dashboard.md#the-gate): two fingers on two marked circles for two
