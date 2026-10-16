@@ -109,7 +109,8 @@ C++23 is required, with compiler extensions off, for every target.
 
 ## The Qt Quick window
 
-The window is a thin Qt Quick layer over the library (`src/app`). It is the
+The window is the Solo Play game of [Application design](design/application.md)
+in Qt Quick, over the library (`src/app`; [Architecture](architecture.md#the-qt-quick-window)). It is the
 optional target `wjs_app`, built as `WordJewelsSolver` (`WordJewelsSolver.exe`
 on Windows, where it is a GUI-subsystem program with no console window; an
 application bundle on macOS). It is off by default until CI installs Qt.
@@ -129,7 +130,7 @@ as a prebuilt install (from the Qt online installer, or with
 ```sh
 cmake --preset windows-msvc-debug -DWJS_BUILD_APP=ON -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64
 cmake --build --preset windows-msvc-debug
-build/windows-msvc-debug/bin/WordJewelsSolver.exe --dictionary words.txt
+build/windows-msvc-debug/bin/WordJewelsSolver.exe
 ```
 
 On Windows the build runs `windeployqt` after linking, so Qt's DLLs and the QML
