@@ -332,6 +332,10 @@ QString ParentController::storeNote() const {
     return note_;
 }
 
+QString ParentController::motion() const {
+    return text(to_string(store_->settings().motion));
+}
+
 bool ParentController::reducedMotion() const {
     return store_->settings().motion == wjs::MotionSetting::reduced;
 }

@@ -259,7 +259,7 @@ decision, not a child's, and it is not behind the game.
 | --- | --- |
 | 1.1.1 Non-text content | Tiles, jewels, the start tile and stickers have names; the 3D scene's alternative is the 2D tile layer |
 | 1.4.1 Use of colour, 1.4.11 Non-text contrast | The table above |
-| 1.4.4 Resize text | Text scale 1, 1.25 and 1.5 times the system's, clamped to 0.85 to 2.0; layouts hold at 2.0 (tray scrolls, buttons grow with their labels) |
+| 1.4.4 Resize text | Text scale 1, 1.25 and 1.5 times the system's, clamped to 0.85 to 2.0; layouts hold at 2.0 (tray scrolls, buttons grow with their labels). The system's size is not read yet: Qt 6.12 does not expose it ([parent area](parent-area.md#integration)) |
 | 2.2.1 Timing, 2.2.2 Pause, stop, hide | There are no timers; nothing loops over 5 seconds |
 | 2.3.3 Animation from interactions | Reduced motion (above) |
 | 2.5.1 Pointer gestures | Tap in order is always on |

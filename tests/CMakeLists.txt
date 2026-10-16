@@ -130,6 +130,7 @@ if(WJS_BUILD_APP)
         app/real_solo_game_test.cpp
         app/solo_model_test.cpp
         app/solver_model_test.cpp
+        app/system_motion_test.cpp
         "${PROJECT_SOURCE_DIR}/src/app/parent/parent_controller.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/board_layout.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/fake_solo_game.cpp"
@@ -140,7 +141,8 @@ if(WJS_BUILD_APP)
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_setup.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_model.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/solver_model.cpp")
+        "${PROJECT_SOURCE_DIR}/src/app/solver_model.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/system_motion.cpp")
     set_target_properties(wjs_app_tests PROPERTIES AUTOMOC ON)
     target_include_directories(wjs_app_tests PRIVATE
         "${PROJECT_SOURCE_DIR}/src/app"
@@ -152,6 +154,7 @@ if(WJS_BUILD_APP)
             wjs::lib
             wjs::platform
             Qt6::Core
+            Qt6::Gui
             Qt6::Qml
             wjs::warnings
             wjs::sanitizers

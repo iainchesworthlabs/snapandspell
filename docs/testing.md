@@ -40,7 +40,9 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 `wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]` and `[solo]`). The parent area's are
 `[calendar]`, `[settings]`, `[gate]`, `[store]` (with `[record]`, `[file]`, `[migration]`, `[bounds]`,
 `[reset]`, `[resume]` and `[privacy]`), `[dashboard]` (with `[sounds]`, `[week]`, `[vault]`, `[best]`,
-`[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`.
+`[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`
+(and `[system]` with `[motion]` for the singleton over the system's motion preference, which makes a
+GUI application on Qt's offscreen platform and tells its accessibility hints of a change).
 
 ## What there is
 
