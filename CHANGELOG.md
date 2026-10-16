@@ -16,6 +16,22 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **The parent area, on the device and nowhere else**, inside the first release's
+  frozen privacy rules (no voice, no export, no network, no time played, no limit):
+  a small versioned **store** (`wjs/store.hpp`) of finds, the last twenty boards, stars,
+  bests, the vault, day tallies, settings and the game in progress, kept in one file in
+  the per-user data directory (`wjs::platform::user_data_directory()`), written whole and
+  renamed into place, migrated from older versions with the old file kept, and set aside
+  whole and never overwritten if damaged; the **parental gate** (`wjs/parent_gate.hpp`):
+  two fingers on two circles for two seconds, with an accessibility route and Space and
+  the mouse on a desktop; the **dashboard's numbers** (`wjs/dashboard.hpp`): this week,
+  the sounds of the active phase (met, found, unassisted), the vault and the best; and the
+  **screens** (`WordJewelsSolver.Parent`: the gate, the dashboard, the settings, about,
+  licences and privacy) with every sentence a parent reads in one file for the literacy
+  review. Privacy checks run in CI: a scan of the source for audio capture, the network
+  and export routes, and a held-to-cases checker for it; the store's size cap and what
+  it may hold; the wording. See
+  [docs/design/parent-area.md](docs/design/parent-area.md).
 - **A prototype of the 3D board scene**, built only with
   `-DWJS_BUILD_SHAKE_PROTOTYPE=ON` (and `WJS_BUILD_APP=ON`): the shake, the lid
   and the drop in Qt Quick 3D behind a one-component interface, scripted from a

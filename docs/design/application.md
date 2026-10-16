@@ -317,10 +317,20 @@ checked on each target.
 | **No profiling in what ships** | Tracy listens on a TCP port when built in (Cubeulator's profiling notes) | The shipped presets must not enable it; a check that a release artefact has no Tracy symbols |
 
 **What the store holds**, which is also what the dashboard may say: for each
-find, the word, the board size, the time of day it was found, whether the start
+find, the word, the board size, the day it was found, whether the start
 tile was used for it, and the phase; the stars; the best; the stickers; the
 last twenty boards. **It does not hold** a duration of play, an identity, a
-location, an image or a sound.
+location, an image or a sound. (An earlier draft of this page said the time of
+day; the build keeps the day only, because a time on every find would be
+a figure for time on screen, which [Game](game.md#what-this-design-does-not-do)
+rules out. See [The parent area as built](parent-area.md#the-store).)
+
+**What is checked now.** The scans for audio capture, the network classes and
+modules, and the export routes, the store's round trip, migration, damage and size
+cap, and the parent area's wording are tests that run in every CI leg
+(`privacy.sources`, the `[store]` cases, `parent.wording`; the table in
+[The parent area as built](parent-area.md#privacy-checks-ci)). The checks on a built
+Android package, an iOS property list and a web page wait for those targets.
 
 ## Unknowns
 

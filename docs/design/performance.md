@@ -201,7 +201,7 @@ nothing else: the rest of the table is added with the code it times.
 | Layer | Zones, with the value each carries |
 | --- | --- |
 | app | `app.startup`, `app.load_qml`, `app.scene_create` |
-| data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` |
+| data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` (bytes written), `data.load_store` (bytes read), `data.build_dashboard` (sounds); the last three are built, in the parent area's store and dashboard |
 | board (phonics board only) | `board.seed` (tries), `board.verify` (viable words) |
 | solver | `solver.solve` (words found; visits) |
 | phonics | `phonics.bind`, `phonics.segment`, `phonics.sequence` |

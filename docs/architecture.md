@@ -13,18 +13,24 @@ src/
     include/wjs/         board.hpp  dice.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp
                          grapheme_binder.hpp  shake.hpp
+                         calendar.hpp  settings.hpp  store.hpp
+                         parent_gate.hpp  dashboard.hpp
                          solver_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
     src/                 board.cpp  dice.cpp  draw.hpp (internal)  dictionary.cpp
                          scoring.cpp  solver.cpp
                          path.cpp  phase_data.cpp  seeding.cpp
                          grapheme_binder.cpp  shake.cpp
+                         settings.cpp  store.cpp  store_format.cpp
+                         parent_gate.cpp  dashboard.cpp
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
                          profiling-disabled/wjs/profiling.hpp  (empty)
   cli/                 main.cpp: wjs-cli
   app/                 the Qt Quick window (built only with WJS_BUILD_APP)
     qml/Main.qml         the window
     solver_model.*       the model the window talks to
+    parent/              the parent area's controller and its QML module (CMake)
+    qml/parent/          the parent area's screens and their wording
   platforms/           everything that differs between operating systems
     interfaces/wjs/platform/
                          console.hpp  paths.hpp
@@ -35,7 +41,8 @@ src/
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
                        Tracy.cmake, FindQt6.cmake
-tests/                 unit/  app/  platform/  perf/  profiling/
+tests/                 unit/  app/  app/parent_ui/  platform/  perf/  profiling/
+                       privacy/  parent/
 tools/checks/          check_platform_isolation.ps1
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
                        make_dice.ps1
@@ -294,6 +301,41 @@ gentle wave are not shakes. The numbers are starting values, tuned on synthetic
 traces and not on a device. Reading the sensor is an operating-system service and
 belongs behind an interface in `src/platforms`, which is not written.
 
+### The store
+
+`Store` is what the application keeps between runs (docs/design/dashboard.md,
+"The store"): a small versioned text file in one place and nothing else. It holds
+each find (word, board size, phase, **day**, whether the start tile was shown, which
+board), the last twenty boards, the stars, the best of each size, the words found at
+least once (the vault), a tally for each of the last 35 days, the settings, and the
+game in progress; no duration, time of day, identity, location, image or sound. Every
+list has a bound and the file never exceeds 128 KiB. The first line is the version
+and the last a checksum; an older file is migrated a step at a time (`MigrationStep`)
+and kept beside the new one, a damaged file is moved aside whole and never
+overwritten, and a newer file is left alone and not saved over. A save is written
+whole and renamed into place. The game session hands it plain values
+(`BoardSnapshot`, `SavedSession`), and a find's moment is a `Day` from
+`wjs/calendar.hpp` (days since 1970-01-01, the device's calendar, with the week by
+the locale's first day). Where the file goes is `wjs::platform::user_data_directory()`.
+See [The parent area as built](design/parent-area.md#the-store).
+
+### The parent gate
+
+`Gate` (`wjs/parent_gate.hpp`) is the rule of the parental gate as logic: two touches,
+one in each of two circles a diagonal apart, held two seconds; any other touch, a lift
+or a slide out starts the hold over. It has no clock of its own: it is told the time
+with each touch. An accessibility action opens it with no hold. It keeps a child out
+of the settings by accident and is not security.
+
+### The dashboard
+
+`build_dashboard(store data, phase index, today, first day of the week)` computes what
+a parent sees, as counts: this week (boards cleared, stars, new words, the longest
+word), a row for each sound of the phase (boards it was met on, boards it was found
+on, distinct words found, found without the start tile, often found), the vault and
+the best. It words nothing: the screens do, from one file. With no phase data there are
+no sounds.
+
 ### Errors
 
 An expected failure (a board that cannot be read, a word list that cannot be
@@ -315,6 +357,7 @@ An OS service the program needs is declared in a header under
 | Interface | What it does | Windows | Linux | macOS |
 | --- | --- | --- | --- | --- |
 | `paths.hpp`: `executable_path()` | The absolute path of the running program, so data beside it can be found | `GetModuleFileNameW` | `/proc/self/exe` | `_NSGetExecutablePath` |
+| `paths.hpp`: `user_data_directory()` | The per-user, per-device directory a program keeps its own data in | `%LOCALAPPDATA%` | `$XDG_DATA_HOME`, else `~/.local/share` | `~/Library/Application Support` |
 | `console.hpp`: `use_utf8_console()` | Make the console read and write UTF-8 | `SetConsoleCP`, `SetConsoleOutputCP` | nothing to do (`posix/`) | nothing to do (`posix/`) |
 
 Linux and macOS share `posix/console_posix.cpp`, named by both
@@ -330,6 +373,15 @@ owns a `wjs::Dictionary`, loads it from `--dictionary <file>` or from
 text fields, a Solve button and a list. All the solving is the library's; the
 model only reshapes its answer. The library knows nothing of Qt, and the model
 has its own Catch2 tests.
+
+The parent area (the gate, the dashboard, the settings and the about page) is a QML
+module of its own, `WordJewelsSolver.Parent`, in `src/app/parent` (C++) and
+`src/app/qml/parent` (screens), linked by one line of `src/app/CMakeLists.txt`.
+`ParentController` is the shape Qt Quick wants over the library's rules, plus the
+clock; `ParentArea.qml` is one screen with a controller and a `closed()` signal. The
+program makes one `Store` and shares it with the game. Its tests are in
+`wjs_app_tests`, and a stub shell (`tests/app/parent_ui`) draws the screens without a
+display. See [The parent area as built](design/parent-area.md).
 
 What makes the window a program of the platform's desktop (a GUI-subsystem
 executable on Windows, an application bundle on macOS) and what puts Qt's
@@ -374,7 +426,8 @@ These do not exist, and nothing in the tree stands in for them:
   shake detector exist and are tested, and no front end uses them yet. No phase
   file exists, and none is written here: the content has to be written and
   reviewed by someone qualified to do it before a child uses it. The audio
-  clips, the sound-it-out sequence and the dashboard are not built.
+  clips and the sound-it-out sequence are not built. The parent dashboard is built
+  and shows nothing of the sounds until a phase exists.
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
   early-reader tier lists (animals, colours, shapes, and so on); nothing reads
   them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.
