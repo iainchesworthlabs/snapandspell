@@ -58,9 +58,20 @@ struct Metric {
 // built to hold many words and boards with none (measure.hpp, Digest).
 [[nodiscard]] std::uint64_t corpus_digest();
 
+// --- the scanner, counted (wjs/scan/work.hpp) ---------------------------------
+
+// What reading four fixed synthetic frames costs the reader (a 4x4, a 5x5, a 6x6
+// and a 4x4 under glare): the frames and pixels, which pin the corpus, and the
+// blobs, dice candidates, cells read, template comparisons, warped pixels and pixel
+// buffers, which are what a read does. Totals over the four, and the most buffers
+// any one read allocated.
+[[nodiscard]] std::vector<Metric> scan_metrics();
+
 // --- time: a ratio to the calibration workload, opt-in -----------------------
 
 [[nodiscard]] std::vector<Metric> load_timing_metrics();
 [[nodiscard]] std::vector<Metric> solve_timing_metrics();
+// One read of a 4x4 and of a 6x6 frame.
+[[nodiscard]] std::vector<Metric> scan_timing_metrics();
 
 }  // namespace wjs::perf

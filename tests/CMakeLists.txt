@@ -50,7 +50,8 @@ add_subdirectory(scan)
 # nodes), exact on every machine, and wall-time checks against a calibration
 # workload that only run on request. Its own binary so that it can be built and
 # run alone and so that nothing else's static state or allocator churn is in
-# the way of a stopwatch. wjs::lib only: no Qt and no platform layer.
+# the way of a stopwatch. wjs::lib and the scanner (with its synthetic corpus,
+# tests/scan/synth): no Qt and no platform layer.
 # docs/testing.md, "Performance tests".
 add_executable(wjs_perf_tests
     perf/corpus.cpp
@@ -63,6 +64,7 @@ add_executable(wjs_perf_tests
 target_link_libraries(wjs_perf_tests
     PRIVATE
         wjs::lib
+        wjs_scan_synth
         wjs::warnings
         wjs::sanitizers
         wjs::coverage
