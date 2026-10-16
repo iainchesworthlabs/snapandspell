@@ -159,6 +159,12 @@ signals:
     void settingsChanged();
     void storeNoteChanged();
 
+    // The parent changed something the game reads from the store: a setting (one
+    // that was not already so), or a reset. Not sent by refresh(), which only
+    // reads, so that opening a screen is not an edit. The shell tells the game,
+    // which takes its next game from the store as it is now.
+    void storeEdited();
+
 private:
     void afterGateEvent(std::chrono::milliseconds now);
     [[nodiscard]] const wjs::PhaseIndex* activeIndex() const;

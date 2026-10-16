@@ -380,6 +380,7 @@ void SoloModel::lidOn() {
     emit litPathChanged();
     emit helpChanged();
     emit stateChanged();
+    renewGameIfDue();
 }
 
 void SoloModel::again() {
@@ -391,6 +392,36 @@ void SoloModel::again() {
     game_->again();
     refreshHistory();
     emit helpChanged();
+    emit stateChanged();
+    renewGameIfDue();
+}
+
+// --- what the parent changes ----------------------------------------------------
+
+void SoloModel::storeEdited() {
+    renew_due_ = true;
+    renewGameIfDue();
+}
+
+void SoloModel::renewGameIfDue() {
+    if (!renew_due_ || game_->state() != SoloState::box) {
+        return;
+    }
+    renew_due_ = false;
+    // The game is made from the store as it is now (the maker is the program's), and
+    // the box is shown as a new game's: empty, with the size and the help the parent
+    // has chosen and the history the store keeps.
+    game_ = make_solo_game();
+    presenting_ = false;
+    help_tile_ = -1;
+    lit_path_.clear();
+    resetTracer();
+    refreshHistory();
+    emit sizeChanged();
+    emit boardChanged();
+    emit foundChanged();
+    emit helpChanged();
+    emit litPathChanged();
     emit stateChanged();
 }
 

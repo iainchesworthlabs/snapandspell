@@ -22,20 +22,19 @@ namespace {
 }  // namespace
 
 SoloGameSetup::SoloGameSetup(wjs::Dictionary dictionary, wjs::PhaseSet phases, std::string phase,
-                             wjs::Store store, wjs::LoadStatus store_status,
-                             std::optional<std::uint32_t> seed, std::function<wjs::Day()> today)
+                             wjs::Store& store, std::optional<std::uint32_t> seed,
+                             std::function<wjs::Day()> today)
     : dictionary_(std::move(dictionary)),
       phases_(std::move(phases)),
       phase_(phases_.find(phase)),
-      store_(std::move(store)),
-      store_status_(store_status),
+      store_(store),
       seed_(seed),
       today_(std::move(today)) {}
 
 SoloGameSetup::~SoloGameSetup() = default;
 
 std::expected<std::unique_ptr<SoloGameSetup>, std::string> SoloGameSetup::open(
-    const SoloGameOptions& options) {
+    const SoloGameOptions& options, wjs::Store& store) {
     // A find is stamped with the day it was made, and a store given a wrong day
     // keeps it: no calendar is an error here and not a day made up.
     if (!options.today) {
@@ -58,14 +57,6 @@ std::expected<std::unique_ptr<SoloGameSetup>, std::string> SoloGameSetup::open(
         return std::unexpected(std::move(message));
     }
 
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::LoadStatus store_status = wjs::LoadStatus::created;
-    if (!options.store.empty()) {
-        wjs::OpenResult opened = wjs::Store::open(options.store);
-        store = std::move(opened.store);
-        store_status = opened.status;
-    }
-
     const std::string name = options.phase.empty() ? store.settings().phase : options.phase;
     const wjs::PhaseIndex* index = phases->find(name);
     if (index == nullptr) {
@@ -86,9 +77,8 @@ std::expected<std::unique_ptr<SoloGameSetup>, std::string> SoloGameSetup::open(
                                " cannot be played: " + std::string(to_string(trial.error())) + ".");
     }
 
-    return std::unique_ptr<SoloGameSetup>(
-        new SoloGameSetup(*std::move(dictionary), *std::move(phases), name, std::move(store),
-                          store_status, options.seed, options.today));
+    return std::unique_ptr<SoloGameSetup>(new SoloGameSetup(
+        *std::move(dictionary), *std::move(phases), name, store, options.seed, options.today));
 }
 
 std::unique_ptr<SoloGame> SoloGameSetup::make() {

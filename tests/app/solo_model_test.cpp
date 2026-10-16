@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "fake_solo_game.hpp"
+#include "solo_game_factory.hpp"
 #include "solo_model.hpp"
 
 namespace {
@@ -442,4 +443,105 @@ TEST_CASE("a model made with no game plays the one the application plays", "[app
     CHECK(model.sizes() == indices({3, 4}));
     model.shake();
     CHECK(model.state() == "shaking");
+}
+
+// --- what the parent changes -------------------------------------------------------
+
+namespace {
+
+// What a program's maker makes after the parent switched the help off and chose the
+// 4x4 to be offered first, and how many it has made.
+struct ParentChoices {
+    int made = 0;
+    wjs::app::ScopedSoloGameMaker installed{[this] {
+        ++made;
+        auto game = std::make_unique<FakeSoloGame>();
+        game->setHelpAllowed(false);
+        game->chooseSize(4);
+        return game;
+    }};
+};
+
+}  // namespace
+
+TEST_CASE("an edit by the parent gives a new game at once when the box has its lid on",
+          "[app][solo][edited]") {
+    ParentChoices chosen;
+    Fixture f;
+    f.play();
+    f.model.lidOn();
+    REQUIRE(f.model.state() == "box");
+    CHECK(f.model.helpAllowed());
+    CHECK(f.model.boardSize() == 3);
+    int states = 0;
+    QObject::connect(&f.model, &SoloModel::stateChanged, [&] { ++states; });
+
+    f.model.storeEdited();
+
+    CHECK(chosen.made == 1);
+    CHECK_FALSE(f.model.helpAllowed());
+    CHECK(f.model.boardSize() == 4);
+    CHECK(f.model.state() == "box");
+    CHECK(f.model.tiles().isEmpty());
+    CHECK(f.model.found().isEmpty());
+    CHECK(states == 1);
+    // And it plays like any other.
+    f.model.shake();
+    CHECK(f.model.state() == "shaking");
+    CHECK(f.model.rows() == 4);
+}
+
+TEST_CASE("a game in play is not taken from a child: the next one is made when the lid is on",
+          "[app][solo][edited]") {
+    ParentChoices chosen;
+    Fixture f;
+    f.play();
+    const QStringList tiles = f.model.tiles();
+
+    f.model.storeEdited();
+
+    CHECK(chosen.made == 0);
+    CHECK(f.model.state() == "playing");
+    CHECK(f.model.tiles() == tiles);
+    CHECK(f.model.helpAllowed());
+
+    f.model.lidOn();
+
+    CHECK(chosen.made == 1);
+    CHECK(f.model.state() == "box");
+    CHECK_FALSE(f.model.helpAllowed());
+}
+
+TEST_CASE("a game that is resting is replaced by Again", "[app][solo][edited]") {
+    ParentChoices chosen;
+    Fixture f;
+    f.play();
+    for (auto word : {&Fixture::sit, &Fixture::sat, &Fixture::tap, &Fixture::pat, &Fixture::nip}) {
+        (f.*word)();
+        f.shown();
+    }
+    f.model.celebrated();
+    REQUIRE(f.model.state() == "resting");
+
+    f.model.storeEdited();
+    CHECK(chosen.made == 0);
+    CHECK(f.model.state() == "resting");
+
+    f.model.again();
+    CHECK(chosen.made == 1);
+    CHECK(f.model.state() == "box");
+    CHECK_FALSE(f.model.helpAllowed());
+}
+
+TEST_CASE("with no edit the game goes on as it is, whatever the maker would make",
+          "[app][solo][edited]") {
+    ParentChoices chosen;
+    Fixture f;
+    f.play();
+    f.model.lidOn();
+    f.model.shake();
+    f.model.lidOn();
+
+    CHECK(chosen.made == 0);
+    CHECK(f.model.helpAllowed());
 }
