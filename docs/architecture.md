@@ -200,12 +200,22 @@ handler that asks it a tile at a time.
 
 `DiceSet` is a set of dice, each with faces of one to three letters (the Boggle
 `Qu` face is the tile `QU`), read from a text file, one die a line (`parse`,
-`load`, `load_file`). `roll(dice, seed)` shakes them onto a square board: the
-dice are put in a random order, a die to a tile, and each shows one face. It is a
-pure function of the set and the seed, with the library's own `Draw`
-(`std::mt19937` taken modulo, and a shuffle that is not `std::shuffle`), so a seed
-is the same board on every compiler. The set must hold a square number of dice, so
-the 3x3 is its own set and not a window on the 4x4.
+`load`, `load_file`). `roll_with_placements(dice, seed)` shakes them onto a square
+board: the dice are put in a random order, a die to a tile, and each shows one
+face. It returns a `RolledBoard`: the `Board` and, for each tile row-major, a
+`Placement` with the index of the die on it and the index of its face that is
+up, so `dice.die(p.die)[p.face]` is the tile's letters. A scene that draws the
+dice, and tumbles them to show their other faces, takes the faces from
+`dice.die(p.die)` and the face that is up from `p.face`; the game reads only the
+board. `roll(dice, seed)` is the same roll returning the board alone, for a
+caller that does not draw dice. A board from `deal_standard_board` is the roll of the
+seed it reports (`DealtBoard::seed`), so `roll_with_placements(dice, dealt.seed)` gives
+the dice of a dealt board. Both are pure functions of the set and the seed,
+with the library's own `Draw` (`std::mt19937` taken modulo, and a shuffle that is
+not `std::shuffle`), so a seed is the same board and the same placements on every
+compiler, and a seed that gave a board before the placements were returned gives
+it still. The set must hold a square number of dice, so the 3x3 is its own set
+and not a window on the 4x4.
 
 The library holds no set. The project's are `data/dice/<n>x<n>.txt` for 3x3 to
 6x6, made by `tools/data/make_dice.ps1` from the dictionary's letter counts: six

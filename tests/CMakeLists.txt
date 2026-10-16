@@ -164,6 +164,34 @@ if(WJS_BUILD_APP)
     wjs_platform_deploy_qt_runtime(wjs_app_tests "")
     catch_discover_tests(wjs_app_tests)
 
+    # The 3D board scene's script, in Qt's own JavaScript engine with the dice
+    # simulation it drives, when the prototype is built: the dice's faces land
+    # and tumble and move nothing before they are sent home
+    # (app/shake_script_check.js). The paths are values CMake passes in.
+    if(WJS_BUILD_SHAKE_PROTOTYPE)
+        add_executable(wjs_shake_script_tests
+            app/shake_script_test.cpp
+            "${PROJECT_SOURCE_DIR}/src/app/prototype/shake/dice_sim.cpp")
+        set_target_properties(wjs_shake_script_tests PROPERTIES AUTOMOC ON)
+        target_include_directories(wjs_shake_script_tests PRIVATE
+            "${PROJECT_SOURCE_DIR}/src/app/prototype/shake")
+        target_compile_definitions(wjs_shake_script_tests PRIVATE
+            "WJS_SHAKE_SCRIPT=\"${PROJECT_SOURCE_DIR}/src/app/prototype/shake/qml/ShakeScript.js\""
+            "WJS_SHAKE_SCRIPT_CHECK=\"${CMAKE_CURRENT_SOURCE_DIR}/app/shake_script_check.js\"")
+        target_link_libraries(wjs_shake_script_tests
+            PRIVATE
+                Qt6::Core
+                Qt6::Qml
+                wjs_dice_world
+                wjs::warnings
+                wjs::sanitizers
+                wjs::coverage
+                Catch2::Catch2WithMain)
+        wjs_deploy_sanitizer_runtime(wjs_shake_script_tests)
+        wjs_platform_deploy_qt_runtime(wjs_shake_script_tests "")
+        catch_discover_tests(wjs_shake_script_tests)
+    endif()
+
     # The parent area's screens in a stub shell (app/parent_ui): a program to
     # look at them with, and, with --check, a test that walks the gate, the
     # dashboard, the settings and the about page without a display, checks what
@@ -220,6 +248,20 @@ if(WJS_BUILD_APP)
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/app/run_qmllint.cmake")
         set_tests_properties(app.qml_lint PROPERTIES SKIP_RETURN_CODE 4)
     endif()
+endif()
+
+# The shake prototype's dice simulation: plain C++, tested without Qt or a window.
+if(TARGET wjs_dice_world)
+    add_executable(wjs_dice_tests prototype/dice_faces_test.cpp prototype/dice_world_test.cpp)
+    target_link_libraries(wjs_dice_tests
+        PRIVATE
+            wjs_dice_world
+            wjs::warnings
+            wjs::sanitizers
+            wjs::coverage
+            Catch2::Catch2WithMain)
+    wjs_deploy_sanitizer_runtime(wjs_dice_tests)
+    catch_discover_tests(wjs_dice_tests)
 endif()
 
 # Every platform fragment satisfies the platform contract, on whichever host

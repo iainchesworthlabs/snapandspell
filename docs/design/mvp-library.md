@@ -200,7 +200,10 @@ where the design put them after it. After the author's answers:
 1. **A dice model: built.** `wjs::DiceSet` and `wjs::roll`, and the project's own
    dice for 3x3 to 6x6 in `data/dice`, made by `tools/data/make_dice.ps1` from
    the dictionary's letter counts, as the design recommended, with the source
-   hash, the method and the seed in each header. Boards from them hold about the
+   hash, the method and the seed in each header. `wjs::roll_with_placements`
+   returns, with the board, the die on each tile and the face of it that is up,
+   which is what a scene that draws six faces to a die needs
+   ([Board](board.md#what-the-scene-is-given)). Boards from them hold about the
    words a random board does (30, 105, 254 and 471 on average). No `QU` tile
    appeared in 1,000 boards of any size; a rule to carry one is not written.
 2. **The standard board's word list: the full dictionary**, decided. The

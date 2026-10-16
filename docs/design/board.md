@@ -52,7 +52,8 @@ alternatives are on [Phonics](phonics.md#seeding). What this page needs from it:
   the phase uses (the app maps it; the library is unchanged).
 - The roll is a pure function of the phase data and a seed, in the library, so a
   board can be replayed and tested.
-- The animation is given a finished board (below).
+- The animation is given a finished board and the dice it was rolled with
+  ([What the scene is given](#what-the-scene-is-given)).
 
 ### Dice (the standard board, in the MVP: decided 2026-10-16)
 
@@ -191,20 +192,57 @@ are Cubeulator's own motion tokens (`quick`, `turn`).
 | Layout | The board slides to the leading two-thirds and the panel slides in, 380 ms | Cross-fade, 120 ms |
 | Total after the shake | About 1.7 s (4x4) and 1.9 s (6x6) | Under 0.6 s |
 
-### No physics engine
+### No physics engine decides the board
 
 The board is decided by the library first. So:
 
 - A physics engine would decide where each die lands, and the game would have to
   read the board back from the simulation. The game already has the board, and
-  in Mode B it is a *seeded* board that must hold three to five words.
-- A shake would not repeat. A seeded script replays exactly, which is what a
-  test, a recording and a "play this board again" need.
-- The rattle can still answer the device. The accelerometer drives the box's
-  tilt and the dice's sliding in the box with a few lines of integration of our
-  own: this is the "fun" of the brief and it does not decide anything.
+  in Mode B it is a *seeded* board that must hold three to five words. So the
+  physics never decides where a die ends: when the shaking stops, each die is
+  given a cell and is guided to it, hopping and sliding past the others.
+- A shake would not repeat. A seeded simulation in fixed steps replays exactly,
+  on one build, which is what a test, a recording and a "play this board again"
+  need.
+- The rattle answers the device, and in the prototype it is a physical model.
+  The dice are rigid cubes in a box, simulated from first principles by about
+  fourteen hundred lines of our own plain C++ (no third-party engine, and no Qt in it),
+  accelerated by minus what the accelerometer reads and by the gyroscope's
+  turning, and colliding, sliding and tumbling with mass, inertia and friction.
+  This is the "fun" of the brief and it does not decide anything. See
+  [Shake prototype](shake-prototype.md#the-two-scripts).
 - Qt Quick 3D Physics, the engine in Qt's own set, is GPL-only like Qt Quick 3D
   (below) and is not in the shared tree.
+
+### What the scene is given
+
+A die has six faces with six different letters, and a shake leaves one up. The
+scene draws that, so it is given more than a finished board: the library's roll
+returns the dice with the board, and the scene takes them as they are.
+
+```text
+wjs::roll_with_placements(dice, seed) -> RolledBoard
+    board:      the Board, as wjs::roll returns it
+    placements: for each tile, row-major: the die on it (an index into the set)
+                and which of its faces is up
+
+scene.play(board, seed)         board = { rows, columns, tiles, faces, up }
+    tiles[t]: the letters of the finished board's tile t
+    faces[t]: the six strings on the die on that tile ("A", "QU", ...)
+    up[t]:    which of the six is up, so that faces[t][up[t]] == tiles[t]
+```
+
+The scene draws each die with its six faces, so the other letters are seen while
+it tumbles, and lands it with the face that is up on top, the letter upright.
+It decides nothing and reads no letter: the faces are the library's, passed
+through, and a library test holds that the face a placement names is the tile's
+letters, for 300 boards of each shipped size. A dead jewel (the phonics board's)
+is a die whose six faces are all the jewel. Which of a die's faces are
+neighbours, how a die lies in the box and how it turns over are for show and
+seeded in the scene: they are not part of the roll, and nothing in the game
+reads a face that is not up. What faces the phonics board's dice have is an open
+choice (the dice-and-faces design page, on its own branch at the time of
+writing); the scene takes whatever six it is given.
 
 ### Rendered 3D, or drawn in 2D
 
@@ -235,9 +273,10 @@ roadmap says no licence rule touches. The author expects 3D and a lit solid is
 what Cubeulator has. The cost comes only at a store submission, so:
 
 1. The board scene is one component with a narrow interface: *given a finished
-   board and a seed, play the shake and the drop, and report when the dice are
-   settled*. Nothing else in the application touches the scene; the game rules
-   stay in the library.
+   board, the six faces of the die on each tile and which of them is up, and a
+   seed, play the shake and the drop, and report when the dice are settled*.
+   Nothing else in the application touches the scene; the game rules stay in the
+   library.
 2. The scene is written in Qt Quick 3D first. A 2D implementation of the same
    interface is the fallback if D2 goes the other way, and the tile, the path and
    the panel are 2D in both.
@@ -252,8 +291,8 @@ at all; see [Application design](application.md#qt-modules).
 
 ### How it is drawn
 
-- **3D (A).** One `View3D`; each die a `Model` sharing one box mesh and a
-  letter texture atlas; a box and a lid; a light probe **baked in advance**, as
+- **3D (A).** One `View3D`; each die a `Model` sharing one six-sided cube mesh
+  and a face atlas with a block of six cells for each die; a box and a lid; a light probe **baked in advance**, as
   Cubeulator did (its `tools/lightprobe`, 128 x 128 texels a face, 1 MB), so Qt
   does no prefiltering at run time. No materials beyond a plain lit one. The
   view is created once and kept, not created for each screen (Cubeulator
