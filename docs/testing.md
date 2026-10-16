@@ -37,7 +37,7 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 (and `[data]` for the cases that read the shipped data),
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
 `[shake]`, `[rules]`, `[session]`, `[platform]` and `[profiling]`, and `[app]` in
-`wjs_app_tests`.
+`wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]` and `[solo]`).
 
 ## What there is
 
@@ -58,7 +58,13 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 | `tests/unit/dice_test.cpp` | `wjs::DiceSet`, `wjs::roll` | The file format (a face of several letters, commas, comments, a byte-order mark), each way a set is refused, a roll using each die once and showing one of its faces, a function of the seed, two boards pinned so a change of compiler shows, every face shown over many rolls |
 | `tests/unit/dice_data_test.cpp` | The shipped dice, `data/dice` | Each size has the dice for its board and six different faces to a die with a vowel among them; 300 boards a size rolled and solved against the dictionary hold about the words a random board does; two boards pinned. Reads the shipped files by their path in the checkout, as the performance tier does |
 | `tests/unit/paths_test.cpp` | `wjs::platform::executable_path` | That it names the running test program: absolute, an existing file, called `wjs_unit_tests` |
-| `tests/app/solver_model_test.cpp` | The window's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
+| `tests/app/solver_model_test.cpp` | The solver's `SolverModel` | Solving once a dictionary is loaded, a dictionary that cannot be opened, a board that cannot be read. Built only with `WJS_BUILD_APP` |
+| `tests/app/board_layout_test.cpp` | The layout rule, `SoloLayout` | The nine reference windows of the board design: which side the board takes, the tile of each size 3x3 to 6x6 against the page's table, the inset and gap either side of 600 dp, the board centred, a size offered only at 48 dp, the object recomputing on a rotation (`[layout]`) |
+| `tests/app/path_tracer_test.cpp` | `PathTracer` | A slide, a diagonal that skips no tile, a fast jump, the hit circle smaller than the tile, sliding back, a tile used twice, a dead jewel, lifting outside, tapping in order and the last tile again, a trace carried on from taps, a press in a gap, the keyboard's moves, a rotated window (`[trace]`) |
+| `tests/app/fake_solo_game_test.cpp` | `FakeSoloGame` | The flow of the game design: the board dealt by the shake, the size, a viable word and its stars, a word found again, a real word that is not today's (no word in the answer), not a word, clearing and resting, the best, the start tile (shortest, nearest the top left, stays until found), the history, the blocks (`[fake]`) |
+| `tests/app/solo_model_test.cpp` | `SoloModel` over the fake | The states as the screens see them, input before the dice settle, the find shown and ended, the tick and the fade, tap and Done, a find again, the start tile, the blocks as a path grows, a dead jewel, the last word and the rest, the lid back on (`[solo]`) |
+| `tests/app/check_scene_contract.cmake` | `BoardScene.qml` (2D) and the prototype's | `app.scene_contract`: both declare the whole interface of the board scene, under the same names |
+| `tests/app/run_qmllint.cmake` | The application's QML | `app.qml_lint`: no warning from `qmllint`; skipped if the application has not been built |
 | `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, and the scanner's work, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
 | `tests/scan/` | The scanner, the camera and `board_reader` interfaces and the synthetic corpus, as `wjs_scan_tests` | See below: [The scanner](#the-scanner) |
 | `tests/scan/check_privacy.cmake` | The scanner's sources and the camera and `board_reader` files | `scan.privacy`, `scan.privacy.catches_a_leak`: see [The scanner](#the-scanner) |
@@ -596,9 +602,11 @@ fix a number here.
 - **`wjs-cli` itself.** Nothing runs the program: option parsing, the exit
   codes and the output format are checked by hand. The library behind it is
   tested, and the README example is the solver case above.
-- **The window.** The model is tested. The QML has been loaded offscreen to see
-  that it starts and reads its `--dictionary` argument, and not exercised by a
-  test or run on a real screen.
+- **The screens.** The models, the layout rule, the touch logic and the fake are
+  tested, and the QML is linted with no warning allowed. No test loads the QML or
+  sends it input: the screens were run on a Windows desktop and driven with the
+  mouse and the keyboard by hand, at four window shapes, and that is all. Nothing
+  was run on a touch screen, a tablet or a phone, or on Linux or macOS.
 - **The scanner on anything real.** No frame from a camera, no real dice, no iPad,
   no light that was not drawn: every number is on synthetic frames
   ([Scanner design](design/scanner.md#what-this-does-not-prove)). The iOS camera and

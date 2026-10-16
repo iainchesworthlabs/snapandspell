@@ -26,7 +26,7 @@ frames only: no camera is connected to it and it has not seen a real board.
 | The library: board parsing, a trie dictionary, scoring, a depth-first solver. No GUI, no operating system code | `src/lib` | Unit tested |
 | `wjs-cli`, a command-line front end | `src/cli` | Works; not covered by a test of its own |
 | Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Built and tested by CI on Windows, Linux and macOS |
-| A small Qt Quick window: type a board into a grid, press Solve, see the scored words | `src/app` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model tests only, not packaged |
+| The Solo Play screens in Qt Quick: home, the box, play (the board and the panel) and the resting screen, over a fake of the game until the library's session is wired | `src/app` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model, layout, touch and fake tests and a lint of the QML, run on a Windows desktop only; not packaged |
 | A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces | `src/scan`, `src/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; no camera backend; never tried on a real board ([design](docs/design/scanner.md)) |
 | Catch2 unit tests, a platform-contract test and the platform-isolation check | `tests`, `tools/checks` | Pass on Windows |
 

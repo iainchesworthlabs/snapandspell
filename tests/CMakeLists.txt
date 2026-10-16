@@ -116,10 +116,23 @@ catch_discover_tests(wjs_perf_tests DISCOVERY_MODE PRE_TEST ADD_TAGS_AS_LABELS
 # when the application is.
 if(WJS_BUILD_APP)
     add_executable(wjs_app_tests
+        app/board_layout_test.cpp
+        app/fake_solo_game_test.cpp
+        app/path_tracer_test.cpp
+        app/solo_model_test.cpp
         app/solver_model_test.cpp
+        "${PROJECT_SOURCE_DIR}/src/app/solo/board_layout.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/solo/fake_solo_game.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/solo/path_tracer.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_factory.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/solo/solo_model.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solver_model.cpp")
     set_target_properties(wjs_app_tests PROPERTIES AUTOMOC ON)
-    target_include_directories(wjs_app_tests PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
+    target_include_directories(wjs_app_tests PRIVATE
+        "${PROJECT_SOURCE_DIR}/src/app"
+        "${PROJECT_SOURCE_DIR}/src/app/solo")
     target_link_libraries(wjs_app_tests
         PRIVATE
             wjs::lib
@@ -134,6 +147,26 @@ if(WJS_BUILD_APP)
     # Qt's DLLs have to be beside the binary before catch_discover_tests runs it.
     wjs_platform_deploy_qt_runtime(wjs_app_tests "")
     catch_discover_tests(wjs_app_tests)
+
+    # The board scene is one component with one interface; the 2D placeholder and
+    # the 3D prototype that plugs in at the same seam are each held to it
+    # (docs/design/shake-prototype.md, "The interface"). QML has no interface type.
+    add_test(NAME app.scene_contract
+        COMMAND "${CMAKE_COMMAND}"
+            "-DSCENES=${PROJECT_SOURCE_DIR}/src/app/qml/scene/BoardScene.qml;${PROJECT_SOURCE_DIR}/src/app/prototype/shake/qml/BoardScene.qml"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/app/check_scene_contract.cmake")
+
+    # No warning from qmllint over the application's QML. It needs the types the
+    # build generates, so it skips itself (exit 4) when the application is not built.
+    if(TARGET Qt6::qmllint)
+        add_test(NAME app.qml_lint
+            COMMAND "${CMAKE_COMMAND}"
+                "-DQMLLINT=$<TARGET_FILE:Qt6::qmllint>"
+                "-DRESPONSE=${PROJECT_BINARY_DIR}/src/app/.rcc/qmllint/wjs_app.rsp"
+                "-DTYPES=${PROJECT_BINARY_DIR}/src/app/WordJewelsSolver/wjs_app.qmltypes"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/app/run_qmllint.cmake")
+        set_tests_properties(app.qml_lint PROPERTIES SKIP_RETURN_CODE 4)
+    endif()
 endif()
 
 # Every platform fragment satisfies the platform contract, on whichever host
