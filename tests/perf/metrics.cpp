@@ -178,16 +178,23 @@ std::vector<Metric> scan_metrics() {
     return {
         exact("scan.reads", BoardMode::standard, total.reads, budget::kScanReads, "reads"),
         exact("scan.answered", BoardMode::standard, answered, budget::kScanReads, "boards"),
-        exact("scan.frame_pixels", BoardMode::standard, total.frame_pixels, budget::kScanFramePixels, "pixels"),
-        exact("scan.working_pixels", BoardMode::standard, total.working_pixels, budget::kScanWorkingPixels, "pixels"),
-        at_most("scan.warp_pixels", BoardMode::standard, total.warp_pixels, budget::kScanWarpPixels, "pixels"),
+        exact("scan.frame_pixels", BoardMode::standard, total.frame_pixels,
+              budget::kScanFramePixels, "pixels"),
+        exact("scan.working_pixels", BoardMode::standard, total.working_pixels,
+              budget::kScanWorkingPixels, "pixels"),
+        at_most("scan.warp_pixels", BoardMode::standard, total.warp_pixels, budget::kScanWarpPixels,
+                "pixels"),
         at_most("scan.blobs", BoardMode::standard, total.blobs, budget::kScanBlobs, "blobs"),
-        at_most("scan.dice_candidates", BoardMode::standard, total.dice_candidates, budget::kScanDiceCandidates,
-                "blobs"),
-        at_most("scan.cells_read", BoardMode::standard, total.cells_read, budget::kScanCellsRead, "cells"),
-        at_most("scan.comparisons", BoardMode::standard, total.comparisons, budget::kScanComparisons, "comparisons"),
-        at_most("scan.buffers", BoardMode::standard, total.buffers, budget::kScanBuffers, "buffers"),
-        at_most("scan.buffers.max", BoardMode::standard, total.largest_buffers, budget::kScanBuffersMax, "buffers"),
+        at_most("scan.dice_candidates", BoardMode::standard, total.dice_candidates,
+                budget::kScanDiceCandidates, "blobs"),
+        at_most("scan.cells_read", BoardMode::standard, total.cells_read, budget::kScanCellsRead,
+                "cells"),
+        at_most("scan.comparisons", BoardMode::standard, total.comparisons,
+                budget::kScanComparisons, "comparisons"),
+        at_most("scan.buffers", BoardMode::standard, total.buffers, budget::kScanBuffers,
+                "buffers"),
+        at_most("scan.buffers.max", BoardMode::standard, total.largest_buffers,
+                budget::kScanBuffersMax, "buffers"),
     };
 }
 
@@ -557,7 +564,8 @@ std::vector<Metric> scan_timing_metrics() {
                 return reading ? reading->tiles.size() : 0U;
             },
             budget::kScanRuns, Weight::heavy);
-        metrics.push_back(ratio("time.read." + size_label(which.size), BoardMode::standard, time, one.allowed));
+        metrics.push_back(
+            ratio("time.read." + size_label(which.size), BoardMode::standard, time, one.allowed));
     }
     return metrics;
 }
