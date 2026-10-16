@@ -16,7 +16,8 @@ Item {
     id: atlas
 
     // For each tile, row-major, the six strings of its die: "A", "QU", "SH",
-    // or "" for a jewel.
+    // or "" for a jewel. Set with fill(), which makes the cells of the atlas
+    // from them in one pass.
     property var faces: []
     property int rows: 1
     property int columns: 1
@@ -32,45 +33,92 @@ Item {
     width: columns * blockColumns * cell
     height: rows * blockRows * cell
 
+    // Where each cell is and what is on it, made by fill(): the cells with
+    // letters ({ x, y, letters, pixelSize }) and the jewels ({ x, y }). The
+    // items below show them by their place in these lists.
+    property var letterCells: []
+    property var jewelCells: []
+    // How many of each item there are. They are made as a board needs them and
+    // then kept: a smaller board hides the ones it does not use, and a board
+    // of a size that has been shown makes none. Making them was most of what a
+    // board that changed the atlas's size cost the GUI thread.
+    property int letterPool: 0
+    property int jewelPool: 0
+
+    // Sets the size and the faces, and makes the cells of the atlas.
+    function fill(rowCount, columnCount, tileFaces) {
+        const letters = [];
+        const jewels = [];
+        for (let die = 0; die < tileFaces.length; ++die) {
+            const sides = tileFaces[die];
+            for (let side = 0; side < facesPerDie; ++side) {
+                const text = sides && sides.length > 0 ? String(sides[side % sides.length]).toUpperCase() : "";
+                const x = ((die % columnCount) * blockColumns + side % blockColumns) * cell;
+                const y = (Math.floor(die / columnCount) * blockRows + Math.floor(side / blockColumns)) * cell;
+                if (text === "") {
+                    jewels.push({ x: x, y: y });
+                } else {
+                    // About 55% of the tile for one letter; a two-letter tile
+                    // (the Qu face) at 80% of that, a three-letter tile smaller
+                    // still.
+                    letters.push({ x: x, y: y, letters: text,
+                                   pixelSize: text.length > 2 ? 48 : (text.length === 2 ? 68 : 88) });
+                }
+            }
+        }
+        rows = rowCount;
+        columns = columnCount;
+        faces = tileFaces;
+        letterCells = letters;
+        jewelCells = jewels;
+        letterPool = Math.max(letterPool, letters.length);
+        jewelPool = Math.max(jewelPool, jewels.length);
+    }
+
+    // The cream face, dark edge and dark letter of every cell that has letters.
     Repeater {
-        model: atlas.faces.length * atlas.facesPerDie
+        model: atlas.letterPool
 
         Rectangle {
-            id: face
-
             required property int index
-            readonly property int die: Math.floor(index / atlas.facesPerDie)
-            readonly property int side: index % atlas.facesPerDie
-            readonly property string letters: {
-                const sides = atlas.faces[die];
-                return sides && sides.length > 0 ? String(sides[side % sides.length]).toUpperCase() : "";
-            }
+            readonly property var place: atlas.letterCells[index]
 
-            x: ((die % atlas.columns) * atlas.blockColumns + side % atlas.blockColumns) * atlas.cell
-            y: (Math.floor(die / atlas.columns) * atlas.blockRows + Math.floor(side / atlas.blockColumns)) * atlas.cell
+            visible: place !== undefined
+            x: place ? place.x : 0
+            y: place ? place.y : 0
             width: atlas.cell
             height: atlas.cell
-            color: face.letters === "" ? "#2E9F92" : atlas.faceColor
+            color: atlas.faceColor
             border.color: atlas.edgeColor
             border.width: 10
 
-            // The jewel, shown from the one texture it is drawn into below.
-            // Made only for a jewel: a board of letters has none.
-            Loader {
-                anchors.fill: parent
-                active: face.letters === ""
-                sourceComponent: jewelCell
-            }
-
             Text {
                 anchors.centerIn: parent
-                text: face.letters
+                textFormat: Text.PlainText
+                text: parent.place ? parent.place.letters : ""
                 color: atlas.inkColor
                 font.bold: true
-                // About 55% of the tile for one letter; a two-letter tile (the
-                // Qu face) at 80% of that, a three-letter tile smaller still.
-                font.pixelSize: face.letters.length > 2 ? 48 : (face.letters.length === 2 ? 68 : 88)
+                font.pixelSize: parent.place ? parent.place.pixelSize : 88
             }
+        }
+    }
+
+    // The jewel, shown from the one texture it is drawn into below.
+    Repeater {
+        model: atlas.jewelPool
+
+        ShaderEffect {
+            required property int index
+            readonly property var place: atlas.jewelCells[index]
+            // The effect's own shaders show its `source`.
+            property variant source: jewelTexture
+
+            visible: place !== undefined
+            x: place ? place.x : 0
+            y: place ? place.y : 0
+            width: atlas.cell
+            height: atlas.cell
+            blending: false
         }
     }
 
@@ -138,16 +186,5 @@ Item {
         sourceItem: jewel
         hideSource: true
         live: false
-    }
-
-    Component {
-        id: jewelCell
-
-        // The effect's own shaders show its `source`.
-        ShaderEffect {
-            property variant source: jewelTexture
-
-            blending: false
-        }
     }
 }

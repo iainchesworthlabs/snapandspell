@@ -246,9 +246,7 @@ Item {
     }
 
     function fillAtlas(atlas, board) {
-        atlas.rows = board.rows;
-        atlas.columns = board.columns;
-        atlas.faces = board.faces;
+        atlas.fill(board.rows, board.columns, board.faces);
     }
 
     // The dice show the atlas of the board they are given: the one prepared if
