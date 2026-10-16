@@ -58,9 +58,16 @@ public:
     SoloGameSetup& operator=(const SoloGameSetup&) = delete;
     ~SoloGameSetup();
 
-    // A new game in the box, over the phase and the store, with the parent's
-    // settings as they are now (the size to offer first, the help, the sounds in
-    // focus). The next run is the next to read a change made in the meantime.
+    // The game to play, over the phase and the store, with the parent's settings as
+    // they are now (the size to offer first, the help, the sounds in focus). The next
+    // run is the next to read a change made in the meantime.
+    //
+    // If the store holds a game in progress of the phase being played (a board on the
+    // table, or the resting screen), that game, as it was left. Otherwise a new game
+    // in the box: the store holds none, or the one it holds cannot come back
+    // (GameSession::restore refuses it: another phase, a board the phase's words no
+    // longer fit, a record no session makes), and is then cleared. Nothing is said of
+    // either to the child.
     [[nodiscard]] std::unique_ptr<SoloGame> make();
 
     [[nodiscard]] const wjs::PhaseIndex& phase() const noexcept { return *phase_; }

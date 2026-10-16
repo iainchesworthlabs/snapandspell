@@ -5,6 +5,7 @@
 
 #include "real_solo_game.hpp"
 #include "wjs/game_session.hpp"
+#include "wjs/session_store.hpp"
 
 namespace wjs::app {
 namespace {
@@ -88,6 +89,25 @@ std::unique_ptr<SoloGame> SoloGameSetup::make() {
     options.seed = seed_ ? *seed_ : std::random_device{}();
     options.help = settings.help;
     options.focus_sounds = settings.focus_sounds;
+
+    // The game the last run left in progress comes back as it was. One that cannot
+    // (the phase is another now, the phase no longer holds the board's words, or the
+    // record is not one a session makes) is not the child's to hear of: a new game
+    // begins in the box and the old record is cleared by it.
+    if (const auto& saved = store_.session()) {
+        if (auto snapshot = wjs::session_snapshot_of(*saved)) {
+            if (!options.help) {
+                // The tile is lit by a press the parent no longer allows.
+                snapshot->lit.reset();
+            }
+            if (auto restored =
+                    wjs::GameSession::restore(*snapshot, *phase_, dictionary_, options)) {
+                return std::make_unique<RealSoloGame>(*std::move(restored), options.help, *phase_,
+                                                      store_, today_);
+            }
+        }
+    }
+
     // open() made a session from this phase and word list, and nothing in the
     // options above can make one fail.
     return std::make_unique<RealSoloGame>(

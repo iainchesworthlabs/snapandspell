@@ -405,8 +405,29 @@ word is left.
 unfound. A board with no viable word at all is cleared in that literal sense,
 and none is meant to be dealt: the board is decided and checked before the
 shake, so a child never lands on one (the author, 2026-10-16). A phonics board
-always holds its planted targets, so `seed_board` already keeps to that; the
-standard board's deal does not check yet (below).
+always holds its planted targets, so `seed_board` already keeps to that (a case
+pins it); the standard board's deal does it with `deal_playable`, below, and
+`deal_standard_board`, which is that over `wjs::roll`.
+
+**The deal.** `deal_playable(words, make_board, seed, options)` calls
+`make_board(seed)`, solves what it made with `viable_words`, and keeps the first
+board that holds `options.min_viable` words (default 1); otherwise it asks
+`make_board` again with `next_deal_seed`, the first output of `std::mt19937`
+seeded with the last, which the standard fixes, so a seed is the same deal on
+every compiler. At most `options.max_rolls` boards (default 20) are made. It
+answers a `DealtBoard`: the board, the viable list (what `start_tile_help` and
+`is_cleared` take, so the application does not solve again), the boards made and
+the seed of the one kept. Nothing is thrown: a zero `min_viable` or `max_rolls`,
+or no maker, is `DealError::bad_options`; a maker that fails ends the deal as
+`bad_board`; `max_rolls` boards with none holding enough words is `no_board`.
+
+`deal_standard_board(dice, words, seed, options)` is that over `wjs::roll`, with
+a `DiceError` read as `bad_board`. It is needed because `wjs::roll` does not
+look at what it rolled: measured 2026-10-16 with the project's dice and the full
+dictionary, 3,830 of 100,000 3x3 rolls (3.8%) and 30 of 20,000 4x4 rolls
+(0.15%) hold no word of three letters or more, and none of 5,000 5x5 or 2,000
+6x6 rolls do. The default twenty boards is there for a word list far thinner
+than the dictionary: twenty empty 3x3 rolls in a row are about one in 10^28.
 
 What is the library's reading of the design, and what the design left open, is
 on [Testing](testing.md#game-rules-what-is-pinned).
@@ -678,6 +699,7 @@ there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down
 
 | Port | Session | And the store |
 | --- | --- | --- |
+| `chooseSize(side)` | `choose_size()`, in the box only | `Settings::board_size` (the last used), by `Store::update_settings` |
 | `shake()` | `shake()`; an error (`no_board`) stays in the box and answers `false` | |
 | `settled()` | `still()`, then `landed()`: each applies in its own state and ignores the other | |
 | `submit(path)` | `trace(path, today)`: `found` and `found_again` are viable (`alreadyFound` for the second), `real_not_todays` and `not_a_word` keep their names, `ignored` is `notAWord`; the word only for a viable one, lower-case | `Store::record` after each find: `newBest` is `RecordOutcome::new_best` on the board that cleared, `sticker` is a Power word in `new_words` |
@@ -688,6 +710,38 @@ there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down
 | `board()` | `board()`, a dead jewel (`dead_tiles()`) as `""`, the seed of `last_deal()` | |
 | `blocks(path)` | `GraphemeBinder` over the phase | |
 | `history()` | | the store's boards, newest first, and their finds; the phase's dead letter is a dead jewel on a board of that phase |
+
+**Where a run begins.** After every call that can change the game, `RealSoloGame`
+brings the store's game in progress (`Store::save_session`) to what
+`GameSession::snapshot()` says: a board on the table with its finds and the lit
+tile (`playing`), or the resting screen, which is also how a board that has just
+cleared is kept. A game in the box is **not** saved: the store holds none and what
+it held is cleared. There is nothing on the table to bring back; the size the box
+offers is the settings' (the child's last choice, written as it is made, so a
+change the parent makes in the dashboard is not overruled by an old box); and the
+next deal's seed is a new one each run, or the one `--seed` gives. `shaking` and
+`dropping` are the box, as the session saves them. A game the store cannot keep
+whole is cleared rather than left as the game before it. The session is saved
+before a find is recorded, so the history is never ahead of the game; the board
+left with the lid is recorded before the session is cleared, so it is never behind.
+
+`SoloGameSetup::make()` is where the game comes back. If the store holds a game in
+progress and `GameSession::restore()` accepts it (the same phase, a board the
+phase's words still fit, a record a session makes) the game is that one, as it was
+left, with the parent's help switch and sounds as they are now: a lit tile the
+parent has since switched off is dropped. If it does not (`wrong_phase`,
+`board_changed`, `bad_snapshot`, or a snapshot the store's values cannot make) a new
+game begins in the box and the old record is cleared by it, and the child is told
+nothing. The one thing a restore does not bring back is the seed of the scene's
+shake and drop, which a board already on the table does not need.
+
+The screens open on it. `SoloModel` over a game that is not in the box sets up what
+a shake would have (the touch geometry, the lit tile) in its constructor, so it is
+`playing` or `resting` from the start. `SoloScreen` gives the scene `show(board)`,
+the board already down with no motion, when it opens on `playing`, and the closed
+box otherwise; `play(board, seed)` is still only for a shake. So the scene's
+interface, which `app.scene_contract` holds, did not change. The run itself still
+begins on `home`: Solo Play, pressed there, opens on the board that was left.
 
 The unit of the stamp is the **day**: `wjs::Day`, days since 1970-01-01 on the
 device's calendar, which is what the store keeps of when and the most it will
@@ -725,10 +779,10 @@ switch and the sounds in focus are read when a game is made. A game is made at t
 start of the run and again, when the parent has changed a setting or reset what is
 kept, as soon as the box has its lid on (`SoloModel::storeEdited()`, told by
 `ParentController::storeEdited()`). The phase is read once, at the start, so a
-change of the Phase setting is seen by the next run. What the game does not do: it
-does not write the size the child last chose back to the settings, and it does not
-save the game in progress or bring one back (`Store::save_session` and
-`GameSession::restore` are there for it); a run begins in the box.
+change of the Phase setting is seen by the next run. The size the child last chose on
+the box is written back to `Settings::board_size`, and a game in progress is saved
+and brought back (above), so a run closed in the middle of a board shows the same
+board with the same finds.
 
 The parent area (the gate, the dashboard, the settings and the about page) is a QML
 module of its own, `WordJewelsSolver.Parent`, in `src/app/parent` (C++) and
@@ -791,14 +845,6 @@ These do not exist, and nothing in the tree stands in for them:
   reviewed by someone qualified to do it before a child uses it. The audio
   clips and the sound-it-out sequence are not built. The parent dashboard is built
   and shows nothing of the sounds until a phase exists.
-- **A standard board that always holds a word.** The standard board's deal
-  (`wjs::roll` on the dice branch) does not check what it rolled, and with the
-  full dictionary some rolls hold nothing: measured 2026-10-16 with the
-  project's own dice, 3,830 of 100,000 3x3 rolls (3.8%), 30 of 20,000 4x4 rolls
-  (0.15%) and none of 5,000 5x5 or 2,000 6x6 rolls. The author's rule is that
-  such a board is never dealt, so the deal has to solve what it rolled with
-  `viable_words` and roll again until it holds a word, before the shake. Not
-  built.
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
   early-reader tier lists (animals, colours, shapes, and so on); nothing reads
   them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.
