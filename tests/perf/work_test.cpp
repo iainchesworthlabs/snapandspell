@@ -83,3 +83,9 @@ TEST_CASE("the corpus is the same boards every time", "[perf][solver]") {
         }
     }
 }
+
+TEST_CASE("reading a frame does no more work than its budget, over fixed synthetic frames",
+          "[perf][scan]") {
+    skip_unless_optimised();
+    check_within_budget(wjs::perf::scan_metrics());
+}

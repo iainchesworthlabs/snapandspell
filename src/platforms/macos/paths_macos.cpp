@@ -1,6 +1,7 @@
 #include <mach-o/dyld.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <string>
@@ -25,6 +26,19 @@ std::filesystem::path executable_path() {
     std::error_code error;
     auto resolved = std::filesystem::weakly_canonical(buffer, error);
     return error ? std::filesystem::path{buffer} : resolved;
+}
+
+std::filesystem::path user_data_directory() {
+    // ~/Library/Application Support is where a program keeps its own data. A
+    // device backup includes it, which is the user's own backup and not the
+    // program sending anything (docs/design/dashboard.md, "Backups").
+    if (const char* home = std::getenv("HOME"); home != nullptr) {
+        const std::filesystem::path path{home};
+        if (path.is_absolute()) {
+            return path / "Library" / "Application Support";
+        }
+    }
+    return {};
 }
 
 }  // namespace wjs::platform

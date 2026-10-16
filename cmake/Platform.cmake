@@ -28,6 +28,13 @@
 #                                 Where cmake/FindQt6.cmake looks for an
 #                                 aqtinstall-style Qt when none is on
 #                                 CMAKE_PREFIX_PATH.
+#   WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT
+#                                 NAME=value entries a Qt Quick test needs
+#                                 to draw with no display, besides
+#                                 QT_QPA_PLATFORM=offscreen, which the tests
+#                                 set themselves ("" if there are none): on
+#                                 Windows the offscreen platform has no fonts
+#                                 until it is told where the system's are.
 #
 # Build inputs (paths are relative to src/platforms):
 #   WJS_PLATFORM_SOURCES          Compiled into wjs_platform: one

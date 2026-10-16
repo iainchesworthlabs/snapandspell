@@ -1,0 +1,156 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "wjs/board.hpp"
+#include "wjs/grapheme_binder.hpp"
+
+// What the Solo Play screens need from the game, and nothing more: the names
+// of docs/design/game.md (Mode B, "The flow") as plain C++, with no Qt. The
+// screens talk to SoloModel, SoloModel talks to this, and this is answered by
+// the library's session (src/lib, the game-session work) or, until that is
+// wired, by FakeSoloGame. The library's session owns the rules: what a traced
+// path is, what a find earns, which tile the help lights and when the board is
+// cleared. This port owns none of them and decides nothing.
+//
+// The states are the states of the flow, less one:
+//
+//   box ──shake()──▶ shaking ──settled()──▶ playing ──submit(last word)──▶ cleared
+//    ▲                                                                       │
+//    └─────────────── again() ◀──────────── resting ◀──── celebrated() ◀─────┘
+//
+// `solo.word-found` is not a state here: it is the few moments of presentation
+// after a find, with the game already in `playing` or `cleared`, and it belongs
+// to SoloModel (the library's session has no such state either).
+//
+// `shaking` and `dropping` are one stretch to the screens: the board scene
+// plays the shake, the lid and the drop itself and says when the dice are
+// still, so the port has one call for it (settled) and the game may report
+// `shaking` or `dropping` between shake() and settled() as it likes.
+
+namespace wjs::app {
+
+enum class SoloState {
+    box,       // solo.box: the lid on; size choice; Shake
+    shaking,   // solo.shaking
+    dropping,  // solo.dropping
+    playing,   // solo.playing: the board and the panel
+    cleared,   // solo.cleared: the last jewel has landed
+    resting,   // solo.resting: the calm screen
+};
+
+[[nodiscard]] std::string_view to_string(SoloState state) noexcept;
+
+// What a traced path is (docs/design/game.md, "Words and what each does").
+enum class WordKind {
+    viable,         // a word of today's set, on this board: a jewel, stars
+    realNotTodays,  // a real word that is not today's: a soft tick, no word shown
+    notAWord,       // anything else: the path fades, no sound, no text
+};
+
+// Spark 3 letters, Power 4, Mega 5 or more (a Qu tile counts two).
+enum class WordTier { spark, power, mega };
+
+// A board as the scene is given it: decided before the shake begins.
+struct SoloBoard {
+    std::size_t rows = 0;
+    std::size_t columns = 0;
+    // Row-major, upper-case, one to three letters. "" is a dead jewel: drawn,
+    // part of no word, and a touch on it does nothing.
+    std::vector<std::string> tiles;
+    // The seed of the scene's shake and drop; the same board and seed replay
+    // identically.
+    std::uint32_t seed = 0;
+
+    [[nodiscard]] bool empty() const noexcept { return tiles.empty(); }
+    [[nodiscard]] const std::string& tile(Position position) const {
+        return tiles[position.row * columns + position.column];
+    }
+};
+
+// A word the child has found on a board. The tray shows these, in order found.
+struct SoloFound {
+    std::string word;  // lower-case: the tray's text
+    WordTier tier = WordTier::spark;
+    int stars = 0;
+};
+
+struct TraceOutcome {
+    WordKind kind = WordKind::notAWord;
+    // Set for a viable word, and only for one: the other two kinds carry no
+    // word on purpose, so nothing can show or read a word that is not today's.
+    SoloFound found;
+    // A viable word that was on the tray already: no new jewel.
+    bool alreadyFound = false;
+    // The board has no viable word left; the game is now in `cleared`.
+    bool cleared = false;
+    // The most stars so far in one board of this size. Recorded silently and
+    // celebrated once, inside the celebration of the last word; never shown
+    // as a number.
+    bool newBest = false;
+};
+
+// A board the child played, for the history thumbnails (newest first).
+struct SoloHistoryEntry {
+    SoloBoard board;
+    std::vector<SoloFound> found;
+};
+
+class SoloGame {
+public:
+    virtual ~SoloGame() = default;
+
+    [[nodiscard]] virtual SoloState state() const = 0;
+
+    // The sizes offered (3 and 4 in the MVP) and the one chosen. The 3x3 is
+    // the first board of a new device. Only in `box`.
+    [[nodiscard]] virtual std::span<const std::size_t> sizes() const = 0;
+    [[nodiscard]] virtual std::size_t size() const = 0;
+    virtual void chooseSize(std::size_t size) = 0;
+
+    // box -> shaking. The board is dealt here, before anything moves. False
+    // when no board could be dealt: the state stays `box`.
+    virtual bool shake() = 0;
+    // The scene's dice are still: -> playing.
+    virtual void settled() = 0;
+    // The board of this round: empty in `box` until the first shake().
+    [[nodiscard]] virtual const SoloBoard& board() const = 0;
+
+    // The child lifted the finger or pressed Done on `path` (only in
+    // `playing`); anywhere else it is answered `notAWord` and nothing changes.
+    // The last viable word moves the state to `cleared`.
+    virtual TraceOutcome submit(std::span<const Position> path) = 0;
+    // The grapheme blocks of a path, as it grows, for the shared bars.
+    [[nodiscard]] virtual std::vector<GraphemeBinder::Block> blocks(
+        std::span<const Position> path) const = 0;
+
+    // cleared -> resting, about 3 seconds after the last jewel landed.
+    virtual void celebrated() = 0;
+
+    // Whether the parent allows the start tile, and the tile to light for one
+    // press (the same until its word is found, or nothing once none is left).
+    [[nodiscard]] virtual bool helpAllowed() const = 0;
+    virtual std::optional<Position> startTile() = 0;
+    // The tile lit now: set by startTile(), gone once its word is found. Asking
+    // this lights nothing; the app never lights a tile unasked.
+    [[nodiscard]] virtual std::optional<Position> litTile() const = 0;
+
+    // The words found on this board, in order.
+    [[nodiscard]] virtual const std::vector<SoloFound>& found() const = 0;
+
+    // playing -> box: the lid goes back on and the board is saved to history.
+    virtual void lidOn() = 0;
+    // resting -> box (Again, or leaving to home so the box is ready next time).
+    virtual void again() = 0;
+
+    // Earlier boards, newest first.
+    [[nodiscard]] virtual std::vector<SoloHistoryEntry> history() const = 0;
+};
+
+}  // namespace wjs::app
