@@ -54,12 +54,12 @@ Item {
             border.color: atlas.edgeColor
             border.width: 10
 
-            // The four facets, from the middle of the cell to each edge. Made
-            // only for a jewel: a board of letters has none.
+            // The jewel, shown from the one texture it is drawn into below.
+            // Made only for a jewel: a board of letters has none.
             Loader {
                 anchors.fill: parent
                 active: face.letters === ""
-                sourceComponent: facets
+                sourceComponent: jewelCell
             }
 
             Text {
@@ -74,9 +74,25 @@ Item {
         }
     }
 
-    Component {
-        id: facets
+    // The jewel is drawn once, into a texture of one cell, and every jewel cell
+    // shows that texture: a Shape of four paths for each of six cells of each
+    // dead die cost about 0.6 ms a cell (docs/design/shake-prototype.md). The
+    // texture is not live: it is made on the first frame and kept. It sits one
+    // cell outside the atlas, so that the atlas does not show it.
+    Item {
+        id: jewel
 
+        width: atlas.cell
+        height: atlas.cell
+
+        Rectangle {
+            anchors.fill: parent
+            color: "#2E9F92"
+            border.color: atlas.edgeColor
+            border.width: 10
+        }
+
+        // The four facets, from the middle of the cell to each edge.
         Shape {
             ShapePath {
                 fillColor: "#63D6C7"
@@ -110,6 +126,28 @@ Item {
                 PathLine { x: 10; y: 10 }
                 PathLine { x: 64; y: 64 }
             }
+        }
+    }
+
+    ShaderEffectSource {
+        id: jewelTexture
+
+        x: -atlas.cell
+        width: atlas.cell
+        height: atlas.cell
+        sourceItem: jewel
+        hideSource: true
+        live: false
+    }
+
+    Component {
+        id: jewelCell
+
+        // The effect's own shaders show its `source`.
+        ShaderEffect {
+            property variant source: jewelTexture
+
+            blending: false
         }
     }
 }
