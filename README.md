@@ -24,7 +24,7 @@ a picture, are still to be built.
 | The library: board parsing, a trie dictionary, scoring, a depth-first solver. No GUI, no operating system code | `src/lib` | Unit tested |
 | `wjs-cli`, a command-line front end | `src/cli` | Works; not covered by a test of its own |
 | Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Built and tested by CI on Windows, Linux and macOS |
-| A small Qt Quick window: type a board into a grid, press Solve, see the scored words | `src/app` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model tests only, not packaged |
+| The Solo Play screens in Qt Quick: home, the box, play (the board and the panel) and the resting screen, over a fake of the game until the library's session is wired | `src/app` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model, layout, touch and fake tests and a lint of the QML, run on a Windows desktop only; not packaged |
 | Catch2 unit tests, a platform-contract test and the platform-isolation check | `tests`, `tools/checks` | Pass on Windows |
 
 Not built yet: camera input, recognising letters in an image, installers and
