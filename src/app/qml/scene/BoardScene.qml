@@ -20,9 +20,13 @@ import "SceneScript.js" as Script
 //                       with its lid on (the box before the first shake, and after
 //                       the lid goes back on)
 //   reducedMotion       in: the cross-fading variant of every stage
-//   agitation, tilt     in: how hard the device is shaken now (0 to 1), and which way
-//                       it leans (each axis -1 to 1); they change how the box moves and
-//                       how long it rattles, never where a die lands
+//   pushMotion(ax, ay, az, wx, wy, wz)   in: one sample of the device's motion, the
+//                       accelerometer's reading in g (gravity included) and the
+//                       gyroscope's in rad/s; it changes how the box moves and how long
+//                       it rattles, never where a die lands. This scene reduces it to
+//                       two numbers (agitation, how hard the device is shaken now, 0 to
+//                       1, and tilt, which way it leans, each axis -1 to 1), which it
+//                       also takes directly
 //   settled()           once for each play, when the dice have stopped
 //   landed(index, pitch) a die has hit the floor: its place in the board, and a pitch
 //                       for its click
@@ -36,6 +40,15 @@ Item {
     property bool reducedMotion: false
     property real agitation: 0
     property vector2d tilt: Qt.vector2d(0, 0)
+
+    // One sample of the device's motion (the interface of the board scene, as the
+    // 3D scene takes it): how far the reading is from still is how hard the device
+    // is shaken, and where gravity is in it is which way it leans.
+    function pushMotion(ax, ay, az, wx, wy, wz) {
+        agitation = Math.min(1, Math.sqrt(ax * ax + ay * ay + (az - 1) * (az - 1)) / 1.2);
+        tilt = Qt.vector2d(Math.max(-1, Math.min(1, -ax / 0.14)),
+                           Math.max(-1, Math.min(1, ay / 0.14)));
+    }
 
     signal settled
     signal landed(int index, real pitch)

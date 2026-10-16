@@ -16,8 +16,7 @@ endif()
 # <what it is>|<a regular expression that finds its declaration>
 set(_members
     "reducedMotion, in|property[ \t]+bool[ \t]+reducedMotion"
-    "agitation, in|property[ \t]+real[ \t]+agitation"
-    "tilt, in|property[ \t]+vector2d[ \t]+tilt"
+    "pushMotion(ax, ay, az, wx, wy, wz)|function[ \t]+pushMotion[ \t]*\\([ \t]*ax[ \t]*,[ \t]*ay[ \t]*,[ \t]*az[ \t]*,[ \t]*wx[ \t]*,[ \t]*wy[ \t]*,[ \t]*wz[ \t]*\\)"
     "settled(), out|signal[ \t]+settled"
     "landed(index, pitch), out|signal[ \t]+landed[ \t]*\\([ \t]*int[ \t]+index[ \t]*,[ \t]*real[ \t]+pitch[ \t]*\\)"
     "rattled(), out|signal[ \t]+rattled"

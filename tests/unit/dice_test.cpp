@@ -51,6 +51,18 @@ std::string text_of(const wjs::Board& board) {
     return text;
 }
 
+// "die:face" for each tile, row-major, space separated: a placement pin that
+// reads as itself when it fails.
+std::string placements_text(const wjs::RolledBoard& rolled) {
+    std::string text;
+    for (const auto& placement : rolled.placements) {
+        if (!text.empty()) {
+            text += ' ';
+        }
+        text += std::to_string(placement.die) + ':' + std::to_string(placement.face);
+    }
+    return text;
+}
 }  // namespace
 
 TEST_CASE("a set of dice is read one die a line", "[dice]") {
@@ -165,6 +177,73 @@ TEST_CASE("a seed gives the board it gave when the roll was written", "[dice]") 
 
     CHECK(text_of(*wjs::roll(set, 1)) == "F K G/J U R/X S Y");
     CHECK(text_of(*wjs::roll(set, 2)) == "O J E/L X X/B V B");
+}
+
+TEST_CASE("a roll says which die is on each tile and which of its faces is up", "[dice]") {
+    const auto set = nine();
+
+    for (std::uint32_t seed = 1; seed <= 50; ++seed) {
+        const auto rolled = wjs::roll_with_placements(set, seed);
+
+        INFO("seed " << seed);
+        REQUIRE(rolled.has_value());
+        REQUIRE(rolled->placements.size() == 9);
+
+        // Row-major, and the face that is up is the tile's letters.
+        std::set<std::size_t> used;
+        for (std::size_t tile = 0; tile < 9; ++tile) {
+            const auto& placement = rolled->placements[tile];
+            REQUIRE(placement.die < set.size());
+            REQUIRE(placement.face < set.die(placement.die).size());
+            CHECK(set.die(placement.die)[placement.face] ==
+                  rolled->board.tile({tile / 3, tile % 3}));
+            used.insert(placement.die);
+        }
+        // Each die of the set is on one tile.
+        CHECK(used.size() == 9);
+    }
+}
+
+TEST_CASE("roll gives the board that roll_with_placements does, for the same seed", "[dice]") {
+    // roll is what the library gave before the placements were returned; a
+    // seed that gave a board then gives it still. The two pinned boards of
+    // "a seed gives the board it gave when the roll was written" are the same
+    // pins, read through the new function.
+    const auto set = nine();
+
+    for (std::uint32_t seed = 1; seed <= 200; ++seed) {
+        const auto board = wjs::roll(set, seed);
+        const auto rolled = wjs::roll_with_placements(set, seed);
+
+        INFO("seed " << seed);
+        REQUIRE(board.has_value());
+        REQUIRE(rolled.has_value());
+        CHECK(text_of(*board) == text_of(rolled->board));
+    }
+    CHECK(text_of(wjs::roll_with_placements(set, 1)->board) == "F K G/J U R/X S Y");
+    CHECK(text_of(wjs::roll_with_placements(set, 2)->board) == "O J E/L X X/B V B");
+}
+
+TEST_CASE("a seed gives the placements it gave when they were first returned", "[dice]") {
+    // The nine dice's faces repeat across dice (die 4 holds Y Z A B C D, die 0
+    // holds A B C D E F), so a letter alone does not say its die: this pins the
+    // draws, which a board does not. Written die:face for each tile, row-major.
+    const auto set = nine();
+
+    CHECK(placements_text(*wjs::roll_with_placements(set, 1)) ==
+          "0:5 6:0 5:2 1:3 7:4 2:5 8:1 3:0 4:0");
+    CHECK(placements_text(*wjs::roll_with_placements(set, 2)) ==
+          "2:2 1:3 5:0 6:1 3:5 8:1 4:3 7:5 0:1");
+}
+
+TEST_CASE("a set that makes no board makes no placements", "[dice]") {
+    const auto set = wjs::DiceSet::parse("a b\nc d\ne f\n");
+    REQUIRE(set.has_value());
+
+    const auto rolled = wjs::roll_with_placements(*set, 1);
+
+    REQUIRE_FALSE(rolled.has_value());
+    CHECK(rolled.error() == wjs::DiceError::not_square);
 }
 
 TEST_CASE("each face of each die is shown, over many rolls", "[dice]") {

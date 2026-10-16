@@ -130,7 +130,9 @@ std::size_t DiceSet::side() const noexcept {
     return side * side == dice_.size() ? side : 0;
 }
 
-std::expected<Board, DiceError> roll(const DiceSet& dice, std::uint32_t seed) {
+std::expected<RolledBoard, DiceError> roll_with_placements(const DiceSet& dice,
+                                                           std::uint32_t seed) {
+    // The one zone of a roll: roll() is this and the board taken out of it.
     auto zone = profiling::zone<"board.roll">();
     zone.Value(dice.size());
 
@@ -142,12 +144,16 @@ std::expected<Board, DiceError> roll(const DiceSet& dice, std::uint32_t seed) {
         return std::unexpected(DiceError::wrong_count);
     }
 
+    // The draws, in this order and no other: the shuffle, then a face for each
+    // tile row-major. A pinned seed is a pinned board and pinned placements.
     detail::Draw draw(seed);
     std::vector<std::size_t> order(dice.size());
     std::iota(order.begin(), order.end(), std::size_t{0});
     draw.shuffle(std::span(order));
 
     // The tile at (row, column) shows die order[row * side + column].
+    std::vector<Placement> placements;
+    placements.reserve(dice.size());
     std::string text;
     for (std::size_t row = 0; row < side; ++row) {
         if (row > 0) {
@@ -157,8 +163,11 @@ std::expected<Board, DiceError> roll(const DiceSet& dice, std::uint32_t seed) {
             if (column > 0) {
                 text += ' ';
             }
-            const auto& faces = dice.die(order[row * side + column]);
-            text += faces[draw.below(faces.size())];
+            const std::size_t die = order[row * side + column];
+            const auto& faces = dice.die(die);
+            const std::size_t face = draw.below(faces.size());
+            text += faces[face];
+            placements.push_back({die, face});
         }
     }
 
@@ -166,7 +175,15 @@ std::expected<Board, DiceError> roll(const DiceSet& dice, std::uint32_t seed) {
     if (!board) {
         return std::unexpected(DiceError::bad_face);
     }
-    return *std::move(board);
+    return RolledBoard{*std::move(board), std::move(placements)};
+}
+
+std::expected<Board, DiceError> roll(const DiceSet& dice, std::uint32_t seed) {
+    auto rolled = roll_with_placements(dice, seed);
+    if (!rolled) {
+        return std::unexpected(rolled.error());
+    }
+    return std::move(rolled->board);
 }
 
 }  // namespace wjs
