@@ -19,9 +19,10 @@
 // wjs::roll does not look.
 //
 // The retry rule is the same whoever makes the board, so it takes the maker as a
-// parameter and knows nothing of dice. The standard board's deal is this with
-// `[&](std::uint32_t s) { return wjs::roll(dice, s); }` once dice.hpp is on
-// the base. The phonics board needs none of it: seed_board plants its targets.
+// parameter and knows nothing of dice. The standard board's deal is this with a
+// maker that calls wjs::roll(dice, s) and maps its DiceError to
+// DealError::bad_board (`.transform_error`), once dice.hpp is on the base. The
+// phonics board needs none of it: seed_board plants its targets.
 
 namespace wjs {
 

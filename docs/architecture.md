@@ -429,9 +429,8 @@ These do not exist, and nothing in the tree stands in for them:
   viable word is never dealt (the author, 2026-10-16). It takes the board maker
   as a parameter and knows nothing of dice. The wrapper over `wjs::roll` is
   waiting on `dice.hpp`, which is on the phonics-format branch and not yet on
-  `develop`: it is `deal_playable(words, [&](std::uint32_t s) { return
-  wjs::roll(dice, s); }, seed, options)`, with the error mapped to
-  `DealError::bad_board`, and a test over many seeds of the project's 3x3 dice.
+  `develop`: it is `deal_playable` with a maker that calls `wjs::roll(dice, s)` and maps
+  its `DiceError` to `DealError::bad_board` (`.transform_error`), and a test over many seeds of the project's 3x3 dice.
   Measured 2026-10-16 with the project's own dice, 3,830 of 100,000 3x3 rolls
   (3.8%), 30 of 20,000 4x4 rolls (0.15%) and none of 5,000 5x5 or 2,000 6x6
   rolls hold no word of three letters or more.
