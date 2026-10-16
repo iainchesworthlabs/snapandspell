@@ -279,8 +279,8 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
         Candidate candidate;
         candidate.word = &word;
         candidate.letters = upper(word.word);
-        for (const std::string& grapheme : word.graphemes) {
-            const Grapheme* known = index.find_grapheme(grapheme);
+        for (const WordGrapheme& grapheme : word.graphemes) {
+            const Grapheme* known = index.sound_of(grapheme);
             if (known != nullptr && std::ranges::find(options.focus_sounds, known->sound) !=
                                         options.focus_sounds.end()) {
                 candidate.focus = true;

@@ -21,7 +21,9 @@ namespace {
 
 GraphemeBinder::GraphemeBinder(std::span<const Grapheme> graphemes) {
     for (const Grapheme& grapheme : graphemes) {
-        if (grapheme.letters.size() > 1) {
+        // A split digraph cannot be found in flight: it is not known until its
+        // second half is traced, and the design draws it from the word's split.
+        if (grapheme.letters.size() > 1 && !grapheme.split()) {
             graphemes_.push_back(lower(grapheme.letters));
         }
     }

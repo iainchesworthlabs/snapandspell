@@ -177,26 +177,37 @@ phase-<x>.words.txt         pain  p ai n
 
 - A grapheme is lowercase letters, its sound is written between slashes (any
   bytes, so a phonetic alphabet passes through), its clip id is `clip:<id>`.
-  Two graphemes may share a clip. A grapheme has one sound: a letter group that
-  makes two sounds cannot yet be written.
+  Two graphemes may share a clip.
 - A word is three or more lowercase letters (nothing shorter can be counted)
   followed by its graphemes, or by `tricky` and nothing else: a word that does
-  not decode, spoken whole and never sounded out. A split digraph cannot yet be
-  written, and is refused by name.
-- Both files are sorted in byte order and hold nothing twice.
+  not decode, spoken whole and never sounded out. The graphemes, joined, spell
+  the word.
+- **A split digraph** is written as its two halves around the letters between,
+  `cake  c a_ k _e`, and is the grapheme `a_e` in the graphemes file. The halves
+  are one grapheme: `WordGrapheme` carries where each half sits in the word
+  (`first` and `second`). It is not found while tracing (below).
+- **A grapheme that makes more than one sound** is listed once for each sound,
+  and a word line says which, counting from 1 in the order of that grapheme's
+  lines: `snow  s n ow:2`, `a_:2` for a split digraph. A grapheme with several
+  sounds has to be told which; with one, the number is optional. A later phase
+  may add a sound to a grapheme, and an earlier phase's words cannot use it.
+- Both files are sorted in byte order, and hold no word twice, and no grapheme
+  with the same sound twice.
 - A header is `key: value` pairs, several to a line. A file with no
-  `reviewed-by` and `reviewed-on` (the second a date, `YYYY-MM-DD`) is **test
+  `reviewed-by`, `reviewed-on` (a date, `YYYY-MM-DD`) and `source` is **test
   data**: `PhaseHeader::reviewed()` and `PhaseSet::reviewed()` say so, and a
   release build refuses it
   ([Testing](testing.md#phonics-data-the-checker-and-the-review-gate)). A value
-  still in `<angle brackets>` has not been given.
+  still in `<angle brackets>` has not been given. Test data need not say where
+  it came from; a file that claims a review has to.
 
 `parse_words` and `parse_graphemes` read one file and report every problem, with
 its line, not the first. `PhaseSet::build` (or `load_directory`, which reads
 `phase-<x>.*.txt` from a directory) holds the files together to the checks of
-the design: each word is in the English dictionary, its graphemes spell it, each
-grapheme is in the word's phase or an earlier one, nothing is listed twice across
-phases. Phases are **cumulative** and ordered by name: a `PhaseIndex` holds the
+the design: each word is in the English dictionary, each grapheme is in the
+word's phase or an earlier one and a grapheme with several sounds there is told
+which, nothing is listed twice across phases. (That the graphemes spell the word
+is held at parsing, where the line is.) Phases are **cumulative** and ordered by name: a `PhaseIndex` holds the
 words and graphemes of its phase and every earlier one, with a `Dictionary` of
 the words, which is what a board is solved against, and the phase's `alphabet()`.
 `tools/data/check_phonics.ps1` applies the same checks outside the build.
@@ -236,7 +247,8 @@ is a block. A tile that starts no grapheme is a block of its own, and a grapheme
 cannot start or end inside a tile. The brief's example: R, A, I, N is `R [AI] N`.
 A split digraph is not found in flight (it cannot be known until its last
 letter); the design draws it from the word's authored split, which the data
-format cannot yet hold.
+holds as the two halves and where each sits (`WordGrapheme::first` and
+`second`), and the binder leaves such a grapheme out.
 
 ### Shake detection
 

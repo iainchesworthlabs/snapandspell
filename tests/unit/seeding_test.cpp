@@ -344,7 +344,9 @@ TEST_CASE("targets prefer words with a focus sound", "[seeding]") {
         for (const auto& target : board.targets) {
             const auto* word = index.find_word(target);
             REQUIRE(word != nullptr);
-            CHECK(std::ranges::find(word->graphemes, "ai") != word->graphemes.end());
+            CHECK(std::ranges::any_of(word->graphemes, [](const wjs::WordGrapheme& grapheme) {
+                return grapheme.letters == "ai";
+            }));
         }
     }
 }

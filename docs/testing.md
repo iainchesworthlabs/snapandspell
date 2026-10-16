@@ -213,25 +213,30 @@ reader are in [Architecture](architecture.md#phase-data).
 # reviewed-by: <name>   reviewed-on: <date>   source: <where it came from>
 ai  /sound/  clip:ai        <- a graphemes file line
 pain  p ai n                <- a words file line
+cake  c a_ k _e             <- a split digraph, the grapheme a_e
+snow  s n ow:2              <- the second sound of a grapheme with two
 ```
 
 **`data.phonics`** runs `tools/data/check_phonics.ps1` over the tree. It holds
 the files to the checks the phonics design lists, and to the same ones the
 library's `PhaseSet` applies, so a file that passes loads: the file name and
-the header's phase agree; the line grammar; no word or grapheme twice, in a file
-or across phases; sorted (byte order); every word in
-`data/dictionaries/en.txt`; a word's graphemes, joined, spell it; every grapheme
-is in the word's phase or an earlier one. With no `data/phonics` there is
-nothing to check and it passes.
+the header's phase agree; the line grammar; a word's graphemes, joined, spell
+it; no word, and no grapheme with the same sound, twice, in a file or across
+phases; sorted (byte order); every word in `data/dictionaries/en.txt`; every
+grapheme is in the word's phase or an earlier one, and one with several sounds
+there is told which. With no `data/phonics` there is nothing to check and it
+passes.
 
 **`data.phonics.checker`** runs `tools/data/test_check_phonics.ps1`, which builds
-throw-away data and holds the checker to a table of 38 cases (the ones in
+throw-away data and holds the checker to a table of 55 cases (the ones in
 `phase_data_test.cpp`, so the two implementations agree). A gate that passes
-everything is worse than none, so the gate is itself tested; it takes about
-twenty seconds because each case starts a PowerShell.
+everything is worse than none, so the gate is itself tested; it takes half a
+minute because each case starts a PowerShell.
 
-**The review gate.** A file with no `reviewed-by` and `reviewed-on` (the second
-a date, `YYYY-MM-DD`) is test data. `WJS_REQUIRE_REVIEWED_PHONICS` makes the
+**The review gate.** A file with no `reviewed-by`, `reviewed-on` (a date,
+`YYYY-MM-DD`) and `source` is test data. Test data need not say where it came
+from; a file that claims a review has to, as `data/README.md` asks of every
+list. `WJS_REQUIRE_REVIEWED_PHONICS` makes the
 build refuse it: with the switch on, a build step runs
 `check_phonics.ps1 -RequireReviewed` before the library is built, every time, so
 a file edited after configuring is still caught, and `data.phonics` passes
@@ -240,8 +245,8 @@ a file edited after configuring is still caught, and `data.phonics` passes
 PowerShell 7: if the switch is on and `pwsh` is not found, configuring stops and
 says so, rather than building something unchecked. Turning it off is an explicit
 `-DWJS_REQUIRE_REVIEWED_PHONICS=OFF`, which is on the command line of whoever
-did it. A half-given review (a reviewer and no date) and a date that is not a
-date are problems, not passes. What a reviewer attests is theirs; the gate only
+did it. A half-given review (a reviewer and no date, or a review and no source)
+and a date that is not a date are problems, not passes. What a reviewer attests is theirs; the gate only
 makes it impossible to ship a file that does not say so.
 
 ## Seeding: what was measured
