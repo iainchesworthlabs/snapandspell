@@ -86,6 +86,7 @@ RealSoloGame::RealSoloGame(wjs::GameSession session, bool help_allowed,
       dead_letter_(dead_letter_of(phase)),
       board_(scene_board()) {
     refresh_found();
+    save_session();
 }
 
 std::expected<RealSoloGame, wjs::SessionError> RealSoloGame::create(
@@ -112,8 +113,10 @@ std::size_t RealSoloGame::size() const {
 }
 
 void RealSoloGame::chooseSize(std::size_t size) {
-    if (const auto chosen = wjs::board_size_for(size)) {
-        session_.choose_size(*chosen);
+    const auto chosen = wjs::board_size_for(size);
+    // Only the box takes a choice, and only a choice that took is the last used.
+    if (chosen && session_.choose_size(*chosen)) {
+        remember_size(*chosen);
     }
 }
 
@@ -132,6 +135,7 @@ void RealSoloGame::settled() {
     // from `shaking` both run and from `dropping` the second does.
     session_.still();
     session_.landed();
+    save_session();
 }
 
 TraceOutcome RealSoloGame::submit(std::span<const Position> path) {
@@ -150,6 +154,7 @@ TraceOutcome RealSoloGame::submit(std::span<const Position> path) {
             if (traced.kind == wjs::TraceKind::found) {
                 refresh_found();
                 outcome.cleared = traced.cleared;
+                save_session();
                 const wjs::RecordOutcome recorded = record_board();
                 // Recorded silently, and meant for one sparkle inside the last word's
                 // celebration: the store says so only for a board that has just cleared.
@@ -182,10 +187,13 @@ std::vector<GraphemeBinder::Block> RealSoloGame::blocks(std::span<const Position
 
 void RealSoloGame::celebrated() {
     session_.rest();
+    save_session();
 }
 
 std::optional<Position> RealSoloGame::startTile() {
-    return session_.request_help();
+    const auto tile = session_.request_help();
+    save_session();
+    return tile;
 }
 
 std::optional<Position> RealSoloGame::litTile() const {
@@ -197,11 +205,13 @@ void RealSoloGame::lidOn() {
     // it can be handed over whichever way it was left.
     if (session_.back()) {
         record_board();
+        save_session();
     }
 }
 
 void RealSoloGame::again() {
     session_.again();
+    save_session();
 }
 
 std::vector<SoloHistoryEntry> RealSoloGame::history() const {
@@ -273,6 +283,33 @@ wjs::RecordOutcome RealSoloGame::record_board() {
         return {};
     }
     return store_->record(*snapshot, today_());
+}
+
+void RealSoloGame::save_session() {
+    std::optional<wjs::SavedSession> saved;
+    // A game in the box (and the shake and the drop, which the session saves as the
+    // box) is not one in progress.
+    if (const wjs::SessionSnapshot snapshot = session_.snapshot();
+        snapshot.state != wjs::SessionState::box) {
+        saved = wjs::saved_session_of(snapshot);
+    }
+    if (store_->session() == saved) {
+        return;
+    }
+    // A board the store cannot keep whole is refused and nothing changes, which
+    // would leave the game before it to be brought back in this one's place.
+    if (!store_->save_session(saved)) {
+        store_->save_session(std::nullopt);
+    }
+}
+
+void RealSoloGame::remember_size(wjs::BoardSize size) {
+    wjs::Settings settings = store_->settings();
+    const int side = static_cast<int>(wjs::side(size));
+    if (settings.board_size != side) {
+        settings.board_size = side;
+        store_->update_settings(settings);
+    }
 }
 
 }  // namespace wjs::app

@@ -770,6 +770,7 @@ there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down
 
 | Port | Session | And the store |
 | --- | --- | --- |
+| `chooseSize(side)` | `choose_size()`, in the box only | `Settings::board_size` (the last used), by `Store::update_settings` |
 | `shake()` | `shake()`; an error (`no_board`) stays in the box and answers `false` | |
 | `settled()` | `still()`, then `landed()`: each applies in its own state and ignores the other | |
 | `submit(path)` | `trace(path, today)`: `found` and `found_again` are viable (`alreadyFound` for the second), `real_not_todays` and `not_a_word` keep their names, `ignored` is `notAWord`; the word only for a viable one, lower-case | `Store::record` after each find: `newBest` is `RecordOutcome::new_best` on the board that cleared, `sticker` is a Power word in `new_words` |
@@ -785,6 +786,38 @@ This game is the **phonics board**: it is made over a phase and gives the sessio
 `BoardMode::phonics` whatever the options say, because the standard board (the
 session's default) needs the dice and no phase, and is not wired to the screens yet
 (see [Not built yet](#not-built-yet)).
+
+**Where a run begins.** After every call that can change the game, `RealSoloGame`
+brings the store's game in progress (`Store::save_session`) to what
+`GameSession::snapshot()` says: a board on the table with its finds and the lit
+tile (`playing`), or the resting screen, which is also how a board that has just
+cleared is kept. A game in the box is **not** saved: the store holds none and what
+it held is cleared. There is nothing on the table to bring back; the size the box
+offers is the settings' (the child's last choice, written as it is made, so a
+change the parent makes in the dashboard is not overruled by an old box); and the
+next deal's seed is a new one each run, or the one `--seed` gives. `shaking` and
+`dropping` are the box, as the session saves them. A game the store cannot keep
+whole is cleared rather than left as the game before it. The session is saved
+before a find is recorded, so the history is never ahead of the game; the board
+left with the lid is recorded before the session is cleared, so it is never behind.
+
+`SoloGameSetup::make()` is where the game comes back. If the store holds a game in
+progress and `GameSession::restore()` accepts it (the same phase, a board the
+phase's words still fit, a record a session makes) the game is that one, as it was
+left, with the parent's help switch and sounds as they are now: a lit tile the
+parent has since switched off is dropped. If it does not (`wrong_phase`,
+`board_changed`, `bad_snapshot`, or a snapshot the store's values cannot make) a new
+game begins in the box and the old record is cleared by it, and the child is told
+nothing. The one thing a restore does not bring back is the seed of the scene's
+shake and drop, which a board already on the table does not need.
+
+The screens open on it. `SoloModel` over a game that is not in the box sets up what
+a shake would have (the touch geometry, the lit tile) in its constructor, so it is
+`playing` or `resting` from the start. `SoloScreen` gives the scene `show(board)`,
+the board already down with no motion, when it opens on `playing`, and the closed
+box otherwise; `play(board, seed)` is still only for a shake. So the scene's
+interface, which `app.scene_contract` holds, did not change. The run itself still
+begins on `home`: Solo Play, pressed there, opens on the board that was left.
 
 The unit of the stamp is the **day**: `wjs::Day`, days since 1970-01-01 on the
 device's calendar, which is what the store keeps of when and the most it will
@@ -814,11 +847,11 @@ store of the person's real profile.
 
 What the game does with the parent's settings: the size to offer first, the help
 switch and the sounds in focus are read when the game is made, once per run, so a
-change made in the parent area is seen by the next run. What it does not do: it
-does not write the size the child last chose back to the settings, and it does not
-save the game in progress or bring one back (`Store::save_session` and
-`GameSession::restore` are there for it); a run begins in the box. The parent
-area's screens are not routed from the window yet; when they are, the one `Store`
+change made in the parent area is seen by the next run. The size the child last
+chose on the box is written back to `Settings::board_size`, and a game in progress
+is saved and brought back (above), so a run closed in the middle of a board shows
+the same board with the same finds. What it does not do: read a change to the
+settings made while the game is being played. The parent area's screens are not routed from the window yet; when they are, the one `Store`
 is `SoloGameSetup::store()`, to hand to `ParentController::useStore()`.
 
 The parent area (the gate, the dashboard, the settings and the about page) is a QML
