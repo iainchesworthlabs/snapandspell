@@ -15,7 +15,8 @@ only the versions just named have been tried. What CI runs is in [CI](ci.md).
 | CMake | 4.0 or newer | The presets require it. 4.4.0 is what the verified build used |
 | Ninja | any recent | The presets use the Ninja generator |
 | A C++23 compiler | MSVC from Visual Studio 2022 17.x or Visual Studio 2026; GCC 14 or newer; AppleClang 16 or newer | Verified: MSVC 19.51 (Visual Studio 2026), GCC 15.2, Apple clang 21. The code uses `std::expected` and `std::format` |
-| Git | any recent | The vendored vcpkg is a submodule |
+| Git | any recent | Clones this repository and checks the vcpkg commit |
+| vcpkg | the labs' fork, at or after the commit in `cmake/vcpkg-commit.txt` | One shared clone, found through `VCPKG_ROOT`, see [below](#vcpkg) |
 | PowerShell 7 (`pwsh`) | 7.0 or newer | For the [platform-isolation check](platform-isolation.md#enforcement). Optional: without it the `platform.isolation` test is not registered |
 | Network access | | The first configure bootstraps vcpkg and builds Catch2 |
 | Qt | 6.12 | Only for the optional Qt Quick window, see [below](#the-qt-quick-window) |
@@ -23,19 +24,28 @@ only the versions just named have been tried. What CI runs is in [CI](ci.md).
 ## Clone
 
 ```sh
-git clone --recurse-submodules https://github.com/iainchesworthlabs/wordjewelssolver
+git clone https://github.com/iainchesworthlabs/wordjewelssolver
 cd wordjewelssolver
 ```
 
-vcpkg is the git submodule `deps/vcpkg` (the labs' fork of vcpkg), so the
-dependency provider is pinned by the commit and nothing has to be installed
-machine-wide and no `VCPKG_ROOT` is needed. If you cloned without
-`--recurse-submodules`, the first configure initialises it for you when it finds
-a `.git` directory; or do it yourself:
+## vcpkg
+
+The dependency provider is vcpkg, from the labs' fork. It is **not** part of
+this repository: one clone serves every project on the machine, and the
+presets find it through the `VCPKG_ROOT` environment variable. Clone it once,
+anywhere, and set the variable:
 
 ```sh
-git submodule update --init --depth 1 deps/vcpkg
+git clone https://github.com/iainchesworthlabs/vcpkg C:\Repos\vcpkg
+setx VCPKG_ROOT C:\Repos\vcpkg      # Windows; open a new shell (or restart Visual Studio) after
+export VCPKG_ROOT=~/vcpkg           # Linux and macOS, in your shell profile
 ```
+
+`cmake/vcpkg-commit.txt` holds the vcpkg commit this project was verified with.
+The configure checks that your clone contains that commit (it may be ahead of
+it) and stops with the fix if it does not, for example `git -C %VCPKG_ROOT%
+pull`. CI clones the fork at exactly that commit
+([docs/ci.md](ci.md#the-vcpkg-binary-cache)).
 
 ## First build
 
@@ -161,7 +171,7 @@ the file the parent area keeps its settings in, and the stand-in game is made fr
 ## Dependencies
 
 The vcpkg manifest (`vcpkg.json`) is pinned to a `builtin-baseline`, and the
-presets point `CMAKE_TOOLCHAIN_FILE` at the submodule's vcpkg toolchain, so
+presets point `CMAKE_TOOLCHAIN_FILE` at the vcpkg toolchain under `VCPKG_ROOT`, so
 dependencies are resolved at configure time. Today it has no runtime
 dependencies, and one optional feature:
 
@@ -219,9 +229,13 @@ There is no install or package step yet: the programs run from `build/<preset>/b
 
 ## Troubleshooting
 
-- **"Vendored vcpkg not found at deps/vcpkg"**: the submodule is not checked
-  out and the configure could not initialise it (no `.git`, or no `git` on the
-  path). Run `git submodule update --init --depth 1 deps/vcpkg`.
+- **"Could not find toolchain file: /scripts/buildsystems/vcpkg.cmake"** or
+  **"The vcpkg toolchain file was not found"**: `VCPKG_ROOT` is not set in the
+  shell (or Visual Studio) that ran the configure, or does not point at a vcpkg
+  clone. See [vcpkg](#vcpkg); a program started before `setx` needs restarting.
+- **"does not contain the pinned commit"**: your vcpkg clone is older than
+  `cmake/vcpkg-commit.txt`. `git -C "$VCPKG_ROOT" pull` (or `fetch origin` if it
+  says the commit is missing from the history).
 - **`wjs-cli: ...dictionaries/en.txt: the dictionary file could not be opened`**:
   there is no `dictionaries/en.txt` beside the executable. A build copies it
   there from `data/dictionaries/en.txt`; if you moved the executable, move the

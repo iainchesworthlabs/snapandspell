@@ -2,36 +2,55 @@
 cmake_minimum_required(VERSION 3.28...4.4)
 
 # ---------------------------------------------------------------------------
-# Vendored vcpkg (git submodule at deps/vcpkg).
+# Shared vcpkg checkout, found through the VCPKG_ROOT environment variable.
 #
-# The dependency provider is pinned by the submodule so builds are fully
-# reproducible without a machine-wide vcpkg or a VCPKG_ROOT env var. The
-# CMakePresets point CMAKE_TOOLCHAIN_FILE at deps/vcpkg/scripts/buildsystems.
-# If the submodule was not checked out, initialise it here so a fresh clone
-# configures without extra steps.
+# One vcpkg clone serves every project on the machine. The CMakePresets point
+# CMAKE_TOOLCHAIN_FILE at $env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake.
+# cmake/vcpkg-commit.txt is the vcpkg commit this project was verified with:
+# the checkout must contain it (be at it, or ahead of it), so a stale clone
+# that predates the baseline fails here rather than deep inside a port build.
 # ---------------------------------------------------------------------------
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake")
-    find_package(Git QUIET)
-    if(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
-        message(STATUS "Initialising vendored vcpkg submodule (deps/vcpkg)")
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" submodule update --init --depth 1 -- deps/vcpkg
-            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-            RESULT_VARIABLE WJS_SUBMODULE_RESULT)
-        if(NOT WJS_SUBMODULE_RESULT EQUAL 0)
-            message(FATAL_ERROR
-                "Failed to initialise the vcpkg submodule. Run:\n"
-                "  git submodule update --init --depth 1 deps/vcpkg")
-        endif()
-    endif()
+if(NOT CMAKE_TOOLCHAIN_FILE OR NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
+    message(FATAL_ERROR
+        "The vcpkg toolchain file was not found.\n"
+        "Set VCPKG_ROOT to a clone of https://github.com/iainchesworthlabs/vcpkg "
+        "(or pass -DCMAKE_TOOLCHAIN_FILE=<root>/scripts/buildsystems/vcpkg.cmake) "
+        "and reconfigure. See docs/building.md.")
 endif()
 
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/deps/vcpkg/scripts/buildsystems/vcpkg.cmake")
-    message(FATAL_ERROR
-        "Vendored vcpkg not found at deps/vcpkg.\n"
-        "Clone with submodules (git clone --recurse-submodules ...) or run:\n"
-        "  git submodule update --init --depth 1 deps/vcpkg")
+get_filename_component(WJS_VCPKG_ROOT "${CMAKE_TOOLCHAIN_FILE}/../../.." ABSOLUTE)
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vcpkg-commit.txt" WJS_VCPKG_PIN
+    LIMIT_COUNT 1)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vcpkg-commit.txt")
+
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${WJS_VCPKG_ROOT}/.git")
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" -C "${WJS_VCPKG_ROOT}"
+                merge-base --is-ancestor "${WJS_VCPKG_PIN}" HEAD
+        RESULT_VARIABLE WJS_VCPKG_PIN_RESULT
+        ERROR_QUIET)
+    if(WJS_VCPKG_PIN_RESULT EQUAL 1)
+        message(FATAL_ERROR
+            "The vcpkg checkout at ${WJS_VCPKG_ROOT} does not contain the pinned "
+            "commit ${WJS_VCPKG_PIN} (cmake/vcpkg-commit.txt).\n"
+            "Update it:\n"
+            "  git -C \"${WJS_VCPKG_ROOT}\" pull")
+    elseif(NOT WJS_VCPKG_PIN_RESULT EQUAL 0)
+        message(FATAL_ERROR
+            "The vcpkg checkout at ${WJS_VCPKG_ROOT} does not have the pinned "
+            "commit ${WJS_VCPKG_PIN} (cmake/vcpkg-commit.txt) in its history; "
+            "it may be a shallow clone or from a different remote.\n"
+            "Fetch it:\n"
+            "  git -C \"${WJS_VCPKG_ROOT}\" fetch origin")
+    endif()
+else()
+    message(WARNING
+        "${WJS_VCPKG_ROOT} is not a git checkout, so the pinned vcpkg commit "
+        "${WJS_VCPKG_PIN} cannot be verified.")
 endif()
+message(STATUS "vcpkg: ${WJS_VCPKG_ROOT} (pin ${WJS_VCPKG_PIN})")
 
 # ---------------------------------------------------------------------------
 # Select vcpkg manifest features BEFORE project() (the vcpkg toolchain reads

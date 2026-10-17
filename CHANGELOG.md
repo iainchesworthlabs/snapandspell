@@ -143,7 +143,8 @@ that release, so that its rules (branch protection, required checks) can apply.
 - **Unit tests** (Catch2) for the board, the dictionary, scoring, the solver and
   the platform layer. See [docs/testing.md](docs/testing.md).
 - **CMake presets** for Windows (MSVC), Linux (GCC, with a coverage preset) and
-  macOS (Clang); the dependency provider, vcpkg, is a git submodule. Every
+  macOS (Clang); the dependency provider, vcpkg, is a shared clone found through
+  `VCPKG_ROOT`, checked against `cmake/vcpkg-commit.txt`. Every
   first-party target builds with warnings as errors, and Debug builds run under
   AddressSanitizer (and UBSan on GCC and Clang). See
   [docs/building.md](docs/building.md).
