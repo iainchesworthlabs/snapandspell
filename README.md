@@ -44,9 +44,10 @@ verified so far. PowerShell 7 (`pwsh`) is needed only for the platform-isolation
 check, which is skipped by the tests if it is not installed.
 
 ```sh
-git clone --recurse-submodules https://github.com/iainchesworthlabs/wordjewelssolver
+git clone https://github.com/iainchesworthlabs/wordjewelssolver
 cd wordjewelssolver
 
+# needs VCPKG_ROOT set to a clone of the labs' vcpkg fork: docs/building.md
 cmake --preset windows-msvc-debug          # or linux-gcc-debug, macos-clang-debug
 cmake --build --preset windows-msvc-debug
 ctest --preset windows-msvc-debug
@@ -146,7 +147,6 @@ tools/
   hooks/          git hooks (commit-msg, pre-push); see CONTRIBUTING.md
   policy/         check_text_policy.ps1, the rule for commit and PR text
 .github/          CI workflows
-deps/vcpkg        vcpkg, as a git submodule
 docs/             this documentation (mkdocs-material)
 ```
 

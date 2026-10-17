@@ -39,8 +39,9 @@ This project follows
 options. The short version, on Windows:
 
 ```sh
-git clone --recurse-submodules https://github.com/iainchesworthlabs/wordjewelssolver
+git clone https://github.com/iainchesworthlabs/wordjewelssolver
 cd wordjewelssolver
+# VCPKG_ROOT must point at a clone of the labs' vcpkg fork (docs/building.md)
 cmake --preset windows-msvc-debug
 cmake --build --preset windows-msvc-debug
 ctest --preset windows-msvc-debug

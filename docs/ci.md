@@ -32,7 +32,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | `codeql.yml` | CodeQL static analysis of the C++ | no - skipped |
 | `dependency-review.yml` | fails a PR that adds a moderate-or-worse vulnerable dependency | no - skipped |
 | `scorecard.yml` | OpenSSF Scorecard score and badge, from `main` | no - skipped |
-| Dependabot (`.github/dependabot.yml`) | Actions pins, the pinned CI tooling, the vcpkg baseline plus its submodule | yes |
+| Dependabot (`.github/dependabot.yml`) | Actions pins, the pinned CI tooling, the vcpkg baseline | yes |
 
 Every workflow declares `permissions: {}` at the top and gives each job only
 what it names; every checkout sets `persist-credentials: false`; every
@@ -157,7 +157,7 @@ nothing: that is why `codeql.yml` does not have it.
 
 ## The vcpkg binary cache
 
-Dependencies come from vcpkg (the `deps/vcpkg` submodule, manifest mode; the
+Dependencies come from vcpkg (the labs' fork, manifest mode; the
 only one today is Catch2, behind the `tests` feature). Every job that runs
 vcpkg uses the same two composite actions,
 `.github/actions/vcpkg-cache/restore` and `/save`, which wrap vcpkg's `files`
@@ -181,10 +181,12 @@ never cancelled by the next push (`cancel-in-progress` is off for them), and
 the first run on a new branch is cold. With Catch2 as the only port a cold
 run costs minutes, not hours; the cache earns its keep mostly on macOS.
 
-`actions/checkout` runs with `fetch-depth: 0` and `submodules: recursive` on
-the vcpkg-using jobs: with a `builtin-baseline`, vcpkg reads historical port
-versions out of the submodule's git history, and the default depth-1
-submodule clone does not have them.
+vcpkg is not a submodule: the vcpkg-using jobs run the composite action
+`.github/actions/vcpkg-setup`, which clones the fork into `$RUNNER_TEMP/vcpkg`
+at the commit in `cmake/vcpkg-commit.txt` and exports `VCPKG_ROOT`, which the
+presets read. The clone is full, not depth 1: with a `builtin-baseline`, vcpkg
+reads historical port versions out of its own git history. The same file is
+what a local configure checks a developer's clone against.
 
 ## What CI pins
 
@@ -193,7 +195,7 @@ submodule clone does not have them.
 | Every GitHub Action, and the composite actions in `.github/actions` | A full commit SHA, version in a trailing comment | Dependabot, weekly, grouped, 7-day cooldown |
 | clang-format, gcovr | `==` in `.github/requirements/*.txt` | Dependabot (`pip`), weekly |
 | CMake and Ninja (`lukka/get-cmake`) | `cmakeVersion` / `ninjaVersion`, exact, and one the pinned action's catalog lists | By hand, with the action |
-| vcpkg and the ports | The submodule commit and `builtin-baseline` | Dependabot (`vcpkg` + `gitsubmodule`, one monthly PR); by hand |
+| vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together |
 | Runner images | The label (`ubuntu-24.04`, `ubuntu-26.04`, `windows-2025-vs2026`, `macos-26`) | By hand |
 
 Not pinned: the compilers (each is what its image ships), and anything an
@@ -270,8 +272,9 @@ suspects, in order of likelihood:
 3. **The sanitizer runtime**: ASan/UBSan on the hosted image (on Windows, the
    ASan runtime DLL that `wjs_deploy_sanitizer_runtime` copies next to the
    tests, found next to the compiler).
-4. **The vcpkg submodule**: a clone without enough history for the baseline
-   (`fetch-depth: 0` is set for that reason).
+4. **The vcpkg clone**: one without enough history for the baseline (the
+   setup action clones in full for that reason), or a `cmake/vcpkg-commit.txt`
+   the fork does not have.
 5. **Coverage**: gcovr refusing a counter; the report step passes
    `--gcov-ignore-parse-errors negative_hits.warn_once_per_file` for the known
    gcov bug, and the coverage preset updates counters atomically.

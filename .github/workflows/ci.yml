@@ -198,15 +198,15 @@ jobs:
         include: ${{ fromJSON(needs.plan.outputs.matrix) }}
 
     steps:
-      # fetch-depth: 0 is required, not just nice-to-have: with a
-      # builtin-baseline, vcpkg reads historical versions out of the
-      # deps/vcpkg submodule's git history, and checkout's default is a
-      # depth-1 submodule clone that does not have them.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
-          fetch-depth: 0
           persist-credentials: false
+
+      # A full clone of vcpkg at cmake/vcpkg-commit.txt; sets VCPKG_ROOT, which
+      # the presets read. Full history, because with a builtin-baseline vcpkg
+      # reads historical port versions out of its own git history.
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
 
       # vcpkg's `files` binary-cache provider plus actions/cache (its x-gha
       # provider was removed). Keyed per triplet; see docs/ci.md.
@@ -297,12 +297,13 @@ jobs:
     permissions:
       contents: read
     steps:
-      # fetch-depth: 0 for vcpkg's version resolution - see build-and-test.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
-          fetch-depth: 0
           persist-credentials: false
+
+      # See build-and-test.
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
 
       # Same triplet, same archives as the Linux (GCC) leg.
       - name: Restore vcpkg binaries
@@ -355,12 +356,13 @@ jobs:
     permissions:
       contents: read
     steps:
-      # fetch-depth: 0 for vcpkg's version resolution - see build-and-test.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: recursive
-          fetch-depth: 0
           persist-credentials: false
+
+      # See build-and-test.
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
 
       # Same triplet, same archives as the Linux (GCC) leg.
       - name: Restore vcpkg binaries

@@ -60,7 +60,7 @@ unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
 | Component | Licence | Role | In a build you distribute |
 | --- | --- | --- | --- |
 | WordJewelsSolver (`src/`, `tests/`, `tools/`, `cmake/`, `docs/`) | GPL-3.0-or-later [V] | This project | Yes |
-| vcpkg (`deps/vcpkg`, a git submodule of the labs' fork) | MIT, Copyright Microsoft Corporation [V: `deps/vcpkg/LICENSE.txt`] | Fetches and builds dependencies | No: a build tool |
+| vcpkg (the labs' fork, a separate clone found through `VCPKG_ROOT`) | MIT, Copyright Microsoft Corporation [V: `LICENSE.txt` in the vcpkg clone] | Fetches and builds dependencies | No: a build tool |
 | vcpkg helper ports `vcpkg-cmake`, `vcpkg-cmake-config` | MIT [V: installed `share/*/copyright`] | Build helpers | No |
 | Catch2 3.15.3 | BSL-1.0 [V: installed `share/catch2/copyright`] | The test framework (`tests` vcpkg feature) | No: tests only |
 | Qt 6.12 (Core, Gui, Qml, Quick, Quick Controls 2) | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 [I] | The optional Qt Quick window; not built by vcpkg | Not yet: there are no packages |

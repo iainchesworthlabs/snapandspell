@@ -423,7 +423,7 @@ These are decided elsewhere and the design has to fit them.
 - The solver library is Qt-free and platform-free, and the application is a
   thin layer over it.
 - Qt 6.12.0, from the shared tree or `aqtinstall`; other dependencies from the
-  vcpkg submodule.
+  shared vcpkg clone (`VCPKG_ROOT`).
 - Camera frames are not committed to the repository, and the application is for
   a game played with children ([Licensing](licensing.md#camera-input-and-letter-recognition)).
 - A child's learning data stays on the device: all dashboard metrics, progress

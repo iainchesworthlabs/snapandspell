@@ -1,0 +1,30 @@
+name: vcpkg setup
+description: >-
+  Clones the labs' vcpkg fork at the commit pinned in cmake/vcpkg-commit.txt and
+  exports VCPKG_ROOT for the rest of the job. The CMake presets read VCPKG_ROOT.
+
+# The clone is full (not --depth 1): with a builtin-baseline, vcpkg reads
+# historical port versions out of its own git history.
+
+inputs:
+  repository:
+    description: The vcpkg clone URL.
+    default: https://github.com/iainchesworthlabs/vcpkg
+
+runs:
+  using: composite
+  steps:
+    - name: Clone vcpkg at the pinned commit
+      shell: bash
+      env:
+        VCPKG_REPOSITORY: ${{ inputs.repository }}
+      run: |
+        set -euo pipefail
+        pin="$(tr -d '[:space:]' < "$GITHUB_WORKSPACE/cmake/vcpkg-commit.txt")"
+        root="$RUNNER_TEMP/vcpkg"
+        git clone --no-checkout "$VCPKG_REPOSITORY" "$root"
+        git -C "$root" checkout --detach "$pin"
+        # CMake wants forward slashes in the toolchain path on Windows.
+        if command -v cygpath >/dev/null; then root="$(cygpath -m "$root")"; fi
+        echo "VCPKG_ROOT=$root" >> "$GITHUB_ENV"
+        echo "vcpkg $pin at $root"
