@@ -11,6 +11,39 @@ behaviour, **P2** is polish or after.
 How it is marked: **Fact** is something checked in the repository or on this
 machine today; *Plan* is what this document proposes to do.
 
+## Where this stands (2026-10-19)
+
+Both game modes are built end to end: Solo Play with the real standard board,
+the 3D dice scene, the dice's real faces, the shake (button, drag, and Qt
+Sensors where a device has one), tracing, stars, the hint, the panel, the store
+and the resting screen; Mode A with scan, the confirm-and-correct check screen,
+the assist screen and its start-tile hint, the typed-board path, and a Qt
+Multimedia camera (live preview, capture, a frame for the reader) that degrades
+honestly where there is none.
+
+Behind them: sound and speech through Qt Multimedia and TextToSpeech with
+placeholder clips, a haptics interface with a desktop no-op, eight translated
+languages with RTL layouts, a colour-scheme preference, a parent area with a
+dark theme, Tracy 0.14.1 across the UI thread, QML, the 2D and 3D scenes with
+work and frame budgets and a smoke mode, and a reproducible Windows build
+(Debug, Release, a self-contained ZIP with notices) that CI builds, tests,
+smokes and packages.
+
+What remains needs something this machine does not have, or is deliberately
+after the MVP:
+
+- **The tablet targets**: the iPad camera (AVFoundation + Vision), the
+  Android/iOS haptics and sensor backends, and the iOS/Android builds
+  themselves need a Mac and the mobile Qt kits.
+- **The reviewer's content**: the phonics phase data, the phoneme and
+  celebration recordings (the sound-it-out seam is wired and silent), and the
+  mechanical translations.
+- **Real-hardware verification**: no camera, accelerometer, haptics or audio
+  output exists here, so the live picture, the shake, the feel and the sound
+  were exercised only through fakes and the no-op paths.
+- **After the MVP** by the design: the vault/sticker screen, confetti, school
+  fonts, a coverage floor and the wider security CI (OSV, fuzzing).
+
 ## 1. The state at a glance
 
 | Layer | State today |
@@ -272,10 +305,11 @@ replica with doubtful tiles ringed, a person corrects a tile and presses Yes,
 play, the board loads, the child traces words and gets the start-tile hint,
 and a new round starts from a new scan.
 
-Left (after 2026-10-19): a capture backend per host (Media Foundation or Qt
-Multimedia on Windows; AVFoundation + Vision on the iPad, which needs a Mac),
-the real-frame accuracy work (synthetic-only today), and audio for the cues.
-The screens, the flow, the check screen and the hint are built.
+Left (after 2026-10-19): the iPad backend (AVFoundation camera + Vision reader,
+which needs a Mac) and the accuracy work on real frames (synthetic-only today).
+The screens, the flow, the check screen, the hint, the audio cues and the Qt
+Multimedia desktop camera (live preview, capture, frame conversion) are built;
+no camera was available to open on this machine.
 
 **Shared, and not duplicated**: one board component, one panel, one store, one
 start-tile hint, one set of screens' tokens; the mode is chosen before the
