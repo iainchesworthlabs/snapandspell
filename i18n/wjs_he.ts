@@ -523,7 +523,7 @@
         <translation>לא הצלחתי לקרוא את הלוח. נסו שוב, או הקלידו אותו.</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
         <source>Is this your board?</source>
         <translation>האם זה הלוח שלכם?</translation>
     </message>

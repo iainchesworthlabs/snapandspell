@@ -523,7 +523,7 @@
         <translation>ボードをよみとれませんでした。もういちどためすか、てで入力してください。</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
         <source>Is this your board?</source>
         <translation>これはあなたのボードですか？</translation>
     </message>

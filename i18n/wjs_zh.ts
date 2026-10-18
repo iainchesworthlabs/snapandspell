@@ -523,7 +523,7 @@
         <translation>我无法读取棋盘。请重试，或手动输入。</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
         <source>Is this your board?</source>
         <translation>这是您的棋盘吗？</translation>
     </message>

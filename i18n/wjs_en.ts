@@ -523,7 +523,7 @@
         <translation>I could not read the board. Try again, or type it in.</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
         <source>Is this your board?</source>
         <translation>Is this your board?</translation>
     </message>

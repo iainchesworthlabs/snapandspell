@@ -523,7 +523,7 @@
         <translation>Ich konnte das Brett nicht lesen. Versuchen Sie es erneut oder geben Sie es ein.</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
         <source>Is this your board?</source>
         <translation>Ist das Ihr Brett?</translation>
     </message>

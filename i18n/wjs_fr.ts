@@ -523,7 +523,7 @@
         <translation>Je n&apos;ai pas pu lire le plateau. Réessayez, ou saisissez-le.</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
         <source>Is this your board?</source>
         <translation>Est-ce votre plateau ?</translation>
     </message>

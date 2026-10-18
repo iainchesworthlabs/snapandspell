@@ -523,7 +523,7 @@
         <translation>איך האָב נישט געקענט לייענען דאָס ברעט. פּרוּווט נאָכאַמאָל, אָדער טיפּט עס אַרײַן.</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
         <source>Is this your board?</source>
         <translation>איז דאָס אייער ברעט?</translation>
     </message>

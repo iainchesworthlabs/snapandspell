@@ -523,7 +523,7 @@
         <translation>No pude leer el tablero. Inténtalo otra vez o escríbelo.</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
         <source>Is this your board?</source>
         <translation>¿Es tu tablero?</translation>
     </message>
