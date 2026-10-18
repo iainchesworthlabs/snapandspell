@@ -73,11 +73,11 @@ that this repository must match:
 | Standard | CountdownSolver / iclforge evidence | Here |
 | --- | --- | --- |
 | The Qt app is built and tested in CI on every push | CountdownSolver `ci.yml:118-170`; iclforge `pr-gate.yml:387-414` | **Done 2026-10-19:** the Windows leg installs Qt 6.12 (aqtinstall), builds the app and prototype, runs the app tests and lints the QML (`ci.yml`), and runs the app's offscreen smoke |
-| Runtime QML tests (Qt Quick Test), headless | CountdownSolver 7 per-page suites (`tests/CMakeLists.txt:183-299`); iclforge ~40 `tst_*.qml` | **Missing:** only qmllint and the scene contract |
-| A headless smoke mode in the app binary | iclforge `apps/forge/gui/src/main.cpp:30-72` (`--smoke`) | **Missing** |
-| Packaging: CPack installers and licence notices | CountdownSolver `Packaging.cmake:34-102`, `release.yml`; iclforge `cmake/Packaging.cmake`, `notices/` | **Missing** entirely |
+| Runtime QML tests (Qt Quick Test), headless | CountdownSolver 7 per-page suites (`tests/CMakeLists.txt:183-299`); iclforge ~40 `tst_*.qml` | **In progress 2026-10-19:** a Qt Quick Test harness and suites for the kit, screens, RTL and Mode A |
+| A headless smoke mode in the app binary | iclforge `apps/forge/gui/src/main.cpp:30-72` (`--smoke`) | **Done 2026-10-19:** `--smoke [frames]` reports p50/p95/p99 and runs in CI |
+| Packaging: CPack installers and licence notices | CountdownSolver `Packaging.cmake:34-102`, `release.yml`; iclforge `cmake/Packaging.cmake`, `notices/` | **Done 2026-10-19:** install rules, CPack presets, assembled and embedded notices, CI ZIP with SHA256; the NSIS/DEB/macOS generators are configured but unbuilt here |
 | A coverage gate (CountdownSolver fails the PR under 80/80) | CountdownSolver `ci.yml:368-376` | report only (`ci.yml:347-350`) |
-| Localization with a CI drift gate | CountdownSolver 6 languages (`src/app/CMakeLists.txt:311-326`, `ci.yml:159-191`); iclforge `qt_add_translations` + lupdate gate | **Missing** |
+| Localization with a CI drift gate | CountdownSolver 6 languages (`src/app/CMakeLists.txt:311-326`, `ci.yml:159-191`); iclforge `qt_add_translations` + lupdate gate | **Done 2026-10-19:** eight languages, RTL/LTR, lupdate drift in CI |
 | A light/dark/**system** preference, not just system-follow | CountdownSolver `Theme.qml:8`; iclforge palette preference | system-only today (`Theme.qml:27`) |
 | The toolchain pinned in one file | iclforge `.github/toolchain-versions.json` | Qt is a floor only; vcpkg is pinned |
 | Security breadth (OSV-Scanner, zizmor, fuzzing) | CountdownSolver CI (OSV, zizmor, ClusterFuzzLite) | CodeQL, Scorecard, dependency-review only |

@@ -106,6 +106,15 @@ drift gate: a `qsTr()` added without regenerating `i18n/*.ts` is a red leg, not
 a silent untranslated string. It is a ctest, so it skips itself (exit 4) on a
 machine without Qt's Linguist tools, but the Windows leg installs them (below).
 
+The same leg runs **the interactive QML at run time**: the eight `quick.*`
+suites ([Testing](testing.md#the-interactive-qml-qt-quick-test)) start
+`wjs_quick_tests` once each under `QT_QPA_PLATFORM=offscreen`, with Qt's
+software renderer and no display, and a Qt warning fails the suite. They are
+ordinary ctest entries (label `gui`), so they are part of the leg's `ctest`
+like every other test: there is nothing extra to run. Their target's
+`windeployqt` step deploys the `QtTest` QML module and the modules the suites
+import beside the binary, as the application's own deploy does for its screens.
+
 ### Toolchain choices
 
 - **No compiler install.** The code needs `<expected>` and `<format>`, which
@@ -119,16 +128,23 @@ machine without Qt's Linguist tools, but the Windows leg installs them (below).
   kit with `aqtinstall` (a pinned 3.3.0) and configures with
   `-DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON`, so the Qt Quick
   application, its 3D scene prototype, the app tests, `parent.screens`,
-  `scan.screens`, `parent.languages`, `scan.languages`, `i18n.catalogues`,
-  `app.scene_contract` and `app.qml_lint` all run on every push. The install
-  names the `qttools` module (`-m qttools`), which carries `lupdate`,
-  `lrelease` and Qt Linguist: the translations are compiled at build time and
-  the drift check needs `lupdate`. The other legs build the library, CLI and
-  scanner alone; the application has only been built on Windows, so Qt is not
-  installed there yet. `QT_QPA_PLATFORM=offscreen` lets the screens run on a
-  runner with no display.
+  `scan.screens`, `parent.languages`, `scan.languages`, the eight `quick.*`
+  suites, `i18n.catalogues`, `app.scene_contract` and `app.qml_lint` all run on
+  every push. The install names the `qttools` module (`-m qttools`), which
+  carries `lupdate`, `lrelease` and Qt Linguist: the translations are compiled
+  at build time and the drift check needs `lupdate`. The other legs build the
+  library, CLI and scanner alone; the application has only been built on
+  Windows, so Qt is not installed there yet. `QT_QPA_PLATFORM=offscreen` lets
+  the screens run on a runner with no display.
 - **CMake 4.4.2 and Ninja 1.13.2** from `lukka/get-cmake`; the same pins the
   sibling projects use.
+- **One place for the pins.** `.github/toolchain-versions.json` lists CMake,
+  Ninja, the Qt version and kit, `aqtinstall` and its module, and names the
+  vcpkg pin file. The workflows are held to it: the `toolchain.versions` ctest
+  fails if a workflow pins another version, if the `aqt install-qt` line stops
+  matching, or if `vcpkg.json`'s `builtin-baseline` is not the commit in
+  `cmake/vcpkg-commit.txt`. The two pins move together (docs/ci.md, "The vcpkg
+  binary cache").
 - **Local composite actions are referenced as `./.github/actions/...`.** The
   sibling projects use the `$/.github/actions/...` form (resolved against the
   workflow's own commit, runner 2.336.0 or newer); `./` works on every runner

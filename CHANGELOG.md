@@ -16,6 +16,42 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **The toolchain pins in one file, held to the workflows.** `.github/toolchain-versions.json`
+  lists CMake, Ninja, the Qt version and kit, `aqtinstall` and its module, and
+  names the vcpkg pin file. A new `toolchain.versions` ctest
+  (`tests/toolchain/check_versions.cmake`) reads it and fails if
+  `.github/workflows/ci.yml` pins another CMake or Ninja, installs another Qt or
+  aqtinstall, or if `vcpkg.json`'s `builtin-baseline` stops matching
+  `cmake/vcpkg-commit.txt`. It runs on every host in every leg, since it only
+  reads the files. See [docs/ci.md](docs/ci.md#toolchain-choices).
+- **The interactive QML, tested at run time: eight Qt Quick Test suites,
+  headless.** The house standard's remaining gap: `qmllint` and the two
+  offscreen stub-shell walks held the QML to its text and its flow, but nothing
+  pressed a button. `wjs_quick_tests` (`tests/qml/`) now drives the application's
+  own kit and screens under Qt's offscreen platform with the software renderer,
+  so no suite needs a display or Qt Quick 3D. The QML under test is the
+  application's files aliased into the test's QML module, as the stub shells do;
+  the board scene is a stub of the same interface (`tests/qml/scene_stub`) that
+  records the `play(board, seed)` it is given, because the real one is 3D. The
+  harness sets the platform before the application is created, gives the suites
+  the application's own models (`SoloModel` over `FakeSoloGame`,
+  `ParentController` over the demo store and phases with a clock the test
+  advances, `ScanModel`, `AssistModel` and `LanguageManager`) as context
+  properties, and fails a suite on any Qt warning. The suites: **the kit**
+  (AppButton's 48/64/96 targets, release-inside, keyboard, press cues;
+  HoldButton's hold; TileFace's states; Jewel, Icon and Feedback), **the theme**
+  (light and dark tokens, the colour scheme, the text scale, reduced motion),
+  **Home**, **the box** (the sizes that fit, Shake and Space, the scene's
+  `play(board, seed)`), **the panel** (the tray, a word found again, the hint,
+  Done, the history), **RTL** (Hebrew and Yiddish: the bars' way back and the
+  panel's leading edge mirror while the board's geometry and the check screen's
+  replica do not), **the scan screens** (no camera, the typed board, a
+  correction, doubtful tiles, Yes play) and **the parent area** (the gate's
+  two-spot hold, the dashboard's numbers, the settings rows, the reset). One
+  ctest entry per suite, label `gui`, TIMEOUT 300 and `QT_QPA_PLATFORM=offscreen`,
+  so `ctest -R quick` is the tier and the Windows CI leg runs it with everything
+  else. See [docs/testing.md](docs/testing.md#the-interactive-qml-qt-quick-test)
+  and [docs/ci.md](docs/ci.md).
 - **Install rules, CPack packages and third-party notices.** A build now has an
   install step: `install()` puts `wjs-cli`, `WordJewelsSolver`, the English
   dictionary, the standard board's dice (`dice/3x3.txt` to `6x6.txt`),

@@ -408,6 +408,19 @@ if(WJS_BUILD_APP)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
         TIMEOUT 240)
 
+    # -----------------------------------------------------------------------
+    # The interactive QML at run time: Qt Quick Test suites, one ctest entry
+    # each, under the offscreen platform (docs/testing.md, "The interactive
+    # QML"). Its own subdirectory, and not only for tidiness: a QML module's
+    # generated qrc is named after its URI (qmake_WordJewelsSolver.qrc) and
+    # written to the directory scope's build directory, and the scan preview
+    # above builds a module of the same URI. In this directory the two would
+    # overwrite each other's qrc, and the preview would load the test module's
+    # qmldir (measured: "Module "WordJewelsSolver" contains no type named
+    # "PreviewHost""). One directory down, each has its own.
+    # -----------------------------------------------------------------------
+    add_subdirectory(qml)
+
     # The catalogues in i18n/ are what lupdate makes from the QML sources now:
     # a qsTr() added (or a line moved) without regenerating them is a failure.
     # It needs the kit's lupdate, so it reports itself skipped (exit 4) when Qt's
@@ -512,6 +525,14 @@ add_test(NAME profiling.zone_names
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_zone_names.cmake")
+
+# The workflow's toolchain pins (CMake, Ninja, Qt, aqtinstall) are the ones in
+# .github/toolchain-versions.json, and the vcpkg baseline is the pinned commit.
+# Runs on every host: it only reads the files.
+add_test(NAME toolchain.versions
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/toolchain/check_versions.cmake")
 
 # The privacy rules of the first release that the source can say whether they
 # hold (docs/design/application.md, "Privacy, built in and checked"): no audio

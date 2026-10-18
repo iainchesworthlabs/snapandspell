@@ -1,0 +1,103 @@
+# The toolchain pins live in one file (.github/toolchain-versions.json) and
+# the workflows read them from there. This check holds the two together: a
+# version bumped in a workflow but not in the file, or the other way round,
+# is a red test rather than a build that quietly uses something else
+# (docs/ci.md, "Toolchain choices").
+#
+# Run as:
+#   cmake -DREPO_ROOT=<checkout> -P tests/toolchain/check_versions.cmake
+
+if(NOT DEFINED REPO_ROOT)
+    message(FATAL_ERROR "check_versions.cmake: pass -DREPO_ROOT=<checkout>")
+endif()
+
+set(_failures "")
+
+function(_fail message_text)
+    set(_failures "${_failures}\n  ${message_text}" PARENT_SCOPE)
+endfunction()
+
+# ---- the file ---------------------------------------------------------------
+
+set(_versions_file "${REPO_ROOT}/.github/toolchain-versions.json")
+if(NOT EXISTS "${_versions_file}")
+    message(FATAL_ERROR "The toolchain pins file is missing: ${_versions_file}")
+endif()
+file(READ "${_versions_file}" _versions)
+
+string(JSON _cmake GET "${_versions}" cmake)
+string(JSON _ninja GET "${_versions}" ninja)
+string(JSON _qt GET "${_versions}" qt version)
+string(JSON _qt_kit GET "${_versions}" qt kit)
+string(JSON _qt_modules GET "${_versions}" qt modules)
+string(JSON _aqt GET "${_versions}" qt aqtinstall)
+string(JSON _vcpkg_pin_file GET "${_versions}" vcpkg pin_file)
+
+if(NOT _cmake MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    message(FATAL_ERROR "toolchain-versions.json: cmake is not a version: '${_cmake}'")
+endif()
+
+# ---- the workflow -----------------------------------------------------------
+
+set(_ci_file "${REPO_ROOT}/.github/workflows/ci.yml")
+if(NOT EXISTS "${_ci_file}")
+    message(FATAL_ERROR "The CI workflow is missing: ${_ci_file}")
+endif()
+file(READ "${_ci_file}" _ci)
+
+# Every place the workflow pins CMake or Ninja must name the file's version.
+string(REGEX MATCHALL "cmakeVersion: \"([^\"]+)\"" _cmake_pins "${_ci}")
+list(LENGTH _cmake_pins _cmake_count)
+if(_cmake_count EQUAL 0)
+    _fail("ci.yml pins no CMake version; it must use ${_cmake}")
+endif()
+foreach(_pin IN LISTS _cmake_pins)
+    string(REGEX REPLACE "^cmakeVersion: \"([^\"]+)\"$" "\\1" _value "${_pin}")
+    if(NOT _value STREQUAL _cmake)
+        _fail("ci.yml pins CMake ${_value}; toolchain-versions.json says ${_cmake}")
+    endif()
+endforeach()
+
+string(REGEX MATCHALL "ninjaVersion: \"([^\"]+)\"" _ninja_pins "${_ci}")
+list(LENGTH _ninja_pins _ninja_count)
+if(_ninja_count EQUAL 0)
+    _fail("ci.yml pins no Ninja version; it must use ${_ninja}")
+endif()
+foreach(_pin IN LISTS _ninja_pins)
+    string(REGEX REPLACE "^ninjaVersion: \"([^\"]+)\"$" "\\1" _value "${_pin}")
+    if(NOT _value STREQUAL _ninja)
+        _fail("ci.yml pins Ninja ${_value}; toolchain-versions.json says ${_ninja}")
+    endif()
+endforeach()
+
+# The Qt kit is installed with aqtinstall, at the file's version, kit and
+# modules (qttools carries lupdate and lrelease: the catalogues' drift check
+# needs them).
+if(NOT _ci MATCHES "aqtinstall==${_aqt}")
+    _fail("ci.yml does not install aqtinstall ${_aqt}; toolchain-versions.json says it must")
+endif()
+if(NOT _ci MATCHES "install-qt windows desktop ${_qt} ${_qt_kit} -m ${_qt_modules} ")
+    _fail("ci.yml does not install Qt ${_qt} (${_qt_kit}, modules ${_qt_modules}); toolchain-versions.json says it must")
+endif()
+
+# ---- the vcpkg pin ----------------------------------------------------------
+
+set(_pin_file "${REPO_ROOT}/${_vcpkg_pin_file}")
+if(NOT EXISTS "${_pin_file}")
+    _fail("the vcpkg pin file named by toolchain-versions.json is missing: ${_pin_file}")
+else()
+    file(STRINGS "${_pin_file}" _pin LIMIT_COUNT 1)
+    string(STRIP "${_pin}" _pin)
+    file(READ "${REPO_ROOT}/vcpkg.json" _manifest)
+    string(JSON _baseline GET "${_manifest}" builtin-baseline)
+    if(NOT _baseline STREQUAL _pin)
+        _fail("vcpkg.json's builtin-baseline (${_baseline}) is not the commit in ${_vcpkg_pin_file} (${_pin}); docs/ci.md says they move together")
+    endif()
+endif()
+
+# ---- result -----------------------------------------------------------------
+
+if(_failures)
+    message(FATAL_ERROR "The toolchain pins have drifted:${_failures}")
+endif()
+message(STATUS "toolchain: CMake ${_cmake}, Ninja ${_ninja}, Qt ${_qt} (${_qt_kit}) by aqtinstall ${_aqt}; the workflows and the vcpkg pin agree")

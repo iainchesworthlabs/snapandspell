@@ -3,11 +3,14 @@
 The tests are Catch2 unit tests for the library, the platform layer and (when
 the Qt window is built) its model, the scanner with a synthetic corpus, a
 performance tier with its own binary, and checks about the build and the data
-itself. They run in CI on Windows (MSVC), Linux (GCC) and macOS (AppleClang).
-The exact number differs by leg: the Qt model, screen and language tests run
-only where the window is built (Windows so far), and the 23 performance cases
-and the five scanner accuracy cases skip themselves in a Debug build (see
-[Performance tests](#performance-tests) and [The scanner](#the-scanner)).
+itself. When the window is built there is also a Qt Quick Test tier that drives
+the kit and the screens themselves, headless ([The interactive
+QML](#the-interactive-qml-qt-quick-test)). They run in CI on Windows (MSVC),
+Linux (GCC) and macOS (AppleClang). The exact number differs by leg: the Qt
+model, screen, language and Quick Test suites run only where the window is built
+(Windows so far), and the 23 performance cases and the five scanner accuracy
+cases skip themselves in a Debug build (see [Performance
+tests](#performance-tests) and [The scanner](#the-scanner)).
 
 ## Running them
 
@@ -17,6 +20,7 @@ After a build (see [Building](building.md)):
 ctest --preset windows-msvc-debug              # or linux-gcc-debug, macos-clang-debug
 ctest --preset windows-msvc-debug -R platform  # just the two build checks
 ctest --preset windows-msvc-debug -R data      # the word-list and phonics checks
+ctest --preset windows-msvc-debug -R quick     # the interactive QML (Qt Quick Test)
 ```
 
 Every Catch2 `TEST_CASE` is registered with CTest by name
@@ -85,6 +89,7 @@ GUI application on Qt's offscreen platform and tells its accessibility hints of 
 | `tests/app/language_test.cpp` | `LanguageManager` (`src/app/language_manager.*`), the catalogues in `i18n/`, the app's font chain | The eight catalogues are well formed, complete, untranslated nowhere and the same messages as the English source; every language's code, direction and fallback (Hebrew and Yiddish RTL, the rest LTR, the device's locale or English); applying a language installs its catalogue and turns the application's layout; and the eight sample sentences' glyphs are in the app's font chain (a Windows check today, skipped where the platform has no such fonts). Built only with `WJS_BUILD_APP` |
 | `tests/app/parent_ui/` | The parent area's screens | `parent.screens`: see below; `parent.languages`: the gate, dashboard, settings and about in all eight languages, the catalogue really applied, the bar mirrored in Hebrew and Yiddish, no QML warning |
 | `tests/app/scan_ui/` | The Family Assistant's screens | `scan.screens`: see below; `scan.languages`: the scan screen, the check screen and the assistant's panel in all eight languages, the split mirrored for RTL while the replica stays as confirmed, no QML warning |
+| `tests/qml/` | The kit and the screens, driven at run time | `quick.*`: eight Qt Quick Test suites, see [The interactive QML](#the-interactive-qml-qt-quick-test) |
 | `tests/i18n/` | `i18n/*.ts` | `i18n.catalogues`: lupdate regenerates the catalogues and the checked-in ones must be identical; skipped (exit 4) when Qt's Linguist tools are absent |
 | `tests/notices/check_notices.cmake` | The generated `NOTICES.txt` | `notices.sections`: the project's licence, the GPL-3.0-only application, Qt's LGPL/GPL options and Quick 3D (in a build with the application), ENABLE, the translations, the bundled asset and Catch2 are all stated, no placeholder is left, and a command-line-only build carries no Qt section |
 | `tests/package/check_package.cmake` | `CPackConfig.cmake` and the generated install scripts | `package.config`: CPack names the project, its version, its licence and a ZIP, and the install rules carry both programs, the dictionary, the dice, the notices and the licence text, with Qt's install-time deploy script where the platform uses it |
@@ -297,6 +302,72 @@ build with the window (`WJS_BUILD_APP=ON`, the Windows CI leg).
   fonts are looked at on a device. The fonts themselves are recorded in
   [Application design](design/application.md#languages-right-to-left-and-fonts)
   and [Licensing](licensing.md#fonts-and-the-interfaces-languages).
+
+## The interactive QML (Qt Quick Test)
+
+The screens and the kit are exercised at run time by eight Qt Quick Test suites,
+headless: `wjs_quick_tests` (`tests/qml/`) starts each one under Qt's offscreen
+platform with the software renderer, so no leg needs a display or a GPU. It runs
+in every ctest of a build with the window (`WJS_BUILD_APP=ON`, the Windows CI leg
+today), one ctest entry per suite, all labelled `gui`:
+
+```sh
+ctest --preset windows-msvc-debug -R quick        # the tier
+ctest --preset windows-msvc-debug -R quick.kit    # one suite
+build/windows-msvc-debug/bin/wjs_quick_tests -input tests/qml/tst_kit.qml -platform offscreen
+```
+
+The QML under test is the application's own, not a copy: the kit, Home and Solo
+Play's screens are aliased (`QT_RESOURCE_ALIAS`) into the test's own QML module,
+exactly as the two stub shells (`tests/app/parent_ui`, `tests/app/scan_ui`) load
+theirs, and the parent area's and the Family Assistant's static modules are
+linked as they are there. The application's own module cannot be linked - it is
+compiled into its executable - and `Main.qml` is not loaded: it imports all three
+screen modules and makes the window, and the suites test the screens it would
+show.
+
+The board scene is the one piece of test support: `WordJewelsSolver.Scene` is the
+3D scene and needs a display (and Qt Quick 3D), so `tests/qml/scene_stub` builds a
+static module of the same URI with a `BoardScene` of the same interface
+(`prepare`, `show`, `play(board, seed)`, `pushMotion`, `settled`, `busy`,
+`boardRect`, `tileSize`, `tileGap`) that draws nothing and records what it is
+given. `app.scene_contract` already holds the two real `BoardScene`s to that
+interface; no suite needs the 3D one.
+
+The models are the application's classes, made by `tests/qml/quick_fixture.*` and
+registered as context properties: `SoloModel` over `FakeSoloGame`,
+`ParentController` over the demo data's in-memory store and phases with a clock
+the test advances (`fixture.advance`), `ScanModel`, `AssistModel` over a test
+dictionary and store, and `LanguageManager`. The suites that use them call
+`fixture.reset()` from `init()`, so one test function's play is not the next
+one's. A suite makes the test window visible - Quick Test's own root is
+invisible - and, because a positioner lays its children out in a frame rather
+than in the call that changed them, lets the window draw (and, where the layout
+matters, waits for it) before a point is turned into a click.
+
+A Qt warning fails the suite: each suite calls `failOnWarning(/.?/)` for a
+warning inside a test function, and the harness's own message handler fails the
+process for one emitted outside one (loading a suite, building a screen at
+teardown). That is the rule the two stub shells' checks hold too, and the reason
+a warning is not merely printed.
+
+| Suite | What it holds down |
+| --- | --- |
+| `tst_kit.qml` | AppButton's 48/64/96 targets; a release inside it is a click and a slide off it is not; its keyboard Space; its press cue. HoldButton's ring filling, hold-to-play, and letting go early. TileFace at rest and lit (the edge thickens and the tile grows, not colour alone) and the Qu face. Jewel's tier sizes and a colour that comes round the list. Icon's pictures and the one that turns round in RTL. The Feedback singleton's cues |
+| `tst_theme.qml` | The light and the dark token values; the colour-scheme token flipping `dark`, with System following `SystemColourScheme`; the text scale multiplying the type sizes; reduced motion taking the animation durations away (0, or the shorter cross-fade); the target sizes and the jewel sizes |
+| `tst_home.qml` | The two pictures and the grown-ups' corner button; the family picture shown only while `Navigation.scanAvailable`; each picture asking for its screen; the box having the keyboard and Space opening it; Back on home changing nothing; the pictures swapping sides in RTL |
+| `tst_box.qml` | The sizes offered are the ones whose tile fits at 48 dp (two on a full window, one on a small one, none on a tiny one); a size chosen by pressing its picture; the box's wide and tall arrangements; Shake dealing a board and the scene stub being given `play(board, seed)`; Space shaking too; a shake in play doing nothing; the way back asking for home |
+| `tst_panel.qml` | The tray's one row a word, with the model's tier and stars and a jewel whose size says the tier; a word found again adding nothing; the hint button asking the model for a start; Done ending a tapped path; the history button asking for its sheet |
+| `tst_rtl.qml` | Hebrew and Yiddish are right to left and French and English are not; the bar's way back moving to the leading edge on Solo Play's, the scan's and the parent area's bars; the panel's hint and history swapping sides; the split's areas swapping while the board's square, tile and gap stay the same; the trace layer's tiles and the check screen's replica keeping their reading order in a mirrored hierarchy |
+| `tst_scan.qml` | `scan.ready` saying there is no camera and offering no Capture; the typed board opening the check screen; a correction through the letter picker; the reader's doubtful tiles ringed and their hint; the picker offering the reader's other thought first; Yes, play refusing an incomplete board and handing a confirmed one to the assistant; Read again dropping the draft; the way back leaving Mode A |
+| `tst_parent.qml` | The gate's two spots: one finger is not a hold, two are, a second is half the bar, letting go starts over, two seconds opens it; the dashboard's week, sounds, vault and best from the store, and an empty store saying nothing was played; the settings rows changing the controller (help, board size, motion, colour scheme, text size) and a focus sound ticked and unticked; the reset asking twice and clearing the boards but not the stickers; the way back shutting the gate |
+
+Deliberately not here, and where they are instead: `Main.qml`'s shell and its
+navigation (the stub shells walk the screens' flows and the suites drive the
+screens it would show); the 3D scene (`app.scene_contract`,
+`tests/app/shake_script_test.cpp` and the prototype's own harness); every screen
+in all eight languages (`parent.languages` and `scan.languages`); the window's
+frame budget (`tests/app/frame_timing_test.cpp`, a desktop check).
 
 ## Performance tests
 

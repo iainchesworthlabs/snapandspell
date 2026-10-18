@@ -1,0 +1,14 @@
+{
+  "$comment": "The toolchain the CI build legs are pinned to, in one place. tests/toolchain/check_versions.cmake fails if .github/workflows/ci.yml or the vcpkg pin drifts from this file (docs/ci.md).",
+  "cmake": "4.4.2",
+  "ninja": "1.13.2",
+  "qt": {
+    "version": "6.12.0",
+    "kit": "win64_msvc2022_64",
+    "modules": "qttools",
+    "aqtinstall": "3.3.0"
+  },
+  "vcpkg": {
+    "pin_file": "cmake/vcpkg-commit.txt"
+  }
+}
