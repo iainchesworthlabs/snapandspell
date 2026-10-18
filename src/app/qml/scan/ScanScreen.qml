@@ -1,0 +1,300 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import WordJewelsSolver
+
+// Mode A, the Family Companion's first screen (docs/design/game.md, "The MVP:
+// one capture"): `scan.ready`, `scan.reading` and `scan.check` are one screen,
+// because the camera, the frame and the check belong to one act and the check
+// screen comes back to the ready screen with "Read again".
+//
+//   scan.ready    the frame to put the board in, Capture (96 dp), and Type in
+//                 your board. The camera is on only here: the screen starts it
+//                 when it opens and stops it when it leaves (the screens' and the
+//                 model's rule; docs/design/game.md, "Mode A").
+//   scan.reading one frame is read on the device; nothing is kept.
+//   scan.check    the replica, the doubts, the letter picker and "Yes, play"
+//                 (CheckScreen.qml). "Yes, play" hands the confirmed board to the
+//                 assistant and asks the shell to show it.
+//
+// With no camera (every desktop today) the camera's absence is said in words and
+// "Type in your board" is the way on: the check screen with an empty 4x4
+// (docs/design/game.md, "No camera").
+FocusScope {
+    id: root
+
+    required property ScanModel scan
+    required property AssistModel assist
+
+    // Back from `scan.ready`: out of Mode A, to wherever the person came from.
+    signal closed
+    // "Yes, play" has confirmed a board and the assistant has it.
+    signal playRequested
+
+    readonly property string scanState: root.scan.state
+    readonly property bool cameraShown: root.scan.cameraAvailable
+    readonly property string cameraMessage: ScanWording.cameraProblem(root.scan.cameraProblem)
+    readonly property string readMessage: ScanWording.readProblem(root.scan.readProblem)
+    // The interface's direction, set by the shell: Hebrew and Yiddish are right
+    // to left. The frame, the bar and the check screen's rows follow it; the
+    // replica of the board does not.
+    property bool rightToLeft: Theme.rightToLeft
+    // For the RTL check in the stub shell: the bar's way back follows the
+    // leading edge, and the window's mirroring reaches this screen.
+    readonly property real backButtonX: backButton.x
+    readonly property bool mirrored: LayoutMirroring.enabled
+    // The check screen's confirm button, for the RTL check.
+    readonly property real checkYesPlayX: check.yesPlayX
+
+    LayoutMirroring.enabled: root.rightToLeft
+    LayoutMirroring.childrenInherit: true
+
+    activeFocusOnTab: true
+
+    Component.onCompleted: {
+        // A screen that opens on `check` is one the person came back to; the
+        // camera stays off. A screen that opens on `ready` is a new scan.
+        if (root.scan.state === "ready") {
+            root.scan.open();
+        }
+    }
+
+    Component.onDestruction: root.scan.close()
+
+    // The way back: from the check screen it is "Read again" (to the frame and a
+    // camera that is on again); from the ready screen it leaves Mode A.
+    function back() {
+        if (root.scanState === "check" || root.scanState === "reading") {
+            root.scan.readAgain();
+        } else {
+            root.scan.close();
+            root.closed();
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.page
+    }
+
+    // --- the bar ------------------------------------------------------------------
+    Item {
+        id: bar
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: Theme.barHeight
+
+        AppButton {
+            id: backButton
+            anchors.left: parent.left
+            anchors.leftMargin: Theme.space2
+            anchors.verticalCenter: parent.verticalCenter
+            size: "child"
+            iconName: "back"
+            accessibleName: ScanWording.back
+            onClicked: root.back()
+        }
+
+        // The check screen's question, where a grown-up looks first.
+        Text {
+            visible: root.scanState === "check"
+            anchors.centerIn: parent
+            text: ScanWording.checkTitle
+            font.family: Theme.fontFamily
+            font.bold: true
+            font.pixelSize: Theme.labelSize
+            color: Theme.ink
+        }
+    }
+
+    // --- scan.ready and scan.reading ------------------------------------------------
+    Item {
+        id: readyStage
+        anchors.top: bar.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        visible: root.scanState !== "check"
+
+        Text {
+            id: prompt
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: Theme.space4
+            width: Math.min(parent.width - 2 * Theme.space6, 720)
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            text: root.scanState === "reading" ? ScanWording.reading : ScanWording.readyTitle
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.labelSize
+            color: Theme.ink
+        }
+
+        // The live view's place: a dark frame with the corners of the board's
+        // place in it. There is no preview surface in this slice; a camera that
+        // arrives puts its picture behind this.
+        Rectangle {
+            id: viewfinder
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: prompt.bottom
+            anchors.topMargin: Theme.space4
+            width: Math.max(Theme.targetMin, Math.min(parent.width - 2 * Theme.space8,
+                                                     Math.min(parent.height * 0.55, 640)))
+            height: width * 0.72
+            color: Theme.boardArea
+            border.width: Theme.rule
+            border.color: Theme.outline
+
+            // The four corners of a board's place, as brackets.
+            Repeater {
+                model: 4
+
+                Item {
+                    id: corner
+                    required property int index
+                    readonly property bool onRight: index % 2 === 1
+                    readonly property bool onBottom: index >= 2
+                    x: corner.onRight ? viewfinder.width - width - Theme.space4 : Theme.space4
+                    y: corner.onBottom ? viewfinder.height - height - Theme.space4 : Theme.space4
+                    width: Math.min(viewfinder.width, viewfinder.height) * 0.16
+                    height: width
+
+                    Rectangle {
+                        width: parent.width
+                        height: Theme.heavy
+                        color: Theme.die
+                    }
+                    Rectangle {
+                        width: Theme.heavy
+                        height: parent.height
+                        color: Theme.die
+                        x: corner.onRight ? parent.width - width : 0
+                        y: corner.onBottom ? parent.height - height : 0
+                    }
+                }
+            }
+
+            // A small board of dice, so the place says what goes in it without
+            // a sentence: a picture, not text.
+            Grid {
+                anchors.centerIn: parent
+                columns: 4
+                spacing: Math.max(Theme.space1, viewfinder.width * 0.012)
+                opacity: 0.5
+
+                Repeater {
+                    model: 16
+
+                    Rectangle {
+                        width: (Math.min(viewfinder.width, viewfinder.height) * 0.4
+                                - 3 * Math.max(Theme.space1, viewfinder.width * 0.012)) / 4
+                        height: width
+                        color: Theme.die
+                    }
+                }
+            }
+
+            // While reading, a quiet band across the picture.
+            Rectangle {
+                visible: root.scanState === "reading"
+                anchors.centerIn: parent
+                width: parent.width
+                height: Theme.targetChild
+                color: Theme.scrim
+            }
+        }
+
+        // The camera's absence, and a read that failed: two facts, no blame.
+        Column {
+            id: messages
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: viewfinder.bottom
+            anchors.topMargin: Theme.space3
+            width: Math.min(parent.width - 2 * Theme.space6, 720)
+            spacing: Theme.space2
+
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                visible: text !== ""
+                text: root.cameraMessage
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.bodySize
+                color: Theme.inkSecondary
+            }
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                visible: text !== ""
+                text: root.readMessage
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.bodySize
+                color: Theme.inkSecondary
+            }
+        }
+
+        // Capture, and the typed board beside it: the grown-up chooses.
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Theme.space6
+            spacing: Theme.space4
+
+            AppButton {
+                id: capture
+                visible: root.cameraShown && root.scanState === "ready"
+                width: Math.max(root.width / 3, Theme.targetPrimary)
+                height: Theme.targetPrimary
+                size: "primary"
+                variant: "primary"
+                accessibleName: ScanWording.capture
+                onClicked: root.scan.capture()
+
+                Text {
+                    anchors.centerIn: parent
+                    text: ScanWording.capture
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.labelSize
+                    color: Theme.buttonInk
+                }
+            }
+
+            AppButton {
+                id: typeBoard
+                width: Math.max(root.width / 3, Theme.targetChild)
+                height: Theme.targetChild
+                size: "child"
+                variant: "secondary"
+                accessibleName: ScanWording.typeBoard
+                onClicked: root.scan.typeBoard()
+
+                Text {
+                    anchors.centerIn: parent
+                    width: parent.width - 2 * Theme.space2
+                    horizontalAlignment: Text.AlignHCenter
+                    text: ScanWording.typeBoard
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.labelSize
+                    color: Theme.ink
+                    elide: Text.ElideRight
+                }
+            }
+        }
+    }
+
+    // --- scan.check --------------------------------------------------------------------
+    CheckScreen {
+        id: check
+        anchors.top: bar.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        visible: root.scanState === "check"
+        scan: root.scan
+        assist: root.assist
+        onBackRequested: root.scan.readAgain()
+        onPlayRequested: root.playRequested()
+    }
+}

@@ -1,3 +1,9 @@
+// qmllint disable import
+// qmllint disable unresolved-type
+// Qt's qmltypes do not name QQuick3DGeometry, the C++ base DieGeometry needs, so
+// the linter cannot resolve DieGeometry's prototype or the type it is used as.
+// The two directives above cover exactly those two warnings and nothing else.
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick3D
 

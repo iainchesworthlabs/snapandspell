@@ -9,7 +9,8 @@ import WordJewelsSolver
 // world (7.2) or a dark theme is a swap of these tokens and changes no rule.
 //
 // The board is dark in both themes, so the dice read the same; only the chrome
-// around it follows the system's light or dark setting.
+// around it follows the person's colour scheme, which is System (the operating
+// system's light or dark setting) unless a parent chose Light or Dark.
 QtObject {
     id: root
 
@@ -23,8 +24,17 @@ QtObject {
     // the system's is (docs/design/parent-area.md, "Integration"), so for now this is
     // the app's own alone.
     property real textScale: 1.0
+    // Set by Main.qml from the parent area's Colour scheme setting: "system",
+    // "light" or "dark". Light and Dark are the parent's choice; System follows
+    // what the operating system asks for (SystemColourScheme).
+    property string colourScheme: "system"
+    // Set by Main.qml from LanguageManager: Hebrew and Yiddish read right to
+    // left. Positioners, icons and the two-thirds split read this; the board
+    // containers switch it off (qml/solo/TraceLayer.qml).
+    property bool rightToLeft: false
 
-    readonly property bool dark: SystemColourScheme.dark
+    readonly property bool dark: colourScheme === "dark"
+                                 || (colourScheme !== "light" && SystemColourScheme.dark)
 
     // --- colour: the chrome (light / dark) ----------------------------------
     readonly property color page: dark ? "#12161C" : "#FBF8F1"

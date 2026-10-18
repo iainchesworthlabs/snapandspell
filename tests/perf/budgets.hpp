@@ -326,6 +326,40 @@ inline constexpr int kDealsPerRun = 5;
 inline constexpr int kDealRuns = 9;
 
 // ---------------------------------------------------------------------------
+// The board scene, counted (tests/app/shake_script_test.cpp)
+// ---------------------------------------------------------------------------
+
+// The scene's frame work, where it is countable without a window: the
+// simulation and the atlas. A play is one 4x4 weighted play at 60 Hz with the
+// stand-in's shake, from ShakeScript.create() to the last die home.
+
+// The whole simulation steps of that play (wjs::dice::World::steps(): a
+// Tuning::substep each, 1/1200 s). A count, so the same on every machine and
+// compiler; the budget is a quarter above what it measured. It is the cost
+// docs/design/shake-prototype.md measured as "62 us a step", counted.
+inline constexpr std::uint64_t kSceneSteps4x4 = 3'200;  // measured 2,560
+
+// The cells of a 4x4 board's atlas: six a die, exact. The letters are the glyph
+// cells (`Text`, one each) and the jewels the cells that show the jewel's
+// texture. `prepare` builds one atlas for a board, so this is the work of its
+// frame (docs/design/shake-prototype.md, "The real faces").
+inline constexpr std::uint64_t kSceneAtlasCells = 96;
+inline constexpr std::uint64_t kSceneAtlasLetters = 48;
+inline constexpr std::uint64_t kSceneAtlasJewels = 48;
+
+// The window's frame, during a smoke run's shake cycle (docs/profiling.md,
+// "The smoke mode"). The design's budget is one frame's 16.7 ms at 60 Hz and no
+// frame over 33 ms during the shake, drop and confetti (docs/design/
+// performance.md, "Budgets"). The median gets 0.3 ms of room for the display's
+// own period (16.68 ms measured on the desktop) and a timer's granularity; the
+// maximum gets none, because a missed refresh is what it is there to catch.
+// Measured by tests/app/frame_timing_test.cpp, which runs the window: a debug, a
+// Tracy or a coverage build cannot take a clock reading and skips it, and it is
+// opt-in (WJS_PERF_FRAME_TIMING=1), so a shared runner never runs it.
+inline constexpr double kFrameP50Ms = 17.0;
+inline constexpr double kFrameMaxMs = 33.0;
+
+// ---------------------------------------------------------------------------
 // The scanner, counted (wjs/scan/work.hpp)
 // ---------------------------------------------------------------------------
 

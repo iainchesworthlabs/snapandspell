@@ -17,13 +17,25 @@ QtObject {
     // pressing it does something. Whoever adds the screen sets them in the same
     // change (the family game's scanner; the parent area's gate is routed in Main).
     property bool parentAvailable: true
-    property bool scanAvailable: false
+    property bool scanAvailable: true
 
     function go(id) {
         if (id === screen) {
             return;
         }
         history = history.concat([screen]);
+        screen = id;
+    }
+
+    // A new round of a screen that was already reached (Mode A's "New board"):
+    // the screen is entered as if from home, so Back from it goes home and not
+    // to the round just left. Not a way on: a screen that is a step forward uses
+    // go().
+    function restart(id) {
+        if (id === screen) {
+            return;
+        }
+        history = ["home"];
         screen = id;
     }
 

@@ -21,6 +21,12 @@ FocusScope {
 
     required property var controller
 
+    // The parent area's direction, from the shell. The two circles are symmetric,
+    // so the gate reads the same either way; its words and the progress bar follow
+    // the reading direction.
+    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.childrenInherit: true
+
     // The ids this screen gives the keyboard's stand-in for a second finger; the
     // system's own touch ids are not negative.
     readonly property int spaceTouch: -2

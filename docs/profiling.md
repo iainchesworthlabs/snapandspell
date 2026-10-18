@@ -78,8 +78,8 @@ zone. Two consequences:
   with `--repeat <n>` (it solves the board `n` times and prints one result).
 
 Use the tools at the **same version as the client** (the wire protocol changes
-between releases). The pin is whatever `tracy` resolves to in the vcpkg
-baseline: 0.13.1.
+between releases). The pin is an explicit `overrides` entry in `vcpkg.json`:
+0.14.1 (port-version 1).
 
 Headless, from the tools vcpkg built into the build tree:
 
@@ -126,6 +126,23 @@ solver.solve,...\src\lib\src\solver.cpp,134,2103315138,40.59,1600,1314571,588494
 ```
 
 (Each load holds `172823` as the zone's value: the words.)
+
+The application is captured the same way, with its smoke run for a workload
+([below](#the-smoke-mode)):
+
+```sh
+$TOOLS/tracy-capture -o app.tracy -a 127.0.0.1 -f &
+build/windows-msvc-profiling/bin/WordJewelsSolver.exe --smoke 600 --store build/smoke-store.wjs > build/smoke.txt
+$TOOLS/tracy-csvexport app.tracy
+$TOOLS/tracy-csvexport -p app.tracy    # the plots: ui.frame_ms, render.frame_ms, ui.sync_ms
+```
+
+A profiling build's `--smoke` gives the profiler that was started first up to
+five seconds to attach *before* it loads anything, so `app.startup`,
+`app.load_qml` and the store's load are in the capture; the wait is not part of
+any number. The report the run prints (`build/smoke.txt` here) is the window's
+frames read without a profiler, which is what the frame budget is held on
+(tests/app/frame_timing_test.cpp).
 
 Interactively, run the `tracy-profiler` GUI of the same version (a release from
 <https://github.com/wolfpld/tracy/releases>, or built from that tag), press
@@ -192,6 +209,23 @@ as the finger moves. The column below says which.
 | `board.deal` | zone | both | `GameSession::shake`, once per board | the seedings it spent on the phonics board (1 to `max_seedings`), the rolls on the standard board (1 to `max_rolls`) |
 | `board.restore` | zone | both | `GameSession::restore` | none |
 | `input.submit` | zone | both | `GameSession::trace` of two tiles or more in `playing`; not for an event that is refused or a touch of one tile | the number of tiles in the path |
+| `app.startup` | zone | both | `start()` in `src/app/main.cpp`, once: the store and everything the game is made from | none |
+| `app.load_qml` | zone | both | the same file, once, around the engine's properties and `loadFromModule` | none |
+| `app.scene_create` | zone (QML) | both | `SoloScreen.qml`, once, the scene's first layout | none |
+| `data.load_phase` | zone | phonics | `PhaseSet::load_directory`, so a `--phase-directory` load | the words of every phase |
+| `scene.step` | zone | both | `DiceSim::advance`, once a device sample (one or two a frame) | the simulation steps that call took |
+| `scene.prepare` | zone (QML) | both | `BoardScene.prepare`, only when the board's faces are not in an atlas already | the cells of the atlas built |
+| `scene.play` | zone (QML) | both | `BoardScene.play`, once a play | none |
+| `scene.show` | zone (QML) | both | `BoardScene.show`, once a board is shown without motion | none |
+| `scene.shake`, `scene.drop`, `scene.settle` | zone (QML) | both | `BoardScene.step`, one a frame, by the stage the script is in | none |
+| `scene.celebrate` | zone (QML) | both | `SoloScreen.qml`, when the last word lands: the glow and its hold | none |
+| `ui.trace` | zone (QML) | both | `TraceLayer.qml`, one for each pointer or key event that traces | none |
+| `ui.screen` | zone (QML) | both | `Main.qml`, the loader's `onLoaded`: the screen transition's work | none |
+| `scene2d.play`, `scene2d.step`, `scene2d.show` | zone (QML) | the 2D fallback (**not built**) | `qml/scene/fallback/BoardScene.qml`, its script calls | none |
+| `ui.frame_ms` | plot | both | the frame clock, once a frame | the interval between swaps |
+| `ui.first_frame_ms` | plot | both | the frame clock, once | process start to the first frame |
+| `render.frame_ms` | plot | both | the frame clock, once a frame | the render thread's own time for the frame |
+| `ui.sync_ms` | plot | both | the frame clock, once a frame | the render thread waiting for the GUI thread |
 
 `board.seed` has no plot of its own. The solves it makes, the verifications and
 the guided fill's trials, are `solver.solve` zones inside it, each with its
@@ -231,8 +265,217 @@ visits of those solves; the binder's are the comparisons, which `phonics.bind`
 carries as its value. Each is held in the same tier, and each has a budget for
 the mode it is part of.
 
-There are no frame marks, messages or other threads yet; the application will
-add them with the window.
+### The frame
+
+The **application** adds the window to that list. Its frame clock is
+`src/app/frame_profiler.cpp`: a frame mark named `UI` at every
+`QQuickWindow::frameSwapped`, the interval between swaps as the plot
+`ui.frame_ms`, the render thread's own time for the frame as `render.frame_ms`
+and its wait for the GUI thread as `ui.sync_ms`, and `ui.first_frame_ms` once,
+from the start of the process to the first frame. The swap is connected
+directly, so the mark and the plot are sent where the frame ended: the render
+thread of Qt's threaded render loop (the GUI thread of the basic one). The mark
+is the process's, not a thread's, and the named frame set is `UI`. The
+application names its threads `main` (in `main`) and `render` (the first time
+the scene graph is initialised).
+
+The frame clock keeps a rolling window of the last 4,096 intervals and their
+report: count, mean, p50, p95, p99, max, the frames over 16.7 and over 33 ms,
+and the first frame's time. `--smoke` prints it (below); the frame budget is
+held on it (tests/app/frame_timing_test.cpp,
+[performance design](design/performance.md#budgets)). A trace has the same
+numbers under `ui.frame_ms` and `render.frame_ms`.
+
+`app.startup`, `app.load_qml`, `app.scene_create`, `data.load_phase`, the
+scene's zones and the seam that opens them from QML are in the table above and
+in [QML and the scene](#qml-and-the-scene) below. There are no messages yet:
+nothing in the application is a moment without a duration.
+
+## QML and the scene
+
+Tracy's API is macros, QML has no preprocessor, and the rule here is that only
+`wjs/profiling.hpp` speaks to Tracy. So the QML seam is a QML **singleton**,
+`Profiler`, in the scene's own module (`WordJewelsSolver.Scene`,
+`src/app/scene/profiler.cpp`), over a zone the wrapper can name at run time:
+
+```qml
+Profiler.begin("scene.prepare")
+fillAtlas(spareAtlas, shown)
+Profiler.value(96)                    // the number beside the innermost zone
+Profiler.end()
+
+Profiler.mark("scene.celebrate")      // a moment with no work: a zero-length zone
+```
+
+**The discipline**, because QML has no scopes of its own:
+
+- One `begin()` per synchronous moment, and its `end()` in the same function
+  after the work. Nesting is allowed and must be last-in, first-out, as the
+  calls are.
+- One thread: a `begin()` and its `end()` are on the QML thread. Tracy's zones
+  belong to the thread that opened them, and an `end()` on another thread would
+  not be the same zone.
+- A `begin()` without its `end()` leaves the seam one deep. It holds a stack of
+  eight, drops a `begin()` past that rather than nesting without bound, and an
+  `end()` with nothing open does nothing. A scope that has to span frames (a
+  whole stage) is not a moment and is not what this is for: the scene opens one
+  a frame, by stage, around that frame's work.
+- In a build without Tracy every call is empty: the name is not converted, and
+  nothing is allocated.
+
+**The names come from QML**, so the compile-time rule that a zone's name is a
+string literal cannot hold there. The wrapper's
+`wjs::profiling::RuntimeScope` opens a zone the way Tracy's own transient zones
+do (its `ZoneTransient` macro): the name goes with the zone, and the profiler
+registers the location itself. The location is therefore the seam's own —
+function and file `QML`, line 0 — and a name used again is the same name in the
+CSV, so one name is still one place in a trace. The allocation a transient zone
+makes is per zone, and only while a profiler is connected; the seam is used a
+few times a frame, not in a loop. `tests/profiling/check_zone_names.cmake`
+finds the QML names (`Profiler.begin("...")`, `Profiler.mark("...")`) in the
+`.qml` and `.js` files and checks their shape and that none is also a C++
+zone's.
+
+**Where it is used**, and only there: the scene's `prepare`/`play`/`show` and
+its per-frame stage; the trace layer's path work (one per pointer or key
+event); a screen's transition; the celebration's start; the 2D fallback's
+script calls. The names are in the table above. `Profiler.value()` is the QML
+side of a zone's `Value()`: the atlas's cells are the number beside
+`scene.prepare`.
+
+## The smoke mode
+
+```sh
+build/windows-msvc-profiling/bin/WordJewelsSolver.exe --smoke 300 --store build/smoke-store.wjs
+```
+
+`--smoke [<frames>]` runs the window as a capture workload and as the frame
+check's program. It shows Solo Play, shakes the box, puts the settled board
+away, shakes again, and after `<frames>` measured frames (300 when no number is
+given, after 60 warm-up frames) prints the frame-time report and leaves with 0.
+The frames are counted by the frame clock, so the report is of the application's
+own frames; the seed is fixed (7919) when `--seed` is not given, so the boards
+are the same on every run; and a `--store` of its own keeps a run out of the
+person's store.
+
+**The report**, to standard output (a windowed program's output is visible when
+it is redirected, as above):
+
+```text
+smoke: frames=60 warmup=60 span_ms=1583.08 p50_ms=15.69 p95_ms=17.74 p99_ms=309.13 max_ms=722.15 over16_7=12 over33=1 first_frame_ms=144.14 render_mean_ms=0.77 render_max_ms=8.32 sync_mean_ms=0.15 sync_max_ms=1.82
+ui.frame_ms: 60 frames over 1583.08 ms: mean 26.68, p50 15.69, p95 17.74, p99 309.13, max 722.15 ms
+ui.frame_ms over 16.7 ms: 12 (20.00%)   over 33 ms: 1
+ui.first_frame_ms: 144.14 ms (process start to the first frame)
+render.frame_ms: 121 frames, mean 0.77, p95 1.29, max 8.32 ms (the render thread's own time for a frame)
+ui.sync_ms: 121 frames, mean 0.15, p95 0.92, max 1.82 ms (the render thread waiting for the GUI thread)
+```
+
+The first line is the one a machine reads: `key=value`, no spaces in a value.
+`tests/app/frame_timing_test.cpp` holds the frame budget on it
+([performance design](design/performance.md#budgets)):
+`p50_ms <= 17.0`, `max_ms <= 33.0` and `over33 == 0`.
+
+**Those numbers are a real offscreen run, and they are not the 3D scene's.**
+Under `QT_QPA_PLATFORM=offscreen` with `QSG_RHI_BACKEND=opengl`, Qt Quick runs
+on a renderer that is not QRhi-based, and Quick 3D says so on stderr:
+
+```text
+Unexpected condition met: "QSGRendererInterface::isApiRhiBased(rif->graphicsApi())" ...
+The Qt Quick scene is using a rendering method that is not based on QRhi and a 3D graphics API.
+Qt Quick 3D is not functional in such an environment. The View3D item is not going to display anything.
+```
+
+The 2D screens still draw and the frame clock still counts, which is why the
+smoke leaves with a report there, but the p99 and max above are the first
+frames' setup and the 3D scene is not in them. **Quick 3D cannot render
+offscreen**, the frame budget needs a real window, and the smoke is supported
+on a desktop with a display. The frame check skips the `offscreen` platform for
+that reason.
+
+**Two runs of the application** were captured for this document on 2026-10-19
+(MSVC 19.51, RelWithDebInfo, Tracy 0.14.1, on the Windows 11 desktop the
+[shake prototype](design/shake-prototype.md) measured; the profiler connected
+before the program started, so the start-up zones are in them):
+
+- a windowed run with the profiler attached, killed after 15 s; the session did
+  not present the window (the frame marks stop after a few frames), so its
+  *frame* numbers are not usable, but the QML animation clock ran and its
+  zones are the scene's per-frame work. It was run with `QSG_RENDER_LOOP=basic`
+  because the threaded loop in that session slept after the first frames (the
+  prototype's window did too);
+- an offscreen run for the report above.
+
+| Zone, from the windowed capture | Count | Mean | Min | Max |
+| --- | --- | --- | --- | --- |
+| `app.startup` | 1 | 71.6 ms | | |
+| `app.load_qml` | 1 | 251.2 ms | | |
+| `app.scene_create` (QML) | 1 | 0.47 ms | | |
+| `data.load_dictionary` | 1 | 70.5 ms (172,823 words) | | |
+| `data.load_phase` | 1 | 0.41 ms (7 words, a test directory) | | |
+| `data.load_store` | 1 | 0.08 ms | | |
+| `data.save_store` | 24 | 2.30 ms | 1.63 | 3.21 |
+| `board.deal` | 9 | 98.5 µs | 48.3 | 152.8 |
+| `board.roll` | 19 | 10.5 µs | 3.8 | 28.2 |
+| `solver.solve` | 10 | 61.7 µs | 20.4 | 124.7 |
+| `scene.prepare` (QML) | 9 | 1.01 ms | 0.50 | 3.77 |
+| `scene.play` (QML) | 9 | 2.14 ms | 1.19 | 7.73 |
+| `scene.show` (QML) | 10 | 0.81 ms | 0.16 | 5.99 |
+| `scene.shake` (QML) | 234 | 0.69 ms | 0.45 | 2.21 |
+| `scene.drop` (QML) | 144 | 0.72 ms | 0.44 | 1.48 |
+| `scene.settle` (QML) | 330 | 0.98 ms | 0.41 | 4.58 |
+| `scene.step` (C++) | 708 | 0.51 ms | 0.12 | 1.63 |
+| `ui.screen` (QML) | 1 | 64.1 µs | | |
+
+The run played nine deals of the default 3x3 standard board and put each away;
+1,517 zones and 3 frame marks. `scene.step` is one call a frame (the stand-in
+shakes, so the device's samples are made inside the script), and its 0.51 ms is
+the dice world's step for a 3x3, against the prototype's 0.59 ms a frame for the
+same size: the zone is the simulation's own time, as it should be. The QML
+stage zones (`scene.shake` etc.) are the whole frame's scene work and sit above
+it, as the nesting says. `scene.celebrate` is not in the table: a smoke run
+does not clear a board. Neither is `ui.trace`: a smoke run sends no pointer
+input. `scene2d.*` never appears: the 2D fallback is not built.
+
+The frame percentiles this document can give are the offscreen line above (60
+frames, a p50 at 15.7 ms) and **not** a desktop 3D measurement; on a desktop
+with a display the same line is the one to read, and `--smoke 300` prints it.
+
+**A profiler gets its moment.** A profiling build's `--smoke` waits up to five
+seconds for a profiler to connect before it loads anything, then calls
+`connected()` until one does or the time is up. That is what puts
+`app.startup`, `app.load_qml` and `data.load_phase` in a capture: they run once,
+before a profiler started alongside the program could otherwise have found it
+(on-demand mode records nothing until one is connected). The wait is not part of
+any number: the process clock starts after it. A run with no profiler waits the
+five seconds once and then plays; a run of a build without Tracy does not wait
+at all.
+
+**A display is needed.** Qt Quick 3D renders through the RHI into a window and
+needs a window system; the `offscreen` platform plugin does not give it one.
+`--smoke` is supported on a desktop with a display. Under
+`QT_QPA_PLATFORM=offscreen` (with `QSG_RHI_BACKEND=opengl`) the 2D screens do
+draw and a report is printed, but Quick 3D says on stderr that it is not
+functional there and the report is not the 3D scene's; the frame check skips
+that platform for the same reason. If no frame at all can be presented, the run
+says so on stderr and leaves with 3 after 20 seconds rather than hanging: it
+never reports an empty measurement as a result. The exit codes are 0 for a
+report, 1 when the QML made no window, 2 when the game could not be made, and 3
+when no frame was presented.
+
+**A window that is not presented.** On the machine this package was built on
+(the session's window was not composited), the animation clock ran and the
+scene's zones were recorded, but `frameSwapped` fired three times in fifteen
+seconds: the frame plots are then a handful of samples and the frame budget has
+nothing to say. The smoke run's target is not reached and it does not quit by
+itself; `tracy-capture` ends when the program is stopped, and the trace still
+holds the zones. On a desktop that presents its window the frames are what the
+report counts, as they were for the prototype's tables.
+
+**As a capture workload** it is the recipe [above](#capturing-a-trace): start
+`tracy-capture`, run `--smoke` with enough frames for the scene's shake and drop
+(a shake cycle is about three seconds at 60 Hz, so 600 frames is three of them),
+and read the zones and the frame plots out of the trace. The 2D fallback's
+`scene2d.*` zones never appear: it is not built.
 
 ## Adding instrumentation
 
@@ -244,21 +487,26 @@ nothing.
 | Call | Use |
 | --- | --- |
 | `auto zone = wjs::profiling::zone<"layer.name">();` | A zone for the rest of the C++ scope. The name is a template argument. `zone.Value(n)` attaches a number (a count, a size) and `zone.Text(ptr, size)` some text; the names are Tracy's own |
+| `wjs::profiling::RuntimeScope scope{"layer.name"};` | The same for a name known only at run time, held in a `std::optional` where the scope ends later than its declaration. What the QML seam is built on: a transient zone, so the location is `QML`, line 0, and the name carries it |
 | `wjs::profiling::frame_mark()` / `frame_mark("Name")` | A frame boundary on the default set / a named one |
 | `wjs::profiling::plot("name", n)` | A number on a timeline. Integer, floating point or `bool` |
 | `wjs::profiling::message("text")` | A discrete event. The text is copied |
 | `wjs::profiling::thread_name("name")` | Names the calling thread, **once** per thread: every call adds a table entry, so never in a per-frame or per-task path |
+| `wjs::profiling::connected()` | Whether a profiler is attached now (Tracy's on-demand state). For a workload that has to wait for one, as `--smoke` does |
 
 Rules that keep it honest:
 
 - **Names are literals, and the compiler holds that.** Tracy keeps the pointer.
   A zone's name is a template argument; the other names are a type that only a
   string literal (or a constexpr array) converts to, so a temporary string does
-  not compile.
+  not compile. The QML seam's names are the one exception, and they are copied
+  with the zone rather than kept ([above](#qml-and-the-scene)).
 - **One name is one place.** The source location is a function-local static of
   the template, built the first time the zone runs from the call site, so a
   name used at two places shows the first one's file and line. Use a different
-  name for each place.
+  name for each place. A run-time name is one place by being the same name (its
+  location says `QML`), so the seam may open it at more than one call site but
+  it may not also be a compile-time zone's.
 - **Arguments are evaluated when profiling is off.** Unlike Tracy's macros, which
   vanish, the empty functions are still called. Keep what goes into `plot()` and
   `Value()` cheap and free of side effects.

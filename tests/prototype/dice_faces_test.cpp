@@ -1,4 +1,4 @@
-// The dice simulation (src/app/prototype/shake/sim) and the face of a die that
+// The dice simulation (src/app/scene/sim) and the face of a die that
 // is to be up: the board says which face of each die is up, and the guide turns
 // the die to it. What has to be true: a face asked for is the face that is up
 // when the die is home, whichever way the die lay; every die still comes home

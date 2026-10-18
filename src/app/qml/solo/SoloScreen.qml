@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import WordJewelsSolver
+import WordJewelsSolver.Scene
 
 // Solo Play, Mode B: solo.box, solo.playing and solo.resting (and the moments
 // between them: shaking, dropping, word-found, cleared) on one screen, because the
@@ -21,18 +22,200 @@ FocusScope {
     id: root
 
     required property var solo
+    // Whether shaking the device rolls the dice (Settings::shake). It gates the
+    // drag that stands in for the accelerometer, and never the Shake button or
+    // Space, which are always there (docs/design/application.md, "Accessibility":
+    // the Shake button, and shake detection can be switched off).
+    property bool shakeEnabled: true
 
     signal homeRequested
     signal parentRequested
 
     readonly property string soloState: solo.state
     readonly property real barOffset: Theme.barHeight
+    // Hebrew and Yiddish: the window mirrors (Main.qml sets the direction), so
+    // the panel takes the leading side and the board the trailing one. The board
+    // itself does not mirror: its tiles stay in reading order.
+    readonly property bool mirrored: Theme.rightToLeft
+
+    LayoutMirroring.enabled: root.mirrored
+    LayoutMirroring.childrenInherit: true
+
+    // The board as the scene is given it (docs/design/shake-prototype.md, "The
+    // interface"): the tiles, and the six faces of the die on each with the one
+    // that is up. The faces are empty when the board was not rolled from dice;
+    // the scene then draws the letter on the face that is up.
+    function boardForScene() {
+        return {
+            rows: root.solo.rows,
+            columns: root.solo.columns,
+            tiles: root.solo.tiles,
+            faces: root.solo.faces,
+            up: root.solo.up
+        };
+    }
+
+    // The box with its lid on: no tiles, so the scene draws no dice.
+    function closedBox() {
+        return { rows: root.solo.boardSize, columns: root.solo.boardSize, tiles: [] };
+    }
+
+    // The board the scene should show at rest: the board in play, or the closed
+    // box. Used at start-up and when the window changes shape: the 3D script is
+    // made for one tile size, so a new layout is a new settled board rather than
+    // a re-posed one (docs/architecture.md: rotating recomputes the geometry).
+    function restingBoard() {
+        if (root.soloState === "playing" || root.soloState === "word-found"
+                || root.soloState === "cleared") {
+            return boardForScene();
+        }
+        return closedBox();
+    }
+
+    property bool ready: false
+
+    function relayout() {
+        if (!ready || width <= 0 || height <= 0) {
+            return;
+        }
+        // A play in progress owns the scene until it settles; the resize then
+        // shows the board it left.
+        if (root.soloState === "shaking" || root.soloState === "dropping") {
+            return;
+        }
+        const board = restingBoard();
+        scene.prepare(board);
+        scene.show(board);
+        root.solo.setGeometry(scene.tileSize, scene.tileGap);
+    }
+
+    Component.onCompleted: {
+        // The scene's first layout: its prepare and show of the box, and the
+        // geometry it hands the game. The component's own creation (the View3D
+        // and its dice) is inside app.load_qml, where the engine builds it.
+        Profiler.begin("app.scene_create");
+        ready = true;
+        relayout();
+        Profiler.end();
+    }
+
+    onWidthChanged: if (ready) { resizeTimer.restart() }
+    onHeightChanged: if (ready) { resizeTimer.restart() }
+
+    // A window drag changes the width many times a frame; the scene is shown
+    // once it has stopped for a moment.
+    Timer {
+        id: resizeTimer
+
+        interval: 50
+        repeat: false
+        onTriggered: root.relayout()
+    }
+
+    // The board to start once prepare() has had its frame, and its seed.
+    property var pendingBoard: null
+    property var pendingSeed: 0
+
+    function startPendingPlay() {
+        if (pendingBoard === null) {
+            return;
+        }
+        const board = pendingBoard;
+        pendingBoard = null;
+        if (root.soloState === "shaking") {
+            scene.play(board, pendingSeed);
+        }
+    }
+
+    // The shake and the drop are the scene's; its first frame carries the board's
+    // faces if they were drawn a frame ahead (prepare), so the play starts on the
+    // frame after the press rather than in the frame that makes the atlas.
+    Timer {
+        id: playStart
+
+        interval: 16
+        repeat: false
+        onTriggered: root.startPendingPlay()
+    }
+
+    // --- the device's motion, from a drag on the box ---------------------------
+    // Qt Sensors is not in the shared tree, so a drag stands in for the
+    // accelerometer and the gyroscope (docs/design/shake-prototype.md, "The
+    // drag"): the pointer's path is differentiated twice into an acceleration,
+    // the board taken as 16 cm across, and the arm's up and down added. A drag
+    // that reads as a shake starts a play, as a shaken device would, unless the
+    // parent switched shaking off; the Shake button and Space are always there.
+    QtObject {
+        id: pointer
+
+        property bool down: false
+        property double at: 0
+        property real x: 0
+        property real y: 0
+        property real vx: 0
+        property real vy: 0
+    }
+
+    function clampTo(value, limit) {
+        return Math.max(-limit, Math.min(limit, value));
+    }
+
+    // One sample of the device, from the pointer at (px, py) in the scene.
+    function pointerSample(px, py) {
+        const now = Date.now();
+        const dt = Math.max(0.002, (now - pointer.at) / 1000);
+        const vx = (px - pointer.x) / dt;
+        const vy = (py - pointer.y) / dt;
+        const ax = (vx - pointer.vx) / dt;
+        const ay = (vy - pointer.vy) / dt;
+        pointer.x = px;
+        pointer.y = py;
+        pointer.vx = vx;
+        pointer.vy = vy;
+        pointer.at = now;
+
+        const toG = 0.16 / Math.max(1, scene.boardRect.width) / 9.81;
+        const handX = clampTo(ax * toG, 5);
+        const handY = clampTo(-ay * toG, 5);
+        const roll = clampTo((px / Math.max(1, scene.width) - 0.5) * 2, 1) * 0.14;
+        const pitch = clampTo((0.5 - py / Math.max(1, scene.height)) * 2, 1) * 0.14;
+        const sx = -Math.sin(roll) + handX;
+        const sy = Math.sin(pitch) + handY;
+        // A mouse cannot lift the device. A hand that shakes one sideways also
+        // moves it up and down, in time with the strokes, so that is added.
+        const lift = clampTo(0.8 * (handX + handY), 4);
+        const sz = Math.cos(roll) * Math.cos(pitch) + lift;
+        const wx = clampTo(-vy * 0.001, 4);
+        const wy = clampTo(vx * 0.001, 4);
+        scene.pushMotion(sx, sy, sz, wx, wy, 0);
+
+        if (root.shakeEnabled && root.soloState === "box" && !scene.busy
+                && Math.hypot(handX, handY, lift) > 0.8) {
+            pointer.down = false;
+            root.solo.shake();
+        }
+    }
+
+    // While the hand is down, or the dice are moving, the device keeps sending
+    // samples (a hundred a second), so a hand that has stopped reads as stopped.
+    Timer {
+        interval: 10
+        repeat: true
+        running: root.soloState === "shaking" || root.soloState === "dropping" || pointer.down
+        onTriggered: {
+            if (Date.now() - pointer.at > 20) {
+                root.pointerSample(pointer.x, pointer.y);
+            }
+        }
+    }
 
     SoloLayout {
         id: rule
         width: root.width
         height: root.height - root.barOffset
         boardSize: root.solo.boardSize
+        // The split mirrors with the language; the tiles do not.
+        rightToLeft: root.mirrored
     }
 
     readonly property rect boardArea: Qt.rect(rule.boardArea.x, rule.boardArea.y + barOffset, rule.boardArea.width, rule.boardArea.height)
@@ -97,6 +280,12 @@ FocusScope {
             color: Theme.boardArea
         }
 
+        // The 3D board scene (WordJewelsSolver.Scene): one component, made once
+        // for the run behind home (Main.qml keeps this screen alive), so the
+        // View3D is not created on the Shake press. The item is left unclipped:
+        // the scene draws a little past it (overdraw), as a die at the edge of
+        // the board and the box's rim need. Its dice never mirror: the board is
+        // the same English grid in every language.
         BoardScene {
             id: scene
             x: root.boardArea.x
@@ -104,6 +293,7 @@ FocusScope {
             width: root.boardArea.width
             height: root.boardArea.height
             reducedMotion: Theme.reducedMotion
+            LayoutMirroring.enabled: false
 
             onSettled: root.solo.sceneSettled()
             onLanded: (index, pitch) => Feedback.cue("tile-landed", String(pitch))
@@ -111,25 +301,32 @@ FocusScope {
             onTileSizeChanged: root.solo.setGeometry(tileSize, tileGap)
             onTileGapChanged: root.solo.setGeometry(tileSize, tileGap)
 
-            function closedBox() {
-                return { rows: root.solo.boardSize, columns: root.solo.boardSize, tiles: [] };
-            }
-            // What is on the table when the screen opens: the lid on, as it is in the
-            // box, or, for a game brought back from the run before, the board already
-            // down and still. Resting shows no scene, so the box is there for Again.
-            function opening() {
-                if (root.solo.state === "playing") {
-                    return { rows: root.solo.rows, columns: root.solo.columns, tiles: root.solo.tiles };
+            // The drag that stands in for the accelerometer, on the box itself.
+            DragHandler {
+                id: boxDrag
+
+                target: null
+                enabled: root.soloState === "box"
+                onCentroidChanged: {
+                    if (active) {
+                        root.pointerSample(centroid.position.x, centroid.position.y);
+                    }
                 }
-                return closedBox();
-            }
-            Component.onCompleted: {
-                show(opening());
-                root.solo.setGeometry(tileSize, tileGap);
+                onActiveChanged: {
+                    pointer.down = active;
+                    if (active) {
+                        pointer.x = centroid.position.x;
+                        pointer.y = centroid.position.y;
+                        pointer.vx = 0;
+                        pointer.vy = 0;
+                        pointer.at = Date.now();
+                    }
+                }
             }
         }
 
         // The pointer, the keyboard and the screen reader's tiles, over the scene.
+        // Its coordinates are the board's own and are not mirrored.
         TraceLayer {
             id: trace
             x: scene.x
@@ -141,6 +338,7 @@ FocusScope {
             tileSize: scene.tileSize
             tileGap: scene.tileGap
             focus: true
+            LayoutMirroring.enabled: false
         }
 
         // A single slow glow over the board when the last word lands. Once, never
@@ -218,10 +416,12 @@ FocusScope {
         // --- the bar: the way back, and the quiet corner buttons --------------------------------
         AppButton {
             id: backButton
-            x: Theme.space2
-            y: Theme.space2 / 2
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.leftMargin: Theme.space2
+            anchors.topMargin: Theme.space2 / 2
             iconName: "back"
-            accessibleName: qsTr("Back")
+            accessibleName: SoloWording.back
             onClicked: root.back()
         }
         Row {
@@ -233,13 +433,13 @@ FocusScope {
 
             AppButton {
                 iconName: "history"
-                accessibleName: qsTr("Earlier boards")
+                accessibleName: SoloWording.earlierBoards
                 onClicked: history.open = true
             }
             AppButton {
                 visible: Navigation.parentAvailable
                 iconName: "parent"
-                accessibleName: qsTr("For grown-ups")
+                accessibleName: SoloWording.forGrownUps
                 onClicked: root.parentRequested()
             }
         }
@@ -267,18 +467,33 @@ FocusScope {
 
         function onStateChanged() {
             switch (root.solo.state) {
-            case "shaking":
-                scene.play({ rows: root.solo.rows, columns: root.solo.columns, tiles: root.solo.tiles },
-                           root.solo.seed);
+            case "shaking": {
+                // The board is dealt before anything moves. Its faces are drawn
+                // into the spare atlas now, and play() starts on the next frame,
+                // when that texture is already there.
+                const board = root.boardForScene();
+                scene.prepare(board);
+                root.pendingBoard = board;
+                root.pendingSeed = root.solo.seed;
+                playStart.restart();
                 break;
+            }
             case "box":
-                scene.show(scene.closedBox());
+                playStart.stop();
+                root.pendingBoard = null;
+                scene.show(root.closedBox());
                 break;
             case "cleared":
+                // The celebration's synchronous work: the one slow glow over the
+                // board (not with reduced motion) and the hold that ends it. What
+                // the glow animates afterwards is the animation system's, and shows
+                // in the frames.
+                Profiler.begin("scene.celebrate");
                 if (!Theme.reducedMotion) {
                     glowAnimation.restart();
                 }
                 clearedHold.restart();
+                Profiler.end();
                 break;
             }
         }

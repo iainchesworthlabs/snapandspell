@@ -1,0 +1,17 @@
+Qt Quick 3D {{QT_VERSION}}
+---------------------------
+
+WordJewelsSolver's board is drawn with Qt Quick 3D {{QT_VERSION}}
+(Qt6Quick3D, Qt6Quick3DRuntimeRender, Qt6Quick3DUtils and the QtQuick3D QML
+module). The Windows package includes them with the rest of Qt; a package that
+leaves Qt to the system loads the distribution's copy.
+
+Qt Quick 3D is available from The Qt Company under the GNU General Public
+License version 3 only, or commercially, and never under the LGPL. That is why
+the application binary is GPL-3.0-only, as the section above on the project's
+licence says. The GPL text is LICENSE.txt beside this file.
+
+Qt Quick 3D contains third-party code under other terms. Qt's attribution for
+each part, with the full text of every licence named, is at
+https://doc.qt.io/qt-6/licenses-used-in-qt.html and in the SPDX documents of
+the Qt {{QT_VERSION}} kit (sbom/*.spdx.json).

@@ -10,6 +10,11 @@ Flickable {
 
     required property var controller
 
+    // The parent area's direction, from the shell: Hebrew and Yiddish mirror the
+    // rows and every choice.
+    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.childrenInherit: true
+
     readonly property var s: controller.settings
 
     function onOff() {
@@ -137,7 +142,10 @@ Flickable {
                 hint: ParentWording.settingsBoardSizeHint
                 PChoice {
                     title: ParentWording.settingsBoardSize
-                    options: [{value: 3, label: "3x3"}, {value: 4, label: "4x4"}]
+                    options: root.s.board === "standard"
+                        ? [{value: 3, label: "3x3"}, {value: 4, label: "4x4"},
+                           {value: 5, label: "5x5"}, {value: 6, label: "6x6"}]
+                        : [{value: 3, label: "3x3"}, {value: 4, label: "4x4"}]
                     current: root.s.boardSize
                     onChosen: value => root.controller.setSetting("boardSize", value)
                 }
@@ -223,6 +231,22 @@ Flickable {
 
             SettingRow {
                 Layout.fillWidth: true
+                title: ParentWording.settingsColour
+                hint: ParentWording.settingsColourHint
+                PChoice {
+                    title: ParentWording.settingsColour
+                    options: [
+                        {value: "system", label: ParentWording.valueSystem},
+                        {value: "light", label: ParentWording.valueLight},
+                        {value: "dark", label: ParentWording.valueDark}
+                    ]
+                    current: root.s.colourScheme
+                    onChosen: value => root.controller.setSetting("colourScheme", value)
+                }
+            }
+
+            SettingRow {
+                Layout.fillWidth: true
                 title: ParentWording.settingsTextSize
                 PChoice {
                     title: ParentWording.settingsTextSize
@@ -243,6 +267,22 @@ Flickable {
                         root.controller.schoolFonts.map(name => ({value: name, label: name})))
                     current: root.s.schoolFont
                     onChosen: value => root.controller.setSetting("schoolFont", value)
+                }
+            }
+
+            // The interface's language. The board and the words on it are the
+            // same English board in every language; the screens around it change,
+            // and Hebrew and Yiddish turn the layout around.
+            SettingRow {
+                Layout.fillWidth: true
+                title: ParentWording.settingsLanguage
+                hint: ParentWording.settingsLanguageHint
+                PChoice {
+                    title: ParentWording.settingsLanguage
+                    options: [{value: "", label: ParentWording.valueSystem}].concat(
+                        ParentWording.languageChoices)
+                    current: root.s.language
+                    onChosen: value => root.controller.setSetting("language", value)
                 }
             }
         }

@@ -1,4 +1,4 @@
-# The tool that makes src/app/prototype/shake/qml/lightprobe/sky.ktx
+# The tool that makes src/app/qml/scene/lightprobe/sky.ktx
 # (README.md says how to run it).
 #
 # A project of its own, not part of the application's build: it needs Qt's

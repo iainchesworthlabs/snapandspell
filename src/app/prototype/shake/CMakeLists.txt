@@ -1,14 +1,13 @@
-# The 3D board-scene prototype (docs/design/shake-prototype.md).
+# The harness around the 3D board scene (docs/design/shake-prototype.md).
 #
-# A program of its own, not part of the application: it links Qt Quick 3D, which
-# Qt offers under the GPL-3.0 only, so this program is GPL-3.0 only
-# (docs/design/board.md, "Rendered 3D, or drawn in 2D"). Built only with
-# -DWJS_BUILD_SHAKE_PROTOTYPE=ON (and WJS_BUILD_APP=ON, which finds Qt).
-#
-# The scene is qml/BoardScene.qml and is plain QML over Qt Quick 3D. Everything
-# else here is the harness around it: a window with a Shake button, the mouse
-# drag that stands in for the accelerometer, the frame timing, and the library's
-# dice roll (dice_roller.*), which gives the scene real dice to draw.
+# The scene itself is the application's now: the QML module WordJewelsSolver.Scene
+# in src/app/scene (with its QML in src/app/qml/scene), linked here as it is
+# linked into WordJewelsSolver. This directory is only the window that drives it:
+# a Shake button, the mouse drag that stands in for the accelerometer, the frame
+# timing, and the library's dice roll (dice_roller.*), which gives the scene real
+# dice to draw. Built only with -DWJS_BUILD_SHAKE_PROTOTYPE=ON (and
+# WJS_BUILD_APP=ON, which finds Qt). It links Qt Quick 3D through the scene, so
+# it is GPL-3.0 only, as the application now is (docs/design/board.md).
 
 # The project's own dice (data/dice), embedded, so the boards the prototype rolls
 # are the library's roll of the files the tests read, in the module's dice/
@@ -21,8 +20,6 @@ foreach(side 3 4 5 6)
     list(APPEND WJS_SHAKE_DICE_FILES "${dice_file}")
 endforeach()
 
-add_subdirectory(sim)
-
 qt_add_executable(wjs_shake_prototype
     main.cpp)
 set_target_properties(wjs_shake_prototype PROPERTIES OUTPUT_NAME ShakePrototype)
@@ -30,27 +27,20 @@ set_target_properties(wjs_shake_prototype PROPERTIES OUTPUT_NAME ShakePrototype)
 qt_add_qml_module(wjs_shake_prototype
     URI ShakePrototype
     VERSION 1.0
+    IMPORT_PATH "${WJS_SCENE_IMPORT_DIR}"
     QML_FILES
-        qml/BoardScene.qml
-        qml/Die.qml
-        qml/FaceAtlas.qml
-        qml/ShakeScript.js
         qml/ShakeWindow.qml
     RESOURCES
-        qml/lightprobe/sky.ktx
         ${WJS_SHAKE_DICE_FILES}
     SOURCES
         dice_roller.cpp
         dice_roller.hpp
-        dice_sim.cpp
-        dice_sim.hpp
-        die_geometry.cpp
-        die_geometry.hpp
         frame_stats.cpp
         frame_stats.hpp)
 
 target_link_libraries(wjs_shake_prototype
     PRIVATE
+        wjs_sceneplugin
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
@@ -58,10 +48,11 @@ target_link_libraries(wjs_shake_prototype
         Qt6::QuickControls2
         Qt6::Quick3D
         wjs::lib
-        wjs_dice_world
         wjs::warnings
         wjs::sanitizers
         wjs::coverage)
 
-wjs_platform_deploy_qt_runtime(wjs_shake_prototype "${CMAKE_CURRENT_SOURCE_DIR}/qml")
+# The scene's QML is in src/app/qml/scene: that is where windeployqt has to look
+# for the Qt Quick 3D modules the harness now shows through the scene.
+wjs_platform_deploy_qt_runtime(wjs_shake_prototype "${PROJECT_SOURCE_DIR}/src/app/qml")
 wjs_deploy_sanitizer_runtime(wjs_shake_prototype)

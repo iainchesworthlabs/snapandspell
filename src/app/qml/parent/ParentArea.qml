@@ -24,7 +24,28 @@ FocusScope {
     // dashboard, settings or about; the first behind the gate.
     property string page: "dashboard"
 
+    // The interface's direction, set by the shell: Hebrew and Yiddish are right
+    // to left. Mirroring is declared here, not on the instance outside, so the
+    // children created with this component inherit it from the start.
+    property bool rightToLeft: false
+
     signal closed
+
+    // Where the bar's way back is drawn, for the RTL check in the stub shell:
+    // the leading edge is the left in a left-to-right language and the right in
+    // a right-to-left one. A mirrored Flow orders its children from that edge.
+    readonly property real backButtonX: barBack.x
+    // Whether the window's mirroring reaches this screen.
+    readonly property bool mirrored: LayoutMirroring.enabled
+
+    LayoutMirroring.enabled: root.rightToLeft
+    LayoutMirroring.childrenInherit: true
+
+    Binding {
+        target: ParentTheme
+        property: "rightToLeft"
+        value: root.rightToLeft
+    }
 
     // The Text size setting applies to these screens as it does everywhere.
     Binding {
@@ -72,8 +93,11 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter
             anchors.margins: ParentTheme.space2
             spacing: ParentTheme.space2
+            // The way back is at the leading edge of the bar: left in English
+            // and the other left-to-right languages, right in Hebrew and Yiddish.
 
             PButton {
+                id: barBack
                 text: ParentWording.back
                 onClicked: root.back()
             }

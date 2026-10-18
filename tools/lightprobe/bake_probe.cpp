@@ -1,5 +1,5 @@
 // bake_probe: makes the board scene's light probe,
-// src/app/prototype/shake/qml/lightprobe/sky.ktx.
+// src/app/qml/scene/lightprobe/sky.ktx.
 //
 //   bake_probe <out.ktx> [face-size]        face-size: 128 (the default) ... 512
 //

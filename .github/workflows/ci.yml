@@ -228,6 +228,20 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
+      # The Qt Quick application, on the one leg whose platform has had it
+      # built: Qt 6.12.0 from aqtinstall, the same prebuilt kit pattern as the
+      # shared tree (docs/building.md). The application and the 3D board-scene
+      # prototype are built and their tests run, so the QML screens, the scene
+      # contract and qmllint are held on every push (docs/ci.md). The qttools
+      # module carries lupdate and lrelease: the interface's catalogues are
+      # compiled at build time and the drift check regenerates them.
+      - name: Install Qt (Windows application leg)
+        if: matrix.leg == 'windows'
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check "aqtinstall==3.3.0"
+          python -m aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 -m qttools -O "$env:RUNNER_TEMP/Qt"
+
       # What the leg actually built with, in the log: the first thing to read
       # when a compiler-specific failure shows up.
       - name: Show the toolchain
@@ -249,13 +263,21 @@ jobs:
         if: ${{ matrix.leg == 'profiling-linux' }}
         run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev python3-venv
 
-      # No Qt: the GUI application is behind WJS_BUILD_APP (off), and CI does
-      # not install Qt until that application is built here.
+      # The Windows leg also builds the Qt Quick application and its 3D scene
+      # prototype, so the app tests, the QML lint and the scene contract run
+      # here (docs/ci.md). Every other leg builds the library, CLI and scan
+      # layers alone, which is all their hosts have Qt installed for.
       - name: Configure
         shell: bash
         env:
           CMAKE_PRESET: ${{ matrix.preset }}
-        run: cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF
+          QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
+        run: |
+          if [ "${{ matrix.leg }}" = "windows" ]; then
+            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON
+          else
+            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF
+          fi
 
       - name: Build
         shell: bash
@@ -264,12 +286,71 @@ jobs:
         run: cmake --build --preset "$CMAKE_PRESET"
 
       # The test preset errors out when no test is found, so an empty suite
-      # cannot pass.
+      # cannot pass. The offscreen platform lets the Qt Quick screens run on a
+      # runner with no display (tests/app).
       - name: Test
         shell: bash
         env:
           CMAKE_PRESET: ${{ matrix.preset }}
+          QT_QPA_PLATFORM: offscreen
+          # The offscreen plugin draws text with the fonts in this directory and
+          # finds none of its own on Windows: the screen checks and the glyph
+          # check need it (src/platforms/windows/platform.cmake has the same for
+          # the CMake tests).
+          QT_QPA_FONTDIR: ${{ runner.os == 'Windows' && 'C:\Windows\Fonts' || '' }}
         run: ctest --preset "$CMAKE_PRESET"
+
+      # The interface's catalogues are generated: lupdate regenerates them into a
+      # temporary directory and the checked-in i18n/*.ts must be identical, so a
+      # qsTr() added without regenerating them fails the Windows leg. It is
+      # already in ctest above; this step names the gate. The qttools module
+      # installed above means lupdate is there, so a missing catalogue is a red
+      # step and not a skip (docs/ci.md).
+      - name: Interface catalogues (lupdate drift)
+        if: matrix.leg == 'windows'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+        run: ctest --preset "$CMAKE_PRESET" -R '^i18n\.catalogues$' --output-on-failure
+
+      # The window starts, loads every screen and presents frames, on the leg
+      # that builds it: the application's smoke mode (docs/profiling.md). Quick
+      # 3D cannot render offscreen, so this exercises the start-up path and the
+      # 2D graph; the frame budget itself is a desktop check.
+      - name: Application smoke (Windows)
+        if: matrix.leg == 'windows'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          QT_QPA_PLATFORM: offscreen
+          QSG_RHI_BACKEND: opengl
+        run: build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
+
+      # A repeatable package from the same build, and proof it is usable: the
+      # script a developer runs too (tools/package/check_package.ps1) packs a
+      # ZIP with CPack, checks the archive carries the two programs, Qt's DLLs,
+      # plugins and QML modules (Quick 3D included), the dictionary, the dice,
+      # NOTICES.txt and LICENSE.txt, writes SHA256SUMS, unpacks it, solves a
+      # board with the packaged wjs-cli and runs the packaged window's offscreen
+      # smoke (docs/building.md#checking-a-package). NSIS is configured for a
+      # machine that has makensis; this step asks for the ZIP on purpose, and
+      # nothing here depends on whether the runner has NSIS.
+      - name: Package and check the ZIP (Windows)
+        if: matrix.leg == 'windows'
+        shell: pwsh
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+        run: ./tools/package/check_package.ps1 -Build "build/$env:CMAKE_PRESET"
+
+      - name: Upload the package (Windows)
+        if: matrix.leg == 'windows'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wordjewelssolver-windows-x64
+          path: |
+            build/${{ matrix.preset }}/packages/*.zip
+            build/${{ matrix.preset }}/packages/SHA256SUMS
+          if-no-files-found: error
 
       # Saved even when a later step fails: otherwise a red leg throws away
       # every package vcpkg had already built. Only saves when packages were

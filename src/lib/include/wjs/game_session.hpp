@@ -376,6 +376,13 @@ public:
     // The board mode this session plays (SessionOptions::mode).
     [[nodiscard]] BoardMode mode() const noexcept { return options_.mode; }
 
+    // The dice this session rolls (SessionData::dice): null when none was given.
+    // An application that plays both boards hands them over whichever mode is on,
+    // so this may be non-null on the phonics board, which does not use it. A
+    // caller that draws the dice of a standard board's roll (an application's
+    // scene) asks for the set of the board's size here.
+    [[nodiscard]] const DiceSets* dice() const noexcept { return dice_; }
+
     // The size chosen on the box, and the size of the board in play.
     [[nodiscard]] BoardSize size() const noexcept { return size_; }
 

@@ -1,5 +1,7 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
+import "ShakeScript.js" as Script
 
 // The faces of one board as one texture: for each die, a block of 3 x 2 cells,
 // one cell for each of its six faces, laid out as the board is, so the die on
@@ -45,34 +47,18 @@ Item {
     property int letterPool: 0
     property int jewelPool: 0
 
-    // Sets the size and the faces, and makes the cells of the atlas.
+    // Sets the size and the faces, and makes the cells of the atlas. The cells
+    // themselves (their place and their letters) are the scene script's
+    // (Script.atlasCells), so what the work budget counts is what is drawn.
     function fill(rowCount, columnCount, tileFaces) {
-        const letters = [];
-        const jewels = [];
-        for (let die = 0; die < tileFaces.length; ++die) {
-            const sides = tileFaces[die];
-            for (let side = 0; side < facesPerDie; ++side) {
-                const text = sides && sides.length > 0 ? String(sides[side % sides.length]).toUpperCase() : "";
-                const x = ((die % columnCount) * blockColumns + side % blockColumns) * cell;
-                const y = (Math.floor(die / columnCount) * blockRows + Math.floor(side / blockColumns)) * cell;
-                if (text === "") {
-                    jewels.push({ x: x, y: y });
-                } else {
-                    // About 55% of the tile for one letter; a two-letter tile
-                    // (the Qu face) at 80% of that, a three-letter tile smaller
-                    // still.
-                    letters.push({ x: x, y: y, letters: text,
-                                   pixelSize: text.length > 2 ? 48 : (text.length === 2 ? 68 : 88) });
-                }
-            }
-        }
+        const cells = Script.atlasCells(columnCount, tileFaces, cell, blockColumns, blockRows);
         rows = rowCount;
         columns = columnCount;
         faces = tileFaces;
-        letterCells = letters;
-        jewelCells = jewels;
-        letterPool = Math.max(letterPool, letters.length);
-        jewelPool = Math.max(jewelPool, jewels.length);
+        letterCells = cells.letters;
+        jewelCells = cells.jewels;
+        letterPool = Math.max(letterPool, letterCells.length);
+        jewelPool = Math.max(jewelPool, jewelCells.length);
     }
 
     // The cream face, dark edge and dark letter of every cell that has letters.

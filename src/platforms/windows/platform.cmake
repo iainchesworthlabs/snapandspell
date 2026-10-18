@@ -4,6 +4,14 @@
 set(WJS_PLATFORM_DISPLAY_NAME "Windows")
 set(WJS_PLATFORM_DESKTOP ON)
 
+# The application looks for its dictionary and dice beside its own executable,
+# and an installed executable is in the bindir.
+set(WJS_PLATFORM_INSTALL_APP_DATA_DIR "${CMAKE_INSTALL_BINDIR}")
+
+# An installed copy carries Qt beside itself: the install-time deploy script
+# in src/app/CMakeLists.txt writes the DLLs, plugins and QML modules there.
+set(WJS_PLATFORM_QT_DEPLOY_AT_INSTALL ON)
+
 set(WJS_PLATFORM_QT_SEARCH_ROOTS "C:/Qt" "$ENV{USERPROFILE}/Qt")
 set(WJS_PLATFORM_QT_ARCH_DIRS msvc2022_64 msvc2019_64)
 
@@ -54,11 +62,33 @@ function(wjs_platform_deploy_qt_runtime target qml_dir)
 
     # qoffscreen is the platform plugin that runs without a display, which the
     # checks of the Qt Quick screens need (tests/app/parent_ui).
-    set(_arguments --no-translations --include-plugins qoffscreen)
+    #
+    # --skip-plugin-types qmltooling keeps the QML debugger plugins out of the
+    # deploy directory. One of them, qmldbg_quick3dprofiler, is the GPL-3.0-only
+    # Quick 3D profiler: windeployqt copies it (and Qt6Quick3DUtils, which it
+    # depends on) into anything with a QML module, whether or not the program
+    # links Quick 3D. Nothing here loads it, and it must not ship: see
+    # docs/design/shake-prototype.md ("Deploy").
+    set(_arguments --no-translations --include-plugins qoffscreen --skip-plugin-types qmltooling)
     if(NOT "${qml_dir}" STREQUAL "")
         list(APPEND _arguments --qmldir "${qml_dir}")
     endif()
     add_custom_command(TARGET ${target} POST_BUILD
         COMMAND "${WJS_WINDEPLOYQT_EXECUTABLE}" ${_arguments} "$<TARGET_FILE:${target}>"
         COMMENT "Deploying the Qt runtime beside ${target}")
+endfunction()
+
+# A ZIP needs no tool installed and is the package every Windows host can make.
+# NSIS is the installer, and it is offered only when makensis is there: a
+# machine without NSIS still gets a ZIP, and the configure says which it made
+# rather than failing (docs/building.md, "Packaging").
+function(wjs_platform_configure_packaging)
+    find_program(WJS_MAKENSIS_EXECUTABLE NAMES makensis)
+    if(WJS_MAKENSIS_EXECUTABLE)
+        list(APPEND CPACK_GENERATOR "NSIS")
+        message(STATUS "Packaging: makensis found at ${WJS_MAKENSIS_EXECUTABLE}: ZIP and NSIS")
+    else()
+        message(STATUS "Packaging: makensis was not found: the package is a ZIP only")
+    endif()
+    set(CPACK_GENERATOR "${CPACK_GENERATOR}" PARENT_SCOPE)
 endfunction()

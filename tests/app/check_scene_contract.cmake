@@ -2,8 +2,8 @@
 # shake and the drop"; docs/design/shake-prototype.md, "The interface"): given a
 # finished board and a seed, play the shake and the drop and say when the dice are
 # settled. QML has no interface type, so the contract is a list of members and this
-# check: every file that is a BoardScene (the 2D placeholder, and the 3D prototype
-# that plugs in at the same seam) has to declare them all, under the same names.
+# check: every file that is a BoardScene (the application's 3D scene, and the 2D
+# fallback kept for D2) has to declare them all, under the same names.
 #
 # Run as: cmake -DSCENES="<file>;<file>" -P check_scene_contract.cmake
 # A file in the list that does not exist is reported and skipped, so a scene that is
@@ -26,8 +26,10 @@ set(_members
     "tileSize, read-only|readonly[ \t]+property[ \t]+real[ \t]+tileSize"
     "tileGap, read-only|readonly[ \t]+property[ \t]+real[ \t]+tileGap"
     "boardRect, read-only|readonly[ \t]+property[ \t]+rect[ \t]+boardRect"
+    "overdraw, read-only|readonly[ \t]+property[ \t]+real[ \t]+overdraw"
     "play(board, seed)|function[ \t]+play[ \t]*\\([ \t]*board[ \t]*,[ \t]*seed[ \t]*\\)"
-    "show(board)|function[ \t]+show[ \t]*\\([ \t]*board[ \t]*\\)")
+    "show(board)|function[ \t]+show[ \t]*\\([ \t]*board[ \t]*\\)"
+    "prepare(board)|function[ \t]+prepare[ \t]*\\([ \t]*board[ \t]*\\)")
 
 set(_failed FALSE)
 set(_checked 0)

@@ -2,12 +2,15 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <fstream>
 #include <map>
 #include <optional>
 #include <set>
 #include <system_error>
 #include <utility>
+
+#include "wjs/profiling.hpp"
 
 namespace wjs {
 namespace {
@@ -745,6 +748,8 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
 
 std::expected<PhaseSet, DataProblems> PhaseSet::load_directory(
     const std::filesystem::path& directory, const Dictionary& english) {
+    auto zone = profiling::zone<"data.load_phase">();
+
     DataProblems problems;
     const auto fail = [&](const std::string& file, std::string message) {
         problems.push_back({file, 0, std::move(message)});
@@ -812,7 +817,17 @@ std::expected<PhaseSet, DataProblems> PhaseSet::load_directory(
     if (!problems.empty()) {
         return std::unexpected(std::move(problems));
     }
-    return build(grapheme_files, word_files, english);
+    auto phases = build(grapheme_files, word_files, english);
+    if (phases) {
+        // The words the phases hold, every one of them: the figure a trace
+        // reads next to the time the directory took.
+        std::uint64_t words = 0;
+        for (const PhaseIndex& phase : phases->phases()) {
+            words += static_cast<std::uint64_t>(phase.words().size());
+        }
+        zone.Value(words);
+    }
+    return phases;
 }
 
 }  // namespace wjs

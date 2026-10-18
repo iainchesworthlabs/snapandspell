@@ -18,6 +18,10 @@ class SoloLayout : public QObject {
     Q_PROPERTY(qreal width READ width WRITE setWidth NOTIFY changed)
     Q_PROPERTY(qreal height READ height WRITE setHeight NOTIFY changed)
     Q_PROPERTY(int boardSize READ boardSize WRITE setBoardSize NOTIFY changed)
+    // The interface's direction: Hebrew and Yiddish are right to left, and the
+    // panel then takes the leading side of a wide window instead of the trailing
+    // one. The board's tiles never mirror.
+    Q_PROPERTY(bool rightToLeft READ rightToLeft WRITE setRightToLeft NOTIFY changed)
 
     // Wide: the board in the leading two thirds, the panel in the trailing third.
     // Tall: the board in the top two thirds, the panel below.
@@ -38,9 +42,11 @@ public:
     [[nodiscard]] qreal width() const { return width_; }
     [[nodiscard]] qreal height() const { return height_; }
     [[nodiscard]] int boardSize() const { return board_size_; }
+    [[nodiscard]] bool rightToLeft() const { return right_to_left_; }
     void setWidth(qreal width);
     void setHeight(qreal height);
     void setBoardSize(int size);
+    void setRightToLeft(bool right_to_left);
 
     [[nodiscard]] bool wide() const { return result_.wide; }
     [[nodiscard]] QRectF boardArea() const { return rect(result_.board_area); }
@@ -66,6 +72,7 @@ private:
     qreal width_ = 0;
     qreal height_ = 0;
     int board_size_ = 3;
+    bool right_to_left_ = false;
     SoloLayoutResult result_;
 };
 

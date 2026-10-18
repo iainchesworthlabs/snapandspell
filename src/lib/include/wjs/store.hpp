@@ -58,7 +58,7 @@
 
 namespace wjs {
 
-inline constexpr int store_format_version = 1;
+inline constexpr int store_format_version = 2;
 
 inline constexpr std::string_view store_directory_name = "WordJewelsSolver";
 inline constexpr std::string_view store_file_name = "store.wjs";
@@ -255,8 +255,9 @@ struct MigrationStep {
     std::function<bool(RawStore&)> apply;
 };
 
-// The migrations of this program: none yet, as there is only version 1. A test
-// supplies its own to hold the mechanism down.
+// The migrations of this program: the one step, from version 1, which let the
+// saved game in progress be a standard board (store_format.cpp says why the
+// step rewrites nothing). A test supplies its own to hold the mechanism down.
 [[nodiscard]] std::span<const MigrationStep> builtin_migrations() noexcept;
 
 enum class StoreError {
@@ -352,8 +353,10 @@ public:
 
     // The game in progress, to be brought back after a restart, or none. Refused
     // (false, nothing changed) if the board cannot be kept whole: a board of
-    // another shape than size by size, a word that is not a word, or more words
-    // than max_listed_viable_words (restoring needs every one).
+    // another shape than size by size, a word that is not a word, a phonics
+    // board of more words than max_listed_viable_words (restoring needs every
+    // one), or a standard board that says no count of its words. A standard
+    // board is kept by the count and none of its words.
     bool save_session(const std::optional<SavedSession>& session);
     [[nodiscard]] const std::optional<SavedSession>& session() const noexcept {
         return data_.session;

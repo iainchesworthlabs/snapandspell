@@ -61,6 +61,23 @@ template <StaticName Name>
     return {};
 }
 
+// A zone whose name comes from outside C++ as a string, for the QML seam. It
+// has the same interface as the enabled variant's and does nothing: the
+// constructor takes the name and the object is empty.
+class [[maybe_unused]] RuntimeScope {
+public:
+    explicit RuntimeScope(std::string_view) noexcept {}
+
+    RuntimeScope(const RuntimeScope&) = delete;
+    RuntimeScope& operator=(const RuntimeScope&) = delete;
+    RuntimeScope(RuntimeScope&&) = delete;
+    RuntimeScope& operator=(RuntimeScope&&) = delete;
+    ~RuntimeScope() = default;
+
+    // A number shown beside the zone, as Zone::Value's. Nothing to show here.
+    void Value(std::uint64_t) noexcept {}
+};
+
 // A frame boundary on the default set, and on a named one.
 inline void frame_mark() noexcept {}
 inline void frame_mark(Literal) noexcept {}
@@ -77,5 +94,10 @@ inline void message(std::string_view) noexcept {}
 // Names the calling thread in the profiler's thread list. Once per thread:
 // every call adds a table entry, so never in a per-frame or per-task path.
 inline void thread_name(Literal) noexcept {}
+
+// Whether a profiler is connected now: never, in a build without one.
+inline bool connected() noexcept {
+    return false;
+}
 
 }  // namespace wjs::profiling

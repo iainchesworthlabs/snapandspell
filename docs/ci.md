@@ -61,7 +61,7 @@ with the rulesets.
 | `clang-format` | ubuntu-24.04 | Every `.cpp`/`.hpp` (and sibling extensions) under `src/` and `tests/` is exactly what the repository's `.clang-format` produces, with one pinned clang-format release (`.github/requirements/lint.txt`). Any difference fails; the log names file and line. |
 | `platform-isolation` | ubuntu-24.04 | `tools/checks/check_platform_isolation.ps1`: no preprocessor conditional, no OS header or OS-querying API outside `src/platforms/`, no OS test in CMake outside the selector, no `#define`, every platform source wired. Fast, and deliberately not behind the build legs. |
 | `Plan build legs` | ubuntu-24.04 | The build matrix was computed. It is a required check only so that a failure here cannot turn the three build legs into "skipped" (which counts as a pass). |
-| `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes. |
+| `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes. The leg also builds the Qt application, runs its offscreen smoke, and packages a ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64` artifact). |
 | `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. |
 | `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and passes its tests, and a gcovr report of `src/` is produced as the `coverage-report` artifact (HTML, plus `summary.json` and a table in the job summary). **Report only: there is no threshold.** |
@@ -72,9 +72,39 @@ checks `platform.fragments` (every platform fragment satisfies the platform
 contract, on whichever host this is), `platform.isolation` (the same script as
 the `platform-isolation` job; it needs `pwsh`, which every hosted image has),
 `profiling.shipped_presets` (no preset that ships has Tracy in it) and
-`profiling.zone_names`, and the performance tier, which skips itself in a Debug
-build: the Debug legs prove it compiles on all three compilers, and the
-`Performance` leg runs it.
+`profiling.zone_names`, `notices.sections` (the generated third-party notices
+state every section a package must), `package.config` (CPack names this project,
+and the install rules carry the programs the build makes, their data and the
+notices), and the performance tier, which skips itself in a Debug build: the
+Debug legs prove it compiles on all three compilers, and the `Performance` leg
+runs it.
+
+The **Windows leg**, the one that builds the Qt application, also runs its
+smoke mode after ctest (`WordJewelsSolver.exe --smoke 60`, offscreen with the
+OpenGL RHI backend): the window, its screens and the game start up and present
+frames, and the run fails if they do not (docs/profiling.md, "The smoke mode").
+Quick 3D cannot render offscreen, so this is the start-up path and the 2D graph;
+the frame budget is a desktop check.
+
+That leg then **packages what it built** and proves the package is usable:
+`tools/package/check_package.ps1` (docs/building.md, "Checking a package") runs
+`cpack -G ZIP`, checks the archive carries the two programs, Qt's DLLs, plugins
+and QML modules (Quick 3D included), the dictionary, the dice, `NOTICES.txt` and
+`LICENSE.txt`, writes `SHA256SUMS`, unpacks it, solves a board with the packaged
+`wjs-cli` and its installed dictionary, and runs the packaged
+`WordJewelsSolver --smoke 10` offscreen. The ZIP and `SHA256SUMS` are uploaded
+as the `wordjewelssolver-windows-x64` artifact. The script is the same one a
+developer runs, so a broken install rule is red here on every push rather than
+at release time.
+
+That leg also carries the **interface's languages**: each of the eight
+catalogues is checked for completeness, the QML screens are loaded in all eight
+(including Hebrew and Yiddish, with the layout mirrored), the glyph check runs
+on the platform's fonts, and `i18n.catalogues` regenerates the catalogues with
+the kit's `lupdate` and fails when a checked-in one differs. The last is the
+drift gate: a `qsTr()` added without regenerating `i18n/*.ts` is a red leg, not
+a silent untranslated string. It is a ctest, so it skips itself (exit 4) on a
+machine without Qt's Linguist tools, but the Windows leg installs them (below).
 
 ### Toolchain choices
 
@@ -85,10 +115,18 @@ build: the Debug legs prove it compiles on all three compilers, and the
 - **Debug presets.** CI builds the Debug presets because they carry the
   sanitizers. The Release presets are not built in CI yet; a Release-only
   warning (`-Wnull-dereference`, for one) would first show up locally.
-- **No Qt.** The Qt 6.12 application is behind `WJS_BUILD_APP` (off) and the
-  workflows pass `-DWJS_BUILD_APP=OFF` explicitly. When the application is
-  built in CI, add a Qt install step (a prebuilt kit, not vcpkg) to the build
-  legs and flip that flag.
+- **Qt on the Windows leg.** The Windows leg installs the prebuilt Qt 6.12.0
+  kit with `aqtinstall` (a pinned 3.3.0) and configures with
+  `-DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON`, so the Qt Quick
+  application, its 3D scene prototype, the app tests, `parent.screens`,
+  `scan.screens`, `parent.languages`, `scan.languages`, `i18n.catalogues`,
+  `app.scene_contract` and `app.qml_lint` all run on every push. The install
+  names the `qttools` module (`-m qttools`), which carries `lupdate`,
+  `lrelease` and Qt Linguist: the translations are compiled at build time and
+  the drift check needs `lupdate`. The other legs build the library, CLI and
+  scanner alone; the application has only been built on Windows, so Qt is not
+  installed there yet. `QT_QPA_PLATFORM=offscreen` lets the screens run on a
+  runner with no display.
 - **CMake 4.4.2 and Ninja 1.13.2** from `lukka/get-cmake`; the same pins the
   sibling projects use.
 - **Local composite actions are referenced as `./.github/actions/...`.** The
@@ -282,6 +320,16 @@ suspects, in order of likelihood:
 ## Not here yet
 
 clang-tidy (the `.clang-tidy` file exists; there is no job), the Release
-presets on Windows and macOS (Linux's is the `Performance` leg), packaging and
-the Qt application, a coverage threshold, and
-Android/iOS/web. Each is a new job or a flag flip, not a redesign.
+presets on Windows and macOS (Linux's is the `Performance` leg), a coverage
+threshold, Qt on the Linux and macOS legs (the application has only been built
+on Windows so far), and Android/iOS/web. Each is a new job or a flag flip, not a
+redesign.
+
+Packaging is now built on the Windows leg only (above). The Linux `.deb`, `.rpm`
+and `.tgz` and the macOS `.dmg` are configured and their generators are selected
+where their tools exist, but no leg has built one: the Linux legs do not install
+Qt, so the application is not in their packages, and no macOS host has built it
+at all. A manual-dispatch Linux packaging leg would be the next step, and is
+deliberately left out rather than added untested. NSIS is configured but not
+verified in CI: the Windows leg asks for `-G ZIP`, and whether the runner has
+`makensis` is not something the result depends on.

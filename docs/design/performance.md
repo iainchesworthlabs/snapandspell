@@ -95,7 +95,10 @@ to be confirmed on the first device.
 | Camera frame, after the MVP | 33 ms, all of it | Cubeulator's `DirectScan` budget |
 | Memory for the dictionary | 32 MB | Measured 17.7 MB; a compact trie is an option if a device needs it |
 
-Which are measured by a test is the next section.
+Which are measured by a test is the next section. **Built (2026-10-19):** the
+two frame rows above are measured by the application's own frame clock and
+`--smoke`, and held by an opt-in check ([The window's
+frames](#the-windows-frames)); the rest is where this document said it was.
 
 ## Tracy
 
@@ -120,7 +123,7 @@ unverified.
 
 ### A macro-free route
 
-**Read (Tracy v0.13.1, `Tracy.hpp`).** The enabled `ZoneNamedN` expands to:
+**Read (Tracy v0.14.1, `Tracy.hpp`).** The enabled `ZoneNamedN` expands to:
 
 ```cpp
 static constexpr tracy::SourceLocationData loc{ name, TracyFunction, TracyFile, line, color };
@@ -174,7 +177,7 @@ connected a zone costs the guard of a function-local static and Tracy's
 connection check.
 
 **Built, and checked.** Compiled warning-free (`/W4 /WX`, `-Wall -Wextra
--Wpedantic -Werror ...`) against the **real Tracy v0.13.1 headers** (vcpkg
+-Wpedantic -Werror ...`) against the **real Tracy v0.14.1 headers** (vcpkg
 `tracy[on-demand]`, crash handler off) with MSVC 19.51, GCC 15.2 and Apple
 clang 21 (Xcode), each running all 43 tests of its profiling preset: the
 dispatch-only `profiling-*` legs of `ci.yml`, and the first two also locally.
@@ -223,21 +226,24 @@ zones inside `board.seed`, each with its `solver.visits`.
 
 | Layer | Zones, with the value each carries |
 | --- | --- |
-| app | `app.startup`, `app.load_qml`, `app.scene_create` |
-| data | `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` (bytes written), `data.load_store` (bytes read), `data.build_dashboard` (sounds); the last three are built, in the parent area's store and dashboard |
+| app | **Built:** `app.startup`, `app.load_qml` (C++), `app.scene_create` (from QML, the scene's first layout) |
+| data | `data.load_dictionary` (words), **`data.load_phase`** (words, built), `data.save_store` (bytes written), `data.load_store` (bytes read), `data.build_dashboard` (sounds); the last three are built, in the parent area's store and dashboard |
 | board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.deal` (the session: seedings on the **phonics** board, rolls on the **standard**), `board.restore` (the session, either board), `board.roll` (dice; **standard**) |
 | solver | `solver.solve` (words found; visits) |
 | phonics (**phonics** board only) | `phonics.bind` (comparisons), `phonics.segment`, `phonics.sequence` |
 | input | `input.submit` (path length; built, in `GameSession::trace`). Per-move work is a plot, `input.hit_test_us`, not a zone |
+| ui | **Built:** `ui.trace` (the trace layer's path work, from QML), `ui.screen` (a screen's transition, from QML); the plots `ui.frame_ms`, `ui.first_frame_ms` and the frame mark `UI` are the frame clock's, and `render.frame_ms` and `ui.sync_ms` are the render thread's |
 | audio | `audio.play_clip` (clip id); a plot `audio.start_latency_ms` |
-| scene | `scene.shake`, `scene.drop`, `scene.settle`, `scene.celebrate` |
+| scene | **Built:** `scene.step` (the dice world's step; the steps it took), `scene.prepare` (the atlas; its cells), `scene.play`, `scene.show`, `scene.shake`, `scene.drop`, `scene.settle`, `scene.celebrate` (all from QML). The 2D fallback's `scene2d.play`, `scene2d.step` and `scene2d.show` are in the file kept for D2 and not built |
 | scan | **Built:** `scan.find_board`, `scan.read_tiles`. Not built: `capture.read` (no camera backend), and `vision.*` as Cubeulator names them, which the iOS reader will have |
 
-Frame sets: unnamed for the seeding loop's passes if useful, `UI` for the Qt
-Quick frame (`frameSwapped`, as Cubeulator), `Capture` for the camera.
-Threads: `main`, `audio`, `data-load`, `camera-capture`. Messages:
-`solo.board_started`, `solo.word_found`, `solo.cleared`, `scan.captured`.
-The trace's information window carries the build (version, commit, dirty).
+Frame sets: unnamed for the seeding loop's passes if useful, **`UI`** for the Qt
+Quick frame (built, `frameSwapped`, as Cubeulator), `Capture` for the camera.
+Threads: `main` and `render` (built; the frame clock names the render thread),
+then `audio`, `data-load`, `camera-capture`. Messages:
+`solo.board_started`, `solo.word_found`, `solo.cleared`, `scan.captured` (none
+yet: the application has no moment without a duration). The trace's information
+window carries the build (version, commit, dirty).
 
 ## The performance tier
 
@@ -245,7 +251,6 @@ Modelled on Cubeulator's `tests/perf`: its own binary, `wjs_perf_tests`, linked
 against `wjs::lib` and the scanner with its synthetic corpus (no Qt, no window), every
 threshold in one file,
 `tests/perf/budgets.hpp`. **Two halves, and the split is the design.**
-
 | | Holds | Exact? | Runs |
 | --- | --- | --- | --- |
 | **Work budgets** | What the code *does*: visits, words, tries, trie nodes | Yes, on every machine and compiler | In every plain `ctest` |
@@ -497,6 +502,84 @@ one for each board mode, opt-in like the others (below), because a deal is the o
 path of the game that a child waits for. The standard board's word list is still the full
 dictionary until the author chooses a list; the dice rows are against it.
 
+### The scene's work
+
+**Built, and measured 2026-10-19** (a Debug build of the app tests for the count,
+which is the same in every configuration; the frames and the timing are the
+[shake prototype](../design/shake-prototype.md)'s). The 3D board scene's work
+that can be counted without a window is held the same way as the solver's: a
+count, exact, in `tests/perf/budgets.hpp`, measured by
+`tests/app/shake_script_test.cpp` over the scene's own script
+(`ShakeScript.js`) and dice simulation (`DiceSim`). The case carries the `perf`
+tag and runs with the scene's script tests, in every build: it is one play, not
+the tier's corpus.
+
+| Metric | Measured | Budget (a quarter above) |
+| --- | --- | --- |
+| `scene.steps` of one 4x4 weighted play, 60 Hz, first frame to last die home | 2,560 whole steps | 3,200 |
+| `scene.atlas.cells` of a 4x4 board | 96 (48 glyph cells, 48 jewel cells) | Exactly: six cells a die |
+
+A step is `Tuning::substep` of simulated time (1/1200 s), so 2,560 steps are
+2.13 s of a play that runs for about 2.1 s of frames: the simulation is the
+scene's frame cost, at the 62 µs a step the prototype measured. The atlas's
+cells are what a board's `prepare` makes and draws: one `Text` for each glyph
+cell and one jewel cell, six a die, so a `prepare` is one atlas of exactly this
+many. The cells' layout is in `ShakeScript.js` (`atlasCells`), which is where
+the test can reach it without a window; `FaceAtlas.qml` fills from it, so the
+test's count is the item's.
+
+**What is not held.** The frame in which a board's atlas is *built* (rather
+than drawn) is QML item creation, which needs a window to make; it is measured
+by `scene.prepare`'s zone and by the shake prototype's tables (9 to 23 ms for
+the first board of a size), not by a work budget. The number of atlas builds is
+one for each board whose faces are not in an atlas already, by construction.
+
+### The window's frames
+
+**Built, and measured 2026-10-19** (a Release build of the application, on the
+Windows 11 desktop above, with a 60 Hz display). The frame clock
+(`src/app/frame_profiler.cpp`, [Profiling](../profiling.md#the-frame)) keeps a
+rolling window of the frames the window swapped, and `--smoke` prints it. The
+budgets are the design's table's own, and the check is a wall-time check held
+like the tier's others: opt-in, and it skips a debug, Tracy or coverage build.
+
+| Metric | Budget | What it holds |
+| --- | --- | --- |
+| `frame.p50` | 17.0 ms | The typical frame: 16.7 ms at 60 Hz, with 0.3 ms for the display's own 16.68 ms period and a timer's granularity |
+| `frame.max` | 33 ms | No frame over 33 ms during the shake and the drop: one missed refresh is a late frame, two are a stall |
+| `frame.over33` | 0 | The same, counted: no frame in the measured window is over it |
+
+The check is `tests/app/frame_timing_test.cpp`: it runs
+`WordJewelsSolver --smoke 240` in a child process, reads the report's
+`smoke: key=value` line, and compares those three numbers. It needs a display
+and a quiet machine, so it is **not** selected by the `perf` test preset and
+never runs in CI: it is `WJS_PERF_FRAME_TIMING=1` on a desktop, and CTest runs
+it alone (`RUN_SERIAL`). A window that cannot present a frame (the offscreen
+platform plugin cannot give Quick 3D one) is reported as a skip with the
+application's own sentence, not as a pass.
+
+**What was measured, and what was not.** The frame clock's mechanism was
+measured end to end: a smoke run prints the report, and
+`tests/app/frame_timing_test.cpp` reads it and holds the budget on it; the
+`offscreen` platform plugin runs the 2D screens and prints a report (60 frames,
+p50 15.69 ms) but **Quick 3D is not functional there** — the renderer is not
+QRhi-based and the `View3D` draws nothing — so those frames are not the scene's,
+and the frame check skips that platform. A windowed capture of the application
+gave the scene's own per-frame zones (below) but only three frame marks: the
+machine this package was built on did not present the window it opened (the
+prototype's window stopped the same way), which is a session's limit and not a
+statement about a desktop. **No desktop 3D frame report was obtained, and none
+is claimed here**: the frame budget is the design's, held by a check that is
+opt-in and that a person runs on a machine with a display. Nothing was measured
+on a tablet or a phone.
+
+The scene's work, on the same capture: `scene.step` (the dice world's step) is
+0.51 ms a frame at a 3x3, and a frame of the shake 0.69 ms, of the drop 0.72 ms
+and of the settle 0.98 ms, with `scene.prepare` 1.0 ms a board and `scene.play`
+2.1 ms a play (the state change and the first pose of every die). The
+[profiling document](../profiling.md#the-smoke-mode) has the whole table and the
+machine.
+
 ### Time ratios
 
 **Built, and measured** (the tier's own calibration, in a Release build, three
@@ -521,12 +604,19 @@ per visit, is a factor of several, which these absorb.
 
 ### What the tier does not hold
 
-It is not the frame time of the 3D scene, the start of a sound, the speed of
-the OCR or a launch. Those are measured on the device by a person with Tracy
-connected (or Qt's own `QSG_RENDER_TIMING`, as Cubeulator's page does), and
-written down as Cubeulator's `performance.md` does: the build, the machine, what
-was and was not measured. A system test that counts frames on the resting
-screen is the one automatable exception, and it needs the window and Qt.
+Not every budget is in `wjs_perf_tests`. It is not the frame time of the
+application's window (held opt-in, with the window and Qt, by
+`tests/app/frame_timing_test.cpp`: [The window's frames](#the-windows-frames)),
+the start of a sound, the speed of the OCR (it is), or a launch (the frame
+clock's `ui.first_frame_ms` reports it, but no budget holds it yet). What is
+left is measured on the device by a person with Tracy connected (or Qt's own
+`QSG_RENDER_TIMING`, as Cubeulator's page does), and written down as
+Cubeulator's `performance.md` does: the build, the machine, what was and was not
+measured. The frame check is the one automatable exception: it needs a display,
+a quiet machine and a Release build, so it is opt-in and a shared runner never
+runs it. A system test that counts frames on the resting screen (the design's
+zero-frames-in-five-seconds proposal) is still not written: it needs the window
+and a way to know the fade has ended.
 
 ## Unknowns
 

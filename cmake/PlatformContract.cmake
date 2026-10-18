@@ -17,13 +17,16 @@ set(WJS_PLATFORM_CONTRACT_VARIABLES
     WJS_PLATFORM_QT_SEARCH_ROOTS
     WJS_PLATFORM_QT_ARCH_DIRS
     WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT
+    WJS_PLATFORM_INSTALL_APP_DATA_DIR
+    WJS_PLATFORM_QT_DEPLOY_AT_INSTALL
     WJS_PLATFORM_SOURCES
     WJS_PLATFORM_LINK_LIBRARIES
     WJS_PLATFORM_COMPILE_DEFINITIONS)
 
 set(WJS_PLATFORM_CONTRACT_HOOKS
     wjs_platform_configure_app
-    wjs_platform_deploy_qt_runtime)
+    wjs_platform_deploy_qt_runtime
+    wjs_platform_configure_packaging)
 
 # Checks the fragment that was just included (in the caller's scope):
 #   - every contract variable is defined (an empty string is a definition);
@@ -53,6 +56,24 @@ function(wjs_platform_check_contract fragment platforms_dir)
         message(FATAL_ERROR
             "${fragment}: WJS_PLATFORM_DESKTOP must be ON or OFF, not "
             "'${WJS_PLATFORM_DESKTOP}'.")
+    endif()
+
+    # An empty one would install the application's dictionary into the install
+    # prefix itself. The fragments derive it from CMAKE_INSTALL_BINDIR, which
+    # cmake/Platform.cmake has included GNUInstallDirs for before reading the
+    # fragment; this catches that include going missing.
+    if(NOT WJS_PLATFORM_INSTALL_APP_DATA_DIR)
+        message(FATAL_ERROR
+            "${fragment}: WJS_PLATFORM_INSTALL_APP_DATA_DIR is empty. It is the "
+            "directory the application's data is installed into, relative to the "
+            "install prefix (usually CMAKE_INSTALL_BINDIR).")
+    endif()
+
+    if(NOT WJS_PLATFORM_QT_DEPLOY_AT_INSTALL STREQUAL "ON" AND
+       NOT WJS_PLATFORM_QT_DEPLOY_AT_INSTALL STREQUAL "OFF")
+        message(FATAL_ERROR
+            "${fragment}: WJS_PLATFORM_QT_DEPLOY_AT_INSTALL must be ON or OFF, "
+            "not '${WJS_PLATFORM_QT_DEPLOY_AT_INSTALL}'.")
     endif()
 
     foreach(_file IN LISTS WJS_PLATFORM_SOURCES)

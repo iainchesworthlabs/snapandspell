@@ -8,26 +8,36 @@ import QtQuick
 // else. A parent's screens are for an adult: targets are the adult 48 dp, and
 // there is no motion but a progress that fills.
 //
-// The colours are the light theme's placeholders; the dark theme's values are
-// not computed yet (application.md).
+// Light and dark follow the system's scheme, as the chrome everywhere does
+// (application.md, "Colour and contrast"); Main.qml keeps `dark` in step with
+// the kit's Theme. The dark values are the kit's measured dark pairs under the
+// parent area's token names, so the contrast ratios application.md holds for
+// them carry over; the note chip is the pale one in both.
 QtObject {
     // The Text size setting (1, 1.25, 1.5), set by ParentArea from the controller.
     property real textScale: 1.0
 
+    // Whether the system asks for a dark chrome, set by Main from Theme.
+    property bool dark: false
+
+    // Hebrew and Yiddish: the parent area reads right to left. Set by ParentArea
+    // from the shell, so the positioners and the bar follow it.
+    property bool rightToLeft: false
+
     // --- colour -------------------------------------------------------------
-    readonly property color page: "#FBF8F1"
-    readonly property color ink: "#1F2A37"
-    readonly property color inkSecondary: "#4A5666"
-    readonly property color outline: "#5B6879"
-    readonly property color buttonFill: "#1F5FA8"
-    readonly property color buttonInk: "#FFFFFF"
-    readonly property color hoverWash: "#EDE6D6"
-    readonly property color pressWash: "#E0D8C4"
-    readonly property color card: "#FFFFFF"
-    readonly property color panel: "#DCE6F2"
+    readonly property color page: dark ? "#12161C" : "#FBF8F1"
+    readonly property color ink: dark ? "#F4EFE3" : "#1F2A37"
+    readonly property color inkSecondary: dark ? "#B4BDC9" : "#4A5666"
+    readonly property color outline: dark ? "#8C98A8" : "#5B6879"
+    readonly property color buttonFill: dark ? "#7DB4EE" : "#1F5FA8"
+    readonly property color buttonInk: dark ? "#0E1620" : "#FFFFFF"
+    readonly property color hoverWash: dark ? "#27303B" : "#EDE6D6"
+    readonly property color pressWash: dark ? "#323D4A" : "#E0D8C4"
+    readonly property color card: dark ? "#263140" : "#FFFFFF"
+    readonly property color panel: dark ? "#1D2733" : "#DCE6F2"
     readonly property color note: "#FFF1C2"
     readonly property color noteInk: "#1F2A37"
-    readonly property color focusRing: "#1F5FA8"
+    readonly property color focusRing: dark ? "#7DB4EE" : "#1F5FA8"
 
     // --- sizes, in dp ---------------------------------------------------------
     readonly property real targetMin: 48

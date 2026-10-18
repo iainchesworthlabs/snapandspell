@@ -13,7 +13,7 @@
 //   staged    every position and angle is a prescribed curve of the time: a
 //             sine rattle, a fall on a parabola, one rebound. No physics.
 //   weighted  the dice are simulated (layout.sim, a DiceSim: rigid cubes in a
-//             box, src/app/prototype/shake/sim/dice_world.hpp), in the box's own
+//             box, src/app/scene/sim/dice_world.hpp), in the box's own
 //             frame. Each is accelerated by the *negative of what the
 //             accelerometer reads* (so gravity, tilt, a shove and a jolt are all
 //             one thing) and by the centrifugal, Coriolis and Euler terms of
@@ -85,6 +85,39 @@ function random(seed) {
 function smooth(u) {
     var x = Math.max(0, Math.min(1, u));
     return x * x * (3 - 2 * x);
+}
+
+// ---- The cells of an atlas -------------------------------------------------
+// The cells a board's atlas holds: for each die, the six faces of the die that
+// is on it, one cell each, laid out as the board is (three cells across and two
+// down for each die). A cell with letters is drawn as a glyph; a cell with none
+// is the jewel's. FaceAtlas.qml makes an item for each of these; the scene's
+// work budget counts them (tests/app/shake_script_test.cpp), which is why the
+// layout is here and not in the item: it is the scene's, and it is testable
+// without a window.
+//
+// Returns { cells, letters, jewels }: cells is six times the dice, and letters
+// plus jewels is cells.
+function atlasCells(columns, faces, cell, blockColumns, blockRows) {
+    var letters = [];
+    var jewels = [];
+    for (var die = 0; die < faces.length; ++die) {
+        var sides = faces[die];
+        for (var side = 0; side < blockColumns * blockRows; ++side) {
+            var text = sides && sides.length > 0 ? String(sides[side % sides.length]).toUpperCase() : "";
+            var x = ((die % columns) * blockColumns + side % blockColumns) * cell;
+            var y = (Math.floor(die / columns) * blockRows + Math.floor(side / blockColumns)) * cell;
+            if (text === "") {
+                jewels.push({ x: x, y: y });
+            } else {
+                // About 55% of the tile for one letter; a two-letter tile (the
+                // Qu face) at 80% of that, a three-letter tile smaller still.
+                letters.push({ x: x, y: y, letters: text,
+                               pixelSize: text.length > 2 ? 48 : (text.length === 2 ? 68 : 88) });
+            }
+        }
+    }
+    return { cells: letters.length + jewels.length, letters: letters, jewels: jewels };
 }
 
 // ---- The faces of a die ------------------------------------------------------
@@ -424,7 +457,7 @@ function tiltYOf(tracker) {
 }
 
 // ---- Weighted motion: dice in a box --------------------------------------------
-// The dice are simulated by DiceSim (src/app/prototype/shake/dice_sim.hpp, over
+// The dice are simulated by DiceSim (src/app/scene/dice_sim.hpp, over
 // sim/dice_world.hpp): sixteen rigid cubes in a box with a floor, four walls and
 // a lid, in the box's own frame. This script holds the clock and the stages,
 // feeds the device's samples to the simulation, asks it for the poses, and

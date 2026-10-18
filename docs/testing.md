@@ -3,11 +3,11 @@
 The tests are Catch2 unit tests for the library, the platform layer and (when
 the Qt window is built) its model, the scanner with a synthetic corpus, a
 performance tier with its own binary, and checks about the build and the data
-itself. They run in CI on Windows (MSVC), Linux (GCC) and macOS (AppleClang), 366
-tests each, of which the 23 of the performance tier and the five that hold the
-scanner to its accuracy target skip themselves in a Debug build (see
-[Performance tests](#performance-tests) and [The scanner](#the-scanner)); the Qt
-model tests run only where the window is built, which is Windows so far.
+itself. They run in CI on Windows (MSVC), Linux (GCC) and macOS (AppleClang).
+The exact number differs by leg: the Qt model, screen and language tests run
+only where the window is built (Windows so far), and the 23 performance cases
+and the five scanner accuracy cases skip themselves in a Debug build (see
+[Performance tests](#performance-tests) and [The scanner](#the-scanner)).
 
 ## Running them
 
@@ -37,7 +37,8 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 (and `[data]` for the cases that read the shipped data),
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
 `[shake]`, `[rules]`, `[session]` (with `[standard]` for the cases that play the standard board), `[deal]`, `[dice_sets]`, `[platform]` and `[profiling]`, and `[app]` in
-`wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]` and `[solo]`). The parent area's are
+`wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]`, `[solo]` and `[i18n]`,
+the last with `[catalogue]`, `[language]` and `[glyph]`). The parent area's are
 `[calendar]`, `[settings]`, `[gate]`, `[store]` (with `[record]`, `[file]`, `[migration]`, `[bounds]`,
 `[reset]`, `[resume]` and `[privacy]`), `[dashboard]` (with `[sounds]`, `[week]`, `[vault]`, `[best]`,
 `[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`
@@ -81,7 +82,13 @@ GUI application on Qt's offscreen platform and tells its accessibility hints of 
 | `tests/app/check_scene_contract.cmake` | `BoardScene.qml` (2D) and the prototype's | `app.scene_contract`: both declare the whole interface of the board scene, under the same names |
 | `tests/app/run_qmllint.cmake` | The application's QML | `app.qml_lint`: no warning from `qmllint`; skipped if the application has not been built |
 | `tests/app/parent_controller_test.cpp` | The parent area's `ParentController` | The gate as the screens drive it, the dashboard and settings maps, every setting changed by name and every wrong value refused, the resets, what the parent is told of the store, and what the game is told of an edit (`[edited]`: a change, a reset, not a read or the same value). Built only with `WJS_BUILD_APP` |
-| `tests/app/parent_ui/` | The parent area's screens | `parent.screens`: see below |
+| `tests/app/language_test.cpp` | `LanguageManager` (`src/app/language_manager.*`), the catalogues in `i18n/`, the app's font chain | The eight catalogues are well formed, complete, untranslated nowhere and the same messages as the English source; every language's code, direction and fallback (Hebrew and Yiddish RTL, the rest LTR, the device's locale or English); applying a language installs its catalogue and turns the application's layout; and the eight sample sentences' glyphs are in the app's font chain (a Windows check today, skipped where the platform has no such fonts). Built only with `WJS_BUILD_APP` |
+| `tests/app/parent_ui/` | The parent area's screens | `parent.screens`: see below; `parent.languages`: the gate, dashboard, settings and about in all eight languages, the catalogue really applied, the bar mirrored in Hebrew and Yiddish, no QML warning |
+| `tests/app/scan_ui/` | The Family Assistant's screens | `scan.screens`: see below; `scan.languages`: the scan screen, the check screen and the assistant's panel in all eight languages, the split mirrored for RTL while the replica stays as confirmed, no QML warning |
+| `tests/i18n/` | `i18n/*.ts` | `i18n.catalogues`: lupdate regenerates the catalogues and the checked-in ones must be identical; skipped (exit 4) when Qt's Linguist tools are absent |
+| `tests/notices/check_notices.cmake` | The generated `NOTICES.txt` | `notices.sections`: the project's licence, the GPL-3.0-only application, Qt's LGPL/GPL options and Quick 3D (in a build with the application), ENABLE, the translations, the bundled asset and Catch2 are all stated, no placeholder is left, and a command-line-only build carries no Qt section |
+| `tests/package/check_package.cmake` | `CPackConfig.cmake` and the generated install scripts | `package.config`: CPack names the project, its version, its licence and a ZIP, and the install rules carry both programs, the dictionary, the dice, the notices and the licence text, with Qt's install-time deploy script where the platform uses it |
+| `tools/package/check_package.ps1` | A built tree and the package it makes | The archive's required files, `SHA256SUMS`, the packaged `wjs-cli` solving a board from its installed dictionary and the packaged window's offscreen smoke. Run by hand and by the Windows CI leg, not by ctest |
 | `tests/privacy/` | The source tree | `privacy.sources` and `privacy.sources.selftest`: see below |
 | `tests/parent/` | `ParentWording.qml` | `parent.wording` and `parent.wording.selftest`: see below |
 | `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, and the scanner's work, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
@@ -251,6 +258,46 @@ the table names, nothing of the data at the gate, none of the forbidden words) a
 QML warned of nothing, and with `--out <dir>` saves a picture of each screen. The same
 program without `--check` is a window to look at them in.
 
+## The interface's languages
+
+Section 8 of the [audit](audit-0.1.md#8-languages-rtl-and-i18n) asks for the eight
+languages, RTL and LTR, and the checks below. They all run in every ctest of a
+build with the window (`WJS_BUILD_APP=ON`, the Windows CI leg).
+
+- **`i18n.catalogues`** regenerates `i18n/*.ts` from the QML sources with the kit's
+  `lupdate` into a temporary directory and fails when the checked-in catalogue
+  differs: a `qsTr()` added, removed or moved without running the update target is
+  caught. It reports itself **skipped** (exit 4) when Qt's Linguist tools are not
+  installed, so the Linux and macOS legs, which do not build the window, and a
+  developer without `qttools`, can still run the rest.
+- **The catalogue case** (`tests/app/language_test.cpp`, in `wjs_app_tests`) reads
+  each `.ts` with `QXmlStreamReader`: well formed; every message translated with no
+  `type="unfinished"`, `vanished` or `obsolete`; no empty form (plural forms are
+  checked where a catalogue has them); each language present, with the same number
+  of messages and the same `(context, source)` set as the English source catalogue.
+- **The direction case** holds the eight codes: Hebrew and Yiddish right to left,
+  the other six left to right; an empty setting is the device's own language, a
+  locale naming one of the eight resolves to it, and an unknown code is English.
+  Applying each language sets `QGuiApplication::layoutDirection`, and the
+  translator really is installed (a parent sentence comes back translated, and not
+  for English).
+- **`parent.languages`** and **`scan.languages`** load the parent area and the
+  Family Assistant's screens once per language, before the engine loads, and walk
+  them. Each language's title or tray sentence must be the catalogue's, not the
+  English; Hebrew and Yiddish must mirror the bar and the split (the way back moves
+  to the right, the panel to the left) while the six left-to-right languages keep
+  them as before, and QML must warn of nothing. `--out <dir>` saves a picture of
+  each language for the reviewer.
+- **The glyph case** lays out one sample sentence per language with the app's font
+  chain (`Andika`, not bundled) and checks that the platform's fallback carries
+  every glyph. It **skips** itself with a message on a platform whose fonts lack
+  the script. It is a Windows check today: the Windows leg gives Qt's offscreen
+  plugin `QT_QPA_FONTDIR` (the system font directory), so the case runs there,
+  while a Linux runner without those fonts would report it skipped. The iPad's
+  fonts are looked at on a device. The fonts themselves are recorded in
+  [Application design](design/application.md#languages-right-to-left-and-fonts)
+  and [Licensing](licensing.md#fonts-and-the-interfaces-languages).
+
 ## Performance tests
 
 `wjs_perf_tests` is a binary of its own, linked against `wjs::lib` and nothing
@@ -275,6 +322,29 @@ build/windows-msvc-release/bin/wjs_perf_tests "[.perf-report]"   # what each met
 label. A **Debug or sanitizer build skips** the work budgets (reported as
 skipped, not failed: the corpus is much longer there, and the counts are the
 same in every build), and a coverage or Tracy build skips the wall-time checks.
+
+Three things are measured outside that binary, because they need Qt or a
+window:
+
+- **The scene's work** (`tests/app/shake_script_test.cpp`, tag `[perf][scene]`):
+  the simulation steps of one 4x4 play and the cells of a board's atlas, from
+  the scene's own script and dice simulation, in the same work-budget style.
+  It runs in every build (one play, not the tier's corpus).
+- **The window's frames** (`tests/app/frame_timing_test.cpp`): the application's
+  `--smoke` run in a child process, and the report it prints, held to the
+  design's 16.7 ms typical and 33 ms worst frame. It is opt-in with its own
+  variable, **`WJS_PERF_FRAME_TIMING=1`**, and needs a display, so a shared
+  runner never runs it; it also skips a build that is not optimised, one with
+  Tracy or coverage in, and the `offscreen` platform plugin (Quick 3D does not
+  render there; [Profiling](profiling.md#the-smoke-mode)).
+- Nothing else: the frame report itself is printed by `--smoke`, which is a
+  tool as the `.perf-report` cases are.
+
+```sh
+# on a desktop with a display, in an optimised build
+set WJS_PERF_FRAME_TIMING=1
+ctest -R "frame budget"        # or: wjs_frame_timing_tests
+```
 
 ### The corpus
 
@@ -339,6 +409,8 @@ The same boards on every machine, compiler and standard library:
 | `time.deal.standard.<n>x<n>`, **standard board** | Opt-in, as the other wall-time rows: one deal against the light calibration, budgets of 0.03, 0.08, 0.15 and 0.30 (measured 0.003, 0.010, 0.023 and 0.046) |
 | `scan.*` | Reading four fixed synthetic frames: the reads, boards answered and the pixels of the frames and working pictures are exact (they pin the corpus); the warped pixels, blobs, die candidates, cells read, template comparisons and pixel buffers are a quarter above (`wjs/scan/work.hpp`) (reading seeds and solves nothing, so these rows carry the default, standard, board mode) |
 | `time.read.4x4`, `time.read.6x6` | Opt-in, as the other wall-time rows: one read of a frame against the heavy calibration, budgets seven to eight times the measurement |
+| `scene.steps.4x4` (tag `[perf][scene]`, `tests/app/shake_script_test.cpp`) | One 4x4 weighted play at 60 Hz, counted in the simulation's whole steps: a quarter above the measurement, 3,200 for 2,560. The atlas's cells for that board are exact: 96, of which 48 glyph cells and 48 jewel cells |
+| `time.frame.p50`, `time.frame.max`, `time.frame.over33` (`tests/app/frame_timing_test.cpp`) | Opt-in with `WJS_PERF_FRAME_TIMING=1` and a display: the application's smoke report against 17.0 ms (the display's own period and a timer's granularity), 33 ms, and zero frames over 33 ms |
 
 Every metric is for one **board mode**, and the report and a failure say which.
 The standard board is the default mode; the phonics board is a parent's switch,
@@ -694,8 +766,11 @@ fix a number here.
 - **A UTF-8 console on Windows**, and files opened by paths longer than
   `MAX_PATH` (a [known problem](building.md#platform-notes)).
 - **Performance of the application.** The tier holds the solver and the word
-  list. It is not the frame time of the window, a launch, or anything on a
-  device, and nothing has been measured on a tablet or a phone
+  list, and the scene's counts and the window's frame budget are held outside it
+  ([above](#performance-tests)); but no desktop 3D frame measurement was
+  obtained for this package (the session it was built in did not present the
+  window, and Quick 3D does not render offscreen), a launch is not held, and
+  nothing has been measured on a tablet or a phone
   ([performance design](design/performance.md)). Boards larger than 6x6 are not
   in the corpus. Seeding is held by the unit tests, and its work (verifications,
   solves, visits, fallbacks) by the performance tier on a proxy phase of 249

@@ -209,9 +209,10 @@ The same application on the other targets named in the brief.
   Solo Play is the natural whole of it there (question 15). Threads need
   cross-origin isolation headers from the host.
 - **Desktop application** for macOS, Linux and Windows: the platform fragments
-  exist and the command-line solver is built and tested there; the installers
-  (CPack, notices installed with the program) and the Qt window in CI are
-  what remain.
+  exist and the command-line solver is built and tested there. Packaging now
+  exists on Windows (CPack, with the notices installed with the program and the
+  Qt runtime inside the package); what remains is the packaged application on
+  Linux and macOS, and the Qt window in CI on those two legs.
 
 ### Cross-cutting
 

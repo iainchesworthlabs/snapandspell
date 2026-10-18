@@ -223,5 +223,37 @@
     { "name": "windows-msvc-perf", "configurePreset": "windows-msvc-release", "inherits": ["perf"] },
     { "name": "linux-gcc-perf", "configurePreset": "linux-gcc-release", "inherits": ["perf"] },
     { "name": "macos-clang-perf", "configurePreset": "macos-clang-release", "inherits": ["perf"] }
+  ],
+  "packagePresets": [
+    {
+      "name": "package-windows-msvc-release",
+      "displayName": "Windows (MSVC, Release) package",
+      "configurePreset": "windows-msvc-release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "package-linux-gcc-release",
+      "displayName": "Linux (GCC, Release) package",
+      "configurePreset": "linux-gcc-release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "package-macos-clang-release",
+      "displayName": "macOS (Clang, Release) package",
+      "configurePreset": "macos-clang-release",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    }
   ]
 }

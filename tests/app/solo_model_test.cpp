@@ -106,6 +106,8 @@ TEST_CASE("the model starts in the box with nothing on the table", "[app][solo]"
     CHECK(f.model.boardSize() == 3);
     CHECK(f.model.sizes() == indices({3, 4}));
     CHECK(f.model.tiles().isEmpty());
+    CHECK(f.model.faces().isEmpty());
+    CHECK(f.model.up().isEmpty());
     CHECK(f.model.rows() == 0);
     CHECK(f.model.found().isEmpty());
     CHECK(f.model.history().isEmpty());
@@ -142,6 +144,10 @@ TEST_CASE("a shake deals the board and the scene's end of it starts play", "[app
     CHECK(f.model.rows() == 3);
     CHECK(f.model.columns() == 3);
     CHECK(f.model.tiles() == QStringList{"E", "N", "S", "O", "A", "I", "M", "P", "T"});
+    // The fake's board has no dice: the scene draws the letters on the face that
+    // is up.
+    CHECK(f.model.faces().isEmpty());
+    CHECK(f.model.up().isEmpty());
     CHECK(f.model.boardVersion() == 1);
     CHECK(dealt == 1);
     REQUIRE(f.heard.cues.size() == 1);

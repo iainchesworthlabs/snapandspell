@@ -95,6 +95,10 @@ include(CompilerWarnings)
 include(Sanitizers)
 include(Coverage)
 include(Tracy)
+# The interface's languages (cmake/Translations.cmake): the lists lupdate scans
+# and the catalogues lrelease compiles. The function itself is called by
+# src/app once Qt's Linguist tools have been found.
+include(Translations)
 
 # ---------------------------------------------------------------------------
 # Options
@@ -102,23 +106,28 @@ include(Tracy)
 option(WJS_BUILD_CLI "Build the wjs-cli command-line solver" ON)
 # Off until CI installs Qt: the application needs a prebuilt Qt 6.12 found via
 # QT_ROOT_DIR or CMAKE_PREFIX_PATH (cmake/FindQt6.cmake), which is not vcpkg's.
-option(WJS_BUILD_APP "Build the Qt Quick application (needs Qt 6.12)" OFF)
+# It links Qt Quick 3D for the board scene, so the binary it makes is GPL-3.0
+# only (the author's decision of 2026-10-16; docs/design/board.md).
+option(WJS_BUILD_APP "Build the Qt Quick application (needs Qt 6.12; GPL-3.0 only)" OFF)
 option(WJS_BUILD_TESTS "Build the unit test suite" ON)
-# The prototype of the 3D board scene (src/app/prototype/shake, and
-# docs/design/shake-prototype.md). A program of its own, not part of the
-# application: it links Qt Quick 3D, which Qt offers under the GPL-3.0 only, so
-# the program it makes is GPL-3.0 only (docs/design/board.md). Needs WJS_BUILD_APP.
-option(WJS_BUILD_SHAKE_PROTOTYPE "Build the 3D board-scene prototype (needs Qt Quick 3D; GPL-3.0 only)" OFF)
+# The harness around the 3D board scene (src/app/prototype/shake, and
+# docs/design/shake-prototype.md): a window with a Shake button, a drag standing
+# in for the accelerometer and the frame timing, over the scene module the
+# application also links (WordJewelsSolver.Scene, GPL-3.0 only). A program of its
+# own, not part of the application. Needs WJS_BUILD_APP=ON.
+option(WJS_BUILD_SHAKE_PROTOTYPE "Build the 3D board-scene prototype harness (needs Qt Quick 3D; GPL-3.0 only)" OFF)
 
 # The review gate. Phonics data (data/phonics) is written and reviewed by a
 # person qualified to do it, and a file says so in its header (reviewed-by and
 # reviewed-on). A file without them is test data. With this on, the build runs
 # tools/data/check_phonics.ps1 -RequireReviewed before the library is built and
 # stops if any file is test data, so a release cannot carry unreviewed content.
-# On by default for the release build types; the release presets set it
-# explicitly. A multi-config generator has no build type at configure time, so
-# pass it there.
-if(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel)$")
+# On by default for the release build types, and for any multi-config generator
+# (which has no build type at configure time, so it is the developer who says
+# "not a release" by passing -DWJS_REQUIRE_REVIEWED_PHONICS=OFF).
+if(CMAKE_CONFIGURATION_TYPES)
+    set(WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT ON)
+elseif(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel)$")
     set(WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT ON)
 else()
     set(WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT OFF)
@@ -126,6 +135,30 @@ endif()
 option(WJS_REQUIRE_REVIEWED_PHONICS
     "Refuse to build while data/phonics holds a file without a review header"
     ${WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT})
+
+# ---------------------------------------------------------------------------
+# Qt, when the application is built. Found here, before any target and before
+# the notices: the third-party notice names Qt's version (cmake/Notices.cmake),
+# and imported targets are directory-scoped, so a find_package() at the top
+# level is visible to tests/ and to every module under src/app.
+# Quick3D is the board scene's, and it makes the application GPL-3.0 only: it is
+# a required component now, not the prototype's alone. LinguistTools is the
+# catalogues' (lupdate/lrelease).
+# ---------------------------------------------------------------------------
+if(WJS_BUILD_APP)
+    set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 Quick3D LinguistTools)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS ${WJS_QT_COMPONENTS})
+endif()
+
+# ---------------------------------------------------------------------------
+# The third-party notices this build carries (cmake/Notices.cmake): written once
+# at configure time, installed beside the programs and embedded in the
+# application as :/notices/NOTICES.txt, which the About screen shows. After Qt,
+# whose version a build with the application names in them; before the targets,
+# which refer to the generated file.
+# ---------------------------------------------------------------------------
+include(Notices)
+wjs_write_notices()
 
 # ---------------------------------------------------------------------------
 # Targets
@@ -171,13 +204,6 @@ endif()
 
 # The application is a thin Qt Quick layer over the library.
 if(WJS_BUILD_APP)
-    # Found here, not in src/app: imported targets are directory-scoped, and
-    # tests/ links Qt::Core too.
-    set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2)
-    if(WJS_BUILD_SHAKE_PROTOTYPE)
-        list(APPEND WJS_QT_COMPONENTS Quick3D)
-    endif()
-    find_package(Qt6 6.12 REQUIRED COMPONENTS ${WJS_QT_COMPONENTS})
     add_subdirectory(src/app)
 elseif(WJS_BUILD_SHAKE_PROTOTYPE)
     message(WARNING "WJS_BUILD_SHAKE_PROTOTYPE needs WJS_BUILD_APP=ON; the prototype is not built.")
@@ -188,6 +214,13 @@ if(WJS_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
+# ---------------------------------------------------------------------------
+# CPack. Included after every install() rule has been declared - in src/cli,
+# src/app and cmake/Notices.cmake - because the packages it makes are exactly
+# those rules.
+# ---------------------------------------------------------------------------
+include(Packaging)
+
 message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_NAME}")
 message(STATUS "  Build CLI   : ${WJS_BUILD_CLI}")
 message(STATUS "  Build app   : ${WJS_BUILD_APP}")
@@ -195,3 +228,4 @@ message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")
 message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY}")
 message(STATUS "  Reviewed phonics data required : ${WJS_REQUIRE_REVIEWED_PHONICS}")
 message(STATUS "  Build shake prototype : ${WJS_BUILD_SHAKE_PROTOTYPE}")
+message(STATUS "  Package generators : ${WJS_PACKAGE_GENERATORS}")

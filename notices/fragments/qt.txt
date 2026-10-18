@@ -1,0 +1,48 @@
+Qt {{QT_VERSION}}
+------------------
+
+The WordJewelsSolver package includes the Qt {{QT_VERSION}} libraries, plugins
+and QML modules the application loads: the Qt6*.dll files beside the program,
+and the platforms/, imageformats/, iconengines/ and qml/ directories, which the
+program finds through the qt.conf written beside it. Which files those are is
+decided by Qt's own deployment tool, which reads the built program and scans
+the QML it imports, so the contents follow the application. The application
+links Qt Core, Gui, Qml, Quick, Quick Controls 2 and Quick 3D; its screens
+import QtQuick, QtQuick.Controls, QtQuick.Layouts, QtQuick.Shapes, QtQuick3D
+and QtQuick3D.Helpers, together with the platform, image-format, icon-engine,
+style and renderer plugins those need.
+
+Copyright (C) The Qt Company Ltd. and other contributors.
+
+The modules the application uses under the LGPL - Core, Gui, Qml, Quick and
+Quick Controls 2 - are used under the GNU Lesser General Public License,
+version 3, reproduced at the end of this file. Qt also offers them under the
+GPL version 3 or a commercial licence; the LGPL is the option this package uses
+for them. Qt Quick 3D is different: it is offered only under GPL-3.0 or
+commercially, and the section below says what that means here.
+
+The Qt libraries are linked dynamically, and you may replace them with a
+modified Qt 6 that is binary-compatible with this version: the program loads
+the DLLs from the directory it is in, through the qt.conf beside it, so a
+replacement of the same name is used. The complete corresponding source of this
+exact Qt version is published by The Qt Company at
+https://download.qt.io/archive/qt/{{QT_SERIES}}/{{QT_VERSION}}/single/ and this
+project will also supply it on request, through the repository's issue tracker,
+for as long as this package is offered.
+
+No Qt translation catalogue (qtbase_*.qm and the rest) is installed or merged:
+the interface's translations are the project's own, and its catalogue is
+embedded in the application.
+
+Qt is a trademark of The Qt Company Ltd. Qt's build tools (moc, rcc,
+windeployqt and others) are GPL-3.0 with Qt's exception; they are used to build
+the package and are not in it.
+
+Qt contains third-party code of its own - PCRE2, zlib, FreeType, HarfBuzz,
+libpng, libjpeg-turbo, the Unicode character database and many more - each part
+under its own terms. The SPDX documents in the Qt {{QT_VERSION}} kit this
+package was built against (sbom/*.spdx.json) are the record of which parts it
+carries, and Qt's attribution for each, with the full text of every licence
+named, is at https://doc.qt.io/qt-6/licenses-used-in-qt.html
+
+{{FILE:LGPL3}}

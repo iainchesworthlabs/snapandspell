@@ -1,0 +1,18 @@
+The English word list: ENABLE
+-----------------------------
+
+dictionaries/en.txt is ENABLE, the Enhanced North American Benchmark Lexicon
+(enable1.txt), 172,823 words, kept unmodified. Its SHA-256 is
+3F16130220645692ED49C7134E24A18504C2CA55B3C012F7290E3E77C63B1A89; where it was
+fetched from, when, and how the hash was taken are recorded in data/README.md
+in the source.
+
+Its originators released it into the public domain: anyone is free to use or
+distribute it with no fee, registration or credit required. It is a separate
+work from this program and is not covered by the GPL. The public-domain
+statement is the one published with the list; it has not been independently
+verified, and the chain of title is not recorded in this repository
+(docs/licensing.md, "The word list").
+
+The dice in dice/ are the project's own work, made from this list by
+tools/data/make_dice.ps1, and data/README.md records the method.

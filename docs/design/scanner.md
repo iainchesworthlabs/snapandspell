@@ -22,9 +22,11 @@ light.**
 ## What this slice is
 
 A frame in, a board and a doubt per tile out, and the data flow that makes a
-grown-up confirm it before the solver sees it. Not the screen (the Solo Play UI
-owns `src/app`), and not the iOS reader (it needs a Mac and an iPad: see
-[What is left](#what-is-left-for-a-mac-and-an-ipad)).
+grown-up confirm it before the solver sees it. Not the screen when this page was
+written (the Solo Play UI owned `src/app`); Mode A's screens are now built in
+`src/app/qml/scan` and bind to `wjs::scan::BoardDraft` through `ScanModel`
+(docs/architecture.md, "The Qt Quick window"). And not the iOS reader (it needs a
+Mac and an iPad: see [What is left](#what-is-left-for-a-mac-and-an-ipad)).
 
 ```text
  camera (platform)        wjs::scan (portable, Qt-free)                    UI binds to

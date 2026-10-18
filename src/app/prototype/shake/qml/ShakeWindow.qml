@@ -2,7 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ShakePrototype
-import "ShakeScript.js" as Script
+import WordJewelsSolver.Scene
+// The scene's script, one file for the application and this harness. The scene
+// module owns it; the harness reads it from the module's resource directory for
+// its stand-in shake detector (the scene's pushMotion is what the dice answer).
+import "qrc:/qt/qml/WordJewelsSolver/Scene/ShakeScript.js" as Script
 
 // The harness around BoardScene: a window with a Shake button, a mouse drag
 // that stands in for the accelerometer, a 2D layer over the scene to show the
@@ -124,7 +128,8 @@ ApplicationWindow {
     function createScene() {
         const startedAt = stats.now();
         stats.begin();
-        const component = Qt.createComponent("BoardScene.qml");
+        // The application's scene, from the module it is built in.
+        const component = Qt.createComponent("qrc:/qt/qml/WordJewelsSolver/Scene/BoardScene.qml");
         if (component.status !== Component.Ready) {
             console.error("BoardScene.qml: " + component.errorString());
             Qt.quit();

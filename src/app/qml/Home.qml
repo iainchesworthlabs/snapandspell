@@ -30,6 +30,10 @@ FocusScope {
         wide ? height - barOffset - 2 * margin : (height - barOffset - 2 * margin - (pictures - 1) * gap) / pictures,
         Theme.pictureMax))
 
+    // The pictures and the corner button follow the reading direction.
+    LayoutMirroring.enabled: Theme.rightToLeft
+    LayoutMirroring.childrenInherit: true
+
     Rectangle {
         anchors.fill: parent
         color: Theme.page
@@ -40,6 +44,8 @@ FocusScope {
         y: root.barOffset + (root.height - root.barOffset - height) / 2
         columns: root.wide ? root.pictures : 1
         spacing: root.gap
+        // The box first in a left-to-right language, the family first in a
+        // right-to-left one: the pictures are chrome and may swap.
 
         // The box: a dark tray with its dice, lid beside it.
         AppButton {
@@ -47,7 +53,7 @@ FocusScope {
             width: root.side
             height: root.side
             variant: "secondary"
-            accessibleName: qsTr("Play on my own")
+            accessibleName: HomeWording.soloPicture
             speaks: "solo"
             focus: true
             onClicked: root.soloRequested()
@@ -85,7 +91,7 @@ FocusScope {
             width: root.side
             height: root.side
             variant: "secondary"
-            accessibleName: qsTr("Play with the family")
+            accessibleName: HomeWording.familyPicture
             speaks: "family"
             onClicked: root.scanRequested()
 
@@ -147,7 +153,7 @@ FocusScope {
         anchors.top: parent.top
         anchors.margins: Theme.space2
         iconName: "parent"
-        accessibleName: qsTr("For grown-ups")
+        accessibleName: HomeWording.forGrownUps
         onClicked: root.parentRequested()
     }
 }

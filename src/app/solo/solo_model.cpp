@@ -92,6 +92,31 @@ QStringList SoloModel::tiles() const {
     return tile_list(game_->board());
 }
 
+QVariantList SoloModel::faces() const {
+    QVariantList list;
+    const auto& board = game_->board();
+    list.reserve(static_cast<qsizetype>(board.faces.size()));
+    for (const auto& die : board.faces) {
+        QStringList sides;
+        sides.reserve(static_cast<qsizetype>(die.size()));
+        for (const std::string& face : die) {
+            sides.append(to_qstring(face));
+        }
+        list.append(sides);
+    }
+    return list;
+}
+
+QVariantList SoloModel::up() const {
+    QVariantList list;
+    const auto& board = game_->board();
+    list.reserve(static_cast<qsizetype>(board.up.size()));
+    for (const int face : board.up) {
+        list.append(face);
+    }
+    return list;
+}
+
 uint SoloModel::seed() const {
     return game_->board().seed;
 }

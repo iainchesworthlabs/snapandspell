@@ -3,6 +3,8 @@ import QtQuick
 import QtQuick.Controls
 import WordJewelsSolver
 import WordJewelsSolver.Parent
+import WordJewelsSolver.Scan
+import WordJewelsSolver.Scene
 
 // The window: a thin shell that shows the screen Navigation names. Add a screen as
 // one `case` and one `Component` line, and flip its availability on Navigation in
@@ -19,6 +21,10 @@ ApplicationWindow {
     // which the game also works on (so a change made in the settings is what the
     // next game is made from).
     required property var parentController
+    // The interface's language, made by main.cpp and applied before this window
+    // is parsed: its catalogue, its layout direction and its retranslations all
+    // go through it (src/app/language_manager.hpp).
+    required property var languageManager
 
     width: 1100
     height: 700
@@ -33,6 +39,57 @@ ApplicationWindow {
     SoloModel {
         id: soloGame
         onCue: (kind, detail) => Feedback.cue(kind, detail)
+    }
+
+    // Mode A, the Family Companion. The check screen's draft and the camera's
+    // little lifecycle are ScanModel's; the confirmed board and the tray are the
+    // assistant's. Both live for the run, so the draft survives a trip to the
+    // parent area or home; the assistant's round is recorded when its screen is
+    // left (assist.leave()).
+    ScanModel {
+        id: scanGame
+    }
+    AssistModel {
+        id: assistGame
+        onCue: (kind, detail) => Feedback.cue(kind, detail)
+    }
+
+    // ---- The smoke run (--smoke): the workload a capture attaches to ------------
+    // main.cpp sets this before the window is completed; the frames are counted
+    // by FrameProfiler in C++, which prints the report and quits. This gives the
+    // counter work: Solo Play is shown, the box is shaken whenever it is ready,
+    // and a board that has settled is put away again, so a capture sees the
+    // scene's whole cycle. The seed is fixed for a smoke run (main.cpp), so the
+    // boards are the same on every run.
+    property bool smoke: false
+
+    function startSmoke() {
+        Navigation.go("solo");
+        smokeTimer.running = true;
+    }
+
+    Component.onCompleted: {
+        // main.cpp applied this before the engine loaded; doing it again is the
+        // same language and changes nothing. Kept here so the window is right
+        // even when its owner did not (the stub shells).
+        languageManager.apply(parentController.language);
+        if (smoke) {
+            startSmoke();
+        }
+    }
+
+    Timer {
+        id: smokeTimer
+        interval: 250
+        repeat: true
+        running: false
+        onTriggered: {
+            if (soloGame.state === "box") {
+                soloGame.shake();
+            } else if (soloGame.state === "playing") {
+                soloGame.lidOn();
+            }
+        }
     }
 
     // What the parent chooses for the whole program: the Motion setting and the Text
@@ -50,11 +107,41 @@ ApplicationWindow {
         value: window.parentController.textScale
     }
 
+    // The parent area's chrome follows the same light/dark scheme as the rest.
+    Binding {
+        target: ParentTheme
+        property: "dark"
+        value: Theme.dark
+    }
+
+    // The parent's Colour scheme setting: System follows the operating system,
+    // Light and Dark are the person's choice for every screen's chrome.
+    Binding {
+        target: Theme
+        property: "colourScheme"
+        value: window.parentController.colourScheme
+    }
+
+    // The interface's direction: the screens' positioners, icons and the split
+    // read this; the window's anchors follow the same choice through
+    // LayoutMirroring on the shell.
+    Binding {
+        target: Theme
+        property: "rightToLeft"
+        value: window.languageManager.rightToLeft
+    }
+
     // A setting the parent changed, or a reset, is read by the next game.
     Connections {
         target: window.parentController
         function onStoreEdited() {
             soloGame.storeEdited();
+        }
+        // The Language setting is applied at once: the catalogue is installed and
+        // this window's direction and every qsTr binding follow. The board and its
+        // letters do not move: they are the same English board in every language.
+        function onSettingsChanged() {
+            window.languageManager.apply(window.parentController.language);
         }
     }
 
@@ -66,8 +153,41 @@ ApplicationWindow {
         anchors.fill: parent
         focus: true
 
+        // Hebrew and Yiddish read right to left: the window's layout follows, and
+        // its children inherit the mirroring (anchors flip, RTL layouts order their
+        // children from the right). The board containers switch it off again where
+        // a mirrored anchor would move a tile (qml/solo/TraceLayer.qml).
+        LayoutMirroring.enabled: window.languageManager.rightToLeft
+        LayoutMirroring.childrenInherit: true
+
+        // Solo Play's screen is made once, at start-up, and kept for the run: its
+        // board scene is the 3D one, whose View3D is created once (docs/design/
+        // shake-prototype.md, "What was built"), behind home and not on the
+        // Shake press. Hidden, it is not drawn; its dice and script stay.
+        SoloScreen {
+            id: soloScreen
+
+            anchors.fill: parent
+            solo: soloGame
+            // The parent's switch for shaking the device: it gates the drag that
+            // stands in for the accelerometer, never the Shake button.
+            shakeEnabled: window.parentController.settings.shake === true
+            opacity: Navigation.screen === "solo" ? 1 : 0
+            visible: opacity > 0
+            enabled: Navigation.screen === "solo"
+            onHomeRequested: Navigation.home()
+            onParentRequested: Navigation.go("parent")
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.screen
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+
         // The screen on show, untyped: a screen with a deeper state has a back().
-        readonly property var current: screens.item
+        readonly property var current: Navigation.screen === "solo" ? soloScreen : screens.item
 
         function goBack() {
             if (current && typeof current.back === "function") {
@@ -94,20 +214,41 @@ ApplicationWindow {
             id: screens
             anchors.fill: parent
             focus: true
+            visible: Navigation.screen !== "solo"
             // Each screen fades in rather than replacing the last in one frame, and
             // takes the keyboard (Space on the box, the arrow keys on the board).
             onLoaded: {
-                screenFade.restart();
-                (item as Item).forceActiveFocus();
+                Profiler.begin("ui.screen");
+                if (Navigation.screen !== "solo") {
+                    screenFade.restart();
+                    (item as Item).forceActiveFocus();
+                }
+                Profiler.end();
             }
             sourceComponent: {
                 switch (Navigation.screen) {
                 case "solo":
-                    return soloScreen;
+                    return null;
+                case "scan":
+                    return scanScreen;
+                case "assist":
+                    return assistScreen;
                 case "parent":
                     return parentScreen;
                 default:
                     return homeScreen;
+                }
+            }
+        }
+
+        // Solo Play takes the keyboard when it is shown (its own screen keeps the
+        // focus while it is not).
+        Connections {
+            target: Navigation
+
+            function onScreenChanged() {
+                if (Navigation.screen === "solo") {
+                    soloScreen.forceActiveFocus();
                 }
             }
         }
@@ -127,15 +268,39 @@ ApplicationWindow {
         id: homeScreen
         Home {
             onSoloRequested: Navigation.go("solo")
+            onScanRequested: Navigation.go("scan")
             onParentRequested: Navigation.go("parent")
         }
     }
     Component {
-        id: soloScreen
-        SoloScreen {
-            solo: soloGame
-            onHomeRequested: Navigation.home()
-            onParentRequested: Navigation.go("parent")
+        id: scanScreen
+        // Mode A: the camera's ready screen and the check screen are one screen
+        // (ScanScreen); the check screen's "Yes, play" hands the confirmed board
+        // to the assistant and shows it.
+        ScanScreen {
+            scan: scanGame
+            assist: assistGame
+            rightToLeft: window.languageManager.rightToLeft
+            // Back from scan.ready goes home; from the check screen it is "Read
+            // again", which the screen handles itself.
+            onClosed: Navigation.back()
+            onPlayRequested: Navigation.go("assist")
+        }
+    }
+    Component {
+        id: assistScreen
+        AssistScreen {
+            assist: assistGame
+            rightToLeft: window.languageManager.rightToLeft
+            // The check screen is where the person came from, with the board it
+            // confirmed still in the draft; the assistant's board is recorded.
+            onClosed: Navigation.back()
+            // A new round is a new scan, entered as if from home: Back from it
+            // goes home, not to the board that was just left.
+            onNewBoardRequested: {
+                scanGame.readAgain();
+                Navigation.restart("scan");
+            }
         }
     }
     Component {
@@ -143,6 +308,7 @@ ApplicationWindow {
         // Back goes where the person came from, home or the box.
         ParentArea {
             controller: window.parentController
+            rightToLeft: window.languageManager.rightToLeft
             onClosed: Navigation.back()
         }
     }

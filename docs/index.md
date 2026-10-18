@@ -8,11 +8,12 @@ and six year olds) playing with an adult. That goal is not met yet. Today you
 type the board in, and the program finds and scores the words.
 
 !!! note "Status: pre-release, nothing released yet"
-    The solver is real and tested. Camera input, reading letters from a
-    picture, installers and an English word list do not exist yet. (A scanning
+    The solver is real and tested. Camera input and reading letters from a
+    picture do not exist yet, and nothing has been released. (A scanning
     library that reads a board from a frame is built and tested on drawn frames only:
     no camera is connected to it and it has not seen a real board. See
-    [Scanner design](design/scanner.md).) It has been
+    [Scanner design](design/scanner.md).) The English word list is ENABLE, and a
+    Windows build installs and packages ([Building](building.md#packaging)). It has been
     built and run on Windows with MSVC only; the Linux and macOS code is
     written but has not been built. It has not been tried with children.
     [Architecture](architecture.md) says what is built, and the
@@ -27,8 +28,9 @@ type the board in, and the program finds and scores the words.
   word list, and it prints the words, their scores and the tiles that spell
   them.
 - **A small Qt Quick window**, opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12):
-  type a board into a grid, press Solve, see the scored words. It is a shell
-  over the same library, not the camera application.
+  the Solo Play game of [Game design](design/game.md) — shake the box, trace
+  words on the board and collect jewels — played over the library's session.
+  It is a shell over the same library, not the camera application.
 - **A platform layer** (`src/platforms`) holding the little that differs
   between Windows, Linux and macOS, and a check that nothing else does. See
   [Platform isolation](platform-isolation.md).
@@ -134,12 +136,15 @@ word list is also missing.
 ## Using the window
 
 Build with `-DWJS_BUILD_APP=ON` (see [Building](building.md#the-qt-quick-window)),
-then start `WordJewelsSolver` from `build/<preset>/bin/`. It loads the word list
-named by `--dictionary <file>` on its command line, or `dictionaries/en.txt`
-beside the executable, and says in the window if it cannot. Type one to three
-letters into each tile (a lone `Q` means the Qu face), press Solve, and the
-words appear with their scores. The board is square, from 2 by 2 to 8 by 8.
-The window always uses a minimum length of three letters and standard Boggle
+then start `WordJewelsSolver` from `build/<preset>/bin/`. It plays the Solo Play
+game: shake the box and trace words on the board. The default board is the
+**standard board**, a roll of the project's dice (`dice/` beside the executable)
+at 3x3 to 6x6 against the English dictionary (`dictionaries/en.txt` beside the
+executable, or the one `--dictionary <file>` names); the phonics board is played
+when the program is started with `--phase-directory <dir>` and the Phonics board
+is chosen in the parent area's settings. A game in progress is kept in the store
+(`--store <file>`, or the per-user file) and comes back after a restart. The
+window always uses a minimum length of three letters and standard Boggle
 scoring; the options of `wjs-cli` have no equivalent in it yet.
 
 ## Where to go next

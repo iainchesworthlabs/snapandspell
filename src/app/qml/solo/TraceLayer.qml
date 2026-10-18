@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import WordJewelsSolver
+import WordJewelsSolver.Scene
 
 // The 2D layer over the board scene: where the child traces and taps, and what
 // the tiles and the path look like while they do. It sits exactly on the scene's
@@ -37,8 +38,13 @@ Item {
     property bool keyboardUsed: false
 
     activeFocusOnTab: true
+    // The board is not mirrored: its coordinates are the board's own, and the
+    // tiles keep their reading order in every language. The window's mirroring
+    // stops here (and at the scene).
+    LayoutMirroring.enabled: false
+    LayoutMirroring.childrenInherit: true
     Accessible.role: Accessible.Table
-    Accessible.name: qsTr("Board")
+    Accessible.name: SoloWording.board
 
     function tileX(index) {
         return boardRect.x + (index % columns) * pitch;
@@ -166,9 +172,10 @@ Item {
             // "A, row 2, column 3": named by its letter and its place.
             Accessible.role: cell.dead ? Accessible.Graphic : Accessible.Button
             Accessible.name: cell.dead
-                ? qsTr("Jewel, row %1, column %2").arg(Math.floor(cell.index / root.columns) + 1).arg(cell.index % root.columns + 1)
-                : qsTr("%1, row %2, column %3").arg(cell.modelData === "QU" ? "Qu" : cell.modelData)
-                      .arg(Math.floor(cell.index / root.columns) + 1).arg(cell.index % root.columns + 1)
+                ? SoloWording.jewelName(Math.floor(cell.index / root.columns) + 1, cell.index % root.columns + 1)
+                : SoloWording.tileName(cell.modelData === "QU" ? "Qu" : cell.modelData,
+                                       Math.floor(cell.index / root.columns) + 1,
+                                       cell.index % root.columns + 1)
             Accessible.checked: cell.lit
             Accessible.onPressAction: root.solo.tapTile(cell.index)
         }
@@ -186,7 +193,7 @@ Item {
         border.width: Theme.litEdge
         border.color: Theme.pathCasing
         Accessible.role: Accessible.Graphic
-        Accessible.name: qsTr("Start here")
+        Accessible.name: SoloWording.startHere
 
         Rectangle {
             anchors.fill: parent
@@ -306,17 +313,29 @@ Item {
             root.keyboardUsed = false;
             root.forceActiveFocus();
             const p = local(mouse.x, mouse.y);
+            // The path work of a touch: the model's hit test, the path it
+            // changes and every binding that follows it, until the frame.
+            Profiler.begin("ui.trace");
             root.solo.pressAt(p.x, p.y);
+            Profiler.end();
         }
         onPositionChanged: mouse => {
             const p = local(mouse.x, mouse.y);
+            Profiler.begin("ui.trace");
             root.solo.moveTo(p.x, p.y);
+            Profiler.end();
         }
         onReleased: mouse => {
             const p = local(mouse.x, mouse.y);
+            Profiler.begin("ui.trace");
             root.solo.releaseAt(p.x, p.y, over(mouse.x, mouse.y));
+            Profiler.end();
         }
-        onCanceled: root.solo.clearPath()
+        onCanceled: {
+            Profiler.begin("ui.trace");
+            root.solo.clearPath();
+            Profiler.end();
+        }
     }
 
     // --- the keyboard and the switch ------------------------------------------------------------------------------------
@@ -329,38 +348,46 @@ Item {
         root.keyboardUsed = true;
         const row = Math.floor(root.focusIndex / root.columns);
         const column = root.focusIndex % root.columns;
+        Profiler.begin("ui.trace");
         switch (event.key) {
         case Qt.Key_Left:
             root.focusIndex = row * root.columns + Math.max(0, column - 1);
+            event.accepted = true;
             break;
         case Qt.Key_Right:
             root.focusIndex = row * root.columns + Math.min(root.columns - 1, column + 1);
+            event.accepted = true;
             break;
         case Qt.Key_Up:
             root.focusIndex = Math.max(0, row - 1) * root.columns + column;
+            event.accepted = true;
             break;
         case Qt.Key_Down:
             root.focusIndex = Math.min(root.rows - 1, row + 1) * root.columns + column;
+            event.accepted = true;
             break;
         case Qt.Key_Space:
             root.solo.tapTile(root.focusIndex);
+            event.accepted = true;
             break;
         case Qt.Key_Return:
         case Qt.Key_Enter:
             root.solo.done();
+            event.accepted = true;
             break;
         case Qt.Key_Backspace:
             root.solo.removeLast();
+            event.accepted = true;
             break;
         case Qt.Key_Escape:
-            if (root.solo.path.length === 0) {
-                return;
+            if (root.solo.path.length > 0) {
+                root.solo.clearPath();
+                event.accepted = true;
             }
-            root.solo.clearPath();
             break;
         default:
-            return;
+            break;
         }
-        event.accepted = true;
+        Profiler.end();
     }
 }

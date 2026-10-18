@@ -54,3 +54,18 @@ if(WJS_ENABLE_TRACY)
             "worth reading.")
     endif()
 endif()
+
+# The one interface that makes wjs/profiling.hpp real: the library's public
+# include path (the wrapper is a library header, and its types header lives
+# beside the others), the chosen variant's include path and, with Tracy on, its
+# client. wjs::lib carries it PUBLIC, so every target that links the library is
+# instrumented the same way; a target that does not link the library but calls
+# the wrapper (the board scene, which is Qt-only) links this instead. There is
+# still no second door to Tracy.
+add_library(wjs_profiling INTERFACE)
+add_library(wjs::profiling ALIAS wjs_profiling)
+target_include_directories(wjs_profiling INTERFACE
+    "${PROJECT_SOURCE_DIR}/src/lib/include"
+    "${PROJECT_BINARY_DIR}/generated"
+    "${WJS_PROFILING_VARIANT_DIR}")
+target_link_libraries(wjs_profiling INTERFACE wjs::tracy)

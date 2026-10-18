@@ -21,6 +21,9 @@ Item {
     // The sizes this window can hold at 48 dp a tile; a size that does not fit is not
     // shown, not shown disabled.
     readonly property var offered: solo.sizes.filter(size => size <= layoutRule.largestOffered)
+    // The window's direction: the sizes take the leading edge and the Shake
+    // button the rest, so in Hebrew and Yiddish the sizes sit on the right.
+    readonly property bool mirrored: Theme.rightToLeft
 
     // The picture of a size: a small board of that many tiles.
     component SizePicture: AppButton {
@@ -29,7 +32,7 @@ Item {
         size: "child"
         checkable: true
         checked: root.solo.boardSize === boardSize
-        accessibleName: qsTr("%1 by %1 board").arg(boardSize)
+        accessibleName: SoloWording.sizeBoard(boardSize)
         onClicked: root.solo.chooseSize(boardSize)
 
         // The picture is the board itself, in small: relative to the button.
@@ -61,7 +64,8 @@ Item {
     Row {
         id: sizes
         spacing: Theme.targetGap
-        x: root.wide ? (root.width - width) / 2 : Theme.space4
+        x: root.wide ? (root.width - width) / 2
+                     : (root.mirrored ? root.width - width - Theme.space4 : Theme.space4)
         y: root.wide ? shake.y + shake.height + Theme.space4
                      : (root.height - height) / 2
         Repeater {
@@ -78,13 +82,14 @@ Item {
         variant: "primary"
         size: "primary"
         iconName: "shake"
-        accessibleName: qsTr("Shake")
+        accessibleName: SoloWording.shake
         speaks: "shake"
-        x: root.wide ? Theme.space4 : sizes.x + sizes.width + Theme.space4
+        x: root.wide ? Theme.space4
+                     : (root.mirrored ? Theme.space4 : sizes.x + sizes.width + Theme.space4)
         y: root.wide ? (root.height - height - Theme.targetChild - Theme.space4) / 2
                      : (root.height - height) / 2
         width: root.wide ? root.width - 2 * Theme.space4
-                         : Math.max(root.width / 3, root.width - x - Theme.space4)
+                         : Math.max(root.width / 3, root.width - sizes.width - 3 * Theme.space4)
         onClicked: root.shakeRequested()
     }
 }

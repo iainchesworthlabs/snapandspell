@@ -155,6 +155,7 @@ wjs::StoreData busy_data() {
     settings.focus_sounds = {"ai", "ee"};
     settings.board_size = 4;
     settings.text_size_percent = 125;
+    settings.colour_scheme = wjs::ColourScheme::dark;
     store.update_settings(settings);
 
     auto a = phonics3({"sat", "pin", "tap"}, {found("sat", 1), found("pin", 1, true)});
@@ -212,7 +213,7 @@ TEST_CASE("the same data is the same bytes", "[store]") {
 TEST_CASE("the file says its version on the first line and ends with a checksum", "[store]") {
     const std::string text = wjs::serialize_store(wjs::StoreData{});
 
-    CHECK(text.starts_with("wjs-store 1\n"));
+    CHECK(text.starts_with("wjs-store 2\n"));
     const auto last_line = text.substr(text.rfind('\n', text.size() - 2) + 1);
     CHECK(last_line.starts_with("end "));
     CHECK(last_line.size() == 4 + 16 + 1);
@@ -324,7 +325,7 @@ TEST_CASE("a file bigger than the store can be is refused before it is read", "[
 
 TEST_CASE("a file from a later version is told apart and not read", "[store]") {
     // Not even its checksum is held to this version's: the rest may be anything.
-    const auto parsed = wjs::parse_store("wjs-store 2\nsome new line {}\nend nonsense\n");
+    const auto parsed = wjs::parse_store("wjs-store 3\nsome new line {}\nend nonsense\n");
 
     REQUIRE_FALSE(parsed.has_value());
     CHECK(parsed.error() == wjs::StoreError::newer_version);
@@ -383,6 +384,8 @@ TEST_CASE("a game in progress is held to the same rules as the rest", "[store][r
     const std::string head = "wjs-store 1\ntotal stars=0 next_board=1\n";
     const std::string playing = "session state=playing size=3 seed=7 lit=-\n";
     const std::string board = "sboard A 3 S,A,T/P,I,N/T,A,P 2 sat,pin\n";
+    // A standard board's saved game: no phase, no list, the count of its words.
+    const std::string standard_board = "sboard - 3 S,A,T/P,I,N/T,A,P 30 -\n";
 
     // The whole is read.
     const auto good = wjs::parse_store(seal(head + playing + board + "sfind sat 0 20738 1\n"));
@@ -392,6 +395,14 @@ TEST_CASE("a game in progress is held to the same rules as the rest", "[store][r
     CHECK(good->data.session->seed == 7);
     REQUIRE(good->data.session->board.has_value());
     CHECK(good->data.session->board->finds.size() == 1);
+
+    // A standard board's saved game is read too: by its count, and no list.
+    const auto standard = wjs::parse_store(seal(head + playing + standard_board));
+    REQUIRE(standard.has_value());
+    REQUIRE(standard->data.session->board.has_value());
+    CHECK(standard->data.session->board->phase.empty());
+    CHECK(standard->data.session->board->viable.empty());
+    CHECK(standard->data.session->board->viable_total == 30);
 
     const std::vector<std::pair<std::string, std::string>> bad = {
         {"a playing session without its board", head + playing},
@@ -406,7 +417,10 @@ TEST_CASE("a game in progress is held to the same rules as the rest", "[store][r
          head + "session state=playing size=4 seed=7 lit=-\n" + board},
         {"a board whose list is not all it held",
          head + playing + "sboard A 3 S,A,T/P,I,N/T,A,P 3 sat,pin\n"},
-        {"a board with no list", head + playing + "sboard A 3 S,A,T/P,I,N/T,A,P 2 -\n"},
+        {"a phonics board with no list", head + playing + "sboard A 3 S,A,T/P,I,N/T,A,P 2 -\n"},
+        {"a standard board with no count", head + playing + "sboard - 3 S,A,T/P,I,N/T,A,P 0 -\n"},
+        {"a standard board that lists words",
+         head + playing + "sboard - 3 S,A,T/P,I,N/T,A,P 30 sat\n"},
         {"a find with a bad flag", head + playing + board + "sfind sat 2 20738 1\n"},
     };
     for (const auto& [name, text] : bad) {
@@ -442,7 +456,7 @@ TEST_CASE("lists out of order, or past their bounds, are damage", "[store]") {
 
 TEST_CASE("a setting this version does not know leaves that setting at its default", "[store]") {
     const std::string text = seal(
-        "wjs-store 1\nsettings help=0 board=cubist size=9 flavour=mint text=125\n"
+        "wjs-store 1\nsettings help=0 board=cubist size=9 flavour=mint text=125 colour=purple\n"
         "total stars=0 next_board=1\n");
 
     const auto parsed = wjs::parse_store(text);
@@ -453,6 +467,46 @@ TEST_CASE("a setting this version does not know leaves that setting at its defau
     CHECK(s.board == wjs::BoardMode::standard);
     CHECK(s.board_size == 3);
     CHECK(s.text_size_percent == 125);
+    CHECK(s.colour_scheme == wjs::ColourScheme::system);
+}
+
+TEST_CASE("a language is written and read by its code, and old files say the system's",
+          "[store][settings][language]") {
+    for (const std::string_view code : wjs::languages) {
+        wjs::Store store = wjs::Store::in_memory();
+        wjs::Settings settings;
+        settings.language = std::string{code};
+        store.update_settings(settings);
+
+        const std::string text = wjs::serialize_store(store.data());
+        CHECK(text.find("language=" + std::string{code}) != std::string::npos);
+        const auto parsed = wjs::parse_store(text);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->data.settings.language == code);
+    }
+
+    // A file from before the key: the setting is the system's, empty.
+    const auto older = wjs::parse_store(seal(
+        "wjs-store 2\nsettings help=1 board=standard phase=A focus=- size=3 sound_it_out=full "
+        "celebration=full sound=1 vibration=1 shake=1 motion=system colour=system text=100 font=-\n"
+        "total stars=0 next_board=1\n"));
+    REQUIRE(older.has_value());
+    CHECK(older->data.settings.language.empty());
+}
+
+TEST_CASE("a colour scheme is written and read by its name", "[store][settings]") {
+    for (const auto scheme :
+         {wjs::ColourScheme::system, wjs::ColourScheme::light, wjs::ColourScheme::dark}) {
+        wjs::Store store = wjs::Store::in_memory();
+        wjs::Settings settings;
+        settings.colour_scheme = scheme;
+        store.update_settings(settings);
+
+        const std::string text = wjs::serialize_store(store.data());
+        const auto parsed = wjs::parse_store(text);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->data.settings.colour_scheme == scheme);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1078,8 +1132,10 @@ TEST_CASE("a game that cannot be brought back whole is not kept", "[store][resum
     wjs::SavedSession wrong_size = playing_session();
     wrong_size.size = 4;
 
-    wjs::SavedSession standard = playing_session();
-    standard.board->phase.clear();  // a standard board holds hundreds: not resumable
+    wjs::SavedSession standard_without_count = playing_session();
+    standard_without_count.board->phase.clear();  // a standard board lists none
+    standard_without_count.board->viable.clear();
+    standard_without_count.board->viable_total = 0;  // and says no count
 
     wjs::SavedSession unlisted = playing_session();
     unlisted.board->viable_total = 10;  // the list is not all the board held
@@ -1101,11 +1157,42 @@ TEST_CASE("a game that cannot be brought back whole is not kept", "[store][resum
     bad_size.board->size = 0;
 
     for (const auto& session :
-         {box_with_board, playing_without_board, wrong_size, standard, unlisted, too_many,
-          lit_off_board, lit_when_resting, bad_word, bad_size}) {
+         {box_with_board, playing_without_board, wrong_size, standard_without_count, unlisted,
+          too_many, lit_off_board, lit_when_resting, bad_word, bad_size}) {
         CHECK_FALSE(store.save_session(session));
         CHECK(store.data() == before);
     }
+}
+
+TEST_CASE("a standard game in progress is kept by the count of its words", "[store][resume]") {
+    auto store = wjs::Store::in_memory();
+    wjs::SavedSession session;
+    session.state = wjs::SavedState::playing;
+    session.size = 3;
+    session.seed = 4242;
+    session.board = board3({found("sat", 1)}, 30);
+    session.board->tiles = "S,A,T/P,I,N/T,A,P";
+
+    REQUIRE(store.save_session(session));
+    REQUIRE(store.session().has_value());
+    // As the store keeps a standard board: no phase, no list, the count.
+    CHECK(store.session()->board->phase.empty());
+    CHECK(store.session()->board->viable.empty());
+    CHECK(store.session()->board->viable_total == 30);
+    CHECK(store.session()->board->tiles == "S,A,T/P,I,N/T,A,P");
+
+    // Written as the format's standard sboard (a "-" list), and read back whole.
+    const std::string text = wjs::serialize_store(store.data());
+    CHECK(text.find("sboard - 3 S,A,T/P,I,N/T,A,P 30 -\n") != std::string::npos);
+    const auto parsed = wjs::parse_store(text);
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->data == store.data());
+
+    // A lit word is kept without the list: the session checks it on restore.
+    session.lit = "sat";
+    auto with_lit = wjs::Store::in_memory();
+    REQUIRE(with_lit.save_session(session));
+    CHECK(with_lit.session()->lit == std::optional<std::string>{"sat"});
 }
 
 TEST_CASE("none clears the game in progress", "[store][resume]") {
@@ -1275,7 +1362,7 @@ TEST_CASE("a file from a later version is left exactly as it is and is not writt
           "[store][file]") {
     const TempDirectory dir;
     const fs::path file = dir.path() / "store.wjs";
-    const std::string later = "wjs-store 2\nfinds are now called visits\nend 0123456789abcdef\n";
+    const std::string later = "wjs-store 3\nfinds are now called visits\nend 0123456789abcdef\n";
     spit(file, later);
 
     auto opened = wjs::Store::open(file);
@@ -1329,6 +1416,37 @@ TEST_CASE("an older file with no way up is kept and a new store begins",
     CHECK(opened.status == wjs::LoadStatus::unreadable);
     REQUIRE_FALSE(opened.kept.empty());
     CHECK(slurp(opened.kept) == old_file);
+}
+
+TEST_CASE("a version 1 file is migrated to version 2 and kept beside the new one",
+          "[store][file][migration]") {
+    // A real file of the format before this one: a saved phonics game, which is
+    // all a version 1 file could hold (it refused a saved board with no list).
+    // The built-in step rewrites nothing, because every line of it is already a
+    // line version 2 reads, and the file is still kept as store.wjs.v1.
+    const std::string old = seal(
+        "wjs-store 1\n"
+        "total stars=0 next_board=1\n"
+        "session state=playing size=3 seed=7 lit=-\n"
+        "sboard A 3 S,A,T/P,I,N/T,A,P 2 sat,pin\n"
+        "sfind sat 0 20738 1\n");
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    spit(file, old);
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::migrated);
+    REQUIRE_FALSE(opened.kept.empty());
+    CHECK(opened.kept.filename().string() == "store.wjs.v1");
+    CHECK(slurp(opened.kept) == old);
+    REQUIRE(opened.store.session().has_value());
+    CHECK(opened.store.session()->board->phase == "A");
+
+    // The next save is the new version, and the older file is still the older file.
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    CHECK(slurp(opened.kept) == old);
 }
 
 TEST_CASE("a file that cannot be opened is left alone and not written", "[store][file]") {

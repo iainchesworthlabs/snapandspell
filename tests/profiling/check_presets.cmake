@@ -173,6 +173,35 @@ if(NOT _error STREQUAL "NOTFOUND")
     _fail("vcpkg.json has no 'profiling' feature for the option to select")
 endif()
 
+# The Tracy version is pinned in the manifest, so a baseline bump cannot move
+# it silently: the tools and the GUI must match the client's wire protocol
+# (docs/profiling.md).
+string(JSON _n ERROR_VARIABLE _error LENGTH "${_manifest}" overrides)
+if(NOT _error STREQUAL "NOTFOUND")
+    _fail("vcpkg.json has no 'overrides' entry pinning the Tracy version")
+endif()
+set(_tracy_pin 0)
+if(_n GREATER 0)
+    math(EXPR _last "${_n} - 1")
+    foreach(_i RANGE 0 ${_last})
+        string(JSON _name GET "${_manifest}" overrides ${_i} name)
+        if(_name STREQUAL "tracy")
+            set(_tracy_pin 1)
+            string(JSON _version GET "${_manifest}" overrides ${_i} version)
+            string(JSON _port ERROR_VARIABLE _perr GET "${_manifest}" overrides ${_i} port-version)
+            if(NOT _version STREQUAL "0.14.1")
+                _fail("vcpkg.json pins tracy to ${_version}; the project pins 0.14.1")
+            endif()
+            if(NOT _perr STREQUAL "NOTFOUND" OR NOT _port EQUAL 1)
+                _fail("vcpkg.json pins tracy without port-version 1")
+            endif()
+        endif()
+    endforeach()
+endif()
+if(NOT _tracy_pin)
+    _fail("vcpkg.json 'overrides' does not pin tracy; a baseline bump would move the profiler's version")
+endif()
+
 # ---- 4. the one place the feature is requested --------------------------------
 
 file(READ "${REPO_ROOT}/CMakeLists.txt" _root)

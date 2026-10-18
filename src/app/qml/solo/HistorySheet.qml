@@ -49,7 +49,7 @@ Item {
         border.color: Theme.outline
 
         Accessible.role: Accessible.Pane
-        Accessible.name: qsTr("Earlier boards")
+        Accessible.name: SoloWording.earlierBoards
 
         AppButton {
             id: close
@@ -57,7 +57,7 @@ Item {
             anchors.right: parent.right
             anchors.margins: Theme.space2
             iconName: "close"
-            accessibleName: qsTr("Close")
+            accessibleName: SoloWording.close
             onClicked: root.close()
         }
 

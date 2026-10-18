@@ -15,7 +15,7 @@ Item {
 
     readonly property bool mirrorsInRtl: name === "back"
     // The attached property belongs to an Item, so it is read here.
-    readonly property bool layoutMirrored: LayoutMirroring.enabled
+    readonly property bool layoutMirrored: Theme.rightToLeft
 
     implicitWidth: 24
     implicitHeight: 24

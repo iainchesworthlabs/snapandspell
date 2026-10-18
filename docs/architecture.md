@@ -39,13 +39,24 @@ src/
     qml/Home.qml         home
     qml/kit/             Theme (the tokens), Navigation, Feedback, AppButton, HoldButton,
                          Icon, Jewel, TileFace
-    qml/scene/           BoardScene (the 2D placeholder of the board scene), SceneScript.js
+    qml/scene/           BoardScene (the 3D scene, in the module WordJewelsSolver.Scene),
+                         Die, FaceAtlas, ShakeScript.js, lightprobe/sky.ktx; fallback/
+                         holds the 2D implementation of the same interface for D2, not built
     qml/solo/            SoloScreen (solo.box, solo.playing, solo.resting), TraceLayer,
                          PlayingPanel, SoloBox, SoloResting, HistorySheet, BoardThumb
+    qml/scan/            ScanScreen (scan.ready, scan.reading, scan.check), CheckScreen,
+                         AssistScreen (assist.playing), AssistBoard, ScanWording
+    scene/               the scene's C++ objects for QML: DiceSim (dice_sim.*), DieGeometry
+                         (die_geometry.*), and sim/ (the wjs_dice_world library)
     solo/                solo_game.hpp (the port), real_solo_game.* (over the library's
                          session), solo_game_setup.* (what it is made from),
                          solo_game_factory.*, fake_solo_game.*, solo_model.*,
                          path_tracer.*, board_layout.*, solo_layout.*
+    scan/                assist_game.* (the Qt-free Mode A port and its maker),
+                         assist_model.* and scan_model.* (the QML models), CMake
+                         for the WordJewelsSolver.Scan module
+    prototype/shake/     ShakePrototype, the harness around the same scene for timing,
+                         stills and measurement (WJS_BUILD_SHAKE_PROTOTYPE)
     solver_model.*       the solver's model (no screen uses it now; it keeps its tests)
     system_colour_scheme.*  whether the system is in dark mode
     system_motion.*      whether the system asks for reduced motion
@@ -63,8 +74,8 @@ src/
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
                        Tracy.cmake, FindQt6.cmake
-tests/                 unit/  app/  app/parent_ui/  platform/  perf/  profiling/  scan/
-                       privacy/  parent/
+tests/                 unit/  app/  app/parent_ui/  app/scan_ui/  platform/  perf/
+                       profiling/  scan/  privacy/  parent/
 tools/checks/          check_platform_isolation.ps1
 tools/scan/            render_corpus.cpp: wjs_scan_render, writes the synthetic corpus
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
@@ -181,11 +192,21 @@ measured.
 ### Profiling
 
 `wjs/profiling.hpp` is the one place the code asks to be timed: `zone<"name">()`,
-`frame_mark()`, `plot()`, `message()` and `thread_name()`, as functions and not
-macros. There are two files of that name under `src/lib/variants/`, one with
-Tracy behind it and one empty, and CMake puts exactly one directory on the
-include path, so no source asks which it got. A normal build has the empty one.
-See [Profiling](profiling.md).
+`frame_mark()`, `plot()`, `message()`, `thread_name()` and the run-time-named
+`RuntimeScope`, as functions and not macros. There are two files of that name
+under `src/lib/variants/`, one with Tracy behind it and one empty, and CMake puts
+exactly one on the include path through `wjs::profiling` (which `wjs::lib`
+carries publicly), so no source asks which it got. A normal build has the empty
+one.
+
+The application is instrumented as well: `src/app/frame_profiler.cpp` sends the
+window's frame mark (`UI`), the plots `ui.frame_ms`, `ui.first_frame_ms`,
+`render.frame_ms` and `ui.sync_ms`, names the render thread, and keeps the
+rolling report the `--smoke` mode prints; `src/app/scene/profiler.cpp` is the
+`Profiler` QML singleton the scene and the screens open their zones with, over
+`wjs::profiling::RuntimeScope` (a transient zone, so a name from QML carries its
+own location: function and file `QML`, line 0). Both are described in
+[Profiling](profiling.md), with the zones and the smoke mode.
 
 ### Path
 
@@ -211,7 +232,12 @@ dice, and tumbles them to show their other faces, takes the faces from
 board. `roll(dice, seed)` is the same roll returning the board alone, for a
 caller that does not draw dice. A board from `deal_standard_board` is the roll of the
 seed it reports (`DealtBoard::seed`), so `roll_with_placements(dice, dealt.seed)` gives
-the dice of a dealt board. Both are pure functions of the set and the seed,
+the dice of a dealt board. The application does this in `RealSoloGame::board()`
+(`src/app/solo/real_solo_game.cpp`): a dealt standard board's `SoloBoard` carries
+the six faces of each tile's die and the face that is up. A standard board the
+store brought back keeps no roll seed, and the phonics board and the fake game
+are not rolls, so those carry none and the scene draws the letter on the face
+that is up. Both are pure functions of the set and the seed,
 with the library's own `Draw` (`std::mt19937` taken modulo, and a shuffle that is
 not `std::shuffle`), so a seed is the same board and the same placements on every
 compiler, and a seed that gave a board before the placements were returned gives
@@ -645,9 +671,9 @@ stars for a size are the store's to know (the session has the board's `stars()`
 and the tier's `sticker()`, and nothing across boards). History is the store's
 list of records. The grapheme blocks of a path are `GraphemeBinder`'s, called
 by the screens, and the standard board has none to bind. Time, sound and animation
-are theirs. What the session does not do for the standard board is also written
-down in [Not built yet](#not-built-yet): the screens do not play it, and the store
-does not keep a standard game in progress.
+are theirs. What the session does not do for the standard board is the same as
+for the phonics board: the screens play it and the store keeps a standard game
+in progress, both of which are built (below).
 
 ### The store
 
@@ -735,23 +761,40 @@ platform differs in yet. An iOS camera and a Vision-based reader are Objective-C
 ## The Qt Quick window
 
 `src/app` is the Qt Quick application and is optional (`WJS_BUILD_APP`, off by
-default; it needs a prebuilt Qt 6.12). It is Solo Play, Mode B, of
-[Application design](design/application.md) and [Game design](design/game.md):
-`home`, and `solo.box`, `solo.playing` and `solo.resting` with the moments
-between them (shaking, dropping, word-found, cleared) on one screen, because the
-board scene is one component that stays while the lid lifts and the dice fall.
-The library knows nothing of any of it, and no game rule is in the QML.
+default; it needs a prebuilt Qt 6.12). It plays both modes of
+[Application design](design/application.md) and [Game design](design/game.md).
+Mode B is `home`, and `solo.box`, `solo.playing` and `solo.resting` with the
+moments between them (shaking, dropping, word-found, cleared) on one screen,
+because the board scene is one component that stays while the lid lifts and the
+dice fall. Mode A is `home`'s family picture, then `scan.ready`, `scan.reading`
+and `scan.check` on one screen, then `assist.playing` on another: the family's
+own board, confirmed by a grown-up, with the start-tile hint and the same tray as
+Solo Play. The library knows nothing of any of it, and no game rule is in the
+QML. It links Qt Quick 3D for the scene, so a build of the application is
+**GPL-3.0 only** (the author's decision of 2026-10-16; D2 in the
+[roadmap](roadmap.md) decides what a store build does).
+
+The board scene's board is `{ rows, columns, tiles, faces, up }`: for each tile,
+its letters, the six faces of the die that is on it and which of them is up,
+from `wjs::roll_with_placements` of the dealt board's seed. A board that was not
+rolled from dice (the phonics board, a game the store brought back, the fake
+game) has no faces, and the scene draws the tile's letter on the face that is up,
+as the first scene did. `Main.qml` makes `SoloScreen` (and so the scene) once at
+start-up and keeps it, so the `View3D` is not created on the Shake press.
 
 | Layer | Where | What it is |
 | --- | --- | --- |
 | The port | `solo/solo_game.hpp` | `SoloGame`, a Qt-free abstract class in the names of the game design: the states of the flow (box, shaking, dropping, playing, cleared, resting), `shake`, `settled`, `submit(path)` answered as viable, real-but-not-today's or not-a-word (the last two carry no word), `startTile`, `lidOn`, `again`, the tray and the history. It decides nothing |
-| The real game | `solo/real_solo_game.*` | `RealSoloGame`, the port over `wjs::GameSession`: it turns the session's names into the port's and is the one place that hands the session's records to the store. It decides nothing. See *Wiring the library's session* below |
-| The setup | `solo/solo_game_setup.*` | `SoloGameSetup`: loads the word list and the phases of a data directory, owns them for the run, holds the program's store by reference, and makes a `RealSoloGame` from the parent's settings. Qt-free |
-| The fake | `solo/fake_solo_game.*` | A stand-in for the library's session, for the tests and for the program when it is given no phase. Its words are test data: today's are the five early-reader words the design names, a few more are real, and the boards are two fixed grids turned by the seed. It publishes no phonics list |
+| The real game | `solo/real_solo_game.*` | `RealSoloGame`, the port over `wjs::GameSession`: it turns the session's names into the port's and is the one place that hands the session's records to the store. It plays either board: the standard board (dice, no phase, no blocks) by default, or the phonics board. It decides nothing. See *Wiring the library's session* below |
+| The setup | `solo/solo_game_setup.*` | `SoloGameSetup`: loads the word list always and the dice of the standard board, and the phases of a data directory when one is given, owns them for the run, holds the program's store by reference, and makes a `RealSoloGame` from the parent's settings. Qt-free |
+| The fake | `solo/fake_solo_game.*` | A stand-in for the library's session, for the tests. Its words are test data: today's are the five early-reader words the design names, a few more are real, and the boards are two fixed grids turned by the seed. It publishes no phonics list |
 | The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue`. When the parent changes the store (`storeEdited()`), it takes its next game from the program's maker |
 | The touch logic | `solo/path_tracer.*` | Trace and tap in order, both always on. A hit circle smaller than the tile and a larger one it must leave, so a diagonal slide takes the diagonal tile and a wobble near an edge does nothing; a fast move is walked in small steps so no tile is jumped; sliding back takes the last tile off; lifting outside the board cancels; a tapped path ends with the last tile tapped again or the Done jewel; a trace may carry on from a tapped path; a dead jewel is never in a path. The radii are starting values for a small finger and are the one thing the tests cannot settle |
 | The layout rule | `solo/board_layout.*`, `solo/solo_layout.*` | [Board design](design/board.md#layouts-and-sizes) as a pure function, tested on the page's reference windows, and one copy for the screens and the scene. A size is offered only if its tile is 48 dp or more |
-| The board scene | `qml/scene/BoardScene.qml` | One component: given a finished board and a seed, play the shake, the lid and the drop and say when the dice are settled. The 2D placeholder, with the members of [Shake prototype](design/shake-prototype.md#the-interface); the 3D scene being built apart plugs in at the same seam. `app.scene_contract` holds both files to the list. An empty board is the box with its lid on |
+| The board scene | `qml/scene/BoardScene.qml`, the module `WordJewelsSolver.Scene` (`scene/`) | One component: given a finished board (its tiles, its dice's six faces and the one that is up) and a seed, play the shake, the lid and the drop and say when the dice are settled. Qt Quick 3D, built once behind home and kept; the dice are simulated from first principles in `scene/sim` (plain C++, no Qt). `prepare(board)` draws a board's faces a frame ahead of `play`/`show`. The 2D implementation of the same interface is kept at `qml/scene/fallback/` for D2 and is not built. `app.scene_contract` holds both files to the list, and `app.qml_lint` lints both modules |
+| The Mode A port | `scan/assist_game.*` | `AssistGame`, Qt-free: a board a grown-up confirmed, the English dictionary (and, when there is a phase index, the words that count), and the store. `wjs::classify_path` answers viable, real-but-not-today's or not-a-word (the last two carry no word); `FoundWords` keeps the tray; `wjs::start_tile_help` answers the one help with a tile, never the word; `leave()` records the board in the store's standard-board form (`viable_total`, no phase) with each find's day and whether the start tile was shown |
+| The Mode A models | `scan/scan_model.*`, `scan/assist_model.*` | `ScanModel` owns the `BoardDraft` the check screen corrects, the doubtful tiles and the reader's alternatives, the board size, and the camera's little lifecycle: enumerate and start only on `scan.ready`, pop one frame, read it through `board_reader`, stop at once, and only a grown-up's `confirm()` makes a `Board`. `AssistModel` is the assistant's board as Qt Quick wants it: tiles, the traced path (`PathTracer`, the same touch logic as Solo Play), the tray, the start tile and the cues. It is made by QML and asks `make_assist_game()` for its round, which `main.cpp` installs over the program's one dictionary and store |
+| The Mode A screens | `qml/scan/`, the module `WordJewelsSolver.Scan` (`scan/`) | `ScanScreen` (`scan.ready`, `scan.reading`, `scan.check` on one screen, the check in `CheckScreen.qml`), `AssistScreen`, `AssistBoard` and `AssistHistory` (`assist.playing`, the two-thirds/one-third split of `SoloLayout`, the tray, the start tile, earlier boards, New board), and `ScanWording` (every sentence and accessible name, for the later i18n pass). The camera is on only while `scan.ready` is on screen; every frame is read on the device and none is kept (docs/design/scanner.md, "Privacy, built in and checked"). No camera (every desktop today) is said in words and "Type in your board" opens the check screen with an empty 4x4 |
 | The kit | `qml/kit/` | `Theme` has every colour, size, time and type size a screen uses (light and dark, reduced motion, text scale); a screen writes none of its own, so a school font or a world is a token swap. `AppButton` has the three targets (48, 64 and 96 dp), acts on release inside it and takes the keyboard. Nothing drawn has text in it |
 
 The two-thirds and one-third split is applied to the window below a 72 dp bar
@@ -761,18 +804,48 @@ a 1280 x 800 window is 164 dp and not 182). Back goes where the person came from
 with the design's exceptions, and Esc and the system back do what the visible
 control does.
 
+**Mode A's flow.** `home`'s family picture is shown (`Navigation.scanAvailable`)
+and opens `scan`. `ScanScreen` starts the camera only while its state is
+`scan.ready`: `open()` enumerates the platform's devices and starts the first
+rear one, and `close()` stops it when the screen goes, when the check screen
+opens, and as soon as a frame is in hand. Capture waits for a frame (a short
+poll, because a camera that has just started has not delivered one), reads it on
+the device through `board_reader::read`, drops the buffer, and fills a
+`BoardDraft`; a frame that cannot be read returns to `ready` with "try again".
+"Type in your board" is the same draft with `BoardDraft::empty(4, 4)`. The check
+screen rings the reader's doubtful tiles, offers its runners-up first in the
+letter picker, turns the replica and changes the size; `Yes, play` calls
+`ScanModel::confirm()` (the only way to a `wjs::Board`) and hands the same plain
+grid to `AssistModel::begin()`, which makes the round through
+`make_assist_game()`. That is the program's maker over its one store and
+dictionary (`ScopedAssistGameMaker`, installed in `main.cpp`, like Solo Play's).
+`Main.qml` shows `AssistScreen`; Back returns to the check screen it came from
+(the board is recorded by `AssistGame::leave()`), and New board records it, puts
+the scan screen back to `ready` and enters it as if from home
+(`Navigation.restart`), so Back from a new round goes home. The store keeps the
+board in the standard board's form (no phase, `viable_total`), because the
+repository has no phase index for Mode A's MVP set; a board played with a phase
+index later will record its list instead. The words found count toward the same
+stars and history as Solo Play's.
+
 **What is not there.** No sound or touch feedback: every moment is a
 `Feedback.cue`, and nothing listens, because Qt Multimedia, Sensors and
 TextToSpeech are not in the tree and the recordings wait for the literacy review.
 No device shake: `wjs::detect_shakes` exists and the sensor interface in
-`src/platforms` does not, so Shake is a button (and Space) everywhere. No bundled
+`src/platforms` does not, so Shake is a button and Space everywhere. The screen
+takes a fast drag on the box as the stand-in for the accelerometer and the
+gyroscope: it calls the scene's `pushMotion` with the drag's acceleration and
+spin, and a drag that reads as a shake starts a play unless the parent's Shake
+setting is off. The button and Space are always there. No bundled
 type: Andika is named in `Theme` and Qt falls back to the platform's face until
-its licence is read and the glyph check is done. The family game's picture is on
-`home` and is shown only when `Navigation.scanAvailable` is set, by whoever adds
-that screen; the parent's button, on `home` and in the corner of the box, is shown
-(`Navigation.parentAvailable`) and goes to the parent area, below. No
-phase is played unless the program is given one (below), so by default the
-screens run on the fake.
+its licence is read and the glyph check is done. The family game's picture on
+`home` is shown and opens Mode A; the camera backend is still absent on every
+desktop, so the ready screen says so and the typed board is the way on (below).
+The parent's button, on `home` and in the corner of the box, is shown
+(`Navigation.parentAvailable`) and goes to the parent area, below. The window
+plays the real game from the start: the standard board by default, and the
+phonics board when the program is given a phase (below) and the parent's switch
+is on.
 
 **Wiring the library's session.** Done: `RealSoloGame` is the port over
 `wjs::GameSession`, and `make_solo_game()` in `solo/solo_game_factory.cpp` is still
@@ -790,14 +863,14 @@ there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down
 | `lidOn()` | `back()` | `Store::record` of the board left, found anything or not |
 | `startTile()`, `litTile()` | `request_help()`, `lit_tile()` | the find made while it is lit is recorded as assisted |
 | `helpAllowed()` | what `SessionOptions::help` was given | |
-| `board()` | `board()`, a dead jewel (`dead_tiles()`) as `""`, the seed of `last_deal()` | |
-| `blocks(path)` | `GraphemeBinder` over the phase | |
+| `board()` | `board()`, a dead jewel (`dead_tiles()`) as `""`, the seed of `last_deal()`; the standard board has no dead jewels | |
+| `blocks(path)` | `GraphemeBinder` over the phase's graphemes; none on the standard board, which has no phase | |
 | `history()` | | the store's boards, newest first, and their finds; the phase's dead letter is a dead jewel on a board of that phase |
 
-This game is the **phonics board**: it is made over a phase and gives the session
-`BoardMode::phonics` whatever the options say, because the standard board (the
-session's default) needs the dice and no phase, and is not wired to the screens yet
-(see [Not built yet](#not-built-yet)).
+The game plays the board the session was made for: the **standard board**, the
+default, a roll of the project's dice at 3x3 to 6x6 with no phase and no grapheme
+blocks, or the **phonics board** over the phase the program was given, which
+`SoloGameSetup::make()` hands over when the parent's switch is on (below).
 
 **Where a run begins.** After every call that can change the game, `RealSoloGame`
 brings the store's game in progress (`Store::save_session`) to what
@@ -814,14 +887,14 @@ before a find is recorded, so the history is never ahead of the game; the board
 left with the lid is recorded before the session is cleared, so it is never behind.
 
 `SoloGameSetup::make()` is where the game comes back. If the store holds a game in
-progress and `GameSession::restore()` accepts it (the same phase, a board the
-phase's words still fit, a record a session makes) the game is that one, as it was
-left, with the parent's help switch and sounds as they are now: a lit tile the
-parent has since switched off is dropped. If it does not (`wrong_phase`,
-`board_changed`, `bad_snapshot`, or a snapshot the store's values cannot make) a new
-game begins in the box and the old record is cleared by it, and the child is told
-nothing. The one thing a restore does not bring back is the seed of the scene's
-shake and drop, which a board already on the table does not need.
+progress and `GameSession::restore()` accepts it (the same board mode, the same
+phase, a board the words still fit, a record a session makes) the game is that one,
+as it was left, with the parent's help switch and sounds as they are now: a lit
+tile the parent has since switched off is dropped. If it does not (`wrong_mode`,
+`wrong_phase`, `board_changed`, `bad_snapshot`, or a snapshot the store's values
+cannot make) a new game begins in the box and the old record is cleared by it, and
+the child is told nothing. The one thing a restore does not bring back is the seed
+of the scene's shake and drop, which a board already on the table does not need.
 
 The screens open on it. `SoloModel` over a game that is not in the box sets up what
 a shake would have (the touch geometry, the lit tile) in its constructor, so it is
@@ -836,13 +909,16 @@ device's calendar, which is what the store keeps of when and the most it will
 ever keep. The program gives the game a function for it (Qt's `QDate`, in
 `main.cpp`).
 
-**Which game is played.** The repository has no phase: the files have to be
-written and reviewed by a person qualified to do it, and none may be published
-before that. So a run plays the real session only when it is told where a phase
-is, and otherwise the fake:
+**Which game is played.** A run always plays the real session. The word list and
+the standard board's dice are loaded beside the program (`dictionaries/en.txt`,
+`dice/3x3.txt` to `6x6.txt`, both placed by the build), and the standard board is
+the default. The phonics board needs phases, and the repository has none: the
+files have to be written and reviewed by a person qualified to do it, and none may
+be published before that. So the phonics board is played only when the program is
+told where a phase is, and the parent's switch is on:
 
 ```text
-WordJewelsSolver [--store <file>]
+WordJewelsSolver [--store <file>] [--dictionary <file>] [--seed <number>]
 WordJewelsSolver --phase-directory <dir> [--phase <name>] [--dictionary <file>]
                  [--store <file>] [--seed <number>]
 ```
@@ -853,8 +929,9 @@ the store's settings, `--dictionary` to `dictionaries/en.txt` beside the program
 and `--seed` to a random one; a fixed seed makes a run repeat. Files without a
 complete review header are test data, and the program says so on its error output.
 A directory that cannot be loaded, or a phase that cannot make a board, stops the
-program with a message and exit code 2: it does not fall back to the fake, which
-would hide the mistake.
+program with a message and exit code 2, as a word list or a dice directory that
+cannot be read does: it does not fall back to the fake, which would hide the
+mistake.
 
 `--store` is the program's one store, with a phase or without: it defaults to the
 per-user file (`wjs::default_store_path`), and it is the file the game keeps its
@@ -898,12 +975,17 @@ display. See [The parent area as built](design/parent-area.md).
 | `wjs_platform` (`wjs::platform`) | static library | The platform's implementations; links `wjs_scan` |
 | `wjs_scan` (`wjs::scan`) | static library | The scanner: finds a board in a frame and reads it. No third-party dependency |
 | `wjs_cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
-| `wjs_app` | executable `WordJewelsSolver` | `WJS_BUILD_APP` |
+| `wjs_app` | executable `WordJewelsSolver` | `WJS_BUILD_APP`; links Qt Quick 3D, so GPL-3.0 only |
+| `wjs_scene` | static QML module (`WordJewelsSolver.Scene`) | The 3D board scene, its dice objects and the `wjs_dice_world` simulation. Linked by `wjs_app` and the prototype; GPL-3.0 only |
+| `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording and models. Linked by `wjs_app` as `wjs_scan_uiplugin` |
+| `wjs_trace` | static library | `PathTracer`, the touch half of making a word, shared by Solo Play's model and the assistant's |
+| `wjs_shake_prototype` | executable `ShakePrototype` | `WJS_BUILD_SHAKE_PROTOTYPE`, with `WJS_BUILD_APP`; the harness around `wjs_scene` |
 | `wjs_unit_tests` | executable | Catch2 |
 | `wjs_perf_tests` | executable | Catch2; work budgets and opt-in wall-time checks, linked to `wjs::lib` and the scanner with its synthetic corpus |
 | `wjs_scan_tests` | executable | Catch2; the scanner, the camera and `board_reader` interfaces, and the corpus that holds it to its target |
 | `wjs_scan_synth` | static library | The synthetic corpus (frames of a board of dice drawn from a seed) and the counting of the target. Test tool; nothing in `src` links it |
 | `wjs_scan_render` | executable | Writes the corpus to a directory as PNG files, to look at |
+| `wjs_scan_preview` | executable | Mode A's screens in a stub shell, and with `--check` the offscreen check `scan.screens`. Test tool; not part of the application |
 | `wjs::tracy` | interface library | Tracy's client when `WJS_ENABLE_TRACY` is on, otherwise nothing |
 | `wjs_app_tests` | executable | Catch2, with `WJS_BUILD_APP` |
 | `wjs::warnings`, `wjs::sanitizers`, `wjs::coverage` | interface libraries | Flags, linked into every first-party target |
@@ -922,7 +1004,11 @@ These do not exist, and nothing in the tree stands in for them:
 
 - **A camera.** The `camera` interface exists, and the three desktops answer
   `unavailable` (no backend); the iOS camera (`AVCaptureSession`), a desktop
-  webcam and Android's are not written. Nothing has been run on a camera.
+  webcam and Android's are not written. Nothing has been run on a camera. Mode A's
+  screens and its **typed-board fallback are built** (`qml/scan`, the module
+  `WordJewelsSolver.Scan`), so the desktop path is real: a person types the board
+  the family is playing. The capture path is wired through the interface and the
+  reader, but no camera has been on the other end of it.
 - **Reading letters from a real picture.** The reader exists and is measured on
   synthetic frames only ([Scanner design](design/scanner.md#what-was-measured)).
   The iOS reader (Vision), recorded frames of real dice, the dice's own typeface and
@@ -934,22 +1020,12 @@ These do not exist, and nothing in the tree stands in for them:
   reviewed by someone qualified to do it before a child uses it. The audio
   clips and the sound-it-out sequence are not built. The parent dashboard is built
   and shows nothing of the sounds until a phase exists.
-- **The standard board on the screens, and in the store.** The library's session
-  plays it, with tests, and it is the session's default mode; the screens do not
-  yet. `RealSoloGame` is built over a phase (it binds the phase's graphemes into
-  blocks) and plays the phonics board, whatever `Settings::board` says, and the
-  program is started with a phase directory or runs on the fake. A standard game
-  needs the dice (`DiceSets::load_directory`, `data/dice`), no phase and no
-  blocks, so the adapter and `SoloGameSetup` have to learn to make one. And
-  `Store::save_session` keeps a game in progress only for a board whose words it
-  lists, which is a phonics board's few: it refuses a standard board's snapshot
-  (which carries the count and no list), so a standard game is not brought back
-  after a restart. The session's `restore` takes it, and the store has to learn to
-  keep the count (and its file, to write a saved board with no list). Neither is
-  done here.
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
   early-reader tier lists (animals, colours, shapes, and so on); nothing reads
   them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.
-- **Packaging and installers**, and **phone and browser targets**.
+- **Linux and macOS packages, and phone and browser targets.** Packaging
+  itself is built: the Windows leg installs, packages and checks a ZIP
+  ([Building](building.md#packaging)); the other two platforms' generators are
+  configured but no leg has run them.
 
 The [roadmap](roadmap.md) has the plan and its order.

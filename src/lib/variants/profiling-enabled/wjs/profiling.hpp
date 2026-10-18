@@ -18,6 +18,7 @@
 // that includes this one. That is harmless unless one of their names collides
 // with something here, which none does.
 
+#include <cstddef>
 #include <cstdint>
 #include <source_location>
 #include <string_view>
@@ -65,6 +66,39 @@ template <StaticName Name>
     return Zone{&location};
 }
 
+// A zone whose name comes from outside C++ as a string, for the QML seam. The
+// constructor opens the zone and the destructor closes it, so a scope that has
+// to outlive its declaration -- a QML begin() and a later end() -- can be held
+// in a std::optional and reset.
+//
+// A run-time name is not a compile-time one: Tracy cannot know a
+// SourceLocationData that did not exist when the program was written, so the
+// zone is opened the way Tracy's own transient zones are (its ZoneTransient
+// macro): the name goes with the zone and the profiler registers it itself.
+// Every run-time location is therefore the QML seam's -- function and file
+// "QML", line 0 -- and a name used again is the same place in the table the CSV
+// shows, because it is the same name. The allocation a transient zone makes is
+// per zone and only while a profiler is connected; the seam is used a few times
+// a frame, not in a loop.
+class [[maybe_unused]] RuntimeScope {
+public:
+    explicit RuntimeScope(std::string_view name)
+        : zone_(std::uint32_t{0}, "QML", std::size_t{3}, "QML", std::size_t{3}, name.data(),
+                name.size(), std::int32_t{0}) {}
+
+    RuntimeScope(const RuntimeScope&) = delete;
+    RuntimeScope& operator=(const RuntimeScope&) = delete;
+    RuntimeScope(RuntimeScope&&) = delete;
+    RuntimeScope& operator=(RuntimeScope&&) = delete;
+    ~RuntimeScope() = default;
+
+    // A number shown beside the zone, as Zone::Value's.
+    void Value(std::uint64_t value) noexcept { zone_.Value(value); }
+
+private:
+    Zone zone_;
+};
+
 // A frame boundary on the default set, and on a named one ("UI", "Capture").
 inline void frame_mark() {
     tracy::Profiler::SendFrameMark(nullptr);
@@ -89,13 +123,25 @@ void plot(Literal name, Number value) {
 
 // A discrete event on the timeline. The text is copied.
 inline void message(std::string_view text) {
-    tracy::Profiler::Message(text.data(), text.size(), 0);
+    // Tracy 0.14.1's message entry point (its TracyMessage macro):
+    // LogString(source, severity, color, callstack depth, length, text). Depth 0
+    // keeps the callstack out of it, which is what a message needs.
+    tracy::Profiler::LogString(tracy::MessageSourceType::User, tracy::MessageSeverity::Info, 0, 0,
+                               text.size(), text.data());
 }
 
 // Names the calling thread in the profiler's thread list. Once per thread:
 // every call adds a table entry, so never in a per-frame or per-task path.
 inline void thread_name(Literal name) {
     tracy::SetThreadName(name.c_str());
+}
+
+// Whether a profiler is connected now. In on-demand mode nothing is recorded
+// until one is; a workload that has to be seen from its first moment (the
+// application's --smoke) can wait for this. The first call starts Tracy's
+// client, and so its listener, if nothing has yet.
+inline bool connected() {
+    return tracy::GetProfiler().IsConnected();
 }
 
 }  // namespace wjs::profiling

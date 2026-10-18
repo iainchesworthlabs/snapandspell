@@ -19,3 +19,13 @@ add_custom_command(TARGET wjs_cli POST_BUILD
         "${PROJECT_SOURCE_DIR}/data/dictionaries/en.txt"
         "$<TARGET_FILE_DIR:wjs_cli>/dictionaries/en.txt"
     COMMENT "Placing the English dictionary beside wjs-cli")
+
+# The install rule, and the dictionary the way the program looks for it (the
+# same relative path the application uses): a package is the build tree's bin/
+# with Qt's runtime and the notices added, so what runs from build/<preset>/bin
+# also runs from an installed copy (docs/building.md, "Packaging").
+# CMAKE_INSTALL_BINDIR comes from GNUInstallDirs, which cmake/Platform.cmake
+# includes.
+install(TARGETS wjs_cli RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+install(FILES "${PROJECT_SOURCE_DIR}/data/dictionaries/en.txt"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}/dictionaries")

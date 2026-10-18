@@ -111,12 +111,14 @@ use this sound yet".
 | Board | Standard (dice) or Phonics (a phase's words, grapheme blocks, sounding out) | Standard |
 | Phase | A or B (generic names; contents are the reviewer's). Used by the Phonics board | A |
 | Focus sounds | A subset of the phase's graphemes | None |
-| Board size | 3x3 or 4x4 | 3x3, then the last used |
+| Board size | 3x3 to 6x6 on the standard board, 3x3 or 4x4 on the phonics board | 3x3, then the last used |
 | Sound it out | Full, the word only, off | Full |
 | Celebration sounds | Full, quiet, off | Full |
 | Sound, Vibration | On, off | On |
 | Shake the device | On, off | On |
 | Motion | System, reduced | System |
+| Colour scheme | System, light, dark | System |
+| Language | English, French, Spanish, German, Yiddish, Hebrew, Chinese or Japanese; System is the device's own when it is one of the eight, English otherwise | System |
 | Text size | 1, 1.25, 1.5 | 1 |
 | School font | Off, or a font whose licence permits bundling (to confirm) | Off |
 | Reset | Clears boards and finds; stars and stickers only with a second step | |

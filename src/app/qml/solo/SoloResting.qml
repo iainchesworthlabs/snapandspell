@@ -100,7 +100,7 @@ Item {
         anchors.top: parent.top
         anchors.margins: Theme.space2
         iconName: "back"
-        accessibleName: qsTr("Back")
+        accessibleName: SoloWording.back
         onClicked: root.backRequested()
     }
 
@@ -113,7 +113,7 @@ Item {
         height: Theme.targetChild
         enabled: root.settled
         opacity: root.settled ? 1 : 0
-        accessibleName: qsTr("Play again")
+        accessibleName: SoloWording.playAgain
         onActivated: root.againRequested()
     }
 }

@@ -1,0 +1,740 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="de_DE">
+<context>
+    <name>HomeWording</name>
+    <message>
+        <location filename="../src/app/qml/HomeWording.qml" line="+8"/>
+        <source>Play on my own</source>
+        <translation>Allein spielen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play with the family</source>
+        <translation>Mit der Familie spielen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>For grown-ups</source>
+        <translation>Für Erwachsene</translation>
+    </message>
+</context>
+<context>
+    <name>Main</name>
+    <message>
+        <location filename="../src/app/qml/Main.qml" line="+34"/>
+        <source>Word Jewels Solver</source>
+        <translation>Word Jewels Solver</translation>
+    </message>
+</context>
+<context>
+    <name>ParentWording</name>
+    <message>
+        <location filename="../src/app/qml/parent/ParentWording.qml" line="+28"/>
+        <source>Parent area</source>
+        <translation>Elternbereich</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Dashboard</source>
+        <translation>Übersicht</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Settings</source>
+        <translation>Einstellungen</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <location line="+146"/>
+        <source>About</source>
+        <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
+        <translation>Über</translation>
+    </message>
+    <message>
+        <location line="-145"/>
+        <source>Nothing to show yet.</source>
+        <translation>Noch nichts anzuzeigen.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The saved progress could not be read, so a new one was started. The old file was kept on this device.</source>
+        <translation>Der gespeicherte Fortschritt konnte nicht gelesen werden, daher wurde ein neuer begonnen. Die alte Datei wurde auf diesem Gerät behalten.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The saved progress was made by a newer version of this app. It has been left as it is, and nothing will be saved this time.</source>
+        <translation>Der gespeicherte Fortschritt stammt von einer neueren Version dieser App. Er wurde unverändert gelassen, und diesmal wird nichts gespeichert.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Progress could not be saved on this device.</source>
+        <translation>Der Fortschritt konnte auf diesem Gerät nicht gespeichert werden.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>For parents</source>
+        <translation>Für Eltern</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Hold both circles at the same time for two seconds.</source>
+        <translation>Halte beide Kreise zwei Sekunden lang gleichzeitig.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>With a mouse and a keyboard: hold the left circle with the mouse and press Space.</source>
+        <translation>Mit Maus und Tastatur: den linken Kreis mit der Maus halten und die Leertaste drücken.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Open the parent area. Hold both circles with two fingers, or activate this to open it.</source>
+        <translation>Den Elternbereich öffnen. Beide Kreise mit zwei Fingern halten oder dies aktivieren, um ihn zu öffnen.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Sounds</source>
+        <extracomment>The graphemes of the phonics phase, and how often each has come up.</extracomment>
+        <translation>Laute</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The vault</source>
+        <translation>Die Schatzkiste</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Best</source>
+        <extracomment>The best board found at each board size.</extracomment>
+        <translation>Bestes</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>not met yet</source>
+        <translation>noch nicht dagewesen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Often found</source>
+        <translation>Häufig gefunden</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>few words use this sound yet</source>
+        <translation>bisher gibt es wenige Wörter mit diesem Laut</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>1 board</source>
+        <translation>1 Brett</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 boards</source>
+        <translation>%1 Bretter</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>1 star</source>
+        <translation>1 Stern</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 stars</source>
+        <translation>%1 Sterne</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>1 was found.</source>
+        <translation>1 wurde gefunden.</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 were found.</source>
+        <translation>%1 wurden gefunden.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Words with &lt;i&gt;%1&lt;/i&gt; have been on %2. %3</source>
+        <translation>Wörter mit &lt;i&gt;%1&lt;/i&gt; waren auf %2. %3</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>Found without a start tile: %1.</source>
+        <translation>Ohne Startfeld gefunden: %1.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>on %1; found on %2</source>
+        <translation>auf %1; gefunden auf %2</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>1 board cleared</source>
+        <translation>1 Brett geschafft</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 boards cleared</source>
+        <translation>%1 Bretter geschafft</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>1 new word</source>
+        <translation>1 neues Wort</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 new words</source>
+        <translation>%1 neue Wörter</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>This week: %1.</source>
+        <translation>Diese Woche: %1.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>The longest word: %1.</source>
+        <translation>Das längste Wort: %1.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1x%1: %2</source>
+        <translation>%1x%1: %2</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Help</source>
+        <translation>Hilfe</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The start tile: one tile glows to show where a word begins.</source>
+        <translation>Das Startfeld: Ein Feld leuchtet, um zu zeigen, wo ein Wort beginnt.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Board</source>
+        <extracomment>The board setting (standard dice or the phonics words), not its size.</extracomment>
+        <translation>Brett</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Standard: dice and any word. Phonics: the words of a phase, with their sounds.</source>
+        <translation>Standard: Würfel und jedes Wort. Phonics: die Wörter einer Phase mit ihren Lauten.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Phase</source>
+        <extracomment>A phase of the phonics scheme; the repository&apos;s are named A and B.</extracomment>
+        <translation>Phase</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Focus sounds</source>
+        <extracomment>The graphemes the school is working on this week.</extracomment>
+        <translation>Schwerpunktlaute</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The sounds the school is on this week. The phonics board prefers words with them.</source>
+        <translation>Die Laute, die die Schule diese Woche behandelt. Das Phonics-Brett bevorzugt Wörter damit.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Board size</source>
+        <translation>Brettgröße</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The size the box offers first.</source>
+        <translation>Die Größe, die die Kiste zuerst anbietet.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Sound it out</source>
+        <translation>Laut für Laut</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Celebration sounds</source>
+        <translation>Feierlaute</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Sound</source>
+        <extracomment>The sound-effects switch, not the sounds of the letters.</extracomment>
+        <translation>Ton</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Vibration</source>
+        <translation>Vibration</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shake the device</source>
+        <translation>Gerät schütteln</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Motion</source>
+        <translation>Bewegung</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>System follows the device&apos;s own setting.</source>
+        <translation>System folgt der Einstellung des Geräts.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Colour scheme</source>
+        <translation>Farbschema</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>System follows the device&apos;s own light or dark setting.</source>
+        <translation>System folgt der hellen oder dunklen Einstellung des Geräts.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Text size</source>
+        <translation>Textgröße</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>School font</source>
+        <translation>Schulschrift</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Language</source>
+        <extracomment>The interface&apos;s language; the board and its letters stay English.</extracomment>
+        <translation>Sprache</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The words on the screens. The board and its letters stay English.</source>
+        <translation>Die Wörter auf den Bildschirmen. Das Brett und seine Buchstaben bleiben englisch.</translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>On</source>
+        <translation>An</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Off</source>
+        <translation>Aus</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Standard</source>
+        <translation>Standard</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Phonics</source>
+        <translation>Phonics</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Full</source>
+        <extracomment>All of the sounds: each sound of the word, then the word.</extracomment>
+        <translation>Voll</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The word only</source>
+        <translation>Nur das Wort</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Quiet</source>
+        <extracomment>The celebration sounds at a lower volume, not silence.</extracomment>
+        <translation>Leise</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>System</source>
+        <extracomment>Follow the device&apos;s own setting.</extracomment>
+        <translation>System</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Reduced</source>
+        <translation>Reduziert</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Light</source>
+        <translation>Hell</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Dark</source>
+        <translation>Dunkel</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Reset</source>
+        <extracomment>The two confirmed resets at the foot of the settings.</extracomment>
+        <translation>Zurücksetzen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Clear boards and finds</source>
+        <translation>Bretter und Funde löschen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>This clears the last boards and the words found on them. Stars and stickers stay.</source>
+        <translation>Dies löscht die letzten Bretter und die darauf gefundenen Wörter. Sterne und Aufkleber bleiben.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Clear stars and stickers</source>
+        <translation>Sterne und Aufkleber löschen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>This clears the stars, the best of each board size and the stickers. Boards and finds stay.</source>
+        <translation>Dies löscht die Sterne, das Beste jeder Brettgröße und die Aufkleber. Bretter und Funde bleiben.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Clear</source>
+        <extracomment>The second press that confirms a reset, not the word &quot;clear&quot; elsewhere.</extracomment>
+        <translation>Löschen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Keep</source>
+        <translation>Behalten</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Cleared.</source>
+        <translation>Gelöscht.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Licences</source>
+        <translation>Lizenzen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Privacy</source>
+        <translation>Datenschutz</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Word Jewels Solver, version %1</source>
+        <translation>Word Jewels Solver, Version %1</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.</source>
+        <translation>Dieses Programm ist freie Software. Sie können es unter den Bedingungen der GNU General Public License, Version 3, oder (nach Ihrer Wahl) jeder späteren Version weitergeben und ändern.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>It is built with Qt. The English word list is ENABLE, a public-domain list. The licences of everything in a package are listed with the package.</source>
+        <translation>Es ist mit Qt gebaut. Die englische Wortliste ist ENABLE, eine gemeinfreie Liste. Die Lizenzen alles dessen, was in einem Paket ist, liegen dem Paket bei.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Everything this build includes, and the licence of each part:</source>
+        <extracomment>Above the full notices, in their own scroll box on the About page.</extracomment>
+        <translation>Alles, was diese Version enthält, und die Lizenz jedes Teils:</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>This app keeps what this screen shows, on this device only: the words found, the size of each board, the day, whether a start tile was shown, the stars and stickers, the last twenty boards and your settings.</source>
+        <translation>Diese App speichert, was dieser Bildschirm zeigt, nur auf diesem Gerät: die gefundenen Wörter, die Größe jedes Bretts, den Tag, ob ein Startfeld gezeigt wurde, die Sterne und Aufkleber, die letzten zwanzig Bretter und Ihre Einstellungen.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>It does not record sound or pictures, does not use the network and sends nothing anywhere. It does not keep how long anyone plays.</source>
+        <translation>Sie nimmt keinen Ton und keine Bilder auf, nutzt kein Netzwerk und sendet nichts irgendwohin. Sie speichert nicht, wie lange jemand spielt.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Nothing moves between devices. A new device starts fresh.</source>
+        <translation>Nichts wandert zwischen Geräten. Ein neues Gerät beginnt von vorn.</translation>
+    </message>
+</context>
+<context>
+    <name>ScanWording</name>
+    <message>
+        <location filename="../src/app/qml/scan/ScanWording.qml" line="+17"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>For grown-ups</source>
+        <translation>Für Erwachsene</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Put the board in the frame</source>
+        <translation>Das Brett in den Rahmen legen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Capture</source>
+        <translation>Aufnehmen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Type in your board</source>
+        <translation>Brett eingeben</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Reading the board…</source>
+        <translation>Brett wird gelesen…</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>There is no camera on this device. You can type in your board.</source>
+        <translation>Dieses Gerät hat keine Kamera. Sie können Ihr Brett eingeben.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The camera is not allowed. You can type in your board.</source>
+        <translation>Die Kamera ist nicht erlaubt. Sie können Ihr Brett eingeben.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The camera did not start. You can type in your board.</source>
+        <translation>Die Kamera ist nicht gestartet. Sie können Ihr Brett eingeben.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>I could not read the board. Try again, or type it in.</source>
+        <translation>Ich konnte das Brett nicht lesen. Versuchen Sie es erneut oder geben Sie es ein.</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <source>Is this your board?</source>
+        <translation>Ist das Ihr Brett?</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Turn the board</source>
+        <extracomment>Rotate the replica of the real board a quarter turn.</extracomment>
+        <translation>Brett drehen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Board size</source>
+        <translation>Brettgröße</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A ringed tile may be wrong. Tap it to change the letter.</source>
+        <translation>Ein umringtes Feld kann falsch sein. Tippen Sie es an, um den Buchstaben zu ändern.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Every tile needs a letter before the board can play.</source>
+        <translation>Jedes Feld braucht einen Buchstaben, bevor das Brett spielen kann.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The board could not be started. Try again.</source>
+        <translation>Das Brett konnte nicht gestartet werden. Versuchen Sie es erneut.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Read again</source>
+        <extracomment>Go back to the camera and read the board again.</extracomment>
+        <translation>Erneut lesen</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Yes, play</source>
+        <extracomment>The grown-up confirms the board and starts the round.</extracomment>
+        <translation>Ja, spielen</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 by %1 board</source>
+        <translation>%1-mal-%1-Brett</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 x %1</source>
+        <translation>%1 x %1</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Which letter is it?</source>
+        <translation>Welcher Buchstabe ist es?</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The reader&apos;s other thoughts</source>
+        <translation>Die anderen Vorschläge des Lesers</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Qu</source>
+        <extracomment>The two-letter tile as the dice print it: Q and U on one face.</extracomment>
+        <translation>Qu</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Other letters</source>
+        <translation>Andere Buchstaben</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Use these</source>
+        <translation>Diese verwenden</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Close</source>
+        <translation>Schließen</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Words I found</source>
+        <translation>Wörter, die ich gefunden habe</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No words yet</source>
+        <translation>Noch keine Wörter</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Show me a start</source>
+        <translation>Zeig mir einen Anfang</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>New board</source>
+        <translation>Neues Brett</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Start here</source>
+        <extracomment>The screen-reader name of the ring that lights the start tile.</extracomment>
+        <translation>Hier beginnt es</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Earlier boards</source>
+        <translation>Frühere Bretter</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>%1, row %2, column %3</source>
+        <translation>%1, Zeile %2, Spalte %3</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1, found</source>
+        <translation>%1, gefunden</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Board</source>
+        <extracomment>The screen-reader name of the replica of the board.</extracomment>
+        <translation>Brett</translation>
+    </message>
+</context>
+<context>
+    <name>SoloWording</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloWording.qml" line="+16"/>
+        <source>Back</source>
+        <translation>Zurück</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Earlier boards</source>
+        <translation>Frühere Bretter</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>For grown-ups</source>
+        <translation>Für Erwachsene</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Shake</source>
+        <extracomment>Shake the box to roll the dice; the button and Space do the same.</extracomment>
+        <translation>Schütteln</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 by %1 board</source>
+        <extracomment>The size of the board: &quot;3 by 3 board&quot;.</extracomment>
+        <translation>%1-mal-%1-Brett</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Words I found</source>
+        <translation>Wörter, die ich gefunden habe</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Show me a start</source>
+        <extracomment>Light the first tile of a word that has not been found yet.</extracomment>
+        <translation>Zeig mir einen Anfang</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Done</source>
+        <extracomment>Hand in the word that has been traced or tapped.</extracomment>
+        <translation>Fertig</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>%1, found</source>
+        <translation>%1, gefunden</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Close</source>
+        <translation>Schließen</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Play again</source>
+        <translation>Nochmal spielen</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Board</source>
+        <translation>Brett</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Start here</source>
+        <extracomment>The screen-reader name of the ring that lights the start tile.</extracomment>
+        <translation>Hier beginnt es</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>%1, row %2, column %3</source>
+        <translation>%1, Zeile %2, Spalte %3</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Jewel, row %1, column %2</source>
+        <translation>Juwel, Zeile %1, Spalte %2</translation>
+    </message>
+</context>
+</TS>

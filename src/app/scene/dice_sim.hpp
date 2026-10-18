@@ -35,6 +35,11 @@ public:
     Q_INVOKABLE void advance(double seconds);
     Q_INVOKABLE void setLid(bool on);
 
+    // How many whole simulation steps the world has taken since reset(): the
+    // work of a play, counted, for the scene's work budget and the trace's
+    // scene.step value.
+    [[nodiscard]] Q_INVOKABLE int steps() const;
+
     // The face of each die that is to be up when it is home (0 to 5, in the order
     // of the simulation's faces: +x, -x, +y, -y, +z, -z), or -1: one number for each
     // die. A die with a face to be up is its own die and goes to its own cell.

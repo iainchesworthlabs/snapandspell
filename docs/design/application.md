@@ -1,7 +1,8 @@
 # Application design
 
 The screens and how they connect, the sizes of things a child touches, type,
-colour, accessibility, sound and touch feedback, how the privacy rules of the
+the interface's languages and right-to-left layouts, colour, accessibility,
+sound and touch feedback, how the privacy rules of the
 MVP are built in and checked, and what the application needs from Qt and the
 operating system. Written from the
 [product requirements](../product-requirements.md) sections 2, 7, 10 and 12.
@@ -191,6 +192,65 @@ books), no sentences in capitals.
 - **Which requirement wins (40).** Clarity. A school face is offered only where
   it passes the same glyph check as above for the places it applies.
 
+## Languages, right-to-left and fonts
+
+**As built:** the window is offered in **English, French, Spanish, German,
+Yiddish, Hebrew, Chinese and Japanese** (`en`, `fr`, `es`, `de`, `yi`, `he`,
+`zh`, `ja`). The Language row in the parent area offers those eight and
+**System**, which is the device's own language when it is one of them and
+English otherwise. The setting is kept in the store with the others, so it
+survives a restart, and the language is in force before the window is built:
+`LanguageManager` (`src/app/language_manager.*`) installs the catalogue and sets
+`QGuiApplication::setLayoutDirection` before the engine loads. A change in the
+parent area installs the new catalogue, turns the layout and calls
+`QQmlEngine::retranslate()`, so every `qsTr()` sentence on screen changes at
+once without a restart.
+
+**The catalogues.** One Qt Linguist `.ts` file per language is in `i18n/`,
+generated from the QML sources with the kit's `lupdate`
+(`cmake --build <build> --target wjs_update_translations`), and `lrelease`
+compiles them at build time into `:/i18n/wjs_<code>.qm`, embedded in the
+application (docs/building.md, "The interface's languages"). English is the
+source language and has a catalogue too, so the eight are checked alike. Every
+user-facing string is `qsTr()`; the sentences of an area live in that area's
+wording file (`ParentWording.qml`, `ScanWording.qml`, `SoloWording.qml`,
+`HomeWording.qml`), and only the shell's window title is inline. `qWarning()`
+and error text a developer reads stay English.
+
+**What is translated.** The chrome: every label, sentence, accessible name and
+message. **Not** the board: the dice letters, the words in the tray, the ENABLE
+word list and the phonics content are English, because the game is an English
+word game (audit-0.1.md, "Languages, RTL and i18n"). The translations are
+**mechanical and unreviewed**; they are listed with the phonics content for the
+literacy/reviewer pass, which decides the wording a child and a parent see.
+
+**Right to left.** Hebrew and Yiddish read right to left. The window sets
+`LayoutMirroring.enabled` with `childrenInherit` from the language, and the
+screens that need the direction for something other than anchors read
+`Theme.rightToLeft`/`ParentTheme.rightToLeft`: the navigation bars put the way
+back on the leading edge, the parent area's rows and choices order from it, the
+gate's words and two symmetric spots follow it, and the two-thirds/one-third
+split puts the panel on the trailing side (the left) and the board on the
+leading side (the right). The **board never mirrors**: the dice, the tiles, the
+trace path and the 2D and 3D scenes keep their reading order and their
+coordinates in every language (`LayoutMirroring.enabled: false` on the board
+containers). Numbers and dates use the locale.
+
+**Fonts.** Andika (SIL OFL) remains the intended face for beginning readers and
+is **not bundled yet**; Qt falls back per glyph through the platform's fonts.
+On Windows that is Segoe UI/Arial for Hebrew and Yiddish and Microsoft YaHei and
+Yu Gothic for Chinese and Japanese; on the iPad it is PingFang and Hiragino.
+CJK faces are **not bundled** (about 16 MB); the system fallback is documented
+and accepted, and no CJK text is ever drawn into a picture. If a device's chain
+turned out to lack a Hebrew or Yiddish glyph, Noto Sans Hebrew (OFL, also not
+bundled) would be added to the asset directory, the resource and the font family
+list, and recorded in [Licensing](../licensing.md). A test lays out a sample
+sentence in each of the eight languages with the app's font chain and skips
+itself, with a message, on a platform whose fonts lack the script; it is a
+Windows check today (docs/testing.md). **Recorded:** run on Windows on
+2026-10-19, the chain carried every glyph of all eight samples (Latin with
+accents, Hebrew, Yiddish, Chinese and Japanese).
+
 ## Colour and contrast
 
 The brief gives no palette. These are **placeholders** chosen to be measured,
@@ -198,7 +258,10 @@ not designs; the numbers are WCAG 2.x contrast ratios computed from the
 values, and are the gate a final palette has to meet. Cubeulator holds its
 tokens to the same gate with a script (`docs/design/tools/check_tokens.py`).
 The board is dark in both themes, so the dice read the same; the chrome around
-it follows the system's light or dark setting.
+it follows the **Colour scheme** setting: System (the default) follows the
+operating system's light or dark setting, and Light or Dark is the parent's
+choice for the whole program (the house standard of the sibling projects,
+decided 2026-10-18).
 
 | Pair | Values | Ratio | Target |
 | --- | --- | --- | --- |
@@ -230,7 +293,9 @@ core seen against the dice. And:
   page, 4.49 on a card, 5.16 on the panel), the button `#7DB4EE` under `#0E1620`
   (8.35, and 8.33 on the page). The board is the same in both, so its edge, which
   the dark tray would otherwise lose against a dark page, is `#8C98A8` (5.66 on
-  the board area). Nothing here has been looked at on a device.
+  the board area). The parent area's tokens (`ParentTheme.qml`) are the same
+  pairs under its own names, so the ratios carry over. Nothing here has been
+  looked at on a device.
 
 ## Motion
 
@@ -252,6 +317,13 @@ brief's strong effects are limited, because they are strong for a young child
 **Who sets it.** The system's reduced-motion setting is the default and the
 parent area can override it (Motion: System, Reduced). It is a parent's
 decision, not a child's, and it is not behind the game.
+
+**The shake and the drop are the 3D board scene**
+([Board](board.md#the-shake-and-the-drop)). With reduced motion the scene keeps
+the box still, cross-fades the lid and fades the dice in on the faces the roll
+left up; nothing tumbles, and the board appears and plays as it does otherwise.
+The scene draws no particles of its own; the single slow glow when the board
+clears is the 2D layer's and is switched off with reduced motion too.
 
 ## Accessibility
 
@@ -344,3 +416,11 @@ Android package, an iOS property list and a web page wait for those targets.
 - Whether an iPad can give any haptic feedback (see above).
 - The size of Andika and its glyphs at these sizes.
 - The licences of the Qt modules not in the tree and of the school fonts.
+- **The translations**: all eight catalogues are mechanical and unreviewed. The
+  reviewer's decisions are the wording a child and a parent read, what each
+  language calls the sounds and the tiers, and whether a translated UI over an
+  English board is enough for a family whose language is not English.
+- **The fonts on a device**: the glyph check is a Windows check today. Whether
+  the iPad's fallback covers every Hebrew and Yiddish sentence, and whether the
+  Chinese and Japanese sentences read well at the sizes in use, is looked at on
+  a device, not here.

@@ -1,0 +1,13 @@
+Bundled assets
+--------------
+
+- The board scene's light probe, src/app/qml/scene/lightprobe/sky.ktx, is the
+  project's own: it is baked by tools/lightprobe from the sky the scene would
+  otherwise make at run time, and it is not third-party artwork. It is compiled
+  into the application's resources, so no file of it is installed.
+
+- No font is bundled. The screens ask for Andika, which is not shipped, and
+  fall back through the platform's own fonts per glyph. Andika (SIL Open Font
+  License) will be added with its licence text and glyph check before it ships
+  (docs/licensing.md, "Fonts and the interface's languages"), and no CJK face
+  is bundled.

@@ -32,8 +32,15 @@ void SoloLayout::setBoardSize(int size) {
     }
 }
 
+void SoloLayout::setRightToLeft(bool right_to_left) {
+    if (right_to_left_ != right_to_left) {
+        right_to_left_ = right_to_left;
+        update();
+    }
+}
+
 void SoloLayout::update() {
-    result_ = solo_layout(width_, height_, count(board_size_));
+    result_ = solo_layout(width_, height_, count(board_size_), right_to_left_);
     emit changed();
 }
 
@@ -49,7 +56,7 @@ int SoloLayout::largestOffered() const {
 }
 
 qreal SoloLayout::tileFor(int size) const {
-    return solo_layout(width_, height_, count(size)).metrics.tile;
+    return solo_layout(width_, height_, count(size), right_to_left_).metrics.tile;
 }
 
 bool SoloLayout::offers(int size) const {

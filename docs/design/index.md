@@ -144,7 +144,7 @@ the session notes outside the repository.
 - Qt Multimedia, Qt Sensors and Qt TextToSpeech, and the iOS kit: not in the
   shared tree. Their licence expressions come from documentation and headers
   read, not from SBOMs.
-- Tracy's headers were read from source at v0.13.1 and not compiled.
+- Tracy's headers were read from source at v0.14.1 and not compiled.
 - Whether an iPad has any haptic feedback; whether the stores accept a
   two-spot gate.
 - The school fonts' licences; the dice owned by the author.

@@ -43,10 +43,16 @@ class SoloModel : public QObject {
     Q_PROPERTY(QVariantList sizes READ sizes CONSTANT)
 
     // The board on the table: empty in the box until the first shake. A dead
-    // jewel is "". `boardVersion` is a new number for each board dealt.
+    // jewel is "". `faces` is the six faces of the die on each tile, row-major,
+    // and `up` is which of them is up, for the scene to tumble them; both are
+    // empty when the board was not rolled from dice (the phonics board, a board
+    // brought back from the store, the fake game). `boardVersion` is a new number
+    // for each board dealt.
     Q_PROPERTY(int rows READ rows NOTIFY boardChanged)
     Q_PROPERTY(int columns READ columns NOTIFY boardChanged)
     Q_PROPERTY(QStringList tiles READ tiles NOTIFY boardChanged)
+    Q_PROPERTY(QVariantList faces READ faces NOTIFY boardChanged)
+    Q_PROPERTY(QVariantList up READ up NOTIFY boardChanged)
     Q_PROPERTY(uint seed READ seed NOTIFY boardChanged)
     Q_PROPERTY(int boardVersion READ boardVersion NOTIFY boardChanged)
 
@@ -80,6 +86,8 @@ public:
     [[nodiscard]] int rows() const;
     [[nodiscard]] int columns() const;
     [[nodiscard]] QStringList tiles() const;
+    [[nodiscard]] QVariantList faces() const;
+    [[nodiscard]] QVariantList up() const;
     [[nodiscard]] uint seed() const;
     [[nodiscard]] int boardVersion() const { return board_version_; }
     [[nodiscard]] QVariantList path() const;

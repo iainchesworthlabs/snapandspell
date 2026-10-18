@@ -1,0 +1,10 @@
+Word Jewels Solver and the wjs library
+--------------------------------------
+
+Copyright (C) Iain Chesworth and contributors.
+https://github.com/iainchesworthlabs/wordjewelssolver
+
+The project is free software under the GNU General Public License, version 3,
+or (at your option) any later version. The full text is LICENSE.txt beside this
+file. The source is the repository named above, at the version this build was
+made from.

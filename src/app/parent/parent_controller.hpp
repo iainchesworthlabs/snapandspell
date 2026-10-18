@@ -73,9 +73,20 @@ class ParentController : public QObject {
     // for System, which is not a choice for or against.
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY settingsChanged)
     Q_PROPERTY(double textScale READ textScale NOTIFY settingsChanged)
+    // The Colour scheme setting, "system", "light" or "dark". The window applies
+    // it to every screen's chrome; System follows the operating system.
+    Q_PROPERTY(QString colourScheme READ colourScheme NOTIFY settingsChanged)
+    // The Language setting: one of the eight codes, or "" for the device's own.
+    // The window hands it to LanguageManager, which installs the catalogue and
+    // sets the direction (qml/Main.qml).
+    Q_PROPERTY(QString language READ language NOTIFY settingsChanged)
 
     // --- about ------------------------------------------------------------------
     Q_PROPERTY(QString version READ version CONSTANT)
+    // The third-party notices this build carries, for the About screen's
+    // Licences view: :/notices/NOTICES.txt, the same text installed beside the
+    // programs (cmake/Notices.cmake).
+    Q_PROPERTY(QString licenceNotices READ licenceNotices CONSTANT)
 
 public:
     explicit ParentController(QObject* parent = nullptr);
@@ -156,7 +167,10 @@ public:
     [[nodiscard]] QString motion() const;
     [[nodiscard]] bool reducedMotion() const;
     [[nodiscard]] double textScale() const;
+    [[nodiscard]] QString colourScheme() const;
+    [[nodiscard]] QString language() const;
     [[nodiscard]] QString version() const;
+    [[nodiscard]] QString licenceNotices() const;
 
 signals:
     void unlockedChanged();

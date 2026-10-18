@@ -1,9 +1,12 @@
 # Shake prototype
 
 The board scene of [Board](board.md#the-shake-and-the-drop), built in Qt Quick 3D
-behind its one-component seam, and what it cost on one desktop. A prototype:
-it answers "can it be done, what does it cost, and what must the seam say", and
-it is not the game's board.
+behind its one-component seam, what it cost on one desktop, and the harness it was
+measured with. It is the scene the application plays: the QML module
+`WordJewelsSolver.Scene` (in `src/app/scene`, with its QML in
+`src/app/qml/scene`) is linked by both `WordJewelsSolver` and the harness,
+`ShakePrototype`. The harness is still a program of its own, for timing, stills
+and the physics that are not a game screen.
 
 **Nothing here was measured on an iPad, or on any tablet or phone.** The shared
 Qt tree has no iOS kit, so the prototype could not be built for one. Every
@@ -12,36 +15,46 @@ still the estimate [Performance](performance.md#budgets) already makes.
 
 **Licence.** A build that links Qt Quick 3D is **GPL-3.0 only**: Qt offers
 `Quick3D` as `LicenseRef-Qt-Commercial OR GPL-3.0-only` (SBOM, checked in
-[Board](board.md#rendered-3d-or-drawn-in-2d)). `ShakePrototype` links it, so it
-is GPL-3.0 only, and it is a program of its own so that `WordJewelsSolver`
-does not. The decision stands as the author made it on 2026-10-16: the MVP is
-a private build, and D2 is taken before any store, with the seam in hand.
+[Board](board.md#rendered-3d-or-drawn-in-2d)). `WordJewelsSolver` links the scene
+module and so is GPL-3.0 only; `ShakePrototype` links it too. The decision stands
+as the author made it on 2026-10-16: the MVP is a private build, and D2 is taken
+before any store, with the seam in hand. The 2D implementation of the same
+interface is kept at `src/app/qml/scene/fallback/` and is not built.
 
-**Checked, not changed:** with the option off nothing links Qt Quick 3D and no
-`Qt6Quick3D.dll` is deployed. But the application's deploy directory already
-holds `Qt6Quick3DUtils.dll` (also GPL-3.0 only in the SBOM), because
-`windeployqt` copies the QML debugger's `qmltooling\qmldbg_quick3dprofiler.dll`,
-which depends on it. The application does not link it and the plugin loads only
-when QML debugging is switched on, but it is in the folder that would ship.
-`windeployqt --skip-plugin-types qmltooling` would keep it out; that is the
-platform fragment's to change, not this page's, and is left for the author.
+## Deploy
+
+Before the application linked Quick 3D itself, `windeployqt` already copied
+`Qt6Quick3DUtils.dll` (GPL-3.0 only in the SBOM) into the application's deploy
+directory, because it copies the QML debugger's
+`qmltooling\qmldbg_quick3dprofiler.dll`, which depends on it. The plugin loads
+only when QML debugging is switched on, but it was in the folder that would
+ship. `src/platforms/windows/platform.cmake` now passes
+`windeployqt --skip-plugin-types qmltooling`: the whole debugger plugin type is
+left out, so no program gets the Quick 3D profiler plugin, and a program that
+does not link Quick 3D no longer gets `Qt6Quick3DUtils` through it. A program
+that does link Quick 3D still gets `Qt6Quick3DUtils` as one of that module's own
+runtime DLLs, which is expected: the application now links Quick 3D and is
+GPL-3.0 only. The deploy log says
+`Skipping plugin qmldbg_quick3dprofilerd.dll due to skipped plugin type
+qmltooling` for every program this function deploys.
 
 ## What was built
 
 | Part | Where | What it is |
 | --- | --- | --- |
-| The scene | `src/app/prototype/shake/qml/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die, a letter atlas, a baked light probe. Draws the poses the script gives it |
-| The script | `qml/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or the simulated dice. Keeps the clock, the stages, the box, the lid and the camera. Plain JavaScript, no QML and no renderer |
-| The dice | `sim/` (the `wjs_dice_world` library), `dice_sim.*`, `die_geometry.*` | Rigid cubes in a box, simulated from first principles by sequential impulses, in about 1,400 lines of plain C++ with no Qt, and two thin objects over it for QML: the simulation, and the mesh of a bevelled die whose six letters each turn a quarter turn at a time. Tested without a window by `tests/prototype/dice_world_test.cpp` |
-| The faces | `qml/FaceAtlas.qml`, `qml/Die.qml` | One texture for the board's dice, a block of 3 x 2 cells for each, a cell to a face; each die's cube samples its own block. A dead jewel is a die of six cells of four facets, drawn once and shared. The scene holds two atlases, so that a board can be drawn ahead (`prepare`) |
-| The harness | `qml/ShakeWindow.qml`, `frame_stats.*`, `dice_roller.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, the library's dice roll (`DiceRoller`, which links `wjs::lib` and embeds `data/dice`), and the timing and measurement runs |
-| The probe | `tools/lightprobe`, `qml/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
+| The scene | `src/app/qml/scene/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die, a letter atlas, a baked light probe. Draws the poses the script gives it. It is the application's, in the QML module `WordJewelsSolver.Scene` (`src/app/scene/CMakeLists.txt`) |
+| The script | `src/app/qml/scene/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or the simulated dice. Keeps the clock, the stages, the box, the lid and the camera. Plain JavaScript, no QML and no renderer |
+| The dice | `src/app/scene/sim/` (the `wjs_dice_world` library), `dice_sim.*`, `die_geometry.*` | Rigid cubes in a box, simulated from first principles by sequential impulses, in about 1,400 lines of plain C++ with no Qt, and two thin objects over it for QML: the simulation, and the mesh of a bevelled die whose six letters each turn a quarter turn at a time. Tested without a window by `tests/prototype/dice_world_test.cpp` |
+| The faces | `src/app/qml/scene/FaceAtlas.qml`, `src/app/qml/scene/Die.qml` | One texture for the board's dice, a block of 3 x 2 cells for each, a cell to a face; each die's cube samples its own block. A dead jewel is a die of six cells of four facets, drawn once and shared. The scene holds two atlases, so that a board can be drawn ahead (`prepare`) |
+| The harness | `src/app/prototype/shake/qml/ShakeWindow.qml`, `frame_stats.*`, `dice_roller.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, the library's dice roll (`DiceRoller`, which links `wjs::lib` and embeds `data/dice`), and the timing and measurement runs. It imports the scene module and creates the same `BoardScene` the application plays |
+| The probe | `tools/lightprobe`, `src/app/qml/scene/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
 
-It is behind `-DWJS_BUILD_SHAKE_PROTOTYPE=ON`, off by default, and the default
-build is unchanged: the option adds one program and finds one more Qt module.
-The scene has no game rules in it: a face is an opaque string and `""` is a
-jewel (a dead jewel is a die of six). Its script is also run by a ctest case
-when the prototype is built (`tests/app/shake_script_test.cpp`).
+It is behind `-DWJS_BUILD_SHAKE_PROTOTYPE=ON`, off by default. The application no
+longer needs the option: with `WJS_BUILD_APP=ON` it links Quick 3D and the scene
+module, so its binary is GPL-3.0 only. The scene has no game rules in it: a face
+is an opaque string and `""` is a jewel (a dead jewel is a die of six). Its
+script is also run by a ctest case when the application is built
+(`tests/app/shake_script_test.cpp`), against the application's copy of the file.
 
 ### The interface
 
@@ -49,7 +62,7 @@ when the prototype is built (`tests/app/shake_script_test.cpp`).
 | --- | --- | --- |
 | `play(board, seed)` | function | Shake, lid, drop, settle, for `board = { rows, columns, tiles, faces, up }`: for each tile, row-major, its letters, the six faces of the die on it, and which is up ([Real faces](#real-faces)). The dice are in the box at the first frame |
 | `show(board)` | function | The board already down, with no motion: a resumed game, a rotated window |
-| `prepare(board)` | function | Optional. Draws the board's faces ahead of `play` or `show` of that board, so that the frame in which it arrives has less to do ([the real faces](#the-real-faces)); nothing changes on screen. A board that was not prepared is drawn when it arrives, as before |
+| `prepare(board)` | function | Draws the board's faces ahead of `play` or `show` of that board, so that the frame in which it arrives has less to do ([the real faces](#the-real-faces)); nothing changes on screen. A board that was not prepared is drawn when it arrives, as before. The application gives the dealt board to it and starts the play on the next frame |
 | `reducedMotion` | in | The cross-fading variant of every stage |
 | `pushMotion(ax, ay, az, wx, wy, wz)` | function | One sample of the device's motion, about a hundred a second: the accelerometer's reading in g, gravity included (face up and still it reads 0, 0, 1; x right, y up the screen, z out of it), and the gyroscope's in rad/s. The dice answer to it sample for sample, and the rattle holds on, up to 3 s, while it reads as shaking. With none, a seeded stand-in shakes |
 | `settled()` | signal | Once per play, when the dice have stopped |
@@ -62,6 +75,13 @@ when the prototype is built (`tests/app/shake_script_test.cpp`).
 are settings of the 3D implementation and are not part of the seam.
 `seek(board, seed, ms)`, `digest(board, seed)` and `faceReport(board, seed)` are
 for tests and pictures.
+
+The application creates the scene once, behind home, in `Main.qml`: `SoloScreen`
+is made at start-up and kept, rather than built when Solo Play is opened or when
+Shake is pressed. The box it draws before the first board is the scene's empty
+board (no dice, the lid on). A board with no faces in the map, as the phonics
+board and a board the store brought back have, is drawn with the tile's letters on
+all six sides, the way the first scene drew it.
 
 ### The two scripts
 
@@ -935,9 +955,11 @@ Everything the application knows is the table in [The interface](#the-interface)
 What a 2D `BoardScene` has to keep:
 
 1. **The same name and members**, from the same module. QML has no interface
-   type, so the contract is the list and a test that loads either file and
-   checks it. The build picks the file (two files, one type name, chosen in
-   CMake), not a preprocessor test.
+   type, so the contract is the list and a test that checks the files
+   (`app.scene_contract`). The implementation kept for this is
+   `src/app/qml/scene/fallback/BoardScene.qml` (with its `SceneDie.qml` and
+   `SceneScript.js`), and it is not built. To swap it in, its file and the module
+   the build lists are changed, not a preprocessor test.
 2. **The same script, and the same dice.** `ShakeScript.js` has no renderer
    in it: `create`, `advance` and `evaluate` give each die's position and
    orientation (three angles when staged, a quaternion when simulated), its
@@ -998,9 +1020,10 @@ built on it:
   changes, but a 2D layer over the scene has to be the one the settled board
   needs (it is drawn once the dice are down) and the board is smaller on
   screen for the shake. 3D only.
-- **A rule for the application, no code:** the first board's `show()` is where
-  the one-time costs go, so the application creates the scene at start-up with
-  the first board and not on the first press of Shake.
+- **Done: the application creates the scene once, behind home.** `Main.qml` makes
+  `SoloScreen`, and so the `View3D`, at start-up and keeps it; the scene is not
+  made when Solo Play is opened or when Shake is pressed. It is given the first
+  board it has (the closed box, or a game the store brought back) then.
 
 ## What was not measured
 

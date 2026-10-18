@@ -1,6 +1,7 @@
 # The dice simulation (docs/design/shake-prototype.md, "The two scripts"): rigid cubes
-# in a box, by sequential impulses. Plain C++ with no Qt and no
-# renderer, so the tests can run it headless and a different scene could use it.
+# in a box, by sequential impulses. Plain C++ with no Qt and no renderer, so the
+# tests can run it headless; the scene's QML object over it (../dice_sim.*) drives
+# it, and a different scene could use it too.
 add_library(wjs_dice_world STATIC
     dice_world.cpp
     dice_world.hpp

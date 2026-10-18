@@ -27,6 +27,8 @@ Item {
     readonly property real margin: Theme.space2
     readonly property bool pending: solo.path.length > 0 && !solo.pointerDown
     readonly property bool hintShown: solo.helpAllowed || pending
+    // Hebrew and Yiddish: the hint and the history swap sides in a tall panel.
+    readonly property bool mirrored: Theme.rightToLeft
 
     // The hint and the history each have a card, at least as high as the 64 dp
     // button in it and its margins; the tray takes what is left.
@@ -54,7 +56,7 @@ Item {
         border.color: Theme.outline
 
         Accessible.role: Accessible.List
-        Accessible.name: qsTr("Words I found")
+        Accessible.name: SoloWording.wordsFound
 
         ListView {
             id: words
@@ -74,7 +76,7 @@ Item {
                 height: Theme.targetChild
 
                 Accessible.role: Accessible.ListItem
-                Accessible.name: qsTr("%1, found").arg(modelData.word)
+                Accessible.name: SoloWording.found(modelData.word)
                 Accessible.onPressAction: Feedback.cue("speak", modelData.word)
 
                 Jewel {
@@ -123,7 +125,7 @@ Item {
     Rectangle {
         id: hint
         visible: root.hintShown
-        x: root.margin
+        x: root.wide || !root.mirrored ? root.margin : root.width - width - root.margin
         y: tray.y + tray.height + root.margin
         width: root.wide ? root.width - 2 * root.margin : (root.width - 3 * root.margin) / 2
         height: root.cardHeight
@@ -145,7 +147,7 @@ Item {
             hoverFill: Qt.rgba(0.12, 0.16, 0.22, 0.12)
             pressFill: Qt.rgba(0.12, 0.16, 0.22, 0.24)
             iconName: "hint"
-            accessibleName: qsTr("Show me a start")
+            accessibleName: SoloWording.showStart
             onClicked: root.solo.askHelp()
         }
 
@@ -182,7 +184,7 @@ Item {
             width: Math.max(Theme.targetChild, Math.min(parent.width - 2 * Theme.space2, Theme.doneWidth))
             height: Theme.targetChild
             variant: "primary"
-            accessibleName: qsTr("Done")
+            accessibleName: SoloWording.done
             onClicked: root.solo.done()
 
             Jewel {
@@ -206,11 +208,12 @@ Item {
     // --- history: earlier boards -------------------------------------------------------------
     Rectangle {
         id: history
-        x: root.wide || !root.hintShown ? root.margin : hint.x + hint.width + root.margin
+        x: root.wide || !root.hintShown ? root.margin
+           : (root.mirrored ? root.margin : hint.x + hint.width + root.margin)
         y: root.wide && root.hintShown ? hint.y + hint.height + root.margin
                                        : tray.y + tray.height + root.margin
         width: root.wide || !root.hintShown ? root.width - 2 * root.margin
-                                            : root.width - x - root.margin
+                                            : (root.width - 3 * root.margin) / 2
         height: root.cardHeight
         color: Theme.card
         border.width: Theme.rule
@@ -241,7 +244,7 @@ Item {
             onClicked: root.historyRequested()
         }
         Accessible.role: Accessible.Button
-        Accessible.name: qsTr("Earlier boards")
+        Accessible.name: SoloWording.earlierBoards
         Accessible.onPressAction: root.historyRequested()
 
         // Smaller: one button that opens the sheet.
@@ -250,7 +253,7 @@ Item {
             anchors.centerIn: parent
             variant: "secondary"
             iconName: "history"
-            accessibleName: qsTr("Earlier boards")
+            accessibleName: SoloWording.earlierBoards
             onClicked: root.historyRequested()
         }
     }

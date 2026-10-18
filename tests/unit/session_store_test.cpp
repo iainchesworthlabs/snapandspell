@@ -597,20 +597,37 @@ TEST_CASE("a game in the box has no board to say which mode it was", "[session-s
     CHECK(back->seed == 9U);
 }
 
-TEST_CASE("the store does not yet keep a standard game in progress", "[session-store][standard]") {
-    // Store::save_session keeps a board in progress only if it lists every word
-    // of it, which a phonics board's few are, and the saved board of the file
-    // needs the list. A standard board holds tens to hundreds of words and lists
-    // none, so the store refuses it and keeps nothing, and the app starts the
-    // next run in the box. The session itself comes back from such a snapshot
-    // (the cases around this one); the store is what has to learn to keep the
-    // count in place of the list.
+TEST_CASE("the store keeps a standard game in progress by the count of its words",
+          "[session-store][standard]") {
+    // A standard board holds tens to hundreds of words and lists none of them:
+    // the saved game carries how many there were, which is what the session
+    // checks the board against when it comes back.
     const auto saved = wjs::saved_session_of(standard_snapshot({jewel("PAT")}));
     REQUIRE(saved.has_value());
     auto store = wjs::Store::in_memory();
 
-    CHECK_FALSE(store.save_session(saved));
-    CHECK_FALSE(store.session().has_value());
+    REQUIRE(store.save_session(saved));
+    REQUIRE(store.session().has_value());
+    REQUIRE(store.session()->board.has_value());
+    CHECK(store.session()->board->phase.empty());
+    CHECK(store.session()->board->viable.empty());
+    CHECK(store.session()->board->viable_total == 5);
+
+    // Through the store's file and back: the snapshot is the one that was saved.
+    const auto parsed = wjs::parse_store(wjs::serialize_store(store.data()));
+    REQUIRE(parsed.has_value());
+    REQUIRE(parsed->data.session.has_value());
+    const auto after = wjs::session_snapshot_of(*parsed->data.session);
+
+    REQUIRE(after.has_value());
+    CHECK(after->mode == wjs::BoardMode::standard);
+    CHECK(*after == standard_snapshot({jewel("PAT")}));
+    auto restored = wjs::GameSession::restore(*after, standard_data(), {});
+    REQUIRE(restored.has_value());
+    CHECK(restored->mode() == wjs::BoardMode::standard);
+    CHECK(restored->state() == SessionState::playing);
+    CHECK(restored->finds().size() == 1);
+    CHECK(restored->finds()[0].word == "PAT");
 }
 
 TEST_CASE("a standard game's saved session is brought back by the session",

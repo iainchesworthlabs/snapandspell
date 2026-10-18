@@ -29,6 +29,7 @@ QtObject {
     readonly property string back: qsTr("Back")
     readonly property string tabDashboard: qsTr("Dashboard")
     readonly property string tabSettings: qsTr("Settings")
+    //: The About tab of the parent area, and the heading of the page it shows.
     readonly property string tabAbout: qsTr("About")
     readonly property string nothingYet: qsTr("Nothing to show yet.")
 
@@ -44,8 +45,10 @@ QtObject {
     readonly property string gateSpot: qsTr("Open the parent area. Hold both circles with two fingers, or activate this to open it.")
 
     // --- the dashboard ---------------------------------------------------------
+    //: The graphemes of the phonics phase, and how often each has come up.
     readonly property string soundsHeading: qsTr("Sounds")
     readonly property string vaultHeading: qsTr("The vault")
+    //: The best board found at each board size.
     readonly property string bestHeading: qsTr("Best")
     readonly property string notMetYet: qsTr("not met yet")
     readonly property string oftenFound: qsTr("Often found")
@@ -104,39 +107,70 @@ QtObject {
     // --- the settings ----------------------------------------------------------
     readonly property string settingsHelp: qsTr("Help")
     readonly property string settingsHelpHint: qsTr("The start tile: one tile glows to show where a word begins.")
+    //: The board setting (standard dice or the phonics words), not its size.
     readonly property string settingsBoard: qsTr("Board")
     readonly property string settingsBoardHint: qsTr("Standard: dice and any word. Phonics: the words of a phase, with their sounds.")
+    //: A phase of the phonics scheme; the repository's are named A and B.
     readonly property string settingsPhase: qsTr("Phase")
+    //: The graphemes the school is working on this week.
     readonly property string settingsFocus: qsTr("Focus sounds")
     readonly property string settingsFocusHint: qsTr("The sounds the school is on this week. The phonics board prefers words with them.")
     readonly property string settingsBoardSize: qsTr("Board size")
     readonly property string settingsBoardSizeHint: qsTr("The size the box offers first.")
     readonly property string settingsSoundItOut: qsTr("Sound it out")
     readonly property string settingsCelebration: qsTr("Celebration sounds")
+    //: The sound-effects switch, not the sounds of the letters.
     readonly property string settingsSound: qsTr("Sound")
     readonly property string settingsVibration: qsTr("Vibration")
     readonly property string settingsShake: qsTr("Shake the device")
     readonly property string settingsMotion: qsTr("Motion")
     readonly property string settingsMotionHint: qsTr("System follows the device's own setting.")
+    readonly property string settingsColour: qsTr("Colour scheme")
+    readonly property string settingsColourHint: qsTr("System follows the device's own light or dark setting.")
     readonly property string settingsTextSize: qsTr("Text size")
     readonly property string settingsSchoolFont: qsTr("School font")
+    //: The interface's language; the board and its letters stay English.
+    readonly property string settingsLanguage: qsTr("Language")
+    readonly property string settingsLanguageHint: qsTr("The words on the screens. The board and its letters stay English.")
+
+    // The languages on offer, each named in its own script, in the order the
+    // design lists them (docs/audit-0.1.md, "Languages, RTL and i18n"). The names
+    // are not translated: a parent reading Hebrew sees "עברית" whatever the
+    // screens are in. `""` is the device's own language.
+    readonly property var languageChoices: [
+        {code: "fr", label: "Français"},
+        {code: "es", label: "Español"},
+        {code: "de", label: "Deutsch"},
+        {code: "yi", label: "ייִדיש"},
+        {code: "he", label: "עברית"},
+        {code: "zh", label: "中文"},
+        {code: "ja", label: "日本語"},
+        {code: "en", label: "English"}
+    ]
 
     readonly property string valueOn: qsTr("On")
     readonly property string valueOff: qsTr("Off")
     readonly property string valueStandard: qsTr("Standard")
     readonly property string valuePhonics: qsTr("Phonics")
+    //: All of the sounds: each sound of the word, then the word.
     readonly property string valueFull: qsTr("Full")
     readonly property string valueWordOnly: qsTr("The word only")
+    //: The celebration sounds at a lower volume, not silence.
     readonly property string valueQuiet: qsTr("Quiet")
+    //: Follow the device's own setting.
     readonly property string valueSystem: qsTr("System")
     readonly property string valueReduced: qsTr("Reduced")
+    readonly property string valueLight: qsTr("Light")
+    readonly property string valueDark: qsTr("Dark")
 
     // --- reset -------------------------------------------------------------------
+    //: The two confirmed resets at the foot of the settings.
     readonly property string resetHeading: qsTr("Reset")
     readonly property string resetBoards: qsTr("Clear boards and finds")
     readonly property string resetBoardsSays: qsTr("This clears the last boards and the words found on them. Stars and stickers stay.")
     readonly property string resetStars: qsTr("Clear stars and stickers")
     readonly property string resetStarsSays: qsTr("This clears the stars, the best of each board size and the stickers. Boards and finds stay.")
+    //: The second press that confirms a reset, not the word "clear" elsewhere.
     readonly property string resetConfirm: qsTr("Clear")
     readonly property string resetKeep: qsTr("Keep")
     readonly property string resetDone: qsTr("Cleared.")
@@ -152,6 +186,8 @@ QtObject {
 
     readonly property string licenceNotice: qsTr("This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.")
     readonly property string licenceParts: qsTr("It is built with Qt. The English word list is ENABLE, a public-domain list. The licences of everything in a package are listed with the package.")
+    //: Above the full notices, in their own scroll box on the About page.
+    readonly property string licencesFull: qsTr("Everything this build includes, and the licence of each part:")
     readonly property string privacyKept: qsTr("This app keeps what this screen shows, on this device only: the words found, the size of each board, the day, whether a start tile was shown, the stars and stickers, the last twenty boards and your settings.")
     readonly property string privacyNever: qsTr("It does not record sound or pictures, does not use the network and sends nothing anywhere. It does not keep how long anyone plays.")
     readonly property string privacyDevice: qsTr("Nothing moves between devices. A new device starts fresh.")

@@ -10,6 +10,11 @@ Flickable {
 
     required property var controller
 
+    // The parent area's direction, from the shell: the rows and their counts
+    // follow it (the numbers themselves do not).
+    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.childrenInherit: true
+
     readonly property var report: controller.dashboard
     readonly property var week: report.week
     readonly property bool anything: week.played || report.sounds.length > 0 || report.vault.length > 0 || report.best.length > 0

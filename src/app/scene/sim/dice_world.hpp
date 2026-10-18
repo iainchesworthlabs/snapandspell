@@ -199,6 +199,10 @@ public:
 
     // Moves time on. Whole steps are taken; what is left over is carried.
     void advance(double seconds);
+    // How many whole steps have been taken since the world was made: the work a
+    // play does, counted, which the scene's work budget holds (a step is
+    // Tuning::substep of simulated time). Exact, and the same on every machine.
+    [[nodiscard]] std::int64_t steps() const noexcept { return steps_; }
 
     // The face that each die is to be up when it is home (see Die::up): one number
     // for each die, -1 for none. A die whose face is given is a particular die (its

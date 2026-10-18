@@ -1,17 +1,16 @@
-// What shake_script_test.cpp asks of src/app/prototype/shake/qml/ShakeScript.js.
+// What shake_script_test.cpp asks of src/app/qml/scene/ShakeScript.js.
 // Plain JavaScript run in Qt's own engine, so the checks are of the script the
 // scene plays and not of a copy: the script's own text is evaluated and run(S) is
 // given its functions and the dice simulation (a DiceSim) it drives. It returns
-// the list of faults (empty when all hold) and, in `summary`, one line for each
-// group of checks, which the test prints.
+// the list of faults (empty when all hold), one line for each group of checks in
+// `summary`, which the test prints, and the work a budget holds in `work`.
 //
 // What it holds down is the part of the scene the library's roll reaches: that a
 // die lands with the face the roll says is up, shows other faces on the way, and
 // that none of this moves a die before it is sent home or changes where it lands.
 
-var summary = [];
-
 function run(S) {
+    var summary = [];
     var faults = [];
     function check(ok, what) {
         if (!ok) {
@@ -150,5 +149,40 @@ function run(S) {
     }
     summary.push("show: a board that is not played has its faces up at once");
 
-    return faults;
+    // The work a budget holds (tests/perf/budgets.hpp): one weighted 4x4 play at
+    // 60 Hz, frame by frame, to rest, counted in the simulation's whole steps;
+    // and the cells of a board's atlas, the glyph cells and the jewel cells the
+    // scene makes and draws. Both are counts, not times, so the same number is
+    // expected of every machine and compiler.
+    var workBoard = board(4, 7);
+    var workLayout = layout(true, false);
+    var workState = S.create(workBoard, 7, workLayout);
+    var workTracker = S.newTracker();
+    var workFrames = 0;
+    while (workState.stage !== "idle" && workFrames < 1000) {
+        S.advance(workState, 1000 / 60, workTracker);
+        S.evaluate(workState);
+        workFrames += 1;
+    }
+    check(workState.stage === "idle", "the work play did not finish in 1000 frames");
+    var workFaces = [];
+    for (var wd = 0; wd < 16; ++wd) {
+        workFaces.push(wd < 8 ? ["A", "B", "C", "D", "E", "F"] : ["", "", "", "", "", ""]);
+    }
+    var workAtlas = S.atlasCells(4, workFaces, 128, 3, 2);
+    var work = {
+        frames: workFrames,
+        steps: S.sim.steps(),
+        atlas: workAtlas.cells,
+        atlasLetters: workAtlas.letters.length,
+        atlasJewels: workAtlas.jewels.length
+    };
+    check(work.steps > 0, "the work play took no simulation step");
+    check(work.atlas === 6 * 16, "a 4x4 atlas is not six cells a die");
+    check(work.atlasLetters + work.atlasJewels === work.atlas, "the atlas's cells do not add up");
+    summary.push("work: a 4x4 play ran " + work.frames + " frames and " + work.steps
+                 + " simulation steps; a 4x4 atlas has " + work.atlas + " cells ("
+                 + work.atlasLetters + " letters, " + work.atlasJewels + " jewels)");
+
+    return { faults: faults, summary: summary, work: work };
 }

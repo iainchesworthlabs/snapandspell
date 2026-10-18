@@ -13,8 +13,7 @@
 #include "wjs/grapheme_binder.hpp"
 #include "wjs/solver.hpp"
 
-// A stand-in for the library's game session, so the Solo Play screens run and
-// are tested before it is wired (and whenever a test wants a game that never
+// A stand-in for the library's game session, for the tests (a game that never
 // surprises). It follows the flow of docs/design/game.md and nothing else.
 //
 // Its words are TEST DATA, not a phase and not a proposal: today's are the five

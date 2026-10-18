@@ -19,12 +19,17 @@ How to read the evidence marks:
    carry no per-file headers; `LICENSE` and `vcpkg.json` are the statement.
 2. **The history has one author**, so as far as it shows there is one
    copyright holder, and the choice of licence is theirs [V: `git shortlog`].
-3. **Nothing third-party is shipped, because nothing is packaged.** The
-   third-party code in use today is a build tool (vcpkg) and a test framework
-   (Catch2).
+3. **A Windows package ships Qt's runtime**, and now carries the third-party
+   notices and the GPL text beside the programs (`NOTICES.txt`, `LICENSE.txt`).
+   The command-line package carries no third-party code; the rest of what is
+   used today is a build tool (vcpkg) and a test framework (Catch2), neither of
+   which is in a package.
 4. **Qt 6.12 is used by the optional window** and is planned for the GUI. The
-   intent is to link only modules that are also offered under the LGPL, so that
-   "or later" stays true of the whole program (see [Qt](#qt)).
+   window links Qt Quick 3D for the 3D board scene, which Qt offers only under
+   the GPL-3.0 or commercially, so a build of the window is **GPL-3.0 only**
+   (the author's recorded decision; see [Qt](#qt)). The library and the CLI stay
+   free of Qt and of that consequence. A package of the window says so plainly
+   in its notices.
 5. **The English word list is ENABLE**, a separate public-domain work kept
    unmodified in `data/dictionaries/` (see [The word list](#the-word-list)).
 6. **The history begins with the author's own 2013 program**, written before
@@ -46,9 +51,11 @@ unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
   is no contributor agreement.
 - **Not covered by that statement:** the third-party components below, and the
   code from before the licence was chosen ([History](#history)).
-- **App stores.** There are no packages and no store listings yet, so GPLv3's
-  friction with some stores' terms is not a live question for the first
-  release. It will be when the tablet and phone targets in the
+- **App stores.** Nothing has been released and there are no store listings
+  yet, so GPLv3's friction with some stores' terms is not a live question for
+  the first release. A ZIP that a CI run produces is a package, not a
+  distribution. It will be a live question when the tablet and phone targets in
+  the
   [product requirements](product-requirements.md) and the
   [roadmap](roadmap.md) are built: the Apple App Store in particular. The
   analysis to repeat is the one in Cubeulator's
@@ -60,16 +67,51 @@ unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
 | Component | Licence | Role | In a build you distribute |
 | --- | --- | --- | --- |
 | WordJewelsSolver (`src/`, `tests/`, `tools/`, `cmake/`, `docs/`) | GPL-3.0-or-later [V] | This project | Yes |
+| `i18n/*.ts` (the interface's catalogues) | GPL-3.0-or-later, the project's own text [V] | The eight languages' wording | Yes, compiled into the application |
 | vcpkg (the labs' fork, a separate clone found through `VCPKG_ROOT`) | MIT, Copyright Microsoft Corporation [V: `LICENSE.txt` in the vcpkg clone] | Fetches and builds dependencies | No: a build tool |
 | vcpkg helper ports `vcpkg-cmake`, `vcpkg-cmake-config` | MIT [V: installed `share/*/copyright`] | Build helpers | No |
 | Catch2 3.15.3 | BSL-1.0 [V: installed `share/catch2/copyright`] | The test framework (`tests` vcpkg feature) | No: tests only |
-| Qt 6.12 (Core, Gui, Qml, Quick, Quick Controls 2) | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 [I] | The optional Qt Quick window; not built by vcpkg | Not yet: there are no packages |
+| Qt 6.12 (Core, Gui, Qml, Quick, Quick Controls 2, Quick 3D) | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 for the first five; **Quick 3D: GPL-3.0 only** [I] | The optional Qt Quick window; not built by vcpkg. A build of the window is GPL-3.0 only | Yes, in a Windows package: the DLLs, plugins and QML modules the window loads, with the LGPL text in `NOTICES.txt` |
 | Tracy | BSD-3-Clause [I] | Planned: opt-in profiling | Not present yet |
 | A camera and letter-recognition stack | Not chosen | Planned | Not present yet |
 
-Ports are listed with the licence in their installed `copyright` file. When
-packages exist, the third-party notices they must carry will be listed here
-from what actually ships, not from this table.
+Ports are listed with the licence in their installed `copyright` file. The
+notices a package carries are assembled from what actually ships
+([Notices](#notices)), not from this table.
+
+## Notices
+
+Every package carries `NOTICES.txt` beside the programs, and the application
+embeds the same text as `:/notices/NOTICES.txt`, which its About screen shows
+under Licences. The GPL text is installed beside it as `LICENSE.txt` (the
+project's `LICENSE`, unmodified).
+
+The file is assembled at configure time by `cmake/Notices.cmake` from the
+fragments in `notices/fragments/`, so the versions it names are the ones the
+build used and a package cannot be made without it. Its layers:
+
+- the project's own licence, GPL-3.0-or-later, and where the source is;
+- **the application binary is GPL-3.0-only**, because it links Qt Quick 3D,
+  which Qt offers only under GPL-3.0 or commercially ([Qt](#qt)). The notice
+  says so in capitals, next to the "or later" statement, so the two cannot be
+  confused;
+- Qt 6.12: the modules used under the LGPL, the options Qt also offers them
+  under (GPL-3.0 or commercial), the LGPL-3.0 text, how the libraries can be
+  replaced (they are linked dynamically and found beside the program through
+  `qt.conf`), where Qt's corresponding source is published, and that no Qt
+  translation catalogue is installed;
+- Qt Quick 3D, GPL-3.0-only, and that it is why the binary is;
+- ENABLE, the public-domain word list ([below](#the-word-list)), with its
+  SHA-256 and the pointer to `data/README.md`;
+- the interface's translations, which are this repository's own text;
+- the bundled light probe, the project's own, and that no font is bundled;
+- Catch2, BSL-1.0, used to build and test and **not shipped**.
+
+The `notices.sections` test holds the generated file to those sections in every
+build, and fails if a placeholder is left in it. The fragments are the place to
+change a sentence; the generated file is not edited. A third-party component
+that starts shipping means a new fragment, its licence text in
+`notices/licences/` if the terms ask for it, and the phrase the test asks for.
 
 ## Qt
 
@@ -77,25 +119,34 @@ Qt is a prebuilt dependency found through `CMAKE_PREFIX_PATH` or `QT_ROOT_DIR`;
 it is not part of the repository and is not built by vcpkg. Today only the
 optional window (`WJS_BUILD_APP`) uses it. The modules it links are Core, Gui,
 Qml, Quick and Quick Controls 2, which Qt offers under the LGPL-3.0 as well as
-the GPL [I].
+the GPL, and **Quick 3D**, which Qt offers only as commercial or GPL-3.0-only:
+the board scene is 3D, so a build of the window can be conveyed only under
+GPL-3.0 and its "or later" stops there. That is the author's decision of
+2026-10-16 for the private MVP build, and D2 (in the [roadmap](roadmap.md))
+decides what a store build does; the source files stay GPL-3.0-or-later either
+way.
 
-The rule for adding another module is to check how Qt offers it first, in "Qt
-licensing" in the Qt 6.12 documentation, and to avoid modules that are offered
-only as **GPL-3.0-only** (or commercially). The reason is the "or later": the
-project's source files are GPL-3.0-or-later, but a program that links a module
-available only under GPL-3.0-only can be conveyed only under GPL-3.0, so "or
-later" would stop being true of the whole [I][L]. Cubeulator's paper found this
-for Qt Quick 3D, which is offered as commercial or GPL-3.0-only with no LGPL
-option; it is the example to remember. A module offered under the LGPL does not
-raise it. `<qt>/sbom/*.spdx.json` in a Qt install holds the licence expression
-of every module in that install.
+The rule for adding another module is still to check how Qt offers it first, in
+"Qt licensing" in the Qt 6.12 documentation, and to avoid modules that are
+offered only as **GPL-3.0-only** (or commercially) in anything that is to keep
+the "or later". Quick 3D is the one deliberate exception, made with the decision
+and the seam above; Qt Quick 3D Physics, on the same GPL-only list, is not used.
+A module offered under the LGPL does not raise it. `<qt>/sbom/*.spdx.json` in a
+Qt install holds the licence expression of every module in that install.
 
 Qt's build tools (`moc`, `rcc`, `windeployqt` and others) are GPL-3.0 with
 Qt's GPL exception, and are not shipped; the exception covers their output [I].
 
-When packages exist, shipping Qt's LGPL modules brings their own obligations
-(the licence text, notices, and keeping the user able to replace the Qt
-libraries). They are not yet a question, because nothing is distributed.
+A package of the window on Windows ships those LGPL modules, and meets the
+obligations that come with them: the LGPL-3.0 text travels in `NOTICES.txt`
+([Notices](#notices)), the libraries are linked dynamically and can be replaced
+with a binary-compatible Qt 6 (they are loaded from beside the program through
+the `qt.conf` the install-time deploy writes), and Qt's corresponding source is
+named where it is published. The application embeds the notice, so the About
+screen shows it without a file to find. The Linux distribution packages declare
+Qt as a dependency and leave the libraries to the system; no macOS host has
+built the window with Qt yet, so that package's deployment is unverified
+([CI](ci.md)).
 
 ## The word list
 
@@ -137,6 +188,28 @@ Rules for word lists:
 - the tests use lists of a dozen words written in the test itself;
 - a list you supply with `-d` is yours, under its own terms; the program reads
   it and does not copy it anywhere.
+
+## Fonts and the interface's languages
+
+**No font is bundled yet.** The app asks for Andika (SIL OFL) and falls back per
+glyph through the platform's own fonts; the licence file and the glyph check
+are still to be done before Andika ships (application.md, "Type"). Nothing of
+Microsoft's, Apple's or Google's is copied into the repository or a package:
+Segoe UI/Arial (Hebrew), Microsoft YaHei and Yu Gothic (Chinese and Japanese) are
+the system fallback on Windows, PingFang and Hiragino on the iPad, and CJK faces
+are deliberately **not** bundled because of their size
+([Application design](design/application.md#languages-right-to-left-and-fonts)).
+If a Hebrew or Yiddish glyph is ever missing from a device's chain, Noto Sans
+Hebrew (OFL) is the candidate: it would be added under an `assets/` directory,
+the OFL text and its notice recorded here, and the file added to the resource
+and the font family list. It is not in the tree today, so it has no entry in the
+inventory.
+
+**The interface's translations** (`i18n/*.ts`) are this project's own text, under
+the project's licence, like the English wording they translate. No third-party
+translation file is used. Qt supplies the catalogue mechanism (`QTranslator`,
+`lupdate`, `lrelease`) but no translated strings of its own; the Qt translation
+catalogues (`qtbase_*.qm` and friends) are **not** installed or merged.
 
 ## Camera input and letter recognition
 

@@ -245,12 +245,22 @@ choice (the dice-and-faces design page, on its own branch at the time of
 writing); the scene takes whatever six it is given.
 
 The faces of a board are drawn into one texture, which the frame in which the
-board arrives would otherwise make and draw. The scene therefore also takes an
-optional `scene.prepare(board)`, with the board about to be played, a frame or
-more before `play` or `show` of it: it draws the texture ahead and changes
-nothing on screen. A board that was not prepared is drawn when it arrives, so
-the meaning of `play` and `show` is the same with or without it. What it saves
-is in [Shake prototype](shake-prototype.md#the-real-faces).
+board arrives would otherwise make and draw. The scene therefore also takes
+`scene.prepare(board)`, with the board about to be played, a frame or more before
+`play` or `show` of it: it draws the texture ahead and changes nothing on screen.
+A board that was not prepared is drawn when it arrives, so the meaning of `play`
+and `show` is the same with or without it. What it saves is in
+[Shake prototype](shake-prototype.md#the-real-faces). The application gives the
+dealt board to `prepare` and starts the play on the next frame.
+
+**Built.** `SoloBoard` (`src/app/solo/solo_game.hpp`) carries `faces` and `up`
+beside the tiles. `RealSoloGame::board()` takes them from
+`wjs::roll_with_placements` with the dealt board's seed on the standard board;
+the phonics board and the fake game carry none, and a game brought back from the
+store carries none (its board's roll seed was not kept). The scene is the QML
+module `WordJewelsSolver.Scene` (`src/app/scene`, QML in
+`src/app/qml/scene/`), and the 2D implementation of the same interface is kept
+at `src/app/qml/scene/fallback/` for D2 and is not built.
 
 ### Rendered 3D, or drawn in 2D
 
@@ -285,14 +295,16 @@ what Cubeulator has. The cost comes only at a store submission, so:
    seed, play the shake and the drop, and report when the dice are settled*.
    Nothing else in the application touches the scene; the game rules stay in the
    library.
-2. The scene is written in Qt Quick 3D first. A 2D implementation of the same
-   interface is the fallback if D2 goes the other way, and the tile, the path and
-   the panel are 2D in both.
+2. The scene is written in Qt Quick 3D first. **Built:** it is the QML module
+   `WordJewelsSolver.Scene`, used by Solo Play. A 2D implementation of the same
+   interface is kept for the fallback if D2 goes the other way
+   (`src/app/qml/scene/fallback/`, not built), and the tile, the path and the
+   panel are 2D in both.
 3. Before any store submission D2 is decided with the interface in hand, and the
    cost of B is a rewrite of one component, not of the game.
 
-What this commits the MVP to: Qt Quick 3D and Shader Tools are linked, so the MVP
-binary is GPL-3.0 only, which a private build does not mind and a store
+What this commits the MVP to: the application links Qt Quick 3D and Shader Tools,
+so a build of it is GPL-3.0 only, which a private build does not mind and a store
 submission would. It does not decide D2: that is taken before any store, with
 the seam in hand. Two more modules the product needs are not in the shared tree
 at all; see [Application design](application.md#qt-modules).

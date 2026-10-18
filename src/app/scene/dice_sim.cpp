@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <vector>
 
+#include "wjs/profiling.hpp"
+
 DiceSim::DiceSim(QObject* parent) : QObject(parent) {
     reset(4, 4, 1.08, 0.6, 2.42, 1);
 }
@@ -30,11 +32,21 @@ void DiceSim::setReading(double fx, double fy, double fz, double wx, double wy, 
 }
 
 void DiceSim::advance(double seconds) {
+    // One zone per call, not per step: the script calls this once a frame (or
+    // once a device sample), and the world takes the whole steps inside. The
+    // value is the steps of this call, which is the work the frame paid for.
+    auto zone = wjs::profiling::zone<"scene.step">();
+    const std::int64_t before = world_->steps();
     world_->advance(seconds);
+    zone.Value(static_cast<std::uint64_t>(world_->steps() - before));
 }
 
 void DiceSim::setLid(bool on) {
     world_->setLid(on);
+}
+
+int DiceSim::steps() const {
+    return static_cast<int>(world_->steps());
 }
 
 void DiceSim::setTargets(const QList<int>& faces) {

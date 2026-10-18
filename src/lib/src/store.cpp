@@ -487,10 +487,13 @@ bool Store::save_session(const std::optional<SavedSession>& session) {
         if (!kept.board || kept.board->size != kept.size) {
             return false;
         }
-        // Restoring solves the board again and compares: every word it held has
-        // to be kept.
+        // Restoring solves the board again and compares: a phonics board has to
+        // keep every word it held; a standard board keeps none of them, only
+        // how many there were.
+        const bool standard = kept.board->phase.empty();
         const std::optional<CheckedBoard> checked = check_board(*kept.board);
-        if (!checked || !checked->listed) {
+        if (!checked || (standard ? (checked->viable_total < 1 || !checked->viable.empty())
+                                  : !checked->listed)) {
             return false;
         }
         kept.board->tiles = checked->tiles;
@@ -499,9 +502,13 @@ bool Store::save_session(const std::optional<SavedSession>& session) {
         kept.board->finds = checked->finds;
         if (kept.lit) {
             auto lit = stored_word(*kept.lit);
-            if (!lit || kept.state != SavedState::playing ||
-                std::find(checked->viable.begin(), checked->viable.end(), *lit) ==
-                    checked->viable.end()) {
+            // The lit word is one of the board's, which a phonics board's list
+            // says and a standard board's count cannot; the session checks the
+            // word against its own solve when it restores.
+            const bool on_board =
+                standard || std::find(checked->viable.begin(), checked->viable.end(), *lit) !=
+                                checked->viable.end();
+            if (!lit || kept.state != SavedState::playing || !on_board) {
                 return false;
             }
             kept.lit = std::move(lit);

@@ -124,19 +124,26 @@ catch_discover_tests(wjs_perf_tests DISCOVERY_MODE PRE_TEST ADD_TAGS_AS_LABELS
 # when the application is.
 if(WJS_BUILD_APP)
     add_executable(wjs_app_tests
+        app/assist_game_test.cpp
         app/board_layout_test.cpp
         app/fake_solo_game_test.cpp
+        app/language_test.cpp
         app/parent_controller_test.cpp
         app/parent_ui/demo_data.cpp
         app/path_tracer_test.cpp
         app/real_solo_game_test.cpp
+        app/scan_model_test.cpp
         app/solo_model_test.cpp
         app/solver_model_test.cpp
+        app/system_colour_scheme_test.cpp
         app/system_motion_test.cpp
         "${PROJECT_SOURCE_DIR}/src/app/parent/parent_controller.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/scan/assist_game.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/scan/assist_game_factory.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/scan/assist_model.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/scan/scan_model.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/board_layout.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/fake_solo_game.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/solo/path_tracer.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/real_solo_game.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_factory.cpp"
@@ -144,15 +151,26 @@ if(WJS_BUILD_APP)
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_model.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solver_model.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/system_motion.cpp")
     set_target_properties(wjs_app_tests PROPERTIES AUTOMOC ON)
     target_include_directories(wjs_app_tests PRIVATE
         "${PROJECT_SOURCE_DIR}/src/app"
         "${PROJECT_SOURCE_DIR}/src/app/parent"
+        "${PROJECT_SOURCE_DIR}/src/app/scan"
         "${PROJECT_SOURCE_DIR}/src/app/solo"
         "${CMAKE_CURRENT_SOURCE_DIR}/app/parent_ui")
+    # The shipped data, by its path in this checkout, for the case that plays a
+    # standard board over the real dice and dictionary (real_solo_game_test.cpp),
+    # and the catalogues the interface's languages are read from
+    # (language_test.cpp).
+    target_compile_definitions(wjs_app_tests PRIVATE
+        "WJS_DATA_DIRECTORY=\"${PROJECT_SOURCE_DIR}/data\""
+        "WJS_I18N_DIRECTORY=\"${PROJECT_SOURCE_DIR}/i18n\"")
     target_link_libraries(wjs_app_tests
         PRIVATE
+            wjs_trace
+            wjs_i18n
             wjs::lib
             wjs::platform
             Qt6::Core
@@ -167,33 +185,65 @@ if(WJS_BUILD_APP)
     wjs_platform_deploy_qt_runtime(wjs_app_tests "")
     catch_discover_tests(wjs_app_tests)
 
-    # The 3D board scene's script, in Qt's own JavaScript engine with the dice
-    # simulation it drives, when the prototype is built: the dice's faces land
-    # and tumble and move nothing before they are sent home
-    # (app/shake_script_check.js). The paths are values CMake passes in.
-    if(WJS_BUILD_SHAKE_PROTOTYPE)
-        add_executable(wjs_shake_script_tests
-            app/shake_script_test.cpp
-            "${PROJECT_SOURCE_DIR}/src/app/prototype/shake/dice_sim.cpp")
-        set_target_properties(wjs_shake_script_tests PROPERTIES AUTOMOC ON)
-        target_include_directories(wjs_shake_script_tests PRIVATE
-            "${PROJECT_SOURCE_DIR}/src/app/prototype/shake")
-        target_compile_definitions(wjs_shake_script_tests PRIVATE
-            "WJS_SHAKE_SCRIPT=\"${PROJECT_SOURCE_DIR}/src/app/prototype/shake/qml/ShakeScript.js\""
-            "WJS_SHAKE_SCRIPT_CHECK=\"${CMAKE_CURRENT_SOURCE_DIR}/app/shake_script_check.js\"")
-        target_link_libraries(wjs_shake_script_tests
-            PRIVATE
-                Qt6::Core
-                Qt6::Qml
-                wjs_dice_world
-                wjs::warnings
-                wjs::sanitizers
-                wjs::coverage
-                Catch2::Catch2WithMain)
-        wjs_deploy_sanitizer_runtime(wjs_shake_script_tests)
-        wjs_platform_deploy_qt_runtime(wjs_shake_script_tests "")
-        catch_discover_tests(wjs_shake_script_tests)
-    endif()
+    # The 3D board scene's script (src/app/qml/scene/ShakeScript.js) in Qt's own
+    # JavaScript engine, so what is tested is the file the scene plays and not a
+    # copy, with the dice simulation (DiceSim) it drives. The checks are in
+    # shake_script_check.js. They are about the dice's faces: that a die lands with
+    # the face the library's roll says is up, shows other faces on the way, and that
+    # none of it moves a die before it is sent home. Built with the application,
+    # whose scene the script is.
+    add_executable(wjs_shake_script_tests
+        app/shake_script_test.cpp
+        "${PROJECT_SOURCE_DIR}/src/app/scene/dice_sim.cpp")
+    set_target_properties(wjs_shake_script_tests PROPERTIES AUTOMOC ON)
+    target_include_directories(wjs_shake_script_tests PRIVATE
+        "${PROJECT_SOURCE_DIR}/src/app/scene"
+        # budgets.hpp: the scene's work budgets are in the tier's one file.
+        "${CMAKE_CURRENT_SOURCE_DIR}/perf")
+    target_compile_definitions(wjs_shake_script_tests PRIVATE
+        "WJS_SHAKE_SCRIPT=\"${PROJECT_SOURCE_DIR}/src/app/qml/scene/ShakeScript.js\""
+        "WJS_SHAKE_SCRIPT_CHECK=\"${CMAKE_CURRENT_SOURCE_DIR}/app/shake_script_check.js\"")
+    target_link_libraries(wjs_shake_script_tests
+        PRIVATE
+            Qt6::Core
+            Qt6::Qml
+            wjs_dice_world
+            # DiceSim's scene.step zone resolves to wjs/profiling.hpp.
+            wjs::profiling
+            wjs::warnings
+            wjs::sanitizers
+            wjs::coverage
+            Catch2::Catch2WithMain)
+    wjs_deploy_sanitizer_runtime(wjs_shake_script_tests)
+    wjs_platform_deploy_qt_runtime(wjs_shake_script_tests "")
+    # Every tag is a CTest label, so the scene's work budget (tagged perf) is
+    # part of `ctest -L perf` as the tier's own cases are.
+    catch_discover_tests(wjs_shake_script_tests ADD_TAGS_AS_LABELS)
+
+    # The window's frame budget (tests/app/frame_timing_test.cpp): the
+    # application's own smoke run in a child process, and the report it prints.
+    # Its own binary because it makes a QCoreApplication for QProcess and must
+    # not share one with the model tests. It skips itself unless a clock reading
+    # is about this build (an optimised, uninstrumented one) and somebody asked
+    # for it with WJS_PERF_FRAME_TIMING=1: a shared runner has no display and
+    # never sets it. RUN_SERIAL, because a frame budget is a stopwatch.
+    add_executable(wjs_frame_timing_tests app/frame_timing_test.cpp)
+    target_include_directories(wjs_frame_timing_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/perf")
+    target_compile_definitions(wjs_frame_timing_tests PRIVATE
+        "WJS_APP_PATH=\"$<TARGET_FILE:wjs_app>\""
+        "WJS_TEST_OPTIMISED=$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,1,0>"
+        "WJS_TEST_INSTRUMENTED=$<IF:$<OR:$<BOOL:${WJS_ENABLE_COVERAGE}>,$<BOOL:${WJS_ENABLE_TRACY}>>,1,0>")
+    target_link_libraries(wjs_frame_timing_tests
+        PRIVATE
+            Qt6::Core
+            wjs::warnings
+            wjs::sanitizers
+            wjs::coverage
+            Catch2::Catch2WithMain)
+    wjs_deploy_sanitizer_runtime(wjs_frame_timing_tests)
+    wjs_platform_deploy_qt_runtime(wjs_frame_timing_tests "")
+    catch_discover_tests(wjs_frame_timing_tests DISCOVERY_MODE PRE_TEST
+        PROPERTIES RUN_SERIAL TRUE TIMEOUT 240)
 
     # The parent area's screens in a stub shell (app/parent_ui): a program to
     # look at them with, and, with --check, a test that walks the gate, the
@@ -215,6 +265,7 @@ if(WJS_BUILD_APP)
     target_link_libraries(wjs_parent_preview
         PRIVATE
             wjs_parentplugin
+            wjs_i18n
             wjs::lib
             Qt6::Core
             Qt6::Gui
@@ -225,6 +276,19 @@ if(WJS_BUILD_APP)
             wjs::coverage)
     wjs_deploy_sanitizer_runtime(wjs_parent_preview)
     wjs_platform_deploy_qt_runtime(wjs_parent_preview "${CMAKE_CURRENT_SOURCE_DIR}/app/parent_ui")
+    # The third-party notices as :/notices/NOTICES.txt, which the About page's
+    # licences view shows (cmake/Notices.cmake): the check below then reads what
+    # a package's application reads, and fails if the resource is missing.
+    wjs_add_notices_resource(wjs_parent_preview)
+    # The QML compiler's generated C++ and MSVC's C4702, as for the application's
+    # own QML target (src/app/CMakeLists.txt).
+    get_target_property(_wjs_parent_preview_sources wjs_parent_preview SOURCES)
+    foreach(_wjs_source IN LISTS _wjs_parent_preview_sources)
+        if(_wjs_source MATCHES "/[.]rcc/qmlcache/")
+            set_source_files_properties("${_wjs_source}" PROPERTIES
+                COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/wd4702>")
+        endif()
+    endforeach()
 
     add_test(NAME parent.screens
         COMMAND wjs_parent_preview --check --out "${CMAKE_CURRENT_BINARY_DIR}/parent-screens")
@@ -232,22 +296,155 @@ if(WJS_BUILD_APP)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
         TIMEOUT 180)
 
-    # The board scene is one component with one interface; the 2D placeholder and
-    # the 3D prototype that plugs in at the same seam are each held to it
+    # The parent area in all eight languages, Hebrew and Yiddish included: the
+    # screens load and draw translated, Hebrew and Yiddish mirror the bar (its way
+    # back is on the right), the six left-to-right ones keep it on the left, and
+    # QML warns of nothing. Each language's catalogue is applied before the
+    # screen loads, so a missing or empty catalogue fails the run.
+    add_test(NAME parent.languages
+        COMMAND wjs_parent_preview --languages --out "${CMAKE_CURRENT_BINARY_DIR}/parent-languages")
+    set_tests_properties(parent.languages PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
+        TIMEOUT 240)
+
+    # The Family Assistant's screens in a stub shell (app/scan_ui): a program to
+    # look at them with, and, with --check, a test that walks scan.ready, the
+    # typed board, the check screen and assist.playing without a display, checks
+    # what they say, and fails on any warning from QML. The screens are the
+    # application's own files and the models are its own classes; the stub shell
+    # carries the kit's QML and tokens, because the real shell belongs to the
+    # application executable and its 3D scene needs a display. Not part of the
+    # application.
+    qt_policy(SET QTP0001 NEW)
+    # The preview aliases the kit and Solo Play QML under qml/kit/ and qml/solo/
+    # as plain resources, loaded by URL and never as module types, so the extra
+    # directories need no qmldir: this is the policy's previous behaviour.
+    qt_policy(SET QTP0004 OLD)
+    add_executable(wjs_scan_preview
+        app/scan_ui/preview_main.cpp)
+    set_target_properties(wjs_scan_preview PROPERTIES AUTOMOC ON WIN32_EXECUTABLE OFF)
+
+    set(WJS_SCAN_PREVIEW_KIT_DIR "${PROJECT_SOURCE_DIR}/src/app/qml/kit")
+    set(WJS_SCAN_PREVIEW_KIT_FILES
+        AppButton.qml
+        Feedback.qml
+        Icon.qml
+        Jewel.qml
+        Theme.qml
+        TileFace.qml)
+    set(WJS_SCAN_PREVIEW_KIT_SOURCES "")
+    foreach(_file IN LISTS WJS_SCAN_PREVIEW_KIT_FILES)
+        set_source_files_properties("${WJS_SCAN_PREVIEW_KIT_DIR}/${_file}"
+            PROPERTIES QT_RESOURCE_ALIAS "qml/kit/${_file}")
+        list(APPEND WJS_SCAN_PREVIEW_KIT_SOURCES "${WJS_SCAN_PREVIEW_KIT_DIR}/${_file}")
+    endforeach()
+    # The history's pictures: the same BoardThumb Solo Play's history uses.
+    set_source_files_properties("${PROJECT_SOURCE_DIR}/src/app/qml/solo/BoardThumb.qml"
+        PROPERTIES QT_RESOURCE_ALIAS "qml/solo/BoardThumb.qml")
+    list(APPEND WJS_SCAN_PREVIEW_KIT_SOURCES
+        "${PROJECT_SOURCE_DIR}/src/app/qml/solo/BoardThumb.qml")
+    set_source_files_properties(
+        "${WJS_SCAN_PREVIEW_KIT_DIR}/Theme.qml"
+        "${WJS_SCAN_PREVIEW_KIT_DIR}/Feedback.qml"
+        PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+    set_source_files_properties(app/scan_ui/PreviewHost.qml
+        PROPERTIES QT_RESOURCE_ALIAS PreviewHost.qml)
+
+    qt_add_qml_module(wjs_scan_preview
+        URI WordJewelsSolver
+        VERSION 1.0
+        QML_FILES
+            ${WJS_SCAN_PREVIEW_KIT_SOURCES}
+            app/scan_ui/PreviewHost.qml
+        SOURCES
+            "${PROJECT_SOURCE_DIR}/src/app/solo/board_layout.cpp"
+            "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
+            "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp"
+            "${PROJECT_SOURCE_DIR}/src/app/system_motion.cpp")
+
+    target_include_directories(wjs_scan_preview PRIVATE
+        "${PROJECT_SOURCE_DIR}/src/app"
+        "${PROJECT_SOURCE_DIR}/src/app/scan"
+        "${PROJECT_SOURCE_DIR}/src/app/solo")
+    target_link_libraries(wjs_scan_preview
+        PRIVATE
+            wjs_scan_uiplugin
+            wjs_i18n
+            wjs_trace
+            wjs::lib
+            wjs::platform
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Qml
+            Qt6::Quick
+            wjs::warnings
+            wjs::sanitizers
+            wjs::coverage)
+    # The QML compiler's generated C++ and MSVC's C4702, as for the application's
+    # own QML target (src/app/CMakeLists.txt).
+    get_target_property(_wjs_scan_preview_sources wjs_scan_preview SOURCES)
+    foreach(_wjs_source IN LISTS _wjs_scan_preview_sources)
+        if(_wjs_source MATCHES "/[.]rcc/qmlcache/")
+            set_source_files_properties("${_wjs_source}" PROPERTIES
+                COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/wd4702>")
+        endif()
+    endforeach()
+    wjs_deploy_sanitizer_runtime(wjs_scan_preview)
+    wjs_platform_deploy_qt_runtime(wjs_scan_preview "${CMAKE_CURRENT_SOURCE_DIR}/app/scan_ui")
+
+    add_test(NAME scan.screens
+        COMMAND wjs_scan_preview --check --out "${CMAKE_CURRENT_BINARY_DIR}/scan-screens")
+    set_tests_properties(scan.screens PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
+        TIMEOUT 180)
+
+    # Mode A in all eight languages, Hebrew and Yiddish included: the ready and
+    # check screens and the assistant's panel are translated, the split puts the
+    # panel on the trailing side (the left in RTL, the right in LTR) while the
+    # replicated board stays as it was confirmed, and QML warns of nothing.
+    add_test(NAME scan.languages
+        COMMAND wjs_scan_preview --languages --out "${CMAKE_CURRENT_BINARY_DIR}/scan-languages")
+    set_tests_properties(scan.languages PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
+        TIMEOUT 240)
+
+    # The catalogues in i18n/ are what lupdate makes from the QML sources now:
+    # a qsTr() added (or a line moved) without regenerating them is a failure.
+    # It needs the kit's lupdate, so it reports itself skipped (exit 4) when Qt's
+    # Linguist tools were not found (docs/ci.md, "The interface's languages").
+    set(WJS_LUPDATE_PATH "")
+    if(TARGET Qt6::lupdate)
+        set(WJS_LUPDATE_PATH "$<TARGET_FILE:Qt6::lupdate>")
+    endif()
+    add_test(NAME i18n.catalogues
+        COMMAND "${CMAKE_COMMAND}"
+            "-DLUPDATE=${WJS_LUPDATE_PATH}"
+            "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/i18n-drift"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/i18n/check_catalogues.cmake")
+    set_tests_properties(i18n.catalogues PROPERTIES SKIP_RETURN_CODE 4)
+
+    # The board scene is one component with one interface; the application's 3D
+    # scene and the 2D fallback kept for D2 are each held to it
     # (docs/design/shake-prototype.md, "The interface"). QML has no interface type.
     add_test(NAME app.scene_contract
         COMMAND "${CMAKE_COMMAND}"
-            "-DSCENES=${PROJECT_SOURCE_DIR}/src/app/qml/scene/BoardScene.qml;${PROJECT_SOURCE_DIR}/src/app/prototype/shake/qml/BoardScene.qml"
+            "-DSCENES=${PROJECT_SOURCE_DIR}/src/app/qml/scene/BoardScene.qml;${PROJECT_SOURCE_DIR}/src/app/qml/scene/fallback/BoardScene.qml"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/app/check_scene_contract.cmake")
 
-    # No warning from qmllint over the application's QML. It needs the types the
-    # build generates, so it skips itself (exit 4) when the application is not built.
+    # No warning from qmllint over the application's QML, or over the board
+    # scene's module. It needs the types the build generates, so it skips itself
+    # (exit 4) when the application is not built.
     if(TARGET Qt6::qmllint)
         add_test(NAME app.qml_lint
             COMMAND "${CMAKE_COMMAND}"
                 "-DQMLLINT=$<TARGET_FILE:Qt6::qmllint>"
                 "-DRESPONSE=${PROJECT_BINARY_DIR}/src/app/.rcc/qmllint/wjs_app.rsp"
                 "-DTYPES=${PROJECT_BINARY_DIR}/src/app/WordJewelsSolver/wjs_app.qmltypes"
+                "-DSCENE_RESPONSE=${PROJECT_BINARY_DIR}/src/app/scene/.rcc/qmllint/wjs_scene.rsp"
+                "-DSCENE_TYPES=${PROJECT_BINARY_DIR}/src/app/scene/WordJewelsSolver/Scene/wjs_scene.qmltypes"
+                "-DSCAN_RESPONSE=${PROJECT_BINARY_DIR}/src/app/scan/.rcc/qmllint/wjs_scan_ui.rsp"
+                "-DSCAN_TYPES=${PROJECT_BINARY_DIR}/src/app/scan/WordJewelsSolver/Scan/wjs_scan_ui.qmltypes"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/app/run_qmllint.cmake")
         set_tests_properties(app.qml_lint PROPERTIES SKIP_RETURN_CODE 4)
     endif()
@@ -266,6 +463,33 @@ if(TARGET wjs_dice_world)
     wjs_deploy_sanitizer_runtime(wjs_dice_tests)
     catch_discover_tests(wjs_dice_tests)
 endif()
+
+# The third-party notices (cmake/Notices.cmake): every section a package must
+# state, and no placeholder left unfilled. Runs on every host; a build with the
+# application names Qt and Quick 3D, and a command-line package does not claim
+# to carry either.
+add_test(NAME notices.sections
+    COMMAND "${CMAKE_COMMAND}"
+        "-DNOTICES=${WJS_NOTICES_FILE}"
+        "-DVERSION=${PROJECT_VERSION}"
+        "-DEXPECT_QT=${WJS_BUILD_APP}"
+        "-DQT_VERSION=${Qt6_VERSION}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/notices/check_notices.cmake")
+
+# The CPack configuration and the install rules it packages: both programs this
+# build makes, the files they read, and the notices. It reads the generated
+# CPackConfig.cmake and cmake_install.cmake scripts, so a dropped install() rule
+# is a failed test rather than a package missing a file (docs/building.md,
+# "Packaging"). Cheap, so it runs in every ctest.
+add_test(NAME package.config
+    COMMAND "${CMAKE_COMMAND}"
+        "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+        "-DVERSION=${PROJECT_VERSION}"
+        "-DEXPECT_CLI=${WJS_BUILD_CLI}"
+        "-DEXPECT_APP=${WJS_BUILD_APP}"
+        "-DEXPECT_QT_DEPLOY=${WJS_PLATFORM_QT_DEPLOY_AT_INSTALL}"
+        "-DNOTICES=${WJS_NOTICES_FILE}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/package/check_package.cmake")
 
 # Every platform fragment satisfies the platform contract, on whichever host
 # this runs (a build only includes the one fragment for its own platform).

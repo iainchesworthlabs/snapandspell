@@ -14,8 +14,9 @@
 // What the Solo Play screens need from the game, and nothing more: the names
 // of docs/design/game.md (Mode B, "The flow") as plain C++, with no Qt. The
 // screens talk to SoloModel, SoloModel talks to this, and this is answered by
-// the library's session (RealSoloGame, over src/lib's GameSession) when the
-// program is given a phase to play, and otherwise by FakeSoloGame. The library's session owns the
+// the library's session (RealSoloGame, over src/lib's GameSession), which the
+// program always plays; FakeSoloGame is the stand-in the tests fall back to
+// when no game is installed. The library's session owns the
 // rules: what a traced path is, what a find earns, which tile the help lights and when the board is
 // cleared. This port owns none of them and decides nothing.
 //
@@ -64,8 +65,18 @@ struct SoloBoard {
     // Row-major, upper-case, one to three letters. "" is a dead jewel: drawn,
     // part of no word, and a touch on it does nothing.
     std::vector<std::string> tiles;
+    // The six faces of the die on each tile, row-major, and which of them is up,
+    // so that faces[t][up[t]] == tiles[t]. They are the library's roll of the
+    // seed (wjs::roll_with_placements): a die carries its six different letters
+    // and the scene lands it on the one that is up. Empty when the board was not
+    // rolled from dice: the phonics board, a game the store brought back (a
+    // board's roll seed is not kept), and the fake game. The scene then draws
+    // the tile's letter on the face that is up, as it did before the faces came.
+    std::vector<std::vector<std::string>> faces;
+    std::vector<int> up;  // one of the six, 0 to 5
     // The seed of the scene's shake and drop; the same board and seed replay
-    // identically.
+    // identically. A dealt board's seed is also the roll's seed, which is why the
+    // faces above are what wjs::roll_with_placements gives for it.
     std::uint32_t seed = 0;
 
     [[nodiscard]] bool empty() const noexcept { return tiles.empty(); }
@@ -112,8 +123,9 @@ public:
 
     [[nodiscard]] virtual SoloState state() const = 0;
 
-    // The sizes offered (3 and 4 in the MVP) and the one chosen. The 3x3 is
-    // the first board of a new device. Only in `box`.
+    // The sizes offered (3x3 to 6x6 on the standard board, 3x3 and 4x4 on the
+    // phonics board) and the one chosen. The 3x3 is the first board of a new
+    // device. Only in `box`.
     [[nodiscard]] virtual std::span<const std::size_t> sizes() const = 0;
     [[nodiscard]] virtual std::size_t size() const = 0;
     virtual void chooseSize(std::size_t size) = 0;

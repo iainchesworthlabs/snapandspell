@@ -35,6 +35,19 @@
 #                                 set themselves ("" if there are none): on
 #                                 Windows the offscreen platform has no fonts
 #                                 until it is told where the system's are.
+#   WJS_PLATFORM_INSTALL_APP_DATA_DIR
+#                                 Where the Qt application's data (the English
+#                                 dictionary and the dice) is installed relative
+#                                 to the install prefix: beside the program's
+#                                 own executable, which is where it looks for
+#                                 them. The bindir, except on a platform whose
+#                                 application is a bundle.
+#   WJS_PLATFORM_QT_DEPLOY_AT_INSTALL
+#                                 ON where an installed copy of the application
+#                                 carries Qt's runtime beside it, deployed by
+#                                 Qt's own install-time script. OFF where the
+#                                 system's Qt is loaded instead, and writing
+#                                 that script's qt.conf would misdirect it.
 #
 # Build inputs (paths are relative to src/platforms):
 #   WJS_PLATFORM_SOURCES          Compiled into wjs_platform: one
@@ -54,8 +67,21 @@
 #                                 Puts Qt's runtime next to the built program,
 #                                 including the QML modules imported by the
 #                                 QML sources in <qml_dir> ("" if it has none).
+#   wjs_platform_configure_packaging()
+#                                 Adds this platform's CPack generators to
+#                                 CPACK_GENERATOR, whose first entry is always
+#                                 ZIP, and says which were found. A generator
+#                                 whose tool is missing (makensis, dpkg-deb,
+#                                 rpmbuild) is left out rather than turning
+#                                 into a failed configure; cmake/Packaging.cmake
+#                                 calls this once.
 # ---------------------------------------------------------------------------
 include_guard(GLOBAL)
+
+# A platform fragment says where the application's data is installed beside its
+# executable, which is a bindir path, so GNUInstallDirs is included before the
+# fragment is read.
+include(GNUInstallDirs)
 
 # Phones and the browser are not targets yet (docs/roadmap.md). Saying so here
 # is clearer than a missing-fragment error further down.

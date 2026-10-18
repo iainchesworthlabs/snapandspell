@@ -312,6 +312,27 @@ while the tablet is on its stand; this keeps it on only while it has something
 to do, and the author may reverse that. Frames are processed on the device and
 not kept (roadmap section 8), there is no audio capture, and nothing is sent.
 
+**As built (2026-10-19).** Three choices this page left open, settled by the
+first screen:
+
+- **Back from `assist.playing`** goes to `scan.check`, where the person came
+  from, and records the board to the store on the way. **New board** is a new
+  scan: it puts the scan screen back to `scan.ready` and enters it as if from
+  home, so Back from a new round goes home and never to the board just left.
+- **The store record** is the standard board's form: no phase, and the count of
+  the words that counted (`viable_total`) rather than a list, with each find's
+  day and whether the start tile was shown. The app plays that form because the
+  repository has no phase index yet (see the next point); a board played against
+  one later records its words instead.
+- **The word set is the full English dictionary today.** The MVP paragraph above
+  says the confirmed board is solved against the phase index only, and no phase
+  index exists; the standard board's rule (every real word of three letters or
+  more counts) is what the app can play, and it is the board mode the first
+  release plays by default. The middle cue ("real, not today's") is therefore
+  unreachable in Mode A until a phase is loaded, exactly as it is in Solo Play;
+  the port keeps it, and its test holds it down, for the day the index exists.
+  This is the same stand-in as Solo Play's, not a new decision.
+
 ### The check screen
 
 ```text

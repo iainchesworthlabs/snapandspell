@@ -16,6 +16,192 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **Install rules, CPack packages and third-party notices.** A build now has an
+  install step: `install()` puts `wjs-cli`, `WordJewelsSolver`, the English
+  dictionary, the standard board's dice (`dice/3x3.txt` to `6x6.txt`),
+  `NOTICES.txt` and the GPL text (`LICENSE.txt`) into an install tree, and
+  `cmake/Packaging.cmake` makes one CPack package of both programs (no
+  per-program components: the window cannot run without the dictionary and the
+  dice, and the command-line solver is small). A **ZIP is always offered**; the
+  platform's own formats are added by the fragments in `src/platforms/<os>/`
+  only where their tools are installed - **NSIS** on Windows when `makensis` is
+  found (never a failed configure without it), **DragNDrop** on macOS, and
+  **TGZ, DEB and RPM** on Linux when `dpkg-deb`/`dpkg-shlibdeps`/`rpmbuild`
+  are - so a machine with no extra tools still gets a package. The installed
+  window is made self-contained with Qt's QML-aware install-time deploy script
+  (`qt_generate_deploy_qml_app_script`): its Qt DLLs, plugins and QML modules,
+  including the Quick 3D plugin, are deployed beside it (Linux keeps the
+  system's Qt; macOS carries Qt in the bundle). New **`package-windows-msvc-release`**,
+  `package-linux-gcc-release` and `package-macos-clang-release` presets run
+  `cpack --preset`, and the packages land in `build/<preset>/packages/`.
+  **Third-party notices** are assembled at configure time by
+  `cmake/Notices.cmake` from `notices/fragments/` into `NOTICES.txt`: the
+  project's GPL-3.0-or-later licence and the **application binary's
+  GPL-3.0-only** licence because it links Qt Quick 3D, Qt 6.12 under the
+  LGPL-3.0/GPL-3.0 options with the LGPL text and the Quick 3D section, the
+  public-domain ENABLE word list, the translations, the project's own light
+  probe, no bundled font, and Catch2 (BSL-1.0) as build-and-test only. The file
+  is installed beside the programs and embedded as `:/notices/NOTICES.txt`; the
+  About screen's **Licences** section now keeps its two sentences and adds a
+  scrollable view of the full notice. New checks: `notices.sections` (the
+  notice states every required section and leaves no placeholder),
+  `package.config` (CPack names the project and its licence, and the install
+  rules carry both programs, the data and the notices), the packaged resource
+  and notice asserted by `parent.screens`, and
+  `tools/package/check_package.ps1`, which makes the ZIP, checks its required
+  files, writes `SHA256SUMS`, solves a board with the packaged `wjs-cli` and
+  runs the packaged `WordJewelsSolver --smoke 10` offscreen. The Windows CI leg
+  runs that script after its tests and smoke and uploads the ZIP. See
+  [docs/building.md](docs/building.md#packaging),
+  [docs/ci.md](docs/ci.md) and [docs/licensing.md](docs/licensing.md#notices).
+- **The interface's languages: English, French, Spanish, German, Yiddish,
+  Hebrew, Chinese and Japanese, with right-to-left and left-to-right layouts.**
+  A new **Language** row in the parent area offers the eight, each named in its
+  own script, plus System (the device's own language when it is one of the
+  eight, English otherwise); the choice is kept in the store as `language=` and
+  read before the window is built. `LanguageManager`
+  (`src/app/language_manager.*`) installs the Qt catalogue, sets
+  `QGuiApplication::setLayoutDirection` and calls `QQmlEngine::retranslate()`
+  when the parent changes it, so the screens change at once. One Qt Linguist
+  catalogue per language is in `i18n/`, generated from the QML with `lupdate`
+  (`wjs_update_translations`) and compiled by `lrelease` at build time into
+  `:/i18n/wjs_<code>.qm`; English is the source language and has a catalogue
+  too. Every child- and parent-facing string moved into its area's wording file
+  (`ParentWording`, `ScanWording` and the new `SoloWording` and `HomeWording`).
+  Hebrew and Yiddish mirror the window (`LayoutMirroring`), the bars, the parent
+  rows, the gate and the two-thirds/one-third split; the board, the dice, the
+  trace path and the 2D/3D scenes never mirror, and the board's letters, the
+  word list and the phonics content stay English. Fonts use Qt's per-glyph
+  fallback: Andika is still not bundled, and no CJK faces are (system fallback,
+  documented). Checks: `i18n.catalogues` (lupdate drift), the catalogue
+  completeness and direction cases and the glyph check in `wjs_app_tests`, and
+  `parent.languages` / `scan.languages`, the screens loaded offscreen in all
+  eight. **The translations are mechanical and unreviewed**: they are listed
+  with the phonics content for the literacy/reviewer pass, which will replace
+  them.
+- **Mode A, the Family Companion: the scan, check and assistant screens.** The
+  family game's picture on `home` is now shown and opens the camera-assisted
+  mode: `scan.ready` (a frame to put the real board in, Capture and "Type in
+  your board"), `scan.reading`, `scan.check` (the replica with the reader's
+  doubtful tiles ringed and a `?`, a letter picker that offers the reader's
+  runners-up first, Turn, the board size, Read again and Yes, play) and
+  `assist.playing` (the replica in the leading two-thirds and the panel — Words
+  I found, Earlier boards, Show me a start, New board). `src/app/scan` holds the Qt-free port
+  `AssistGame` (a confirmed `wjs::Board` over `wjs::classify_path`, `FoundWords`,
+  `wjs::start_tile_help`, and the board recorded to the store on leaving, in the
+  standard board's form with `viable_total` and no phase) and the QML models
+  `ScanModel` (the `BoardDraft`, its doubts and alternatives, the size, and the
+  camera's lifecycle) and `AssistModel` (tiles, the traced path, the tray, the
+  start tile, the cues). The screens are the QML module
+  `WordJewelsSolver.Scan` (`src/app/qml/scan`, with every sentence in
+  `ScanWording.qml` for the later i18n pass); `Main.qml` shows them as the
+  `scan` and `assist` screens, Back goes where the person came from and New
+  board starts a new scan. A captured frame goes through the platform's
+  `board_reader` and is dropped at once; the camera is started only while
+  `scan.ready` is on screen, and no frame is kept or sent. **The camera backend
+  is still `unavailable` on every desktop and the iPad backend is not written**,
+  so the typed-board fallback is the path a person takes there: Type in your
+  board opens the check screen with an empty 4x4. Tests: `assist_game_test.cpp`
+  (viable, real-not-today's and not-a-word, the hint's tile, the tray and the
+  store record), `scan_model_test.cpp` (the empty draft, corrections, a full and
+  an incomplete grid, the doubtful tiles, and no camera), and `scan.screens`, an
+  offscreen stub shell (`tests/app/scan_ui`) that walks the flow and fails on any
+  QML warning; `app.qml_lint` now lints the new module too.
+- **Qt performance and profiling: the window, QML and the 3D and 2D scenes.**
+  The application now measures its own frames and the parts that can cost one.
+  `src/app/frame_profiler.cpp` sends the frame mark `UI`, the plots
+  `ui.frame_ms`, `ui.first_frame_ms`, `render.frame_ms` and `ui.sync_ms`, names
+  the render thread, and keeps a rolling p50/p95/p99/max report. New zones cover
+  `app.startup`, `app.load_qml`, `app.scene_create` (from QML), `data.load_phase`,
+  `scene.step` (the dice world, carrying its simulation steps), `scene.prepare`
+  (the atlas, carrying its cells), `scene.play`, `scene.show`, the per-frame
+  `scene.shake`/`scene.drop`/`scene.settle`, `scene.celebrate`, `ui.trace`,
+  `ui.screen`, and the 2D fallback's `scene2d.*`. A QML singleton `Profiler`
+  (`src/app/scene/profiler.cpp`, in `WordJewelsSolver.Scene`) opens and closes a
+  named zone from QML over the wrapper's new run-time `RuntimeScope` (a
+  transient zone, so the location says `QML`): empty without Tracy, real zones
+  with it. `--smoke
+  [frames]` runs the window as a capture workload, prints the frame report and
+  leaves with 0 (a profiling build gives a profiler that was started first up to
+  five seconds to attach, so the start-up zones are captured; a window that
+  cannot present a frame is said, not faked). The performance tier gains the
+  scene's work budgets (a 4x4 play's simulation steps and an atlas's cells, in
+  `tests/perf/budgets.hpp` and `tests/app/shake_script_test.cpp`), an opt-in
+  frame check (`tests/app/frame_timing_test.cpp`, `WJS_PERF_FRAME_TIMING=1`),
+  and `tests/profiling/check_zone_names.cmake` now checks the QML seam's names
+  and the plots' and frame sets' too. See
+  [docs/profiling.md](docs/profiling.md) and
+  [docs/design/performance.md](docs/design/performance.md).
+- **The real 3D dice shake in Solo Play (Mode B).** The prototype's scene is now
+  the application's: the QML module `WordJewelsSolver.Scene` (`src/app/scene` and
+  `src/app/qml/scene`) holds `BoardScene.qml`, `Die.qml`, `FaceAtlas.qml`,
+  `ShakeScript.js`, the baked light probe and the dice objects (`DiceSim`,
+  `DieGeometry`, and the `wjs_dice_world` simulation), and both `WordJewelsSolver`
+  and the `ShakePrototype` harness link it, so there is one scene and one script
+  and not a copy. The 2D placeholder is replaced as the scene Solo Play uses and
+  is kept, not built, at `src/app/qml/scene/fallback/` for D2. `SoloBoard` gains
+  the six faces of each tile's die and the face that is up: `RealSoloGame::board()`
+  takes them from `wjs::roll_with_placements` with the dealt board's seed on the
+  standard board, so the dice tumble to the faces the roll gave and land on the
+  one that is up; the phonics board, a board the store brought back and the fake
+  game carry none, and the scene draws the tile's letter on the face that is up.
+  The scene gains `prepare(board)` (declared in `app.scene_contract` with
+  `overdraw`), which draws a board's faces a frame before `play`/`show` of it;
+  `Main.qml` keeps `SoloScreen` alive from start-up, so the `View3D` is made once
+  behind home and not on the Shake press. A fast drag on the box stands in for the
+  accelerometer (Qt Sensors is not in the tree): it sends the drag's acceleration
+  and spin to the scene's `pushMotion` and starts a play unless the parent's Shake
+  setting is off, and the Shake button and Space are always there. Reduced motion
+  keeps the box still and cross-fades the lid and the dice, with no tumble. The
+  application now links Qt Quick 3D and so is **GPL-3.0 only**, which the docs
+  record in the places that said only the prototype did. See
+  [docs/design/shake-prototype.md](docs/design/shake-prototype.md) and
+  [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
+- **The GPL-3.0-only Quick 3D profiler plugin kept out of the deploy.** On
+  Windows, `windeployqt` was copying the QML debugger's
+  `qmldbg_quick3dprofiler` plugin (and `Qt6Quick3DUtils.dll`, which it depends on)
+  beside every program it deployed, whether or not the program linked Quick 3D.
+  The platform fragment now passes `--skip-plugin-types qmltooling`, so the whole
+  debugger plugin type is left out; a program that does link Quick 3D still gets
+  `Qt6Quick3DUtils` as part of that module's own runtime, which the application
+  now does and may, being GPL-3.0 only. See
+  [docs/design/shake-prototype.md](docs/design/shake-prototype.md#deploy).
+- **A Colour scheme preference: System, Light or Dark.** `wjs::Settings` gains
+  `colour_scheme` (`src/lib/include/wjs/settings.hpp`, written to the store as
+  `colour=` by `store_format.cpp`), the parent area's settings screen offers it
+  (`SettingsScreen.qml`, `ParentWording.qml`), and `Main.qml` binds it to
+  `Theme.colourScheme`: System (the default) follows the operating system's
+  light or dark setting, Light and Dark are the parent's choice for every
+  screen's chrome. `Theme.dark` is derived from it, so the Solo Play screens,
+  the box and the parent area are all in the same scheme; `ParentTheme` gains
+  dark values (the kit's measured pairs) so the parent area follows too.
+  `SystemColourScheme` gains its tests (`tests/app/system_colour_scheme_test.cpp`),
+  and the parent area's board-size choice offers 3x3 to 6x6 on the standard
+  board. See [docs/design/application.md](docs/design/application.md#colour-and-contrast).
+- **The window plays the real standard board by default.** `SoloGameSetup`
+  (`src/app/solo/solo_game_setup.*`) now always loads the English dictionary and the
+  project's dice (`data/dice`, deployed beside the executable by `src/app/CMakeLists.txt`),
+  and loads a phase directory only when the program is started with `--phase-directory
+  <dir>`; `main.cpp` always builds the real game and never the fake. `RealSoloGame`
+  plays the session's mode as given: the standard board, a roll of the dice at 3x3 to 6x6
+  with no grapheme blocks and no dead jewels, by default, and the phonics board when the
+  parent chose it and a phase was loaded. The fake (`fake_solo_game.*`) stays for the
+  tests. The size the box offers is the mode's: 3x3 to 6x6 on the standard board, 3x3 and
+  4x4 on the phonics board, and `Settings::normalized()` (`src/lib/src/settings.cpp`)
+  holds the parent's board-size setting to the same two ranges. A bad `--phase-directory`
+  still stops the program with exit code 2. See
+  [docs/architecture.md](docs/architecture.md#the-qt-quick-window).
+- **The store keeps a standard game in progress.** `Store::save_session`
+  (`src/lib/src/store.cpp`) accepts a saved board whose record lists no words and carries
+  the count (`viable_total`), which the store's file (format version 2) writes as the
+  saved board's `-` list; a version 1 file is migrated (the step rewrites nothing, as a
+  version 1 file could not hold a standard saved board) and kept as `store.wjs.v1` beside
+  the new one. A standard game is brought back by `GameSession::restore`, which re-solves
+  the board and checks the count. See [docs/design/parent-area.md](docs/design/parent-area.md#the-store).
+- **The standard board's dice are shipped with the window.** A build of `wjs_app` copies
+  `data/dice/3x3.txt` to `6x6.txt` into a `dice` directory beside the executable, as it
+  already does for the dictionary, and `SoloGameSetup` reads them with
+  `DiceSets::load_directory`.
 - **Dice with six real faces, from the library to the scene.**
   `wjs::roll_with_placements` returns the die on each tile and the face of it
   that is up, with the board (`wjs::roll` is the same roll and gives the board it
