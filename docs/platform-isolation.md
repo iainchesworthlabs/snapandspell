@@ -195,7 +195,10 @@ The CMake side has its own check, the `platform.fragments` test
 `platform.cmake` of the platform it targets, so the others would otherwise be
 exercised only on their own machines. The test includes every fragment it
 finds, each in a process of its own, and holds it to the contract: every
-variable and hook defined, every file it compiles present, and a branch in the
-selector for it (and the other way: a branch with no fragment behind it). It
-runs wherever the tests run, so a typo in the macOS fragment fails a Windows
-build in seconds rather than a macOS one later.
+variable and hook defined, every file it compiles present, every interface
+header under `src/platforms/interfaces/wjs/platform/` included by one of those
+files (so the haptics interface, for one, cannot be declared and left
+unimplemented), and a branch in the selector for it (and the other way: a
+branch with no fragment behind it). It runs wherever the tests run, so a typo
+in the macOS fragment fails a Windows build in seconds rather than a macOS one
+later.

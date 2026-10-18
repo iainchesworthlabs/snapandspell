@@ -30,7 +30,8 @@ string(JSON _ninja GET "${_versions}" ninja)
 string(JSON _qt GET "${_versions}" qt version)
 string(JSON _qt_kit GET "${_versions}" qt kit)
 string(JSON _qt_modules GET "${_versions}" qt modules)
-string(JSON _aqt GET "${_versions}" qt aqtinstall)
+string(JSON _qt_action GET "${_versions}" qt action)
+string(JSON _aqtsource GET "${_versions}" qt aqtsource)
 string(JSON _vcpkg_pin_file GET "${_versions}" vcpkg pin_file)
 
 if(NOT _cmake MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
@@ -70,14 +71,43 @@ foreach(_pin IN LISTS _ninja_pins)
     endif()
 endforeach()
 
-# The Qt kit is installed with aqtinstall, at the file's version, kit and
-# modules (qttools carries lupdate and lrelease: the catalogues' drift check
-# needs them).
-if(NOT _ci MATCHES "aqtinstall==${_aqt}")
-    _fail("ci.yml does not install aqtinstall ${_aqt}; toolchain-versions.json says it must")
+# The Qt kit is installed by install-qt-action at the file's pin, with the
+# file's version, architecture, modules and aqtinstall source. The aqtsource is
+# a git commit, not a PyPI release: Qt 6.11+ split the Windows repository per
+# architecture and aqtinstall 3.3.0, the last PyPI release, cannot read it
+# (docs/ci.md, "Qt on the Windows leg"). qttools carries lupdate and lrelease,
+# which the catalogue drift check needs; qtmultimedia, qtsensors and qtspeech
+# are the application's sound, motion and speech (their silent variants exist
+# for a kit without them, but this leg is the one that proves the real ones).
+if(NOT _ci MATCHES "uses:[ \t]*jurplel/install-qt-action@[0-9a-f]+")
+    _fail("ci.yml does not install Qt with a pinned jurplel/install-qt-action")
 endif()
-if(NOT _ci MATCHES "install-qt windows desktop ${_qt} ${_qt_kit} -m ${_qt_modules} ")
-    _fail("ci.yml does not install Qt ${_qt} (${_qt_kit}, modules ${_qt_modules}); toolchain-versions.json says it must")
+foreach(_pair IN ITEMS
+        "action=${_qt_action}"
+        "version=\"${_qt}\""
+        "arch=${_qt_kit}"
+        "modules=\"${_qt_modules}\""
+        "aqtsource=\"${_aqtsource}\"")
+    string(FIND "${_pair}" "=" _equals)
+    math(EXPR _value_start "${_equals} + 1")
+    string(SUBSTRING "${_pair}" 0 ${_equals} _key)
+    string(SUBSTRING "${_pair}" ${_value_start} -1 _value)
+    if(_key STREQUAL "action")
+        if(NOT _ci MATCHES "uses:[ \t]*${_value}")
+            _fail("ci.yml does not use ${_value}; toolchain-versions.json says it must")
+        endif()
+    else()
+        string(FIND "${_ci}" "${_key}: ${_value}" _at)
+        if(_at EQUAL -1)
+            _fail("ci.yml does not pass ${_key}: ${_value} to install-qt-action; toolchain-versions.json says it must")
+        endif()
+    endif()
+endforeach()
+if(NOT _ci MATCHES "cache:[ \t]*true")
+    _fail("ci.yml does not ask install-qt-action for cache: true")
+endif()
+if(_ci MATCHES "aqtinstall==")
+    _fail("ci.yml still installs aqtinstall from PyPI; it must use install-qt-action and aqtsource (docs/ci.md)")
 endif()
 
 # ---- the vcpkg pin ----------------------------------------------------------
@@ -100,4 +130,4 @@ endif()
 if(_failures)
     message(FATAL_ERROR "The toolchain pins have drifted:${_failures}")
 endif()
-message(STATUS "toolchain: CMake ${_cmake}, Ninja ${_ninja}, Qt ${_qt} (${_qt_kit}) by aqtinstall ${_aqt}; the workflows and the vcpkg pin agree")
+message(STATUS "toolchain: CMake ${_cmake}, Ninja ${_ninja}, Qt ${_qt} (${_qt_kit}: ${_qt_modules}) by ${_qt_action}; the workflows and the vcpkg pin agree")

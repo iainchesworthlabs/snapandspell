@@ -171,6 +171,11 @@ System, Light and Dark, which this repository does not have.
 7. Apply the inert settings where their engines exist (sound/haptics once
    Qt modules land; shake switch once the sensor exists), and build the
    sound-it-out sequence timeline with placeholder clips in the library.
+   *Done 2026-10-19:* the engines are wired - Qt Multimedia sound with
+   placeholder assets, Qt TextToSpeech for whole words, Qt Sensors for the
+   accelerometer/gyroscope, a haptics platform interface with a desktop no-op -
+   each with a silent variant and pure policies. The settings now have effects;
+   the sound-it-out seam waits for the reviewer's phoneme clips.
 8. Mode A in the app (done 2026-10-19): the `WordJewelsSolver.Scan` module
    and the `scan.ready → scan.reading → scan.check → assist.playing` flow,
    the check screen over `BoardDraft` (doubtful rings, letter picker, turn,
@@ -255,13 +260,11 @@ board or put the lid back; and rest. On the phonics board, the parent's switch
 seeds a 3x3 or 4x4 from the phase, the vowel team lights as one grapheme
 block, and the sound-it-out sequence segments and blends with clips in step.
 
-Left after wave 1: the 3D dice scene and the real faces through the port
-(wave 2); device shake and the accelerometer (the detector is written and
-tested; Qt Sensors is not in the tree), haptics, all audio (rattle, letter
-sounds, the word, celebration) and the sound-it-out timeline (Qt Multimedia is
-not in the tree; placeholder clips are allowed before the review), the
-vault/sticker screen and confetti (wave 4); the school-font pipeline and the
-drag-the-box gesture (wave 5).
+Left after 2026-10-19: the sound-it-out sequence's phoneme clips (the seam is
+wired and silent until the reviewer's recordings), the vault/sticker screen and
+confetti, the school-font pipeline, and the drag-the-box gesture is in. The 3D
+scene, the dice faces, device shake (Qt Sensors), haptics and the audio cues
+(rattle, letter, word, cheer, cleared) are built.
 
 **Mode A (Family Companion), done when** a parent opens the scan, a live
 camera view appears, Capture reads the board, the check screen shows the
@@ -376,6 +379,12 @@ the privacy scans).
 1. **Qt modules.** Install Qt Multimedia, Sensors and TextToSpeech into the
    shared tree (`C:\Repos\common\qt\6.12.0`), or leave sound, haptics and
    the accelerometer stubbed behind the existing seams for now.
+   *Resolved 2026-10-19:* the three modules were installed into the shared
+   kit (the Qt repository's per-architecture layout, archives verified by
+   SHA-1); the app now links them where present and keeps silent variants
+   where a kit lacks them. The CI Qt install moves to
+   `install-qt-action` with the pinned aqt master that reads Qt 6.11+
+   repositories.
 2. **The 3D scene in the app** makes the shipped binary GPL-3.0-only (Quick3D
    licence). The design recorded this and deferred it to D2; wiring it now
    follows the design's own "3D behind a seam" decision.

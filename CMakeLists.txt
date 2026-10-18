@@ -104,10 +104,12 @@ include(Translations)
 # Options
 # ---------------------------------------------------------------------------
 option(WJS_BUILD_CLI "Build the wjs-cli command-line solver" ON)
-# Off until CI installs Qt: the application needs a prebuilt Qt 6.12 found via
-# QT_ROOT_DIR or CMAKE_PREFIX_PATH (cmake/FindQt6.cmake), which is not vcpkg's.
-# It links Qt Quick 3D for the board scene, so the binary it makes is GPL-3.0
-# only (the author's decision of 2026-10-16; docs/design/board.md).
+# Off by default: the application needs a prebuilt Qt 6.12 found via
+# QT_ROOT_DIR or CMAKE_PREFIX_PATH (cmake/FindQt6.cmake), which is not vcpkg's,
+# so a machine that only builds the solver does not need one. The Windows CI
+# leg installs it and turns it on. It links Qt Quick 3D for the board scene, so
+# the binary it makes is GPL-3.0 only (the author's decision of 2026-10-16;
+# docs/design/board.md).
 option(WJS_BUILD_APP "Build the Qt Quick application (needs Qt 6.12; GPL-3.0 only)" OFF)
 option(WJS_BUILD_TESTS "Build the unit test suite" ON)
 # The harness around the 3D board scene (src/app/prototype/shake, and
@@ -148,6 +150,24 @@ option(WJS_REQUIRE_REVIEWED_PHONICS
 if(WJS_BUILD_APP)
     set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 Quick3D LinguistTools)
     find_package(Qt6 6.12 REQUIRED COMPONENTS ${WJS_QT_COMPONENTS})
+    # The feedback engines' modules are optional: the application's sound,
+    # speech and motion have silent variants selected by CMake when a module is
+    # absent (src/app/feedback/CMakeLists.txt), so a contributor's kit without
+    # them still configures and builds. The shared kit on the author's machine
+    # has all three (docs/building.md, "The Qt Quick window").
+    find_package(Qt6 6.12 QUIET OPTIONAL_COMPONENTS Multimedia Sensors TextToSpeech)
+    set(WJS_QT_HAS_MULTIMEDIA OFF)
+    set(WJS_QT_HAS_SENSORS OFF)
+    set(WJS_QT_HAS_TEXTTOSPEECH OFF)
+    if(TARGET Qt6::Multimedia)
+        set(WJS_QT_HAS_MULTIMEDIA ON)
+    endif()
+    if(TARGET Qt6::Sensors)
+        set(WJS_QT_HAS_SENSORS ON)
+    endif()
+    if(TARGET Qt6::TextToSpeech)
+        set(WJS_QT_HAS_TEXTTOSPEECH ON)
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -229,3 +249,7 @@ message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY}")
 message(STATUS "  Reviewed phonics data required : ${WJS_REQUIRE_REVIEWED_PHONICS}")
 message(STATUS "  Build shake prototype : ${WJS_BUILD_SHAKE_PROTOTYPE}")
 message(STATUS "  Package generators : ${WJS_PACKAGE_GENERATORS}")
+if(WJS_BUILD_APP)
+    message(STATUS "  Qt feedback modules : Multimedia=${WJS_QT_HAS_MULTIMEDIA}"
+                   " Sensors=${WJS_QT_HAS_SENSORS} TextToSpeech=${WJS_QT_HAS_TEXTTOSPEECH}")
+endif()

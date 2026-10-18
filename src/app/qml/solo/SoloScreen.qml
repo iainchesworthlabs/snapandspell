@@ -23,15 +23,43 @@ FocusScope {
 
     required property var solo
     // Whether shaking the device rolls the dice (Settings::shake). It gates the
-    // drag that stands in for the accelerometer, and never the Shake button or
+    // drag that stands in for the accelerometer, never the Shake button or
     // Space, which are always there (docs/design/application.md, "Accessibility":
     // the Shake button, and shake detection can be switched off).
     property bool shakeEnabled: true
+    // The device's motion, made by main.cpp and handed here by Main.qml. It is
+    // null in a stub shell or a test suite, and on these desktops its available
+    // is false: the drag below then stands in for the accelerometer.
+    property var motionSource: null
 
     signal homeRequested
     signal parentRequested
 
     readonly property string soloState: solo.state
+    // Qt Sensors is reading a real device now: its samples drive the scene and
+    // a real shake rolls the box, in place of the drag.
+    readonly property bool motionLive: motionSource !== null && motionSource.available
+    // The sensors run only while the box or the falling dice need them, the
+    // screen is the one showing, and the parent has Shake on. Leaving the
+    // screen (or the box) stops them. On a desktop they are started too and
+    // send nothing, so motionLive stays false and the drag stands in.
+    readonly property bool motionNeeded: motionSource !== null && root.enabled && root.visible
+                                        && root.shakeEnabled
+                                        && (root.soloState === "box"
+                                            || root.soloState === "shaking"
+                                            || root.soloState === "dropping")
+
+    function syncMotion() {
+        if (motionSource === null) {
+            return;
+        }
+        motionSource.shakeEnabled = root.shakeEnabled;
+        motionSource.active = root.motionNeeded;
+    }
+
+    onMotionSourceChanged: syncMotion()
+    onMotionNeededChanged: syncMotion()
+    onShakeEnabledChanged: syncMotion()
     readonly property real barOffset: Theme.barHeight
     // Hebrew and Yiddish: the window mirrors (Main.qml sets the direction), so
     // the panel takes the leading side and the board the trailing one. The board
@@ -96,6 +124,7 @@ FocusScope {
         Profiler.begin("app.scene_create");
         ready = true;
         relayout();
+        syncMotion();
         Profiler.end();
     }
 
@@ -138,13 +167,31 @@ FocusScope {
         onTriggered: root.startPendingPlay()
     }
 
-    // --- the device's motion, from a drag on the box ---------------------------
-    // Qt Sensors is not in the shared tree, so a drag stands in for the
-    // accelerometer and the gyroscope (docs/design/shake-prototype.md, "The
+    // --- the device's motion -----------------------------------------------------
+    // On a tablet Qt Sensors (MotionSource) sends a hundred samples a second:
+    // the sample drives the scene's dice and a real shake rolls the box, exactly
+    // as the drag here does on a desktop. The drag is the stand-in kept for a
+    // platform with no accelerometer (docs/design/shake-prototype.md, "The
     // drag"): the pointer's path is differentiated twice into an acceleration,
     // the board taken as 16 cm across, and the arm's up and down added. A drag
     // that reads as a shake starts a play, as a shaken device would, unless the
     // parent switched shaking off; the Shake button and Space are always there.
+    Connections {
+        target: root.motionSource
+
+        function onSample(ax, ay, az, wx, wy, wz) {
+            if (root.motionLive) {
+                scene.pushMotion(ax, ay, az, wx, wy, wz);
+            }
+        }
+
+        function onShakeDetected() {
+            if (root.shakeEnabled && root.soloState === "box" && !scene.busy) {
+                root.solo.shake();
+            }
+        }
+    }
+
     QtObject {
         id: pointer
 
@@ -196,12 +243,15 @@ FocusScope {
         }
     }
 
-    // While the hand is down, or the dice are moving, the device keeps sending
+    // While the hand is down, or the dice are moving, the stand-in keeps sending
     // samples (a hundred a second), so a hand that has stopped reads as stopped.
+    // A real device's samples are already a stream: the stand-in is silent then.
     Timer {
         interval: 10
         repeat: true
-        running: root.soloState === "shaking" || root.soloState === "dropping" || pointer.down
+        running: !root.motionLive
+                 && (root.soloState === "shaking" || root.soloState === "dropping"
+                     || pointer.down)
         onTriggered: {
             if (Date.now() - pointer.at > 20) {
                 root.pointerSample(pointer.x, pointer.y);
@@ -302,11 +352,13 @@ FocusScope {
             onTileGapChanged: root.solo.setGeometry(tileSize, tileGap)
 
             // The drag that stands in for the accelerometer, on the box itself.
+            // A device whose sensors are there does not use it: the samples come
+            // from MotionSource above.
             DragHandler {
                 id: boxDrag
 
                 target: null
-                enabled: root.soloState === "box"
+                enabled: root.soloState === "box" && !root.motionLive
                 onCentroidChanged: {
                     if (active) {
                         root.pointerSample(centroid.position.x, centroid.position.y);

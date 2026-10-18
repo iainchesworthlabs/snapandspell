@@ -17,7 +17,7 @@ only the versions just named have been tried. What CI runs is in [CI](ci.md).
 | A C++23 compiler | MSVC from Visual Studio 2022 17.x or Visual Studio 2026; GCC 14 or newer; AppleClang 16 or newer | Verified: MSVC 19.51 (Visual Studio 2026), GCC 15.2, Apple clang 21. The code uses `std::expected` and `std::format` |
 | Git | any recent | Clones this repository and checks the vcpkg commit |
 | vcpkg | the labs' fork, at or after the commit in `cmake/vcpkg-commit.txt` | One shared clone, found through `VCPKG_ROOT`, see [below](#vcpkg) |
-| PowerShell 7 (`pwsh`) | 7.0 or newer | For the [platform-isolation check](platform-isolation.md#enforcement) and the [packaging check](#checking-a-package). Optional: without it the `platform.isolation` test is not registered |
+| PowerShell 7 (`pwsh`) | 7.0 or newer | For the [platform-isolation check](platform-isolation.md#enforcement), the [data checks](testing.md#what-there-is) (the word lists, the dice, the phonics data and the feedback sounds) and the [packaging check](#checking-a-package). Optional: without it those ctests are not registered |
 | Network access | | The first configure bootstraps vcpkg and builds Catch2. Packaging needs none |
 | Qt | 6.12 | Only for the optional Qt Quick window, see [below](#the-qt-quick-window) |
 | NSIS (`makensis`) | any recent | Optional: adds the Windows installer to [packaging](#packaging). Without it a package is a ZIP |
@@ -126,7 +126,9 @@ The window is the Solo Play game of [Application design](design/application.md)
 in Qt Quick, over the library (`src/app`; [Architecture](architecture.md#the-qt-quick-window)). It is the
 optional target `wjs_app`, built as `WordJewelsSolver` (`WordJewelsSolver.exe`
 on Windows, where it is a GUI-subsystem program with no console window; an
-application bundle on macOS). It is off by default until CI installs Qt.
+application bundle on macOS). It is off by default, because it needs a prebuilt
+Qt that a machine building only the solver does not; the Windows CI leg installs
+one and turns it on.
 
 It needs Qt 6.12 with the modules Core, Gui, Qml, Quick, Quick Controls 2,
 Quick 3D and LinguistTools (the `qttools` module: `lupdate` and `lrelease`), as
@@ -135,6 +137,32 @@ a prebuilt install (from the Qt online installer, or with
 The board scene is 3D, so a build of the window links Qt Quick 3D, which Qt
 offers only under the GPL-3.0 or commercially: the binary is **GPL-3.0 only**
 (the recorded decision, [Board design](design/board.md#rendered-3d-or-drawn-in-2d)).
+
+**The feedback modules are optional.** Sound, speech and motion use Qt
+Multimedia, Qt Sensors and Qt TextToSpeech, and the application finds each with
+`OPTIONAL_COMPONENTS`: a kit without one builds that engine's **silent
+variant** and the game is complete, only quieter. The shared kit on the
+author's machine, `C:\Repos\common\qt\6.12.0\msvc2022_64`, has all three: the
+module archives were fetched from the Qt repository and merged into the kit
+(`lib/cmake/Qt6{Multimedia,Sensors,TextToSpeech}`, their DLLs in `bin`), and
+`CMAKE_PREFIX_PATH` finds them with no other flag. A kit that lacks them needs
+nothing special — configure and build as below — and `cmake/FindQt6.cmake`'s
+search path is unchanged. The Windows CI leg installs all three with
+[install-qt-action](https://github.com/jurplel/install-qt-action) instead of the
+PyPI aqtinstall, because Qt 6.11+ split the Windows repository per architecture
+([CI](ci.md#toolchain-choices)).
+
+The three backends are chosen the way `wjs/profiling.hpp` is
+(docs/profiling.md): one directory under `src/app/variants/` goes on the include
+path, every variant has the same header and interface, and no source asks
+whether the module is there. The sound assets are the project's own
+placeholders: `tools/sounds/make_sounds.ps1` writes `assets/sounds/*.wav`
+(16-bit PCM mono, deterministic; `-Check` proves the checked-in files), and the
+build embeds them as `:/sounds/<name>.wav`. The real phoneme clips and cheers
+replace them after the literacy review. `wjs_unit_tests "[feedback],[motion],[haptics]"`
+and `wjs_app_tests "[feedback],[motion]"` run the policy and the processing
+without a speaker or a sensor.
+
 `cmake/FindQt6.cmake` looks for the kit, in this order:
 
 1. `-DCMAKE_PREFIX_PATH=<path to the kit>` or `-DQt6_DIR=<...>`, which always win;

@@ -62,11 +62,17 @@ if(EXPECT_QT)
         "Qt ${QT_VERSION}"
         "GNU Lesser General Public License"
         "Quick 3D"
+        # The feedback engines' modules, under the same LGPL/GPL options.
+        "Multimedia"
+        "Sensors"
+        "TextToSpeech"
+        "feedback sounds"
         "light probe"
         "font")
 else()
     # No application in this build, so no section may describe one.
-    foreach(_absent IN ITEMS "Quick 3D" "GNU Lesser General Public License" "GPL-3.0-only")
+    foreach(_absent IN ITEMS "Quick 3D" "GNU Lesser General Public License" "GPL-3.0-only"
+            "Multimedia" "TextToSpeech" "feedback sounds")
         string(FIND "${_text}" "${_absent}" _found)
         if(NOT _found EQUAL -1)
             list(APPEND _failures

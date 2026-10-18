@@ -20,6 +20,19 @@ TestCase {
     Component { id: boxComponent; SoloBox { } }
     Component { id: layoutComponent; SoloLayout { } }
 
+    // The device's motion without hardware: a MotionSource-shaped object the
+    // screen can start and stop, whose sample and shake signals a suite emits.
+    Component {
+        id: motionComponent
+        QtObject {
+            property bool available: true
+            property bool active: false
+            property bool shakeEnabled: true
+            signal sample(real ax, real ay, real az, real wx, real wy, real wz)
+            signal shakeDetected()
+        }
+    }
+
     SignalSpy { id: homeSpy; signalName: "homeRequested" }
 
     function init() {
@@ -190,6 +203,55 @@ TestCase {
 
         compare(soloModel.state, "playing")
         compare(scene.playCount, 1)
+    }
+
+    function test_theDevicesMotionDrivesTheSceneAndRollsTheBox() {
+        // MotionSource's half of the Seam: while the box needs it, its samples
+        // go to the scene's pushMotion, and a detected shake rolls the box as
+        // the Shake button does. No sensor: a QML object with the same shape.
+        const motion = createTemporaryObject(motionComponent, testCase)
+        const screen = createTemporaryObject(screenComponent, testCase,
+                                             { width: 1100, height: 700, solo: soloModel,
+                                               motionSource: motion })
+        verify(screen !== null)
+        const scene = findChild(screen, "boardSceneStub")
+        verify(scene !== null)
+
+        // The box is on screen and the parent allows shaking: the source is
+        // running and its own shake setting follows the screen's.
+        tryCompare(motion, "active", true)
+        compare(motion.shakeEnabled, true)
+        compare(scene.motions.length, 0)
+
+        motion.sample(0.1, -0.2, 0.9, 0.01, 0.02, 0.03)
+        compare(scene.motions.length, 1)
+        compare(scene.motions[0].ax, 0.1)
+        compare(scene.motions[0].az, 0.9)
+        compare(scene.motions[0].wz, 0.03)
+
+        motion.shakeDetected()
+        compare(soloModel.state, "shaking")
+        tryCompare(scene, "playCount", 1)
+        tryCompare(soloModel, "state", "playing")
+
+        // Play is on: the box no longer needs the sensors, so they stop.
+        tryCompare(motion, "active", false)
+    }
+
+    function test_theShakeSettingStopsTheSensorsAndTheRoll() {
+        // The parent's Shake row off: the source is told, never started, and a
+        // shake that arrives anyway does not roll the box. The Shake button
+        // and Space are unaffected (test_spaceShakesTheBox).
+        const motion = createTemporaryObject(motionComponent, testCase)
+        const screen = createTemporaryObject(screenComponent, testCase,
+                                             { width: 1100, height: 700, solo: soloModel,
+                                               motionSource: motion, shakeEnabled: false })
+        verify(screen !== null)
+
+        compare(motion.shakeEnabled, false)
+        compare(motion.active, false)
+        motion.shakeDetected()
+        compare(soloModel.state, "box")
     }
 
     function test_theLidGoesBackOnWithTheWayBack() {

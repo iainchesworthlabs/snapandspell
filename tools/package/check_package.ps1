@@ -198,15 +198,31 @@ if ($withApplication) {
         # Quick 3D's among them. The DLLs are beside the program; Qt's deploy
         # script puts the plugins and QML modules at the install prefix, one
         # level above bin, and writes the qt.conf that points there.
+        #
+        # A Debug build deploys the debug DLLs (Qt6Cored.dll, qwindowsd.dll):
+        # the suffix is the configuration's, so the same check reads a package
+        # from either preset.
+        $qtSuffix = if (Test-Path -LiteralPath (Join-Path $buildDirectory 'bin/Qt6Cored.dll')) { 'd' } else { '' }
         $required += @(
-            'bin/Qt6Core.dll',
-            'bin/Qt6Qml.dll',
-            'bin/Qt6Quick.dll',
-            'bin/Qt6Quick3D.dll',
+            "bin/Qt6Core$qtSuffix.dll",
+            "bin/Qt6Qml$qtSuffix.dll",
+            "bin/Qt6Quick$qtSuffix.dll",
+            "bin/Qt6Quick3D$qtSuffix.dll",
             'bin/qt.conf',
-            'plugins/platforms/qwindows.dll',
-            'plugins/platforms/qoffscreen.dll'
+            "plugins/platforms/qwindows$qtSuffix.dll",
+            "plugins/platforms/qoffscreen$qtSuffix.dll"
         )
+        # The feedback engines are optional at configure time (their silent
+        # variants), so their DLLs are required only when the build beside this
+        # package deployed them: windeployqt copies a DLL a linked module needs,
+        # and an app built without the module has no such import. A build that
+        # links one but whose package lacks it is caught by the packaged
+        # window's smoke below.
+        foreach ($module in @('Qt6Multimedia', 'Qt6Sensors', 'Qt6TextToSpeech')) {
+            if (Test-Path -LiteralPath (Join-Path $buildDirectory "bin/$module$qtSuffix.dll")) {
+                $required += "bin/$module$qtSuffix.dll"
+            }
+        }
     }
 }
 

@@ -306,8 +306,9 @@ what Cubeulator has. The cost comes only at a store submission, so:
 What this commits the MVP to: the application links Qt Quick 3D and Shader Tools,
 so a build of it is GPL-3.0 only, which a private build does not mind and a store
 submission would. It does not decide D2: that is taken before any store, with
-the seam in hand. Two more modules the product needs are not in the shared tree
-at all; see [Application design](application.md#qt-modules).
+the seam in hand. The feedback engines' modules (Multimedia, Sensors and
+TextToSpeech) are now in the shared kit and found optionally; see
+[Application design](application.md#qt-modules).
 
 ### How it is drawn
 

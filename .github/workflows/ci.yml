@@ -229,18 +229,36 @@ jobs:
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
       # The Qt Quick application, on the one leg whose platform has had it
-      # built: Qt 6.12.0 from aqtinstall, the same prebuilt kit pattern as the
-      # shared tree (docs/building.md). The application and the 3D board-scene
-      # prototype are built and their tests run, so the QML screens, the scene
-      # contract and qmllint are held on every push (docs/ci.md). The qttools
-      # module carries lupdate and lrelease: the interface's catalogues are
-      # compiled at build time and the drift check regenerates them.
+      # built: Qt 6.12.0 through install-qt-action, the same prebuilt kit
+      # pattern as the shared tree (docs/building.md). The application and the
+      # 3D board-scene prototype are built and their tests run, so the QML
+      # screens, the scene contract and qmllint are held on every push
+      # (docs/ci.md). The qttools module carries lupdate and lrelease: the
+      # interface's catalogues are compiled at build time and the drift check
+      # regenerates them. qtmultimedia, qtsensors and qtspeech are the
+      # application's sound, motion and speech; their silent variants exist for
+      # a kit without them, but this leg is the one that proves the real engines.
+      #
+      # aqtsource is a git commit, not a PyPI release: Qt 6.11+ split the
+      # Windows repository per architecture and aqtinstall 3.3.0, the last PyPI
+      # release, cannot read it. install-qt-action would install that release
+      # from PyPI without it. The comment on the pin in
+      # .github/toolchain-versions.json says where the commit came from.
       - name: Install Qt (Windows application leg)
         if: matrix.leg == 'windows'
-        shell: pwsh
-        run: |
-          python -m pip install --disable-pip-version-check "aqtinstall==3.3.0"
-          python -m aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 -m qttools -O "$env:RUNNER_TEMP/Qt"
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        with:
+          version: "6.12.0"
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          # The Configure step below names the same kit path, as the manual
+          # aqtinstall install used to. Without this the action installs under
+          # $RUNNER_WORKSPACE instead.
+          dir: ${{ runner.temp }}
+          aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+          modules: "qttools qtmultimedia qtsensors qtspeech"
+          cache: true
 
       # What the leg actually built with, in the log: the first thing to read
       # when a compiler-specific failure shows up.

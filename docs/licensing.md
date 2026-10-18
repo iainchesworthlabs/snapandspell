@@ -72,6 +72,8 @@ unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
 | vcpkg helper ports `vcpkg-cmake`, `vcpkg-cmake-config` | MIT [V: installed `share/*/copyright`] | Build helpers | No |
 | Catch2 3.15.3 | BSL-1.0 [V: installed `share/catch2/copyright`] | The test framework (`tests` vcpkg feature) | No: tests only |
 | Qt 6.12 (Core, Gui, Qml, Quick, Quick Controls 2, Quick 3D) | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 for the first five; **Quick 3D: GPL-3.0 only** [I] | The optional Qt Quick window; not built by vcpkg. A build of the window is GPL-3.0 only | Yes, in a Windows package: the DLLs, plugins and QML modules the window loads, with the LGPL text in `NOTICES.txt` |
+| Qt 6.12 Multimedia, Sensors and TextToSpeech | LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only [V: `<qt>/sbom/qt{multimedia,sensors,speech}-6.12.0.spdx` in the shared kit] | The feedback engines: short sounds, the device's speech, the accelerometer/gyroscope. Optional at build time (silent variants) | Yes, in a Windows package when the kit has them: the DLLs and their plugins, under the LGPL option |
+| The project's feedback sounds (`assets/sounds/*.wav`) | GPL-3.0-or-later, the project's own work; synthesised placeholders for the reviewer's recordings [V: `tools/sounds/make_sounds.ps1`] | The eight cue assets | Yes, embedded in the application |
 | Tracy | BSD-3-Clause [I] | Planned: opt-in profiling | Not present yet |
 | A camera and letter-recognition stack | Not chosen | Planned | Not present yet |
 
@@ -95,11 +97,12 @@ build used and a package cannot be made without it. Its layers:
   which Qt offers only under GPL-3.0 or commercially ([Qt](#qt)). The notice
   says so in capitals, next to the "or later" statement, so the two cannot be
   confused;
-- Qt 6.12: the modules used under the LGPL, the options Qt also offers them
-  under (GPL-3.0 or commercial), the LGPL-3.0 text, how the libraries can be
-  replaced (they are linked dynamically and found beside the program through
-  `qt.conf`), where Qt's corresponding source is published, and that no Qt
-  translation catalogue is installed;
+- Qt 6.12: the modules used under the LGPL (Core, Gui, Qml, Quick, Quick
+  Controls 2, Multimedia, Sensors and TextToSpeech), the options Qt also offers
+  them under (GPL-2.0/3.0 or commercial), the LGPL-3.0 text, how the libraries
+  can be replaced (they are linked dynamically and found beside the program
+  through `qt.conf`), where Qt's corresponding source is published, and that no
+  Qt translation catalogue is installed;
 - Qt Quick 3D, GPL-3.0-only, and that it is why the binary is;
 - ENABLE, the public-domain word list ([below](#the-word-list)), with its
   SHA-256 and the pointer to `data/README.md`;
@@ -118,13 +121,17 @@ that starts shipping means a new fragment, its licence text in
 Qt is a prebuilt dependency found through `CMAKE_PREFIX_PATH` or `QT_ROOT_DIR`;
 it is not part of the repository and is not built by vcpkg. Today only the
 optional window (`WJS_BUILD_APP`) uses it. The modules it links are Core, Gui,
-Qml, Quick and Quick Controls 2, which Qt offers under the LGPL-3.0 as well as
-the GPL, and **Quick 3D**, which Qt offers only as commercial or GPL-3.0-only:
-the board scene is 3D, so a build of the window can be conveyed only under
-GPL-3.0 and its "or later" stops there. That is the author's decision of
-2026-10-16 for the private MVP build, and D2 (in the [roadmap](roadmap.md))
-decides what a store build does; the source files stay GPL-3.0-or-later either
-way.
+Qml, Quick, Quick Controls 2, Multimedia, Sensors and TextToSpeech, which Qt
+offers under the LGPL-3.0 as well as the GPL (2 or 3) and a commercial licence,
+and **Quick 3D**, which Qt offers only as commercial or GPL-3.0-only: the board
+scene is 3D, so a build of the window can be conveyed only under GPL-3.0 and
+its "or later" stops there. That is the author's decision of 2026-10-16 for the
+private MVP build, and D2 (in the [roadmap](roadmap.md)) decides what a store
+build does; the source files stay GPL-3.0-or-later either way. The three
+feedback modules are optional at configure time: a kit without them builds the
+silent variants, so no package claims a module it does not carry. The kit's
+`sbom/qtmultimedia-6.12.0.spdx`, `qtsensors-...` and `qtspeech-...` are the
+record of their licence expressions.
 
 The rule for adding another module is still to check how Qt offers it first, in
 "Qt licensing" in the Qt 6.12 documentation, and to avoid modules that are

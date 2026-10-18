@@ -19,6 +19,8 @@
 #include <system_error>
 #include <thread>
 
+#include "feedback/feedback_engine.hpp"
+#include "feedback/motion_source.hpp"
 #include "frame_profiler.hpp"
 #include "language_manager.hpp"
 #include "parent/parent_controller.hpp"
@@ -312,6 +314,15 @@ int main(int argc, char* argv[]) {
     wjs::app::LanguageManager language;
     language.apply(utf8_text(store.settings().language));
 
+    // The feedback engines and the device's motion, made before the engine that
+    // points at them and gone after it: Main.qml binds the parent's settings to
+    // the feedback engine, and hands the motion source to Solo Play. They do
+    // nothing until a cue arrives or the box is shown; a build without Qt
+    // Multimedia, Sensors or TextToSpeech has their silent variants behind
+    // these same objects.
+    wjs::app::FeedbackEngine feedback;
+    wjs::app::MotionSource motion;
+
     QQmlApplicationEngine engine;
     QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
                      &QQmlEngine::retranslate);
@@ -320,6 +331,8 @@ int main(int argc, char* argv[]) {
         engine.setInitialProperties({
             {QStringLiteral("parentController"), QVariant::fromValue(&parent)},
             {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
+            {QStringLiteral("feedback"), QVariant::fromValue(&feedback)},
+            {QStringLiteral("motion"), QVariant::fromValue(&motion)},
             // The smoke run's switch: Main.qml shows Solo Play and shakes the
             // box, and the frames are counted below, in C++.
             {QStringLiteral("smoke"), smoke > 0},

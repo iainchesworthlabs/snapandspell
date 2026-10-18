@@ -1,6 +1,14 @@
 Bundled assets
 --------------
 
+- The feedback sounds, assets/sounds/*.wav (tap, rattle, letter, land, cheer,
+  tick, chime and cleared), are the project's own: short synthesised tones and
+  noise bursts written by tools/sounds/make_sounds.ps1, not third-party audio.
+  They are placeholders for the phoneme clips and recorded cheers that follow
+  the literacy review (docs/design/phonics.md); the files are owned by the
+  project and licensed with it. They are compiled into the application's
+  resources as :/sounds/<name>.wav, so no file of them is installed.
+
 - The board scene's light probe, src/app/qml/scene/lightprobe/sky.ktx, is the
   project's own: it is baked by tools/lightprobe from the sky the scene would
   otherwise make at run time, and it is not third-party artwork. It is compiled

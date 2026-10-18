@@ -16,6 +16,7 @@ src/
                          game_session.hpp
                          calendar.hpp  settings.hpp  store.hpp  session_store.hpp
                          parent_gate.hpp  dashboard.hpp
+                         feedback.hpp  motion.hpp
                          solver_work.hpp  binder_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
     src/                 board.cpp  dice.cpp  dice_sets.cpp  draw.hpp (internal)  dictionary.cpp
@@ -25,6 +26,7 @@ src/
                          game_session.cpp
                          settings.cpp  store.cpp  store_format.cpp  session_store.cpp
                          parent_gate.cpp  dashboard.cpp
+                         feedback.cpp  motion.cpp
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
                          profiling-disabled/wjs/profiling.hpp  (empty)
   scan/                wjs::scan: finds a board in a camera frame and reads its
@@ -52,6 +54,11 @@ src/
                          session), solo_game_setup.* (what it is made from),
                          solo_game_factory.*, fake_solo_game.*, solo_model.*,
                          path_tracer.*, board_layout.*, solo_layout.*
+    feedback/            FeedbackEngine (the one cue seam's engine), SoundEngine,
+                         Speech and MotionSource, over the backends below
+    variants/            one directory per optional Qt module: sound-multimedia or
+                         sound-silent, speech-texttospeech or speech-silent,
+                         motion-sensors or motion-silent (the profiling pattern)
     scan/                assist_game.* (the Qt-free Mode A port and its maker),
                          assist_model.* and scan_model.* (the QML models), CMake
                          for the WordJewelsSolver.Scan module
@@ -64,13 +71,14 @@ src/
     qml/parent/          the parent area's screens and their wording
   platforms/           everything that differs between operating systems
     interfaces/wjs/platform/
-                         console.hpp  paths.hpp  camera.hpp  board_reader.hpp
+                         console.hpp  paths.hpp  camera.hpp  board_reader.hpp  haptics.hpp
     detail/              what no platform differs in: camera_unavailable.cpp,
-                         board_reader_portable.cpp
+                         board_reader_portable.cpp, haptics_none.cpp
     windows/             console_windows.cpp  paths_windows.cpp  platform.cmake
     linux/               paths_linux.cpp  platform.cmake
     macos/               paths_macos.cpp  platform.cmake
     posix/               console_posix.cpp (shared by Linux and macOS)
+assets/sounds/          the project's eight placeholder feedback WAVs
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
                        Tracy.cmake, FindQt6.cmake
@@ -80,6 +88,7 @@ tools/checks/          check_platform_isolation.ps1
 tools/scan/            render_corpus.cpp: wjs_scan_render, writes the synthetic corpus
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
                        make_dice.ps1
+tools/sounds/          make_sounds.ps1: writes assets/sounds/*.wav, checked by data.sounds
 tools/hooks/, policy/  git hooks and the commit and PR text rule
 ```
 
@@ -828,15 +837,21 @@ repository has no phase index for Mode A's MVP set; a board played with a phase
 index later will record its list instead. The words found count toward the same
 stars and history as Solo Play's.
 
-**What is not there.** No sound or touch feedback: every moment is a
-`Feedback.cue`, and nothing listens, because Qt Multimedia, Sensors and
-TextToSpeech are not in the tree and the recordings wait for the literacy review.
-No device shake: `wjs::detect_shakes` exists and the sensor interface in
-`src/platforms` does not, so Shake is a button and Space everywhere. The screen
-takes a fast drag on the box as the stand-in for the accelerometer and the
-gyroscope: it calls the scene's `pushMotion` with the drag's acceleration and
-spin, and a drag that reads as a shake starts a play unless the parent's Shake
-setting is off. The button and Space are always there. No bundled
+**Feedback and motion.** Every moment is a `Feedback.cue`; `Main.qml` installs
+one `FeedbackEngine` (`src/app/feedback`) on the seam, and the engine carries
+the cue out as a short asset (Qt Multimedia), a whole word or a picture's name
+(the platform's Qt TextToSpeech) and a haptic pattern (the platform interface).
+The cue mapping is the library's pure `wjs::plan_cue`, and the parent's Sound,
+Celebration sounds, Sound it out and Vibration settings are read by the next
+cue. A build without the three Qt modules selects silent backends by CMake (the
+variant pattern), so the application still configures and builds. `MotionSource`
+over Qt Sensors feeds the scene's `pushMotion` and the pure
+`wjs::MotionProcessor`; a real shake rolls the box, and on the desktops the
+source stays unavailable and the drag stands in. The phoneme clips and recorded
+cheers are still the literacy reviewer's, so `say_letter_sequence()` is the seam
+and is silent. No device shake on a desktop: Shake is a button and Space there,
+with the drag on the box standing in for the accelerometer. The button and Space
+are always there. No bundled
 type: Andika is named in `Theme` and Qt falls back to the platform's face until
 its licence is read and the glyph check is done. The family game's picture on
 `home` is shown and opens Mode A; the camera backend is still absent on every

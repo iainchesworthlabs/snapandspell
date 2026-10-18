@@ -32,23 +32,30 @@ frames only: no camera is connected to it and it has not seen a real board.
 | The library: board parsing, a trie dictionary, scoring, a depth-first solver, dice and deals, the game session, the store, the parent gate and dashboard. No GUI, no operating system code | `src/lib` | Unit tested |
 | `wjs-cli`, a command-line front end | `src/cli` | Works; not covered by a test of its own |
 | Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Built and tested by CI on Windows, Linux and macOS |
-| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the resting screen and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish | `src/app` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model, touch, session, parent and settings tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI; installed and packaged with CPack, with its Qt runtime and the third-party notices |
+| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the resting screen and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `src/app`, `src/lib` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI; installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
 | A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces | `src/scan`, `src/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; no camera backend; never tried on a real board ([design](docs/design/scanner.md)) |
 | Catch2 unit tests, the app tests, a platform-contract test and the platform-isolation check | `tests`, `tools/checks` | Pass on Windows |
 
+The sound cues are placeholder WAVs owned by the project
+(`assets/sounds`, written by `tools/sounds/make_sounds.ps1`); the phoneme clips
+and recorded cheers are the reviewer's recording job, and the sound-it-out
+sequence is wired but silent. Haptics is a no-op on the desktops and its
+Android/iOS backends wait for those targets. Nothing captures audio.
+
 Not built yet: a camera (the interface exists, with no backend), recognising
 letters in a real picture (the reader is tested on drawn frames only), a phone,
-tablet or browser target, and a release that publishes a package. The English
-word list is ENABLE, which is in `data/dictionaries/`: see
-[data/README.md](data/README.md).
+tablet or browser target, the tablet's sensor and haptic backends, and a release
+that publishes a package. The English word list is ENABLE, which is in
+`data/dictionaries/`: see [data/README.md](data/README.md).
 
 ## Build and run the command-line solver
 
 You need CMake 4.0 or newer, Ninja, Git, and a C++23 compiler. MSVC from
 Visual Studio 2022 17.x or Visual Studio 2026, GCC 14 or newer and AppleClang
 16 or newer are the intent; MSVC 19.51 (Visual Studio 2026) is the only one
-verified so far. PowerShell 7 (`pwsh`) is needed only for the platform-isolation
-check, which is skipped by the tests if it is not installed.
+verified so far. PowerShell 7 (`pwsh`) is needed for the repository checks
+(platform isolation, the word lists and dice, the phonics data and the feedback
+sounds); those are skipped by the tests if it is not installed.
 
 ```sh
 git clone https://github.com/iainchesworthlabs/wordjewelssolver

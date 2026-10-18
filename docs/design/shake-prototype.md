@@ -906,8 +906,9 @@ Stills at fixed times of one board (`--auto --shots`), so they are the same on
 every run. They were read from stills by whoever built the scene, not by a
 child, and nobody has yet watched the simulated motion: that is the author's to
 judge by running it. **Nothing plays `landed`, and sound is much of what makes
-a die feel heavy:** Qt Multimedia is not in the shared tree, so the prototype
-is silent, and the feel is judged without it.
+a die feel heavy:** the prototype does not link Qt Multimedia (the shared kit
+now has it, and the application plays the cue), so this harness is silent and
+the feel is judged without it.
 
 - **Simulated, straight down (above).** The dice start in their cells. At
   350 ms they have been thrown apart, turned and tipped, and the camera has

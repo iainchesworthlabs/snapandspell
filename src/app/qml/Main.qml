@@ -25,6 +25,11 @@ ApplicationWindow {
     // is parsed: its catalogue, its layout direction and its retranslations all
     // go through it (src/app/language_manager.hpp).
     required property var languageManager
+    // The feedback engines, made by main.cpp: the sound, the platform's voice
+    // and the haptics, behind one cue() (feedback/feedback_engine.hpp), and the
+    // device's motion, which only Solo Play reads (feedback/motion_source.hpp).
+    required property var feedback
+    required property var motion
 
     width: 1100
     height: 700
@@ -73,6 +78,10 @@ ApplicationWindow {
         // same language and changes nothing. Kept here so the window is right
         // even when its owner did not (the stub shells).
         languageManager.apply(parentController.language);
+        // The one seam every cue goes through (kit/Feedback.qml), and the
+        // parent's settings that decide what a cue plays and says.
+        Feedback.engine = feedback;
+        feedback.settings = parentController.settings;
         if (smoke) {
             startSmoke();
         }
@@ -140,7 +149,9 @@ ApplicationWindow {
         // The Language setting is applied at once: the catalogue is installed and
         // this window's direction and every qsTr binding follow. The board and its
         // letters do not move: they are the same English board in every language.
+        // The sound, speech and feedback settings are read by the next cue.
         function onSettingsChanged() {
+            window.feedback.settings = window.parentController.settings;
             window.languageManager.apply(window.parentController.language);
         }
     }
@@ -169,6 +180,10 @@ ApplicationWindow {
 
             anchors.fill: parent
             solo: soloGame
+            // The device's motion (Qt Sensors on a tablet; unavailable on these
+            // desktops, where the drag stands in). It is started only while the
+            // box or the falling dice need it and the parent has Shake on.
+            motionSource: window.motion
             // The parent's switch for shaking the device: it gates the drag that
             // stands in for the accelerometer, never the Shake button.
             shakeEnabled: window.parentController.settings.shake === true

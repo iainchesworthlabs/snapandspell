@@ -33,6 +33,10 @@
 //   languageManager  LanguageManager, so a suite can apply Hebrew or Yiddish
 //   fixture          this object, for reset() and the few things only C++ can do
 //
+// The Feedback seam's engine (kit/Feedback.qml) is left null here: the suites
+// record the cue signal and nothing plays or speaks, which is the quiet engine
+// a stub shell has. Main.qml is the only place that installs the real one.
+//
 // The models are the application's classes and nothing here changes them: a
 // suite drives the screens exactly as the program does, with a store and a game
 // that hold TEST DATA (tests/app/parent_ui/demo_data.hpp, the fake game's own

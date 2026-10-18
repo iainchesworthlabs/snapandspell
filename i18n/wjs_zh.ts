@@ -22,7 +22,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../src/app/qml/Main.qml" line="+34"/>
+        <location filename="../src/app/qml/Main.qml" line="+39"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>

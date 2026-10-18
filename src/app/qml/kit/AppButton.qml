@@ -11,8 +11,8 @@ import WordJewelsSolver
 // A child's button says what it does with a picture (`iconName`, or the content
 // placed inside), not with words; `accessibleName` is for the screen reader and
 // the person who cannot see the picture. It acts on release inside it, so a slide
-// off the button cancels, and it speaks its name when pressed (a cue; nothing
-// plays it yet).
+// off the button cancels, it speaks its name when pressed, and its press plays
+// the quiet tap of a control (Feedback.cue, carried out by Main.qml's engine).
 Item {
     id: root
 
@@ -38,6 +38,13 @@ Item {
 
     signal clicked
 
+    // Every way of activating the button (a pointer, Space or Enter, a screen
+    // reader's action) is the same click and the same quiet tap.
+    function activate() {
+        Feedback.cue("tap", "");
+        root.clicked();
+    }
+
     readonly property real targetHeight: size === "primary" ? Theme.targetPrimary
                                        : size === "min" ? Theme.targetMin
                                        : Theme.targetChild
@@ -56,7 +63,7 @@ Item {
     Accessible.focusable: true
     Accessible.checkable: checkable
     Accessible.checked: checked
-    Accessible.onPressAction: root.clicked()
+    Accessible.onPressAction: root.activate()
 
     Rectangle {
         anchors.fill: parent
@@ -107,13 +114,13 @@ Item {
                 Feedback.cue("speak", root.speaks);
             }
         }
-        onClicked: root.clicked()
+        onClicked: root.activate()
     }
 
     Keys.onPressed: event => {
         root.focusByKey = true;
         if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            root.clicked();
+            root.activate();
             event.accepted = true;
         }
     }

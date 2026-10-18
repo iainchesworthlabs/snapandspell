@@ -69,15 +69,17 @@ with the rulesets.
 
 What a build-and-test leg's ctest contains: the Catch2 unit suite, the repository
 checks `platform.fragments` (every platform fragment satisfies the platform
-contract, on whichever host this is), `platform.isolation` (the same script as
-the `platform-isolation` job; it needs `pwsh`, which every hosted image has),
-`profiling.shipped_presets` (no preset that ships has Tracy in it) and
-`profiling.zone_names`, `notices.sections` (the generated third-party notices
-state every section a package must), `package.config` (CPack names this project,
-and the install rules carry the programs the build makes, their data and the
-notices), and the performance tier, which skips itself in a Debug build: the
-Debug legs prove it compiles on all three compilers, and the `Performance` leg
-runs it.
+contract, on whichever host this is, including that every interface header in
+`src/platforms/interfaces` has an implementation in the fragment's sources),
+`platform.isolation` (the same script as the `platform-isolation` job; it needs
+`pwsh`, which every hosted image has), `profiling.shipped_presets` (no preset
+that ships has Tracy in it) and `profiling.zone_names`, `notices.sections` (the
+generated third-party notices state every section a package must),
+`package.config` (CPack names this project, and the install rules carry the
+programs the build makes, their data and the notices), `data.sounds` (the
+checked-in feedback WAVs are what `tools/sounds/make_sounds.ps1` writes), and
+the performance tier, which skips itself in a Debug build: the Debug legs prove
+it compiles on all three compilers, and the `Performance` leg runs it.
 
 The **Windows leg**, the one that builds the Qt application, also runs its
 smoke mode after ctest (`WordJewelsSolver.exe --smoke 60`, offscreen with the
@@ -125,26 +127,46 @@ import beside the binary, as the application's own deploy does for its screens.
   sanitizers. The Release presets are not built in CI yet; a Release-only
   warning (`-Wnull-dereference`, for one) would first show up locally.
 - **Qt on the Windows leg.** The Windows leg installs the prebuilt Qt 6.12.0
-  kit with `aqtinstall` (a pinned 3.3.0) and configures with
-  `-DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON`, so the Qt Quick
-  application, its 3D scene prototype, the app tests, `parent.screens`,
+  kit with `jurplel/install-qt-action` (pinned to v4.4.1 by commit SHA) and
+  configures with `-DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON`, so the
+  Qt Quick application, its 3D scene prototype, the app tests, `parent.screens`,
   `scan.screens`, `parent.languages`, `scan.languages`, the eight `quick.*`
   suites, `i18n.catalogues`, `app.scene_contract` and `app.qml_lint` all run on
-  every push. The install names the `qttools` module (`-m qttools`), which
-  carries `lupdate`, `lrelease` and Qt Linguist: the translations are compiled
-  at build time and the drift check needs `lupdate`. The other legs build the
-  library, CLI and scanner alone; the application has only been built on
-  Windows, so Qt is not installed there yet. `QT_QPA_PLATFORM=offscreen` lets
-  the screens run on a runner with no display.
+  every push. The install names the modules `qttools qtmultimedia qtsensors
+  qtspeech` (see `aqt list-qt windows desktop --modules 6.12.0
+  win64_msvc2022_64`): `qttools` carries `lupdate`, `lrelease` and Qt Linguist,
+  and the last three are the application's sound, motion and speech, so this is
+  the leg that proves the real engines rather than their silent variants. The
+  action's `aqtsource` input installs aqtinstall from a git commit rather than
+  from PyPI, because Qt split the Windows repository per architecture from 6.11
+  (`qt6_6120/qt6_6120_msvc2022_64/` instead of `qt6_6120/qt6_6120/`) and
+  aqtinstall 3.3.0 — the last PyPI release — cannot read it: every 6.12.0
+  install on Windows failed with "Failed to locate XML data" on a doubled
+  `qt6_6120/qt6_6120/Updates.xml` path. aqtinstall PR #1000 fixed that on master
+  and no release has carried it since, so the pin is the master commit that was
+  installed and verified (2026-10-13, the same one the sibling `iclforge`
+  project uses). Drop the key, which makes the action fall back to PyPI, once a
+  release newer than 3.3.0 includes the fix. `cache: true` keeps the kit
+  between runs. The other legs build the library, CLI and scanner alone; the
+  application has only been built on Windows, so Qt is not installed there yet.
+  `QT_QPA_PLATFORM=offscreen` lets the screens run on a runner with no display.
+- **The feedback modules are optional.** `src/app` finds Multimedia, Sensors and
+  TextToSpeech with `OPTIONAL_COMPONENTS` and selects a silent backend for a
+  missing one (the variant pattern), so a contributor's kit still configures and
+  builds; the Windows CI leg installs them on purpose, so the package check can
+  expect `Qt6Multimedia.dll`, `Qt6Sensors.dll` and `Qt6TextToSpeech.dll` beside
+  the window.
 - **CMake 4.4.2 and Ninja 1.13.2** from `lukka/get-cmake`; the same pins the
   sibling projects use.
 - **One place for the pins.** `.github/toolchain-versions.json` lists CMake,
-  Ninja, the Qt version and kit, `aqtinstall` and its module, and names the
-  vcpkg pin file. The workflows are held to it: the `toolchain.versions` ctest
-  fails if a workflow pins another version, if the `aqt install-qt` line stops
-  matching, or if `vcpkg.json`'s `builtin-baseline` is not the commit in
-  `cmake/vcpkg-commit.txt`. The two pins move together (docs/ci.md, "The vcpkg
-  binary cache").
+  Ninja, the Qt version, architecture, modules, the `install-qt-action` pin and
+  the `aqtsource` commit, and names the vcpkg pin file. The workflows are held
+  to it: the `toolchain.versions` ctest fails if a workflow pins another version,
+  if the `install-qt-action` step stops naming the file's action, version,
+  architecture, modules or aqtsource, if it stops asking for `cache: true`, if
+  the old PyPI `aqtinstall==` line comes back, or if `vcpkg.json`'s
+  `builtin-baseline` is not the commit in `cmake/vcpkg-commit.txt`. The two
+  vcpkg pins move together (docs/ci.md, "The vcpkg binary cache").
 - **Local composite actions are referenced as `./.github/actions/...`.** The
   sibling projects use the `$/.github/actions/...` form (resolved against the
   workflow's own commit, runner 2.336.0 or newer); `./` works on every runner
@@ -249,6 +271,7 @@ what a local configure checks a developer's clone against.
 | Every GitHub Action, and the composite actions in `.github/actions` | A full commit SHA, version in a trailing comment | Dependabot, weekly, grouped, 7-day cooldown |
 | clang-format, gcovr | `==` in `.github/requirements/*.txt` | Dependabot (`pip`), weekly |
 | CMake and Ninja (`lukka/get-cmake`) | `cmakeVersion` / `ninjaVersion`, exact, and one the pinned action's catalog lists | By hand, with the action |
+| Qt (`jurplel/install-qt-action`) | The action's commit SHA, the Qt version, `win64_msvc2022_64`, the module list and the `aqtsource` commit, in `.github/toolchain-versions.json` | By hand: run `aqt list-qt windows desktop --modules <version> <arch>` **and** a real install before bumping, as the action's README says |
 | vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together |
 | Runner images | The label (`ubuntu-24.04`, `ubuntu-26.04`, `windows-2025-vs2026`, `macos-26`) | By hand |
 
@@ -338,8 +361,9 @@ suspects, in order of likelihood:
 clang-tidy (the `.clang-tidy` file exists; there is no job), the Release
 presets on Windows and macOS (Linux's is the `Performance` leg), a coverage
 threshold, Qt on the Linux and macOS legs (the application has only been built
-on Windows so far), and Android/iOS/web. Each is a new job or a flag flip, not a
-redesign.
+on Windows so far), the Android/iOS targets (and with them the real Qt Sensors
+and haptics backends; the desktops answer haptics with the shared no-op), and
+web. Each is a new job or a flag flip, not a redesign.
 
 Packaging is now built on the Windows leg only (above). The Linux `.deb`, `.rpm`
 and `.tgz` and the macOS `.dmg` are configured and their generators are selected

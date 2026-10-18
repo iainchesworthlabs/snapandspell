@@ -101,11 +101,13 @@ TestCase {
         mouseRelease(button, 32, 32)
 
         // A button with no name is silent: the cue is a press's, not a click's.
+        // The click itself still plays the quiet tap of a control.
         const silent = createTemporaryObject(buttonComponent, testCase,
                                              { width: 64, height: 64 })
         cueSpy.clear()
         mouseClick(silent, 32, 32)
-        compare(cueSpy.count, 0)
+        compare(cueSpy.count, 1)
+        compare(cueSpy.signalArguments[0][0], "tap")
     }
 
     function test_spaceActsAsAReleaseInside() {

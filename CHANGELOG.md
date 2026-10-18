@@ -16,12 +16,48 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **The real feedback engines: sound, speech, motion and haptics.** The
+  `Feedback.cue(kind, detail)` seam the screens and models already emitted now
+  reaches a `FeedbackEngine` (`src/app/feedback`) that plays a short asset
+  through Qt Multimedia, says a whole word or a picture's name through the
+  device's own Qt TextToSpeech engine, and asks the platform's haptics
+  interface for a tap. The mapping is a pure policy, `wjs::plan_cue`
+  (`src/lib/include/wjs/feedback.hpp`), tested without a speaker: the master
+  **Sound** switch silences every asset and spoken word, **Celebration sounds**
+  full/quiet/off decides the cheer, chime and cleared notes, **Sound it out**
+  full/word/off decides whether a found word is said, and **Vibration** off
+  drops every haptic. A build without the three Qt modules selects silent
+  backends by CMake (the variant pattern); the application still configures,
+  builds and plays. The eight cues are placeholder WAVs owned by the project
+  (`assets/sounds`, written deterministically by `tools/sounds/make_sounds.ps1`;
+  `data.sounds` holds them to it), and the real phoneme clips and cheers wait
+  for the reviewer's recording job: `say_letter_sequence()` is the seam and is
+  deliberately silent. Motion comes from `MotionSource` over Qt Sensors
+  (accelerometer and gyroscope at the platform's highest rate), fed to the
+  scene's `pushMotion` and through the pure `wjs::MotionProcessor`; a real shake
+  rolls the box like the button, and on the desktops the source is unavailable
+  and the drag stands in. Haptics is a new platform interface
+  (`src/platforms/interfaces/wjs/platform/haptics.hpp`) with a shared no-op on
+  the three desktops; Android and iOS implementations wait for those targets.
+  No microphone, no capture: speech is output only. See
+  [docs/design/application.md](docs/design/application.md#audio-and-touch-feedback),
+  [docs/building.md](docs/building.md#the-qt-quick-window) and
+  [docs/testing.md](docs/testing.md).
+- **The Qt install on the Windows CI leg moved to `install-qt-action`.** The
+  PyPI `aqtinstall==3.3.0` line could not install Qt 6.12 on Windows: Qt 6.11+
+  split the Windows repository per architecture, and 3.3.0 cannot read it. The
+  leg now uses `jurplel/install-qt-action` (pinned by SHA) with `aqtsource` set
+  to the aqtinstall master commit that carries PR #1000, the modules `qttools
+  qtmultimedia qtsensors qtspeech`, and `cache: true`. The pins live in
+  `.github/toolchain-versions.json` and `toolchain.versions` holds the workflow
+  to them, including that the old pip line cannot come back. See
+  [docs/ci.md](docs/ci.md#toolchain-choices).
 - **The toolchain pins in one file, held to the workflows.** `.github/toolchain-versions.json`
-  lists CMake, Ninja, the Qt version and kit, `aqtinstall` and its module, and
-  names the vcpkg pin file. A new `toolchain.versions` ctest
+  lists CMake, Ninja, the Qt version, architecture, modules, install action
+  and aqtsource, and names the vcpkg pin file. A new `toolchain.versions` ctest
   (`tests/toolchain/check_versions.cmake`) reads it and fails if
-  `.github/workflows/ci.yml` pins another CMake or Ninja, installs another Qt or
-  aqtinstall, or if `vcpkg.json`'s `builtin-baseline` stops matching
+  `.github/workflows/ci.yml` pins another CMake or Ninja, installs another Qt
+  or aqtinstall, or if `vcpkg.json`'s `builtin-baseline` stops matching
   `cmake/vcpkg-commit.txt`. It runs on every host in every leg, since it only
   reads the files. See [docs/ci.md](docs/ci.md#toolchain-choices).
 - **The interactive QML, tested at run time: eight Qt Quick Test suites,

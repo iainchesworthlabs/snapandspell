@@ -50,6 +50,27 @@ target_link_libraries(wjs_trace
         wjs::sanitizers
         wjs::coverage)
 
+# Sound, speech and motion: one backend each, chosen by the optional Qt modules
+# the top-level CMakeLists.txt found (the variant pattern; see
+# feedback/CMakeLists.txt). The boards' cues and the settings' answers are the
+# pure library policy in wjs/feedback.hpp.
+if(WJS_QT_HAS_MULTIMEDIA)
+    set(WJS_SOUND_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/variants/sound-multimedia")
+else()
+    set(WJS_SOUND_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/variants/sound-silent")
+endif()
+if(WJS_QT_HAS_TEXTTOSPEECH)
+    set(WJS_SPEECH_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/variants/speech-texttospeech")
+else()
+    set(WJS_SPEECH_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/variants/speech-silent")
+endif()
+if(WJS_QT_HAS_SENSORS)
+    set(WJS_MOTION_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/variants/motion-sensors")
+else()
+    set(WJS_MOTION_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/variants/motion-silent")
+endif()
+add_subdirectory(feedback)
+
 qt_add_executable(wjs_app
     main.cpp)
 set_target_properties(wjs_app PROPERTIES OUTPUT_NAME WordJewelsSolver)
@@ -120,6 +141,29 @@ qt_add_qml_module(wjs_app
         system_motion.cpp
         system_motion.hpp)
 
+# The feedback sounds, embedded as :/sounds/<name>.wav. They are placeholders
+# made by tools/sounds/make_sounds.ps1 and owned by the project (notices/
+# fragments/assets.txt); the phoneme clips and cheers the reviewer will record
+# replace them later. A build without Qt Multimedia still emits no sound, but
+# the files travel in the application either way: they are tiny, and the
+# silent variant is a build fact, not a different game.
+set(WJS_SOUND_NAMES tap rattle letter land cheer tick chime cleared)
+set(WJS_SOUND_FILES "")
+foreach(WJS_SOUND_NAME IN LISTS WJS_SOUND_NAMES)
+    set(WJS_SOUND_FILE "${PROJECT_SOURCE_DIR}/assets/sounds/${WJS_SOUND_NAME}.wav")
+    if(NOT EXISTS "${WJS_SOUND_FILE}")
+        message(FATAL_ERROR
+            "The feedback sound ${WJS_SOUND_FILE} is missing. Regenerate the "
+            "placeholders with tools/sounds/make_sounds.ps1 (docs/building.md, "
+            "\"The Qt Quick window\").")
+    endif()
+    list(APPEND WJS_SOUND_FILES "${WJS_SOUND_FILE}")
+endforeach()
+qt_add_resources(wjs_app wjs_sounds
+    PREFIX "/sounds"
+    BASE "${PROJECT_SOURCE_DIR}/assets/sounds"
+    FILES ${WJS_SOUND_FILES})
+
 # The QML compiler's generated C++ includes src/app/solo's headers by bare name
 # (the type registrations), so that directory is on the include path.
 target_include_directories(wjs_app PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/solo")
@@ -150,6 +194,7 @@ target_link_libraries(wjs_app
         wjs_parentplugin
         wjs_scan_uiplugin
         wjs_sceneplugin
+        wjs_feedback
         wjs_i18n
         wjs_trace
         wjs::lib

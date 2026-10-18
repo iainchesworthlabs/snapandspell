@@ -10,9 +10,12 @@ add_executable(wjs_unit_tests
     unit/dice_test.cpp
     unit/dictionary_test.cpp
     unit/deal_test.cpp
+    unit/feedback_test.cpp
     unit/game_rules_test.cpp
     unit/game_session_test.cpp
     unit/grapheme_binder_test.cpp
+    unit/haptics_test.cpp
+    unit/motion_test.cpp
     unit/parent_gate_test.cpp
     unit/path_test.cpp
     unit/paths_test.cpp
@@ -127,7 +130,9 @@ if(WJS_BUILD_APP)
         app/assist_game_test.cpp
         app/board_layout_test.cpp
         app/fake_solo_game_test.cpp
+        app/feedback_engine_test.cpp
         app/language_test.cpp
+        app/motion_source_test.cpp
         app/parent_controller_test.cpp
         app/parent_ui/demo_data.cpp
         app/path_tracer_test.cpp
@@ -169,6 +174,7 @@ if(WJS_BUILD_APP)
         "WJS_I18N_DIRECTORY=\"${PROJECT_SOURCE_DIR}/i18n\"")
     target_link_libraries(wjs_app_tests
         PRIVATE
+            wjs_feedback
             wjs_trace
             wjs_i18n
             wjs::lib
@@ -582,6 +588,14 @@ if(WJS_PWSH)
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/check_wordlists.ps1"
             -Root "${PROJECT_SOURCE_DIR}")
+
+    # The feedback sounds are what tools/sounds/make_sounds.ps1 writes: the
+    # placeholders are committed, and a hand-edited one (or a name the script
+    # does not know) is a failed test rather than a game with a missing cue.
+    add_test(NAME data.sounds
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${PROJECT_SOURCE_DIR}/tools/sounds/make_sounds.ps1"
+            -Root "${PROJECT_SOURCE_DIR}" -Check)
 
     # The phonics data under data/phonics, and the checker that reads it. There
     # is none yet: the files have to be written and reviewed by a person
