@@ -36,6 +36,11 @@ Window {
                                           ? loader.item.checkYesPlayX : -1
     readonly property real panelX: loader.item && loader.item.panelX !== undefined
                                    ? loader.item.panelX : -1
+    // Whether the scan screen is showing the camera's live view. The no-camera
+    // check expects false; the camera check hands the model a fake source and
+    // expects true.
+    readonly property bool previewShown: loader.item && loader.item.previewShown !== undefined
+                                          ? loader.item.previewShown : false
 
     width: 1100
     height: 700

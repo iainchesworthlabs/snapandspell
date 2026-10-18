@@ -48,6 +48,8 @@ src/
                          PlayingPanel, SoloBox, SoloResting, HistorySheet, BoardThumb
     qml/scan/            ScanScreen (scan.ready, scan.reading, scan.check), CheckScreen,
                          AssistScreen (assist.playing), AssistBoard, ScanWording
+    camera/              CameraSource (QML element: the live view and one frame),
+                         CameraBackend (its variant seam), frame_conversion.*
     scene/               the scene's C++ objects for QML: DiceSim (dice_sim.*), DieGeometry
                          (die_geometry.*), and sim/ (the wjs_dice_world library)
     solo/                solo_game.hpp (the port), real_solo_game.* (over the library's
@@ -58,7 +60,9 @@ src/
                          Speech and MotionSource, over the backends below
     variants/            one directory per optional Qt module: sound-multimedia or
                          sound-silent, speech-texttospeech or speech-silent,
-                         motion-sensors or motion-silent (the profiling pattern)
+                         motion-sensors or motion-silent, camera-multimedia or
+                         camera-none (the profiling pattern; each camera variant
+                         also has its CameraPreview.qml)
     scan/                assist_game.* (the Qt-free Mode A port and its maker),
                          assist_model.* and scan_model.* (the QML models), CMake
                          for the WordJewelsSolver.Scan module
@@ -759,13 +763,22 @@ An OS service the program needs is declared in a header under
 | `paths.hpp`: `executable_path()` | The absolute path of the running program, so data beside it can be found | `GetModuleFileNameW` | `/proc/self/exe` | `_NSGetExecutablePath` |
 | `paths.hpp`: `user_data_directory()` | The per-user, per-device directory a program keeps its own data in | `%LOCALAPPDATA%` | `$XDG_DATA_HOME`, else `~/.local/share` | `~/Library/Application Support` |
 | `console.hpp`: `use_utf8_console()` | Make the console read and write UTF-8 | `SetConsoleCP`, `SetConsoleOutputCP` | nothing to do (`posix/`) | nothing to do (`posix/`) |
-| `camera.hpp`: `enumerate_devices`, `start`, `stop`, `try_pop_latest_frame`, ... | Capture frames for Mode A | no camera backend yet (`detail/`): `unavailable` | the same | the same |
+| `camera.hpp`: `enumerate_devices`, `start`, `stop`, `try_pop_latest_frame`, ... | Capture frames for Mode A, for a native backend | no camera backend yet (`detail/`): `unavailable` | the same | the same |
 | `board_reader.hpp`: `read(frame, options)` | Read a board from a frame | the portable reader (`detail/`) | the same | the same |
 
 Linux and macOS share `posix/console_posix.cpp`, named by both
 `platform.cmake` files; all three name the two files in `detail/`, which are what no
 platform differs in yet. An iOS camera and a Vision-based reader are Objective-C++ under
-`src/platforms/ios`, which does not exist ([Scanner design](design/scanner.md#what-is-left-for-a-mac-and-an-ipad)).
+`src/platforms/ios`, which does not exist ([Scanner design](design/scanner.md#what-is-left-for-a-real-camera-a-mac-and-an-ipad)).
+
+**The desktop camera is not behind that interface.** Mode A's live view and its
+one capture are the application's `CameraSource` (`src/app/camera`), over Qt
+Multimedia where the kit has it and a `camera-none` backend where it does not:
+the same optional-module variant pattern as the feedback engines, selected by
+CMake with no `#if` in a source. `camera.hpp` stays for a platform whose own
+camera API must be used (the iPad's `AVCaptureSession`), and `ScanModel` falls
+back to it when no source is supplied. [Scanner design](design/scanner.md#the-qt-multimedia-desktop-backend)
+is the page for the lifecycle, the RGB24 conversion and what was verified.
 
 ## The Qt Quick window
 
@@ -802,8 +815,9 @@ start-up and keeps it, so the `View3D` is not created on the Shake press.
 | The layout rule | `solo/board_layout.*`, `solo/solo_layout.*` | [Board design](design/board.md#layouts-and-sizes) as a pure function, tested on the page's reference windows, and one copy for the screens and the scene. A size is offered only if its tile is 48 dp or more |
 | The board scene | `qml/scene/BoardScene.qml`, the module `WordJewelsSolver.Scene` (`scene/`) | One component: given a finished board (its tiles, its dice's six faces and the one that is up) and a seed, play the shake, the lid and the drop and say when the dice are settled. Qt Quick 3D, built once behind home and kept; the dice are simulated from first principles in `scene/sim` (plain C++, no Qt). `prepare(board)` draws a board's faces a frame ahead of `play`/`show`. The 2D implementation of the same interface is kept at `qml/scene/fallback/` for D2 and is not built. `app.scene_contract` holds both files to the list, and `app.qml_lint` lints both modules |
 | The Mode A port | `scan/assist_game.*` | `AssistGame`, Qt-free: a board a grown-up confirmed, the English dictionary (and, when there is a phase index, the words that count), and the store. `wjs::classify_path` answers viable, real-but-not-today's or not-a-word (the last two carry no word); `FoundWords` keeps the tray; `wjs::start_tile_help` answers the one help with a tile, never the word; `leave()` records the board in the store's standard-board form (`viable_total`, no phase) with each find's day and whether the start tile was shown |
-| The Mode A models | `scan/scan_model.*`, `scan/assist_model.*` | `ScanModel` owns the `BoardDraft` the check screen corrects, the doubtful tiles and the reader's alternatives, the board size, and the camera's little lifecycle: enumerate and start only on `scan.ready`, pop one frame, read it through `board_reader`, stop at once, and only a grown-up's `confirm()` makes a `Board`. `AssistModel` is the assistant's board as Qt Quick wants it: tiles, the traced path (`PathTracer`, the same touch logic as Solo Play), the tray, the start tile and the cues. It is made by QML and asks `make_assist_game()` for its round, which `main.cpp` installs over the program's one dictionary and store |
-| The Mode A screens | `qml/scan/`, the module `WordJewelsSolver.Scan` (`scan/`) | `ScanScreen` (`scan.ready`, `scan.reading`, `scan.check` on one screen, the check in `CheckScreen.qml`), `AssistScreen`, `AssistBoard` and `AssistHistory` (`assist.playing`, the two-thirds/one-third split of `SoloLayout`, the tray, the start tile, earlier boards, New board), and `ScanWording` (every sentence and accessible name, for the later i18n pass). The camera is on only while `scan.ready` is on screen; every frame is read on the device and none is kept (docs/design/scanner.md, "Privacy, built in and checked"). No camera (every desktop today) is said in words and "Type in your board" opens the check screen with an empty 4x4 |
+| The Mode A models | `scan/scan_model.*`, `scan/assist_model.*` | `ScanModel` owns the `BoardDraft` the check screen corrects, the doubtful tiles and the reader's alternatives, the board size, and the camera's little lifecycle: it starts the camera only on `scan.ready`, takes one frame (from the application's `CameraSource` when it is supplied, otherwise from the platform interface), stops the camera as soon as the frame is in hand, reads it through `board_reader`, and only a grown-up's `confirm()` makes a `Board`. `AssistModel` is the assistant's board as Qt Quick wants it: tiles, the traced path (`PathTracer`, the same touch logic as Solo Play), the tray, the start tile and the cues. It is made by QML and asks `make_assist_game()` for its round, which `main.cpp` installs over the program's one dictionary and store |
+| The Mode A screens | `qml/scan/`, the module `WordJewelsSolver.Scan` (`scan/`) | `ScanScreen` (`scan.ready`, `scan.reading`, `scan.check` on one screen, the check in `CheckScreen.qml`), `AssistScreen`, `AssistBoard` and `AssistHistory` (`assist.playing`, the two-thirds/one-third split of `SoloLayout`, the tray, the start tile, earlier boards, New board), and `ScanWording` (every sentence and accessible name, for the later i18n pass). The camera is on only while `scan.ready` is on screen; every frame is read on the device and none is kept (docs/design/scanner.md, "Privacy, built in and checked"). On a device with a camera its live picture is shown in the frame; with none (a desktop without a webcam, or a kit without Qt Multimedia) the absence is said in words and "Type in your board" opens the check screen with an empty 4x4 |
+| The camera | `camera/`, the module `WordJewelsSolver.Scan` (`scan/`) | `CameraSource`, a QML element over a `CameraBackend` chosen by CMake: Qt Multimedia's `QCamera`/`QMediaCaptureSession`/`QVideoSink`, or a backend that answers `no_camera`. It owns the preview and the one captured frame (RGB24, in memory), never a file. `Main.qml` makes one and hands it to `ScanModel`; a stub shell or a test supplies a fake backend instead, or none and the platform interface is used |
 | The kit | `qml/kit/` | `Theme` has every colour, size, time and type size a screen uses (light and dark, reduced motion, text scale); a screen writes none of its own, so a school font or a world is a token swap. `AppButton` has the three targets (48, 64 and 96 dp), acts on release inside it and takes the keyboard. Nothing drawn has text in it |
 
 The two-thirds and one-third split is applied to the window below a 72 dp bar
@@ -815,18 +829,21 @@ control does.
 
 **Mode A's flow.** `home`'s family picture is shown (`Navigation.scanAvailable`)
 and opens `scan`. `ScanScreen` starts the camera only while its state is
-`scan.ready`: `open()` enumerates the platform's devices and starts the first
-rear one, and `close()` stops it when the screen goes, when the check screen
-opens, and as soon as a frame is in hand. Capture waits for a frame (a short
-poll, because a camera that has just started has not delivered one), reads it on
-the device through `board_reader::read`, drops the buffer, and fills a
-`BoardDraft`; a frame that cannot be read returns to `ready` with "try again".
-"Type in your board" is the same draft with `BoardDraft::empty(4, 4)`. The check
-screen rings the reader's doubtful tiles, offers its runners-up first in the
-letter picker, turns the replica and changes the size; `Yes, play` calls
-`ScanModel::confirm()` (the only way to a `wjs::Board`) and hands the same plain
-grid to `AssistModel::begin()`, which makes the round through
-`make_assist_game()`. That is the program's maker over its one store and
+`scan.ready`: `open()` starts the application's `CameraSource` when one is set
+(Main.qml makes it), and otherwise enumerates the platform's devices and starts
+the first rear one. `close()` stops it when the screen goes, when the check
+screen opens, and as soon as a frame is in hand. Capture waits for a frame (a
+short poll, because a camera that has just started has not delivered one; a
+camera that never does returns to `ready` with "try again"), reads it on the
+device through `board_reader::read`, drops the buffer, and fills a `BoardDraft`.
+The application's source reports a missing, refused or broken camera as a code
+that the wording file turns into a sentence, and the typed board stays beside
+it; no frame is faked. "Type in your board" is the same draft with
+`BoardDraft::empty(4, 4)`. The check screen rings the reader's doubtful tiles,
+offers its runners-up first in the letter picker, turns the replica and changes
+the size; `Yes, play` calls `ScanModel::confirm()` (the only way to a `wjs::Board`)
+and hands the same plain grid to `AssistModel::begin()`, which makes the round
+through `make_assist_game()`. That is the program's maker over its one store and
 dictionary (`ScopedAssistGameMaker`, installed in `main.cpp`, like Solo Play's).
 `Main.qml` shows `AssistScreen`; Back returns to the check screen it came from
 (the board is recorded by `AssistGame::leave()`), and New board records it, puts
@@ -854,9 +871,10 @@ with the drag on the box standing in for the accelerometer. The button and Space
 are always there. No bundled
 type: Andika is named in `Theme` and Qt falls back to the platform's face until
 its licence is read and the glyph check is done. The family game's picture on
-`home` is shown and opens Mode A; the camera backend is still absent on every
-desktop, so the ready screen says so and the typed board is the way on (below).
-The parent's button, on `home` and in the corner of the box, is shown
+`home` is shown and opens Mode A; the desktop camera is the application's
+`CameraSource` over Qt Multimedia ([above](#the-platform-layer)), so a machine
+with a webcam shows its live view, and one without says so and keeps the typed
+board. The parent's button, on `home` and in the corner of the box, is shown
 (`Navigation.parentAvailable`) and goes to the parent area, below. The window
 plays the real game from the start: the standard board by default, and the
 phonics board when the program is given a phase (below) and the parent's switch
@@ -992,7 +1010,7 @@ display. See [The parent area as built](design/parent-area.md).
 | `wjs_cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
 | `wjs_app` | executable `WordJewelsSolver` | `WJS_BUILD_APP`; links Qt Quick 3D, so GPL-3.0 only |
 | `wjs_scene` | static QML module (`WordJewelsSolver.Scene`) | The 3D board scene, its dice objects and the `wjs_dice_world` simulation. Linked by `wjs_app` and the prototype; GPL-3.0 only |
-| `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording and models. Linked by `wjs_app` as `wjs_scan_uiplugin` |
+| `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording, models and the camera source. Linked by `wjs_app` as `wjs_scan_uiplugin` |
 | `wjs_trace` | static library | `PathTracer`, the touch half of making a word, shared by Solo Play's model and the assistant's |
 | `wjs_shake_prototype` | executable `ShakePrototype` | `WJS_BUILD_SHAKE_PROTOTYPE`, with `WJS_BUILD_APP`; the harness around `wjs_scene` |
 | `wjs_unit_tests` | executable | Catch2 |
@@ -1000,7 +1018,7 @@ display. See [The parent area as built](design/parent-area.md).
 | `wjs_scan_tests` | executable | Catch2; the scanner, the camera and `board_reader` interfaces, and the corpus that holds it to its target |
 | `wjs_scan_synth` | static library | The synthetic corpus (frames of a board of dice drawn from a seed) and the counting of the target. Test tool; nothing in `src` links it |
 | `wjs_scan_render` | executable | Writes the corpus to a directory as PNG files, to look at |
-| `wjs_scan_preview` | executable | Mode A's screens in a stub shell, and with `--check` the offscreen check `scan.screens`. Test tool; not part of the application |
+| `wjs_scan_preview` | executable | Mode A's screens in a stub shell; with `--check` the offscreen `scan.screens`, with `--camera` the camera's live view and capture `camera.screens` (a fake source and a synthetic frame). Test tool; not part of the application |
 | `wjs::tracy` | interface library | Tracy's client when `WJS_ENABLE_TRACY` is on, otherwise nothing |
 | `wjs_app_tests` | executable | Catch2, with `WJS_BUILD_APP` |
 | `wjs::warnings`, `wjs::sanitizers`, `wjs::coverage` | interface libraries | Flags, linked into every first-party target |
@@ -1017,13 +1035,15 @@ display. See [The parent area as built](design/parent-area.md).
 
 These do not exist, and nothing in the tree stands in for them:
 
-- **A camera.** The `camera` interface exists, and the three desktops answer
-  `unavailable` (no backend); the iOS camera (`AVCaptureSession`), a desktop
-  webcam and Android's are not written. Nothing has been run on a camera. Mode A's
-  screens and its **typed-board fallback are built** (`qml/scan`, the module
-  `WordJewelsSolver.Scan`), so the desktop path is real: a person types the board
-  the family is playing. The capture path is wired through the interface and the
-  reader, but no camera has been on the other end of it.
+- **A camera on a real device.** The desktop path is built: `CameraSource`
+  (`src/app/camera`) over Qt Multimedia, with a `camera-none` variant for a kit
+  without the module, a live `VideoOutput` preview and one-frame capture through
+  the reader. **No camera is attached to the machine it was built on**, so no
+  device has been opened and no real picture has been read; the iPad's
+  `AVCaptureSession` backend and the platform interface's implementations are
+  still not written. Mode A's screens and its **typed-board fallback are built**
+  (`qml/scan`, the module `WordJewelsSolver.Scan`), so a desktop without a
+  webcam is complete: a person types the board the family is playing.
 - **Reading letters from a real picture.** The reader exists and is measured on
   synthetic frames only ([Scanner design](design/scanner.md#what-was-measured)).
   The iOS reader (Vision), recorded frames of real dice, the dice's own typeface and

@@ -71,6 +71,12 @@ else()
 endif()
 add_subdirectory(feedback)
 
+# Mode A's camera: the shared CameraSource and conversion, with the multimedia
+# or none backend the top-level CMakeLists.txt selected. The QML module in scan/
+# compiles it (src/app/camera/camera_source.hpp is a QML element), so it is added
+# to the source list there rather than made a library of its own.
+add_subdirectory(camera)
+
 qt_add_executable(wjs_app
     main.cpp)
 set_target_properties(wjs_app PROPERTIES OUTPUT_NAME WordJewelsSolver)
@@ -164,6 +170,19 @@ qt_add_resources(wjs_app wjs_sounds
     BASE "${PROJECT_SOURCE_DIR}/assets/sounds"
     FILES ${WJS_SOUND_FILES})
 
+# The Qt Multimedia QML module is part of the camera's deployment. A static QML
+# module's own imports are not what the application's QML import scanner reads,
+# so a one-line resource file that imports it is added to the application when
+# the camera is the multimedia one: the deploy scripts then ship
+# qml/QtMultimedia beside the window, and the live view loads. A kit without the
+# module compiles neither the file nor the preview.
+if(WJS_QT_HAS_MULTIMEDIA)
+    qt_add_resources(wjs_app wjs_camera_import
+        PREFIX "/camera"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}/camera"
+        FILES "${CMAKE_CURRENT_SOURCE_DIR}/camera/CameraImport.qml")
+endif()
+
 # The QML compiler's generated C++ includes src/app/solo's headers by bare name
 # (the type registrations), so that directory is on the include path.
 target_include_directories(wjs_app PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/solo")
@@ -212,7 +231,15 @@ target_link_libraries(wjs_app
 # What makes it a program of the platform's desktop, and its Qt runtime beside
 # it: both are the selected platform's to say (src/platforms/<name>/).
 wjs_platform_configure_app(wjs_app)
-wjs_platform_deploy_qt_runtime(wjs_app "${CMAKE_CURRENT_SOURCE_DIR}/qml")
+# The live view imports QtMultimedia from the camera variant, which is not under
+# qml/: its directory is a second place windeployqt scans for imports, so a build
+# tree has qml/QtMultimedia for the preview (the packaged copy gets it from the
+# resource hint above through Qt's install-time deploy).
+set(WJS_APP_QML_DEPLOY_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/qml")
+if(WJS_QT_HAS_MULTIMEDIA)
+    list(APPEND WJS_APP_QML_DEPLOY_DIRS "${WJS_CAMERA_VARIANT_DIR}")
+endif()
+wjs_platform_deploy_qt_runtime(wjs_app ${WJS_APP_QML_DEPLOY_DIRS})
 wjs_deploy_sanitizer_runtime(wjs_app)
 
 # The default dictionary the model looks for, and the standard board's dice the

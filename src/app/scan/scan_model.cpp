@@ -195,6 +195,72 @@ QStringList ScanModel::alternatives(int index) const {
 
 // --- the camera ---------------------------------------------------------------
 
+void ScanModel::setCameraSource(CameraSource* source) {
+    if (camera_source_ == source) {
+        return;
+    }
+    // A source being replaced is not left running: the camera is only ever on
+    // for the screen that is waiting for a frame.
+    if (camera_capturing_) {
+        stopCamera();
+    }
+    if (camera_source_) {
+        disconnect(camera_source_.data(), nullptr, this, nullptr);
+    }
+    camera_source_ = source;
+    if (camera_source_) {
+        connect(camera_source_.data(), &CameraSource::changed, this,
+                &ScanModel::refreshCameraState);
+        // The source is not owned here. If it goes first, the model says it has
+        // no camera from then on, rather than holding one QML could still ask
+        // for.
+        connect(camera_source_.data(), &QObject::destroyed, this, [this] {
+            camera_source_ = nullptr;
+            camera_available_ = false;
+            camera_capturing_ = false;
+            emit cameraChanged();
+            emit cameraSourceChanged();
+        });
+    }
+    camera_available_ = false;
+    camera_capturing_ = false;
+    camera_problem_.clear();
+    emit cameraChanged();
+    emit cameraSourceChanged();
+    // A source that is already running (a test handing in a fake) is described
+    // at once; a real one is started by open(), on scan.ready.
+    refreshCameraState();
+}
+
+void ScanModel::refreshCameraState() {
+    if (!camera_source_) {
+        return;
+    }
+    const bool running = camera_source_->running();
+    const QString problem = camera_source_->problem();
+    bool changed = false;
+    if (camera_capturing_ != running) {
+        camera_capturing_ = running;
+        changed = true;
+    }
+    if (running) {
+        if (!camera_available_ || !camera_problem_.isEmpty()) {
+            camera_available_ = true;
+            camera_problem_.clear();
+            changed = true;
+        }
+    } else if (!problem.isEmpty()) {
+        if (camera_available_ || camera_problem_ != problem) {
+            camera_available_ = false;
+            camera_problem_ = problem;
+            changed = true;
+        }
+    }
+    if (changed) {
+        emit cameraChanged();
+    }
+}
+
 void ScanModel::open() {
     // The camera is on only in `ready`: once a frame is taken or the check screen
     // is open, nothing needs it (docs/design/game.md, "The MVP: one capture").
@@ -203,6 +269,23 @@ void ScanModel::open() {
     }
     camera_available_ = false;
     camera_problem_.clear();
+    if (camera_source_) {
+        // The application supplied a CameraSource: the live view and the frame
+        // both come from it. It answers for a device with no camera, a refusal
+        // and a failure with a code; nothing is faked and the typed board stays
+        // beside it (docs/design/game.md, "No camera").
+        camera_source_->start();
+        camera_available_ = camera_source_->running();
+        camera_capturing_ = camera_available_;
+        if (!camera_available_) {
+            camera_problem_ = camera_source_->problem();
+            if (camera_problem_.isEmpty()) {
+                camera_problem_ = QStringLiteral("no_camera");
+            }
+        }
+        emit cameraChanged();
+        return;
+    }
     const auto devices = wjs::platform::camera::enumerate_devices();
     if (!devices) {
         camera_problem_ = camera_code(devices.error());
@@ -210,8 +293,8 @@ void ScanModel::open() {
         return;
     }
     if (devices->empty()) {
-        // Every desktop today: there is no backend, and the screen offers the
-        // typed board (docs/design/game.md, "No camera").
+        // Every desktop without a CameraSource: the platform interface has no
+        // backend, and the screen offers the typed board.
         camera_problem_ = QStringLiteral("unavailable");
         emit cameraChanged();
         return;
@@ -236,7 +319,11 @@ void ScanModel::open() {
 
 void ScanModel::stopCamera() {
     frame_timer_.stop();
-    wjs::platform::camera::stop();
+    if (camera_source_) {
+        camera_source_->stop();
+    } else {
+        wjs::platform::camera::stop();
+    }
     if (camera_capturing_) {
         camera_capturing_ = false;
         emit cameraChanged();
@@ -269,6 +356,24 @@ void ScanModel::capture() {
 }
 
 void ScanModel::tryFrame() {
+    if (camera_source_) {
+        if (!camera_source_->capture()) {
+            if (++frame_ticks_ > kMaxFramePolls) {
+                failed(QStringLiteral("no_frame"));
+            }
+            return;
+        }
+        std::optional<wjs::scan::OwnedFrame> frame = camera_source_->takeFrame();
+        if (!frame) {
+            // The source said it had one and did not: a camera that cannot hand
+            // its frame over is a failed read, not a screen left in `reading`.
+            failed(QStringLiteral("no_frame"));
+            return;
+        }
+        readFrame(*frame);
+        return;
+    }
+
     const std::optional<wjs::scan::OwnedFrame> frame =
         wjs::platform::camera::try_pop_latest_frame();
     if (!frame) {
@@ -277,13 +382,18 @@ void ScanModel::tryFrame() {
         }
         return;
     }
+    readFrame(*frame);
+}
+
+void ScanModel::readFrame(const wjs::scan::OwnedFrame& frame) {
     frame_timer_.stop();
-    const std::expected<wjs::scan::BoardReading, wjs::scan::ReadError> reading =
-        wjs::platform::board_reader::read(frame->view());
-    // The frame is a picture of a room and a child may be in it. It is read here
-    // and gone: the camera stops, the buffer is not kept, and only the reading's
-    // letters and doubts go on to the check screen.
+    // The camera stops as soon as a frame is in hand, before the read: the
+    // picture of a room is in memory, and the next one is not needed.
     stopCamera();
+    const std::expected<wjs::scan::BoardReading, wjs::scan::ReadError> reading =
+        wjs::platform::board_reader::read(frame.view());
+    // The frame is a picture of a room and a child may be in it. It is read here
+    // and gone: only the reading's letters and doubts go on to the check screen.
     if (!reading) {
         failed(read_code(reading.error()));
         return;

@@ -63,10 +63,14 @@
 #                                 program of this desktop: a GUI-subsystem
 #                                 executable on Windows, an application bundle
 #                                 on macOS.
-#   wjs_platform_deploy_qt_runtime(<target> <qml_dir>)
+#   wjs_platform_deploy_qt_runtime(<target> <qml_dir> [<more_qml_dirs>...])
 #                                 Puts Qt's runtime next to the built program,
 #                                 including the QML modules imported by the
 #                                 QML sources in <qml_dir> ("" if it has none).
+#                                 More directories may be named when a program's
+#                                 screens also use QML that lives elsewhere (Mode
+#                                 A's live view is a file of the camera variant);
+#                                 a platform that does not read them ignores them.
 #   wjs_platform_configure_packaging()
 #                                 Adds this platform's CPack generators to
 #                                 CPACK_GENERATOR, whose first entry is always

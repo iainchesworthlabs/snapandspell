@@ -12,11 +12,13 @@
 #   - no audio is captured: no audio-capture class, and no microphone permission;
 #   - nothing is sent: no network class or socket header.
 #
-# It reads what the scanner is made of: everything under src/scan, and the camera and
+# It reads what the scanner is made of: everything under src/scan, the camera and
 # board_reader files of every platform (src/platforms/interfaces/wjs/platform/camera.hpp,
 # board_reader.hpp, and any camera_* or board_reader_* beside a platform's sources,
-# which includes the iOS ones when they are written). Lines that are // comments are
-# skipped, so a comment can say what the code must not do.
+# which includes the iOS ones when they are written), and Mode A's camera source
+# and its backends (src/app/camera, src/app/variants/camera-*), which is where the
+# desktop's frames are taken. Lines that are // comments are skipped, so a comment
+# can say what the code must not do.
 #
 # It is a pattern scan, not a parser: it holds the line the way
 # check_platform_isolation.ps1 does, and review holds the rest.
@@ -34,7 +36,10 @@ file(GLOB_RECURSE _platform_sources
     "${REPO_ROOT}/src/platforms/*/board_reader_*"
     "${REPO_ROOT}/src/platforms/interfaces/wjs/platform/camera.hpp"
     "${REPO_ROOT}/src/platforms/interfaces/wjs/platform/board_reader.hpp")
-set(_sources ${_scanner_sources} ${_platform_sources})
+file(GLOB_RECURSE _app_camera_sources
+    "${REPO_ROOT}/src/app/camera/*"
+    "${REPO_ROOT}/src/app/variants/camera-*/*")
+set(_sources ${_scanner_sources} ${_platform_sources} ${_app_camera_sources})
 list(REMOVE_DUPLICATES _sources)
 
 # What each rule forbids: a name for the finding, and a regular expression (CMake's

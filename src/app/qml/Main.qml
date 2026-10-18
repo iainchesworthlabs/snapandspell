@@ -51,8 +51,17 @@ ApplicationWindow {
     // assistant's. Both live for the run, so the draft survives a trip to the
     // parent area or home; the assistant's round is recorded when its screen is
     // left (assist.leave()).
+    //
+    // The camera is made here and handed to the model, which starts it only while
+    // scan.ready is shown and stops it as soon as a frame is in hand. A kit
+    // without Qt Multimedia has the same object with a backend that answers
+    // "no_camera", so the screen is unchanged and the typed board is the way on.
+    CameraSource {
+        id: scanCamera
+    }
     ScanModel {
         id: scanGame
+        cameraSource: scanCamera
     }
     AssistModel {
         id: assistGame

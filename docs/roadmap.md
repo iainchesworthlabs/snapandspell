@@ -178,12 +178,15 @@ Artefacts: source, desktop builds, a signed Android APK on GitHub Releases
 
 **Built so far (first slice), on synthetic frames only** ([Scanner design](design/scanner.md)):
 the library (steps 2 to 4 above, in `src/scan`, with no third-party dependency), the `camera`
-and `board_reader` interfaces (no camera on the desktops; the portable reader), the
-confirm-and-correct model (`BoardDraft`), a numeric target written first (item 5) and a
+and `board_reader` interfaces (the platform camera has no native desktop backend; the portable
+reader), the confirm-and-correct model (`BoardDraft`), a numeric target written first (item 5) and a
 synthetic corpus that holds the reader to it, work budgets in the performance tier, and the
-privacy scan. **Not done:** anything on a real camera or real dice; the iOS camera and Vision
+privacy scan. **The desktop camera is built too** (2026-10-19): Mode A's ready screen shows a live
+picture and Capture reads one frame through the application's `CameraSource` over Qt Multimedia,
+with a `camera-none` variant for a kit without the module. **Not done:** anything on a real
+camera or real dice — no camera is attached to the machine it was built on; the iOS camera and Vision
 reader (they need a Mac and an iPad); recorded frames and a measurement on them; the dice's own
-typeface; a desktop webcam; stand-and-watch scanning. The target is met on the synthetic
+typeface; stand-and-watch scanning. The target is met on the synthetic
 corpus and says nothing about real dice.
 
 ### M5: store distribution

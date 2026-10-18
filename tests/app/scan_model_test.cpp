@@ -11,8 +11,9 @@
 // The check screen's model (src/app/scan/scan_model.*): the draft a grown-up
 // corrects, the reader's doubts and alternatives, the board size, the typed-board
 // fallback, and the confirmation that is the only way to a Board. The camera
-// itself is the platform's and is not faked here; on every desktop in this tree
-// there is none, and the model says so with the typed board beside it.
+// source's own cases are in camera_test.cpp; this model is given none, so it
+// takes the platform interface's path (unavailable on the three desktops) and
+// the typed board is beside it.
 
 namespace {
 
@@ -200,7 +201,8 @@ TEST_CASE("a reading that is not a grid is refused", "[app][scan]") {
     CHECK(model.state() == "ready");
 }
 
-TEST_CASE("without a camera the typed board is the way on, and nothing is faked", "[app][scan]") {
+TEST_CASE("without a camera the typed board is the way on, and nothing is faked",
+          "[app][scan][camera]") {
     ScanModel model;
     model.open();
     // The three desktops' camera interface answers `unavailable`

@@ -2,6 +2,7 @@
 
 #include <QtQml/qqmlregistration.h>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -10,6 +11,7 @@
 #include <optional>
 #include <string>
 
+#include "camera_source.hpp"
 #include "wjs/board.hpp"
 #include "wjs/scan/confirmation.hpp"
 #include "wjs/scan/reading.hpp"
@@ -26,13 +28,15 @@ namespace wjs::app {
 //
 // The camera is on only while the screen is in `ready` and a capture is being
 // waited for: open() when the ready screen is shown, close() when it goes (and
-// on the frame, at once). Frames are read through the platform's board_reader
+// on the frame, at once). The application supplies a CameraSource (Main.qml)
+// for the live view and the capture; a stub shell or a test that does not uses
+// the platform's camera interface instead, which is still the native backend's
+// seam. Frames are read through the platform's board_reader
 // (src/platforms/interfaces/wjs/platform/board_reader.hpp) and are never kept:
-// the frame is popped, read and forgotten, and only the BoardReading's letters
-// and doubts remain. On every desktop the camera interface answers
-// `unavailable`, so the screen offers "Type in your board" with an empty grid
-// (docs/design/game.md, "No camera"); the reading path is the same one a
-// platform with a camera uses.
+// the frame is taken, read and forgotten, and only the BoardReading's letters
+// and doubts remain. A device with no camera offers "Type in your board" with
+// an empty grid (docs/design/game.md, "No camera"); the reading path is the same
+// one a device with a camera uses.
 //
 // A reading never becomes a Board here: confirm() calls BoardDraft::confirm(),
 // which is the grown-up's "Yes, play", and the only way a board reaches the
@@ -62,17 +66,25 @@ class ScanModel : public QObject {
     Q_PROPERTY(int size READ size NOTIFY draftChanged)
     Q_PROPERTY(QVariantList sizes READ sizes CONSTANT)
 
-    // The camera. False on every desktop today, with the reason as a code the
-    // wording file turns into a sentence: "unavailable", "permission_denied",
-    // "no_such_device", "already_running" or "failed". `cameraProblem` is empty
-    // when there is none. `readProblem` is the last failed read's code, cleared
-    // by the next capture or readAgain(): "no_camera", "no_frame",
-    // "invalid_frame", "board_not_found", "size_not_found", "no_letters",
-    // "invalid_reading".
+    // The camera. False on every desktop until one is supplied, with the reason
+    // as a code the wording file turns into a sentence: "no_camera",
+    // "permission", "failed" for a CameraSource; "unavailable",
+    // "permission_denied", "no_such_device", "already_running" or "failed" for
+    // the platform interface. `cameraProblem` is empty when there is none.
+    // `readProblem` is the last failed read's code, cleared by the next capture
+    // or readAgain(): "no_camera", "no_frame", "invalid_frame",
+    // "board_not_found", "size_not_found", "no_letters", "invalid_reading".
     Q_PROPERTY(bool cameraAvailable READ cameraAvailable NOTIFY cameraChanged)
     Q_PROPERTY(bool cameraCapturing READ cameraCapturing NOTIFY cameraChanged)
     Q_PROPERTY(QString cameraProblem READ cameraProblem NOTIFY cameraChanged)
     Q_PROPERTY(QString readProblem READ readProblem NOTIFY readProblemChanged)
+
+    // The camera the application supplies (Main.qml makes one and sets it): the
+    // live view's source and the capture path when it can start. Null when the
+    // application or a stub shell has none, and then the platform interface is
+    // used, as every desktop did before there was a CameraSource.
+    Q_PROPERTY(wjs::app::CameraSource* cameraSource READ cameraSource WRITE setCameraSource NOTIFY
+                   cameraSourceChanged)
 
 public:
     explicit ScanModel(QObject* parent = nullptr);
@@ -91,6 +103,12 @@ public:
     [[nodiscard]] bool cameraCapturing() const noexcept { return camera_capturing_; }
     [[nodiscard]] QString cameraProblem() const { return camera_problem_; }
     [[nodiscard]] QString readProblem() const { return read_problem_; }
+    [[nodiscard]] CameraSource* cameraSource() const { return camera_source_; }
+
+    // The application's camera, or null to keep using the platform interface.
+    // The model does not own it; a source destroyed before the model leaves the
+    // model with no camera, not a dangling one.
+    void setCameraSource(CameraSource* source);
 
     // --- the camera, while the ready screen is shown ------------------------
     // Enumerates the devices and starts the first rear one (the first of any
@@ -141,6 +159,7 @@ signals:
     void cameraChanged();
     void readProblemChanged();
     void confirmedChanged();
+    void cameraSourceChanged();
 
 private:
     enum class State { ready, reading, check };
@@ -148,6 +167,8 @@ private:
     void setState(State state);
     void stopCamera();
     void tryFrame();
+    void readFrame(const wjs::scan::OwnedFrame& frame);
+    void refreshCameraState();
     void failed(const QString& code);
     void changedDraft();
     [[nodiscard]] bool on_grid(int index) const;
@@ -156,6 +177,7 @@ private:
     std::optional<wjs::scan::BoardDraft> draft_;
     std::optional<wjs::Board> confirmed_;
 
+    QPointer<CameraSource> camera_source_;
     bool camera_available_ = false;
     bool camera_capturing_ = false;
     QString camera_problem_;

@@ -91,7 +91,8 @@ the frame budget is a desktop check.
 That leg then **packages what it built** and proves the package is usable:
 `tools/package/check_package.ps1` (docs/building.md, "Checking a package") runs
 `cpack -G ZIP`, checks the archive carries the two programs, Qt's DLLs, plugins
-and QML modules (Quick 3D included), the dictionary, the dice, `NOTICES.txt` and
+and QML modules (Quick 3D included, and the multimedia plugin and
+`qml/QtMultimedia` the camera's live view needs), the dictionary, the dice, `NOTICES.txt` and
 `LICENSE.txt`, writes `SHA256SUMS`, unpacks it, solves a board with the packaged
 `wjs-cli` and its installed dictionary, and runs the packaged
 `WordJewelsSolver --smoke 10` offscreen. The ZIP and `SHA256SUMS` are uploaded
@@ -130,7 +131,7 @@ import beside the binary, as the application's own deploy does for its screens.
   kit with `jurplel/install-qt-action` (pinned to v4.4.1 by commit SHA) and
   configures with `-DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON`, so the
   Qt Quick application, its 3D scene prototype, the app tests, `parent.screens`,
-  `scan.screens`, `parent.languages`, `scan.languages`, the eight `quick.*`
+  `scan.screens`, `camera.screens`, `parent.languages`, `scan.languages`, the eight `quick.*`
   suites, `i18n.catalogues`, `app.scene_contract` and `app.qml_lint` all run on
   every push. The install names the modules `qttools qtmultimedia qtsensors
   qtspeech` (see `aqt list-qt windows desktop --modules 6.12.0
@@ -150,12 +151,14 @@ import beside the binary, as the application's own deploy does for its screens.
   between runs. The other legs build the library, CLI and scanner alone; the
   application has only been built on Windows, so Qt is not installed there yet.
   `QT_QPA_PLATFORM=offscreen` lets the screens run on a runner with no display.
-- **The feedback modules are optional.** `src/app` finds Multimedia, Sensors and
-  TextToSpeech with `OPTIONAL_COMPONENTS` and selects a silent backend for a
-  missing one (the variant pattern), so a contributor's kit still configures and
-  builds; the Windows CI leg installs them on purpose, so the package check can
-  expect `Qt6Multimedia.dll`, `Qt6Sensors.dll` and `Qt6TextToSpeech.dll` beside
-  the window.
+- **The feedback and camera modules are optional.** `src/app` finds Multimedia,
+  Sensors and TextToSpeech with `OPTIONAL_COMPONENTS` and selects a silent
+  backend for a missing one (the variant pattern), so a contributor's kit still
+  configures and builds; the camera uses the same choice, with a `camera-none`
+  backend when Multimedia is missing. The Windows CI leg installs them on
+  purpose, so the package check can expect `Qt6Multimedia.dll`,
+  `Qt6Sensors.dll` and `Qt6TextToSpeech.dll` beside the window, and the camera's
+  `plugins/multimedia` and `qml/QtMultimedia` in its package.
 - **CMake 4.4.2 and Ninja 1.13.2** from `lukka/get-cmake`; the same pins the
   sibling projects use.
 - **One place for the pins.** `.github/toolchain-versions.json` lists CMake,

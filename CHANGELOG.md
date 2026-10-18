@@ -16,6 +16,33 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **Mode A's camera on the desktop: a live preview and one capture.** The
+  Family Assistant's ready screen now shows the camera's own picture in its
+  frame and its **Capture** reads one frame on the device. The camera is a new
+  `CameraSource` QML element (`src/app/camera`) over a `CameraBackend` seam with
+  the repository's optional-module variant pattern: `camera-multimedia` builds
+  `QCamera` → `QMediaCaptureSession` → `QVideoSink` where the kit has Qt
+  Multimedia, and `camera-none` answers `no_camera` where it does not, with no
+  `#if` in a source and the same screens either way. The newest video frame is
+  converted on capture with `QVideoFrame::toImage()` and a tested conversion to
+  the scanner's owned RGB24 frame (R, G, B, packed rows); it is read through the
+  same `board_reader` and dropped, and the camera is stopped before the read.
+  `ScanModel` uses the source when the application supplies one, keeps its
+  patience for a camera that never delivers (`no_frame`, back to `ready`), and
+  maps no device, a refusal and a failure to the wording file's three sentences
+  with "Type in your board" beside them; no frame is ever faked, saved, sent or
+  kept. `Main.qml` makes the source and hands it to the model; `ScanScreen`
+  shows a `VideoOutput` only while it runs. A kit without Qt Multimedia builds
+  the none variant and the no-camera screen. The camera's Qt Multimedia plugins
+  and `qml/QtMultimedia` are deployed into the package, and the package check
+  requires them. Tested without a camera: the conversion, the availability,
+  refusal, failure and no-frame states, the model with a fake source, the
+  offscreen `camera.screens` walk with a synthetic board, and the QML preview
+  path; **this machine has no camera**, so a live device, real dice and the
+  iPad's AVFoundation/Vision backend remain unverified. See
+  [docs/design/scanner.md](docs/design/scanner.md#the-qt-multimedia-desktop-backend),
+  [docs/building.md](docs/building.md#the-qt-quick-window) and
+  [docs/testing.md](docs/testing.md#the-camera).
 - **The real feedback engines: sound, speech, motion and haptics.** The
   `Feedback.cue(kind, detail)` seam the screens and models already emitted now
   reaches a `FeedbackEngine` (`src/app/feedback`) that plays a short asset

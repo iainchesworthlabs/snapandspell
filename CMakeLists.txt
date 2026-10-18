@@ -161,6 +161,18 @@ if(WJS_BUILD_APP)
     set(WJS_QT_HAS_TEXTTOSPEECH OFF)
     if(TARGET Qt6::Multimedia)
         set(WJS_QT_HAS_MULTIMEDIA ON)
+        # Mode A's camera is a Qt Multimedia backend where the module is, and a
+        # none backend otherwise (the variant pattern; src/app/camera). The
+        # directories are chosen here, in the scope the tests share, because
+        # tests/ compiles the same source and needs the backend's path.
+        set(WJS_CAMERA_VARIANT_DIR
+            "${PROJECT_SOURCE_DIR}/src/app/variants/camera-multimedia")
+        set(WJS_CAMERA_PREVIEW_QML "${WJS_CAMERA_VARIANT_DIR}/CameraPreview.qml")
+    else()
+        set(WJS_QT_HAS_MULTIMEDIA OFF)
+        set(WJS_CAMERA_VARIANT_DIR
+            "${PROJECT_SOURCE_DIR}/src/app/variants/camera-none")
+        set(WJS_CAMERA_PREVIEW_QML "${WJS_CAMERA_VARIANT_DIR}/CameraPreview.qml")
     endif()
     if(TARGET Qt6::Sensors)
         set(WJS_QT_HAS_SENSORS ON)

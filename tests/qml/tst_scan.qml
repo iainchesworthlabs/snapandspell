@@ -4,10 +4,12 @@ import WordJewelsSolver
 import WordJewelsSolver.Scan
 
 // Mode A's way in (src/app/qml/scan/ScanScreen.qml and CheckScreen.qml): the
-// ready screen with no camera, the typed board, a correction through the letter
-// picker, and "Yes, play". The models are the application's ScanModel and
-// AssistModel; a camera is never faked, because on this tree's desktops there is
-// none and the typed board is the path the design gives.
+// ready screen with no camera, the live view a running camera source shows, the
+// typed board, a correction through the letter picker, and "Yes, play". The
+// models are the application's ScanModel and AssistModel; a live camera is never
+// started, because on this tree's desktops there is none and the suites are
+// headless. The camera path uses the fixture's fake source, which is a real
+// CameraSource over a backend that returns no frames.
 TestCase {
     id: testCase
     name: "Scan"
@@ -117,6 +119,16 @@ TestCase {
     }
 
     // --- scan.ready ---------------------------------------------------------
+    function test_theCameraCodesAreTheDesignsSentences() {
+        // CameraSource reports these three; the platform interface's older
+        // codes still map to the same sentences.
+        compare(ScanWording.cameraProblem("no_camera"), ScanWording.cameraAbsent)
+        compare(ScanWording.cameraProblem("permission"), ScanWording.cameraRefused)
+        compare(ScanWording.cameraProblem("failed"), ScanWording.cameraBroken)
+        compare(ScanWording.cameraProblem("unavailable"), ScanWording.cameraAbsent)
+        compare(ScanWording.cameraProblem(""), "")
+    }
+
     function test_readySaysThereIsNoCamera() {
         const view = screen()
         compare(scanModel.state, "ready")
@@ -127,6 +139,25 @@ TestCase {
         verify(texts.indexOf(ScanWording.cameraAbsent) >= 0)
         // There is no Capture without a camera, and the typed board is the way on.
         compare(buttonNamed(view, ScanWording.capture).visible, false)
+        verify(buttonNamed(view, ScanWording.typeBoard).visible)
+        // No live view either: there is no picture to put in the frame.
+        compare(view.previewShown, false)
+        verify(allItems(view).every(item => item.objectName !== "cameraPreview"))
+    }
+
+    // --- scan.ready with a camera -------------------------------------------
+    function test_aRunningCameraShowsThePreviewAndOffersCapture() {
+        // A fake source, not a device: the preview is created, so the QML path
+        // that a camera would take is the one a headless run drives. The frame
+        // it would hand over is not needed to show the live view.
+        fixture.useCamera()
+        const view = screen()
+        tryCompare(scanModel, "cameraAvailable", true)
+        compare(scanModel.cameraCapturing, true)
+        compare(view.previewShown, true)
+        verify(allItems(view).some(item => item.objectName === "cameraPreview"))
+        verify(buttonNamed(view, ScanWording.capture).visible)
+        verify(textsShown(view).indexOf(ScanWording.cameraAbsent) < 0)
         verify(buttonNamed(view, ScanWording.typeBoard).visible)
     }
 

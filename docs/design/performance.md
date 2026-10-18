@@ -235,7 +235,7 @@ zones inside `board.seed`, each with its `solver.visits`.
 | ui | **Built:** `ui.trace` (the trace layer's path work, from QML), `ui.screen` (a screen's transition, from QML); the plots `ui.frame_ms`, `ui.first_frame_ms` and the frame mark `UI` are the frame clock's, and `render.frame_ms` and `ui.sync_ms` are the render thread's |
 | audio | `audio.play_clip` (clip id); a plot `audio.start_latency_ms` |
 | scene | **Built:** `scene.step` (the dice world's step; the steps it took), `scene.prepare` (the atlas; its cells), `scene.play`, `scene.show`, `scene.shake`, `scene.drop`, `scene.settle`, `scene.celebrate` (all from QML). The 2D fallback's `scene2d.play`, `scene2d.step` and `scene2d.show` are in the file kept for D2 and not built |
-| scan | **Built:** `scan.find_board`, `scan.read_tiles`. Not built: `capture.read` (no camera backend), and `vision.*` as Cubeulator names them, which the iOS reader will have |
+| scan | **Built:** `scan.find_board`, `scan.read_tiles`. Not built: `capture.read` (the desktop camera exists through `CameraSource`, but its capture has no zone yet), and `vision.*` as Cubeulator names them, which the iOS reader will have |
 
 Frame sets: unnamed for the seeding loop's passes if useful, **`UI`** for the Qt
 Quick frame (built, `frameSwapped`, as Cubeulator), `Capture` for the camera.

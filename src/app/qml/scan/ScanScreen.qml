@@ -10,15 +10,16 @@ import WordJewelsSolver
 //   scan.ready    the frame to put the board in, Capture (96 dp), and Type in
 //                 your board. The camera is on only here: the screen starts it
 //                 when it opens and stops it when it leaves (the screens' and the
-//                 model's rule; docs/design/game.md, "Mode A").
+//                 model's rule; docs/design/game.md, "Mode A"). Where there is a
+//                 camera, its live picture is shown in the frame.
 //   scan.reading one frame is read on the device; nothing is kept.
 //   scan.check    the replica, the doubts, the letter picker and "Yes, play"
 //                 (CheckScreen.qml). "Yes, play" hands the confirmed board to the
 //                 assistant and asks the shell to show it.
 //
-// With no camera (every desktop today) the camera's absence is said in words and
-// "Type in your board" is the way on: the check screen with an empty 4x4
-// (docs/design/game.md, "No camera").
+// With no camera (a desktop with no webcam, or a kit without Qt Multimedia) the
+// camera's absence is said in words and "Type in your board" is the way on: the
+// check screen with an empty 4x4 (docs/design/game.md, "No camera").
 FocusScope {
     id: root
 
@@ -32,6 +33,10 @@ FocusScope {
 
     readonly property string scanState: root.scan.state
     readonly property bool cameraShown: root.scan.cameraAvailable
+    // The live view is shown only while the camera is running: ScanModel starts
+    // it on scan.ready and stops it as soon as a frame is in hand.
+    readonly property bool cameraRunning: root.scan.cameraCapturing
+    readonly property bool previewShown: cameraPreview.active
     readonly property string cameraMessage: ScanWording.cameraProblem(root.scan.cameraProblem)
     readonly property string readMessage: ScanWording.readProblem(root.scan.readProblem)
     // The interface's direction, set by the shell: Hebrew and Yiddish are right
@@ -130,9 +135,10 @@ FocusScope {
             color: Theme.ink
         }
 
-        // The live view's place: a dark frame with the corners of the board's
-        // place in it. There is no preview surface in this slice; a camera that
-        // arrives puts its picture behind this.
+        // The live view: the camera's own picture while it is on, with the
+        // corners of the board's place over it. When the camera is off (the
+        // check screen, or a device with none) the place keeps its picture of a
+        // board, so the screen still says what it is for without a sentence.
         Rectangle {
             id: viewfinder
             anchors.horizontalCenter: parent.horizontalCenter
@@ -144,6 +150,22 @@ FocusScope {
             color: Theme.boardArea
             border.width: Theme.rule
             border.color: Theme.outline
+            clip: true
+
+            // The camera's picture. The view is a CameraPreview of the build's
+            // camera variant: a VideoOutput where the kit has Qt Multimedia, and
+            // an empty Item where it does not. The source hands its sink over in
+            // Component.onCompleted, and nothing is recorded.
+            Loader {
+                id: cameraPreview
+                anchors.fill: parent
+                active: root.cameraRunning && root.scan.cameraSource !== null
+                sourceComponent: Component {
+                    CameraPreview {
+                        camera: root.scan.cameraSource
+                    }
+                }
+            }
 
             // The four corners of a board's place, as brackets.
             Repeater {
@@ -175,12 +197,14 @@ FocusScope {
             }
 
             // A small board of dice, so the place says what goes in it without
-            // a sentence: a picture, not text.
+            // a sentence: a picture, not text. It is behind the camera's view
+            // while the camera is on.
             Grid {
                 anchors.centerIn: parent
                 columns: 4
                 spacing: Math.max(Theme.space1, viewfinder.width * 0.012)
                 opacity: 0.5
+                visible: !root.cameraRunning
 
                 Repeater {
                     model: 16

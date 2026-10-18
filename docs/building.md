@@ -138,12 +138,14 @@ The board scene is 3D, so a build of the window links Qt Quick 3D, which Qt
 offers only under the GPL-3.0 or commercially: the binary is **GPL-3.0 only**
 (the recorded decision, [Board design](design/board.md#rendered-3d-or-drawn-in-2d)).
 
-**The feedback modules are optional.** Sound, speech and motion use Qt
-Multimedia, Qt Sensors and Qt TextToSpeech, and the application finds each with
-`OPTIONAL_COMPONENTS`: a kit without one builds that engine's **silent
-variant** and the game is complete, only quieter. The shared kit on the
-author's machine, `C:\Repos\common\qt\6.12.0\msvc2022_64`, has all three: the
-module archives were fetched from the Qt repository and merged into the kit
+**The feedback and camera modules are optional.** Sound, speech and motion use
+Qt Multimedia, Qt Sensors and Qt TextToSpeech, and Mode A's live camera uses Qt
+Multimedia. The application finds each with `OPTIONAL_COMPONENTS`: a kit
+without one builds that engine's **silent variant**, or for the camera the
+**`camera-none`** backend, and the game is complete, only quieter and with the
+typed board as the scanner's way in. The shared kit on the author's machine,
+`C:\Repos\common\qt\6.12.0\msvc2022_64`, has all three: the module archives were
+fetched from the Qt repository and merged into the kit
 (`lib/cmake/Qt6{Multimedia,Sensors,TextToSpeech}`, their DLLs in `bin`), and
 `CMAKE_PREFIX_PATH` finds them with no other flag. A kit that lacks them needs
 nothing special — configure and build as below — and `cmake/FindQt6.cmake`'s
@@ -152,16 +154,27 @@ search path is unchanged. The Windows CI leg installs all three with
 PyPI aqtinstall, because Qt 6.11+ split the Windows repository per architecture
 ([CI](ci.md#toolchain-choices)).
 
-The three backends are chosen the way `wjs/profiling.hpp` is
+The three feedback backends are chosen the way `wjs/profiling.hpp` is
 (docs/profiling.md): one directory under `src/app/variants/` goes on the include
 path, every variant has the same header and interface, and no source asks
-whether the module is there. The sound assets are the project's own
+whether the module is there. The camera uses the same pattern: `src/app/camera`
+holds `CameraSource` (the QML element the screen binds to), `CameraBackend` (the
+seam) and the frame conversion, and `src/app/variants/camera-multimedia` or
+`camera-none` supplies the backend. Where the kit has Qt Multimedia, the ready
+screen shows a live `VideoOutput` and Capture reads one frame; where it does
+not, the same screen says there is no camera and the typed board is the way on.
+The camera's Qt Multimedia plugins and QML module are deployed beside the window
+(`qml/QtMultimedia`, `plugins/multimedia`) and the package check requires them
+([Packaging](#packaging)).
+
+The sound assets are the project's own
 placeholders: `tools/sounds/make_sounds.ps1` writes `assets/sounds/*.wav`
 (16-bit PCM mono, deterministic; `-Check` proves the checked-in files), and the
 build embeds them as `:/sounds/<name>.wav`. The real phoneme clips and cheers
 replace them after the literacy review. `wjs_unit_tests "[feedback],[motion],[haptics]"`
 and `wjs_app_tests "[feedback],[motion]"` run the policy and the processing
-without a speaker or a sensor.
+without a speaker or a sensor; `ctest -L camera` runs the camera's cases and
+`camera.screens` draws the live view headless from a fake source.
 
 `cmake/FindQt6.cmake` looks for the kit, in this order:
 
@@ -306,14 +319,19 @@ WordJewelsSolver-0.1.0-win64/
     dice/3x3.txt … 6x6.txt
     NOTICES.txt
     LICENSE.txt
-  plugins/            Qt's platform and image-format plugins
-  qml/                the Qt QML modules the window imports, Quick 3D included
+  plugins/            Qt's platform, image-format and multimedia plugins
+  qml/                the Qt QML modules the window imports, Quick 3D included,
+                      and QtMultimedia where the kit has the camera's module
 ```
 
 The installed window is self-contained on Windows: Qt's own install-time deploy
 script (`qt_generate_deploy_qml_app_script`, `src/app/CMakeLists.txt`) copies the
 runtime beside the program, and the plugins and QML modules one level above it,
-with the `qt.conf` that points there. `bin/` is the directory both programs read
+with the `qt.conf` that points there. The camera adds Qt Multimedia to that
+tree: `plugins/multimedia/*` (the platform's capture backend) and
+`qml/QtMultimedia` (the `VideoOutput` the live view is), deployed because the
+application imports the module. A kit without Qt Multimedia has neither and the
+window says there is no camera. `bin/` is the directory both programs read
 their dictionary from and the window reads its dice from, so a program moved out
 of the package needs that directory moved with it. On Linux there is no deploy
 step: the window uses the system's Qt, and the distribution packages name what
@@ -336,9 +354,14 @@ Two checks cover packaging:
   `CPackConfig.cmake` and install scripts, and fails if the package does not
   name this project and its licence, if no ZIP is offered, or if the install
   rules stopped carrying either program, the dictionary, the dice, the notices
-  or the licence text.
+  or the licence text. Where the kit has Qt Multimedia it also reads the input
+  list of the application's QML import scan and fails if the camera's
+  `QtMultimedia` hint file is gone, because that is what makes the install-time
+  deploy copy `qml/QtMultimedia` and the multimedia plugins.
 - `tools/package/check_package.ps1` makes the package (or takes one with
-  `-Archive`), checks its required files, writes `SHA256SUMS` beside it, unpacks
+  `-Archive`), checks its required files (and, when the window links Qt
+  Multimedia, that `plugins/multimedia` and `qml/QtMultimedia` are in it),
+  writes `SHA256SUMS` beside it, unpacks
   it, solves a board with the packaged `wjs-cli` and its own dictionary, and
   runs the packaged `WordJewelsSolver --smoke 10` with the offscreen platform
   plugin:

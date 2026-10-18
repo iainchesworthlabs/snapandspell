@@ -125,6 +125,31 @@ if(EXPECT_APP AND EXPECT_QT_DEPLOY)
     endif()
 endif()
 
+# Mode A's live view imports Qt Multimedia. A package of a build with the module
+# has to carry qml/QtMultimedia and the Multimedia plugins, which Qt's
+# install-time deploy copies only when the application's own QML import scan
+# names the module. The scan's input list is written at configure time, so this
+# holds the camera's deployment hint without packaging anything
+# (src/app/camera/CameraImport.qml says why the hint exists); the archive check
+# (`tools/package/check_package.ps1`) then requires both directories in the
+# package itself.
+if(EXPECT_MULTIMEDIA)
+    set(_import_scan "${BUILD_DIR}/src/app/.qt/qml_imports/wjs_app_build.rsp")
+    if(NOT EXISTS "${_import_scan}")
+        list(APPEND _failures
+            "the application's QML import scan input is missing: ${_import_scan}")
+    else()
+        file(READ "${_import_scan}" _import_scan_text)
+        string(FIND "${_import_scan_text}" "wjs_camera_import" _camera_import)
+        if(_camera_import EQUAL -1)
+            list(APPEND _failures
+                "the application's QML import scan does not read the camera's "
+                "QtMultimedia hint (src/app/camera/CameraImport.qml), so an "
+                "installed camera's live view would find no qml/QtMultimedia")
+        endif()
+    endif()
+endif()
+
 # The notice the package installs is the one this build wrote, not a stale one.
 string(FIND "${_install_text}" "${NOTICES}" _notices_path)
 if(_notices_path EQUAL -1)

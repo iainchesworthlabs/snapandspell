@@ -3,7 +3,9 @@
 #include <QQmlContext>
 #include <utility>
 
+#include "../app/fake_camera.hpp"
 #include "assist_game.hpp"
+#include "camera_source.hpp"
 #include "fake_solo_game.hpp"
 #include "wjs/scan/reading.hpp"
 
@@ -135,6 +137,18 @@ bool QuickFixture::readDoubtfulBoard() {
     reading.tiles[3].confidence = 0.5;
     reading.tiles[3].doubtful = true;
     return scan_->useReading(reading);
+}
+
+void QuickFixture::useCamera() {
+    auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+    backend->setAvailable(true);
+    backend->setProblem(QString());
+    // The source is kept for the fixture's lifetime: a model points at it, and
+    // a destroyed screen's destruction still calls close() on the model.
+    cameras_.push_back(std::make_unique<wjs::app::CameraSource>(std::move(backend)));
+    if (scan_ != nullptr) {
+        scan_->setCameraSource(cameras_.back().get());
+    }
 }
 
 void QuickFixture::setContextProperty(const char* name, QObject* object) {

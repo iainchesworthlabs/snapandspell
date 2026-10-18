@@ -129,6 +129,7 @@ if(WJS_BUILD_APP)
     add_executable(wjs_app_tests
         app/assist_game_test.cpp
         app/board_layout_test.cpp
+        app/camera_test.cpp
         app/fake_solo_game_test.cpp
         app/feedback_engine_test.cpp
         app/language_test.cpp
@@ -142,6 +143,9 @@ if(WJS_BUILD_APP)
         app/solver_model_test.cpp
         app/system_colour_scheme_test.cpp
         app/system_motion_test.cpp
+        "${PROJECT_SOURCE_DIR}/src/app/camera/camera_source.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/camera/frame_conversion.cpp"
+        "${WJS_CAMERA_VARIANT_DIR}/wjs/app/camera_backend.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/parent/parent_controller.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/scan/assist_game.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/scan/assist_game_factory.cpp"
@@ -161,10 +165,13 @@ if(WJS_BUILD_APP)
     set_target_properties(wjs_app_tests PROPERTIES AUTOMOC ON)
     target_include_directories(wjs_app_tests PRIVATE
         "${PROJECT_SOURCE_DIR}/src/app"
+        "${PROJECT_SOURCE_DIR}/src/app/camera"
         "${PROJECT_SOURCE_DIR}/src/app/parent"
         "${PROJECT_SOURCE_DIR}/src/app/scan"
         "${PROJECT_SOURCE_DIR}/src/app/solo"
-        "${CMAKE_CURRENT_SOURCE_DIR}/app/parent_ui")
+        "${CMAKE_CURRENT_SOURCE_DIR}/app/parent_ui"
+        "${CMAKE_CURRENT_SOURCE_DIR}/scan/synth"
+        "${WJS_CAMERA_VARIANT_DIR}")
     # The shipped data, by its path in this checkout, for the case that plays a
     # standard board over the real dice and dictionary (real_solo_game_test.cpp),
     # and the catalogues the interface's languages are read from
@@ -175,6 +182,7 @@ if(WJS_BUILD_APP)
     target_link_libraries(wjs_app_tests
         PRIVATE
             wjs_feedback
+            wjs_scan_synth
             wjs_trace
             wjs_i18n
             wjs::lib
@@ -186,10 +194,19 @@ if(WJS_BUILD_APP)
             wjs::sanitizers
             wjs::coverage
             Catch2::Catch2WithMain)
+    # The multimedia backend's header is the only file that needs the module;
+    # the tests that hand in a fake backend do not. A kit without Qt Multimedia
+    # builds the none backend and this block is skipped.
+    if(WJS_QT_HAS_MULTIMEDIA)
+        target_sources(wjs_app_tests PRIVATE app/camera_video_frame_test.cpp)
+        target_link_libraries(wjs_app_tests PRIVATE Qt6::Multimedia)
+    endif()
     wjs_deploy_sanitizer_runtime(wjs_app_tests)
     # Qt's DLLs have to be beside the binary before catch_discover_tests runs it.
     wjs_platform_deploy_qt_runtime(wjs_app_tests "")
-    catch_discover_tests(wjs_app_tests)
+    # The tags are CTest labels too, so the camera's cases are `ctest -L camera`
+    # as well as part of every run.
+    catch_discover_tests(wjs_app_tests ADD_TAGS_AS_LABELS)
 
     # The 3D board scene's script (src/app/qml/scene/ShakeScript.js) in Qt's own
     # JavaScript engine, so what is tested is the file the scene plays and not a
@@ -370,11 +387,15 @@ if(WJS_BUILD_APP)
 
     target_include_directories(wjs_scan_preview PRIVATE
         "${PROJECT_SOURCE_DIR}/src/app"
+        "${PROJECT_SOURCE_DIR}/src/app/camera"
         "${PROJECT_SOURCE_DIR}/src/app/scan"
-        "${PROJECT_SOURCE_DIR}/src/app/solo")
+        "${PROJECT_SOURCE_DIR}/src/app/solo"
+        "${CMAKE_CURRENT_SOURCE_DIR}/scan/synth"
+        "${WJS_CAMERA_VARIANT_DIR}")
     target_link_libraries(wjs_scan_preview
         PRIVATE
             wjs_scan_uiplugin
+            wjs_scan_synth
             wjs_i18n
             wjs_trace
             wjs::lib
@@ -396,13 +417,32 @@ if(WJS_BUILD_APP)
         endif()
     endforeach()
     wjs_deploy_sanitizer_runtime(wjs_scan_preview)
-    wjs_platform_deploy_qt_runtime(wjs_scan_preview "${CMAKE_CURRENT_SOURCE_DIR}/app/scan_ui")
+    # The live view imports QtMultimedia from the camera variant, which is not
+    # under the stub shell's qml directory.
+    set(WJS_SCAN_PREVIEW_DEPLOY_QML_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/app/scan_ui")
+    if(WJS_QT_HAS_MULTIMEDIA)
+        list(APPEND WJS_SCAN_PREVIEW_DEPLOY_QML_DIRS "${WJS_CAMERA_VARIANT_DIR}")
+    endif()
+    wjs_platform_deploy_qt_runtime(wjs_scan_preview ${WJS_SCAN_PREVIEW_DEPLOY_QML_DIRS})
 
     add_test(NAME scan.screens
         COMMAND wjs_scan_preview --check --out "${CMAKE_CURRENT_BINARY_DIR}/scan-screens")
     set_tests_properties(scan.screens PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
         TIMEOUT 180)
+
+    # Mode A's camera without a camera: a fake source hands over one frame from
+    # the synthetic corpus, the live view is shown, and Capture opens the check
+    # screen. No device is opened, and only a kit with Qt Multimedia has the
+    # VideoOutput the preview is made of.
+    if(WJS_QT_HAS_MULTIMEDIA)
+        add_test(NAME camera.screens
+            COMMAND wjs_scan_preview --camera --out "${CMAKE_CURRENT_BINARY_DIR}/camera-screens")
+        set_tests_properties(camera.screens PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
+            TIMEOUT 180
+            LABELS "camera;gui")
+    endif()
 
     # Mode A in all eight languages, Hebrew and Yiddish included: the ready and
     # check screens and the assistant's panel are translated, the split puts the
@@ -507,6 +547,7 @@ add_test(NAME package.config
         "-DEXPECT_CLI=${WJS_BUILD_CLI}"
         "-DEXPECT_APP=${WJS_BUILD_APP}"
         "-DEXPECT_QT_DEPLOY=${WJS_PLATFORM_QT_DEPLOY_AT_INSTALL}"
+        "-DEXPECT_MULTIMEDIA=${WJS_QT_HAS_MULTIMEDIA}"
         "-DNOTICES=${WJS_NOTICES_FILE}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/package/check_package.cmake")
 

@@ -238,7 +238,16 @@ foreach ($relative in $required) {
     }
 }
 if ($withApplication -and $IsWindows) {
-    foreach ($directory in @('qml/QtQuick', 'qml/QtQuick3D')) {
+    $requiredDirectories = @('qml/QtQuick', 'qml/QtQuick3D')
+    # The scanner's live view is Qt Multimedia's VideoOutput, and its camera is a
+    # Multimedia backend plugin: when the window links the module, the package
+    # must carry both, or the scan screen starts and cannot show a preview. The
+    # Qt deploy scripts copy the plugins and the QML module because the
+    # application imports QtMultimedia (src/app/camera/CameraImport.qml).
+    if (Test-Path -LiteralPath (Join-Path $buildDirectory "bin/Qt6Multimedia$qtSuffix.dll")) {
+        $requiredDirectories += @('plugins/multimedia', 'qml/QtMultimedia')
+    }
+    foreach ($directory in $requiredDirectories) {
         if (Test-PackagedDirectory $directory) {
             Write-Host "      ok      $directory/"
         }

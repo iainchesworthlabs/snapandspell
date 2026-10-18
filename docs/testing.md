@@ -21,6 +21,7 @@ ctest --preset windows-msvc-debug              # or linux-gcc-debug, macos-clang
 ctest --preset windows-msvc-debug -R platform  # just the two build checks
 ctest --preset windows-msvc-debug -R data      # the word-list and phonics checks
 ctest --preset windows-msvc-debug -R quick     # the interactive QML (Qt Quick Test)
+ctest --preset windows-msvc-debug -L camera    # Mode A's camera, without a camera
 ```
 
 Every Catch2 `TEST_CASE` is registered with CTest by name
@@ -42,7 +43,9 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
 `[shake]`, `[rules]`, `[session]` (with `[standard]` for the cases that play the standard board), `[deal]`, `[dice_sets]`, `[platform]`, `[feedback]`, `[motion]` (with `[processor]` for the pure processing) and `[haptics]`, and `[profiling]`, and `[app]` in
 `wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]`, `[solo]`, `[feedback]`, `[motion]` and `[i18n]`,
-the last with `[catalogue]`, `[language]` and `[glyph]`). The parent area's are
+the last with `[catalogue]`, `[language]` and `[glyph]`). The camera's are `[camera]` (with
+`[scan]`, and `[app]` in `wjs_app_tests`), and `camera.screens` is the QML check that
+drives the live view. The parent area's are
 `[calendar]`, `[settings]`, `[gate]`, `[store]` (with `[record]`, `[file]`, `[migration]`, `[bounds]`,
 `[reset]`, `[resume]` and `[privacy]`), `[dashboard]` (with `[sounds]`, `[week]`, `[vault]`, `[best]`,
 `[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`
@@ -384,7 +387,7 @@ a warning is not merely printed.
 | `tst_box.qml` | The sizes offered are the ones whose tile fits at 48 dp (two on a full window, one on a small one, none on a tiny one); a size chosen by pressing its picture; the box's wide and tall arrangements; Shake dealing a board and the scene stub being given `play(board, seed)`; Space shaking too; a shake in play doing nothing; the way back asking for home |
 | `tst_panel.qml` | The tray's one row a word, with the model's tier and stars and a jewel whose size says the tier; a word found again adding nothing; the hint button asking the model for a start; Done ending a tapped path; the history button asking for its sheet |
 | `tst_rtl.qml` | Hebrew and Yiddish are right to left and French and English are not; the bar's way back moving to the leading edge on Solo Play's, the scan's and the parent area's bars; the panel's hint and history swapping sides; the split's areas swapping while the board's square, tile and gap stay the same; the trace layer's tiles and the check screen's replica keeping their reading order in a mirrored hierarchy |
-| `tst_scan.qml` | `scan.ready` saying there is no camera and offering no Capture; the typed board opening the check screen; a correction through the letter picker; the reader's doubtful tiles ringed and their hint; the picker offering the reader's other thought first; Yes, play refusing an incomplete board and handing a confirmed one to the assistant; Read again dropping the draft; the way back leaving Mode A |
+| `tst_scan.qml` | `scan.ready` saying there is no camera and offering no Capture (and no live view); a running camera source's preview shown and Capture offered; the typed board opening the check screen; a correction through the letter picker; the reader's doubtful tiles ringed and their hint; the picker offering the reader's other thought first; Yes, play refusing an incomplete board and handing a confirmed one to the assistant; Read again dropping the draft; the way back leaving Mode A |
 | `tst_parent.qml` | The gate's two spots: one finger is not a hold, two are, a second is half the bar, letting go starts over, two seconds opens it; the dashboard's week, sounds, vault and best from the store, and an empty store saying nothing was played; the settings rows changing the controller (help, board size, motion, colour scheme, text size) and a focus sound ticked and unticked; the reset asking twice and clearing the boards but not the stickers; the way back shutting the gate |
 
 Deliberately not here, and where they are instead: `Main.qml`'s shell and its
@@ -611,12 +614,31 @@ tuning split unless `WJS_SCAN_SPLIT=test` is set):
 each, and `--sheet <file.png>` a contact sheet, to look at. **Recorded camera frames are
 never committed** (`.gitignore`, [Licensing](licensing.md#camera-input-and-letter-recognition)).
 
-**`scan.privacy`** runs `tests/scan/check_privacy.cmake`: the scanner's sources and the
-camera and `board_reader` files of every platform may not include a file or stream
-header, use a file class or API, capture audio or use a network class (a frame is never
-written, nothing is recorded, nothing is sent). `scan.privacy.catches_a_leak` runs it on a
-fixture tree whose one file opens an `ofstream` and expects it to fail. Both only read
+**`scan.privacy`** runs `tests/scan/check_privacy.cmake`: the scanner's sources, the
+camera and `board_reader` files of every platform, and Mode A's camera source and
+its backends may not include a file or stream header, use a file class or API,
+capture audio or use a network class (a frame is never written, nothing is
+recorded, nothing is sent). `scan.privacy.catches_a_leak` runs it on a fixture
+tree whose one file opens an `ofstream` and expects it to fail. Both only read
 source, so they run on every host.
+
+### The camera
+
+The desktop camera is tested **without a camera**, which is the point: a device
+must not be needed to prove the state machine, and no live picture may be faked.
+
+| Where | What it holds down |
+| --- | --- |
+| `tests/app/camera_test.cpp` (`wjs_app_tests`, `[camera]`) | An image is copied into the scanner's RGB24 frame, packed row by row and with the QImage padding gone; a grey picture becomes equal channels; a null picture is no frame. A `CameraSource` over a fake backend says `no_camera` with no device, `permission` when refused, hands a frame over once, and reports a failure that happens later. A `ScanModel` with a supplied source opens the check screen from a frame, returns to `ready` with `no_frame` when the frame never arrives, and says `no_camera` with no frame when the source cannot start |
+| `tests/app/camera_video_frame_test.cpp` (only where the kit has Qt Multimedia) | A `QVideoFrame` made from a picture goes through `QVideoFrame::toImage()` and the shared conversion to the same RGB24 frame — the backend's step, without a device |
+| `camera.screens` (`tests/app/scan_ui`, only where the kit has Qt Multimedia) | The real `ScanScreen` and `ScanModel` in the offscreen stub shell with a fake source and one synthetic board: the live `VideoOutput` is created and shown, Capture is offered, the frame reaches the check screen, and the camera stops. The no-camera check (`scan.screens`) is the other path |
+| `quick.scan` (`tests/qml/tst_scan.qml`) | The same preview on and no-preview path through the QML suite, with `fixture.useCamera()` supplying a fake source; the window is offscreen and no device is opened |
+
+The tests never use a device and never write a frame: the fake backend returns
+an owned frame made in the test, and the synthetic frame comes from
+`tests/scan/synth` (drawn from a seed, not recorded). On this machine there is
+no camera at all, so the no-camera path is what the program was actually run
+on; the live device path is the one thing that waits for a webcam.
 
 ## Phonics data: the checker and the review gate
 
@@ -847,15 +869,16 @@ fix a number here.
 - **`wjs-cli` itself.** Nothing runs the program: option parsing, the exit
   codes and the output format are checked by hand. The library behind it is
   tested, and the README example is the solver case above.
-- **The screens.** The models, the layout rule, the touch logic and the fake are
-  tested, and the QML is linted with no warning allowed. No test loads the QML or
-  sends it input: the screens were run on a Windows desktop and driven with the
-  mouse and the keyboard by hand, at four window shapes, and that is all. Nothing
-  was run on a touch screen, a tablet or a phone, or on Linux or macOS.
+- **The screens by hand, on anything but Windows.** The QML suites drive the
+  application's own screens headless ([above](#the-interactive-qml-qt-quick-test)),
+  and the two stub shells walk their flows; nothing was run on a touch screen, a
+  tablet or a phone, or on Linux or macOS.
 - **The scanner on anything real.** No frame from a camera, no real dice, no iPad,
-  no light that was not drawn: every number is on synthetic frames
-  ([Scanner design](design/scanner.md#what-this-does-not-prove)). The iOS camera and
-  reader do not exist.
+  no light that was not drawn: every accuracy number is on synthetic frames
+  ([Scanner design](design/scanner.md#what-this-does-not-prove)). The desktop
+  camera's Qt Multimedia path is built and its screens and conversion are tested,
+  but **this machine has no camera**, so no device was opened and no live picture
+  was read. The iOS camera and reader do not exist.
 - **The console code on Linux and macOS.** It does nothing there (a POSIX
   terminal already carries UTF-8), so there is nothing to observe. The path code
   is covered by `paths_test` in CI on both.

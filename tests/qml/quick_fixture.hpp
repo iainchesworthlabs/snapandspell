@@ -19,6 +19,10 @@
 #include "wjs/phase_data.hpp"
 #include "wjs/store.hpp"
 
+namespace wjs::app {
+class CameraSource;
+}
+
 // What the Qt Quick Test suites talk to: the application's own models, made the
 // way the application makes them, and a reset for each test function.
 //
@@ -81,6 +85,12 @@ public:
     // invokable from QML, so a suite asks for it here.
     Q_INVOKABLE bool readDoubtfulBoard();
 
+    // A camera source over the test's fake backend, running at once: the scan
+    // screen then shows its live view and Capture. No device is opened; the
+    // fake's frames are made up or absent. A suite that does not call this gets
+    // the no-camera screen, as the program on a desktop with no webcam does.
+    Q_INVOKABLE void useCamera();
+
 private:
     // Everything one parent area is made of: the store, the phase data and the
     // controller over them. Held together because the controller points at the
@@ -114,6 +124,9 @@ private:
 
     std::unique_ptr<wjs::app::ScanModel> scan_;
     std::vector<std::unique_ptr<wjs::app::ScanModel>> retired_scans_;
+    // Declared before the scans so it is destroyed after them: a model's
+    // destructor stops its camera, and the source has to outlive it.
+    std::vector<std::unique_ptr<wjs::app::CameraSource>> cameras_;
 
     std::unique_ptr<wjs::app::AssistModel> assist_;
     std::vector<std::unique_ptr<wjs::app::AssistModel>> retired_assists_;

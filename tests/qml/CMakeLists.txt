@@ -63,21 +63,17 @@ qt_add_qml_module(wjs_quick_test_scene
 target_link_libraries(wjs_quick_test_scene PUBLIC Qt6::Qml Qt6::Quick)
 
 # The models the screens bind to, and the fixture that hands them to a suite, in
-# a library of its own rather than in the QML module's target: the application's
-# model headers carry QML_ELEMENT, and a target that both compiles them and
-# makes a QML module would register them a second time under this module's URI
-# (the parent area's and the Family Assistant's own modules already register
-# them, and qmltyperegistrar reports the duplication). Compiled from the
-# application's own sources exactly as wjs_app_tests does.
+# a library of its own rather than in the QML module's target. The Family
+# Assistant's own models and their games come from its module (wjs_scan_uiplugin,
+# linked by the test executable below): compiling them here as well put two
+# copies of their moc in the program once the fixture also used the module's
+# CameraSource. The parent area's controller and the Solo Play models are
+# compiled here, as the parent preview does.
 add_library(wjs_quick_tests_support STATIC
     "${PROJECT_SOURCE_DIR}/tests/app/parent_ui/demo_data.cpp"
     quick_fixture.cpp
     quick_fixture.hpp
     "${PROJECT_SOURCE_DIR}/src/app/parent/parent_controller.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scan/assist_game.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scan/assist_game_factory.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scan/assist_model.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scan/scan_model.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/solo/fake_solo_game.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_factory.cpp"
@@ -87,6 +83,7 @@ target_include_directories(wjs_quick_tests_support
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${PROJECT_SOURCE_DIR}/src/app"
+        "${PROJECT_SOURCE_DIR}/src/app/camera"
         "${PROJECT_SOURCE_DIR}/src/app/parent"
         "${PROJECT_SOURCE_DIR}/src/app/scan"
         "${PROJECT_SOURCE_DIR}/src/app/solo"
@@ -205,7 +202,13 @@ foreach(_wjs_source IN LISTS _wjs_quick_tests_sources)
 endforeach()
 
 wjs_deploy_sanitizer_runtime(wjs_quick_tests)
-wjs_platform_deploy_qt_runtime(wjs_quick_tests "${CMAKE_CURRENT_SOURCE_DIR}")
+# The scan screen's live view imports QtMultimedia from the camera variant; the
+# suites' own qml directory is not where that file is.
+set(WJS_QUICK_TESTS_DEPLOY_QML_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
+if(WJS_QT_HAS_MULTIMEDIA)
+    list(APPEND WJS_QUICK_TESTS_DEPLOY_QML_DIRS "${WJS_CAMERA_VARIANT_DIR}")
+endif()
+wjs_platform_deploy_qt_runtime(wjs_quick_tests ${WJS_QUICK_TESTS_DEPLOY_QML_DIRS})
 # One windeployqt at a time into the shared bin/ (the race the sibling projects'
 # comments describe): this one deploys QtTest and the modules the suites import,
 # after the scan shell's own deploy has finished.

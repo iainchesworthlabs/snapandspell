@@ -29,9 +29,11 @@ QtObject {
 
     function cameraProblem(code) {
         switch (code) {
+        case "no_camera":
         case "unavailable":
         case "no_such_device":
             return root.cameraAbsent;
+        case "permission":
         case "permission_denied":
             return root.cameraRefused;
         case "already_running":

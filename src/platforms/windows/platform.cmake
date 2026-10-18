@@ -19,7 +19,7 @@ set(WJS_PLATFORM_QT_ARCH_DIRS msvc2022_64 msvc2019_64)
 # finds none of its own on Windows.
 set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "QT_QPA_FONTDIR=$ENV{SystemRoot}/Fonts")
 
-# detail/ is what no platform differs in: no camera backend yet, the portable
+# detail/ is what no platform differs in: no native camera backend yet, the portable
 # board reader (docs/design/scanner.md), and the no-op haptics every desktop
 # answers with (src/platforms/interfaces/wjs/platform/haptics.hpp).
 set(WJS_PLATFORM_SOURCES
@@ -50,7 +50,9 @@ endfunction()
 # <qml_dir> is the directory of the program's QML sources ("" for a program
 # with none): windeployqt reads the imports in it to find which QML modules the
 # program needs, and without it the window fails with "module QtQuick is not
-# installed".
+# installed". Any further arguments are more QML directories the program's
+# screens use (Mode A's live view is a file of the camera variant), each passed
+# as a --qmldir.
 function(wjs_platform_deploy_qt_runtime target qml_dir)
     find_program(WJS_WINDEPLOYQT_EXECUTABLE
         NAMES windeployqt6 windeployqt
@@ -75,6 +77,11 @@ function(wjs_platform_deploy_qt_runtime target qml_dir)
     if(NOT "${qml_dir}" STREQUAL "")
         list(APPEND _arguments --qmldir "${qml_dir}")
     endif()
+    foreach(_more_qml_dir IN LISTS ARGN)
+        if(NOT "${_more_qml_dir}" STREQUAL "")
+            list(APPEND _arguments --qmldir "${_more_qml_dir}")
+        endif()
+    endforeach()
     add_custom_command(TARGET ${target} POST_BUILD
         COMMAND "${WJS_WINDEPLOYQT_EXECUTABLE}" ${_arguments} "$<TARGET_FILE:${target}>"
         COMMENT "Deploying the Qt runtime beside ${target}")

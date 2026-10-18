@@ -43,6 +43,14 @@ foreach(_file IN LISTS WJS_SCAN_QML_FILES)
     list(APPEND WJS_SCAN_QML_SOURCES "${WJS_SCAN_QML_DIR}/${_file}")
 endforeach()
 
+# The camera's live view is a QML file of the camera variant: a VideoOutput where
+# the kit has Qt Multimedia, and an empty Item where it does not. ScanScreen.qml
+# is one file either way. CMake selected the file with the backend
+# (src/app/CMakeLists.txt).
+set_source_files_properties("${WJS_CAMERA_PREVIEW_QML}"
+    PROPERTIES QT_RESOURCE_ALIAS "CameraPreview.qml")
+list(APPEND WJS_SCAN_QML_SOURCES "${WJS_CAMERA_PREVIEW_QML}")
+
 # The wording: every sentence and accessible name, in one singleton for the
 # later i18n pass.
 set_source_files_properties("${WJS_SCAN_QML_DIR}/ScanWording.qml"
@@ -65,7 +73,8 @@ qt_add_qml_module(wjs_scan_ui
         assist_model.cpp
         assist_model.hpp
         scan_model.cpp
-        scan_model.hpp)
+        scan_model.hpp
+        ${WJS_CAMERA_SOURCES})
 
 # The C++ the QML compiler writes for this module's files is built with the
 # target's warnings as errors, and MSVC's code generator reports C4702
@@ -80,13 +89,19 @@ foreach(_wjs_source IN LISTS _wjs_scan_ui_sources)
     endif()
 endforeach()
 
-target_include_directories(wjs_scan_ui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(wjs_scan_ui
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        # scan_model.hpp includes camera_source.hpp: a consumer of the model's
+        # header needs the camera's include directory too.
+        "${PROJECT_SOURCE_DIR}/src/app/camera")
 
 target_link_libraries(wjs_scan_ui
     PUBLIC
         wjs::lib
         wjs::platform
         Qt6::Core
+        Qt6::Gui
         Qt6::Qml
         Qt6::Quick
     PRIVATE
@@ -94,3 +109,9 @@ target_link_libraries(wjs_scan_ui
         wjs::warnings
         wjs::sanitizers
         wjs::coverage)
+
+# The camera's multimedia backend is linked only where it was found: the none
+# variant has no Qt Multimedia to load (src/app/camera/CMakeLists.txt).
+if(WJS_QT_HAS_MULTIMEDIA)
+    target_link_libraries(wjs_scan_ui PRIVATE Qt6::Multimedia)
+endif()

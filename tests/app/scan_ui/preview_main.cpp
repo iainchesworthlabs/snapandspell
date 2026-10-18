@@ -1,8 +1,9 @@
 // The Family Assistant's screens in a stub shell: a program to look at them with,
 // and, with --check, a test that walks `scan.ready`, the typed board, the check
 // screen and `assist.playing` without a display, checks what they say and that
-// QML complained of nothing. The camera is never faked: on this tree's desktops
-// there is none, which is the path the check walks.
+// QML complained of nothing. With --camera, the same shell with a CameraSource
+// over the fake backend and one synthetic board: the live view, Capture and the
+// check screen are walked without a device. A live camera is never started.
 //
 // The application's real shell (src/app/qml/Main.qml) is not used, because it
 // carries the 3D Solo Play scene and a window that needs a display. The screens
@@ -33,8 +34,11 @@
 #include <memory>
 #include <utility>
 
+#include "../camera_test_frame.hpp"
+#include "../fake_camera.hpp"
 #include "assist_game.hpp"
 #include "assist_model.hpp"
+#include "camera_source.hpp"
 #include "language_manager.hpp"
 #include "scan_model.hpp"
 #include "wjs/board.hpp"
@@ -262,6 +266,102 @@ int run_check(const QString& out) {
     return (g_failures == 0 && g_warnings == 0) ? 0 : 1;
 }
 
+// Mode A with a camera source that is not a device: the fake backend hands over
+// one board drawn by the scanner's synthetic corpus. The live view is a real
+// VideoOutput of the build's Qt Multimedia, the Capture is the application's
+// button, and the frame goes through the same reader the program uses.
+int run_camera_check(const QString& out) {
+    const wjs::Day today = wjs::day_from_civil(2026, 10, 19);
+
+    wjs::Dictionary dictionary;
+    for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
+        dictionary.insert(word);
+    }
+    wjs::Store store = wjs::Store::in_memory();
+
+    wjs::app::LanguageManager language;
+    language.apply(QStringLiteral("en"));
+
+    // The fake backend is a camera with no device: it is available, it starts,
+    // and it holds one frame. Set on the model the way Main.qml sets the camera
+    // it makes. TEST DATA: a synthetic frame, never a photograph.
+    auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+    backend->setAvailable(true);
+    backend->setProblem(QString());
+    backend->setFrame(wjs::app::test::synthetic_board_frame());
+    wjs::app::CameraSource camera(std::move(backend));
+
+    wjs::app::ScanModel scan;
+    scan.setCameraSource(&camera);
+    wjs::app::AssistModel assist([&dictionary, &store, today](wjs::Board board) {
+        return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
+                                                      [today] { return today; });
+    });
+
+    QQmlApplicationEngine engine;
+    engine.setInitialProperties({
+        {QStringLiteral("scan"), QVariant::fromValue(&scan)},
+        {QStringLiteral("assist"), QVariant::fromValue(&assist)},
+        {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
+    });
+    engine.loadFromModule("WordJewelsSolver", "PreviewHost");
+    if (engine.rootObjects().isEmpty()) {
+        std::fprintf(stderr, "The stub shell did not load.\n");
+        return 1;
+    }
+    auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+    check(window != nullptr, "the stub shell is a window");
+    if (window == nullptr) {
+        return 1;
+    }
+    window->resize(1100, 700);
+    pump();
+
+    // --- scan.ready with the camera running -----------------------------------------
+    check(scan.state() == "ready", "the scan screen opens on ready");
+    check(scan.cameraAvailable(), "the camera source started");
+    check(scan.cameraCapturing(), "the camera is running while ready is shown");
+    check(scan.cameraProblem().isEmpty(), "a running camera has no problem");
+    check(!scan.cameraSource()->devices().isEmpty(), "the source lists its device");
+    // The loader creates the preview a frame after the property changes.
+    for (int i = 0; i < 40 && !window->property("previewShown").toBool(); ++i) {
+        pump(1);
+    }
+    check(window->property("previewShown").toBool(), "the live view is shown");
+    QStringList texts = visible_texts(window);
+    check_says(texts, "Capture", "Capture is offered with a camera");
+    check_says(texts, "Type in your board", "the typed board stays beside it");
+    check(!any_contains(texts, "There is no camera"), "the camera's absence is not said");
+    save(window, out, "camera-preview");
+
+    // --- Capture: the frame arrives, is read, and the check screen opens -----------
+    scan.capture();
+    pump();
+    check(scan.state() == "check", "Capture opens the check screen");
+    check(scan.rows() == 4 && scan.columns() == 4, "the synthetic board is the 4x4 it is");
+    check(scan.letters().size() == 16, "every tile has a reading");
+    check(!scan.cameraCapturing(), "the camera stops as soon as the frame is in hand");
+    check(!camera.running(), "the source is stopped after the read");
+    texts = visible_texts(window);
+    check_says(texts, "Is this your board?", "the check screen asks its question");
+    check_says(texts, "Yes, play", "Yes, play is there");
+    check(!any_contains(texts, "Capture"), "the ready screen's Capture is gone");
+    save(window, out, "camera-check");
+
+    // A frame that cannot be read returns to ready with the camera on again: the
+    // fake has given its one frame, so the next capture waits and is answered by
+    // the model's patience. The check is not reached, and nothing is faked.
+    check(QMetaObject::invokeMethod(window, "newBoard"), "the shell has its new-board function");
+    pump(20);
+    check(scan.state() == "ready", "New board returns to the ready screen");
+    check(scan.cameraCapturing(), "and starts the camera again");
+
+    if (g_warnings != 0) {
+        std::fprintf(stderr, "QML warned %d times.\n", g_warnings);
+    }
+    return (g_failures == 0 && g_warnings == 0) ? 0 : 1;
+}
+
 // Every language of the Family Assistant's screens, applied before they load:
 // they draw, QML warns of nothing, the catalogue is really in force (the ready
 // screen's title is the translated one, and for the seven it is not the English),
@@ -393,13 +493,14 @@ int main(int argc, char* argv[]) {
     }
     const bool is_check = arguments.contains(QStringLiteral("--check"));
     const bool is_languages = arguments.contains(QStringLiteral("--languages"));
+    const bool is_camera = arguments.contains(QStringLiteral("--camera"));
     QString out;
     const qsizetype flag = arguments.indexOf(QStringLiteral("--out"));
     if (flag >= 0 && flag + 1 < arguments.size()) {
         out = arguments.at(flag + 1);
     }
 
-    if (is_check || is_languages) {
+    if (is_check || is_languages || is_camera) {
         // No display and no GPU: the software renderer draws into memory.
         QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
         qInstallMessageHandler(message_handler);
@@ -409,6 +510,11 @@ int main(int argc, char* argv[]) {
     if (is_check) {
         const int result = run_check(out);
         std::fprintf(stderr, result == 0 ? "scan screens: ok\n" : "scan screens: FAILED\n");
+        return result;
+    }
+    if (is_camera) {
+        const int result = run_camera_check(out);
+        std::fprintf(stderr, result == 0 ? "camera screens: ok\n" : "camera screens: FAILED\n");
         return result;
     }
     if (is_languages) {
