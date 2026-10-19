@@ -377,7 +377,7 @@ void SoloModel::submitPath() {
     // The whole synchronous moment of a word handed in: the tracer, the game's
     // answer and (in the real game) the store's writes, which the profile of
     // this zone shows. The value is the path's tiles.
-    const auto zone = wjs::profiling::zone<"solo.submit">();
+    auto zone = wjs::profiling::zone<"solo.submit">();
     const std::vector<Position> path = tracer_.path();
     const QVariantList traced_path = indices(path);
     zone.Value(static_cast<std::uint64_t>(traced_path.size()));

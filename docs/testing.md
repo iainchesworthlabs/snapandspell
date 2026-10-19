@@ -1,15 +1,18 @@
 # Testing
 
-The tests are Catch2 unit tests for the library, the platform layer and (when
-the Qt window is built) its model, the scanner with a synthetic corpus, a
-performance tier with its own binary, and checks about the build and the data
-itself. When the window is built there is also a Qt Quick Test tier that drives
-the kit and the screens themselves, headless ([The interactive
-QML](#the-interactive-qml-qt-quick-test)). They run in CI on Windows (MSVC),
-Linux (GCC) and macOS (AppleClang). The exact number differs by leg: the Qt
-model, screen, language and Quick Test suites run only where the window is built
-(Windows so far), and the 23 performance cases and the five scanner accuracy
-cases skip themselves in a Debug build (see [Performance
+The tests are four tiers - unit, integration, system and UI - with a quality
+check beside them ([The tiers](#the-tiers)): Catch2 unit tests for the library,
+the platform layer and (when the Qt window is built) its model, the scanner with
+a synthetic corpus, the programs themselves in the system tier, a performance
+tier with its own binary, and checks about the build and the data itself. When
+the window is built there is also a Qt Quick Test tier that drives the kit and
+the screens themselves, headless ([The interactive
+QML](#the-interactive-qml-qt-quick-test)). The unit tier is gated at 90% line
+and 80% branch coverage ([Coverage](#coverage)). They run in CI on Windows
+(MSVC), Linux (GCC) and macOS (AppleClang). The exact number differs by leg: the
+Qt model, screen, language and Quick Test suites run only where the window is
+built (Windows so far), and the 23 performance cases and the five scanner
+accuracy cases skip themselves in a Debug build (see [Performance
 tests](#performance-tests) and [The scanner](#the-scanner)).
 
 ## Running them
@@ -51,6 +54,37 @@ drives the live view. The parent area's are
 `[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`
 (and `[system]` with `[motion]` for the singleton over the system's motion preference, which makes a
 GUI application on Qt's offscreen platform and tells its accessibility hints of a change).
+
+## The tiers
+
+The suite is four tiers and a quality check, each a CTest selection. The tiers
+are what the project means by a "unit", "integration", "system" or "UI" test;
+they are not separate builds, and a full `ctest` runs all of them.
+
+| Tier | Selected by | What it is | Where |
+| --- | --- | --- | --- |
+| **Unit** | `ctest -L unit` | One class or one function, with no file, no Qt and no process around it: the library's cases and the platform layer's. The only tier with a coverage floor (90% lines / 80% branches, [Coverage](#coverage)). | `tests/unit/`, plus the dice simulation's cases in `tests/prototype/` |
+| **Integration** | `ctest -R "^integration\\."` | Several first-party pieces together: the window's model over the real library and store, the scanner's pipeline over its synthetic corpus, and the board scene's script in Qt's engine. No program is started. | `tests/app/`, `tests/scan/` |
+| **System** | `ctest -L system` | The programs as programs: `wjs-cli`'s options, exit codes and output; the application's start-up contract and headless smoke run; the install rules run into a throw-away prefix and the installed `wjs-cli` then executed; and the two stub shells walking every screen. | `tests/system/`, `tests/app/*_ui/` |
+| **UI** | `ctest -L ui` (or `-R ^quick`) | The application's own screens and kit driven at run time by Qt Quick Test, and the two stub shells' screen walks. `coverage-ui` shows which C++ the QML reaches ([Coverage](#coverage)). | `tests/qml/`, `tests/app/parent_ui/`, `tests/app/scan_ui/` |
+
+`ctest -L quality` is the tree's own checks rather than a tier of behaviour: the
+word lists and dice, the notices, the install rules, the platform isolation, the
+privacy rules, the presets and the catalogues. They run on every host.
+
+Test presets make the tiers one word, e.g.:
+
+```sh
+ctest --preset windows-msvc-debug-unit
+ctest --preset windows-msvc-debug-integration
+ctest --preset windows-msvc-debug-system
+ctest --preset windows-msvc-debug-ui
+```
+
+(`linux-gcc-debug-` and `macos-clang-debug-` likewise; `ctest -L <tier>` works
+without a preset and is what the coverage targets use.) The integration tier is
+selected by its test names, not a label, because Catch2's tags are already the
+app and scanner suites' CTest labels (`camera`, `app`, `solo`, ...).
 
 ## What there is
 
@@ -97,6 +131,9 @@ GUI application on Qt's offscreen platform and tells its accessibility hints of 
 | `tests/app/language_test.cpp` | `LanguageManager` (`src/app/language_manager.*`), the catalogues in `i18n/`, the app's font chain | The eight catalogues are well formed, complete, untranslated nowhere and the same messages as the English source; every language's code, direction and fallback (Hebrew and Yiddish RTL, the rest LTR, the device's locale or English); applying a language installs its catalogue and turns the application's layout; and the eight sample sentences' glyphs are in the app's font chain (a Windows check today, skipped where the platform has no such fonts). Built only with `WJS_BUILD_APP` |
 | `tests/app/parent_ui/` | The parent area's screens | `parent.screens`: see below; `parent.languages`: the gate, dashboard, settings and about in all eight languages, the catalogue really applied, the bar mirrored in Hebrew and Yiddish, no QML warning |
 | `tests/app/scan_ui/` | The Family Assistant's screens | `scan.screens`: see below; `scan.languages`: the scan screen, the check screen and the assistant's panel in all eight languages, the split mirrored for RTL while the replica stays as confirmed, no QML warning |
+| `tests/system/check_cli.cmake` | `wjs-cli` as a program | `system.cli.*`: help and version; the README board solved from a twelve-word list (`9 words, 9 points`); `--min-length`, `--scoring rarity`, `--repeat`; a `Qu` tile; and each failure - an unknown option, a missing value, a bad length/count/scheme, no board, a ragged board (exit 3), a missing dictionary (exit 2) |
+| `tests/system/check_app.cmake` | `WordJewelsSolver` as a program | `system.app.*`: a missing word list (exit 2, the file named), a damaged store (set aside and said), `--phase` without `--phase-directory` (warned and ignored), and a headless smoke run that either reports frames and exits 0 or says no frame can be presented and exits 3 |
+| `tests/system/check_install.cmake` | The install rules, run | `system.install`: `cmake --install` into a throw-away prefix; the two programs, the dictionary, `LICENSE.txt` and `NOTICES.txt`; then the installed `wjs-cli` solves the README board from the installed dictionary |
 | `tests/qml/` | The kit and the screens, driven at run time | `quick.*`: eight Qt Quick Test suites, see [The interactive QML](#the-interactive-qml-qt-quick-test) |
 | `tests/i18n/` | `i18n/*.ts` | `i18n.catalogues`: lupdate regenerates the catalogues and the checked-in ones must be identical; skipped (exit 4) when Qt's Linguist tools are absent |
 | `tests/notices/check_notices.cmake` | The generated `NOTICES.txt` | `notices.sections`: the project's licence, the GPL-3.0-only application, Qt's LGPL/GPL options, Quick 3D and the feedback modules Multimedia/Sensors/TextToSpeech (in a build with the application), ENABLE, the translations, the bundled light probe and feedback sounds and Catch2 are all stated, no placeholder is left, and a command-line-only build carries no Qt section |
@@ -230,15 +267,19 @@ pwsh ./tools/checks/check_platform_isolation.ps1
 
 **`profiling.shipped_presets`** runs `tests/profiling/check_presets.cmake`. A
 profiling build has a Tracy client in it, which opens a TCP port and answers
-discovery broadcasts, so nothing that ships may have it. The check resolves
-`inherits` the way CMake does and fails if any configure preset other than a
-`*-profiling` one turns `WJS_ENABLE_TRACY` on (a release preset, above all), if
-the option's default in `cmake/Tracy.cmake` is not `OFF`, if `tracy` is a base
-dependency of `vcpkg.json` or `profiling` a default feature, if the top-level
+discovery broadcasts, so nothing that ships may have it — while every Debug
+build is instrumented, because it is a development build by definition. The
+check resolves `inherits` the way CMake does and fails if a configure preset
+other than a `*-debug` or `*-profiling` one turns `WJS_ENABLE_TRACY` on (a
+release or coverage preset, above all), if a debug preset does not turn it on,
+if the option's default in the top-level `CMakeLists.txt` is not `ON` for a
+Debug build type (and `OFF` otherwise, including multi-config generators) or
+`cmake/Tracy.cmake` declares a second default, if `tracy` is a base dependency
+of `vcpkg.json` or `profiling` a default feature, if the top-level
 `CMakeLists.txt` requests the feature other than under that option, or if a CI
-workflow turns the option on by hand. It reads only the presets' JSON, so it
-runs on every host and in every CI leg. [Profiling](profiling.md) is the page
-about why.
+workflow sets the option by hand. It reads only the presets' JSON, so it runs
+on every host and in every CI leg. [Profiling](profiling.md) is the page about
+why.
 
 **`profiling.zone_names`** runs `tests/profiling/check_zone_names.cmake`. A
 zone's source location is a function-local static of `zone<"name">()`, so one
@@ -389,6 +430,14 @@ a warning is not merely printed.
 | `tst_rtl.qml` | Hebrew and Yiddish are right to left and French and English are not; the bar's way back moving to the leading edge on Solo Play's, the scan's and the parent area's bars; the panel's hint and history swapping sides; the split's areas swapping while the board's square, tile and gap stay the same; the trace layer's tiles and the check screen's replica keeping their reading order in a mirrored hierarchy |
 | `tst_scan.qml` | `scan.ready` saying there is no camera and offering no Capture (and no live view); a running camera source's preview shown and Capture offered; the typed board opening the check screen; a correction through the letter picker; the reader's doubtful tiles ringed and their hint; the picker offering the reader's other thought first; Yes, play refusing an incomplete board and handing a confirmed one to the assistant; Read again dropping the draft; the way back leaving Mode A |
 | `tst_parent.qml` | The gate's two spots: one finger is not a hold, two are, a second is half the bar, letting go starts over, two seconds opens it; the dashboard's week, sounds, vault and best from the store, and an empty store saying nothing was played; the settings rows changing the controller (help, board size, motion, colour scheme, text size) and a focus sound ticked and unticked; the reset asking twice and clearing the boards but not the stickers; the way back shutting the gate |
+
+The suite is also the project's evidence that the UI exercises the code:
+`coverage-ui` runs the `ui` label under the coverage instrumentation and
+reports `src/app`, the C++ the screens bind to. The Qt Quick Test suites are
+what make most of that report real (a screen press reaches `SoloModel`,
+`ParentController`, `ScanModel` and the layout objects through the bindings),
+and the stub shells add their own flows; [Coverage](#coverage) gives the
+command and the report's location. There is no floor on this report.
 
 Deliberately not here, and where they are instead: `Main.qml`'s shell and its
 navigation (the stub shells walk the screens' flows and the suites drive the
@@ -611,7 +660,9 @@ tuning split unless `WJS_SCAN_SPLIT=test` is set):
 | `[.recorded]` | The same numbers over real frames kept outside the repository, from `WJS_SCAN_RECORDED_DIR` (grey PGMs with a `.txt` truth beside each). Skips when unset, and **has not been run on anything** |
 
 `wjs_scan_render --out <directory>` writes the corpus as PNG files with the truth beside
-each, and `--sheet <file.png>` a contact sheet, to look at. **Recorded camera frames are
+each, and `--sheet <file.png>` a contact sheet, to look at. It is a one-off tool,
+not part of the default build: `cmake --build <build> --target wjs_scan_render`
+makes it. **Recorded camera frames are
 never committed** (`.gitignore`, [Licensing](licensing.md#camera-input-and-letter-recognition)).
 
 **`scan.privacy`** runs `tests/scan/check_privacy.cmake`: the scanner's sources, the
@@ -841,11 +892,70 @@ finding aborts the test. Details, and how to turn them off, are in
 
 ## Coverage
 
-The `linux-gcc-coverage` preset builds the library, the platform layer and the
-tests with gcov instrumentation and the sanitizers off. Run `ctest` against it
-and the `.gcda` files hold what was executed. The report tool and the threshold
-(if CI enforces one) are described in [CI](ci.md); this repository does not
-fix a number here.
+The project's minimum standard is **90% of lines and 80% of branches** for the
+unit tier's scope, `src/lib`. It is a gate, not a report: a change that drops
+either number fails CI and the local coverage target. The integration, system
+and quality tiers are not gated; the UI tier's coverage is reported separately,
+because it shows what the QML reaches rather than what the library's tests do.
+
+Two instrumentations, chosen by the compiler:
+
+| Preset | Compiler | Instrumentation | Report tool |
+| --- | --- | --- | --- |
+| `linux-gcc-coverage` | GCC (or Clang, GNU command line) | `--coverage -fprofile-update=atomic -fno-inline` | `gcovr` (pinned in `.github/requirements/coverage.txt`) |
+| `windows-clang-coverage` | clang-cl, with the Visual Studio generator | `-fprofile-instr-generate -fcoverage-mapping /Ob0` | `llvm-profdata` + `llvm-cov` |
+
+```sh
+# Linux (GCC): the CI job's own commands
+cmake --preset linux-gcc-coverage
+cmake --build --preset linux-gcc-coverage --target coverage-unit
+
+# Windows (clang-cl): the same gate, with llvm-cov
+cmake --preset windows-clang-coverage
+cmake --build --preset windows-clang-coverage --target coverage-unit
+```
+
+`coverage-unit` runs the `unit` label, empties this tier's counters first (so a
+previous UI run cannot raise the number), writes the report and then fails if
+the floor is missed. `coverage-ui` does the same for the `ui` label and reports
+`src/app` - the C++ the Qt Quick Test suites drive - with no floor; `coverage`
+runs both, one after the other. In a build with the window, the UI report is the
+demonstration that the suite exercises the application's code through the UI,
+not only through its classes.
+
+The report is written to `build/<preset>/coverage/<tier>/`:
+
+- `summary.json` - the same keys for both tools: `line_percent`,
+  `branch_percent`, and the covered/total counts;
+- `coverage.md` - the table for a CI step summary;
+- `report.txt` - the per-file text report;
+- `html/` (llvm-cov) or `index.html` (gcovr) - the browsable report.
+
+The gate has been measured on both toolchains (2026-10-19, Debug, tests green):
+
+| Toolchain | Lines | Branches |
+| --- | ---: | ---: |
+| GCC 15.3 with gcovr 8.6 (`gcc:15`, the CI job's compiler family) | 94.8% (3521/3713) | 86.1% (3369/3913) |
+| clang-cl 22.1 with llvm-cov (`windows-clang-coverage`) | 94.9% (4471/4707) | 86.6% (2339/2698) |
+
+The counts differ because the two compilers map regions, template
+instantiations and exception edges differently; the floor is the same on both.
+
+The **UI report** from the same kind of run (clang-cl, 2026-10-19) covers
+`src/app`: 1,646 of 2,680 lines (61.4%) and 538 of 1,115 branches (48.2%) were
+reached by the eight Qt Quick Test suites and the two stub shells. The per-file
+table is the point: `ParentController` 78.9%, `ScanModel` 62.7%,
+`SoloModel` 56.7% and the layout rules 100% of their lines are executed through
+the QML bindings and the tests' presses, not by a direct C++ call. The report
+has no floor; a run that reaches nothing is a build problem, not a number to
+lower.
+
+The thresholds are CMake cache variables (`WJS_COVERAGE_MIN_LINE`,
+`WJS_COVERAGE_MIN_BRANCH`), and the scopes are a tier's; raising a floor above
+what the tier reaches is a test-writing job, not a configuration one. The
+coverage build is Debug with the sanitizers off (`cmake/Sanitizers.cmake`,
+`cmake/Coverage.cmake`): a sanitizer runtime and a coverage counter in the same
+process make both numbers untrustworthy.
 
 ## Adding a test
 
@@ -854,6 +964,12 @@ fix a number here.
   (the window's model) or `tests/platform/` (a case only one platform can run),
   and add it to the executable's source list in `tests/CMakeLists.txt`. The
   lists are explicit, not globbed.
+- Put it in the tier it belongs to: a new library case is `unit`; one that needs
+  Qt, a store file or the scanner's corpus is `integration`; one that starts a
+  program or the installer is `system`; one that drives QML is `ui`. The tier's
+  registration is in `tests/CMakeLists.txt` (`TEST_PREFIX` and `LABELS` for
+  Catch2, `LABELS` for an `add_test`); a new tier entry is one line there, not a
+  new build.
 - Name each `TEST_CASE` as a sentence that says what is true, and give it a
   tag. The name is what CTest shows.
 - A test that needs a file writes it to the system's temporary directory and
@@ -867,9 +983,13 @@ fix a number here.
 
 ## What is not tested
 
-- **`wjs-cli` itself.** Nothing runs the program: option parsing, the exit
-  codes and the output format are checked by hand. The library behind it is
-  tested, and the README example is the solver case above.
+- **`wjs-cli` beyond the system tier.** `system.cli.*` runs the program: its
+  options, the four exit codes (0 solved, 1 usage, 2 dictionary, 3 board) and
+  the words and summary it prints from a twelve-word list. What is not tested is
+  the console's UTF-8 mode on Windows and paths longer than `MAX_PATH`
+  ([known problems](building.md#platform-notes)), and no one has read the
+  output on a real terminal on Linux or macOS. The library behind it is tested
+  by the unit tier, and the README example is the solver case above.
 - **The screens by hand, on anything but Windows.** The QML suites drive the
   application's own screens headless ([above](#the-interactive-qml-qt-quick-test)),
   and the two stub shells walk their flows; nothing was run on a touch screen, a

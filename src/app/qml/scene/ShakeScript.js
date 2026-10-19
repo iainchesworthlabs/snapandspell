@@ -330,7 +330,10 @@ var shakeStillLevel = 0.3;        // g of "hand" (gravity taken out) below which
 var shakeStartLevel = 0.8;        // and above which a shake has started
 
 function newTracker() {
-    return { queue: [], f: [0, 0, 1], w: [0, 0, 0], wPrev: [0, 0, 0], g: [0, 0, 1], energy: 0, level: 0, count: 0 };
+    // Two queues, swapped each frame: the samples that arrived go to `queue`,
+    // the frame takes it and leaves the other empty for the next, so a frame
+    // makes no new array (an allocation a frame is the frame's jank).
+    return { queue: [], spare: [], f: [0, 0, 1], w: [0, 0, 0], wPrev: [0, 0, 0], g: [0, 0, 1], energy: 0, level: 0, count: 0 };
 }
 
 function feed(tracker, ax, ay, az, wx, wy, wz) {
@@ -355,6 +358,7 @@ function feed(tracker, ax, ay, az, wx, wy, wz) {
 
 function resetTracker(tracker) {
     tracker.queue = [];
+    tracker.spare = [];
     tracker.f = [0, 0, 1];
     tracker.w = [0, 0, 0];
     tracker.wPrev = [0, 0, 0];
@@ -511,11 +515,15 @@ function initWeighted(state, board, seed, layout) {
 function readPoses(state) {
     var p = state.sim.poses();
     var n = state.count;
-    var poses = new Array(7 * n);
+    // The array is kept across frames: one pose array a play, not one a frame.
+    var poses = state.poses;
+    if (poses.length !== 7 * n) {
+        poses = new Array(7 * n);
+        state.poses = poses;
+    }
     for (var k = 0; k < 7 * n; ++k) {
         poses[k] = p[k];
     }
-    state.poses = poses;
     for (var i = 0; i < n; ++i) {
         state.qw[i] = poses[7 * i + 3];
         state.qx[i] = poses[7 * i + 4];
@@ -525,9 +533,10 @@ function readPoses(state) {
 }
 
 // Which face of each die is up, and how its letter has to be turned to read
-// upright: noted when it changes, so that the scene can turn it.
-function noteFaces(state) {
-    var faces = state.sim.faces();
+// upright: noted when it changes, so that the scene can turn it. `faces` is
+// the simulation's one array for the frame (3 numbers a die), read once by the
+// frame and shared with landedEvents: the simulation makes a list per call.
+function noteFaces(state, faces) {
     for (var i = 0; i < state.count; ++i) {
         var code = faces[3 * i] * 4 + faces[3 * i + 1];
         if (state.shown[i] !== code) {
@@ -537,8 +546,7 @@ function noteFaces(state) {
     }
 }
 
-function landedEvents(state) {
-    var faces = state.sim.faces();
+function landedEvents(state, faces) {
     for (var i = 0; i < state.count; ++i) {
         if (faces[3 * i + 2] === 1 && !state.landed[i]) {
             state.landed[i] = true;
@@ -601,10 +609,14 @@ function advanceWeighted(state, dtMs, tracker) {
     inStage = state.clock - state.stageStart;
 
     // The samples that arrived this frame, each for its share of it. Once the lid
-    // is going the device is put down: the reading fades to flat.
+    // is going the device is put down: the reading fades to flat. The two queues
+    // are swapped, not thrown away: `samples` keeps its length while the other
+    // becomes the empty queue for the next frame's feeds (no array a frame).
     var follow = state.stage === 'shake' ? 1 : (state.stage === 'lid' ? 1 - smooth(inStage / lidMs) : 0);
     var samples = tracker.queue;
-    tracker.queue = [];
+    tracker.queue = tracker.spare;
+    tracker.spare = samples;
+    tracker.queue.length = 0;
     if (samples.length === 0) {
         feedSim(state, follow, dtMs / 1000);
     } else {
@@ -630,8 +642,9 @@ function advanceWeighted(state, dtMs, tracker) {
     }
     state.zoom += (zoomTarget - state.zoom) * Math.min(1, dtMs / (state.stage === 'settle' ? 70 : 160));
     if (state.stage === 'settle' || state.stage === 'lid') {
-        noteFaces(state);
-        landedEvents(state);
+        var faces = state.sim.faces();
+        noteFaces(state, faces);
+        landedEvents(state, faces);
     }
 
     // What the box shows of the device: how it is held, which is gravity as the
@@ -649,8 +662,9 @@ function advanceWeighted(state, dtMs, tracker) {
         } else if (state.stage === 'settle' && state.clock - state.stageStart > state.lastStartMs + settleGraceMs) {
             sim.finish();
             readPoses(state);
-            noteFaces(state);
-            landedEvents(state);
+            var finalFaces = state.sim.faces();
+            noteFaces(state, finalFaces);
+            landedEvents(state, finalFaces);
             enter(state, 'idle');
             state.events.push({ kind: 'settled' });
         }
@@ -703,7 +717,8 @@ function finish(state) {
     if (state.mode === 'weighted') {
         state.sim.finish();
         readPoses(state);
-        noteFaces(state);
+        var faces = state.sim.faces();
+        noteFaces(state, faces);
         for (var i = 0; i < state.count; ++i) {
             state.landed[i] = true;
         }
@@ -725,7 +740,8 @@ function advance(state, dtMs, tracker) {
         return;
     }
     // Staged: how hard and which way the device is tipped, from the stream.
-    tracker.queue = [];
+    // The queue is dropped, not re-made: the array is kept and emptied.
+    tracker.queue.length = 0;
     advanceStaged(state, dtMs, agitationOf(tracker), tiltXOf(tracker), tiltYOf(tracker));
 }
 

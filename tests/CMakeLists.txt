@@ -676,7 +676,9 @@ add_test(NAME profiling.shipped_presets
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_presets.cmake")
 
-# Every zone is named <layer>.<thing> and once: one name is one source location.
+# Every zone is named <layer>.<thing> and once: one name is one source location,
+# and the zones a trace of the application's work is made of exist (the check
+# pins the required set, so removed instrumentation is a failed test).
 add_test(NAME profiling.zone_names
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"

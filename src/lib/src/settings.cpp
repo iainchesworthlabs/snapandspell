@@ -5,6 +5,8 @@
 #include <string>
 #include <string_view>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 
 namespace {
@@ -164,6 +166,8 @@ bool is_valid_font_name(std::string_view name) noexcept {
 }
 
 Settings Settings::normalized() const {
+    auto zone = profiling::zone<"settings.normalize">();
+
     Settings result = *this;
 
     result.board = or_default(result.board, BoardMode::standard, BoardMode::phonics);

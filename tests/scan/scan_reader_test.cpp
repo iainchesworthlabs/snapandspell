@@ -227,11 +227,14 @@ TEST_CASE("each error says what happened without blaming anyone", "[scan][reader
     }
 }
 
-TEST_CASE("a read counts what it did, and allocates a bounded set of pixel buffers",
+TEST_CASE("a read counts what it did, and a warm read allocates no pixel buffers",
           "[scan][reader]") {
     const Spec spec = spec_of(Condition::upright, 4, 2);
     const Rendered& frame = fixtures::frame(spec);
 
+    // The thread's scratch pool (src/scan/src/scratch.hpp) is warmed by a first
+    // read at this size, so the counted read below is the steady state.
+    (void)read_board(frame.image.view());
     reset_scan_work();
     const auto reading = read_board(frame.image.view());
     REQUIRE(reading.has_value());
@@ -239,16 +242,19 @@ TEST_CASE("a read counts what it did, and allocates a bounded set of pixel buffe
     CHECK(work.reads == 1);
     CHECK(work.frame_pixels == 960U * 720U);
     CHECK(work.working_pixels == 480U * 360U);
-    CHECK(work.cells_read >= 16);  // every cell, and the ones the height is estimated from
+    // The 16 cells once, plus the glyph-height search's 8 sample cells at each
+    // of 5 trial heights, less the 8 sample cells taken from the winning trial
+    // instead of being read again: exactly 48.
+    CHECK(work.cells_read == 48);
     CHECK(work.comparisons >= 16 * 48 * 27);
     CHECK(work.blobs >= 16);
     CHECK(work.dice_candidates >= 16);
     CHECK(work.warp_pixels >= 480U * 480U);
-    // The buffers do not grow with the picture or the board: a few for the picture,
-    // a few for each look for the board, and one for the board drawn square.
-    CHECK(work.buffers > 0);
-    CHECK(work.largest_buffers == work.buffers);
-    CHECK(work.buffers < 80);
+    // Every pixel buffer came from the scratch: nothing was allocated, and the
+    // reuses are the whole set of the read's acquisitions.
+    CHECK(work.buffers == 0);
+    CHECK(work.largest_buffers == 0);
+    CHECK(work.buffer_reuses >= 16);
 
     // A read of a frame with no board gets no further than looking for one.
     reset_scan_work();
@@ -257,4 +263,21 @@ TEST_CASE("a read counts what it did, and allocates a bounded set of pixel buffe
     CHECK(nothing.reads == 1);
     CHECK(nothing.cells_read == 0);
     CHECK(nothing.warp_pixels == 0);
+}
+
+TEST_CASE("a glyph height given in the options reads every cell once and no samples",
+          "[scan][reader]") {
+    const Spec spec = spec_of(Condition::upright, 4, 2);
+    const Rendered& frame = fixtures::frame(spec);
+    ReadOptions options;
+    options.estimate_glyph_height = false;
+    options.glyph_height_ratio = frame.glyph_height;
+
+    (void)read_board(frame.image.view(), options);
+    reset_scan_work();
+    const auto reading = read_board(frame.image.view(), options);
+    REQUIRE(reading.has_value());
+    const ScanWork work = scan_work();
+    CHECK(work.cells_read == 16);
+    CHECK(work.buffers == 0);
 }

@@ -3,12 +3,14 @@
 #include <QCoreApplication>
 #include <QStringList>
 #include <QVariantMap>
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <utility>
 
 #include "wjs/board.hpp"
 #include "wjs/platform/paths.hpp"
+#include "wjs/profiling.hpp"
 #include "wjs/solver.hpp"
 
 namespace wjs::app {
@@ -72,6 +74,9 @@ bool SolverModel::loadDictionary(const QString& path) {
 }
 
 void SolverModel::solve(const QString& boardText, int minLength) {
+    // The model's half of a solve, over the library's `solver.solve` inside:
+    // the parse, the result maps and the signals. The value is the words found.
+    auto zone = wjs::profiling::zone<"solver.model">();
     results_.clear();
     total_score_ = 0;
 
@@ -90,6 +95,7 @@ void SolverModel::solve(const QString& boardText, int minLength) {
     wjs::SolveOptions options;
     options.min_length = minLength < 1 ? 1U : static_cast<std::size_t>(minLength);
     const auto found = wjs::solve(*board, dictionary_, options);
+    zone.Value(static_cast<std::uint64_t>(found.size()));
 
     for (const auto& word : found) {
         QVariantMap entry;

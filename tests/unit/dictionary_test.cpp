@@ -40,6 +40,22 @@ TEST_CASE("something that is not a word of letters is refused", "[dictionary]") 
     CHECK_FALSE(dictionary.contains("dont"));
 }
 
+TEST_CASE("a word refused part-way leaves nothing behind", "[dictionary]") {
+    wjs::Dictionary dictionary;
+    REQUIRE(dictionary.insert("cat"));
+
+    // The bad letter is after a run of good ones: if the walk wrote as it went,
+    // "car" and "do" would be prefixes of the refused word.
+    CHECK_FALSE(dictionary.insert("car1"));
+    CHECK_FALSE(dictionary.insert("do2g"));
+    CHECK(dictionary.size() == 1U);
+    CHECK_FALSE(dictionary.has_prefix("CAR1"));
+    CHECK_FALSE(dictionary.has_prefix("DO2"));
+    CHECK_FALSE(dictionary.has_prefix("D"));
+    CHECK_FALSE(dictionary.contains("car1"));
+    CHECK(dictionary.contains("cat"));
+}
+
 TEST_CASE("a word inserted twice is counted once", "[dictionary]") {
     wjs::Dictionary dictionary;
     dictionary.insert("tea");

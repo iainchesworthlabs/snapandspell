@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 
 MotionProcessor::MotionProcessor(ShakeOptions options) : options_(options) {}
@@ -15,6 +17,8 @@ void MotionProcessor::reset() {
 }
 
 MotionOutput MotionProcessor::push(const DeviceMotion& sample) {
+    auto zone = profiling::zone<"motion.push">();
+
     MotionOutput output;
     if (!std::isfinite(sample.t) || !std::isfinite(sample.ax) || !std::isfinite(sample.ay) ||
         !std::isfinite(sample.az) || !std::isfinite(sample.wx) || !std::isfinite(sample.wy) ||

@@ -34,6 +34,11 @@ struct ScanWork {
     // Pixel buffers allocated, in all; and the most that any one read allocated.
     std::uint64_t buffers = 0;
     std::uint64_t largest_buffers = 0;
+    // Pixel buffers handed out of the reader's scratch pool without an
+    // allocation (src/scan/src/scratch.hpp). A read's acquisitions are
+    // buffers + buffer_reuses, so a warm read allocates nothing and its reuses
+    // are the whole set.
+    std::uint64_t buffer_reuses = 0;
 };
 
 namespace detail {

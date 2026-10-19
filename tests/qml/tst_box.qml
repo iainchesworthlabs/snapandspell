@@ -279,4 +279,29 @@ TestCase {
 
         compare(homeSpy.count, 1)
     }
+
+    function test_theFlatBoardsLineFollowsThePathAndTheShownWord() {
+        const screen = soloScreen()
+        const scene = findChild(screen, "boardSceneStub")
+        verify(scene !== null)
+        soloModel.shake()
+        tryCompare(soloModel, "state", "playing")
+
+        const board = allItems(screen).find(item => item.linePath !== undefined)
+        verify(board !== null)
+        compare(board.linePath.length, 0)
+
+        // The path being made is the line, one tile at a time.
+        soloModel.tapTile(2)
+        soloModel.tapTile(5)
+        soloModel.tapTile(8)
+        compare(board.linePath.length, 3)
+        compare(board.linePath[0], 2)
+        compare(board.linePath[2], 8)
+
+        // At the hand-in the line is the found word's path, not a flicker.
+        soloModel.done()
+        compare(soloModel.state, "word-found")
+        compare(board.linePath.length, 3)
+    }
 }

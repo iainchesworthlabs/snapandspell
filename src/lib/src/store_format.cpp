@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "wjs/board.hpp"
+#include "wjs/profiling.hpp"
 #include "wjs/store.hpp"
 
 namespace wjs {
@@ -555,6 +556,8 @@ std::filesystem::path default_store_path(const std::filesystem::path& base) {
 }
 
 std::string serialize_store(const StoreData& data, int version) {
+    auto zone = profiling::zone<"store.serialize">();
+
     std::string out;
     out.reserve(4096);
     out += header_tag;
@@ -618,12 +621,16 @@ std::string serialize_store(const StoreData& data, int version) {
     out += ' ';
     out += hex16(checksum(out.substr(0, out.size() - end_tag.size() - 1)));
     out += '\n';
+    zone.Value(out.size());
     return out;
 }
 
 std::expected<ParsedStore, StoreError> parse_store(std::string_view text,
                                                    std::span<const MigrationStep> steps,
                                                    int target_version) {
+    auto zone = profiling::zone<"store.parse">();
+    zone.Value(text.size());
+
     if (text.size() > max_store_bytes) {
         return std::unexpected(StoreError::too_large);
     }

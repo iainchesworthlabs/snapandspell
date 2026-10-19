@@ -188,6 +188,39 @@ TEST_CASE("centres of a board with fewer than three cells are the even split", "
     CHECK(locate_cells(GrayImage{}, 4).x.empty());
 }
 
+TEST_CASE("the cell count and the cell centres share one computation of the profiles",
+          "[scan][finder]") {
+    // The reader computes the board's profiles once and passes them to both, so
+    // the shared forms must answer exactly as the forms that compute their own.
+    const Rendered& frame = fixtures::tuning_frame(Condition::upright, 4, 2);
+    const GrayImage board = warp_to_square(frame.image, frame.corners, 480);
+
+    const BoardProfiles profiles = profiles_of(board);
+    const auto count = count_cells(board, profiles, 3, 8);
+    const auto alone = count_cells(board, 3, 8);
+    REQUIRE(count.has_value());
+    REQUIRE(alone.has_value());
+    CHECK(count->size == alone->size);
+    CHECK(count->confidence == alone->confidence);
+
+    const CellCentres shared = locate_cells(board, profiles, count->size);
+    const CellCentres own = locate_cells(board, count->size);
+    REQUIRE(shared.x.size() == count->size);
+    CHECK(shared.x == own.x);
+    CHECK(shared.y == own.y);
+
+    // The profiles are the board's own dimensions and finite: the sharing is
+    // about handing the one computation to both consumers, and neither may
+    // receive garbage.
+    REQUIRE(profiles.columns.size() == 480);
+    REQUIRE(profiles.rows.size() == 480);
+    CHECK(std::ranges::all_of(profiles.columns,
+                              [](double v) { return std::isfinite(v); }));
+    CHECK(std::ranges::all_of(profiles.rows, [](double v) { return std::isfinite(v); }));
+    CHECK(std::ranges::all_of(profiles.columns, [](double v) { return v >= 0.0; }));
+    CHECK(std::ranges::all_of(profiles.rows, [](double v) { return v >= 0.0; }));
+}
+
 TEST_CASE("drawing a board square puts its first corner at the top left", "[scan][finder]") {
     // A picture with a bright square at its top right.
     GrayImage image(100, 100, 30);

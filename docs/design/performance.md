@@ -8,9 +8,9 @@ documents and its
 [`tests/perf`](https://github.com/iainchesworthlabs/cubeulator/tree/main/tests/perf).
 Proposals unless marked **Fact**.
 
-**Status.** The macro-free wrapper, the opt-in profiling build and the
-performance tier are implemented, and what was checked where is marked below:
-[Profiling](../profiling.md) says how to use them and
+**Status.** The macro-free wrapper, the profiling build (on by default in
+Debug builds) and the performance tier are implemented, and what was checked
+where is marked below: [Profiling](../profiling.md) says how to use them and
 [Testing](../testing.md#performance-tests) how to read the tier. The sections
 that were written as a plan keep their wording, with **Built** notes where the
 build differed from the plan or settled something. The code that makes a board

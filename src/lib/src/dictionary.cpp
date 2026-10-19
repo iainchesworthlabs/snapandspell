@@ -56,13 +56,24 @@ std::string_view to_string(DictionaryError error) noexcept {
 Dictionary::Dictionary() : nodes_(1) {}
 
 bool Dictionary::insert(std::string_view word) {
-    const auto upper = normalise(word);
-    if (!upper) {
+    if (word.empty()) {
         return false;
     }
+    // Every letter is checked before anything is changed: a word refused
+    // part-way leaves the dictionary exactly as it was, as normalise() did.
+    for (const char c : word) {
+        const char u = to_upper(c);
+        if (u < 'A' || u > 'Z') {
+            return false;
+        }
+    }
 
+    // The walk needs no copy of the word: normalise() built one string per
+    // insert, and loading a word list is 172,823 inserts, so each letter is
+    // upper-cased as it is looked up and nothing is allocated per word.
     Cursor at = root;
-    for (const char letter : *upper) {
+    for (const char c : word) {
+        const char letter = to_upper(c);
         const auto& edges = nodes_[at].edges;
         const auto found = std::ranges::lower_bound(edges, letter, {}, &Edge::letter);
         if (found != edges.end() && found->letter == letter) {
@@ -70,12 +81,14 @@ bool Dictionary::insert(std::string_view word) {
             continue;
         }
 
-        // emplace_back may reallocate nodes_, so find the edge again after it.
+        // The offset into the node's edges is an index, so it survives
+        // nodes_.emplace_back (which may reallocate nodes_ but moves each node's
+        // edge vector in place): the edge is found once, not again after the
+        // append, one binary search less for every new node of the trie.
         const auto offset = found - edges.begin();
         const auto target = static_cast<Cursor>(nodes_.size());
         nodes_.emplace_back();
-        auto& grown = nodes_[at].edges;
-        grown.insert(grown.begin() + offset, Edge{letter, target});
+        nodes_[at].edges.insert(nodes_[at].edges.begin() + offset, Edge{letter, target});
         at = target;
     }
 

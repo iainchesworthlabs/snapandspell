@@ -3,6 +3,8 @@
 #include <array>
 #include <utility>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 namespace {
 
@@ -60,6 +62,8 @@ std::optional<FeedbackCue> feedback_cue_from_string(std::string_view name) noexc
 }
 
 CuePlan plan_cue(FeedbackCue cue, std::string_view detail, const FeedbackSettings& settings) {
+    auto zone = profiling::zone<"feedback.plan">();
+
     CuePlan plan;
     const bool audible = settings.sound;
 

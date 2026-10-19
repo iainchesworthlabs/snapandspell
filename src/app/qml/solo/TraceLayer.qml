@@ -65,8 +65,19 @@ Item {
     property real flashMs: 0
     readonly property int flashLength: solo.litPath.length * Theme.tileFlashStep + Theme.tileFlashLength + Theme.wordHold
 
+    // The path being made, copied from the model once per change. The tiles'
+    // lit tests and the path's points read this one JS array, instead of asking
+    // the model for a fresh list per read (the model builds its list per read,
+    // and a 6x6 board reads it once a tile and once a path line per move: the
+    // pointer's jank is those rebuilds).
+    property var pathList: []
+    // The path's points, computed once per change for both stroked lines.
+    readonly property var pathPoints: root.points(root.pathList)
+    // The fading path's points, computed once per fade for both lines.
+    readonly property var ghostPoints: root.points(root.ghostPath)
+
     function isLit(index) {
-        if (solo.path.indexOf(index) >= 0) {
+        if (root.pathList.indexOf(index) >= 0) {
             return true;
         }
         const place = solo.litPath.indexOf(index);
@@ -94,6 +105,10 @@ Item {
                 root.ghostKind = kind;
                 ghostFade.restart();
             }
+        }
+        function onPathChanged() {
+            // One copy per change: the tiles and the path lines read this.
+            root.pathList = root.solo.path;
         }
         function onStateChanged() {
             if (root.solo.state === "word-found") {
@@ -221,8 +236,8 @@ Item {
         Rectangle {
             id: bar
             required property var modelData
-            readonly property var first: root.solo.path[modelData.first]
-            readonly property var last: root.solo.path[modelData.first + modelData.tiles - 1]
+            readonly property var first: root.pathList[modelData.first]
+            readonly property var last: root.pathList[modelData.first + modelData.tiles - 1]
             readonly property bool valid: modelData.tiles > 1 && first !== undefined && last !== undefined
             readonly property point from: valid ? root.centre(first) : Qt.point(0, 0)
             readonly property point to: valid ? root.centre(last) : Qt.point(0, 0)
@@ -251,7 +266,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.solo.path) }
+            PathPolyline { path: root.pathPoints }
         }
         ShapePath {
             strokeColor: Theme.pathCore
@@ -259,7 +274,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.solo.path) }
+            PathPolyline { path: root.pathPoints }
         }
     }
 
@@ -276,7 +291,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.ghostPath) }
+            PathPolyline { path: root.ghostPoints }
         }
         ShapePath {
             strokeColor: Theme.pathCore
@@ -284,7 +299,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.ghostPath) }
+            PathPolyline { path: root.ghostPoints }
         }
     }
 

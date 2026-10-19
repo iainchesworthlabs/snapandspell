@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------------------
-# Every zone has a name of the right shape, and no name is used twice.
+# Every zone has a name of the right shape, no name is used twice, and the
+# zones a trace of the application's work is made of exist.
 #
 #   cmake -DREPO_ROOT=<repository root> -P tests/profiling/check_zone_names.cmake
 #
@@ -145,6 +146,92 @@ foreach(_source IN LISTS _qml_sources)
         endif()
         list(APPEND _qml_names "${_name}")
     endforeach()
+endforeach()
+
+# --- the required names --------------------------------------------------------
+# "Profiling everywhere" is held here, not by convention: the zones, plots and
+# QML scopes a trace of the application's work is made of must exist, so
+# deleting an instrumented call site is a failed test, as deleting a unit test
+# is. A name is added here with the code it times, and removed only with a
+# reason in the commit that says where the work went.
+set(_required_zones
+    app.load_qml
+    app.startup
+    board.deal
+    board.deal_playable
+    board.parse
+    board.restore
+    board.roll
+    board.seed
+    board.verify
+    camera.convert_frame
+    cli.run
+    data.build_dashboard
+    data.load_catalogue
+    data.load_dictionary
+    data.load_phase
+    data.load_store
+    data.save_store
+    dice.load_sets
+    feedback.plan
+    gate.refresh
+    input.submit
+    input.trace
+    motion.push
+    path.validate
+    phonics.bind
+    rules.classify
+    scan.convert_working
+    scan.decode_frame
+    scan.find_blobs
+    scan.find_board
+    scan.process_frame
+    scan.read_glyphs
+    scan.read_tiles
+    scan.warp_board
+    scene.step
+    settings.normalize
+    shake.detect
+    solo.blocks
+    solo.history
+    solo.path
+    solo.submit
+    solver.model
+    solver.score
+    solver.solve
+    store.parse
+    store.serialize
+    store.session_record
+    store.session_snapshot)
+set(_required_plots
+    render.frame_ms
+    solver.visits
+    ui.first_frame_ms
+    ui.frame_ms
+    ui.sync_ms)
+set(_required_qml
+    scene.play
+    scene.prepare
+    scene.show
+    scene2d.play
+    scene2d.show
+    scene2d.step
+    ui.screen
+    ui.trace)
+foreach(_name IN LISTS _required_zones)
+    if(NOT _name IN_LIST _zone_names)
+        _fail("the required zone '${_name}' is gone; instrumentation was removed")
+    endif()
+endforeach()
+foreach(_name IN LISTS _required_plots)
+    if(NOT _name IN_LIST _plot_names)
+        _fail("the required plot '${_name}' is gone")
+    endif()
+endforeach()
+foreach(_name IN LISTS _required_qml)
+    if(NOT _name IN_LIST _qml_names)
+        _fail("the required QML scope '${_name}' is gone")
+    endif()
 endforeach()
 
 # --- result -------------------------------------------------------------------

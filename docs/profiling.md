@@ -5,10 +5,13 @@ the profiler its sibling projects use ([Cubeulator](https://github.com/iainchesw
 has the same document and the same workflow), so a trace from any of them is
 captured, exported and read the same way.
 
-It is **off by default and free when off**. A normal build compiles the
-instrumentation to empty functions and does not need Tracy installed. A build
-with it on is a development build: **it listens on a TCP port, and is never
-shipped** ([below](#the-profiler-listens-on-the-network)).
+It is **on by default in Debug builds, and free when off**. A build without it
+compiles the instrumentation to empty functions and does not need Tracy
+installed. A regular Debug build is instrumented, so a running development
+session can be connected to by the profiler at any moment, and a Release build
+can be instrumented by hand, for data from a real session. A build with it on
+is a development build: **it listens on a TCP port, and is never shipped**
+([below](#the-profiler-listens-on-the-network)).
 
 What counts as fast enough, and the tests that hold it, are in
 [Testing](testing.md#performance-tests) and the
@@ -21,9 +24,13 @@ cmake --preset windows-msvc-profiling      # or linux-gcc-profiling / macos-clan
 cmake --build --preset windows-msvc-profiling
 ```
 
-The preset is RelWithDebInfo (optimised, with symbols: the right shape for a
-profiler) with `WJS_ENABLE_TRACY=ON` and the sanitizers off. That one option does
-everything:
+A **Debug build is instrumented by default** (`windows-msvc-debug` and the
+others): connect the profiler to it for development, without any option. Its
+timings are a shape, not a number — the sanitizers and no optimisation dominate
+them. The `*-profiling` presets are the same instrumentation in RelWithDebInfo
+(optimised, with symbols: the right shape for a profiler), with
+`WJS_ENABLE_TRACY=ON` and the sanitizers off, so their timings are numbers about
+the code. That one option does everything:
 
 - It selects the real `wjs/profiling.hpp` (below) instead of the empty one.
 - It adds the `profiling` feature to the vcpkg manifest, which supplies the Tracy
@@ -40,11 +47,11 @@ takes several minutes (6 in a clean container), and vcpkg's binary cache makes
 the next one quick. The tools are in
 `build/<preset>/vcpkg_installed/<triplet>/tools/tracy/`.
 
-To turn it on for another configuration, pass `-DWJS_ENABLE_TRACY=ON`. Do not
-profile a Debug build: the sanitizers' cost dominates every number, and
-`cmake` warns if you try. The perf tests treat a Tracy build as not fit for
-wall-time checks (they skip), and run their work budgets as in any optimised
-build.
+To instrument a Release build, pass `-DWJS_ENABLE_TRACY=ON` (the default is
+already `ON` for a Debug build type). Read a Debug build's trace for structure
+and connection, not for timings: the sanitizers' cost dominates every number
+there. The perf tests treat a Tracy build as not fit for wall-time checks (they
+skip), and run their work budgets as in any optimised build.
 
 ### The profiler listens on the network
 
@@ -52,12 +59,15 @@ A Tracy client opens a TCP data port (8086) on every interface and answers UDP
 discovery broadcasts, **independently of anything the program does**. That is
 what makes it a neutral profiler, and it is why no preset that ships has it:
 
-- The option defaults to `OFF`; only the `*-profiling` presets turn it on.
+- The option's default is `ON` for a Debug build type and `OFF` otherwise; the
+  `*-debug` and `*-profiling` presets are the instrumented ones, and every
+  preset a package is made from keeps it off.
 - Tracy is a vcpkg **feature**, not a dependency, and not a default feature.
 - The `profiling.shipped_presets` test (`tests/profiling/check_presets.cmake`)
-  runs in every `ctest`, and so in every CI leg: it fails if any other preset,
-  a release preset above all, enables the option, if the default moved, if
-  `tracy` became a base dependency, or if a workflow turns it on by hand.
+  runs in every `ctest`, and so in every CI leg: it fails if any preset other
+  than a `*-debug` or `*-profiling` one enables the option, if a debug preset
+  does not, if the default moved, if `tracy` became a base dependency, or if a
+  workflow sets the option by hand.
 
 `TRACY_ONLY_LOCALHOST` and `TRACY_NO_BROADCAST` are compile definitions of the
 Tracy client *library*, so this project cannot set them from its own sources;
@@ -137,7 +147,7 @@ $TOOLS/tracy-csvexport app.tracy
 $TOOLS/tracy-csvexport -p app.tracy    # the plots: ui.frame_ms, render.frame_ms, ui.sync_ms
 ```
 
-A profiling build's `--smoke` gives the profiler that was started first up to
+A build with Tracy's `--smoke` gives the profiler that was started first up to
 five seconds to attach *before* it loads anything, so `app.startup`,
 `app.load_qml` and the store's load are in the capture; the wait is not part of
 any number. The report the run prints (`build/smoke.txt` here) is the window's
@@ -185,7 +195,9 @@ yet.
 
 Names are `<layer>.<thing>`, lower case, dotted, string literals. They are what
 the CSV and the GUI show, so a rename is deliberate; `profiling.zone_names`
-checks the shape and that no name is used twice.
+checks the shape, that no name is used twice, and that the required set of
+zones, plots and QML scopes still exists (removed instrumentation is a failed
+test, as removed unit tests are).
 
 Only code that exists is instrumented. The [performance design](design/performance.md#what-to-instrument)
 lists the zones the rest of the application will carry, and they are added with
@@ -440,7 +452,7 @@ The frame percentiles this document can give are the offscreen line above (60
 frames, a p50 at 15.7 ms) and **not** a desktop 3D measurement; on a desktop
 with a display the same line is the one to read, and `--smoke 300` prints it.
 
-**A profiler gets its moment.** A profiling build's `--smoke` waits up to five
+**A profiler gets its moment.** A build with Tracy's `--smoke` waits up to five
 seconds for a profiler to connect before it loads anything, then calls
 `connected()` until one does or the time is up. That is what puts
 `app.startup`, `app.load_qml` and `data.load_phase` in a capture: they run once,

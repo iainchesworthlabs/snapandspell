@@ -35,6 +35,14 @@ struct Heard {
     std::vector<Traced> traced;
     std::vector<Cue> cues;
     int state_changes = 0;
+    // The QML-visible updates, counted exactly: one pathChanged is one rebuild
+    // of the path's display, so the pointer's jank is these numbers growing
+    // (docs/design/performance.md, "The window's frames").
+    int path_changes = 0;
+    int pointer_changes = 0;
+    int found_changes = 0;
+    int lit_changes = 0;
+    int board_changes = 0;
 };
 
 // A model over the fake game, with the touch geometry set: tiles of 100 and a gap
@@ -56,6 +64,12 @@ struct Fixture {
                              heard.cues.push_back({kind, detail});
                          });
         QObject::connect(&model, &SoloModel::stateChanged, [this] { ++heard.state_changes; });
+        QObject::connect(&model, &SoloModel::pathChanged, [this] { ++heard.path_changes; });
+        QObject::connect(&model, &SoloModel::pointerDownChanged,
+                         [this] { ++heard.pointer_changes; });
+        QObject::connect(&model, &SoloModel::foundChanged, [this] { ++heard.found_changes; });
+        QObject::connect(&model, &SoloModel::litPathChanged, [this] { ++heard.lit_changes; });
+        QObject::connect(&model, &SoloModel::boardChanged, [this] { ++heard.board_changes; });
     }
 
     // Into the box's shake and out of it, as the scene does.
@@ -572,4 +586,115 @@ TEST_CASE("a new game that was brought back is shown as the constructor shows on
     CHECK(f.model.rows() == 3);
     CHECK(f.model.tiles().size() == 9);
     CHECK(f.model.boardVersion() == version + 1);
+}
+
+// --- the shape of the updates (what the screens rebuild) ---------------------------
+// One pathChanged is one rebuild of the path's display: the path lines, each
+// tile's lit test and the action bar's word. The pointer's jank is these
+// numbers growing, so they are held exactly (docs/design/performance.md).
+
+TEST_CASE("a trace tells the path once per change and once at the hand-in",
+          "[app][solo]") {
+    Fixture f;
+    f.play();
+    const int path = f.heard.path_changes;
+    const int pointer = f.heard.pointer_changes;
+    const int found = f.heard.found_changes;
+
+    f.sit();  // press on S, two moves, lift: tiles 2, 5, 8.
+
+    // One a tile (3), one for the tracer's clear at the hand-in (1); a press
+    // told the path once and the finger's down and up told the pointer only.
+    CHECK(f.heard.path_changes - path == 4);
+    CHECK(f.heard.pointer_changes - pointer == 2);
+    // A find is one tray update, one lit path, one state, one trace.
+    CHECK(f.heard.found_changes - found == 1);
+    REQUIRE(f.heard.traced.size() == 1);
+    CHECK(f.heard.traced[0].word == "sit");
+}
+
+TEST_CASE("a press on nothing starts no trace and rebuilds nothing", "[app][solo]") {
+    Fixture f;
+    f.play();
+    const int path = f.heard.path_changes;
+    const int pointer = f.heard.pointer_changes;
+
+    // Far outside every tile: the tracer ignores the press, so the finger is
+    // never down and neither the path's display nor the pointer's is rebuilt.
+    f.model.pressAt(-500, -500);
+    CHECK(f.heard.path_changes - path == 0);
+    CHECK(f.heard.pointer_changes - pointer == 0);
+
+    f.model.releaseAt(-500, -500, false);
+    CHECK(f.heard.path_changes - path == 0);
+    CHECK(f.heard.pointer_changes - pointer == 0);
+    CHECK(f.model.path().isEmpty());
+}
+
+TEST_CASE("a move that changes nothing rebuilds nothing", "[app][solo]") {
+    Fixture f;
+    f.play();
+    const int path = f.heard.path_changes;
+    const int pointer = f.heard.pointer_changes;
+
+    f.model.pressAt(Fixture::x(0), Fixture::y(0));  // tile 0
+    const int after_press = f.heard.path_changes;
+    CHECK(after_press - path == 1);  // one tile, told once
+
+    // A wobble inside the tile's stay circle: no new tile, no signal.
+    f.model.moveTo(Fixture::x(0) + 3, Fixture::y(0));
+    CHECK(f.heard.path_changes - after_press == 0);
+    CHECK(f.heard.pointer_changes - pointer == 1);
+
+    // A tile that does not touch the last is ignored, as a non-change.
+    f.model.moveTo(Fixture::x(1), Fixture::y(1));
+    CHECK(f.heard.path_changes - after_press == 1);  // the diagonal tile joins
+}
+
+TEST_CASE("a tapped word is told once a tile, and the tray once at Done",
+          "[app][solo]") {
+    Fixture f;
+    f.play();
+    const int path = f.heard.path_changes;
+    const int pointer = f.heard.pointer_changes;
+    const int found = f.heard.found_changes;
+
+    f.model.tapTile(2);
+    f.model.tapTile(5);
+    f.model.tapTile(8);
+    CHECK(f.heard.path_changes - path == 3);
+    CHECK(f.heard.pointer_changes - pointer == 0);
+
+    f.model.done();
+    CHECK(f.heard.path_changes - path == 4);  // the tracer's clear
+    CHECK(f.heard.found_changes - found == 1);
+    CHECK(f.model.state() == "word-found");
+}
+
+TEST_CASE("the path, the tiles and the tray are built once and read many times",
+          "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.tapTile(2);
+    f.model.tapTile(5);
+
+    // Two reads give the same stored list, not two rebuilds: the screens read
+    // the path once a tile and once a path line per move, and a rebuild a read
+    // is the pointer's jank.
+    const QVariantList first_path = f.model.path();
+    const QVariantList second_path = f.model.path();
+    CHECK(first_path.constData() == second_path.constData());
+
+    const QStringList first_tiles = f.model.tiles();
+    const QStringList second_tiles = f.model.tiles();
+    CHECK(first_tiles.constData() == second_tiles.constData());
+
+    const QVariantList first_found = f.model.found();
+    const QVariantList second_found = f.model.found();
+    CHECK(first_found.constData() == second_found.constData());
+
+    // And the cached path is the path: content is not sacrificed for the cache.
+    CHECK(f.model.path() == indices({2, 5}));
+    f.model.tapTile(8);
+    CHECK(f.model.path() == indices({2, 5, 8}));
 }
