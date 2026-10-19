@@ -210,6 +210,15 @@ std::vector<Position> RealSoloGame::helpPath() const {
     return session_.lit_path();
 }
 
+std::size_t RealSoloGame::wordsWithStart(std::span<const Position> prefix) const {
+    return session_.words_with_start(prefix);
+}
+
+void RealSoloGame::dismissHelp() {
+    session_.dismiss_help();
+    save_session();
+}
+
 void RealSoloGame::lidOn() {
     // The board that was in play is kept by the session until the next shake, so
     // it can be handed over whichever way it was left.

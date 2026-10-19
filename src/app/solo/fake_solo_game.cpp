@@ -255,6 +255,32 @@ std::vector<Position> FakeSoloGame::helpPath() const {
     return viable->path;
 }
 
+std::size_t FakeSoloGame::wordsWithStart(std::span<const Position> prefix) const {
+    std::size_t count = 0;
+    for (const wjs::FoundWord& viable : viable_) {
+        const bool done = std::ranges::any_of(
+            found_, [&](const SoloFound& entry) { return entry.word == lower(viable.word); });
+        if (done || viable.path.size() < prefix.size()) {
+            continue;
+        }
+        bool begins = true;
+        for (std::size_t i = 0; i < prefix.size(); ++i) {
+            if (viable.path[i] != prefix[i]) {
+                begins = false;
+                break;
+            }
+        }
+        if (begins) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void FakeSoloGame::dismissHelp() {
+    lit_word_.clear();
+}
+
 void FakeSoloGame::save() {
     if (saved_ || board_.empty()) {
         return;

@@ -870,7 +870,7 @@ TEST_CASE("the setup makes each game from the parent's settings", "[app][real]")
     write_data(directory);
     wjs::Store store = wjs::Store::in_memory();
     wjs::Settings settings = store.settings();
-    settings.help = false;
+    settings.help = wjs::HelpLevel::off;
     settings.board_size = 4;
     settings.phase = "B";
     store.update_settings(settings);
@@ -1041,7 +1041,7 @@ TEST_CASE("a setting the parent changes is what the setup makes the next game fr
     CHECK(before->helpAllowed());
     CHECK(before->size() == 3);
 
-    CHECK(controller.setSetting("help", false));
+    CHECK(controller.setSetting("help", "off"));
     CHECK(controller.setSetting("boardSize", 4));
 
     const auto next = setup.make();
@@ -1073,7 +1073,7 @@ TEST_CASE("a change in the parent area is the box's next game, through the model
     REQUIRE(model.state() == "box");
     CHECK(model.helpAllowed());
 
-    CHECK(controller.setSetting("help", false));
+    CHECK(controller.setSetting("help", "off"));
 
     CHECK(model.state() == "box");
     CHECK_FALSE(model.helpAllowed());
@@ -1154,7 +1154,7 @@ TEST_CASE("a game in the box, the shake or the drop is no game in progress", "[a
 TEST_CASE("the size the child chooses is the one the box offers next", "[app][real]") {
     wjs::Store store = wjs::Store::in_memory();
     wjs::Settings settings = store.settings();
-    settings.help = false;
+    settings.help = wjs::HelpLevel::off;
     settings.phase = "B";
     store.update_settings(settings);
     auto made = RealSoloGame::create(data_of(phase_a()), store, phonics(), device_day);
@@ -1174,7 +1174,7 @@ TEST_CASE("the size the child chooses is the one the box offers next", "[app][re
         CHECK(store.settings().board_size == choice.written);
     }
     // The rest of the settings are the parent's, and are not touched.
-    CHECK_FALSE(store.settings().help);
+    CHECK(store.settings().help == wjs::HelpLevel::off);
     CHECK(store.settings().phase == "B");
 
     // Only the box takes a choice, so a later one is not the last used.
@@ -1550,7 +1550,7 @@ TEST_CASE("a start tile the parent no longer allows is not lit when the game com
     {
         auto opened = wjs::Store::open(options.store);
         wjs::Settings settings = opened.store.settings();
-        settings.help = false;
+        settings.help = wjs::HelpLevel::off;
         opened.store.update_settings(settings);
     }
 

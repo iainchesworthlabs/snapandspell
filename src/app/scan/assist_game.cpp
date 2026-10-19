@@ -135,7 +135,7 @@ std::optional<wjs::Position> AssistGame::litTile() const {
 }
 
 bool AssistGame::helpAllowed() const {
-    return store_->settings().help;
+    return store_->settings().help != wjs::HelpLevel::off;
 }
 
 int AssistGame::stars() const noexcept {

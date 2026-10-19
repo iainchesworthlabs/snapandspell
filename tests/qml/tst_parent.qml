@@ -16,7 +16,7 @@ TestCase {
     // Room for the settings page without scrolling it: the rows are the point of
     // these tests, and a row outside a clipped Flickable cannot be pressed.
     width: 1200
-    height: 2000
+    height: 2600
 
     Component { id: areaComponent; ParentArea { } }
 
@@ -76,7 +76,7 @@ TestCase {
 
     function area() {
         const area = createTemporaryObject(areaComponent, testCase,
-                                           { width: 1200, height: 2000,
+                                           { width: 1200, height: 2600,
                                              controller: parentController })
         verify(area !== null)
         return area
@@ -172,6 +172,7 @@ TestCase {
         const report = parentController.dashboard
         const week = report.week
         verify(week.played)
+        verify(texts.indexOf(ParentWording.recordsHeading) >= 0)
         verify(texts.indexOf(ParentWording.weekSentence(week.boardsCleared, week.stars,
                                                         week.newWords)) >= 0)
         verify(texts.indexOf(ParentWording.soundsHeading) >= 0)
@@ -209,15 +210,16 @@ TestCase {
     function test_theSettingsRowsChangeTheController() {
         const view = openSettings()
 
-        // Help: Off.
+        // Help: the start tile alone, then off.
         const help = row(view, ParentWording.settingsHelp)
         verify(help !== null)
-        const off = control(help, ParentWording.valueOff)
-        verify(off !== null)
-        press(off)
-        compare(parentController.settings.help, false)
-        compare(off.checked, true)
-        compare(control(help, ParentWording.valueOn).checked, false)
+        press(control(help, ParentWording.valueHelpStart))
+        compare(parentController.settings.help, "start")
+        compare(parentController.helpLevel, "start")
+        press(control(help, ParentWording.valueOff))
+        compare(parentController.settings.help, "off")
+        press(control(help, ParentWording.valueHelpTwo))
+        compare(parentController.settings.help, "two")
 
         // Board size: 4x4.
         const size = row(view, ParentWording.settingsBoardSize)
@@ -245,6 +247,23 @@ TestCase {
         compare(parentController.settings.textSizePercent, 125)
         compare(parentController.textScale, 1.25)
         compare(ParentTheme.textScale, 1.25)
+
+        // The board's clock: Count down, and its minutes row appears with the
+        // choices, one of which the store keeps.
+        const timer = row(view, ParentWording.settingsTimer)
+        verify(timer !== null)
+        press(control(timer, ParentWording.valueCountDown))
+        compare(parentController.settings.timer, "down")
+        wait(250)
+        const minutes = row(view, ParentWording.settingsTimerLength)
+        verify(minutes !== null)
+        press(control(minutes, "10 min"))
+        compare(parentController.settings.timerLength, 10)
+
+        // And off again puts the minutes row away; the minutes stay as chosen.
+        press(control(timer, ParentWording.valueOff))
+        compare(parentController.settings.timer, "off")
+        compare(parentController.settings.timerLength, 10)
     }
 
     function test_aFocusSoundIsTickedAndUnticked() {

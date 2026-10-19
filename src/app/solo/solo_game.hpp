@@ -163,6 +163,12 @@ public:
     // The path of the word the help is for, empty when no word is lit. The
     // second rung of the help reads only its first two tiles.
     [[nodiscard]] virtual std::vector<Position> helpPath() const = 0;
+    // How many of the board's words are still to find and begin with `prefix`
+    // (the tile the help lit, or its first two tiles): a count, never a word.
+    [[nodiscard]] virtual std::size_t wordsWithStart(std::span<const Position> prefix) const = 0;
+    // The help is put away without its word being found: the child made a word
+    // from the lit start, and the start is now their own.
+    virtual void dismissHelp() = 0;
 
     // The words found on this board, in order.
     [[nodiscard]] virtual const std::vector<SoloFound>& found() const = 0;

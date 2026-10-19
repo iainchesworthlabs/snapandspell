@@ -15,10 +15,14 @@ Item {
     // The child's own collection: home only, so the words and stars are one
     // press from the first screen rather than hidden behind the play panel.
     property bool showJewels: false
+    // Solo Play's earlier boards: home only, so the boards are one press from
+    // the first screen rather than hidden behind the play panel.
+    property bool showBoards: false
 
     signal back
     signal parentRequested
     signal jewelsRequested
+    signal boardsRequested
 
     implicitHeight: Theme.appBarHeight
     height: implicitHeight
@@ -35,6 +39,9 @@ Item {
         color: Theme.line
     }
 
+    // A Row aligns its children at the top, so each one fills the bar's height
+    // (or centres its own text in it): the title, the wordmark and the buttons
+    // share the bar's middle line, never its top edge.
     Row {
         anchors.left: parent.left
         anchors.leftMargin: Theme.space4
@@ -59,6 +66,8 @@ Item {
 
         Text {
             visible: !root.showWordmark && root.title.length > 0
+            height: Theme.targetMin
+            verticalAlignment: Text.AlignVCenter
             text: root.title
             font.family: Theme.uiFont
             font.pixelSize: Theme.headingSize
@@ -73,6 +82,15 @@ Item {
         anchors.rightMargin: Theme.space4
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.space2
+
+        AppButton {
+            visible: root.showBoards
+            size: "min"
+            variant: "ghost"
+            label: qsTr("My boards")
+            accessibleName: qsTr("My boards")
+            onClicked: root.boardsRequested()
+        }
 
         AppButton {
             visible: root.showJewels

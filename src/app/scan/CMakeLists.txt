@@ -60,6 +60,9 @@ qt_add_qml_module(wjs_scan_ui
     STATIC
     URI WordJewelsSolver.Scan
     VERSION 1.0
+    # No ENABLE_TYPE_COMPILER here: the screens instantiate the kit's types
+    # (AppBar, AppButton, BoardThumb) from the WordJewelsSolver module, and one
+    # uses a ListModel, neither of which qmltc can compile across modules.
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/WordJewelsSolver/Scan"
     # The kit is the application's own module, built in src/app: the import path
     # is the directory above this one, where WordJewelsSolver/qmldir lives.

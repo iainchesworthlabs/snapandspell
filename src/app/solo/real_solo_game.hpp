@@ -119,6 +119,8 @@ public:
     std::optional<Position> startTile() override;
     [[nodiscard]] std::optional<Position> litTile() const override;
     [[nodiscard]] std::vector<Position> helpPath() const override;
+    [[nodiscard]] std::size_t wordsWithStart(std::span<const Position> prefix) const override;
+    void dismissHelp() override;
 
     [[nodiscard]] const std::vector<SoloFound>& found() const override { return found_; }
 

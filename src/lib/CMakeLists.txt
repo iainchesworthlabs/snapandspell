@@ -31,7 +31,8 @@ add_library(wjs_lib STATIC
     src/session_store.cpp
     src/solver.cpp
     src/store.cpp
-    src/store_format.cpp)
+    src/store_format.cpp
+    src/version.cpp)
 add_library(wjs::lib ALIAS wjs_lib)
 
 # Which wjs/profiling.hpp the zones in the sources resolve to: CMake chooses the

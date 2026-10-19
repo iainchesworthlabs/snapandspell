@@ -159,6 +159,29 @@ ApplicationWindow {
         value: window.parentController.colourScheme
     }
 
+    // The parent's clock for solo boards: off, a count-up, or a count-down of
+    // the minutes chosen. Solo Play reads it from the model the board is made
+    // from; a board in play keeps the clock it began with.
+    Binding {
+        target: soloGame
+        property: "clockMode"
+        value: window.parentController.soloClock
+    }
+    Binding {
+        target: soloGame
+        property: "clockMinutes"
+        value: window.parentController.soloClockMinutes
+    }
+
+    // The parent's help level for Solo Play: off, the start tile alone, or the
+    // start tile and its first two letters. Applied at once, as the parent's
+    // other switches are.
+    Binding {
+        target: soloGame
+        property: "helpLevel"
+        value: window.parentController.helpLevel
+    }
+
     // The interface's direction: the screens' positioners, icons and the split
     // read this; the window's anchors follow the same choice through
     // LayoutMirroring on the shell.
@@ -257,6 +280,7 @@ ApplicationWindow {
             id: screens
             anchors.fill: parent
             focus: true
+            asynchronous: true
             visible: Navigation.screen !== "solo"
             // Each screen fades in rather than replacing the last in one frame, and
             // takes the keyboard (Space on the box, the arrow keys on the board).
@@ -316,6 +340,12 @@ ApplicationWindow {
             onSoloRequested: Navigation.go("solo")
             onParentRequested: Navigation.go("parent")
             onCollectionRequested: Navigation.go("jewels")
+            // The boards played: Solo Play's own sheet, over whatever is in the
+            // box. Back returns to home.
+            onBoardsRequested: {
+                Navigation.go("solo");
+                soloScreen.openHistory();
+            }
         }
     }
     Component {

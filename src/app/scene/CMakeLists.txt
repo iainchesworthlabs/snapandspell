@@ -47,6 +47,10 @@ qt_add_qml_module(wjs_scene
     STATIC
     URI WordJewelsSolver.Scene
     VERSION 1.0
+    # No ENABLE_TYPE_COMPILER here: the dice build on QQuick3DGeometry, a C++
+    # base type qmltc cannot see in its bare mode. The scene's first cost is the
+    # shaders, which the persistent shader caches and the deferred loader in
+    # SoloScreen cover; its scripts are still bytecode-compiled by qmlcachegen.
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/WordJewelsSolver/Scene"
     QML_FILES ${WJS_SCENE_QML_SOURCES}
     RESOURCES

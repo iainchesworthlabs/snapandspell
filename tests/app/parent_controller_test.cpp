@@ -271,6 +271,8 @@ TEST_CASE("the settings map has the table's defaults", "[app][parent][settings]"
     CHECK(s.value("shake").toBool());
     CHECK(s.value("motion").toString() == "system");
     CHECK(s.value("colourScheme").toString() == "system");
+    CHECK(s.value("timer").toString() == "off");
+    CHECK(s.value("timerLength").toInt() == wjs::default_solo_clock_minutes);
     CHECK(s.value("textSizePercent").toInt() == 100);
     CHECK(s.value("schoolFont").toString().isEmpty());
     CHECK(s.value("language").toString().isEmpty());
@@ -281,7 +283,7 @@ TEST_CASE("each setting can be changed by its name and is kept in the store",
           "[app][parent][settings]") {
     Fixture f;
 
-    CHECK(f.controller.setSetting("help", false));
+    CHECK(f.controller.setSetting("help", "off"));
     CHECK(f.controller.setSetting("board", "standard"));
     CHECK(f.controller.setSetting("phase", "A"));
     CHECK(f.controller.setSetting("boardSize", 4));
@@ -292,11 +294,13 @@ TEST_CASE("each setting can be changed by its name and is kept in the store",
     CHECK(f.controller.setSetting("shake", false));
     CHECK(f.controller.setSetting("motion", "reduced"));
     CHECK(f.controller.setSetting("colourScheme", "dark"));
+    CHECK(f.controller.setSetting("timer", "down"));
+    CHECK(f.controller.setSetting("timerLength", 20));
     CHECK(f.controller.setSetting("textSizePercent", 150));
     CHECK(f.controller.setSetting("language", "he"));
 
     const wjs::Settings& s = f.store.settings();
-    CHECK_FALSE(s.help);
+    CHECK(s.help == wjs::HelpLevel::off);
     CHECK(s.phase == "A");
     CHECK(s.board_size == 4);
     CHECK(s.sound_it_out == wjs::SoundItOut::word_only);
@@ -306,11 +310,16 @@ TEST_CASE("each setting can be changed by its name and is kept in the store",
     CHECK_FALSE(s.shake);
     CHECK(s.motion == wjs::MotionSetting::reduced);
     CHECK(s.colour_scheme == wjs::ColourScheme::dark);
+    CHECK(s.solo_clock == wjs::SoloClock::count_down);
+    CHECK(s.solo_clock_minutes == 20);
     CHECK(s.text_size_percent == 150);
     CHECK(s.language == "he");
     // And the map the screens read is the new one.
     CHECK(f.controller.settings().value("boardSize").toInt() == 4);
+    CHECK(f.controller.settings().value("help").toString() == "off");
     CHECK(f.controller.settings().value("colourScheme").toString() == "dark");
+    CHECK(f.controller.settings().value("timer").toString() == "down");
+    CHECK(f.controller.settings().value("timerLength").toInt() == 20);
     CHECK(f.controller.settings().value("language").toString() == "he");
     CHECK(f.controller.property("language").toString() == "he");
 }
@@ -343,6 +352,10 @@ TEST_CASE("a value the table does not have is refused and nothing changes",
     CHECK_FALSE(f.controller.setSetting("motion", true));
     CHECK_FALSE(f.controller.setSetting("colourScheme", "purple"));
     CHECK_FALSE(f.controller.setSetting("colourScheme", true));
+    CHECK_FALSE(f.controller.setSetting("timer", "sideways"));
+    CHECK_FALSE(f.controller.setSetting("timer", true));
+    CHECK_FALSE(f.controller.setSetting("timerLength", 4));
+    CHECK_FALSE(f.controller.setSetting("timerLength", 3.5));
     CHECK_FALSE(f.controller.setSetting("textSizePercent", 130));
     CHECK_FALSE(f.controller.setSetting("schoolFont", "Some Font"));
     CHECK_FALSE(f.controller.setSetting("language", "tlh"));
@@ -350,6 +363,23 @@ TEST_CASE("a value the table does not have is refused and nothing changes",
     CHECK_FALSE(f.controller.setSetting("language", true));
 
     CHECK(f.controller.settings() == before);
+}
+
+TEST_CASE("the help is off, the start tile, or the start and two letters",
+          "[app][parent][settings]") {
+    ParentController controller;
+    CHECK(controller.helpLevel() == "two");
+    CHECK(controller.settings().value("help").toString() == "two");
+
+    REQUIRE(controller.setSetting("help", "start"));
+    CHECK(controller.helpLevel() == "start");
+    CHECK(controller.settings().value("help").toString() == "start");
+
+    REQUIRE(controller.setSetting("help", "off"));
+    CHECK(controller.helpLevel() == "off");
+
+    REQUIRE(controller.setSetting("help", "two"));
+    CHECK(controller.helpLevel() == "two");
 }
 
 TEST_CASE("the language is one of the eight codes, or the system's", "[app][parent][settings]") {
@@ -545,11 +575,11 @@ TEST_CASE("an edit of the store is told, and a read of it is not", "[app][parent
     f.controller.refresh();
     CHECK(edited == 0);
 
-    CHECK(f.controller.setSetting("help", false));
+    CHECK(f.controller.setSetting("help", "start"));
     CHECK(edited == 1);
 
     // The value it already has is no edit, and a value refused is none either.
-    CHECK(f.controller.setSetting("help", false));
+    CHECK(f.controller.setSetting("help", "start"));
     CHECK_FALSE(f.controller.setSetting("boardSize", 7));
     CHECK(edited == 1);
 
@@ -615,7 +645,7 @@ TEST_CASE("a store from a newer version says so, and is left alone", "[app][pare
 
     ParentController controller;
     controller.openStore(file);
-    controller.setSetting("help", false);
+    controller.setSetting("help", "off");
 
     CHECK(controller.storeNote() == "newer");
     std::ifstream in(file, std::ios::binary);
@@ -623,8 +653,13 @@ TEST_CASE("a store from a newer version says so, and is left alone", "[app][pare
     CHECK(now == later);
 }
 
-TEST_CASE("the version is the project's", "[app][parent]") {
+TEST_CASE("the version is the project's, with the build's provenance", "[app][parent]") {
     ParentController controller;
 
     CHECK_FALSE(controller.version().isEmpty());
+    const QString details = controller.versionDetails();
+    CHECK(details.contains(controller.version()));
+    CHECK(details.contains(QStringLiteral("commit:")));
+    CHECK(details.contains(QStringLiteral("branch:")));
+    CHECK(details.contains(QStringLiteral("target:")));
 }

@@ -75,6 +75,13 @@ TestCase {
         return screen
     }
 
+    // The 3D scene is made by an asynchronous Loader, so a test that needs it
+    // waits a moment rather than finding the stub before it exists.
+    function sceneOf(screen) {
+        tryVerify(() => findChild(screen, "boardSceneStub") !== null, 5000)
+        return findChild(screen, "boardSceneStub")
+    }
+
     function boxFor(width, height, wide) {
         const rule = createTemporaryObject(layoutComponent, testCase,
                                            { width: width, height: height, boardSize: 3 })
@@ -166,10 +173,10 @@ TestCase {
     // --- the shake and the scene -------------------------------------------
     function test_shakeDealsABoardAndTheSceneIsGivenIt() {
         const screen = soloScreen()
-        const scene = findChild(screen, "boardSceneStub")
+        const scene = sceneOf(screen)
         verify(scene !== null)
         // The box goes to the scene at start-up, with its lid on: no tiles.
-        verify(scene.showCount >= 1)
+        tryVerify(() => scene.showCount >= 1)
         compare(scene.plays.length, 0)
         compare(soloModel.state, "box")
 
@@ -193,7 +200,7 @@ TestCase {
 
     function test_spaceShakesTheBox() {
         const screen = soloScreen()
-        const scene = findChild(screen, "boardSceneStub")
+        const scene = sceneOf(screen)
         verify(scene !== null)
 
         screen.forceActiveFocus()
@@ -206,7 +213,7 @@ TestCase {
 
     function test_aShakeInPlayDoesNothing() {
         const screen = soloScreen()
-        const scene = findChild(screen, "boardSceneStub")
+        const scene = sceneOf(screen)
         verify(scene !== null)
         soloModel.shake()
         tryCompare(soloModel, "state", "playing")
@@ -226,7 +233,7 @@ TestCase {
                                              { width: 1100, height: 700, solo: soloModel,
                                                motionSource: motion })
         verify(screen !== null)
-        const scene = findChild(screen, "boardSceneStub")
+        const scene = sceneOf(screen)
         verify(scene !== null)
 
         // The box is on screen and the parent allows shaking: the source is
@@ -280,9 +287,66 @@ TestCase {
         compare(homeSpy.count, 1)
     }
 
+    function test_backFromPlayLeavesTheRoundInProgress() {
+        // Back from a board in play does not put the lid on: the round is left
+        // in progress, and the next visit finds the same board.
+        const screen = soloScreen()
+        homeSpy.target = screen
+        homeSpy.clear()
+        const back = buttonNamed(screen, SoloWording.back)
+        verify(back !== null)
+
+        // Control: the same press from the box reaches the button.
+        mouseClick(back, back.width / 2, back.height / 2)
+        compare(homeSpy.count, 1)
+        homeSpy.clear()
+
+        soloModel.shake()
+        tryCompare(soloModel, "state", "playing")
+        const tiles = soloModel.tiles
+
+        mouseClick(back, back.width / 2, back.height / 2)
+        compare(homeSpy.count, 1)
+        compare(soloModel.state, "playing")
+        compare(soloModel.tiles, tiles)
+    }
+
+    function test_theFinishSummaryOffersTheWayOn() {
+        // Finish board shows the summary: the reward, the words, and Play
+        // again as the first offer, which shakes a new board.
+        const screen = soloScreen()
+        soloModel.shake()
+        tryCompare(soloModel, "state", "playing")
+        // The panel slides in from its edge; wait until the Finish button is
+        // inside the clipped slot, where the press can reach it.
+        wait(450)
+
+        const finish = buttonNamed(screen, SoloWording.finishBoard)
+        verify(finish !== null)
+        mouseClick(finish, finish.width / 2, finish.height / 2)
+        compare(screen.finishSummary, true)
+
+        const again = buttonNamed(screen, SoloWording.playAgain)
+        verify(again !== null)
+        const home = buttonNamed(screen, qsTr("Home"))
+        verify(home !== null)
+
+        // The card takes the focus and keeps it: Play again holds it on
+        // arrival, and Tab walks to Home and back without leaving the card.
+        verify(again.activeFocus)
+        keyClick(Qt.Key_Tab)
+        verify(home.activeFocus)
+        keyClick(Qt.Key_Tab)
+        verify(again.activeFocus)
+
+        mouseClick(again, again.width / 2, again.height / 2)
+        compare(screen.finishSummary, false)
+        tryCompare(soloModel, "state", "playing")
+    }
+
     function test_theFlatBoardsLineFollowsThePathAndTheShownWord() {
         const screen = soloScreen()
-        const scene = findChild(screen, "boardSceneStub")
+        const scene = sceneOf(screen)
         verify(scene !== null)
         soloModel.shake()
         tryCompare(soloModel, "state", "playing")

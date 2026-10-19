@@ -534,6 +534,47 @@ by `scene.prepare`'s zone and by the shake prototype's tables (9 to 23 ms for
 the first board of a size), not by a work budget. The number of atlas builds is
 one for each board whose faces are not in an atlas already, by construction.
 
+### The first show
+
+**Built, and measured 2026-10-20** (the Debug build's smoke, on the same
+desktop; the Debug figures are a shape - sanitizers and Tracy dominate - and
+the Release figure is the frame check's machine). A screen's or window's first
+showing cost what it did because every QML type was instantiated interpreted
+and the 3D scene's graph and shaders were made on the first shake. Three
+mechanisms now spread that cost, and the plan is to leave it there rather than
+to budget a launch in CI:
+
+- **Ahead-of-time compilation.** The application's QML module builds with the
+  type compiler (`ENABLE_TYPE_COMPILER`, qmltc): the kit's frequent types - the
+  buttons, icons, jewels, the box, the resting screen, the thumbnails - are C++
+  classes with compiled bindings, so first instantiation is no longer
+  interpreted. The files qmltc of the shared aqtinstall kit cannot take are
+  skipped per file and keep bytecode-compiled bindings (cross-module screens,
+  `LayoutMirroring` users, `Timer`/`Connections` users, the translated wording
+  singletons); the parent, scan and scene modules stay dynamic for the same
+  reasons. The kit's private headers and the qmltc runtime are linked by hand in
+  `cmake/FindQt6.cmake` (the kit ships them without their CMake packages).
+- **Deferred loading.** The navigation loader is asynchronous, so a screen
+  switch never stalls a frame; the 3D scene sits behind an asynchronous Loader
+  that makes it when Solo Play is first shown - the closed box, while the child
+  reads it - and keeps it for the run, so the first shake pays no scene-graph
+  cost. (Its `active` is a monotonic flag: gating it on the derived state
+  booleans destroyed the scene mid-shake once, because those re-evaluate
+  non-atomically - measured in the box suites.)
+- **Shaders.** Qt Quick 3D's persistent shader caches - the low-level pipeline
+  cache and the 3D material cache - are on by default, written when the window
+  closes and reloaded on the next run, so the scene's one-time shader
+  compilation happens once per machine and now during the box rather than on
+  the first shake.
+
+Measured, the Debug smoke's `ui.first_frame_ms` (process start to the first
+frame): **14 676 ms to 7 848 ms**; the `*-profiling` build (RelWithDebInfo)
+smoke reports **576 ms** for the same launch, inside the budgets table's 2 s
+"launch to `home` drawn" with the margin the estimate wanted, and its 2D frames
+hold a p50 of 15.9 ms offscreen. A launch budget is still not held by a test;
+the frame check ([The window's frames](#the-windows-frames)) holds the
+steady-state frames, and a person measures launch on the device as before.
+
 ### The window's frames
 
 **Built, and measured 2026-10-19** (a Release build of the application, on the
@@ -558,20 +599,27 @@ it alone (`RUN_SERIAL`). A window that cannot present a frame (the offscreen
 platform plugin cannot give Quick 3D one) is reported as a skip with the
 application's own sentence, not as a pass.
 
-**What was measured, and what was not.** The frame clock's mechanism was
-measured end to end: a smoke run prints the report, and
-`tests/app/frame_timing_test.cpp` reads it and holds the budget on it; the
-`offscreen` platform plugin runs the 2D screens and prints a report (60 frames,
-p50 15.69 ms) but **Quick 3D is not functional there** — the renderer is not
-QRhi-based and the `View3D` draws nothing — so those frames are not the scene's,
-and the frame check skips that platform. A windowed capture of the application
-gave the scene's own per-frame zones (below) but only three frame marks: the
-machine this package was built on did not present the window it opened (the
-prototype's window stopped the same way), which is a session's limit and not a
-statement about a desktop. **No desktop 3D frame report was obtained, and none
-is claimed here**: the frame budget is the design's, held by a check that is
-opt-in and that a person runs on a machine with a display. Nothing was measured
-on a tablet or a phone.
+**The first windowed frame report, 2026-10-20.** The same desktop, a Release
+build (`windows-msvc-release`), the check run as designed (`WJS_PERF_FRAME_TIMING=1`
+with a real window): `frames=240, mean 16.69 ms, p50 19.72, p95 20.30, p99 20.37,
+max 22.36, over 33 ms 0, first frame 582 ms`. The check's 12 assertions pass 11;
+the one that fails is `frame.p50 <= 17.0 ms`. What the numbers say:
+
+- **The window holds 60 Hz.** The mean frame is 16.69 ms, and no frame is over
+  33 ms: the human-visible budgets (`frame.max`, `frame.over33`) hold.
+- **The p50 lands on Windows' timer quantisation, not on render cost.** The
+  frames are a bimodal mix around 60 Hz (mean 16.69) whose median falls on the
+  upper quantile at 19.7 ms; the default Windows timer granularity shapes the
+  presented-frame timestamps that way. The 17.0 ms p50 budget was written
+  before any windowed report existed and assumes a clean 16.7 ms median.
+- **Launch is within budget with margin.** First frame 582 ms against the 2 s
+  "launch to `home` drawn" row (see [The first show](#the-first-show)).
+
+Whether the p50 row should be re-expressed (a mean against 16.7 ms, or the
+p50 budget raised to the quantisation) is left to the author: a budget is moved
+by a person's decision, never to make a run green, and this is the first number
+there has ever been to decide against. Nothing was measured on a tablet or a
+phone.
 
 The scene's work, on the same capture: `scene.step` (the dice world's step) is
 0.51 ms a frame at a 3x3, and a frame of the shake 0.69 ms, of the drop 0.72 ms

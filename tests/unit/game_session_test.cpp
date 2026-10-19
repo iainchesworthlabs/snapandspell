@@ -810,6 +810,34 @@ TEST_CASE("the help answers with a tile and never a word", "[session]") {
     CHECK(*snapshot.lit == "PAN");
 }
 
+TEST_CASE("the words left of a start count the ones that begin with it", "[session]") {
+    wjs::GameSession session = hand_session();
+    REQUIRE(session.request_help().has_value());  // PAN, from (0,0)
+
+    // PAN, PAT and PIN all begin at (0,0); NIP begins at (1,2). Nothing is
+    // found yet, so the count is all of them.
+    CHECK(session.words_with_start(std::array<Position, 1>{Position{0, 0}}) == 3);
+    CHECK(session.words_with_start(std::array<Position, 1>{Position{1, 2}}) == 1);
+    CHECK(session.words_with_start({}) == 0);
+
+    // The first two tiles narrow the count to the words that share them: PAN
+    // and PAT both run P-A, while PIN runs P-I.
+    const std::vector<Position> path = session.lit_path();
+    REQUIRE(path.size() >= 2);
+    const std::array<Position, 2> two{path[0], path[1]};
+    CHECK(session.words_with_start(two) == 2);
+
+    // A find is not among the ones left.
+    REQUIRE(session.trace(pan, 0).kind == TraceKind::found);
+    CHECK(session.words_with_start(std::array<Position, 1>{Position{0, 0}}) == 2);
+
+    // The help put away by hand: the light goes out, and nothing else changes.
+    REQUIRE(session.request_help().has_value());  // PAT
+    session.dismiss_help();
+    CHECK_FALSE(session.lit_tile().has_value());
+    CHECK(session.words_with_start(std::array<Position, 1>{Position{0, 0}}) == 2);
+}
+
 TEST_CASE("with the parent's switch off the help gives nothing", "[session]") {
     wjs::SessionOptions options;
     options.help = false;

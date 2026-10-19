@@ -92,6 +92,30 @@ std::string_view to_string(ColourScheme value) noexcept {
     return "system";
 }
 
+std::string_view to_string(SoloClock value) noexcept {
+    switch (value) {
+        case SoloClock::off:
+            return "off";
+        case SoloClock::count_up:
+            return "up";
+        case SoloClock::count_down:
+            return "down";
+    }
+    return "off";
+}
+
+std::string_view to_string(HelpLevel value) noexcept {
+    switch (value) {
+        case HelpLevel::off:
+            return "off";
+        case HelpLevel::start:
+            return "start";
+        case HelpLevel::two_letters:
+            return "two";
+    }
+    return "two";
+}
+
 std::optional<BoardMode> board_mode_from_string(std::string_view name) noexcept {
     if (name == "standard") {
         return BoardMode::standard;
@@ -151,6 +175,32 @@ std::optional<ColourScheme> colour_scheme_from_string(std::string_view name) noe
     return std::nullopt;
 }
 
+std::optional<SoloClock> solo_clock_from_string(std::string_view name) noexcept {
+    if (name == "off") {
+        return SoloClock::off;
+    }
+    if (name == "up") {
+        return SoloClock::count_up;
+    }
+    if (name == "down") {
+        return SoloClock::count_down;
+    }
+    return std::nullopt;
+}
+
+std::optional<HelpLevel> help_level_from_string(std::string_view name) noexcept {
+    if (name == "off") {
+        return HelpLevel::off;
+    }
+    if (name == "start") {
+        return HelpLevel::start;
+    }
+    if (name == "two") {
+        return HelpLevel::two_letters;
+    }
+    return std::nullopt;
+}
+
 bool is_valid_language(std::string_view code) noexcept {
     return std::find(std::begin(languages), std::end(languages), code) != std::end(languages);
 }
@@ -171,12 +221,18 @@ Settings Settings::normalized() const {
     Settings result = *this;
 
     result.board = or_default(result.board, BoardMode::standard, BoardMode::phonics);
+    result.help = or_default(result.help, HelpLevel::two_letters, HelpLevel::two_letters);
     result.sound_it_out = or_default(result.sound_it_out, SoundItOut::full, SoundItOut::off);
     result.celebration_sounds =
         or_default(result.celebration_sounds, CelebrationSounds::full, CelebrationSounds::off);
     result.motion = or_default(result.motion, MotionSetting::system, MotionSetting::reduced);
     result.colour_scheme =
         or_default(result.colour_scheme, ColourScheme::system, ColourScheme::dark);
+    result.solo_clock = or_default(result.solo_clock, SoloClock::off, SoloClock::count_down);
+    if (std::find(std::begin(solo_clock_minutes_choices), std::end(solo_clock_minutes_choices),
+                  result.solo_clock_minutes) == std::end(solo_clock_minutes_choices)) {
+        result.solo_clock_minutes = default_solo_clock_minutes;
+    }
 
     std::transform(result.phase.begin(), result.phase.end(), result.phase.begin(), upper);
     if (!is_valid_name(result.phase)) {

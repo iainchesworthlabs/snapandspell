@@ -538,6 +538,22 @@ a path of at most 260 characters (`MAX_PATH`). Opening a file by a longer path
 fails unless the executable is long-path aware; this was found during testing
 and is not fixed yet. Keep word lists at a short path.
 
+**Windows: a camera reports no video input.** Windows allows only Medium
+mandatory integrity and above to open a camera. A build tree made by a
+low-trust (Low-integrity) session stamps its files Low, so the application
+built and run from it sees no camera even though Windows and Media Foundation
+do (the scan screen's "Try camera again" also stays empty). Raise the label,
+as a normal shell can and a Low one cannot:
+
+```powershell
+icacls <build-directory> /setintegritylevel "(OI)(CI)M" /T
+```
+
+Rebuilds from the same low-trust session stamp the new outputs Low again, so
+build from a normal shell, or re-run the command after each such build. The
+application's own behaviour is unchanged either way: a camera it cannot see is
+said so on the scan screen, and the typed board remains the way on.
+
 **Linux.** `wjs-cli` finds its default word list through `/proc/self/exe`, so it
 needs `/proc` mounted, as on any normal system.
 

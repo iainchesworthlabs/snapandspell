@@ -5,6 +5,11 @@ import QtQuick.Layouts
 // this week, the sounds, the vault and the best, computed on the device when
 // this screen is opened. Observations and never assessments: no time on screen,
 // no streak, no comparison, no grade.
+//
+// The screen is two parts with a boundary between them: the one thing a parent
+// came here to do (set up a real board) stands alone at the top, and everything
+// about the child's play - the week, the sounds, the vault, the best - is under
+// a heading of its own below it, so an action is never read as a record.
 Flickable {
     id: root
 
@@ -39,17 +44,11 @@ Flickable {
         width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
         spacing: ParentTheme.space8
 
-        Text {
-            Layout.fillWidth: true
-            text: ParentWording.privacyLine
-            font.family: ParentTheme.monoFont
-            font.pixelSize: ParentTheme.sizeSmall
-            color: ParentTheme.inkSecondary
-        }
-
+        // --- what a parent came here to do -------------------------------------
         // The adult way into the family game. The scanner is a parent's
         // workflow, so it lives behind this gate rather than on the child's
-        // home.
+        // home, and it is the first thing on the screen: the action is not
+        // one of the records below it.
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: welcome.implicitHeight + 2 * ParentTheme.space4
@@ -71,6 +70,8 @@ Flickable {
                     font.pixelSize: ParentTheme.sizeLead
                     font.weight: Font.ExtraBold
                     color: ParentTheme.ink
+                    Accessible.role: Accessible.Heading
+                    Accessible.name: text
                 }
                 Text {
                     Layout.fillWidth: true
@@ -80,7 +81,9 @@ Flickable {
                     color: ParentTheme.inkSecondary
                     wrapMode: Text.WordWrap
                 }
-                RowLayout {
+                // A Flow, so the two actions share a line where there is room
+                // and stack where there is not: neither ever leaves the card.
+                Flow {
                     Layout.fillWidth: true
                     spacing: ParentTheme.space2
                     PButton {
@@ -150,6 +153,23 @@ Flickable {
             }
         }
 
+        // --- how the child's play is going --------------------------------------
+        // The boundary between the action above and the records below: a
+        // heading of their own, so the week, the sounds, the vault and the
+        // best read as what the play has made, never as one more button.
+        Text {
+            Layout.fillWidth: true
+            visible: root.anything
+            text: ParentWording.recordsHeading
+            font.family: ParentTheme.monoFont
+            font.pixelSize: 11
+            font.letterSpacing: 1.2
+            color: ParentTheme.accent
+            wrapMode: Text.WordWrap
+            Accessible.role: Accessible.Heading
+            Accessible.name: text
+        }
+
         Text {
             Layout.fillWidth: true
             visible: !root.anything
@@ -160,25 +180,43 @@ Flickable {
         }
 
         // --- this week --------------------------------------------------------
-        // The sentence begins "This week:", so the block has no heading of its own.
+        // The sentence begins "This week:", so the block has no heading of its
+        // own. It is a card like the sounds' rows, so every record shares one
+        // visual language.
         Section {
             Layout.fillWidth: true
             visible: root.week.played
 
-            Text {
+            Rectangle {
                 Layout.fillWidth: true
-                text: ParentWording.weekSentence(root.week.boardsCleared, root.week.stars, root.week.newWords)
-                font.pixelSize: ParentTheme.sizeBody
-                color: ParentTheme.ink
-                wrapMode: Text.WordWrap
-            }
-            Text {
-                Layout.fillWidth: true
-                visible: root.week.longestWord.length > 0
-                text: ParentWording.longestWord(root.week.longestWord)
-                font.pixelSize: ParentTheme.sizeBody
-                color: ParentTheme.ink
-                wrapMode: Text.WordWrap
+                implicitHeight: weekColumn.implicitHeight + 2 * ParentTheme.space4
+                radius: ParentTheme.radius
+                color: ParentTheme.card
+                border.width: ParentTheme.hair
+                border.color: ParentTheme.line
+
+                ColumnLayout {
+                    id: weekColumn
+                    anchors.fill: parent
+                    anchors.margins: ParentTheme.space4
+                    spacing: ParentTheme.space1
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: ParentWording.weekSentence(root.week.boardsCleared, root.week.stars, root.week.newWords)
+                        font.pixelSize: ParentTheme.sizeBody
+                        color: ParentTheme.ink
+                        wrapMode: Text.WordWrap
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        visible: root.week.longestWord.length > 0
+                        text: ParentWording.longestWord(root.week.longestWord)
+                        font.pixelSize: ParentTheme.sizeBody
+                        color: ParentTheme.ink
+                        wrapMode: Text.WordWrap
+                    }
+                }
             }
         }
 
@@ -315,6 +353,17 @@ Flickable {
                     wrapMode: Text.WordWrap
                 }
             }
+        }
+
+        // The privacy promise is a reassurance on the way out, not an
+        // instruction on the way in: it closes the page, as on the child's
+        // home.
+        Text {
+            Layout.fillWidth: true
+            text: ParentWording.privacyLine
+            font.family: ParentTheme.monoFont
+            font.pixelSize: ParentTheme.sizeSmall
+            color: ParentTheme.inkSecondary
         }
     }
 }

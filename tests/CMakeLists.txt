@@ -27,7 +27,8 @@ add_executable(wjs_unit_tests
     unit/seeding_test.cpp
     unit/session_store_test.cpp
     unit/solver_test.cpp
-    unit/store_test.cpp)
+    unit/store_test.cpp
+    unit/version_test.cpp)
 
 # Whether the profiling calls are meant to have Tracy behind them in this
 # build: the option CMake was given, passed in as a value (profiling_test.cpp).

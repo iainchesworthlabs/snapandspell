@@ -131,4 +131,25 @@ bool is_cleared(std::span<const FoundWord> viable, const FoundWords& found) {
         viable, [&found](const FoundWord& word) { return found.contains(word.word); });
 }
 
+std::size_t words_starting_with(std::span<const FoundWord> viable, const FoundWords& found,
+                                std::span<const Position> prefix) noexcept {
+    if (prefix.empty()) {
+        return 0;
+    }
+    std::size_t count = 0;
+    for (const FoundWord& word : viable) {
+        if (found.contains(word.word) || word.path.size() < prefix.size()) {
+            continue;
+        }
+        const bool begins = std::equal(prefix.begin(), prefix.end(), word.path.begin(),
+                                       [](Position a, Position b) {
+                                           return a.row == b.row && a.column == b.column;
+                                       });
+        if (begins) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 }  // namespace wjs

@@ -35,6 +35,8 @@ QtObject {
     readonly property string tabSettings: qsTr("Settings")
     //: The About tab of the parent area, and the heading of the page it shows.
     readonly property string tabAbout: qsTr("About")
+    //: The Licences tab of the parent area, and the heading of the page it shows.
+    readonly property string tabLicences: qsTr("Licences")
     readonly property string nothingYet: qsTr("Nothing to show yet.")
 
     // --- the store's notes ---------------------------------------------------
@@ -64,6 +66,9 @@ QtObject {
     readonly property string vaultHeading: qsTr("The vault")
     //: The best board found at each board size.
     readonly property string bestHeading: qsTr("Best")
+    //: The heading over the dashboard's records (the week, the sounds, the
+    //: vault, the best), marking them off from the action above them.
+    readonly property string recordsHeading: qsTr("How the play is going")
     readonly property string notMetYet: qsTr("not met yet")
     readonly property string oftenFound: qsTr("Often found")
     readonly property string fewWords: qsTr("few words use this sound yet")
@@ -127,7 +132,11 @@ QtObject {
     readonly property string groupLanguage: qsTr("LANGUAGE")
     readonly property string groupData: qsTr("DATA")
     readonly property string settingsHelp: qsTr("Help")
-    readonly property string settingsHelpHint: qsTr("The start tile: one tile glows to show where a word begins.")
+    readonly property string settingsHelpHint: qsTr("The start tile glows to show where a word begins. Two letters is the most the game ever shows.")
+    //: The help's middle level: one tile glows, and a second press hides it.
+    readonly property string valueHelpStart: qsTr("A start tile")
+    //: The help's fullest level: the start tile, then its first two letters.
+    readonly property string valueHelpTwo: qsTr("Two letters")
     //: The board setting (standard dice or the phonics words), not its size.
     readonly property string settingsBoard: qsTr("Board")
     readonly property string settingsBoardHint: qsTr("Standard: dice and any word. Phonics: the words of a phase, with their sounds.")
@@ -136,8 +145,14 @@ QtObject {
     //: The graphemes the school is working on this week.
     readonly property string settingsFocus: qsTr("Focus sounds")
     readonly property string settingsFocusHint: qsTr("The sounds the school is on this week. The phonics board prefers words with them.")
+    //: The phonics board's words, only where the build carries them.
+    readonly property string settingsBoardNoPhonics: qsTr("Phonics needs the phonics data, which is not in this build.")
     readonly property string settingsBoardSize: qsTr("Board size")
     readonly property string settingsBoardSizeHint: qsTr("The size the box offers first.")
+    readonly property string settingsTimer: qsTr("Timer")
+    readonly property string settingsTimerHint: qsTr("Count up shows how long a board has been open. Count down ends the board when it reaches zero.")
+    //: How long a count-down board has, chosen in whole minutes.
+    readonly property string settingsTimerLength: qsTr("Time on the board")
     readonly property string settingsSoundItOut: qsTr("Sound it out")
     readonly property string settingsCelebration: qsTr("Celebration sounds")
     //: The sound-effects switch, not the sounds of the letters.
@@ -183,6 +198,8 @@ QtObject {
     readonly property string valueReduced: qsTr("Reduced")
     readonly property string valueLight: qsTr("Light")
     readonly property string valueDark: qsTr("Dark")
+    readonly property string valueCountUp: qsTr("Count up")
+    readonly property string valueCountDown: qsTr("Count down")
 
     // --- reset -------------------------------------------------------------------
     //: The two confirmed resets at the foot of the settings.
@@ -206,9 +223,12 @@ QtObject {
         return qsTr("Word Jewels Solver, version %1").arg(v);
     }
 
+    //: The button that opens the Licences page from the About page.
+    readonly property string aboutLicencesLink: qsTr("Licences")
+    readonly property string aboutLicencesLinkHint: qsTr("The licence of everything this build includes, each with its full text.")
     readonly property string licenceNotice: qsTr("This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.")
     readonly property string licenceParts: qsTr("It is built with Qt. The English word list is ENABLE, a public-domain list. The licences of everything in a package are listed with the package.")
-    //: Above the full notices, in their own scroll box on the About page.
+    //: Above the full notices, in the Licences page's own scroll box.
     readonly property string licencesFull: qsTr("Everything this build includes, and the licence of each part:")
     readonly property string privacyKept: qsTr("This app keeps what this screen shows, on this device only: the words found, the size of each board, the day, whether a start tile was shown, the stars and stickers, the last twenty boards and your settings.")
     readonly property string privacyNever: qsTr("It does not record sound or pictures, does not use the network and sends nothing anywhere. It does not keep how long anyone plays.")

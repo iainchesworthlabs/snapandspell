@@ -59,10 +59,52 @@ QtObject {
     readonly property string finishBoard: qsTr("Finish board")
     readonly property string finishTitle: qsTr("Board finished!")
     readonly property string finishBody: qsTr("Your words are safe in your collection.")
+    //: The board's clock for a screen reader: what it is, then what it shows.
+    function clockName(mode, text) {
+        if (mode === "down") {
+            return qsTr("Time left: %1").arg(text);
+        }
+        return qsTr("Time on this board: %1").arg(text);
+    }
+
+    //: On the finish summary, after a count-up board.
+    function playedFor(text) {
+        return qsTr("You played for %1.").arg(text);
+    }
+
+    //: The finish summary's reward line: how many stars the board earned.
+    function summaryStars(n) {
+        return n === 1 ? qsTr("1 star") : qsTr("%1 stars").arg(n);
+    }
+
+    //: The finish summary's reward line: the board's points.
+    function summaryPoints(n) {
+        return n === 1 ? qsTr("1 point") : qsTr("%1 points").arg(n);
+    }
+
+    //: The finish summary's list of the words found, with their count: how many
+    //: words it holds, so a finished board says its total without a count in
+    //: the title.
+    function yourWordsCount(n) {
+        return n === 1 ? qsTr("Your word") : qsTr("Your words (%1)").arg(n);
+    }
+    //: The finish summary of a count-down board whose time ran out.
+    readonly property string timeRanOut: qsTr("The time ran out. Everything you found is kept.")
+    //: The finish summary's words card when no word was found.
+    readonly property string summaryNoWords: qsTr("No words this time. Every board is a new chance.")
     //: Shown under the button at the first rung.
     readonly property string startHintShown: qsTr("The first letter is lit. Trace a word from it.")
     //: Shown under the button at the second rung.
     readonly property string twoLettersShown: qsTr("Two letters are lit. Find the rest of the word.")
+
+    //: After a find made from the hint's start: more words begin with those tiles.
+    function moreWordsWithStart(n) {
+        return n === 1 ? qsTr("1 more word starts with these letters.")
+                       : qsTr("%1 more words start with these letters.").arg(n);
+    }
+
+    //: After a find made from the hint's start: nothing else begins with those tiles.
+    readonly property string noMoreWordsWithStart: qsTr("No more words start with these letters.")
 
     function tileName(letters, row, column) {
         return qsTr("%1, row %2, column %3").arg(letters).arg(row).arg(column);

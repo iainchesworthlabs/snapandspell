@@ -122,7 +122,7 @@ std::unique_ptr<SoloGame> SoloGameSetup::make() {
     options.size =
         chosen && wjs::is_played_at(options.mode, *chosen) ? *chosen : wjs::BoardSize::three;
     options.seed = seed_ ? *seed_ : std::random_device{}();
-    options.help = settings.help;
+    options.help = settings.help != wjs::HelpLevel::off;
     options.focus_sounds = settings.focus_sounds;
 
     // The game the last run left in progress comes back as it was. One that cannot

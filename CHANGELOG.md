@@ -514,6 +514,76 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Changed
 
+- **The second post-overhaul pass: the board's clock, the full-height panel, a
+  resume, the About and Licences pages, and the camera's build-tree label.** The
+  parent area gains a **Timer** setting (Off, Count up, Count down, with a
+  **Time on the board** row of whole minutes for a count-down; new store keys
+  `timer=` and `timer_minutes=`, both defaulted so an old file reads Off).
+  Solo Play shows the clock with the actions at the foot of the right-hand
+  column, which now fills the window's full height; a count-up is shown on the
+  finish summary too, and a count-down ends the round with that summary at zero.
+  Back from a round in progress leaves it in progress (the session is saved on
+  every find, so the same board is found on the next visit), and **My boards**
+  opens the earlier-boards sheet from home. The play panel keeps Clear and
+  Done: a traced word hands itself in when the finger lifts, and Done remains
+  the way a word made by taps, the keyboard or a screen reader is handed in.
+  The About page now has one privacy section (the summary card was the
+  duplicate), shows the build's release, commit, branch and target (stamped by
+  CMake into `wjs/version.hpp`, with a new `wjs::version_details()`), and links
+  to a separate **Licences** page that carries the full notices in their own
+  scroll. Screen titles sit on the app bar's middle line. The Settings' Board
+  row says why Phonics is not offered when the build has no phase data. The
+  parent's **Help** switch is a level now: Off, **A start tile** (the first
+  press lights it, the next press hides it) or **Two letters** (the design's
+  two rungs), applied at once and kept as `help=off|start|two` in the store (a
+  file from before the levels reads `help=1` as Two letters and `help=0` as
+  Off). The
+  start-tile help now answers a find made from its start: the rings are put
+  away whatever word was found there, and the hint card says whether more of
+  the board's words begin with the tiles that were lit (a count from the
+  library's new `wjs::words_starting_with`, never a word); a find away from
+  the lit start leaves the help where it was. The board-finished summary is
+  rebuilt for the child: the stars and points are the headline, the words
+  scroll with one jewel each inside the card (which is clipped and
+  responsive, so the actions never move however many words were found), Play
+  again leads the actions, a count-down finish says the time ran out and that
+  everything found is kept, the title speaks to one word, an empty board is
+  said gently, and the card takes the focus and speaks the reward when it
+  opens; its words header carries the count, and the focus stays in the
+  card (Tab walks the two ways on, the board behind the scrim is silent).
+  First shows are faster too: the application QML module is built with
+  the type compiler (qt_add_qml_module ENABLE_TYPE_COMPILER), so the kit's
+  frequent types - buttons, icons, jewels, the box, the resting screen, the
+  board thumbnails - are C++ classes with compiled bindings instead of
+  interpreted objects; the files qmltc cannot take in the shared aqtinstall kit
+  (cross-module screens, LayoutMirroring users, Timer/Connections users, the
+  translated wording singletons) are skipped per file and keep bytecode-compiled
+  bindings, and the kit's private headers and qmltc runtime are linked by hand
+  (cmake/FindQt6.cmake). The screen loader is asynchronous, and the 3D scene
+  moved behind an asynchronous Loader that makes it when Solo Play is first
+  shown - the closed box, while the child reads - and keeps it for the run, so
+  the first shake pays no scene cost; Qt Quick 3D's persistent shader caches
+  warm the rest across runs. The debug smoke's first frame: 14 676 ms to
+  7 848 ms; a release smoke reports 582 ms, and the first windowed frame
+  report (WJS_PERF_FRAME_TIMING=1, release) holds 60 Hz: mean 16.69 ms, max
+  22.36 ms, no frame over 33 ms, with the p50 19.7 ms landing on Windows'
+  timer quantisation - recorded in docs/design/performance.md.
+  The parent area dashboard is two parts now: the one thing a parent
+  came here to do (Play with a real board) stands alone at the top, and the
+  child's records - the week, the sounds, the vault, the best - sit under a
+  heading of their own (How the play is going) below it, with the week a card
+  like the sounds' rows and the privacy line closing the page.
+  scan screen's camera now works on this machine: the build tree's Low
+  mandatory-integrity label (a low-trust session stamps its files Low) is what
+  stopped Qt 6.12 from opening the StreamCam, and raising it to Medium
+  (`icacls <build> /setintegritylevel "(OI)(CI)M" /T`, documented in
+  docs/building.md) makes Qt enumerate the camera; the application's behaviour
+  is unchanged - a camera it cannot see is said so, and the typed board remains
+  the way on. The board's input band (the forgiving slack around the dice) no
+  longer reaches over the app bar or the panel now that the board area is
+  taller. The parent-area checks now hold the single-hold gate to its own
+  wording, and the gate title is translated in the seven non-English
+  catalogues.
 - **The post-overhaul design pass: the screens now hold at the minimum window,
   the board is traced again, and the game has a visible progression.** Home and
   Solo are laid out from the room they are given rather than fixed heights, so

@@ -149,6 +149,28 @@ TestCase {
         compare(soloModel.helpTile, 1)
     }
 
+    function test_theHintResolvesWhenItsWordIsFound() {
+        play()
+        const tray = panel()
+        const hint = buttonNamed(tray, SoloWording.showStart)
+        verify(hint !== null)
+        mouseClick(hint, hint.width / 2, hint.height / 2)
+        compare(soloModel.helpTile, 1)
+
+        // NIP, traced from the lit start: the rings go out, and the card says
+        // nothing else begins with those letters.
+        soloModel.tapTile(1)
+        soloModel.tapTile(5)
+        soloModel.tapTile(7)
+        soloModel.done()
+
+        compare(soloModel.state, "word-found")
+        compare(soloModel.hintResolved, true)
+        compare(soloModel.hintRemaining, 0)
+        compare(soloModel.helpTile, -1)
+        verify(textsShown(tray).indexOf(SoloWording.noMoreWordsWithStart) >= 0)
+    }
+
     function test_aTappedPathLeavesTheHintAndThePanelAlone() {
         play()
         const tray = panel()
@@ -159,14 +181,17 @@ TestCase {
 
         compare(tray.pending, true)
         compare(tray.hintShown, true)
-        // Done belongs to the screen's action bar now, so the panel keeps its
-        // hint rather than swapping a second primary action into the card.
+        // The hint keeps its place; Done is the panel's own, at the foot of the
+        // column with Clear, waiting for the path to be handed in.
         compare(buttonNamed(tray, SoloWording.showStart).visible, true)
-        compare(buttonNamed(tray, SoloWording.done), null)
+        const done = buttonNamed(tray, SoloWording.done)
+        verify(done !== null)
+        compare(done.visible, true)
+        compare(done.enabled, true)
 
+        // Done hands the tapped path in, as it always has.
         soloModel.tapTile(8)
-        soloModel.done()
-
+        mouseClick(done, done.width / 2, done.height / 2)
         compare(soloModel.path.length, 0)
         compare(soloModel.state, "word-found")
         compare(soloModel.found.length, 1)
@@ -184,6 +209,17 @@ TestCase {
         mouseClick(button, button.width / 2, button.height / 2)
 
         compare(finishSpy.count, 1)
+    }
+
+    function test_theBoardClockShowsWhatTheModelCounts() {
+        soloModel.clockMode = "up"
+        play()
+        soloModel.clockActive = true
+        soloModel.tickClock()
+
+        const tray = panel()
+        compare(tray.clockShown, true)
+        verify(textsShown(tray).indexOf("0:01") >= 0)
     }
 
     function test_theTrayHeaderShowsPoints() {

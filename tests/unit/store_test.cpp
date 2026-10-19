@@ -149,13 +149,15 @@ wjs::SavedSession playing_session() {
 wjs::StoreData busy_data() {
     wjs::Store store = wjs::Store::in_memory();
     wjs::Settings settings;
-    settings.help = false;
+    settings.help = wjs::HelpLevel::off;
     settings.board = wjs::BoardMode::phonics;
     settings.phase = "B";
     settings.focus_sounds = {"ai", "ee"};
     settings.board_size = 4;
     settings.text_size_percent = 125;
     settings.colour_scheme = wjs::ColourScheme::dark;
+    settings.solo_clock = wjs::SoloClock::count_down;
+    settings.solo_clock_minutes = 15;
     store.update_settings(settings);
 
     auto a = phonics3({"sat", "pin", "tap"}, {found("sat", 1), found("pin", 1, true)});
@@ -463,7 +465,7 @@ TEST_CASE("a setting this version does not know leaves that setting at its defau
 
     REQUIRE(parsed.has_value());
     const wjs::Settings& s = parsed->data.settings;
-    CHECK_FALSE(s.help);
+    CHECK(s.help == wjs::HelpLevel::off);
     CHECK(s.board == wjs::BoardMode::standard);
     CHECK(s.board_size == 3);
     CHECK(s.text_size_percent == 125);
@@ -507,6 +509,64 @@ TEST_CASE("a colour scheme is written and read by its name", "[store][settings]"
         REQUIRE(parsed.has_value());
         CHECK(parsed->data.settings.colour_scheme == scheme);
     }
+}
+
+TEST_CASE("a board's clock is written and read by its name and minutes", "[store][settings]") {
+    for (const auto clock : {wjs::SoloClock::off, wjs::SoloClock::count_up, wjs::SoloClock::count_down}) {
+        wjs::Store store = wjs::Store::in_memory();
+        wjs::Settings settings;
+        settings.solo_clock = clock;
+        settings.solo_clock_minutes = 10;
+        store.update_settings(settings);
+
+        const std::string text = wjs::serialize_store(store.data());
+        const auto parsed = wjs::parse_store(text);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->data.settings.solo_clock == clock);
+        CHECK(parsed->data.settings.solo_clock_minutes == 10);
+    }
+
+    // A file from before the keys: the clock is off, the minutes the default.
+    const auto older = wjs::parse_store(seal(
+        "wjs-store 2\nsettings help=1 board=standard phase=A focus=- size=3 sound_it_out=full "
+        "celebration=full sound=1 vibration=1 shake=1 motion=system colour=system text=100 font=- "
+        "language=-\n"
+        "total stars=0 next_board=1\n"));
+    REQUIRE(older.has_value());
+    CHECK(older->data.settings.solo_clock == wjs::SoloClock::off);
+    CHECK(older->data.settings.solo_clock_minutes == wjs::default_solo_clock_minutes);
+}
+
+TEST_CASE("the help level is written and read by its name", "[store][settings]") {
+    for (const auto level :
+         {wjs::HelpLevel::off, wjs::HelpLevel::start, wjs::HelpLevel::two_letters}) {
+        wjs::Store store = wjs::Store::in_memory();
+        wjs::Settings settings;
+        settings.help = level;
+        store.update_settings(settings);
+
+        const std::string text = wjs::serialize_store(store.data());
+        const auto parsed = wjs::parse_store(text);
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->data.settings.help == level);
+    }
+
+    // A file from before the levels: 1 was the full help, 0 was none.
+    const auto on = wjs::parse_store(seal(
+        "wjs-store 2\nsettings help=1 board=standard phase=A focus=- size=3 sound_it_out=full "
+        "celebration=full sound=1 vibration=1 shake=1 motion=system colour=system text=100 font=- "
+        "language=-\n"
+        "total stars=0 next_board=1\n"));
+    REQUIRE(on.has_value());
+    CHECK(on->data.settings.help == wjs::HelpLevel::two_letters);
+
+    const auto off = wjs::parse_store(seal(
+        "wjs-store 2\nsettings help=0 board=standard phase=A focus=- size=3 sound_it_out=full "
+        "celebration=full sound=1 vibration=1 shake=1 motion=system colour=system text=100 font=- "
+        "language=-\n"
+        "total stars=0 next_board=1\n"));
+    REQUIRE(off.has_value());
+    CHECK(off->data.settings.help == wjs::HelpLevel::off);
 }
 
 // ---------------------------------------------------------------------------
@@ -1013,7 +1073,7 @@ TEST_CASE("the first reset clears boards and finds and leaves stars and stickers
           "[store][reset]") {
     auto store = wjs::Store::in_memory();
     auto settings = wjs::Settings{};
-    settings.help = false;
+    settings.help = wjs::HelpLevel::off;
     store.update_settings(settings);
     store.record(cleared3({found("sat", 1), found("stain", 5)}), monday);
 
@@ -1025,7 +1085,7 @@ TEST_CASE("the first reset clears boards and finds and leaves stars and stickers
     CHECK(store.data().stars == 6);
     CHECK(store.best_stars(3) == 6);
     CHECK(store.data().vault.size() == 2);
-    CHECK_FALSE(store.settings().help);
+    CHECK(store.settings().help == wjs::HelpLevel::off);
 }
 
 TEST_CASE("the second reset clears stars, the best and the stickers", "[store][reset]") {
@@ -1265,7 +1325,7 @@ TEST_CASE("what was saved is what is opened next time", "[store][file]") {
         auto opened = wjs::Store::open(file);
         opened.store.record(cleared3({found("sat", 1), found("pin", 1, true)}), monday);
         wjs::Settings s;
-        s.help = false;
+        s.help = wjs::HelpLevel::off;
         s.focus_sounds = {"ai"};
         opened.store.update_settings(s);
         REQUIRE(opened.store.save_session(playing_session()));

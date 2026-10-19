@@ -49,6 +49,24 @@ enum class ColourScheme {
     dark,
 };
 
+// The clock of a solo board: none, a count-up of how long the board has been
+// open, or a count-down that ends the round when it reaches zero. The parent
+// sets it; a board has no clock by default.
+enum class SoloClock {
+    off,
+    count_up,
+    count_down,
+};
+
+// The help a child can ask for in play (docs/design/game.md, "Help"): none,
+// the start tile alone (a second press hides it), or the start tile and then
+// its first two letters.
+enum class HelpLevel {
+    off,
+    start,
+    two_letters,
+};
+
 // Each enum is written in the store and in the screens by these names, and
 // read back by from_string, which is empty for a name it does not know.
 [[nodiscard]] std::string_view to_string(BoardMode value) noexcept;
@@ -56,6 +74,8 @@ enum class ColourScheme {
 [[nodiscard]] std::string_view to_string(CelebrationSounds value) noexcept;
 [[nodiscard]] std::string_view to_string(MotionSetting value) noexcept;
 [[nodiscard]] std::string_view to_string(ColourScheme value) noexcept;
+[[nodiscard]] std::string_view to_string(SoloClock value) noexcept;
+[[nodiscard]] std::string_view to_string(HelpLevel value) noexcept;
 
 [[nodiscard]] std::optional<BoardMode> board_mode_from_string(std::string_view name) noexcept;
 [[nodiscard]] std::optional<SoundItOut> sound_it_out_from_string(std::string_view name) noexcept;
@@ -63,6 +83,8 @@ enum class ColourScheme {
     std::string_view name) noexcept;
 [[nodiscard]] std::optional<MotionSetting> motion_from_string(std::string_view name) noexcept;
 [[nodiscard]] std::optional<ColourScheme> colour_scheme_from_string(std::string_view name) noexcept;
+[[nodiscard]] std::optional<SoloClock> solo_clock_from_string(std::string_view name) noexcept;
+[[nodiscard]] std::optional<HelpLevel> help_level_from_string(std::string_view name) noexcept;
 
 // The languages the interface is offered in, as the codes the store and the
 // screens use: English, French, Spanish, German, Yiddish, Hebrew, Chinese and
@@ -86,6 +108,11 @@ inline constexpr int largest_standard_board_size = 6;
 // The text sizes on offer, as a percentage of the system's: 1, 1.25, 1.5.
 inline constexpr std::array<int, 3> text_size_percents = {100, 125, 150};
 
+// How long a count-down board has, in whole minutes, and which of them the
+// parent can choose.
+inline constexpr int default_solo_clock_minutes = 5;
+inline constexpr std::array<int, 8> solo_clock_minutes_choices = {1, 2, 3, 5, 10, 15, 20, 30};
+
 // The longest a phase, a sound or a font name may be, and the most focus
 // sounds there can be. A bound, so that a damaged file cannot make a large
 // setting.
@@ -94,9 +121,9 @@ inline constexpr std::size_t max_font_name_length = 48;
 inline constexpr std::size_t max_focus_sounds = 40;
 
 struct Settings {
-    // Help: the start tile (on) or none (off). After the MVP a dial of five
-    // stops; the MVP has the two.
-    bool help = true;
+    // Help: none, the start tile alone, or the start tile and then its first
+    // two letters. The design's two-rung help is the default.
+    HelpLevel help = HelpLevel::two_letters;
 
     BoardMode board = BoardMode::standard;
 
@@ -119,6 +146,11 @@ struct Settings {
     bool vibration = true;
     bool shake = true;  // shake the device to roll
     MotionSetting motion = MotionSetting::system;
+
+    // The clock of a solo board: off, a count-up, or a count-down of
+    // solo_clock_minutes that ends the round at zero.
+    SoloClock solo_clock = SoloClock::off;
+    int solo_clock_minutes = default_solo_clock_minutes;
 
     // The light/dark chrome: the system's setting, or the parent's choice.
     ColourScheme colour_scheme = ColourScheme::system;

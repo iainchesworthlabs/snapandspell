@@ -317,6 +317,14 @@ std::vector<Position> GameSession::lit_path() const {
     return {};
 }
 
+std::size_t GameSession::words_with_start(std::span<const Position> prefix) const {
+    return words_starting_with(viable_, found_, prefix);
+}
+
+void GameSession::dismiss_help() {
+    lit_.reset();
+}
+
 bool GameSession::choose_size(BoardSize size) {
     if (state_ != SessionState::box || !is_played_at(options_.mode, size)) {
         return false;

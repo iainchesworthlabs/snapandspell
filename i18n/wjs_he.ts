@@ -4,13 +4,19 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../src/app/qml/kit/AppBar.qml" line="+49"/>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+56"/>
         <location line="+1"/>
         <source>Back</source>
         <translation>חזרה</translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+33"/>
+        <location line="+1"/>
+        <source>My boards</source>
+        <translation>My boards</translation>
+    </message>
+    <message>
+        <location line="+8"/>
         <location line="+1"/>
         <source>My jewels</source>
         <translation>My jewels</translation>
@@ -41,7 +47,7 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../src/app/qml/Home.qml" line="+90"/>
+        <location filename="../src/app/qml/Home.qml" line="+95"/>
         <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
         <translation>משחק למציאת מילים לקוראים צעירים</translation>
     </message>
@@ -304,19 +310,19 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+87"/>
+        <location line="+92"/>
         <source>Settings</source>
         <translation>הגדרות</translation>
     </message>
     <message>
-        <location line="-85"/>
-        <location line="+163"/>
+        <location line="-90"/>
+        <location line="+180"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>אודות</translation>
     </message>
     <message>
-        <location line="-162"/>
+        <location line="-177"/>
         <source>Nothing to show yet.</source>
         <translation>אין מה להציג עדיין.</translation>
     </message>
@@ -353,7 +359,7 @@
     <message>
         <location line="+3"/>
         <source>For grown-ups</source>
-        <translation>For grown-ups</translation>
+        <translation>למבוגרים</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -421,6 +427,12 @@
         <source>Best</source>
         <extracomment>The best board found at each board size.</extracomment>
         <translation>הטוב ביותר</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>How the play is going</source>
+        <extracomment>The heading over the dashboard&apos;s records (the week, the sounds, the vault, the best), marking them off from the action above them.</extracomment>
+        <translation>How the play is going</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -553,12 +565,7 @@
         <translation>עזרה</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>The start tile: one tile glows to show where a word begins.</source>
-        <translation>אריח ההתחלה: אריח אחד מאיר כדי להראות היכן מתחילה מילה.</translation>
-    </message>
-    <message>
-        <location line="+2"/>
+        <location line="+7"/>
         <source>Board</source>
         <extracomment>The board setting (standard dice or the phonics words), not its size.</extracomment>
         <translation>לוח</translation>
@@ -586,6 +593,12 @@
         <translation>הצלילים שהגן או בית הספר עוסקים בהם השבוע. לוח הפונטיקה מעדיף מילים עם הצלילים האלה.</translation>
     </message>
     <message>
+        <location line="+2"/>
+        <source>Phonics needs the phonics data, which is not in this build.</source>
+        <extracomment>The phonics board&apos;s words, only where the build carries them.</extracomment>
+        <translation>Phonics needs the phonics data, which is not in this build.</translation>
+    </message>
+    <message>
         <location line="+1"/>
         <source>Board size</source>
         <translation>גודל הלוח</translation>
@@ -594,6 +607,22 @@
         <location line="+1"/>
         <source>The size the box offers first.</source>
         <translation>הגודל שהקופסה מציעה ראשון.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Timer</source>
+        <translation>Timer</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</source>
+        <translation>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Time on the board</source>
+        <extracomment>How long a count-down board has, chosen in whole minutes.</extracomment>
+        <translation>Time on the board</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -721,6 +750,16 @@
         <translation>כהה</translation>
     </message>
     <message>
+        <location line="+1"/>
+        <source>Count up</source>
+        <translation>Count up</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Count down</source>
+        <translation>Count down</translation>
+    </message>
+    <message>
         <location line="+4"/>
         <source>Reset</source>
         <extracomment>The two confirmed resets at the foot of the settings.</extracomment>
@@ -763,12 +802,34 @@
         <translation>נמחק.</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="-175"/>
+        <location line="+179"/>
+        <location line="+9"/>
         <source>Licences</source>
+        <extracomment>The Licences tab of the parent area, and the heading of the page it shows.
+----------
+The button that opens the Licences page from the About page.</extracomment>
         <translation>רישיונות</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-92"/>
+        <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
+        <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>A start tile</source>
+        <extracomment>The help&apos;s middle level: one tile glows, and a second press hides it.</extracomment>
+        <translation>A start tile</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Two letters</source>
+        <extracomment>The help&apos;s fullest level: the start tile, then its first two letters.</extracomment>
+        <translation>Two letters</translation>
+    </message>
+    <message>
+        <location line="+80"/>
         <source>Privacy</source>
         <translation>פרטיות</translation>
     </message>
@@ -783,7 +844,12 @@
         <translation>Word Jewels Solver, גרסה %1</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+5"/>
+        <source>The licence of everything this build includes, each with its full text.</source>
+        <translation>The licence of everything this build includes, each with its full text.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.</source>
         <translation>תוכנית זו היא תוכנה חופשית. אפשר להפיץ אותה ולשנות אותה לפי תנאי הרישיון הציבורי הכללי של GNU, גרסה 3, או (לפי בחירתכם) כל גרסה מאוחרת יותר.</translation>
     </message>
@@ -795,7 +861,7 @@
     <message>
         <location line="+2"/>
         <source>Everything this build includes, and the licence of each part:</source>
-        <extracomment>Above the full notices, in their own scroll box on the About page.</extracomment>
+        <extracomment>Above the full notices, in the Licences page&apos;s own scroll box.</extracomment>
         <translation>כל מה שהגרסה הזו כוללת, והרישיון של כל חלק:</translation>
     </message>
     <message>
@@ -817,7 +883,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+76"/>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+48"/>
+        <source>Tap the last die again, or press Done</source>
+        <translation>הקש שוב על הקוביה האחרונה, או הקש על סיום</translation>
+    </message>
+    <message>
+        <location line="+55"/>
         <source>Words I found</source>
         <translation>מילים שמצאתי</translation>
     </message>
@@ -837,7 +908,7 @@
         <translation>%1 points</translation>
     </message>
     <message>
-        <location line="+60"/>
+        <location line="+101"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
@@ -850,6 +921,22 @@
         <location line="+25"/>
         <source>Need a start?</source>
         <translation>צריך התחלה?</translation>
+    </message>
+    <message>
+        <location line="+108"/>
+        <source>Clear</source>
+        <translation>מחיקה</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Clear the word</source>
+        <translation>נקה את המילה</translation>
+    </message>
+    <message>
+        <location line="+12"/>
+        <location line="+1"/>
+        <source>Done</source>
+        <translation>סיום</translation>
     </message>
 </context>
 <context>
@@ -1127,7 +1214,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+227"/>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+238"/>
         <source>Solo Play</source>
         <translation>משחק סולו</translation>
     </message>
@@ -1147,63 +1234,44 @@
         <translation>מצא מילה</translation>
     </message>
     <message>
-        <location line="+195"/>
+        <location line="+82"/>
         <source>Shaking the box…</source>
         <translation>מנערים את הקופסה…</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Make a word</source>
-        <translation>תעשה מילה</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <source>Tap the last die again, or press Done</source>
-        <translation>הקש שוב על הקוביה האחרונה, או הקש על סיום</translation>
-    </message>
-    <message>
-        <location line="+15"/>
-        <source>Clear</source>
-        <translation>מחיקה</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>Clear the word</source>
-        <translation>נקה את המילה</translation>
-    </message>
-    <message>
-        <location line="+12"/>
-        <location line="+1"/>
-        <source>Done</source>
-        <translation>סיום</translation>
-    </message>
-    <message>
-        <location line="+38"/>
+        <location line="+194"/>
         <source>You found all %1 words!</source>
         <translation>מצאת את כל %1 המילים!</translation>
     </message>
     <message>
-        <location line="+10"/>
-        <source>%1 points  ·  %2 stars</source>
-        <translation>%1 points  ·  %2 stars</translation>
-    </message>
-    <message>
-        <location line="+10"/>
+        <location line="+46"/>
         <source>Look at the jewels you collected.</source>
         <translation>תראו את התכשיטים שאספתם.</translation>
     </message>
     <message>
-        <location line="+41"/>
+        <location line="+151"/>
+        <location line="+1"/>
         <source>Home</source>
         <translation>בַּיִת</translation>
     </message>
     <message>
-        <location line="+14"/>
+        <location line="-26"/>
+        <location line="+1"/>
         <source>Play again</source>
         <translation>לשחק שוב</translation>
     </message>
     <message>
-        <location line="+87"/>
+        <location line="-174"/>
+        <source>You found the word!</source>
+        <translation>You found the word!</translation>
+    </message>
+    <message>
+        <location line="+140"/>
+        <source>+%1</source>
+        <translation>+%1</translation>
+    </message>
+    <message>
+        <location line="+168"/>
         <source>You found this one already.</source>
         <translation>You found this one already.</translation>
     </message>
@@ -1346,6 +1414,68 @@
         <translation>Your words are safe in your collection.</translation>
     </message>
     <message>
+        <location line="+4"/>
+        <source>Time left: %1</source>
+        <extracomment>The board&apos;s clock for a screen reader: what it is, then what it shows.</extracomment>
+        <translation>Time left: %1</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Time on this board: %1</source>
+        <translation>Time on this board: %1</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>You played for %1.</source>
+        <extracomment>On the finish summary, after a count-up board.</extracomment>
+        <translation>You played for %1.</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>1 star</source>
+        <extracomment>The finish summary&apos;s reward line: how many stars the board earned.</extracomment>
+        <translation>1 star</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 stars</source>
+        <translation>%1 stars</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>1 point</source>
+        <extracomment>The finish summary&apos;s reward line: the board&apos;s points.</extracomment>
+        <translation>1 point</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 points</source>
+        <translation>%1 points</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Your word</source>
+        <extracomment>The finish summary&apos;s list of the words found, with their count: how many words it holds, so a finished board says its total without a count in the title.</extracomment>
+        <translation>Your word</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Your words (%1)</source>
+        <translation>Your words (%1)</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>The time ran out. Everything you found is kept.</source>
+        <extracomment>The finish summary of a count-down board whose time ran out.</extracomment>
+        <translation>The time ran out. Everything you found is kept.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>No words this time. Every board is a new chance.</source>
+        <extracomment>The finish summary&apos;s words card when no word was found.</extracomment>
+        <translation>No words this time. Every board is a new chance.</translation>
+    </message>
+    <message>
         <location line="+2"/>
         <source>The first letter is lit. Trace a word from it.</source>
         <extracomment>Shown under the button at the first rung.</extracomment>
@@ -1356,6 +1486,23 @@
         <source>Two letters are lit. Find the rest of the word.</source>
         <extracomment>Shown under the button at the second rung.</extracomment>
         <translation>Two letters are lit. Find the rest of the word.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>1 more word starts with these letters.</source>
+        <extracomment>After a find made from the hint&apos;s start: more words begin with those tiles.</extracomment>
+        <translation>1 more word starts with these letters.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 more words start with these letters.</source>
+        <translation>%1 more words start with these letters.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>No more words start with these letters.</source>
+        <extracomment>After a find made from the hint&apos;s start: nothing else begins with those tiles.</extracomment>
+        <translation>No more words start with these letters.</translation>
     </message>
     <message>
         <location line="+3"/>

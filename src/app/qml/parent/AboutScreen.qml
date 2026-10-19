@@ -1,12 +1,16 @@
 import QtQuick
 import QtQuick.Layouts
 
-// About, licences and privacy (docs/design/dashboard.md, "Settings"). Plain text:
-// no link to anywhere, because the application has nowhere to go.
+// About and privacy (docs/design/dashboard.md, "Settings"). Plain text: no link
+// to anywhere, because the application has nowhere to go. The licences have
+// their own page (LicencesScreen.qml), reached by the one button here, so the
+// legal text is not the longest thing on this page.
 Flickable {
     id: root
 
     required property var controller
+
+    signal licencesRequested
 
     // The parent area's direction, from the shell.
     LayoutMirroring.enabled: ParentTheme.rightToLeft
@@ -60,95 +64,64 @@ Flickable {
             Paragraph {
                 text: ParentWording.version(root.controller.version)
             }
+            // The build's provenance, as the build system stamped it: the
+            // release, the commit, the branch and the target. A technical
+            // label, in the mono face, not a sentence to translate.
+            Text {
+                id: details
+                objectName: "versionDetails"
+                Layout.fillWidth: true
+                Layout.topMargin: ParentTheme.space2
+                text: root.controller.versionDetails
+                font.family: ParentTheme.monoFont
+                font.pixelSize: ParentTheme.sizeSmall
+                color: ParentTheme.inkSecondary
+                wrapMode: Text.WordWrap
+            }
         }
 
+        // The way to the Licences page: its own screen, so the legal text
+        // scrolls there and not through this page.
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: privacySummary.implicitHeight + 2 * ParentTheme.space4
+            implicitHeight: linkColumn.implicitHeight + 2 * ParentTheme.space4
             radius: ParentTheme.radius
             color: ParentTheme.card
             border.width: 1
-            border.color: ParentTheme.gold
+            border.color: ParentTheme.line
 
             ColumnLayout {
-                id: privacySummary
+                id: linkColumn
                 anchors.fill: parent
                 anchors.margins: ParentTheme.space4
-                spacing: ParentTheme.space1
-                Text {
+                spacing: ParentTheme.space2
+
+                PButton {
                     Layout.fillWidth: true
-                    text: ParentWording.privacyHeading
-                    font.family: ParentTheme.uiFont
-                    font.pixelSize: ParentTheme.sizeLead
-                    font.weight: Font.ExtraBold
-                    color: ParentTheme.ink
+                    text: ParentWording.aboutLicencesLink
+                    onClicked: root.licencesRequested()
                 }
                 Text {
                     Layout.fillWidth: true
-                    text: ParentWording.privacySummary
+                    text: ParentWording.aboutLicencesLinkHint
                     font.family: ParentTheme.uiFont
-                    font.pixelSize: ParentTheme.sizeBody
+                    font.pixelSize: ParentTheme.sizeSmall
                     color: ParentTheme.inkSecondary
                     wrapMode: Text.WordWrap
                 }
             }
         }
 
-        Section {
-            Layout.fillWidth: true
-            title: ParentWording.licencesHeading
-            Paragraph {
-                text: ParentWording.licenceNotice
-            }
-            Paragraph {
-                text: ParentWording.licenceParts
-            }
-            Paragraph {
-                text: ParentWording.licencesFull
-            }
-            // The full notices of this build: the same text as NOTICES.txt
-            // beside the programs, embedded as :/notices/NOTICES.txt
-            // (cmake/Notices.cmake). It has a box and a scroll of its own - a
-            // licence text is long, and the page should not have to be as long
-            // as the licences to reach the privacy section below it.
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 360
-                color: ParentTheme.card
-                border.width: ParentTheme.hair
-                border.color: ParentTheme.outline
-                radius: ParentTheme.radius
-
-                Flickable {
-                    id: notices
-                    objectName: "licencesView"
-                    anchors.fill: parent
-                    anchors.margins: ParentTheme.space3
-                    contentWidth: width
-                    contentHeight: noticeText.implicitHeight
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-                    flickableDirection: Flickable.VerticalFlick
-
-                    Text {
-                        id: noticeText
-                        // The wording check leaves this one text alone
-                        // (tests/app/parent_ui/preview_main.cpp): it is quoted
-                        // legal text, not a sentence about a child.
-                        objectName: "licenceNotices"
-                        width: notices.width
-                        text: root.controller.licenceNotices
-                        font.pixelSize: ParentTheme.sizeSmall
-                        color: ParentTheme.ink
-                        wrapMode: Text.WordWrap
-                    }
-                }
-            }
-        }
-
+        // The one privacy section: the summary line, then what is kept and
+        // what is never done.
         Section {
             Layout.fillWidth: true
             title: ParentWording.privacyHeading
+            Paragraph {
+                text: ParentWording.privacySummary
+                font.family: ParentTheme.uiFont
+                font.weight: Font.DemiBold
+            }
             Paragraph {
                 text: ParentWording.privacyKept
             }

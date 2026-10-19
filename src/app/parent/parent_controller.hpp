@@ -91,12 +91,24 @@ class ParentController : public QObject {
     // The window hands it to LanguageManager, which installs the catalogue and
     // sets the direction (qml/Main.qml).
     Q_PROPERTY(QString language READ language NOTIFY settingsChanged)
+    // The help the child can ask for in play, "off", "start" or "two". The
+    // window hands it to the game (qml/Main.qml).
+    Q_PROPERTY(QString helpLevel READ helpLevel NOTIFY settingsChanged)
+    // The clock of a solo board, "off", "up" or "down", and how many minutes a
+    // count-down has. The window hands both to Solo Play (qml/Main.qml).
+    Q_PROPERTY(QString soloClock READ soloClock NOTIFY settingsChanged)
+    Q_PROPERTY(int soloClockMinutes READ soloClockMinutes NOTIFY settingsChanged)
+    // The lengths the parent can choose for a count-down board.
+    Q_PROPERTY(QVariantList timerLengthChoices READ timerLengthChoices CONSTANT)
 
     // --- about ------------------------------------------------------------------
     Q_PROPERTY(QString version READ version CONSTANT)
-    // The third-party notices this build carries, for the About screen's
-    // Licences view: :/notices/NOTICES.txt, the same text installed beside the
-    // programs (cmake/Notices.cmake).
+    // The version and build provenance, as lines (release, commit, branch,
+    // target), for the About page.
+    Q_PROPERTY(QString versionDetails READ versionDetails CONSTANT)
+    // The third-party notices this build carries, for the Licences page:
+    // :/notices/NOTICES.txt, the same text installed beside the programs
+    // (cmake/Notices.cmake).
     Q_PROPERTY(QString licenceNotices READ licenceNotices CONSTANT)
 
 public:
@@ -190,7 +202,12 @@ public:
     [[nodiscard]] double textScale() const;
     [[nodiscard]] QString colourScheme() const;
     [[nodiscard]] QString language() const;
+    [[nodiscard]] QString helpLevel() const;
+    [[nodiscard]] QString soloClock() const;
+    [[nodiscard]] int soloClockMinutes() const;
+    [[nodiscard]] QVariantList timerLengthChoices() const;
     [[nodiscard]] QString version() const;
+    [[nodiscard]] QString versionDetails() const;
     [[nodiscard]] QString licenceNotices() const;
 
 signals:

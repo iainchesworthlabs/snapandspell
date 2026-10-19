@@ -97,10 +97,44 @@ set_source_files_properties(
 
 # Main.qml shows the parent area and the Family Assistant's screens, modules of
 # their own that are built under parent/ and scan/ (added below), and SoloScreen
-# uses the scene module built above: qmllint looks for them there.
+# uses the scene module built above: qmllint looks for them there. The type
+# compiler cannot compile those two (they instantiate types of other modules,
+# whose compiled C++ classes are not theirs to reference), so they are skipped
+# from qmltc - their scripts are still compiled to bytecode by qmlcachegen -
+# and they instantiate their screens dynamically.
+set_source_files_properties(
+    qml/Main.qml
+    qml/solo/SoloScreen.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
+# The rest of the skips are things the shared aqtinstall kit cannot link:
+# - FlatBoard's Timer needs qqmltimer_p.h, and TraceLayer's old-form Connections
+#   needs qqmlconnections_p.h, neither of which the kit ships;
+# - Home, PlayingPanel and JewelsScreen set LayoutMirroring, whose compiled
+#   private class (QQuickLayoutMirroringAttached) the kit's QtQuick DLL does not
+#   export, so qmltc's C++ for them cannot link.
+set_source_files_properties(
+    qml/Home.qml
+    qml/solo/FlatBoard.qml
+    qml/solo/JewelsScreen.qml
+    qml/solo/PlayingPanel.qml
+    qml/solo/TraceLayer.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
+# The wording singletons carry qsTr(): compiled by qmltc, a translation is
+# captured once at creation, before the catalogue is installed, and is never
+# retranslated when the parent changes the language. They are made dynamically;
+# the tokens (Theme) and the state (Navigation) hold no qsTr and stay compiled.
+set_source_files_properties(
+    qml/HomeWording.qml
+    qml/solo/JewelsWording.qml
+    qml/solo/SoloWording.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
 qt_add_qml_module(WordJewelsSolver
     URI WordJewelsSolver
     VERSION 1.0
+    ENABLE_TYPE_COMPILER
     IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}/parent"
     IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}/scan"
     IMPORT_PATH "${WJS_SCENE_IMPORT_DIR}"
@@ -157,6 +191,9 @@ qt_add_qml_module(WordJewelsSolver
         system_colour_scheme.hpp
         system_motion.cpp
         system_motion.hpp)
+
+# The type compiler's generated C++ reads Qt's private headers (cmake/FindQt6.cmake).
+wjs_enable_qmltc_private_headers(WordJewelsSolver)
 
 # The feedback sounds, embedded as :/sounds/<name>.wav. They are placeholders
 # made by tools/sounds/make_sounds.ps1 and owned by the project (notices/
@@ -237,11 +274,12 @@ target_include_directories(WordJewelsSolver PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}
 # The C++ the QML compiler writes for each QML file is built with the target's
 # warnings as errors, and MSVC's code generator reports C4702 (unreachable code)
 # from inside Qt's own headers while compiling it. /external:W0 does not silence
-# a warning raised after the front end, so those files, and only those, are told
-# to leave C4702 alone; the code written by hand keeps it.
+# a warning raised after the front end, so those files, and only those - the
+# bytecode compiler's (qmlcachegen) and the type compiler's (qmltc) output - are
+# told to leave C4702 alone; the code written by hand keeps it.
 get_target_property(_wjs_app_sources WordJewelsSolver SOURCES)
 foreach(_wjs_source IN LISTS _wjs_app_sources)
-    if(_wjs_source MATCHES "/[.]rcc/qmlcache/")
+    if(_wjs_source MATCHES "/[.]rcc/qmlcache/" OR _wjs_source MATCHES "/[.]qmltc/")
         set_source_files_properties("${_wjs_source}" PROPERTIES
             COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/wd4702>")
     endif()
@@ -270,6 +308,8 @@ target_link_libraries(WordJewelsSolver
         Qt6::Qml
         Qt6::Quick
         Qt6::QuickControls2
+        Qt6::QuickLayouts
+        Qt6::QuickShapes
         Qt6::Quick3D
         wjs::warnings
         wjs::sanitizers

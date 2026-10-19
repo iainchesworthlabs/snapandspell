@@ -20,6 +20,7 @@ FocusScope {
     signal soloRequested
     signal parentRequested
     signal collectionRequested
+    signal boardsRequested
 
     readonly property bool wide: width >= 900
     // Home has one primary Play picture and one adult picture; the name is kept
@@ -28,9 +29,9 @@ FocusScope {
 
     // The space below the app bar. Everything on the page is laid out in it.
     readonly property real room: Math.max(0, height - Theme.appBarHeight)
-    readonly property bool short: room < 650
-    readonly property real margin: short ? Theme.space4 : Theme.space8
-    readonly property real gutter: short ? Theme.space4 : Theme.space6
+    readonly property bool small: room < 650
+    readonly property real margin: small ? Theme.space4 : Theme.space8
+    readonly property real gutter: small ? Theme.space4 : Theme.space6
     // The cards take what the hero and footer leave, rather than a fixed 420
     // that pushes the footer past the window at the minimum height.
     readonly property real cardHeight: Math.max(300, Math.min(420, room
@@ -59,8 +60,12 @@ FocusScope {
         // empty shelf with the way to play, rather than waiting for a first find
         // before the collection exists.
         showJewels: true
+        // The boards played: the earlier boards are one press from home, not
+        // buried in the play panel.
+        showBoards: true
         onParentRequested: root.parentRequested()
         onJewelsRequested: root.collectionRequested()
+        onBoardsRequested: root.boardsRequested()
     }
 
     Flickable {
@@ -97,7 +102,7 @@ FocusScope {
                     width: parent.width
                     text: qsTr("Shake. Find. Collect.")
                     font.family: Theme.uiFont
-                    font.pixelSize: root.short ? Theme.titleSize : Theme.displaySize
+                    font.pixelSize: root.small ? Theme.titleSize : Theme.displaySize
                     font.weight: Font.ExtraBold
                     font.letterSpacing: -1.8
                     color: Theme.ink
@@ -106,7 +111,7 @@ FocusScope {
                 Text {
                     // At the minimum height the two ways in matter more than a
                     // second sentence; it comes back as soon as there is room.
-                    visible: !root.short
+                    visible: !root.small
                     width: Math.min(parent.width, 720)
                     text: qsTr("A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.")
                     font.family: Theme.fontFamily

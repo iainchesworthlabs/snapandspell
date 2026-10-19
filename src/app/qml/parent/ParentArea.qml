@@ -122,7 +122,8 @@ FocusScope {
                 model: root.controller.unlocked
                     ? [{id: "dashboard", label: ParentWording.tabDashboard},
                        {id: "settings", label: ParentWording.tabSettings},
-                       {id: "about", label: ParentWording.tabAbout}]
+                       {id: "about", label: ParentWording.tabAbout},
+                       {id: "licences", label: ParentWording.tabLicences}]
                     : []
                 PButton {
                     required property var modelData
@@ -157,6 +158,8 @@ FocusScope {
                 return settings;
             case "about":
                 return about;
+            case "licences":
+                return licences;
             default:
                 return dashboard;
             }
@@ -191,6 +194,13 @@ FocusScope {
     Component {
         id: about
         AboutScreen {
+            controller: root.controller
+            onLicencesRequested: root.page = "licences"
+        }
+    }
+    Component {
+        id: licences
+        LicencesScreen {
             controller: root.controller
         }
     }

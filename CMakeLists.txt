@@ -95,6 +95,56 @@ project(WordJewelsSolver
     LANGUAGES CXX)
 
 # ---------------------------------------------------------------------------
+# Git provenance for the version block (src/lib/include/wjs/version.hpp.in):
+# what the build was built from, read once at configure time. A tree git
+# cannot be asked (a source tarball) keeps the "unknown" defaults.
+# ---------------------------------------------------------------------------
+set(WJS_GIT_COMMIT "unknown")
+set(WJS_GIT_DESCRIBE "v${PROJECT_VERSION}")
+set(WJS_GIT_BRANCH "unknown")
+set(WJS_GIT_DIRTY false)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}" rev-parse --short=12 HEAD
+        OUTPUT_VARIABLE WJS_GIT_COMMIT_RAW
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE WJS_GIT_COMMIT_RESULT)
+    if(WJS_GIT_COMMIT_RESULT EQUAL 0)
+        set(WJS_GIT_COMMIT "${WJS_GIT_COMMIT_RAW}")
+
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}" describe --tags --always
+            OUTPUT_VARIABLE WJS_GIT_DESCRIBE_RAW
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+            RESULT_VARIABLE WJS_GIT_DESCRIBE_RESULT)
+        if(WJS_GIT_DESCRIBE_RESULT EQUAL 0)
+            set(WJS_GIT_DESCRIBE "${WJS_GIT_DESCRIBE_RAW}")
+        else()
+            set(WJS_GIT_DESCRIBE "${WJS_GIT_COMMIT}")
+        endif()
+
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}" rev-parse --abbrev-ref HEAD
+            OUTPUT_VARIABLE WJS_GIT_BRANCH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+
+        # Ignore untracked files, so a populated build tree does not read "dirty".
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}"
+                    status --porcelain --untracked-files=no
+            OUTPUT_VARIABLE WJS_GIT_STATUS
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET)
+        if(NOT WJS_GIT_STATUS STREQUAL "")
+            set(WJS_GIT_DIRTY true)
+        endif()
+    endif()
+endif()
+
+# ---------------------------------------------------------------------------
 # Global language settings: C++23 only, no compiler extensions.
 # ---------------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 23)
@@ -190,7 +240,7 @@ else()
         "build the application).")
 endif()
 
-set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 Quick3D LinguistTools)
+set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 QuickLayouts QuickShapes Quick3D LinguistTools)
 if(_wjs_qt_requirement)
     find_package(Qt6 6.12 ${_wjs_qt_requirement} COMPONENTS ${WJS_QT_COMPONENTS})
 endif()

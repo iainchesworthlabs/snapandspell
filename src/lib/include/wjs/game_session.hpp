@@ -412,6 +412,16 @@ public:
     // word itself out.
     [[nodiscard]] std::vector<Position> lit_path() const;
 
+    // How many of the board's words are still to find and begin with `prefix`
+    // (the tile the help lit, or its first two tiles): a count, never a word
+    // (wjs/game_rules.hpp).
+    [[nodiscard]] std::size_t words_with_start(std::span<const Position> prefix) const;
+
+    // The help is put away without its word being found: the child made a word
+    // from the lit start, and the start is now their own. The lit word is
+    // cleared; nothing else changes.
+    void dismiss_help();
+
     // --- events ---------------------------------------------------------------
     // Each returns whether it applied. One that does not leaves everything as it
     // was: a screen may send an event late or twice.

@@ -305,13 +305,21 @@ Item {
     }
 
     // --- the pointer ---------------------------------------------------------------
-    // Only the first pointer draws; the rest is ignored.
+    // Only the first pointer draws; the rest is ignored. The forgiving band
+    // (a little beyond the board's edges) stays inside this item's bounds, so
+    // it never reaches over the app bar above or the panel beside.
+    readonly property real pointerLeft: Math.max(0, root.boardRect.x - root.slack)
+    readonly property real pointerTop: Math.max(0, root.boardRect.y - root.slack)
+    readonly property real pointerRight: Math.min(root.width,
+                                                  root.boardRect.x + root.boardRect.width + root.slack)
+    readonly property real pointerBottom: Math.min(root.height,
+                                                   root.boardRect.y + root.boardRect.height + root.slack)
     MouseArea {
         id: pointer
-        x: root.boardRect.x - root.slack
-        y: root.boardRect.y - root.slack
-        width: root.boardRect.width + 2 * root.slack
-        height: root.boardRect.height + 2 * root.slack
+        x: root.pointerLeft
+        y: root.pointerTop
+        width: Math.max(0, root.pointerRight - root.pointerLeft)
+        height: Math.max(0, root.pointerBottom - root.pointerTop)
         enabled: root.accepting
         preventStealing: true
 

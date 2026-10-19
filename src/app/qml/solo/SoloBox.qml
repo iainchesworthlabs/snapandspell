@@ -20,10 +20,10 @@ Item {
 
     readonly property var offered: solo.sizes.filter(size => size <= layoutRule.largestOffered)
     readonly property bool mirrored: Theme.rightToLeft
-    readonly property bool short: height < 640
+    readonly property bool small: height < 640
     readonly property real margin: Theme.space6
-    readonly property real gap: short ? Theme.space3 : Theme.space4
-    readonly property real sizeCard: short ? 72 : 88
+    readonly property real gap: small ? Theme.space3 : Theme.space4
+    readonly property real sizeCard: small ? 72 : 88
 
     component SizeCard: Rectangle {
         id: choice
@@ -156,13 +156,13 @@ Item {
                 color: Theme.card
                 border.width: 1
                 border.color: Theme.line
-                implicitHeight: howTo.implicitHeight + 2 * (root.short ? Theme.space3 : Theme.space4)
+                implicitHeight: howTo.implicitHeight + 2 * (root.small ? Theme.space3 : Theme.space4)
 
                 Column {
                     id: howTo
                     anchors.fill: parent
-                    anchors.margins: root.short ? Theme.space3 : Theme.space4
-                    spacing: root.short ? Theme.space1 : Theme.space2
+                    anchors.margins: root.small ? Theme.space3 : Theme.space4
+                    spacing: root.small ? Theme.space1 : Theme.space2
 
                     Text {
                         text: qsTr("How it works")

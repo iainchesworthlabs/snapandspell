@@ -177,8 +177,12 @@ int run_check(const QString& out) {
     check(window->property("parentOpen").toBool(), "the parent area opens");
 
     QStringList texts = visible_texts(window);
-    check(any_contains(texts, "For parents"), "the gate has its title");
-    check(any_contains(texts, "Hold both circles"), "the gate says what to do");
+    check(any_contains(texts, QCoreApplication::translate("ParentWording", "For grown-ups")),
+          "the gate has its title");
+    check(any_contains(texts,
+                       QCoreApplication::translate("ParentWording",
+                                                   "Press and hold for two seconds.")),
+          "the gate says what to do");
     check(!any_contains(texts, "This week"), "nothing of the data is shown at the gate");
     check(!any_contains(texts, "Sounds"), "no sound is shown at the gate");
     check_no_forbidden_words(texts, "the gate");
@@ -215,6 +219,8 @@ int run_check(const QString& out) {
     // --- the dashboard --------------------------------------------------------------
     texts = visible_texts(window);
     check(any_contains(texts, "This week"), "the dashboard has this week");
+    check(any_contains(texts, "How the play is going"),
+          "the records have a heading of their own, below the action");
     check(any_contains(texts, "Sounds"), "the dashboard has the sounds");
     check(any_contains(texts, "The vault"), "the dashboard has the vault");
     check(any_contains(texts, "Best"), "the dashboard has the best");
@@ -240,12 +246,16 @@ int run_check(const QString& out) {
     pump();
     texts = visible_texts(window);
     for (const char* label :
-         {"Help", "Board", "Phase", "Focus sounds", "Board size", "Sound it out",
+         {"Help", "Board", "Phase", "Focus sounds", "Board size", "Timer", "Sound it out",
           "Celebration sounds", "Sound", "Vibration", "Shake the device", "Motion", "Text size",
           "Reset", "Clear boards and finds", "Clear stars and stickers"}) {
         check(any_contains(texts, label), QString("the settings have: ") + label);
     }
     check(!any_contains(texts, "School font"), "no school font is offered: none can be bundled");
+    check(any_contains(texts, "A start tile") && any_contains(texts, "Two letters"),
+          "the help is one of off, the start tile, or two letters");
+    check(any_contains(texts, "Count up") && any_contains(texts, "Count down"),
+          "the board's clock is one of off, up or down");
     check_no_forbidden_words(texts, "the settings");
     save(window, out, "settings");
 
@@ -255,10 +265,18 @@ int run_check(const QString& out) {
     window->resize(1024, 700);
 
     // A setting changes what is shown, and what is kept.
-    check(controller.setSetting("help", false), "help can be switched off");
-    check(store.settings().help == false, "and the store keeps it");
+    check(controller.setSetting("help", "start"), "the help can be its middle level");
+    check(store.settings().help == wjs::HelpLevel::start, "and the store keeps it");
     pump();
     check(controller.toggleFocusSound("s"), "a sound of the phase can be ticked");
+    pump();
+    // The board's clock: a count-down of the length the parent chose.
+    check(controller.setSetting("timer", "down"), "the board's clock can count down");
+    check(controller.setSetting("timerLength", 10), "and its length can be chosen");
+    check(store.settings().solo_clock == wjs::SoloClock::count_down
+              && store.settings().solo_clock_minutes == 10,
+          "and the store keeps both");
+    check(!controller.setSetting("timer", "sideways"), "a clock that is not offered is refused");
     pump();
     save(window, out, "settings-ticked");
 
@@ -267,8 +285,28 @@ int run_check(const QString& out) {
     pump();
     texts = visible_texts(window);
     check(any_contains(texts, "version"), "the about page says the version");
-    check(any_contains(texts, "GNU General Public License"), "and the licence");
+    check(any_contains(texts, "commit"), "and the commit the build was made from");
+    check(any_contains(texts, "branch"), "and its branch");
     check(any_contains(texts, "does not use the network"), "and what is never done");
+    // One privacy section, not two: the summary card is gone, and the page says
+    // the privacy line once.
+    {
+        int summary = 0;
+        for (const QString& text : texts) {
+            if (text.contains("Kept on this device. No recording, no network.")) {
+                ++summary;
+            }
+        }
+        check(summary == 1, "the about page has one privacy section, not two");
+    }
+    check_no_forbidden_words(texts, "the about page");
+    save(window, out, "about");
+
+    // --- the licences page -------------------------------------------------------------------
+    window->setProperty("page", "licences");
+    pump();
+    texts = visible_texts(window);
+    check(any_contains(texts, "GNU General Public License"), "the licences page has the licence");
     // The full third-party notices: embedded, and shown in the page's own
     // scroll box. The resource is the one a package's application carries
     // (cmake/Notices.cmake, wjs_add_notices_resource).
@@ -279,9 +317,11 @@ int run_check(const QString& out) {
     check(any_contains(texts, "Qt Quick 3D"), "and carry the Qt Quick 3D section");
     check(any_contains(texts, "ENABLE"), "and the word list's");
     check(any_contains(texts, "Catch2"), "and what is used only to test it");
+    check(!any_contains(texts, "does not use the network"),
+          "the licences page is the licences, not the privacy");
     check_no_forbidden_words(visible_texts(window, QStringLiteral("licenceNotices")),
-                             "the about page");
-    save(window, out, "about");
+                             "the licences page");
+    save(window, out, "licences");
 
     // --- back shuts the gate -----------------------------------------------------------------
     window->setProperty("page", "dashboard");
@@ -345,6 +385,10 @@ int run_empty_check(const QString& out) {
     check(!any_contains(settings, "Phase"), "and no phase to choose");
     check(!controller.setSetting("board", "phonics"),
           "the phonics board cannot be chosen without its words");
+    check(any_contains(settings, "Phonics needs the phonics data"),
+          "and the settings say why Phonics is not offered");
+    check(controller.setSetting("timer", "up"),
+          "the board's clock does not need phase data");
     save(window, out, "settings-no-phases");
     return (g_failures == 0 && g_warnings == 0) ? 0 : 1;
 }
@@ -402,11 +446,11 @@ int run_language_check(const QString& out) {
         pump();
 
         // The gate: its title comes from the catalogue that is installed.
-        const QString gate_title = QCoreApplication::translate("ParentWording", "For parents");
+        const QString gate_title = QCoreApplication::translate("ParentWording", "For grown-ups");
         check(any_contains(visible_texts(window), gate_title),
               "the gate's title is the catalogue's for " + code);
         if (code != QLatin1String("en")) {
-            check(gate_title != QLatin1String("For parents"),
+            check(gate_title != QLatin1String("For grown-ups"),
                   "a catalogue is really installed for " + code);
         }
         check(window->property("mirrored").toBool() == right_to_left,

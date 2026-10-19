@@ -117,7 +117,7 @@ using std::chrono::milliseconds;
 
 [[nodiscard]] QVariantMap settings_map(const wjs::Settings& s) {
     QVariantMap map;
-    map.insert(QStringLiteral("help"), s.help);
+    map.insert(QStringLiteral("help"), text(to_string(s.help)));
     map.insert(QStringLiteral("board"), text(to_string(s.board)));
     map.insert(QStringLiteral("phase"), text(s.phase));
     map.insert(QStringLiteral("focusSounds"), list(s.focus_sounds));
@@ -129,6 +129,8 @@ using std::chrono::milliseconds;
     map.insert(QStringLiteral("shake"), s.shake);
     map.insert(QStringLiteral("motion"), text(to_string(s.motion)));
     map.insert(QStringLiteral("colourScheme"), text(to_string(s.colour_scheme)));
+    map.insert(QStringLiteral("timer"), text(to_string(s.solo_clock)));
+    map.insert(QStringLiteral("timerLength"), s.solo_clock_minutes);
     map.insert(QStringLiteral("textSizePercent"), s.text_size_percent);
     map.insert(QStringLiteral("schoolFont"), text(s.school_font));
     map.insert(QStringLiteral("language"), text(s.language));
@@ -433,6 +435,26 @@ QString ParentController::language() const {
     return text(store_->settings().language);
 }
 
+QString ParentController::helpLevel() const {
+    return text(to_string(store_->settings().help));
+}
+
+QString ParentController::soloClock() const {
+    return text(to_string(store_->settings().solo_clock));
+}
+
+int ParentController::soloClockMinutes() const {
+    return store_->settings().solo_clock_minutes;
+}
+
+QVariantList ParentController::timerLengthChoices() const {
+    QVariantList list;
+    for (const int minutes : wjs::solo_clock_minutes_choices) {
+        list.append(minutes);
+    }
+    return list;
+}
+
 bool ParentController::reducedMotion() const {
     return store_->settings().motion == wjs::MotionSetting::reduced;
 }
@@ -443,6 +465,10 @@ double ParentController::textScale() const {
 
 QString ParentController::version() const {
     return text(wjs::project_version);
+}
+
+QString ParentController::versionDetails() const {
+    return text(wjs::version_details());
 }
 
 // The notice is not one of the parent area's sentences: it is a legal text, in
@@ -477,8 +503,12 @@ void ParentController::applySettings(wjs::Settings settings) {
 bool ParentController::setSetting(const QString& key, const QVariant& value) {
     wjs::Settings s = store_->settings();
 
-    if (key == QLatin1String("help") && is_bool(value)) {
-        s.help = value.toBool();
+    if (key == QLatin1String("help") && is_string(value)) {
+        const auto level = wjs::help_level_from_string(utf8(value.toString()));
+        if (!level) {
+            return false;
+        }
+        s.help = *level;
     } else if (key == QLatin1String("board") && is_string(value)) {
         const auto mode = wjs::board_mode_from_string(utf8(value.toString()));
         // The Phonics board needs a phase's words.
@@ -530,6 +560,21 @@ bool ParentController::setSetting(const QString& key, const QVariant& value) {
             return false;
         }
         s.colour_scheme = *parsed;
+    } else if (key == QLatin1String("timer") && is_string(value)) {
+        const auto parsed = wjs::solo_clock_from_string(utf8(value.toString()));
+        if (!parsed) {
+            return false;
+        }
+        s.solo_clock = *parsed;
+    } else if (key == QLatin1String("timerLength")) {
+        const auto minutes = whole_number(value);
+        if (!minutes ||
+            std::find(std::begin(wjs::solo_clock_minutes_choices),
+                      std::end(wjs::solo_clock_minutes_choices),
+                      *minutes) == std::end(wjs::solo_clock_minutes_choices)) {
+            return false;
+        }
+        s.solo_clock_minutes = *minutes;
     } else if (key == QLatin1String("textSizePercent")) {
         const auto percent = whole_number(value);
         if (!percent ||

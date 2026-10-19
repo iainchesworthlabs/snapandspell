@@ -24,6 +24,7 @@ set(WJS_PARENT_QML_FILES
     AboutScreen.qml
     DashboardScreen.qml
     GateScreen.qml
+    LicencesScreen.qml
     PButton.qml
     PChoice.qml
     ParentArea.qml
@@ -53,6 +54,13 @@ qt_add_qml_module(wjs_parent
     STATIC
     URI WordJewelsSolver.Parent
     VERSION 1.0
+    # No ENABLE_TYPE_COMPILER here: every screen sets LayoutMirroring and reads
+    # the translated wording singleton, which the shared kit's qmltc cannot link
+    # or translate; even the small components misbehaved under it in
+    # parent.screens (flickering option labels, an engine crash on gate
+    # teardown). The parent area is behind the gate and opened rarely, so its
+    # first show is the acceptable place for this cost; the child-facing kit
+    # and screens are the compiled ones.
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/WordJewelsSolver/Parent"
     QML_FILES ${WJS_PARENT_QML_SOURCES}
     SOURCES

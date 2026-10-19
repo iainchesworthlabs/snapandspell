@@ -6,7 +6,8 @@ import QtQuick
 // screen here, "solo", whose own state says which of them it shows.
 //
 // Back goes where the person came from, with the exceptions the screens make
-// (from solo.resting it goes home, from solo.playing it puts the lid on).
+// (from solo.resting it goes home, and from solo.playing it goes home with the
+// round left in progress, to be found on the next visit).
 QtObject {
     id: root
 

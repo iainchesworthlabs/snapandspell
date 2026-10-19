@@ -19,6 +19,7 @@ TestCase {
 
     SignalSpy { id: soloSpy; signalName: "soloRequested" }
     SignalSpy { id: parentSpy; signalName: "parentRequested" }
+    SignalSpy { id: boardsSpy; signalName: "boardsRequested" }
 
     function init() {
         failOnWarning(/.?/)
@@ -103,6 +104,18 @@ TestCase {
         const grownUps = picture(screen, HomeWording.forGrownUps)
         mouseClick(grownUps, grownUps.width / 2, grownUps.height / 2)
         compare(parentSpy.count, 2)
+    }
+
+    function test_theBoardsEntryAsksForTheHistory() {
+        const screen = home()
+        boardsSpy.target = screen
+        boardsSpy.clear()
+
+        const boards = picture(screen, qsTr("My boards"))
+        verify(boards !== null)
+        mouseClick(boards, boards.width / 2, boards.height / 2)
+
+        compare(boardsSpy.count, 1)
     }
 
     function test_theChildPlacardHasTheKeyboardAndSpaceOpensIt() {

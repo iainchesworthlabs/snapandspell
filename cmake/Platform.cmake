@@ -111,6 +111,11 @@ endif()
 set(WJS_PLATFORM_DIR "${PROJECT_SOURCE_DIR}/src/platforms/${WJS_PLATFORM}")
 include("${WJS_PLATFORM_DIR}/platform.cmake")
 
+# What the version block says this binary was built for and with (the target's
+# own name, word size and compiler). Named here, in the one file that tests the
+# OS, so src/lib/CMakeLists.txt reads a plain variable.
+set(WJS_VERSION_TARGET "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}, ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+
 # A fragment that forgets part of the contract should fail here, by name, not
 # as an empty source list or a missing-command error three files away.
 include(PlatformContract)

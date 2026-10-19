@@ -133,7 +133,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         out += '=';
         out += value;
     };
-    put("help", flag(s.help));
+    put("help", to_string(s.help));
     put("board", to_string(s.board));
     put("phase", s.phase);
     put("focus", s.focus_sounds.empty() ? std::string{"-"} : join(s.focus_sounds, ','));
@@ -145,6 +145,8 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
     put("shake", flag(s.shake));
     put("motion", to_string(s.motion));
     put("colour", to_string(s.colour_scheme));
+    put("timer", to_string(s.solo_clock));
+    put("timer_minutes", std::to_string(s.solo_clock_minutes));
     put("text", std::to_string(s.text_size_percent));
     put("font", field(s.school_font));
     put("language", field(s.language));
@@ -167,7 +169,15 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         const std::string_view key = std::string_view{word}.substr(0, equals);
         const std::string_view value = std::string_view{word}.substr(equals + 1);
         if (key == "help") {
-            s.help = to_flag(value).value_or(s.help);
+            // A file from before the levels: 1 is the full (two-rung) help,
+            // 0 is none.
+            if (value == "0") {
+                s.help = HelpLevel::off;
+            } else if (value == "1") {
+                s.help = HelpLevel::two_letters;
+            } else {
+                s.help = help_level_from_string(value).value_or(s.help);
+            }
         } else if (key == "board") {
             s.board = board_mode_from_string(value).value_or(s.board);
         } else if (key == "phase") {
@@ -191,6 +201,10 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
             s.motion = motion_from_string(value).value_or(s.motion);
         } else if (key == "colour") {
             s.colour_scheme = colour_scheme_from_string(value).value_or(s.colour_scheme);
+        } else if (key == "timer") {
+            s.solo_clock = solo_clock_from_string(value).value_or(s.solo_clock);
+        } else if (key == "timer_minutes") {
+            s.solo_clock_minutes = to_integer<int>(value).value_or(s.solo_clock_minutes);
         } else if (key == "text") {
             s.text_size_percent = to_integer<int>(value).value_or(s.text_size_percent);
         } else if (key == "font") {

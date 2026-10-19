@@ -74,7 +74,11 @@ Flickable {
                 hint: ParentWording.settingsHelpHint
                 PChoice {
                     title: ParentWording.settingsHelp
-                    options: root.onOff()
+                    options: [
+                        {value: "off", label: ParentWording.valueOff},
+                        {value: "start", label: ParentWording.valueHelpStart},
+                        {value: "two", label: ParentWording.valueHelpTwo}
+                    ]
                     current: root.s.help
                     onChosen: value => root.controller.setSetting("help", value)
                 }
@@ -92,6 +96,15 @@ Flickable {
                     ]
                     current: root.s.board
                     onChosen: value => root.controller.setSetting("board", value)
+                }
+                Text {
+                    Layout.fillWidth: true
+                    visible: !root.controller.phonicsAvailable
+                    text: ParentWording.settingsBoardNoPhonics
+                    font.family: ParentTheme.uiFont
+                    font.pixelSize: ParentTheme.sizeSmall
+                    color: ParentTheme.inkSecondary
+                    wrapMode: Text.WordWrap
                 }
             }
 
@@ -178,6 +191,34 @@ Flickable {
                         : [{value: 3, label: "3x3"}, {value: 4, label: "4x4"}]
                     current: root.s.boardSize
                     onChosen: value => root.controller.setSetting("boardSize", value)
+                }
+            }
+
+            SettingRow {
+                Layout.fillWidth: true
+                title: ParentWording.settingsTimer
+                hint: ParentWording.settingsTimerHint
+                PChoice {
+                    title: ParentWording.settingsTimer
+                    options: [
+                        {value: "off", label: ParentWording.valueOff},
+                        {value: "up", label: ParentWording.valueCountUp},
+                        {value: "down", label: ParentWording.valueCountDown}
+                    ]
+                    current: root.s.timer
+                    onChosen: value => root.controller.setSetting("timer", value)
+                }
+            }
+
+            SettingRow {
+                Layout.fillWidth: true
+                visible: root.s.timer === "down"
+                title: ParentWording.settingsTimerLength
+                PChoice {
+                    title: ParentWording.settingsTimerLength
+                    options: root.controller.timerLengthChoices.map(choice => ({value: choice, label: choice + " min"}))
+                    current: root.s.timerLength
+                    onChosen: value => root.controller.setSetting("timerLength", value)
                 }
             }
 
