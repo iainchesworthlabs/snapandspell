@@ -61,7 +61,7 @@ using Zone = tracy::ScopedZone;
 // Tracy's connection check (TRACY_ON_DEMAND).
 template <StaticName Name>
 [[nodiscard]] Zone zone(std::source_location where = std::source_location::current()) {
-    static const SourceLocation location{Name.text, where.function_name(), where.file_name(),
+    static const SourceLocation location{Name.text.data(), where.function_name(), where.file_name(),
                                          where.line(), 0};
     return Zone{&location};
 }

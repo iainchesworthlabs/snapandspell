@@ -5,8 +5,10 @@ This page builds WordJewelsSolver from source. To use `wjs-cli`, see the
 
 CI builds and tests all three desktops: Windows (MSVC 19.51), Linux (GCC 15.2,
 Ubuntu 26.04) and macOS (Apple clang 21, Apple silicon), each in Debug with
-warnings as errors and sanitizers. The compiler minimums below are the intent;
-only the versions just named have been tried. What CI runs is in [CI](ci.md).
+warnings as errors and sanitizers. A nightly run adds clang-tidy, MSVC's
+`/analyze` and a Clang AddressSanitizer + UBSan build ([CI](ci.md#nightly-analysis)).
+The compiler minimums below are the intent; only the versions just named have
+been tried. What CI runs is in [CI](ci.md).
 
 ## Requirements
 
@@ -88,15 +90,20 @@ A preset configures into `build/<preset>/` and is named
 | `linux-gcc-debug` | Linux | `x64-linux` | Debug, with AddressSanitizer and UBSan; uses `g++` |
 | `linux-gcc-release` | Linux | `x64-linux` | Release |
 | `linux-gcc-coverage` | Linux | `x64-linux` | Debug with gcov instrumentation and the sanitizers off |
+| `linux-clang-debug` | Linux | `x64-linux` | Debug, with Clang's AddressSanitizer and UBSan; uses `clang++`. The nightly Clang sanitizer leg |
 | `macos-clang-debug` | macOS | `arm64-osx` | Debug, with AddressSanitizer and UBSan |
 | `macos-clang-release` | macOS | `arm64-osx` | Release |
 | `windows-msvc-profiling` | Windows | `x64-windows` | RelWithDebInfo with Tracy, sanitizers off. A development build, never shipped: see [Profiling](profiling.md) |
 | `linux-gcc-profiling` | Linux | `x64-linux` | As above, with `g++` |
 | `macos-clang-profiling` | macOS | `arm64-osx` | As above |
+| `windows-msvc-analysis` | Windows | `x64-windows` | MSVC's `/analyze`, with warnings as errors and SARIF logs; no tests, no application, sanitizers off. The nightly MSVC analysis leg |
+
+`windows-msvc-analysis` turns the application and the tests off, so the
+analyzer's work stays on the sources.
 
 The macOS presets use the Apple Silicon triplet. On an Intel Mac, pass
-`-DVCPKG_TARGET_TRIPLET=x64-osx` (untried). The Linux presets name the compiler
-`g++`; if yours is older than GCC 14, pass `-DCMAKE_CXX_COMPILER=g++-14`, or
+`-DVCPKG_TARGET_TRIPLET=x64-osx` (untried). The Linux GCC presets name the
+compiler `g++`; if yours is older than GCC 14, pass `-DCMAKE_CXX_COMPILER=g++-14`, or
 whichever newer one you have.
 
 For a combination the presets do not cover, make your own in
@@ -114,6 +121,7 @@ Pass these to the configure step, for example
 | `WJS_BUILD_TESTS` | `ON` | Build the test suites, and register the platform tests. Turning it off also stops vcpkg building Catch2 |
 | `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the harness around the 3D board scene as `ShakePrototype`. Needs `WJS_BUILD_APP=ON` and Qt Quick 3D; the harness links the same scene module as the application, so both are GPL-3.0 only. See [the prototype](design/shake-prototype.md#how-it-was-measured) |
 | `WJS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
+| `WJS_ENABLE_MSVC_ANALYSIS` | `OFF` | MSVC's static analyzer during compilation (`/analyze`, with `/W4 /WX`), SARIF logs written beside the objects. Needs MSVC; the `windows-msvc-analysis` preset turns it on. See [Static analysis](#static-analysis) |
 | `WJS_ENABLE_COVERAGE` | `OFF` | gcov instrumentation. Only the `linux-gcc-coverage` preset turns it on |
 | `WJS_REQUIRE_REVIEWED_PHONICS` | `ON` for the release build types, else `OFF` | The review gate: the build runs `tools/data/check_phonics.ps1 -RequireReviewed` and stops while a file in `data/phonics` has no reviewed-by and reviewed-on header. Needs PowerShell 7. The release presets set it. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
 | `WJS_ENABLE_TRACY` | `OFF` | The Tracy profiler: makes the calls in `wjs/profiling.hpp` real, and installs the client and its tools through the vcpkg `profiling` feature. Only the `*-profiling` presets turn it on, and nothing that ships may ([Profiling](profiling.md)) |
@@ -420,7 +428,39 @@ Debug builds also turn on sanitizers (`cmake/Sanitizers.cmake`):
 - clang-cl: disabled.
 
 Release builds are not instrumented. `-DWJS_ENABLE_SANITIZERS=OFF` turns it all
-off for a Debug build.
+off for a Debug build. `linux-clang-debug` is the same flags with `clang++`, and
+is what the nightly Clang sanitizer leg builds ([CI](ci.md#nightly-analysis)).
+
+## Static analysis
+
+`clang-tidy` reads the compile database the configure step writes
+(`CMAKE_EXPORT_COMPILE_COMMANDS=ON` is a preset default), so it needs no build:
+
+```sh
+pip install -r .github/requirements/analysis.txt
+cmake --preset linux-gcc-debug -DWJS_BUILD_TESTS=OFF -DWJS_BUILD_APP=OFF \
+  -DWJS_ENABLE_SANITIZERS=OFF -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+# run-clang-tidy.py on Linux; the wheel installs run-clang-tidy.exe on Windows.
+run-clang-tidy.py -p build/linux-gcc-debug -config-file "$PWD/.clang-tidy" \
+  -warnings-as-errors '*'
+```
+
+`.clang-tidy` holds the check list and the reason each disabled check is out;
+the pinned version is in `.github/requirements/analysis.txt`. The nightly job
+runs the same command over every translation unit in the database.
+
+MSVC's analyzer is part of the compile, under the `windows-msvc-analysis`
+preset:
+
+```sh
+cmake --preset windows-msvc-analysis
+cmake --build --preset windows-msvc-analysis
+```
+
+`/WX` turns a C6xxx finding into a failed build, and each translation unit
+writes a `*.nativecodeanalysis.sarif` beside its object; the nightly job uploads
+them to code scanning. A local configure does not upload anything. The option
+is off in every other preset, so a normal build is unchanged.
 
 ## Coverage
 

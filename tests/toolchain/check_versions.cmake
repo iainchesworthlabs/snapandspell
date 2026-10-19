@@ -27,6 +27,7 @@ file(READ "${_versions_file}" _versions)
 
 string(JSON _cmake GET "${_versions}" cmake)
 string(JSON _ninja GET "${_versions}" ninja)
+string(JSON _clang_tidy GET "${_versions}" clang-tidy)
 string(JSON _qt GET "${_versions}" qt version)
 string(JSON _qt_kit GET "${_versions}" qt kit)
 string(JSON _qt_modules GET "${_versions}" qt modules)
@@ -37,39 +38,81 @@ string(JSON _vcpkg_pin_file GET "${_versions}" vcpkg pin_file)
 if(NOT _cmake MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
     message(FATAL_ERROR "toolchain-versions.json: cmake is not a version: '${_cmake}'")
 endif()
-
-# ---- the workflow -----------------------------------------------------------
-
-set(_ci_file "${REPO_ROOT}/.github/workflows/ci.yml")
-if(NOT EXISTS "${_ci_file}")
-    message(FATAL_ERROR "The CI workflow is missing: ${_ci_file}")
+if(NOT _clang_tidy MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    message(FATAL_ERROR "toolchain-versions.json: clang-tidy is not a version: '${_clang_tidy}'")
 endif()
-file(READ "${_ci_file}" _ci)
 
-# Every place the workflow pins CMake or Ninja must name the file's version.
-string(REGEX MATCHALL "cmakeVersion: \"([^\"]+)\"" _cmake_pins "${_ci}")
-list(LENGTH _cmake_pins _cmake_count)
-if(_cmake_count EQUAL 0)
-    _fail("ci.yml pins no CMake version; it must use ${_cmake}")
-endif()
-foreach(_pin IN LISTS _cmake_pins)
-    string(REGEX REPLACE "^cmakeVersion: \"([^\"]+)\"$" "\\1" _value "${_pin}")
-    if(NOT _value STREQUAL _cmake)
-        _fail("ci.yml pins CMake ${_value}; toolchain-versions.json says ${_cmake}")
+# ---- the workflows ----------------------------------------------------------
+
+# Every workflow that configures a build pins CMake and Ninja to the versions
+# in the file. The Qt checks below read ci.yml only: the analysis jobs do not
+# build the Qt application.
+set(_ci "")
+foreach(_workflow IN ITEMS ci analysis)
+    set(_workflow_file "${REPO_ROOT}/.github/workflows/${_workflow}.yml")
+    if(NOT EXISTS "${_workflow_file}")
+        _fail("the ${_workflow}.yml workflow is missing")
+        continue()
     endif()
+    file(READ "${_workflow_file}" _workflow_text)
+    if(_workflow STREQUAL "ci")
+        set(_ci "${_workflow_text}")
+    endif()
+
+    string(REGEX MATCHALL "cmakeVersion: \"([^\"]+)\"" _cmake_pins "${_workflow_text}")
+    list(LENGTH _cmake_pins _cmake_count)
+    if(_cmake_count EQUAL 0)
+        _fail("${_workflow}.yml pins no CMake version; it must use ${_cmake}")
+    endif()
+    foreach(_pin IN LISTS _cmake_pins)
+        string(REGEX REPLACE "^cmakeVersion: \"([^\"]+)\"$" "\\1" _value "${_pin}")
+        if(NOT _value STREQUAL _cmake)
+            _fail("${_workflow}.yml pins CMake ${_value}; toolchain-versions.json says ${_cmake}")
+        endif()
+    endforeach()
+
+    string(REGEX MATCHALL "ninjaVersion: \"([^\"]+)\"" _ninja_pins "${_workflow_text}")
+    list(LENGTH _ninja_pins _ninja_count)
+    if(_ninja_count EQUAL 0)
+        _fail("${_workflow}.yml pins no Ninja version; it must use ${_ninja}")
+    endif()
+    foreach(_pin IN LISTS _ninja_pins)
+        string(REGEX REPLACE "^ninjaVersion: \"([^\"]+)\"$" "\\1" _value "${_pin}")
+        if(NOT _value STREQUAL _ninja)
+            _fail("${_workflow}.yml pins Ninja ${_value}; toolchain-versions.json says ${_ninja}")
+        endif()
+    endforeach()
 endforeach()
 
-string(REGEX MATCHALL "ninjaVersion: \"([^\"]+)\"" _ninja_pins "${_ci}")
-list(LENGTH _ninja_pins _ninja_count)
-if(_ninja_count EQUAL 0)
-    _fail("ci.yml pins no Ninja version; it must use ${_ninja}")
-endif()
-foreach(_pin IN LISTS _ninja_pins)
-    string(REGEX REPLACE "^ninjaVersion: \"([^\"]+)\"$" "\\1" _value "${_pin}")
-    if(NOT _value STREQUAL _ninja)
-        _fail("ci.yml pins Ninja ${_value}; toolchain-versions.json says ${_ninja}")
+# ---- the analysis tooling ---------------------------------------------------
+
+# clang-tidy is a PyPI wheel pinned in one requirements file; the nightly job
+# installs that file and runs it with warnings as errors. A version bumped in
+# the requirements but not here, or the other way round, is a red test.
+set(_analysis_requirements "${REPO_ROOT}/.github/requirements/analysis.txt")
+if(NOT EXISTS "${_analysis_requirements}")
+    _fail("the clang-tidy requirements file is missing: ${_analysis_requirements}")
+else()
+    file(READ "${_analysis_requirements}" _requirements_text)
+    string(REPLACE "." "\\." _clang_tidy_regex "${_clang_tidy}")
+    if(NOT _requirements_text MATCHES "clang-tidy==${_clang_tidy_regex}")
+        _fail("analysis.txt does not pin clang-tidy==${_clang_tidy}; toolchain-versions.json says it must")
     endif()
-endforeach()
+endif()
+if(NOT EXISTS "${REPO_ROOT}/.github/workflows/analysis.yml")
+    _fail("the analysis workflow is missing")
+else()
+    file(READ "${REPO_ROOT}/.github/workflows/analysis.yml" _analysis_text)
+    foreach(_needle IN ITEMS
+            "requirements/analysis.txt"
+            "run-clang-tidy"
+            "warnings-as-errors")
+        string(FIND "${_analysis_text}" "${_needle}" _at)
+        if(_at EQUAL -1)
+            _fail("analysis.yml no longer uses '${_needle}'; the clang-tidy gate would not run as docs/ci.md says")
+        endif()
+    endforeach()
+endif()
 
 # The Qt kit is installed by install-qt-action at the file's pin, with the
 # file's version, architecture, modules and aqtinstall source. The aqtsource is
@@ -130,4 +173,4 @@ endif()
 if(_failures)
     message(FATAL_ERROR "The toolchain pins have drifted:${_failures}")
 endif()
-message(STATUS "toolchain: CMake ${_cmake}, Ninja ${_ninja}, Qt ${_qt} (${_qt_kit}: ${_qt_modules}) by ${_qt_action}; the workflows and the vcpkg pin agree")
+message(STATUS "toolchain: CMake ${_cmake}, Ninja ${_ninja}, clang-tidy ${_clang_tidy}, Qt ${_qt} (${_qt_kit}: ${_qt_modules}) by ${_qt_action}; the workflows, the requirements and the vcpkg pin agree")

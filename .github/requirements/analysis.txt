@@ -1,0 +1,8 @@
+# Pinned static-analysis tooling for the nightly clang-tidy job and for local
+# use:
+#   pip install -r .github/requirements/analysis.txt
+# A binary wheel, pinned exactly: a new release can add checks, and .clang-tidy's
+# disabled list names the ones this version brought (docs/ci.md, "Nightly
+# analysis"). Dependabot's pip ecosystem for /.github/requirements keeps this
+# current.
+clang-tidy==22.1.8

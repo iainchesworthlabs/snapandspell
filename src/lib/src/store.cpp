@@ -129,7 +129,7 @@ struct CheckedBoard {
     // holds more than that, or is a standard board, holds hundreds.
     checked.listed = !snapshot.phase.empty() && !checked.viable.empty() &&
                      checked.viable.size() <= max_listed_viable_words &&
-                     static_cast<int>(checked.viable.size()) == checked.viable_total;
+                     std::cmp_equal(checked.viable.size(), checked.viable_total);
     if (snapshot.phase.empty() || checked.viable.size() > max_listed_viable_words) {
         checked.viable.clear();
     }
@@ -380,7 +380,7 @@ RecordOutcome Store::record(const BoardSnapshot& snapshot, Day today) {
 
     // The finds that are new: the snapshot lists every find so far, in order,
     // and the board remembers how many it has seen.
-    for (std::size_t i = static_cast<std::size_t>(board->found); i < checked->finds.size(); ++i) {
+    for (auto i = static_cast<std::size_t>(board->found); i < checked->finds.size(); ++i) {
         const FoundSnapshot& entry = checked->finds[i];
         const std::string& word = entry.word;
 
@@ -416,7 +416,7 @@ RecordOutcome Store::record(const BoardSnapshot& snapshot, Day today) {
             place->last_day = std::max(place->last_day, entry.day);
         } else {
             place = data_.vault.insert(
-                place, VaultWord{word, entry.day, entry.day, 1, entry.assisted ? 0u : 1u});
+                place, VaultWord{word, entry.day, entry.day, 1, entry.assisted ? 0U : 1U});
             outcome.new_words.push_back(word);
             // Room is made by letting go of the word met longest ago, never the
             // one just added.
@@ -474,7 +474,7 @@ bool Store::save_session(const std::optional<SavedSession>& session) {
         return true;
     }
 
-    if (session->size < 1 || session->size > static_cast<int>(Board::max_dimension)) {
+    if (session->size < 1 || std::cmp_greater(session->size, Board::max_dimension)) {
         return false;
     }
     SavedSession kept = *session;
@@ -502,13 +502,16 @@ bool Store::save_session(const std::optional<SavedSession>& session) {
         kept.board->finds = checked->finds;
         if (kept.lit) {
             auto lit = stored_word(*kept.lit);
+            if (!lit || kept.state != SavedState::playing) {
+                return false;
+            }
             // The lit word is one of the board's, which a phonics board's list
             // says and a standard board's count cannot; the session checks the
             // word against its own solve when it restores.
             const bool on_board =
                 standard || std::find(checked->viable.begin(), checked->viable.end(), *lit) !=
                                 checked->viable.end();
-            if (!lit || kept.state != SavedState::playing || !on_board) {
+            if (!on_board) {
                 return false;
             }
             kept.lit = std::move(lit);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -67,7 +68,8 @@ enum class ColourScheme {
 // screens use: English, French, Spanish, German, Yiddish, Hebrew, Chinese and
 // Japanese (docs/audit-0.1.md, "Languages, RTL and i18n"). The board's letters,
 // the word list and the phonics data are not translated; the chrome is.
-inline constexpr std::string_view languages[] = {"en", "fr", "es", "de", "yi", "he", "zh", "ja"};
+inline constexpr std::array<std::string_view, 8> languages = {"en", "fr", "es", "de",
+                                                              "yi", "he", "zh", "ja"};
 
 // Whether `code` is one of the languages above. Empty is not: it is the system's
 // language, which only the screens know.
@@ -82,7 +84,7 @@ inline constexpr int largest_default_board_size = 4;
 inline constexpr int largest_standard_board_size = 6;
 
 // The text sizes on offer, as a percentage of the system's: 1, 1.25, 1.5.
-inline constexpr int text_size_percents[] = {100, 125, 150};
+inline constexpr std::array<int, 3> text_size_percents = {100, 125, 150};
 
 // The longest a phase, a sound or a font name may be, and the most focus
 // sounds there can be. A bound, so that a damaged file cannot make a large

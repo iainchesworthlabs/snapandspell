@@ -38,8 +38,9 @@ inline constexpr double kNominalStrokeWidth = 0.75;
 [[nodiscard]] const std::array<StrokeGlyph, kGlyphCount>& stroke_font();
 
 // The index in stroke_font() of the glyph that reads as these letters
-// (upper-case), or nothing.
-[[nodiscard]] std::optional<std::size_t> glyph_index(std::string_view letters) noexcept;
+// (upper-case), or nothing. Not noexcept: the first call builds the font,
+// which allocates.
+[[nodiscard]] std::optional<std::size_t> glyph_index(std::string_view letters);
 
 // The shortest distance from a point to any of the strokes.
 [[nodiscard]] double distance_to_strokes(std::span<const Stroke> strokes, Point p) noexcept;

@@ -29,7 +29,7 @@ struct Blob {
     Point centre{};
     // The convex hull of its pixels' outline, clockwise on the screen. A hole
     // does not matter to it.
-    std::vector<Point> hull{};
+    std::vector<Point> hull;
     double hull_area = 0.0;
 };
 

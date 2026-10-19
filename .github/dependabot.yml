@@ -4,8 +4,8 @@ version: 2
 #
 #   github-actions   weekly. Minor and patch updates are grouped into one PR; a
 #                    major update is its own PR and waits for a human.
-#   pip              weekly. The pinned CI tooling (clang-format, gcovr) in
-#                    .github/requirements.
+#   pip              weekly. The pinned CI tooling (clang-format, gcovr,
+#                    clang-tidy) in .github/requirements.
 #   vcpkg            monthly: the manifest's builtin-baseline. vcpkg itself is
 #                    no longer a submodule, so Dependabot cannot move it:
 #                    cmake/vcpkg-commit.txt is bumped by hand, in the same

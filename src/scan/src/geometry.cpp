@@ -1,6 +1,7 @@
 #include "wjs/scan/geometry.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 
@@ -41,11 +42,11 @@ std::vector<Point> convex_hull(std::vector<Point> points) {
     // Andrew's monotone chain, keeping the turns that are clockwise on a screen.
     std::vector<Point> hull(2 * points.size());
     std::size_t k = 0;
-    for (std::size_t i = 0; i < points.size(); ++i) {
-        while (k >= 2 && cross(hull[k - 2], hull[k - 1], points[i]) <= 0.0) {
+    for (const Point& point : points) {
+        while (k >= 2 && cross(hull[k - 2], hull[k - 1], point) <= 0.0) {
             --k;
         }
-        hull[k++] = points[i];
+        hull[k++] = point;
     }
     const std::size_t lower = k + 1;
     for (std::size_t i = points.size() - 1; i > 0; --i) {
@@ -120,7 +121,13 @@ Quad rotate_to_upright(const Quad& quad) noexcept {
             first = k;
         }
     }
-    return Quad{quad[first], quad[(first + 1) % 4], quad[(first + 2) % 4], quad[(first + 3) % 4]};
+    // std::rotate rather than four modular subscripts: MSVC's analyzer cannot
+    // prove that a computed index is below the array's size at each call, and
+    // this is the same rotation without an index to prove.
+    Quad upright = quad;
+    std::rotate(upright.begin(), upright.begin() + static_cast<std::ptrdiff_t>(first),
+                upright.end());
+    return upright;
 }
 
 Point Homography::apply(Point p) const noexcept {
@@ -132,14 +139,14 @@ Point Homography::apply(Point p) const noexcept {
 
 std::optional<Homography> homography(const Quad& from, const Quad& to) noexcept {
     // Eight unknowns h0..h7 (h8 = 1), two equations a point.
-    double a[8][9] = {};
+    std::array<std::array<double, 9>, 8> a{};
     for (std::size_t k = 0; k < 4; ++k) {
         const double x = from[k].x;
         const double y = from[k].y;
         const double u = to[k].x;
         const double v = to[k].y;
-        double* row_u = a[2 * k];
-        double* row_v = a[2 * k + 1];
+        auto& row_u = a.at(2 * k);
+        auto& row_v = a.at(2 * k + 1);
         row_u[0] = x;
         row_u[1] = y;
         row_u[2] = 1.0;
@@ -164,32 +171,32 @@ std::optional<Homography> homography(const Quad& from, const Quad& to) noexcept 
     for (std::size_t column = 0; column < 8; ++column) {
         std::size_t pivot = column;
         for (std::size_t row = column + 1; row < 8; ++row) {
-            if (std::abs(a[row][column]) > std::abs(a[pivot][column])) {
+            if (std::abs(a.at(row).at(column)) > std::abs(a.at(pivot).at(column))) {
                 pivot = row;
             }
         }
-        if (std::abs(a[pivot][column]) < kEpsilon) {
+        if (std::abs(a.at(pivot).at(column)) < kEpsilon) {
             return std::nullopt;
         }
         if (pivot != column) {
             for (std::size_t j = 0; j < 9; ++j) {
-                std::swap(a[pivot][j], a[column][j]);
+                std::swap(a.at(pivot).at(j), a.at(column).at(j));
             }
         }
         for (std::size_t row = 0; row < 8; ++row) {
             if (row == column) {
                 continue;
             }
-            const double factor = a[row][column] / a[column][column];
+            const double factor = a.at(row).at(column) / a.at(column).at(column);
             for (std::size_t j = column; j < 9; ++j) {
-                a[row][j] -= factor * a[column][j];
+                a.at(row).at(j) -= factor * a.at(column).at(j);
             }
         }
     }
 
     Homography h;
     for (std::size_t i = 0; i < 8; ++i) {
-        h.m[i] = a[i][8] / a[i][i];
+        h.m[i] = a.at(i).at(8) / a.at(i).at(i);
     }
     h.m[8] = 1.0;
     return h;

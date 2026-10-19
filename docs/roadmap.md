@@ -219,8 +219,8 @@ The same application on the other targets named in the brief.
 
 ### Cross-cutting
 
-Fuzz the board parser and dictionary loader; clang-tidy job; a coverage gate
-once a baseline exists; Tracy through the opt-in vcpkg feature (its macro API
+Fuzz the board parser and dictionary loader; a coverage gate once a baseline
+exists; Tracy through the opt-in vcpkg feature (its macro API
 conflicts with the no-`#define` rule: Cubeulator resolves it with macro-only
 variant headers chosen by CMake; a macro-free route through Tracy's runtime
 source-location API is **unverified**); a performance budget for dictionary

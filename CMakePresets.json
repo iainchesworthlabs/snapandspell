@@ -89,6 +89,20 @@
       ]
     },
     {
+      "name": "windows-msvc-analysis",
+      "displayName": "Windows (MSVC, static analysis)",
+      "inherits": [
+        "windows-msvc-base",
+        "debug"
+      ],
+      "cacheVariables": {
+        "WJS_BUILD_APP": "OFF",
+        "WJS_BUILD_TESTS": "OFF",
+        "WJS_ENABLE_SANITIZERS": "OFF",
+        "WJS_ENABLE_MSVC_ANALYSIS": "ON"
+      }
+    },
+    {
       "name": "linux-gcc-base",
       "hidden": true,
       "inherits": [
@@ -141,6 +155,30 @@
       }
     },
     {
+      "name": "linux-clang-base",
+      "hidden": true,
+      "inherits": [
+        "base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "VCPKG_TARGET_TRIPLET": "x64-linux"
+      }
+    },
+    {
+      "name": "linux-clang-debug",
+      "displayName": "Linux (Clang, Debug)",
+      "inherits": [
+        "linux-clang-base",
+        "debug"
+      ]
+    },
+    {
       "name": "macos-clang-base",
       "hidden": true,
       "inherits": [
@@ -190,7 +228,9 @@
     { "name": "macos-clang-release", "configurePreset": "macos-clang-release" },
     { "name": "windows-msvc-profiling", "configurePreset": "windows-msvc-profiling" },
     { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling" },
-    { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling" }
+    { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling" },
+    { "name": "windows-msvc-analysis", "configurePreset": "windows-msvc-analysis" },
+    { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" }
   ],
   "testPresets": [
     {
@@ -213,6 +253,7 @@
     { "name": "windows-msvc-profiling", "configurePreset": "windows-msvc-profiling", "inherits": ["base"] },
     { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling", "inherits": ["base"] },
     { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling", "inherits": ["base"] },
+    { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug", "inherits": ["base"] },
     {
       "name": "perf",
       "hidden": true,

@@ -1,5 +1,6 @@
 #include <charconv>
 #include <cstddef>
+#include <exception>
 #include <expected>
 #include <filesystem>
 #include <format>
@@ -166,9 +167,7 @@ struct Arguments {
     return 0;
 }
 
-}  // namespace
-
-int main(int argc, char** argv) {
+int run_cli(int argc, char** argv) {
     wjs::platform::use_utf8_console();
     wjs::profiling::thread_name("main");
 
@@ -195,4 +194,23 @@ int main(int argc, char** argv) {
         return exit_usage;
     }
     return run(*arguments);
+}
+
+}  // namespace
+
+// The catch-all below is the handler; the check does not model one in main.
+// NOLINTNEXTLINE(bugprone-exception-escape)
+int main(int argc, char** argv) {
+    // std::format and the standard library can throw (allocation, a bad format
+    // string): a command-line program reports it and exits, rather than
+    // terminating through std::terminate.
+    try {
+        return run_cli(argc, argv);
+    } catch (const std::exception& error) {
+        std::cerr << "wjs-cli: " << error.what() << '\n';
+        return 1;
+    } catch (...) {
+        std::cerr << "wjs-cli: unknown error\n";
+        return 1;
+    }
 }

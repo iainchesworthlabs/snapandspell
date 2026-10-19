@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numbers>
 
 namespace wjs::scan {
 
@@ -15,7 +16,7 @@ void arc(Stroke& stroke, double cx, double cy, double rx, double ry, double from
          double to_degrees, int steps) {
     for (int k = 0; k <= steps; ++k) {
         const double t = from_degrees + (to_degrees - from_degrees) * k / steps;
-        const double radians = t * 3.14159265358979323846 / 180.0;
+        const double radians = t * std::numbers::pi / 180.0;
         stroke.push_back({cx + rx * std::cos(radians), cy + ry * std::sin(radians)});
     }
 }
@@ -201,7 +202,8 @@ const std::array<StrokeGlyph, kGlyphCount>& stroke_font() {
     return font;
 }
 
-std::optional<std::size_t> glyph_index(std::string_view letters) noexcept {
+// Not noexcept: the first call builds the font, which allocates.
+std::optional<std::size_t> glyph_index(std::string_view letters) {
     const auto& font = stroke_font();
     for (std::size_t i = 0; i < font.size(); ++i) {
         if (font[i].letters == letters) {

@@ -120,7 +120,7 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
     }
 
     {
-        auto zone = profiling::zone<"scan.read_tiles">();
+        [[maybe_unused]] auto zone = profiling::zone<"scan.read_tiles">();
         const GlyphReader& reader = GlyphReader::standard();
         const double cell =
             static_cast<double>(options.board_side) / static_cast<double>(count->size);

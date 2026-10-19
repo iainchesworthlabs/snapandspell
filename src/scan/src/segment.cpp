@@ -136,8 +136,8 @@ std::vector<std::uint8_t> bright_mask(const GrayImage& image, int window, int ma
 
 std::vector<Blob> find_blobs(std::span<const std::uint8_t> mask, int width, int height,
                              std::int64_t min_area, std::int64_t max_area) {
-    const std::size_t w = static_cast<std::size_t>(width);
-    const std::size_t h = static_cast<std::size_t>(height);
+    const auto w = static_cast<std::size_t>(width);
+    const auto h = static_cast<std::size_t>(height);
     std::vector<std::int32_t> labels(w * h, 0);
     detail::note_buffer();
     Labels sets;

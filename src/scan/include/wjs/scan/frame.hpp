@@ -32,7 +32,7 @@ enum class PixelFormat : std::uint8_t { gray8, rgb8, bgr8, rgba8, bgra8 };
 // only: nothing in this library writes one anywhere (docs/design/scanner.md,
 // "Privacy, built in and checked").
 struct Frame {
-    std::span<const std::uint8_t> pixels{};
+    std::span<const std::uint8_t> pixels;
     std::size_t width = 0;
     std::size_t height = 0;
     // Bytes from the start of one row to the start of the next. Zero means the
@@ -62,7 +62,7 @@ struct Frame {
 // std::chrono::steady_clock milliseconds (monotonic, arbitrary epoch): only the
 // difference between two frames means anything.
 struct OwnedFrame {
-    std::vector<std::uint8_t> pixels{};
+    std::vector<std::uint8_t> pixels;
     std::size_t width = 0;
     std::size_t height = 0;
     std::size_t stride = 0;

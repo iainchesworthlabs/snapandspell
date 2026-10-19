@@ -55,7 +55,7 @@ struct Grapheme {
     std::size_t line = 0;
 
     // Two letters with an underscore between: the halves of a split digraph.
-    [[nodiscard]] bool split() const noexcept { return letters.find('_') != std::string::npos; }
+    [[nodiscard]] bool split() const noexcept { return letters.contains('_'); }
 };
 
 // A grapheme as it sits in a word.

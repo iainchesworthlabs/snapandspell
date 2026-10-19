@@ -107,6 +107,7 @@ GUI application on Qt's offscreen platform and tells its accessibility hints of 
 | `tests/perf/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, and the scanner's work, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
 | `tests/scan/` | The scanner, the camera and `board_reader` interfaces and the synthetic corpus, as `wjs_scan_tests` | See below: [The scanner](#the-scanner) |
 | `tests/scan/check_privacy.cmake` | The scanner's sources and the camera and `board_reader` files | `scan.privacy`, `scan.privacy.catches_a_leak`: see [The scanner](#the-scanner) |
+| `tests/analysis/check_analysis.cmake` | `CMakePresets.json`, `.github/workflows/analysis.yml`, `codeql.yml` | `analysis.config`: the analysis presets exist with their settings, `analysis.yml` is nightly and not on a push, pull request or `merge_group`, and `codeql.yml` is nightly too |
 | `tests/profiling/check_presets.cmake` | `CMakePresets.json`, `vcpkg.json`, `cmake/Tracy.cmake` | See below: `profiling.shipped_presets` |
 | `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `src/` | See below: `profiling.zone_names` |
 | `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
@@ -836,7 +837,15 @@ a set should be made to carry one is a rule the tool does not yet have.
 Debug builds run the tests under AddressSanitizer (and UBSan on GCC and Clang),
 and every first-party target is built with warnings as errors. A sanitizer
 finding aborts the test. Details, and how to turn them off, are in
-[Building](building.md#sanitizers-and-warnings).
+[Building](building.md#sanitizers-and-warnings). The nightly Clang leg runs the
+same suite with `clang++` ([CI](ci.md#nightly-analysis)).
+
+## Static analysis
+
+clang-tidy and MSVC's `/analyze` are not ctest entries: they are the nightly
+`analysis.yml` jobs, with the checks, the disabled list and the commands to run
+them locally in [Building](building.md#static-analysis). A finding there is not
+a failing unit test, but it is still a defect report against the tree.
 
 ## Coverage
 

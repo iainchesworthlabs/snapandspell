@@ -113,7 +113,7 @@ that this repository must match:
 | Localization with a CI drift gate | CountdownSolver 6 languages (`src/app/CMakeLists.txt:311-326`, `ci.yml:159-191`); iclforge `qt_add_translations` + lupdate gate | **Done 2026-10-19:** eight languages, RTL/LTR, lupdate drift in CI |
 | A light/dark/**system** preference, not just system-follow | CountdownSolver `Theme.qml:8`; iclforge palette preference | system-only today (`Theme.qml:27`) |
 | The toolchain pinned in one file | iclforge `.github/toolchain-versions.json` | **Done 2026-10-19:** the file exists and `toolchain.versions` holds the workflows and the vcpkg baseline to it |
-| Security breadth (OSV-Scanner, zizmor, fuzzing) | CountdownSolver CI (OSV, zizmor, ClusterFuzzLite) | CodeQL, Scorecard, dependency-review only (still open) |
+| Security breadth (OSV-Scanner, zizmor, fuzzing) | CountdownSolver CI (OSV, zizmor, ClusterFuzzLite) | **Partly done 2026-10-19:** nightly clang-tidy, MSVC `/analyze` and CodeQL (`analysis.yml`, `codeql.yml`), plus Scorecard and dependency-review; OSV-Scanner, zizmor and fuzzing are still open |
 
 Where this repository is **ahead**: Tracy 0.14.1 pinned, with tested zone
 conventions and per-platform presets (CountdownSolver has no Tracy at all);
