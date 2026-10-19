@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 namespace {
 
@@ -103,6 +105,8 @@ Board::Board(std::size_t rows, std::size_t columns, std::vector<std::string> til
     : rows_(rows), columns_(columns), tiles_(std::move(tiles)) {}
 
 std::expected<Board, BoardError> Board::parse(std::string_view text) {
+    auto zone = profiling::zone<"board.parse">();
+
     std::vector<std::string> tiles;
     std::size_t columns = 0;
     std::size_t rows = 0;
@@ -133,6 +137,7 @@ std::expected<Board, BoardError> Board::parse(std::string_view text) {
     if (rows > max_dimension || columns > max_dimension) {
         return std::unexpected(BoardError::too_large);
     }
+    zone.Value(tiles.size());
     return Board(rows, columns, std::move(tiles));
 }
 

@@ -134,6 +134,8 @@ struct Arguments {
 }
 
 [[nodiscard]] int run(const Arguments& arguments) {
+    auto zone = wjs::profiling::zone<"cli.run">();
+
     const auto board = wjs::Board::parse(arguments.board_text);
     if (!board) {
         std::cerr << std::format("wjs-cli: {}\n", wjs::to_string(board.error()));

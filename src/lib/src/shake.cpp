@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 namespace {
 
@@ -33,6 +35,8 @@ struct Chain {
 
 std::vector<Shake> detect_shakes(std::span<const AccelerationSample> samples,
                                  const ShakeOptions& options) {
+    auto zone = profiling::zone<"shake.detect">();
+
     std::vector<Shake> shakes;
 
     const double threshold = options.jolt_threshold * options.gravity;
@@ -110,6 +114,7 @@ std::vector<Shake> detect_shakes(std::span<const AccelerationSample> samples,
     }
 
     finish(started && last_time - chain.last <= options.max_gap);
+    zone.Value(shakes.size());
     return shakes;
 }
 

@@ -4,6 +4,8 @@
 #include <string>
 #include <utility>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 
 std::expected<DiceSets, DiceError> DiceSets::make(std::vector<DiceSet> sets) {
@@ -33,6 +35,8 @@ std::expected<DiceSets, DiceError> DiceSets::make(std::vector<DiceSet> sets) {
 
 std::expected<DiceSets, DiceError> DiceSets::load_directory(
     const std::filesystem::path& directory) {
+    auto zone = profiling::zone<"dice.load_sets">();
+
     std::vector<DiceSet> sets;
     for (std::size_t side = smallest_side; side <= largest_side; ++side) {
         const std::string name = std::to_string(side) + "x" + std::to_string(side) + ".txt";
@@ -42,6 +46,7 @@ std::expected<DiceSets, DiceError> DiceSets::load_directory(
         }
         sets.push_back(*std::move(set));
     }
+    zone.Value(sets.size());
     return make(std::move(sets));
 }
 

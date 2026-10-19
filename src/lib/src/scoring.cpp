@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 namespace {
 
@@ -80,6 +82,8 @@ constexpr std::array<double, 26> letter_frequency_percent = {
 }  // namespace
 
 int score_word(std::string_view word, ScoringScheme scheme) noexcept {
+    auto zone = profiling::zone<"solver.score">();
+
     switch (scheme) {
         case ScoringScheme::standard_boggle:
             return standard_boggle_score(word.size());

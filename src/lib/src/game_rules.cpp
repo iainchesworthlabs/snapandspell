@@ -4,6 +4,8 @@
 #include <tuple>
 #include <utility>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 namespace {
 
@@ -67,6 +69,8 @@ std::string_view to_string(Tier tier) noexcept {
 
 Classification classify_path(const Board& board, std::span<const Position> path,
                              const WordSets& words) {
+    auto zone = profiling::zone<"rules.classify">();
+
     auto spelled = validate_path(board, path);
     if (!spelled) {
         return {.state = WordState::not_a_word, .word = {}, .fault = spelled.error()};

@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 
 namespace {
@@ -79,6 +81,8 @@ namespace {
 }  // namespace
 
 std::optional<BoardSnapshot> snapshot_of(const BoardRecord& record) {
+    auto zone = profiling::zone<"store.session_snapshot">();
+
     // The store tells a standard board by its empty phase, so a record whose mode
     // and phase disagree would be kept as the other board.
     if ((record.mode == BoardMode::standard) != record.phase.empty()) {
@@ -97,10 +101,13 @@ std::optional<BoardSnapshot> snapshot_of(const BoardRecord& record) {
         }
         snapshot.finds.push_back({find.word, find.assisted, *day, find.reward().stars});
     }
+    zone.Value(snapshot.finds.size());
     return snapshot;
 }
 
 std::optional<BoardRecord> record_of(const BoardSnapshot& snapshot) {
+    auto zone = profiling::zone<"store.session_record">();
+
     if (snapshot.size < 0) {
         return std::nullopt;
     }
@@ -142,6 +149,7 @@ std::optional<BoardRecord> record_of(const BoardSnapshot& snapshot) {
     for (const FoundSnapshot& find : snapshot.finds) {
         record.finds.push_back({upper(find.word), find.assisted, static_cast<Stamp>(find.day)});
     }
+    zone.Value(record.finds.size());
     return record;
 }
 

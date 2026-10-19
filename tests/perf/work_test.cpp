@@ -9,6 +9,7 @@
 // "Performance tests". The numbers are in budgets.hpp.
 
 #include <catch2/catch_test_macros.hpp>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -67,6 +68,29 @@ TEST_CASE("the solver's tally is the walk's visits, counted independently", "[pe
         INFO("board " << rich.name);
         CHECK(wjs::perf::measure_solve(board, dictionary).visits ==
               wjs::perf::recount_visits(board, dictionary));
+    }
+}
+
+TEST_CASE("the search walks the built boards exactly as it was measured to", "[perf][solver]") {
+    skip_unless_optimised();
+    // The exact figures the budgets in budgets.hpp sit a quarter above (their
+    // comments say "measured"): a work count is the same on every machine and
+    // compiler, so a change in the walk's order or its pruning fails here even
+    // when it stays inside the quarter of headroom the budgets allow.
+    const wjs::Dictionary& dictionary = wjs::perf::english();
+    constexpr std::array<std::uint64_t, 4> rich_visits = {2'832, 5'496, 9'443, 12'350};
+    for (std::size_t i = 0; i < wjs::perf::kRichBoards.size(); ++i) {
+        const wjs::perf::RichBoard& rich = wjs::perf::kRichBoards[i];
+        INFO("board " << rich.name);
+        CHECK(wjs::perf::measure_solve(wjs::perf::rich_board(rich), dictionary).visits ==
+              rich_visits[i]);
+    }
+    constexpr std::array<std::uint64_t, 2> empty_visits = {100, 256};
+    for (std::size_t i = 0; i < wjs::perf::kEmptyBoards.size(); ++i) {
+        const wjs::perf::RichBoard& empty = wjs::perf::kEmptyBoards[i];
+        INFO("board " << empty.name);
+        CHECK(wjs::perf::measure_solve(wjs::perf::rich_board(empty), dictionary).visits ==
+              empty_visits[i]);
     }
 }
 

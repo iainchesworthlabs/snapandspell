@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 
 std::string_view to_string(PathError error) noexcept {
@@ -20,6 +22,9 @@ std::string_view to_string(PathError error) noexcept {
 
 std::expected<std::string, PathError> validate_path(const Board& board,
                                                     std::span<const Position> path) {
+    auto zone = profiling::zone<"path.validate">();
+    zone.Value(path.size());
+
     if (path.empty()) {
         return std::unexpected(PathError::empty);
     }
