@@ -389,12 +389,12 @@ inline constexpr std::uint64_t kScanComparisons = 364'500;   // measured 291,600
 // ways.
 inline constexpr std::uint64_t kScanBuffers = 0;             // measured 0
 inline constexpr std::uint64_t kScanBuffersMax = 0;          // measured 0
-inline constexpr std::uint64_t kScanBufferReuses = 125;      // CALIBRATE: analytic ~100; re-measure with wjs_perf_tests "[.perf-report]"
+inline constexpr std::uint64_t kScanBufferReuses = 105;      // measured 84
 // Exact pins of what the optimised reader does, so a change that adds a read
 // or a comparison is a failure with a name on it, not a quiet drift.
 inline constexpr std::uint64_t kScanBuffersAllocated = 0;
-inline constexpr std::uint64_t kScanCellsReadExact = 225;      // CALIBRATE: analytic; re-measure
-inline constexpr std::uint64_t kScanComparisonsExact = 291'600;  // CALIBRATE: analytic; re-measure
+inline constexpr std::uint64_t kScanCellsReadExact = 225;
+inline constexpr std::uint64_t kScanComparisonsExact = 291'600;
 
 // One read of a 4x4 and of a 6x6 frame, against the heavy calibration (a read walks
 // several pictures, none of which stays in cache). Measured 0.36 to 0.44 (45 to 50 ms)

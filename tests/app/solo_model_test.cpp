@@ -613,20 +613,21 @@ TEST_CASE("a trace tells the path once per change and once at the hand-in",
     CHECK(f.heard.traced[0].word == "sit");
 }
 
-TEST_CASE("a press on nothing tells the pointer down, and nothing of the path",
-          "[app][solo]") {
+TEST_CASE("a press on nothing starts no trace and rebuilds nothing", "[app][solo]") {
     Fixture f;
     f.play();
     const int path = f.heard.path_changes;
     const int pointer = f.heard.pointer_changes;
 
-    f.model.pressAt(-500, -500);  // far outside every tile
+    // Far outside every tile: the tracer ignores the press, so the finger is
+    // never down and neither the path's display nor the pointer's is rebuilt.
+    f.model.pressAt(-500, -500);
     CHECK(f.heard.path_changes - path == 0);
-    CHECK(f.heard.pointer_changes - pointer == 1);
+    CHECK(f.heard.pointer_changes - pointer == 0);
 
     f.model.releaseAt(-500, -500, false);
     CHECK(f.heard.path_changes - path == 0);
-    CHECK(f.heard.pointer_changes - pointer == 2);
+    CHECK(f.heard.pointer_changes - pointer == 0);
     CHECK(f.model.path().isEmpty());
 }
 

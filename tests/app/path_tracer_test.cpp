@@ -308,7 +308,7 @@ TEST_CASE("a move that stays on the tile reports nothing to rebuild", "[app][tra
     CHECK(shown(tracer) == tiles_of(Tiles{{0, 0}}));
 }
 
-TEST_CASE("a move to a tile that does not touch the last is no change", "[app][trace]") {
+TEST_CASE("a move to a far tile walks the tiles it crosses", "[app][trace]") {
     auto tracer = make_tracer();
     tracer.press(centre(0, 0));
 
@@ -317,9 +317,10 @@ TEST_CASE("a move to a tile that does not touch the last is no change", "[app][t
     CHECK(tracer.move(centre(0, 2)) == Event::changed);
     CHECK(shown(tracer) == tiles_of(Tiles{{0, 0}, {0, 1}, {0, 2}}));
 
-    // The corner does not touch the last tile: ignored, and no change is told.
-    CHECK(tracer.move(centre(2, 2)) == Event::none);
-    CHECK(shown(tracer) == tiles_of(Tiles{{0, 0}, {0, 1}, {0, 2}}));
+    // The corner is two tiles away: the walk crosses (1,2), which touches the
+    // last tile, and then the corner, so both join in order.
+    CHECK(tracer.move(centre(2, 2)) == Event::changed);
+    CHECK(shown(tracer) == tiles_of(Tiles{{0, 0}, {0, 1}, {0, 2}, {1, 2}, {2, 2}}));
 }
 
 TEST_CASE("a rotated window keeps the path and uses the new geometry", "[app][trace]") {

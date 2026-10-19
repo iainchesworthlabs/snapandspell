@@ -195,7 +195,9 @@ yet.
 
 Names are `<layer>.<thing>`, lower case, dotted, string literals. They are what
 the CSV and the GUI show, so a rename is deliberate; `profiling.zone_names`
-checks the shape and that no name is used twice.
+checks the shape, that no name is used twice, and that the required set of
+zones, plots and QML scopes still exists (removed instrumentation is a failed
+test, as removed unit tests are).
 
 Only code that exists is instrumented. The [performance design](design/performance.md#what-to-instrument)
 lists the zones the rest of the application will carry, and they are added with

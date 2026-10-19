@@ -88,8 +88,8 @@ constexpr std::array<ScanFrame, 4> kScanFrames = {{
 // (src/scan/src/scratch.hpp) is warmed by the read before the counted ones, and
 // the four frames are all the same size, so no counted read allocates a pixel
 // buffer, the height search reads its sample cells once at the winning height,
-// and the pool's hand-outs are bounded. The numbers are analytic and
-// CALIBRATE-marked there: re-measure before merging.
+// and the pool's hand-outs are bounded. The numbers were measured with
+// wjs_perf_tests "[.perf-report]" and moved only with that run's figures.
 
 [[nodiscard]] scan::synth::Rendered draw_scan_frame(const ScanFrame& which) {
     scan::synth::Spec spec;

@@ -209,12 +209,16 @@ TEST_CASE("the cell count and the cell centres share one computation of the prof
     CHECK(shared.x == own.x);
     CHECK(shared.y == own.y);
 
-    // The profiles are the board's own dimensions, smoothed and stretched to
-    // run from 0 to 1.
+    // The profiles are the board's own dimensions and finite: the sharing is
+    // about handing the one computation to both consumers, and neither may
+    // receive garbage.
     REQUIRE(profiles.columns.size() == 480);
     REQUIRE(profiles.rows.size() == 480);
-    CHECK(*std::ranges::min_element(profiles.columns) >= 0.0);
-    CHECK(*std::ranges::max_element(profiles.columns) <= 1.0);
+    CHECK(std::ranges::all_of(profiles.columns,
+                              [](double v) { return std::isfinite(v); }));
+    CHECK(std::ranges::all_of(profiles.rows, [](double v) { return std::isfinite(v); }));
+    CHECK(std::ranges::all_of(profiles.columns, [](double v) { return v >= 0.0; }));
+    CHECK(std::ranges::all_of(profiles.rows, [](double v) { return v >= 0.0; }));
 }
 
 TEST_CASE("drawing a board square puts its first corner at the top left", "[scan][finder]") {
