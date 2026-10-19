@@ -170,7 +170,9 @@ it, so it is **not** in the JSON files. The sequence is:
    list in `develop-protection.json` and `main-protection.json`, commit, and
    run `apply_rulesets.ps1 -Apply` again (it updates by name).
 
-`Analyze (C++)` (CodeQL) is informational and is not required.
+`Analyze (C++)` (CodeQL) and the three `analysis.yml` jobs (`clang-tidy`,
+`MSVC /analyze`, `Sanitizers (Linux, Clang)`) are nightly and informational:
+none is required.
 
 ### The `merge_group` rule
 
@@ -184,7 +186,7 @@ Two rules keep the queue honest:
   `dependency-review.yml` carry it.
 - **A workflow that produces no required check must not carry
   `merge_group`**, or every queue entry burns a full run of it for nothing.
-  `codeql.yml` and `scorecard.yml` do not.
+  `analysis.yml`, `codeql.yml` and `scorecard.yml` do not.
 
 A queue entry has no head branch name, PR title or PR body of its own, so
 `Validate gitflow branch name` and `Validate commit and PR text` skip their job
@@ -247,5 +249,6 @@ and titles Dependabot writes carry no attribution, so
 `scorecard.yml` publishes a score and a badge from `main` and re-runs when the
 rulesets change; it scores more completely with a read-only fine-grained token
 in the `SCORECARD_READ_TOKEN` secret (see the comments in the workflow). It is
-not a check. CodeQL results appear under **Security → Code scanning** and are
+not a check. CodeQL's nightly results, and the nightly MSVC `/analyze` SARIF
+(category `msvc-analyze`), appear under **Security → Code scanning** and are
 triaged there.

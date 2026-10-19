@@ -692,6 +692,15 @@ add_test(NAME toolchain.versions
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/toolchain/check_versions.cmake")
 
+# The nightly analysis integration: the presets the workflow names exist with
+# their settings, the workflow is scheduled and stays out of merge_group, and
+# CodeQL is nightly rather than per-push. Runs on every host; it only reads the
+# files (docs/ci.md, "Nightly analysis").
+add_test(NAME analysis.config
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/analysis/check_analysis.cmake")
+
 # The privacy rules of the first release that the source can say whether they
 # hold (docs/design/application.md, "Privacy, built in and checked"): no audio
 # captured, no network used, nothing exported, one file written and only by the

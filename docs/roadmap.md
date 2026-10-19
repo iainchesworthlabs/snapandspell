@@ -219,13 +219,13 @@ The same application on the other targets named in the brief.
 
 ### Cross-cutting
 
-Fuzz the board parser and dictionary loader; clang-tidy job; raising the
-coverage gate beyond its 90% line / 80% branch baseline (the gate itself is in
-place: `coverage-unit`, the CI job and `coverage-ui`); Tracy through the opt-in vcpkg feature (its macro API
-conflicts with the no-`#define` rule: Cubeulator resolves it with macro-only
-variant headers chosen by CMake; a macro-free route through Tracy's runtime
-source-location API is **unverified**); a performance budget for dictionary
-load and solve on a low-end tablet. Measured so far, on Windows, Release build:
+Fuzz the board parser and dictionary loader; raise the coverage gate beyond its
+90% line / 80% branch baseline (the gate itself is in place: `coverage-unit`,
+the CI job and `coverage-ui`); a macro-free route through Tracy's runtime
+source-location API is **unverified** (the integration uses CMake-selected
+variant headers, so the macro API never reaches a call site); a performance
+budget for dictionary load and solve on a low-end tablet. Measured so far, on
+Windows, Release build:
 the whole `wjs-cli` process (load 172,823 words, solve, print) takes about 76 ms
 on 3x3, 4x4 and 5x5 boards, with load dominating and solving below the noise
 (a Debug build with AddressSanitizer takes several seconds, which is why

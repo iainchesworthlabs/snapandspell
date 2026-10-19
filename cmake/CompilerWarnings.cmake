@@ -11,6 +11,26 @@
 add_library(wjs_warnings INTERFACE)
 add_library(wjs::warnings ALIAS wjs_warnings)
 
+# MSVC's static analyzer, run as part of the compile rather than beside it. It
+# is opt-in because it costs several times a normal compile; the nightly
+# analysis workflow turns it on (docs/ci.md, "Nightly analysis"). The analyzer's
+# warnings are C6xxx diagnostics, so they pass through /WX like every other
+# warning. SARIF is what GitHub's code scanning ingests; /analyze:external- keeps
+# the report to this repository's code, and CMake marks imported targets'
+# headers as external so Qt and Catch2 are skipped too.
+option(WJS_ENABLE_MSVC_ANALYSIS
+    "Run MSVC's static analyzer (/analyze) during compilation" OFF)
+if(WJS_ENABLE_MSVC_ANALYSIS)
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        message(FATAL_ERROR
+            "WJS_ENABLE_MSVC_ANALYSIS needs the MSVC compiler: clang-cl has "
+            "no /analyze, and clang-tidy is the analyzer for every other "
+            "compiler (docs/ci.md).")
+    endif()
+    target_compile_options(wjs_warnings INTERFACE
+        "$<$<CXX_COMPILER_ID:MSVC>:/analyze;/analyze:external-;/analyze:log:format:sarif>")
+endif()
+
 # The mandated baseline is -Wall -Wextra -Werror; the remaining flags catch the
 # classes of mistake (shadowing, dubious conversions, missing overrides) that a
 # generator is most likely to introduce.

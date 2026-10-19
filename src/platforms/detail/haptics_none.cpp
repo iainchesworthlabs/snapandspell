@@ -7,7 +7,7 @@
 
 namespace wjs::platform {
 
-bool vibrate(HapticPattern) {
+bool vibrate([[maybe_unused]] HapticPattern pattern) {
     return false;
 }
 

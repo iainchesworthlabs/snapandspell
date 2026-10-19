@@ -79,7 +79,7 @@ inline constexpr int max_find_stars = 20;
 // The most a store file can be: bigger than the bounds above can make it
 // (about 90 KB at the very worst), so a file past it is damaged, and refused
 // before it is read.
-inline constexpr std::size_t max_store_bytes = 128 * 1024;
+inline constexpr std::size_t max_store_bytes = std::size_t{128} * 1024;
 
 // Where the program's file is, under the base directory the platform layer
 // names (wjs::platform::user_data_directory()).

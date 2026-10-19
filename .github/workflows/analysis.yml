@@ -1,0 +1,235 @@
+name: Analysis
+
+# What the push and pull-request legs do not cover, once a night: clang-tidy
+# over the library, the scanner and the CLI; MSVC's /analyze on Windows; and a
+# Clang AddressSanitizer + UndefinedBehaviorSanitizer build and test on Linux.
+# Nothing here is a required check: a red run is a report for the next morning,
+# not a blocked pull request (docs/ci.md, "Nightly analysis"). CodeQL has its
+# own nightly workflow (codeql.yml).
+#
+# The tools are pinned: clang-tidy in .github/requirements/analysis.txt, the
+# MSVC analyzer is the runner image's compiler, and the Clang sanitizer leg uses
+# the image's clang++ (installed if the image does not carry it). CMake and
+# Ninja are the same pins as ci.yml and .github/toolchain-versions.json.
+
+on:
+  schedule:
+    # 02:17 UTC: after the day's merges, before the European morning.
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: analysis-${{ github.ref }}
+  cancel-in-progress: true
+
+# No job gets more than it names below.
+permissions: {}
+
+env:
+  VCPKG_DISABLE_METRICS: "1"
+
+jobs:
+  # clang-tidy reads the compile database the configure step writes; it does not
+  # need the objects, so the job configures and stops. The lean configure keeps
+  # the tests and the Qt application out: .clang-tidy's HeaderFilterRegex is
+  # src/, and a test-only finding would otherwise be reported against code the
+  # gate does not cover. Warnings are errors, so a clean run is the gate.
+  clang-tidy:
+    name: clang-tidy
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: false
+
+      - name: Install clang-tidy (pinned)
+        run: |
+          uv venv "$RUNNER_TEMP/tidy-venv"
+          uv pip install --python "$RUNNER_TEMP/tidy-venv/bin/python" \
+            --requirement .github/requirements/analysis.txt
+          echo "$RUNNER_TEMP/tidy-venv/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/tidy-venv/bin/clang-tidy" --version
+
+      # No build: the database is all clang-tidy reads, and the tests and the
+      # application are deliberately out of this gate.
+      # GCC 15's compile commands carry the flags CMake adds for C++ module
+      # dependency scanning (-fdeps-format, -fmodule-mapper, -fmodules-ts),
+      # which clang-tidy 22 does not parse. Nothing here uses modules, so the
+      # scan is off for the database rather than stripped afterwards.
+      - name: Configure (library, platform, scanner and CLI only)
+        run: >
+          cmake --preset linux-gcc-debug
+          -DWJS_BUILD_TESTS=OFF
+          -DWJS_BUILD_APP=OFF
+          -DWJS_ENABLE_SANITIZERS=OFF
+          -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+
+      # A zero-file run would be a pass with nothing checked, so the count is
+      # printed and must be non-zero before the gate runs. The PyPI wheel names
+      # the runner run-clang-tidy.py on Linux (run-clang-tidy.exe on Windows),
+      # and its -list-checks probe needs the config file to see any checks: the
+      # release's default check list is empty. run-clang-tidy exits non-zero on
+      # the first warning promoted to an error.
+      - name: Run clang-tidy (warnings are errors)
+        shell: bash
+        run: |
+          database=build/linux-gcc-debug/compile_commands.json
+          count="$(jq 'length' "$database")"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::the compile database has no translation units"
+            exit 1
+          fi
+          echo "checking ${count} translation unit(s)"
+          run-clang-tidy.py -p build/linux-gcc-debug \
+            -config-file "$GITHUB_WORKSPACE/.clang-tidy" \
+            -j "$(nproc)" -quiet -warnings-as-errors '*'
+
+  # MSVC's analyzer is part of the compile, so this job builds the lean tree
+  # (no tests, no Qt application, no sanitizers) and lets /WX turn a C6xxx
+  # finding into a failed compile. The SARIF the compile writes is uploaded to
+  # code scanning, so a finding is also an alert with a file and a line.
+  msvc-analyze:
+    name: MSVC /analyze
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      # upload-sarif writes the alerts; the repository is public, and the
+      # upload is skipped below if it is ever made private.
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      # Ninja needs cl.exe on PATH; the preset does not set up the VS
+      # environment itself.
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      - name: Configure (analysis preset)
+        shell: bash
+        run: cmake --preset windows-msvc-analysis
+
+      - name: Build with /analyze
+        shell: bash
+        run: cmake --build --preset windows-msvc-analysis
+
+      # Each translation unit writes its SARIF beside its object; flatten them
+      # into one directory for the upload. Even a red build has the logs of the
+      # units that were analyzed.
+      - name: Collect the analyzer's SARIF
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/msvc-sarif | Out-Null
+          Get-ChildItem build/windows-msvc-analysis -Recurse -Filter *.nativecodeanalysis.sarif `
+            -ErrorAction SilentlyContinue | Copy-Item -Destination build/msvc-sarif
+          Get-ChildItem build/msvc-sarif -Filter *.sarif | Measure-Object |
+            Select-Object -ExpandProperty Count
+
+      - name: Upload the analyzer's SARIF
+        if: ${{ always() && !github.event.repository.private && hashFiles('build/msvc-sarif/*.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: build/msvc-sarif
+          category: msvc-analyze
+
+  # The push legs build Debug with GCC and AppleClang; this is the one Clang
+  # build of the tree, with AddressSanitizer and UndefinedBehaviorSanitizer and
+  # the whole ctest suite. It is the same preset a developer runs on Linux
+  # (linux-clang-debug), so a failure here is reproducible by hand.
+  sanitizers-clang:
+    name: Sanitizers (Linux, Clang)
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      # -fno-sanitize-recover=all is already in the preset; the stack trace is
+      # what makes a UBSan report in the log actionable.
+      UBSAN_OPTIONS: print_stacktrace=1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      # Same triplet and archives as the Linux (GCC) leg. The ABI hash covers
+      # the compiler, so a Clang build that cannot use a GCC archive builds its
+      # own rather than mixing them.
+      - name: Restore vcpkg binaries
+        id: vcpkg-cache
+        uses: ./.github/actions/vcpkg-cache/restore
+        with:
+          triplet: x64-linux
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      # The hosted image carries Clang, but the preset names clang++ and a
+      # missing compiler would otherwise be a confusing configure error. The
+      # sanitizer runtime is a separate Ubuntu package (libclang-rt-<major>-dev);
+      # without it the link fails looking for libclang_rt.asan.a. The install is
+      # the image's own release, not a second toolchain.
+      - name: Ensure Clang and its sanitizer runtime
+        shell: bash
+        run: |
+          if ! command -v clang++ >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y clang
+          fi
+          major="$(clang++ -dumpversion | cut -d. -f1)"
+          if ! dpkg -s "libclang-rt-${major}-dev" >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y "libclang-rt-${major}-dev"
+          fi
+          clang++ --version | head -n 1
+
+      - name: Configure
+        run: cmake --preset linux-clang-debug -DWJS_BUILD_APP=OFF
+
+      - name: Build
+        run: cmake --build --preset linux-clang-debug
+
+      - name: Test
+        run: ctest --preset linux-clang-debug
+
+      # Saved even when a later step fails - see ci.yml.
+      - name: Save vcpkg binaries
+        if: ${{ always() }}
+        uses: ./.github/actions/vcpkg-cache/save
+        with:
+          triplet: x64-linux
+          restored: ${{ steps.vcpkg-cache.outputs.listing }}

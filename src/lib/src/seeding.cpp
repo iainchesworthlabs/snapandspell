@@ -246,7 +246,7 @@ std::expected<SeedOptions, SeedError> phonics_board_options(const PhaseIndex& in
     const std::string& alphabet = index.alphabet();
     char dead_letter = '\0';
     for (char letter = 'A'; letter <= 'Z'; ++letter) {
-        if (alphabet.find(letter) == std::string::npos) {
+        if (!alphabet.contains(letter)) {
             dead_letter = letter;
             break;
         }
@@ -290,14 +290,14 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
     // dead letter whether or not dead jewels were asked for.
     const bool needs_dead_letter = options.dead_cells > 0 || options.guided_fill;
     if (needs_dead_letter) {
-        if (!is_letter(dead_letter) || alphabet.find(dead_letter) != std::string::npos) {
+        if (!is_letter(dead_letter) || alphabet.contains(dead_letter)) {
             return std::unexpected(SeedError::bad_dead_letter);
         }
     }
 
     const std::string filler = options.filler.empty() ? alphabet : upper(options.filler);
     if (filler.empty() || !std::ranges::all_of(filler, is_letter) ||
-        (needs_dead_letter && filler.find(dead_letter) != std::string::npos)) {
+        (needs_dead_letter && filler.contains(dead_letter))) {
         return std::unexpected(SeedError::bad_filler);
     }
 
@@ -362,9 +362,13 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
 
         const std::size_t count = attempt.viable.size();
         verify_zone.Value(count);
-        attempt.distance = count < options.min_viable   ? options.min_viable - count
-                           : count > options.max_viable ? count - options.max_viable
-                                                        : 0;
+        std::size_t distance = 0;
+        if (count < options.min_viable) {
+            distance = options.min_viable - count;
+        } else if (count > options.max_viable) {
+            distance = count - options.max_viable;
+        }
+        attempt.distance = distance;
         // A board that lost a target is worse than any that kept them all.
         const bool kept = std::ranges::all_of(attempt.target_indices, [&](std::size_t target) {
             return std::ranges::any_of(attempt.viable, [&](const FoundWord& found) {
@@ -415,7 +419,11 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                 !options.focus_sounds.empty() && attempt.target_indices.size() >= min_targets &&
                 std::ranges::all_of(attempt.target_indices,
                                     [&](std::size_t target) { return candidates[target].focus; });
+            // libstdc++'s std::array iterator is a pointer and MSVC's is a
+            // class; auto is the portable spelling.
+            // NOLINTNEXTLINE(readability-qualified-auto)
             const auto last = pools.begin() + (focus_only ? 2 : 4);
+            // NOLINTNEXTLINE(readability-qualified-auto)
             auto from = std::find_if(pools.begin(), last, [](const auto& p) { return !p.empty(); });
             if (from == last) {
                 break;
@@ -495,7 +503,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                 // does, and a dead jewel only if there is none of those either.
                 std::vector<char> taught;
                 for (const char letter : fits) {
-                    if (alphabet.find(letter) != std::string::npos) {
+                    if (alphabet.contains(letter)) {
                         taught.push_back(letter);
                     }
                 }

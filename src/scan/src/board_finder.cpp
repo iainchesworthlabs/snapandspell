@@ -1,6 +1,7 @@
 #include "wjs/scan/board_finder.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <numeric>
 
@@ -212,9 +213,9 @@ std::vector<double> axis_centres(const std::vector<double>& profile, std::size_t
                     moment += below * (static_cast<double>(i) + 0.5);
                 }
             }
-            // A dip with no depth to it is no gap: keep the even split.
+            // A dip with no depth to it is no gap: keep the even split, which
+            // gap[k] already holds.
             if (weight <= 0.05) {
-                centre = expected;
                 break;
             }
             centre = moment / weight;
@@ -349,6 +350,7 @@ std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blur
     pass_fit = best_fit;
 
     std::vector<double> sides;
+    sides.reserve(lattice.size());
     for (const Die* die : lattice) {
         sides.push_back(die->side);
     }
@@ -375,7 +377,7 @@ std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blur
 
 std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::size_t min_dice,
                                                   Scratch& scratch) {
-    auto zone = profiling::zone<"scan.find_board">();
+    [[maybe_unused]] auto zone = profiling::zone<"scan.find_board">();
     if (image.width < 16 || image.height < 16) {
         return std::nullopt;
     }
@@ -399,7 +401,7 @@ std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::s
         double window_fraction;
         int margin;
     };
-    constexpr Look kLooks[] = {{0.30, 8}, {0.20, 4}, {0.42, 5}, {0.30, 2}, {0.30, -4}};
+    constexpr std::array<Look, 5> kLooks{{{0.30, 8}, {0.20, 4}, {0.42, 5}, {0.30, 2}, {0.30, -4}}};
     constexpr double kGoodFit = 0.35;
     std::optional<BoardFind> best;
     double best_fit = -1e300;
@@ -413,9 +415,17 @@ std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::s
             continue;
         }
         const bool good = fit >= kGoodFit;
-        const bool better =
-            best_is_good == good ? (good ? found->dice > best->dice : fit > best_fit) : good;
-        if (!best || better) {
+        bool better = true;
+        if (best) {
+            if (best_is_good != good) {
+                better = good;
+            } else if (good) {
+                better = found->dice > best->dice;
+            } else {
+                better = fit > best_fit;
+            }
+        }
+        if (better) {
             best = found;
             best_fit = fit;
             best_is_good = good;

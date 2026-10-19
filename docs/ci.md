@@ -27,9 +27,10 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | Workflow | Purpose | Runs on a private copy? |
 | --- | --- | --- |
 | `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report and the performance work budgets | yes |
+| `analysis.yml` | nightly `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
 | `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
 | `commit-policy.yml` | no attribution in the PR title, PR body or any commit message of the PR | yes |
-| `codeql.yml` | CodeQL static analysis of the C++ | no - skipped |
+| `codeql.yml` | nightly CodeQL static analysis of the C++ | no - skipped |
 | `dependency-review.yml` | fails a PR that adds a moderate-or-worse vulnerable dependency | no - skipped |
 | `scorecard.yml` | OpenSSF Scorecard score and badge, from `main` | no - skipped |
 | Dependabot (`.github/dependabot.yml`) | Actions pins, the pinned CI tooling, the vcpkg baseline | yes |
@@ -49,6 +50,10 @@ repository is public and would be **skipped, not red**, if it were ever made
 private again. `Scan dependency diff` is staged into the required checks after
 its first report (see the staging table in
 [Branch protection](branch-protection.md)).
+
+The MSVC analyzer in `analysis.yml` runs on a private copy too; only its
+`upload-sarif` step is skipped there, because uploading to code scanning needs a
+public repository (or a paid plan), so its findings stay in the job log.
 
 ## The jobs in `ci.yml`
 
@@ -80,8 +85,10 @@ contract, on whichever host this is, including that every interface header in
 `src/platforms/interfaces` has an implementation in the fragment's sources),
 `platform.isolation` (the same script as the `platform-isolation` job; it needs
 `pwsh`, which every hosted image has), `profiling.shipped_presets` (no preset
-that ships has Tracy in it) and `profiling.zone_names`, `notices.sections` (the
-generated third-party notices state every section a package must),
+that ships has Tracy in it), `profiling.zone_names`, `analysis.config` (the
+nightly `analysis.yml` presets exist with their settings, and the CodeQL
+workflow is nightly), `notices.sections` (the generated third-party notices
+state every section a package must),
 `package.config` (CPack names this project, and the install rules carry the
 programs the build makes, their data and the notices), `data.sounds` (the
 checked-in feedback WAVs are what `tools/sounds/make_sounds.ps1` writes), and
@@ -215,6 +222,57 @@ under a required check's name on the branch's head commit.
 A branch other than `main` and `develop` gets no CI from a push; open a pull
 request, or dispatch the workflow on it.
 
+## Nightly analysis
+
+Full static analysis is too slow to put in front of every push, so it runs once
+a night in `analysis.yml` (02:17 UTC) and `codeql.yml` (02:47 UTC), and on
+demand from the Actions tab. **None of these is a required check**: a red run is
+a report for the next morning, not a blocked pull request.
+
+| Job | Runs on | What it does |
+| --- | --- | --- |
+| `clang-tidy` | ubuntu-26.04 | Configures `linux-gcc-debug` for the compile database only (no tests, no Qt application, sanitizers off, C++ module scanning off because GCC 15's `-fdeps` flags are not clang-tidy 22 arguments) and runs the pinned clang-tidy (`.github/requirements/analysis.txt`) over it with `.clang-tidy`'s checks and **warnings as errors**. The database is checked to be non-empty first, so a misconfigured run cannot pass with nothing analysed. |
+| `MSVC /analyze` | windows-2025-vs2026 | Preset `windows-msvc-analysis` builds the library, platform layer, scanner and CLI with `/analyze /analyze:external- /W4 /WX`. The C6xxx findings are errors, so a finding is a red build; the SARIF each translation unit writes goes to **Security → Code scanning** (category `msvc-analyze`). |
+| `Sanitizers (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-debug`: the image's `clang++` builds the tree with AddressSanitizer and UBSan, and the whole ctest suite runs under them. The push legs cover GCC, AppleClang and MSVC; this is the nightly Clang build. |
+| `Analyze (C++)` | ubuntu-26.04 | `codeql.yml` runs CodeQL with the `security-extended` query suite over the lean library/platform/CLI build and uploads to code scanning. Public-only, as above. |
+
+The push legs already run ASan and UBSan: `linux-gcc-debug` (GCC),
+`macos-clang-debug` (AppleClang) and `windows-msvc-debug` (MSVC's ASan). The
+nightly Clang leg is the fourth compiler, and the one that gives Clang's
+sanitizer runtimes the whole ctest suite without waiting for a push.
+
+### Running the same analysis locally
+
+```sh
+# clang-tidy: the pinned wheel and the compile database
+pip install -r .github/requirements/analysis.txt
+cmake --preset linux-gcc-debug -DWJS_BUILD_TESTS=OFF -DWJS_BUILD_APP=OFF \
+  -DWJS_ENABLE_SANITIZERS=OFF -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+run-clang-tidy.py -p build/linux-gcc-debug -config-file "$PWD/.clang-tidy" \
+  -warnings-as-errors '*'
+
+# MSVC's analyzer: the SARIF is written beside the objects
+cmake --preset windows-msvc-analysis
+cmake --build --preset windows-msvc-analysis
+
+# Clang with AddressSanitizer and UBSan
+cmake --preset linux-clang-debug
+cmake --build --preset linux-clang-debug
+ctest --preset linux-clang-debug
+```
+
+`.clang-tidy` is deliberately explicit about the checks it does **not** run:
+the new bounds checks, designated initializers, extra arithmetic parentheses,
+ranges rewrites, the easily-swapped-parameter check and the enum-size suggestion
+are disabled with the reason beside each in the file. The gate is the rest of
+`bugprone-*`, `cppcoreguidelines-*`, `modernize-*`, `performance-*`,
+`readability-*` and `clang-analyzer-*`, with warnings as errors. The pinned
+version is the one the disabled list was written for; Dependabot's bump is the
+moment to re-read it.
+
+A scheduled run is on the default branch (`main`). To analyse another branch,
+dispatch `analysis.yml` or `codeql.yml` on it from the Actions tab.
+
 ## Required checks and their staging
 
 The same list is required on `develop` and `main` once the rulesets apply. The
@@ -232,7 +290,14 @@ contexts equal the job display names above and in the two policy workflows.
 | `macOS (AppleClang)` | `ci.yml` | yes |
 | `Coverage (Linux, GCC)` | `ci.yml` | yes |
 | `Scan dependency diff` | `dependency-review.yml` | **no - staged**: added after it has reported on a pull request on the public repository (see below) |
-| `Analyze (C++)` | `codeql.yml` | no - informational |
+| `Analyze (C++)` | `codeql.yml` | no - nightly, informational |
+| `clang-tidy` | `analysis.yml` | no - nightly, informational |
+| `MSVC /analyze` | `analysis.yml` | no - nightly, informational |
+| `Sanitizers (Linux, Clang)` | `analysis.yml` | no - nightly, informational |
+
+The three `analysis.yml` jobs and `Analyze (C++)` are deliberately absent from
+`.github/rulesets/*.json`: they are a nightly report, and a required check that
+only reports once a day would hold every pull request.
 
 Every workflow that produces a required check also triggers on `merge_group`,
 because the merge queue evaluates the required checks on its temporary
@@ -241,7 +306,7 @@ because the merge queue evaluates the required checks on its temporary
 (there is no head branch name, title or body of its own; a skipped job counts
 as a pass for a required check). A workflow that produces **no** required
 check must not carry `merge_group`, or every queue entry burns a run of it for
-nothing: that is why `codeql.yml` does not have it.
+nothing: that is why `analysis.yml` and `codeql.yml` do not have it.
 
 ## The vcpkg binary cache
 
@@ -281,14 +346,19 @@ what a local configure checks a developer's clone against.
 | | Pinned to | Kept current by |
 | --- | --- | --- |
 | Every GitHub Action, and the composite actions in `.github/actions` | A full commit SHA, version in a trailing comment | Dependabot, weekly, grouped, 7-day cooldown |
-| clang-format, gcovr | `==` in `.github/requirements/*.txt` | Dependabot (`pip`), weekly |
+| clang-format, gcovr, clang-tidy | `==` in `.github/requirements/*.txt` | Dependabot (`pip`), weekly |
 | CMake and Ninja (`lukka/get-cmake`) | `cmakeVersion` / `ninjaVersion`, exact, and one the pinned action's catalog lists | By hand, with the action |
 | Qt (`jurplel/install-qt-action`) | The action's commit SHA, the Qt version, `win64_msvc2022_64`, the module list and the `aqtsource` commit, in `.github/toolchain-versions.json` | By hand: run `aqt list-qt windows desktop --modules <version> <arch>` **and** a real install before bumping, as the action's README says |
 | vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together |
 | Runner images | The label (`ubuntu-24.04`, `ubuntu-26.04`, `windows-2025-vs2026`, `macos-26`) | By hand |
 
-Not pinned: the compilers (each is what its image ships), and anything an
-image provides (`pwsh`, `jq`, `git`).
+The clang-tidy version is in `.github/toolchain-versions.json` as well as in
+the requirements file; the `toolchain.versions` ctest holds the two together,
+and reads the CMake and Ninja pins out of both `ci.yml` and `analysis.yml`.
+
+Not pinned: the compilers (each is what its image ships; the MSVC analyzer is
+that image's `cl.exe`, and the Clang sanitizer leg is its `clang++`), and
+anything an image provides (`pwsh`, `jq`, `git`).
 
 ## Commit and PR text policy
 
@@ -370,18 +440,29 @@ suspects, in order of likelihood:
    gcov bug, and the coverage preset updates counters atomically. A failure
    that names a percentage and a floor is the gate, not the tool: the message
    lists the file and line in `summary.json`/the HTML report.
+6. **clang-tidy**: a nightly finding names the check and `file:line`; run the
+   same command from [Nightly analysis](#running-the-same-analysis-locally)
+   against the same preset.
+7. **MSVC `/analyze`**: a C6xxx warning is the error; the compile line names
+   the SARIF file, and the code-scanning alert names the rule.
 
 ## Not here yet
 
-clang-tidy (the `.clang-tidy` file exists; there is no job), the Release
-presets on Windows and macOS (Linux's is the `Performance` leg), Qt on the Linux
-and macOS legs (the application has only been built on Windows so far), and the
-Android/iOS targets (and with them the real Qt Sensors and haptics backends; the
-desktops answer haptics with the shared no-op), and web. The Windows clang-cl
-coverage preset (`windows-clang-coverage`, with `coverage-unit` and
-`coverage-ui`) is available for a local run but is not a CI job: the Linux GCC
-job runs the same unit gate. Each remaining item is a new job or a flag flip,
-not a redesign.
+The Release presets on Windows and macOS (Linux's is the `Performance` leg), Qt
+on the Linux and macOS legs (the application has only been built on Windows so
+far), the Android/iOS targets (and with them the real Qt Sensors and haptics
+backends; the desktops answer haptics with the shared no-op), and web. The
+Windows clang-cl coverage preset (`windows-clang-coverage`, with
+`coverage-unit` and `coverage-ui`) is available for a local run but is not a CI
+job: the Linux GCC job runs the same unit gate. Each remaining item is a new job
+or a flag flip, not a redesign.
+
+SonarQube or SonarCloud is not wired: it needs a server (or a SonarCloud
+organisation), a token and a quality-gate policy, and CodeQL, clang-tidy and
+MSVC's analyzer already cover the C++ with no account to keep. The C++
+compilation-database route is the one to add if a server appears: configure the
+same lean `linux-gcc-debug` database and point the scanner at
+`build/linux-gcc-debug/compile_commands.json`.
 
 Packaging is now built on the Windows leg only (above). The Linux `.deb`, `.rpm`
 and `.tgz` and the macOS `.dmg` are configured and their generators are selected

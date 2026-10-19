@@ -72,7 +72,7 @@ BoardDraft BoardDraft::from_reading(const BoardReading& reading) {
         }
         tiles.push_back(std::move(tile));
     }
-    return BoardDraft(reading.rows, reading.columns, std::move(tiles), false);
+    return {reading.rows, reading.columns, std::move(tiles), false};
 }
 
 std::expected<BoardDraft, DraftError> BoardDraft::empty(std::size_t rows, std::size_t columns) {

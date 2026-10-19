@@ -186,7 +186,7 @@ std::vector<std::uint8_t> bright_mask(const GrayImage& image, int window, int ma
 std::vector<Blob> detail::find_blobs(std::span<const std::uint8_t> mask, int width, int height,
                                      std::int64_t min_area, std::int64_t max_area,
                                      std::span<std::int32_t> labels) {
-    auto zone = profiling::zone<"scan.find_blobs">();
+    [[maybe_unused]] auto zone = profiling::zone<"scan.find_blobs">();
     const std::size_t w = static_cast<std::size_t>(width);
     const std::size_t h = static_cast<std::size_t>(height);
     Labels sets;

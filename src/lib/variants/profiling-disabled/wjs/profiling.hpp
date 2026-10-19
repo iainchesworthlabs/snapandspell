@@ -43,9 +43,10 @@ public:
 
     // A number shown beside the zone in the profiler and exported by
     // tracy-csvexport: a count, a size.
-    void Value(std::uint64_t) const noexcept {}
+    void Value([[maybe_unused]] std::uint64_t value) const noexcept {}
     // Free text for this one occurrence of the zone.
-    void Text(const char*, std::size_t) const noexcept {}
+    void Text([[maybe_unused]] const char* text, [[maybe_unused]] std::size_t size) const noexcept {
+    }
 };
 
 // A timed span of the rest of the enclosing scope, named in the template
@@ -57,7 +58,8 @@ public:
 // is one place: the source location is captured the first time it runs, so the
 // same name used at two sites shows the first one's line.
 template <StaticName Name>
-[[nodiscard]] Zone zone(std::source_location = std::source_location::current()) noexcept {
+[[nodiscard]] Zone zone(
+    [[maybe_unused]] std::source_location location = std::source_location::current()) noexcept {
     return {};
 }
 
@@ -66,7 +68,7 @@ template <StaticName Name>
 // constructor takes the name and the object is empty.
 class [[maybe_unused]] RuntimeScope {
 public:
-    explicit RuntimeScope(std::string_view) noexcept {}
+    explicit RuntimeScope([[maybe_unused]] std::string_view name) noexcept {}
 
     RuntimeScope(const RuntimeScope&) = delete;
     RuntimeScope& operator=(const RuntimeScope&) = delete;
@@ -75,25 +77,25 @@ public:
     ~RuntimeScope() = default;
 
     // A number shown beside the zone, as Zone::Value's. Nothing to show here.
-    void Value(std::uint64_t) noexcept {}
+    void Value([[maybe_unused]] std::uint64_t value) noexcept {}
 };
 
 // A frame boundary on the default set, and on a named one.
 inline void frame_mark() noexcept {}
-inline void frame_mark(Literal) noexcept {}
+inline void frame_mark([[maybe_unused]] Literal name) noexcept {}
 
 // A value on a timeline plot. Integers, floating point numbers and bool.
 template <typename Number>
-void plot(Literal, Number) noexcept {
+void plot([[maybe_unused]] Literal name, [[maybe_unused]] Number number) noexcept {
     static_assert(std::is_arithmetic_v<Number>, "plot() takes a number");
 }
 
 // A discrete event on the timeline. The text is copied.
-inline void message(std::string_view) noexcept {}
+inline void message([[maybe_unused]] std::string_view text) noexcept {}
 
 // Names the calling thread in the profiler's thread list. Once per thread:
 // every call adds a table entry, so never in a per-frame or per-task path.
-inline void thread_name(Literal) noexcept {}
+inline void thread_name([[maybe_unused]] Literal name) noexcept {}
 
 // Whether a profiler is connected now: never, in a build without one.
 inline bool connected() noexcept {

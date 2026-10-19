@@ -1,17 +1,20 @@
 name: CodeQL
 
-# Static analysis (C++). Public-only: code scanning of a private repository
-# needs a paid plan, so the job is skipped - not red - while the repository is
-# private, and starts running the day it is made public (docs/ci.md, "Public-
-# only workflows"). It is not a required check.
+# Static analysis (C++), nightly. Public-only: code scanning of a private
+# repository needs a paid plan, so the job is skipped - not red - while the
+# repository is private, and starts running the day it is made public
+# (docs/ci.md, "Public-only workflows"). It is not a required check.
+#
+# Not on a push or a pull request: CodeQL's build and analysis are slower than
+# the push legs, and its findings are a review queue rather than a merge gate.
+# A person can still dispatch it on any branch from the Actions tab.
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
   schedule:
-    - cron: "17 3 * * 1"
+    # 02:47 UTC, half an hour after analysis.yml, so the two nightly workflows
+    # do not compete for the same runners.
+    - cron: "47 2 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: codeql-${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +28,7 @@ jobs:
     name: Analyze (C++)
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     permissions:
       security-events: write
       contents: read
@@ -44,6 +47,9 @@ jobs:
         with:
           languages: cpp
           build-mode: manual
+          # The nightly run can afford the larger suite: default plus the
+          # security queries that are not in the default suite.
+          queries: security-extended
 
       - name: Install CMake 4 + Ninja
         uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4

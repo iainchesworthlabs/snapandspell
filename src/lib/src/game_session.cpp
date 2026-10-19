@@ -391,6 +391,11 @@ TraceOutcome GameSession::trace(std::span<const Position> path, Stamp when) {
     if (state_ != SessionState::playing || path.size() < 2) {
         return {};
     }
+    if (!board_) {
+        // A playing session always has a board; the guard says so to the
+        // analyzer, which cannot see it through the state.
+        return {};
+    }
     auto zone = profiling::zone<"input.submit">();
     zone.Value(path.size());
 
@@ -479,6 +484,9 @@ bool GameSession::back() {
 
 BoardRecord GameSession::make_record() const {
     BoardRecord record;
+    if (!board_) {
+        return record;
+    }
     record.mode = options_.mode;
     record.size = size_;
     record.tiles = tiles_text(*board_);
@@ -531,7 +539,7 @@ SessionSnapshot GameSession::snapshot() const {
 std::expected<GameSession, SessionError> GameSession::restore(const SessionSnapshot& snapshot,
                                                               const SessionData& data,
                                                               const SessionOptions& options) {
-    auto zone = profiling::zone<"board.restore">();
+    [[maybe_unused]] auto zone = profiling::zone<"board.restore">();
 
     auto created = create(data, options);
     if (!created) {

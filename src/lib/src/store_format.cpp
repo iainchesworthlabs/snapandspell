@@ -11,6 +11,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include "wjs/board.hpp"
@@ -249,7 +250,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         }
         const auto size = to_integer<int>(f[0]);
         const auto stars = to_integer<int>(f[1]);
-        if (!size || !stars || *size < 1 || *size > static_cast<int>(Board::max_dimension) ||
+        if (!size || !stars || *size < 1 || std::cmp_greater(*size, Board::max_dimension) ||
             *stars < 0 || *stars > 1'000'000) {
             return false;
         }
@@ -285,7 +286,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         const auto board = to_integer<std::uint32_t>(f[6]);
         if (!stars || !size || !day || !used || !board || !read_phase(f[3], find.phase) ||
             *stars < 0 || *stars > max_find_stars || *size < 1 ||
-            *size > static_cast<int>(Board::max_dimension)) {
+            std::cmp_greater(*size, Board::max_dimension)) {
             return false;
         }
         find.stars = *stars;
@@ -325,7 +326,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         const auto viable = to_integer<int>(f[7]);
         if (!serial || *serial == 0 || !day || !size || !cleared || !found || !stars || !viable ||
             !read_phase(f[3], board.phase) || *size < 1 ||
-            *size > static_cast<int>(Board::max_dimension) || *found < 0 || *found > 100'000 ||
+            std::cmp_greater(*size, Board::max_dimension) || *found < 0 || *found > 100'000 ||
             *stars < 0 || *stars > 1'000'000 || *viable < 0 || *viable > 100'000) {
             return false;
         }
@@ -385,7 +386,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         }
         const auto side = to_integer<int>(*size);
         const auto seed_value = to_integer<std::uint32_t>(*seed);
-        if (!side || !seed_value || *side < 1 || *side > static_cast<int>(Board::max_dimension) ||
+        if (!side || !seed_value || *side < 1 || std::cmp_greater(*side, Board::max_dimension) ||
             (*lit != "-" && !is_stored_word(*lit))) {
             return false;
         }
@@ -406,7 +407,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         const auto size = to_integer<int>(f[1]);
         const auto total = to_integer<int>(f[3]);
         if (!size || !total || !read_phase(f[0], board.phase) || *size < 1 ||
-            *size > static_cast<int>(Board::max_dimension) || *total < 1 || *total > 100'000) {
+            std::cmp_greater(*size, Board::max_dimension) || *total < 1 || *total > 100'000) {
             return false;
         }
         const auto parsed = Board::parse(f[2]);

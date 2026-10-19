@@ -101,7 +101,7 @@ constexpr std::size_t key_source = 3;
 // What one token of a word line after the word is: a grapheme, the first half
 // of a split digraph or its second half, with the sound it picks if it says.
 struct Piece {
-    enum class Kind { whole, open, close };
+    enum class Kind : std::uint8_t { whole, open, close };
 
     Kind kind = Kind::whole;
     std::string letters;  // without the underscore or the number
@@ -159,7 +159,7 @@ struct Piece {
 // `/.../`: slashes round at least one character, none inside.
 [[nodiscard]] bool is_sound(std::string_view text) noexcept {
     return text.size() >= 3 && text.front() == '/' && text.back() == '/' &&
-           text.substr(1, text.size() - 2).find('/') == std::string_view::npos;
+           !text.substr(1, text.size() - 2).contains('/');
 }
 
 // YYYY-MM-DD, and a day that the month has.
@@ -296,7 +296,7 @@ void check_header(const PhaseHeader& header, const HeaderSeen& seen, const Repor
 // Windows editor taken off. `#` lines go to the header; the rest, trimmed and
 // not blank, go to `visit(line_number, text)`.
 template <typename Visit>
-void read_file(std::istream& in, PhaseHeader& header, const Report& report, Visit&& visit) {
+void read_file(std::istream& in, PhaseHeader& header, const Report& report, Visit visit) {
     HeaderSeen seen;
     std::string raw;
     std::size_t number = 0;
@@ -589,6 +589,9 @@ const Grapheme* PhaseIndex::find_grapheme(std::string_view letters) const {
 std::span<const Grapheme> PhaseIndex::sounds_of(std::string_view letters) const {
     const std::string key = lower(letters);
     const auto range = std::ranges::equal_range(graphemes_, key, {}, &Grapheme::letters);
+    // The iterators point into graphemes_, a member of this object, so the span
+    // is valid for as long as the PhaseIndex is.
+    // NOLINTNEXTLINE(bugprone-dangling-handle)
     return {range.begin(), range.end()};
 }
 

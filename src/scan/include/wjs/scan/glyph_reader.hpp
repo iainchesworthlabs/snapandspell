@@ -62,6 +62,9 @@ public:
 
     GlyphReader(const GlyphReader&) = delete;
     GlyphReader& operator=(const GlyphReader&) = delete;
+    GlyphReader(GlyphReader&&) = delete;
+    GlyphReader& operator=(GlyphReader&&) = delete;
+    ~GlyphReader() = default;
 
 private:
     GlyphReader();
