@@ -296,6 +296,32 @@ TEST_CASE("only the pointer that is down moves the path", "[app][trace]") {
     CHECK_FALSE(tracer.pointerDown());
 }
 
+TEST_CASE("a move that stays on the tile reports nothing to rebuild", "[app][trace]") {
+    auto tracer = make_tracer();
+    tracer.press(centre(0, 0));
+
+    // A wobble inside the stay circle, and the centre itself: no new tile, so
+    // nothing for the screen to redraw (the model tells the path per change,
+    // and these are no change).
+    CHECK(tracer.move({centre(0, 0).x + 5, centre(0, 0).y}) == Event::none);
+    CHECK(tracer.move(centre(0, 0)) == Event::none);
+    CHECK(shown(tracer) == tiles_of(Tiles{{0, 0}}));
+}
+
+TEST_CASE("a move to a tile that does not touch the last is no change", "[app][trace]") {
+    auto tracer = make_tracer();
+    tracer.press(centre(0, 0));
+
+    // Two tiles away in a straight line: the walk adds the middle tile (one
+    // change), and nothing else.
+    CHECK(tracer.move(centre(0, 2)) == Event::changed);
+    CHECK(shown(tracer) == tiles_of(Tiles{{0, 0}, {0, 1}, {0, 2}}));
+
+    // The corner does not touch the last tile: ignored, and no change is told.
+    CHECK(tracer.move(centre(2, 2)) == Event::none);
+    CHECK(shown(tracer) == tiles_of(Tiles{{0, 0}, {0, 1}, {0, 2}}));
+}
+
 TEST_CASE("a rotated window keeps the path and uses the new geometry", "[app][trace]") {
     auto tracer = make_tracer();
     tracer.press(centre(0, 0));

@@ -1,3 +1,4 @@
+#include <QObject>
 #include <QString>
 #include <QVariantMap>
 #include <catch2/catch_test_macros.hpp>
@@ -66,4 +67,23 @@ TEST_CASE("a board that cannot be read clears the results and says why", "[app]"
     CHECK(model.results().isEmpty());
     CHECK(model.totalScore() == 0);
     CHECK(model.status().contains(QStringLiteral("cannot be read")));
+}
+
+TEST_CASE("one solve tells the results once, not once a word", "[app]") {
+    const auto path = write_words("wjs_app_model_words_c.txt", "cat\ncare\ndog\ncod\n");
+    wjs::app::SolverModel model;
+    REQUIRE(model.loadDictionary(to_qstring(path)));
+    std::filesystem::remove(path);
+
+    int changes = 0;
+    QObject::connect(&model, &wjs::app::SolverModel::resultsChanged, [&] { ++changes; });
+
+    model.solve(QStringLiteral("CAT/ORE/DGS"));
+
+    // Four words, one signal: the list is built once and the screens redraw
+    // once, not once a word.
+    CHECK(changes == 1);
+    REQUIRE(model.results().size() == 4);
+    // And a read does not rebuild the list: the results are a stored value.
+    CHECK(model.results().constData() == model.results().constData());
 }

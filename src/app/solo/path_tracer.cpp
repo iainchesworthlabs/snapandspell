@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "wjs/path.hpp"
+#include "wjs/profiling.hpp"
 
 namespace wjs::app {
 namespace {
@@ -158,6 +159,10 @@ PathTracer::Event PathTracer::move(Point at) {
     if (!active_ || ignored_) {
         return Event::none;
     }
+    // One zone per pointer event, not per walked step: a move is the input
+    // path's per-event work (the hit tests below, and the path display the
+    // change triggers in QML). It nests inside the QML seam's `ui.trace`.
+    auto zone = wjs::profiling::zone<"input.trace">();
     bool changed = false;
     const double length = distance(last_point_, at);
     const double step_length = std::max(tolerance_.step * tile_, 1e-6);

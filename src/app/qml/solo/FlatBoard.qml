@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import WordJewelsSolver
+import WordJewelsSolver.Scene
 
 // The flat board the child reads and traces. It is 2D on purpose: the 3D scene
 // is the shake and the drop, and this is what settles afterwards. The tray is
@@ -44,16 +45,33 @@ Item {
     function points(indices) {
         return indices.map(i => centre(i));
     }
+    // The path being made, copied from the model once per change: the tiles'
+    // lit tests read this one JS array instead of asking the model for a fresh
+    // list each (the model builds its list per read, and a 6x6 board reads it
+    // once a tile per move event: the pointer's jank is those rebuilds).
+    property var pathList: []
     function isLit(index) {
-        if (solo.path.indexOf(index) >= 0) {
+        if (root.pathList.indexOf(index) >= 0) {
             return true;
         }
         return root.presenting && solo.litPath.indexOf(index) >= 0;
     }
+    // The line to draw: the path being made, or the path of the word being
+    // shown. One array, so the shape does not flicker at the hand-off.
+    readonly property var linePath: solo.path.length > 1 ? solo.path
+                                    : (root.presenting && solo.litPath.length > 1 ? solo.litPath : [])
+    // The line's points, computed once per change for both stroked paths.
+    readonly property var linePoints: root.points(root.linePath)
+    // The fading path's points, computed once per fade for both lines.
+    readonly property var ghostPoints: root.points(root.ghostPath)
 
     Connections {
         target: root.solo
 
+        function onPathChanged() {
+            // One copy per change: the tiles and the path lines read this.
+            root.pathList = root.solo.path;
+        }
         function onStateChanged() {
             if (root.solo.state === "word-found") {
                 wordTimer.restart();
@@ -97,7 +115,7 @@ Item {
     // the parts over a letter; only the gold connectors in the gaps show.
     Shape {
         anchors.fill: parent
-        visible: root.solo.path.length > 1
+        visible: root.linePath.length > 1
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
@@ -106,7 +124,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.solo.path) }
+            PathPolyline { path: root.linePoints }
         }
     }
 
@@ -135,7 +153,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.ghostPath) }
+            PathPolyline { path: root.ghostPoints }
         }
     }
     NumberAnimation {
@@ -162,7 +180,7 @@ Item {
             height: root.tileSize
 
             readonly property bool dead: modelData === ""
-            readonly property int order: root.solo.path.indexOf(cell.index) + 1
+            readonly property int order: root.pathList.indexOf(cell.index) + 1
 
             TileFace {
                 anchors.fill: parent
@@ -250,17 +268,29 @@ Item {
         onPressed: mouse => {
             root.keyboardUsed = false;
             root.forceActiveFocus();
+            // The path work of a touch: the model's hit test, the path it
+            // changes and every binding that follows it, until the frame.
+            Profiler.begin("ui.trace");
             root.solo.pressAt(pointer.local(mouse.x, mouse.y).x, pointer.local(mouse.x, mouse.y).y);
+            Profiler.end();
         }
         onPositionChanged: mouse => {
             const p = pointer.local(mouse.x, mouse.y);
+            Profiler.begin("ui.trace");
             root.solo.moveTo(p.x, p.y);
+            Profiler.end();
         }
         onReleased: mouse => {
             const p = pointer.local(mouse.x, mouse.y);
+            Profiler.begin("ui.trace");
             root.solo.releaseAt(p.x, p.y, pointer.over(mouse.x, mouse.y));
+            Profiler.end();
         }
-        onCanceled: root.solo.clearPath()
+        onCanceled: {
+            Profiler.begin("ui.trace");
+            root.solo.clearPath();
+            Profiler.end();
+        }
     }
 
     Keys.onPressed: event => {
@@ -270,6 +300,7 @@ Item {
         root.keyboardUsed = true;
         const row = Math.floor(root.focusIndex / root.columns);
         const column = root.focusIndex % root.columns;
+        Profiler.begin("ui.trace");
         switch (event.key) {
         case Qt.Key_Left:
             root.focusIndex = row * root.columns + Math.max(0, column - 1);
@@ -309,5 +340,6 @@ Item {
         default:
             break;
         }
+        Profiler.end();
     }
 }
