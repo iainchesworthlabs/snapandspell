@@ -760,6 +760,12 @@ TEST_CASE("the help lights the start tile of the shortest word nearest the top l
     REQUIRE(tile.has_value());
     CHECK(*tile == Position{0, 0});
     CHECK(session.lit_tile() == tile);
+
+    // The path is the word's own, from the same first tile: the second rung of
+    // the help reads its first two tiles without being given the word.
+    const std::vector<Position> path = session.lit_path();
+    REQUIRE(path.size() >= 3);
+    CHECK(path.front() == *tile);
 }
 
 TEST_CASE("the same press gives the same tile until its word is found", "[session]") {
@@ -2459,23 +2465,23 @@ TEST_CASE("the project's dice deal a board that holds a word at every size",
 
 TEST_CASE("the session deals the standard boards the library's deal does, pinned for two seeds",
           "[session][standard][data]") {
-    // Seeds 12345 and 43 of the 3x3 dice, as the deal's own tests pin them
+    // Seeds 12345 and 190 of the 3x3 dice, as the deal's own tests pin them
     // (deal_test.cpp): the first roll holds words; the second seed's first roll
-    // (D L M/P C S/G S S) holds none and is rolled again from the seed after it.
+    // (P N T/C N K/D N D) holds none and is rolled again from the seed after it.
     wjs::SessionOptions options;
     options.seed = 12345;
     wjs::GameSession plain = make_shipped(options);
     REQUIRE(plain.shake().has_value());
-    CHECK(text_of(*plain.board()) == "N J L/E H S/S U E");
+    CHECK(text_of(*plain.board()) == "O L R/D O U/W L B");
     CHECK(plain.last_deal()->rolls == 1U);
     CHECK(plain.last_deal()->seed == 12345U);
 
-    options.seed = 43;
+    options.seed = 190;
     wjs::GameSession again = make_shipped(options);
     REQUIRE(again.shake().has_value());
-    CHECK(text_of(*again.board()) == "S U G/D L S/M G I");
+    CHECK(text_of(*again.board()) == "T E R/F S Y/G T D");
     CHECK(again.last_deal()->rolls == 2U);
-    CHECK(again.last_deal()->seed == wjs::next_deal_seed(43));
+    CHECK(again.last_deal()->seed == wjs::next_deal_seed(190));
     CHECK(again.last_deal()->solves == 2U);
 }
 

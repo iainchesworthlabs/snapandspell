@@ -17,6 +17,11 @@ import QtQuick3D
 // read upright) and the six faces are the die's block of the board's atlas (3
 // cells across and 2 down, a cell to a face), picked with the texture's own
 // offset and scale, so a board of any size is one texture.
+//
+// The material is paper, not plastic: matte, warm, and with a little of the
+// face's own cream as light, so the box's shade cannot turn the paper grey or
+// blue. The scene is a QML module of its own and cannot import Theme; the
+// factor's warmth is Theme.die's #FFF7E3 (1, 0.969, 0.890) at about a seventh.
 Node {
     id: slot
 
@@ -55,6 +60,35 @@ Node {
         }
     }
 
+    // The die's block of the board's atlas, read twice below: once as the face's
+    // colour, and once as the little warm light the face gives off itself.
+    Texture {
+        id: faceTexture
+
+        sourceItem: slot.atlas
+        scaleU: 1 / slot.columns
+        scaleV: 1 / slot.rows
+        positionU: (slot.cell % slot.columns) / slot.columns
+        // A sourceItem's rows count from the bottom of the texture.
+        positionV: (slot.rows - 1 - Math.floor(slot.cell / slot.columns)) / slot.rows
+    }
+
+    // The flat board's cream paper: no metal, only a touch of sheen, and a face
+    // that is mostly its own colour so the shade stays warm.
+    PrincipledMaterial {
+        id: faceMaterial
+
+        roughness: 0.92
+        metalness: 0.0
+        specularAmount: 0.06
+        baseColorMap: faceTexture
+        // The cream of the face, at a seventh: enough to keep the paper cream
+        // in the box's shade, and its ink and edge stay dark because they are
+        // dark in the map. (Theme.die #FFF7E3 as the factor's warmth.)
+        emissiveMap: faceTexture
+        emissiveFactor: Qt.vector3d(0.15, 0.145, 0.134)
+    }
+
     Node {
         id: body
 
@@ -69,25 +103,6 @@ Node {
             castsShadows: false
             receivesShadows: false
             materials: [faceMaterial]
-        }
-    }
-
-    PrincipledMaterial {
-        id: faceMaterial
-
-        roughness: 0.7
-        metalness: 0.0
-        specularAmount: 0.15
-        // Lift the cream just enough that the lit dice match the paper tiles
-        // rather than turning grey in the box's shadow.
-        emissiveFactor: Qt.vector3d(0.055, 0.048, 0.035)
-        baseColorMap: Texture {
-            sourceItem: slot.atlas
-            scaleU: 1 / slot.columns
-            scaleV: 1 / slot.rows
-            positionU: (slot.cell % slot.columns) / slot.columns
-            // A sourceItem's rows count from the bottom of the texture.
-            positionV: (slot.rows - 1 - Math.floor(slot.cell / slot.columns)) / slot.rows
         }
     }
 }

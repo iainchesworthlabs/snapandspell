@@ -15,15 +15,38 @@
 #include "wjs/solver.hpp"
 
 // The project's own dice, data/dice/<n>x<n>.txt, made by tools/data/make_dice.ps1
-// from the dictionary's letter counts. These cases read the shipped files and
-// the shipped dictionary by their paths in this checkout, as the performance
-// tier does: they are about the data, not about the code. That the files are
-// what the tool makes (and not a stale copy) is data.dice, in ctest.
+// from a fixed Scrabble-style English letter-frequency table. These cases read
+// the shipped files and the shipped dictionary by their paths in this checkout,
+// as the performance tier does: they are about the data, not about the code.
+// That the files are what the tool makes (and not a stale copy) is data.dice,
+// in ctest.
 
 namespace {
 
 // data/ in this checkout, as a path CMake passes in.
 constexpr std::string_view data_directory = WJS_DATA_DIRECTORY;
+
+[[nodiscard]] bool is_vowel_face(const std::string& face) {
+    return face == "A" || face == "E" || face == "I" || face == "O" || face == "U";
+}
+
+// The letters the generator keeps to one a die: QU counts as Q.
+[[nodiscard]] bool is_rare_face(const std::string& face) {
+    if (face.empty()) {
+        return false;
+    }
+    switch (face.front()) {
+        case 'J':
+        case 'K':
+        case 'Q':
+        case 'V':
+        case 'X':
+        case 'Z':
+            return true;
+        default:
+            return false;
+    }
+}
 
 std::filesystem::path dice_file(std::size_t side) {
     return std::filesystem::path(data_directory) / "dice" /
@@ -58,14 +81,78 @@ TEST_CASE("each shipped set has the dice for its board and six faces to a die", 
         for (std::size_t i = 0; i < set.size(); ++i) {
             const auto& faces = set.die(i);
             CHECK(faces.size() == 6);
-            // Six different faces, and a vowel among them.
+            // Six different faces, in letter order, one to three vowels, and no
+            // pile of rare letters on one die.
             CHECK(std::set<std::string>(faces.begin(), faces.end()).size() == 6);
-            const bool vowel = std::ranges::any_of(faces, [](const std::string& face) {
-                return face == "A" || face == "E" || face == "I" || face == "O" || face == "U";
-            });
-            CHECK(vowel);
+            CHECK(std::ranges::is_sorted(faces));
+            const auto vowels = std::ranges::count_if(faces, is_vowel_face);
+            CHECK(vowels >= 1);
+            CHECK(vowels <= 3);
+            CHECK(std::ranges::count_if(faces, is_rare_face) <= 1);
         }
     }
+}
+
+TEST_CASE("the shipped sets have vowels to play with and no S-heavy board", "[dice][data]") {
+    // A board needs vowels, and one that is a fifth S makes easy plurals and
+    // little else. The tool deals again until these hold, so a set outside them
+    // is stale or hand-edited.
+    for (const std::size_t side : {3U, 4U, 5U, 6U}) {
+        const auto set = load(side);
+        const std::size_t faces = set.size() * 6;
+
+        std::size_t vowels = 0;
+        std::size_t s_faces = 0;
+        std::set<std::string> distinct;
+        for (std::size_t i = 0; i < set.size(); ++i) {
+            for (const auto& face : set.die(i)) {
+                vowels += is_vowel_face(face) ? 1U : 0U;
+                s_faces += face == "S" ? 1U : 0U;
+                distinct.insert(face);
+            }
+        }
+
+        INFO("side " << side << " vowel faces " << vowels << " of " << faces << ", S faces "
+                     << s_faces);
+        // 30% to 40% vowels, and S at most 8% of the faces. Integer arithmetic
+        // so the test says the same thing on every compiler.
+        CHECK(vowels * 10 >= faces * 3);
+        CHECK(vowels * 10 <= faces * 4);
+        CHECK(s_faces * 100 <= faces * 8);
+        // A small set cannot hold every letter, but it should be more than a
+        // handful of common ones.
+        CHECK(distinct.size() >= 20);
+    }
+}
+
+TEST_CASE("the shipped dice cover the alphabet and keep Q as the tile QU", "[dice][data]") {
+    std::set<std::string> first_letters;
+    std::size_t qu_faces = 0;
+
+    for (const std::size_t side : {3U, 4U, 5U, 6U}) {
+        const auto set = load(side);
+        for (std::size_t i = 0; i < set.size(); ++i) {
+            for (const auto& face : set.die(i)) {
+                REQUIRE_FALSE(face.empty());
+                CHECK(face.size() <= 2);
+                for (const char letter : face) {
+                    CHECK((letter >= 'A' && letter <= 'Z'));
+                }
+                if (face.front() == 'Q') {
+                    CHECK(face == "QU");
+                    ++qu_faces;
+                } else {
+                    CHECK(face.find('Q') == std::string::npos);
+                }
+                first_letters.insert(std::string(1, face.front()));
+            }
+        }
+    }
+
+    // Across the four sets every letter is somewhere, as the sets are the
+    // project's whole dice supply, and there is a QU tile to use it.
+    CHECK(first_letters.size() == 26);
+    CHECK(qu_faces >= 1);
 }
 
 TEST_CASE("the placements of a roll are the faces of the shipped dice that are up",
@@ -132,10 +219,12 @@ TEST_CASE("a dealt standard board has the dice that its seed rolls", "[dice][dat
 TEST_CASE("boards rolled from the shipped dice hold about the words a random board does",
           "[dice][data]") {
     // The design measured boards of letters drawn by the dictionary's letter
-    // counts at 31, 120, 254 and 435 words on average, a 3x3 to a 6x6. Dice, with
-    // six different letters to a die, come out close; these bounds are loose
-    // enough to hold if the dice are made again and tight enough to catch a set
-    // that has gone wrong (all one letter, no vowels).
+    // counts at 31, 120, 254 and 435 words on average, a 3x3 to a 6x6. The
+    // Scrabble-style table gives the small boards more vowels and common letters,
+    // and every set fewer S faces, so the 5x5 and 6x6 hold fewer plural-heavy
+    // dictionary words: about 32, 102, 194 and 322 over 300 boards. These bounds
+    // are loose enough to hold if the dice are made again and tight enough to
+    // catch a set that has gone wrong (all one letter, no vowels).
     struct Expect {
         std::size_t side;
         double low;
@@ -145,7 +234,7 @@ TEST_CASE("boards rolled from the shipped dice hold about the words a random boa
     const std::vector<Expect> expected = {{3, 20.0, 45.0, 0.08},
                                           {4, 70.0, 150.0, 0.02},
                                           {5, 180.0, 330.0, 0.01},
-                                          {6, 350.0, 600.0, 0.01}};
+                                          {6, 280.0, 600.0, 0.01}};
 
     for (const auto& expect : expected) {
         const auto set = load(expect.side);
@@ -191,11 +280,12 @@ TEST_CASE("a seed rolls the same board from the shipped dice on every compiler",
         return result;
     };
 
-    CHECK(text(*wjs::roll(load(3), 1)) == "Z C N/R R V/M A B");
-    CHECK(text(*wjs::roll(load(4), 1)) == "E A L N/O D O I/S K C T/H U T O");
+    CHECK(text(*wjs::roll(load(3), 1)) == "T A E/H T Y/D A A");
+    CHECK(text(*wjs::roll(load(4), 1)) == "C A T E/S C O D/T L A L/I Y T H");
 
     // The same boards from the function that returns the placements, which
     // must not have moved a board: a board of today is a board of before.
-    CHECK(text(wjs::roll_with_placements(load(3), 1)->board) == "Z C N/R R V/M A B");
-    CHECK(text(wjs::roll_with_placements(load(4), 1)->board) == "E A L N/O D O I/S K C T/H U T O");
+    CHECK(text(wjs::roll_with_placements(load(3), 1)->board) == "T A E/H T Y/D A A");
+    CHECK(text(wjs::roll_with_placements(load(4), 1)->board) ==
+          "C A T E/S C O D/T L A L/I Y T H");
 }

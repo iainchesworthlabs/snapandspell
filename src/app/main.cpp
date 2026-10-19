@@ -5,6 +5,7 @@
 #include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QStandardPaths>
 #include <QStyleHints>
 #include <QString>
 #include <QStringList>
@@ -33,6 +34,7 @@
 #include "solo/solo_game_setup.hpp"
 #include "wjs/calendar.hpp"
 #include "wjs/platform/paths.hpp"
+#include "wjs/store.hpp"
 #include "wjs/platform/window_chrome.hpp"
 #include "wjs/profiling.hpp"
 #include "wjs/settings.hpp"
@@ -149,9 +151,20 @@ void wait_for_profiler() {
     std::filesystem::path file;
     if (const auto given = value_of(arguments, QStringLiteral("--store"))) {
         file = to_path(*given);
-    } else if (const std::filesystem::path base = wjs::platform::user_data_directory();
-               !base.empty()) {
-        file = wjs::default_store_path(base);
+    } else {
+        // Qt's per-user application data directory, which already exists for the
+        // cache and follows the app's organisation name on every platform. The
+        // old path was the bare LOCALAPPDATA: a second, unrelated folder, and
+        // on a machine where that folder could not be made the store fell back
+        // to memory and the parent was told progress could not be saved.
+        const QString base =
+            QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+        if (!base.isEmpty()) {
+            file = to_path(base) / std::string{wjs::store_file_name};
+        } else if (const std::filesystem::path fallback = wjs::platform::user_data_directory();
+                   !fallback.empty()) {
+            file = wjs::default_store_path(fallback);
+        }
     }
     if (file.empty()) {
         return {wjs::Store::in_memory(), wjs::LoadStatus::created, {}};

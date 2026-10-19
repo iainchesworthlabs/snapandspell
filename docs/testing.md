@@ -112,7 +112,7 @@ GUI application on Qt's offscreen platform and tells its accessibility hints of 
 | `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
 | `tools/checks/check_platform_isolation.ps1` | The source tree | See below: `platform.isolation` |
 | `tools/data/check_wordlists.ps1` | `data/dictionaries` and `data/lexicon` | `data.wordlists`: lowercase a-z, sorted, unique, and every lexicon word in the dictionary |
-| `tools/data/make_dice.ps1 -Check` | `data/dice` | `data.dice`: each file is what the tool makes from the dictionary as it is, so the recorded source hash and the dice both match |
+| `tools/data/make_dice.ps1 -Check` | `data/dice` | `data.dice`: each file is what the tool makes from the fixed Scrabble-style table, so a changed generator or a hand edit fails |
 | `tools/sounds/make_sounds.ps1 -Check` | `assets/sounds` | `data.sounds`: each placeholder WAV is exactly what the tool writes, byte for byte |
 | `tools/data/check_phonics.ps1` | `data/phonics` | See below: `data.phonics` |
 | `tools/data/test_check_phonics.ps1` | The phonics checker itself | See below: `data.phonics.checker` |
@@ -812,10 +812,12 @@ tablet, where the 5x5 and 6x6 times are three to five times these.
 
 ## The dice: what was measured
 
-The project's dice (`data/dice`) were checked by rolling each size 1,000 times
-(seeds 1 to 1,000) and solving every board against the dictionary, once, with a
-throw-away program; `dice_data_test.cpp` holds the same to loose bounds on 300
-boards a size. One Windows 11 desktop, Release.
+The project's dice (`data/dice`) are checked by `dice_data_test.cpp`, which rolls
+300 boards a size (seeds 1 to 300) and solves each against the dictionary, and by
+the quality cases about the sets themselves. One Windows 11 desktop, Release.
+
+The table is from the dictionary-count dice, before 2026-10-19, and is kept as
+the comparison:
 
 | Board | Words a board holds, mean | 10th / 50th / 90th percentile | Boards with no word | Vowels (A E I O U) among tiles |
 | --- | --- | --- | --- | --- |
@@ -824,12 +826,11 @@ boards a size. One Windows 11 desktop, Release.
 | 5x5 | 254 | 137 / 243 / 389 | 0% | 40% |
 | 6x6 | 471 | 291 / 458 / 669 | 0% | 38% |
 
-These are about what the design measured for boards of letters drawn by the
-dictionary's letter counts (31, 120, 254 and 435), which the dice are made from.
-A `QU` tile did not appear in 1,000 boards of any size: with six different
-letters dealt by count, Q is dealt about once in 1,000 faces, so no set of the
-four has one. The model takes a `QU` face and the tool shows a Q as one; whether
-a set should be made to carry one is a rule the tool does not yet have.
+Those sets are no longer shipped. The Scrabble-style sets measure about 32, 102,
+194 and 322 words a board on average, and about 35%, 34%, 36% and 36% of their
+faces are vowels. The larger boards hold fewer dictionary words because S is
+capped at 8% of the faces rather than being a tenth of them. Every shipped size
+has `QU` tiles; Q is the tile `QU`.
 
 ## Sanitizers, warnings and Debug
 

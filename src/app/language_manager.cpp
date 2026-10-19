@@ -7,7 +7,18 @@
 #include <algorithm>
 #include <string_view>
 
+#include "wjs/profiling.hpp"
 #include "wjs/settings.hpp"
+
+// The catalogues are a resource of the wjs_i18n library. A resource is linked
+// out of a static library unless something refers to it, and this is that
+// reference. It is made at global scope because Q_INIT_RESOURCE declares its
+// extern function where it is expanded: inside wjs::app it would declare
+// wjs::app::qInitResources_..., while the generated object defines the global
+// one, and clang-cl + lld-link reject that link.
+static void init_translations_resource() {
+    Q_INIT_RESOURCE(wjs_translations);
+}
 
 namespace wjs::app {
 namespace {
@@ -22,8 +33,9 @@ namespace {
 
 LanguageManager::LanguageManager(QObject* parent) : QObject(parent) {
     // The catalogues are a resource of this library. A resource is linked out of
-    // a static library unless something refers to it, and this is that reference.
-    Q_INIT_RESOURCE(wjs_translations);
+    // a static library unless something refers to it, and the helper is that
+    // reference (made at global scope; see the note above).
+    ::init_translations_resource();
 }
 
 LanguageManager::~LanguageManager() {
@@ -102,6 +114,10 @@ QString LanguageManager::apply(const QString& setting) {
 }
 
 void LanguageManager::install(const QString& code) {
+    // The catalogue's read and install, on the GUI thread: it is a resource, so
+    // it is quick, and it is timed so a trace shows when a language change pays
+    // it (once per change, not per frame).
+    auto zone = wjs::profiling::zone<"data.load_catalogue">();
     if (translator_) {
         QCoreApplication::removeTranslator(translator_.get());
         translator_.reset();

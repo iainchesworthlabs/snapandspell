@@ -12,7 +12,14 @@ set(WJS_PLATFORM_INSTALL_APP_DATA_DIR "${CMAKE_INSTALL_BINDIR}")
 # in src/app/CMakeLists.txt writes the DLLs, plugins and QML modules there.
 set(WJS_PLATFORM_QT_DEPLOY_AT_INSTALL ON)
 
-set(WJS_PLATFORM_QT_SEARCH_ROOTS "C:/Qt" "$ENV{USERPROFILE}/Qt")
+# C:/Qt and the user's installs are where the Qt online installer and
+# aqtinstall put a kit. C:/Repos/common/qt is the labs' shared prebuilt tree
+# (C:\Repos\common\env.ps1 sets QT_ROOT_DIR to it); FindQt6 checks that the
+# directory exists, so the entry costs nothing on a machine without it.
+set(WJS_PLATFORM_QT_SEARCH_ROOTS
+    "C:/Qt"
+    "$ENV{USERPROFILE}/Qt"
+    "C:/Repos/common/qt")
 set(WJS_PLATFORM_QT_ARCH_DIRS msvc2022_64 msvc2019_64)
 
 # Qt's offscreen platform plugin draws text with the fonts in this directory, and

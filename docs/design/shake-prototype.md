@@ -50,8 +50,9 @@ qmltooling` for every program this function deploys.
 | The probe | `tools/lightprobe`, `src/app/qml/scene/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
 
 It is behind `-DWJS_BUILD_SHAKE_PROTOTYPE=ON`, off by default. The application no
-longer needs the option: with `WJS_BUILD_APP=ON` it links Quick 3D and the scene
-module, so its binary is GPL-3.0 only. The scene has no game rules in it: a face
+longer needs an option of its own: with `WJS_BUILD_APP=AUTO` and a Qt 6.12 kit
+found (or with `ON`), it links Quick 3D and the scene module, so its binary is
+GPL-3.0 only. The scene has no game rules in it: a face
 is an opaque string and `""` is a jewel (a dead jewel is a die of six). Its
 script is also run by a ctest case when the application is built
 (`tests/app/shake_script_test.cpp`), against the application's copy of the file.
@@ -353,7 +354,7 @@ is an interval of 25 ms or more, so the tables give over 20, 25 and 33 ms.
 
 ```powershell
 cmake --preset windows-msvc-release -DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON
-cmake --build --preset windows-msvc-release --target wjs_shake_prototype
+cmake --build --preset windows-msvc-release --target ShakePrototype
 $env:QT_ASSUME_STDERR_HAS_CONSOLE = 1      # the program is a GUI program; this shows its log
 build\windows-msvc-release\bin\ShakePrototype.exe                       # to play with
 build\windows-msvc-release\bin\ShakePrototype.exe --auto --runs 6 --out results   # timing

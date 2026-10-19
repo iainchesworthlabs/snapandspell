@@ -58,19 +58,32 @@ class SoloModel : public QObject {
 
     // The path being made, as tile indices, and its grapheme blocks, one map
     // each: first (index in the path), tiles (how many), grapheme (letters).
+    // The lists are built once per change and read many times (the screens read
+    // `path` once a tile and once a path line), so the getters return a cached
+    // list and `pathChanged` means "the path changed": a rebuild per read is the
+    // pointer's jank. `pointerDown` has its own signal so that a finger going
+    // down or up does not rebuild the path's display.
     Q_PROPERTY(QVariantList path READ path NOTIFY pathChanged)
     Q_PROPERTY(QVariantList blocks READ blocks NOTIFY pathChanged)
-    Q_PROPERTY(bool pointerDown READ pointerDown NOTIFY pathChanged)
+    Q_PROPERTY(bool pointerDown READ pointerDown NOTIFY pointerDownChanged)
     // The path of the word being shown, in `word-found`.
     Q_PROPERTY(QVariantList litPath READ litPath NOTIFY litPathChanged)
 
     // The tray: one map for each word found on this board: word (lower-case),
-    // tier ("spark", "power", "mega") and stars.
+    // tier ("spark", "power", "mega"), stars and points.
     Q_PROPERTY(QVariantList found READ found NOTIFY foundChanged)
+    // The running totals of the board, derived from `found`: what the panel's
+    // score line and the clear summary show. No rule is added here.
+    Q_PROPERTY(int boardPoints READ boardPoints NOTIFY foundChanged)
+    Q_PROPERTY(int boardStars READ boardStars NOTIFY foundChanged)
 
-    // The help: whether the parent allows it, and the tile lit now (-1: none).
+    // The help: whether the parent allows it, the tile lit now (-1: none), the
+    // tiles the second rung lights (up to two, in the word's order) and the
+    // rung itself: 0 none, 1 the start tile, 2 the first two letters.
     Q_PROPERTY(bool helpAllowed READ helpAllowed NOTIFY helpChanged)
     Q_PROPERTY(int helpTile READ helpTile NOTIFY helpChanged)
+    Q_PROPERTY(QVariantList helpTiles READ helpTiles NOTIFY helpChanged)
+    Q_PROPERTY(int hintLevel READ hintLevel NOTIFY helpChanged)
 
     // Earlier boards, newest first: rows, columns, tiles and found (as the tray's).
     Q_PROPERTY(QVariantList history READ history NOTIFY historyChanged)
@@ -95,8 +108,12 @@ public:
     [[nodiscard]] bool pointerDown() const { return tracer_.pointerDown(); }
     [[nodiscard]] QVariantList litPath() const { return lit_path_; }
     [[nodiscard]] QVariantList found() const;
+    [[nodiscard]] int boardPoints() const;
+    [[nodiscard]] int boardStars() const;
     [[nodiscard]] bool helpAllowed() const;
     [[nodiscard]] int helpTile() const;
+    [[nodiscard]] QVariantList helpTiles() const { return hint_tiles_; }
+    [[nodiscard]] int hintLevel() const { return hint_level_; }
     [[nodiscard]] QVariantList history() const { return history_; }
 
     // --- the box
@@ -144,6 +161,9 @@ signals:
     void sizeChanged();
     void boardChanged();
     void pathChanged();
+    // The finger went down or up. Apart from `pathChanged` on purpose: the path
+    // itself did not change, and the screens redraw it only for the path.
+    void pointerDownChanged();
     void litPathChanged();
     void foundChanged();
     void helpChanged();
@@ -172,6 +192,13 @@ private:
     void renewGameIfDue();
     [[nodiscard]] QVariantList indices(std::span<const Position> path) const;
     [[nodiscard]] QString lettersAt(Position position) const;
+    // The cache behind the change signals: a flag is set where the signal is
+    // sent, and the getter builds the list the first time it is read after
+    // that. Unchanged reads return the same list, so a binding storm over
+    // `path` costs one build, not one a read.
+    void markPathChanged();
+    void markBoardChanged();
+    void markFoundChanged();
 
     std::unique_ptr<SoloGame> game_;
     PathTracer tracer_;
@@ -179,10 +206,23 @@ private:
     bool renew_due_ = false;   // the store was edited since the game was made
     int board_version_ = 0;
     int help_tile_ = -1;
+    int hint_level_ = 0;
+    QVariantList hint_tiles_;
     QString last_cue_tile_;
     QVariantList lit_path_;
     QVariantList history_;
     std::size_t last_path_size_ = 0;
+
+    mutable QVariantList path_cache_;
+    mutable bool path_dirty_ = true;
+    mutable QVariantList blocks_cache_;
+    mutable bool blocks_dirty_ = true;
+    mutable QStringList tiles_cache_;
+    mutable QVariantList faces_cache_;
+    mutable QVariantList up_cache_;
+    mutable bool board_dirty_ = true;
+    mutable QVariantList found_cache_;
+    mutable bool found_dirty_ = true;
 };
 
 }  // namespace wjs::app

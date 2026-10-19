@@ -4,10 +4,15 @@ import WordJewelsSolver
 
 // scan.check (docs/design/game.md, "The check screen"): the replica of the real
 // board, upright, with the reader's doubtful tiles ringed, a letter picker, the
-// size the adult can change, "Read again" and "Yes, play". Nothing is solved
-// until "Yes, play": ScanModel::confirm() is the only way from the draft to a
-// Board, and that press is the grown-up saying they looked (docs/design/
-// scanner.md, "Confirm and correct").
+// size the adult can change, the secondary action and "Start playing". Nothing
+// is solved until "Start playing": ScanModel::confirm() is the only way from the
+// draft to a Board, and that press is the grown-up saying they looked
+// (docs/design/scanner.md, "Confirm and correct").
+//
+// The secondary action says what it does: a typed board is not a reading, so it
+// starts over as a fresh empty grid; a camera-read board goes back to the frame
+// and scans again. Turn is a camera board's control: a typed board is already in
+// the order its typist chose.
 //
 // The letters are the replica's, upper case, as the dice are; the words and every
 // sentence are ScanWording's. Nothing here decides what a board is.
@@ -17,7 +22,6 @@ FocusScope {
     required property ScanModel scan
     required property AssistModel assist
 
-    signal backRequested
     signal playRequested
 
     // The tile the picker opened for, or -1.
@@ -30,7 +34,7 @@ FocusScope {
     readonly property bool ready: root.boardRows > 0 && root.boardColumns > 0
     // For the RTL check in the stub shell: the confirm button is on the trailing
     // side, and the window's mirroring reaches this screen.
-    readonly property real yesPlayX: yesPlay.x
+    readonly property real yesPlayX: bottomBar.x + actions.x + yesPlay.x
     readonly property bool mirrored: LayoutMirroring.enabled
     readonly property real tile: BoardGeometry.tile(gridArea.width, gridArea.height,
                                                     Math.max(root.boardRows, root.boardColumns))
@@ -48,9 +52,9 @@ FocusScope {
         }
     }
 
-    // "Yes, play": the grown-up's confirmation, and the board the assistant then
-    // plays. The board is handed over as plain values, as QML carries them; the
-    // AssistGame makes its own Board from the same confirmed grid.
+    // "Start playing": the grown-up's confirmation, and the board the assistant
+    // then plays. The board is handed over as plain values, as QML carries them;
+    // the AssistGame makes its own Board from the same confirmed grid.
     function play() {
         root.problem = "";
         if (!root.scan.confirm()) {
@@ -62,6 +66,17 @@ FocusScope {
             return;
         }
         root.playRequested();
+    }
+
+    // The secondary action does what its label says. A typed board was not read
+    // by a camera, so "Start over" is a fresh empty grid to type again; a camera
+    // board's "Scan again" is the reading's way back to the frame.
+    function secondaryAction() {
+        if (root.scan.draftFromCamera) {
+            root.scan.readAgain();
+        } else {
+            root.scan.typeBoard();
+        }
     }
 
     function choose(letters) {
@@ -161,8 +176,12 @@ FocusScope {
     }
 
     // --- the turn, and the board size -----------------------------------------
+    // Turn is the camera board's control: the real board is turned every which
+    // way, and a quarter turn of the replica matches how the child sees it. A
+    // typed board is already in the order its typist chose.
     AppButton {
         id: turn
+        visible: root.scan.draftFromCamera
         anchors.right: parent.right
         anchors.rightMargin: Theme.space4
         anchors.bottom: sizeRow.top
@@ -258,7 +277,10 @@ FocusScope {
         color: Theme.inkSecondary
     }
 
-    // --- Read again, Yes, play -------------------------------------------------
+    // --- the secondary action, Start playing -----------------------------------
+    // One row at the trailing side: the secondary action beside the primary, both
+    // on the same centre line and in the same order in every language (the row
+    // mirrors with the interface, the replica above does not).
     Item {
         id: bottomBar
         anchors.left: parent.left
@@ -267,30 +289,41 @@ FocusScope {
         anchors.margins: Theme.space4
         height: Theme.targetPrimary
 
-        AppButton {
-            id: readAgain
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(parent.width / 4, Theme.targetChild)
-            height: Theme.targetChild
-            size: "child"
-            variant: "secondary"
-            label: ScanWording.readAgain
-            accessibleName: ScanWording.readAgain
-            onClicked: root.backRequested()
-        }
-
-        AppButton {
-            id: yesPlay
+        // One group at the trailing side: the secondary action beside the primary,
+        // both on the same centre line and in the same order in every language
+        // (the group mirrors with the interface, the replica above does not).
+        Item {
+            id: actions
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(parent.width / 3, Theme.targetPrimary)
+            width: secondaryButton.width + Theme.space3 + yesPlay.width
             height: Theme.targetPrimary
-            size: "primary"
-            variant: "primary"
-            label: ScanWording.yesPlay
-            accessibleName: ScanWording.yesPlay
-            onClicked: root.play()
+
+            AppButton {
+                id: secondaryButton
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(bottomBar.width / 4, Theme.targetChild)
+                height: Theme.targetChild
+                size: "child"
+                variant: "secondary"
+                label: root.scan.draftFromCamera ? ScanWording.scanAgain : ScanWording.startOver
+                accessibleName: label
+                onClicked: root.secondaryAction()
+            }
+
+            AppButton {
+                id: yesPlay
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(bottomBar.width / 3, Theme.targetPrimary)
+                height: Theme.targetPrimary
+                size: "primary"
+                variant: "primary"
+                label: ScanWording.startPlaying
+                accessibleName: ScanWording.startPlaying
+                onClicked: root.play()
+            }
         }
     }
 

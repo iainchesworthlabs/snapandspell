@@ -12,7 +12,7 @@ namespace {
 // A name as UTF-8 for the wrapper. It is only made in a build with Tracy: the
 // disabled variant's begin() and mark() return before this is called, so a
 // normal build does not pay for the conversion or the allocation.
-[[nodiscard]] std::string_view utf8(const QByteArray& text) noexcept {
+[[maybe_unused, nodiscard]] std::string_view utf8(const QByteArray& text) noexcept {
     return {text.constData(), static_cast<std::size_t>(text.size())};
 }
 

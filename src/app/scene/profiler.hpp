@@ -5,6 +5,7 @@
 #include <QString>
 
 #include <array>
+#include <cstddef>
 #include <optional>
 
 #include "wjs/profiling.hpp"
@@ -61,10 +62,10 @@ private:
     // How deep the seam will nest. Deeper than any synchronous moment of the
     // screens, and small enough that a begin() without its end() cannot grow
     // without bound.
-    static constexpr int kMaxDepth = 8;
+    static constexpr std::size_t kMaxDepth = 8;
 
     std::array<std::optional<wjs::profiling::RuntimeScope>, kMaxDepth> open_;
-    int depth_ = 0;
+    std::size_t depth_ = 0;
 };
 
 }  // namespace wjs::scene

@@ -50,7 +50,14 @@ target_compile_definitions(wjs_unit_tests PRIVATE
 
 wjs_deploy_sanitizer_runtime(wjs_unit_tests)
 
-catch_discover_tests(wjs_unit_tests)
+# The unit tier. Every case is named `unit.<sentence>` and carries the label
+# `unit`, so `ctest -L unit` (and the coverage-unit target) select exactly this
+# tier. Catch2's own tags stay usable with the binary directly
+# (`wjs_unit_tests "[solver]"`); they are not CTest labels here because Catch2
+# would overwrite the tier label with the tag list.
+catch_discover_tests(wjs_unit_tests
+    TEST_PREFIX "unit."
+    PROPERTIES LABELS "unit")
 
 # The scanner: its library, the camera and board_reader interfaces, and the
 # synthetic corpus that holds it to its accuracy target.
@@ -117,8 +124,10 @@ wjs_deploy_sanitizer_runtime(wjs_perf_tests)
 # cases are in neither: they are a tool, not a test. Every case carries the
 # `perf` label, so `ctest -L perf` is the whole tier.
 catch_discover_tests(wjs_perf_tests DISCOVERY_MODE PRE_TEST ADD_TAGS_AS_LABELS
+    TEST_PREFIX "perf."
     TEST_SPEC "[perf]~[timing]")
 catch_discover_tests(wjs_perf_tests DISCOVERY_MODE PRE_TEST ADD_TAGS_AS_LABELS
+    TEST_PREFIX "perf."
     TEST_SPEC "[timing]"
     PROPERTIES RUN_SERIAL TRUE)
 
@@ -206,7 +215,13 @@ if(WJS_BUILD_APP)
     wjs_platform_deploy_qt_runtime(wjs_app_tests "")
     # The tags are CTest labels too, so the camera's cases are `ctest -L camera`
     # as well as part of every run.
-    catch_discover_tests(wjs_app_tests ADD_TAGS_AS_LABELS)
+    # The window's model tier: the application's own classes, over the real
+    # library and with Qt. Named `integration.<sentence>`; the tier is selected
+    # by `ctest -R "^integration\\."` because Catch2's tags are this suite's
+    # CTest labels (`-L camera`, `-L app`, `-L parent`, ...).
+    catch_discover_tests(wjs_app_tests
+        TEST_PREFIX "integration."
+        ADD_TAGS_AS_LABELS)
 
     # The 3D board scene's script (src/app/qml/scene/ShakeScript.js) in Qt's own
     # JavaScript engine, so what is tested is the file the scene plays and not a
@@ -241,7 +256,9 @@ if(WJS_BUILD_APP)
     wjs_platform_deploy_qt_runtime(wjs_shake_script_tests "")
     # Every tag is a CTest label, so the scene's work budget (tagged perf) is
     # part of `ctest -L perf` as the tier's own cases are.
-    catch_discover_tests(wjs_shake_script_tests ADD_TAGS_AS_LABELS)
+    catch_discover_tests(wjs_shake_script_tests
+        TEST_PREFIX "integration."
+        ADD_TAGS_AS_LABELS)
 
     # The window's frame budget (tests/app/frame_timing_test.cpp): the
     # application's own smoke run in a child process, and the report it prints.
@@ -253,7 +270,7 @@ if(WJS_BUILD_APP)
     add_executable(wjs_frame_timing_tests app/frame_timing_test.cpp)
     target_include_directories(wjs_frame_timing_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/perf")
     target_compile_definitions(wjs_frame_timing_tests PRIVATE
-        "WJS_APP_PATH=\"$<TARGET_FILE:wjs_app>\""
+        "WJS_APP_PATH=\"$<TARGET_FILE:WordJewelsSolver>\""
         "WJS_TEST_OPTIMISED=$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,1,0>"
         "WJS_TEST_INSTRUMENTED=$<IF:$<OR:$<BOOL:${WJS_ENABLE_COVERAGE}>,$<BOOL:${WJS_ENABLE_TRACY}>>,1,0>")
     target_link_libraries(wjs_frame_timing_tests
@@ -266,7 +283,8 @@ if(WJS_BUILD_APP)
     wjs_deploy_sanitizer_runtime(wjs_frame_timing_tests)
     wjs_platform_deploy_qt_runtime(wjs_frame_timing_tests "")
     catch_discover_tests(wjs_frame_timing_tests DISCOVERY_MODE PRE_TEST
-        PROPERTIES RUN_SERIAL TRUE TIMEOUT 240)
+        TEST_PREFIX "system.frame."
+        PROPERTIES RUN_SERIAL TRUE TIMEOUT 240 LABELS "system;perf;gui")
 
     # The parent area's screens in a stub shell (app/parent_ui): a program to
     # look at them with, and, with --check, a test that walks the gate, the
@@ -317,7 +335,8 @@ if(WJS_BUILD_APP)
         COMMAND wjs_parent_preview --check --out "${CMAKE_CURRENT_BINARY_DIR}/parent-screens")
     set_tests_properties(parent.screens PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
-        TIMEOUT 180)
+        TIMEOUT 180
+        LABELS "system;ui;gui")
 
     # The parent area in all eight languages, Hebrew and Yiddish included: the
     # screens load and draw translated, Hebrew and Yiddish mirror the bar (its way
@@ -328,7 +347,8 @@ if(WJS_BUILD_APP)
         COMMAND wjs_parent_preview --languages --out "${CMAKE_CURRENT_BINARY_DIR}/parent-languages")
     set_tests_properties(parent.languages PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
-        TIMEOUT 240)
+        TIMEOUT 240
+        LABELS "system;ui;gui")
 
     # The Family Assistant's screens in a stub shell (app/scan_ui): a program to
     # look at them with, and, with --check, a test that walks scan.ready, the
@@ -431,7 +451,8 @@ if(WJS_BUILD_APP)
         COMMAND wjs_scan_preview --check --out "${CMAKE_CURRENT_BINARY_DIR}/scan-screens")
     set_tests_properties(scan.screens PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
-        TIMEOUT 180)
+        TIMEOUT 180
+        LABELS "system;ui;gui")
 
     # Mode A's camera without a camera: a fake source hands over one frame from
     # the synthetic corpus, the live view is shown, and Capture opens the check
@@ -443,7 +464,7 @@ if(WJS_BUILD_APP)
         set_tests_properties(camera.screens PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
             TIMEOUT 180
-            LABELS "camera;gui")
+            LABELS "system;ui;camera;gui")
     endif()
 
     # Mode A in all eight languages, Hebrew and Yiddish included: the ready and
@@ -454,7 +475,8 @@ if(WJS_BUILD_APP)
         COMMAND wjs_scan_preview --languages --out "${CMAKE_CURRENT_BINARY_DIR}/scan-languages")
     set_tests_properties(scan.languages PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
-        TIMEOUT 240)
+        TIMEOUT 240
+        LABELS "system;ui;gui")
 
     # -----------------------------------------------------------------------
     # The interactive QML at run time: Qt Quick Test suites, one ctest entry
@@ -500,8 +522,8 @@ if(WJS_BUILD_APP)
         add_test(NAME app.qml_lint
             COMMAND "${CMAKE_COMMAND}"
                 "-DQMLLINT=$<TARGET_FILE:Qt6::qmllint>"
-                "-DRESPONSE=${PROJECT_BINARY_DIR}/src/app/.rcc/qmllint/wjs_app.rsp"
-                "-DTYPES=${PROJECT_BINARY_DIR}/src/app/WordJewelsSolver/wjs_app.qmltypes"
+                "-DRESPONSE=${PROJECT_BINARY_DIR}/src/app/.rcc/qmllint/WordJewelsSolver.rsp"
+                "-DTYPES=${PROJECT_BINARY_DIR}/src/app/WordJewelsSolver/WordJewelsSolver.qmltypes"
                 "-DSCENE_RESPONSE=${PROJECT_BINARY_DIR}/src/app/scene/.rcc/qmllint/wjs_scene.rsp"
                 "-DSCENE_TYPES=${PROJECT_BINARY_DIR}/src/app/scene/WordJewelsSolver/Scene/wjs_scene.qmltypes"
                 "-DSCAN_RESPONSE=${PROJECT_BINARY_DIR}/src/app/scan/.rcc/qmllint/wjs_scan_ui.rsp"
@@ -522,7 +544,90 @@ if(TARGET wjs_dice_world)
             wjs::coverage
             Catch2::Catch2WithMain)
     wjs_deploy_sanitizer_runtime(wjs_dice_tests)
-    catch_discover_tests(wjs_dice_tests)
+    catch_discover_tests(wjs_dice_tests
+        TEST_PREFIX "unit."
+        PROPERTIES LABELS "unit")
+endif()
+
+# ---------------------------------------------------------------------------
+# The system tier: the programs themselves, not the classes behind them. The
+# command-line solver's options, exit codes and output; the window's start-up
+# contract and its headless smoke run; and the install rules run for real into
+# a throw-away prefix, where the installed wjs-cli is then executed.
+#
+# These are CMake scripts rather than Catch2 binaries because they start
+# programs: no test framework state, no display, and the exit code is the thing
+# asserted. Each case is its own ctest entry (`system.cli.<case>`,
+# `system.app.<case>`, `system.install`) under the `system` label.
+# ---------------------------------------------------------------------------
+set(WJS_SYSTEM_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/system")
+
+if(WJS_BUILD_CLI)
+    foreach(_case IN ITEMS
+            help
+            version
+            solve
+            min-length
+            rarity
+            repeat
+            qu
+            unknown-option
+            missing-option-value
+            bad-min-length
+            bad-repeat
+            bad-scoring
+            no-board
+            board-error
+            dictionary-error)
+        add_test(NAME "system.cli.${_case}"
+            COMMAND "${CMAKE_COMMAND}"
+                "-DCLI=$<TARGET_FILE:wjs-cli>"
+                "-DDICTIONARY=${PROJECT_SOURCE_DIR}/data/dictionaries/en.txt"
+                "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/system/cli"
+                "-DCASE=${_case}"
+                -P "${WJS_SYSTEM_SCRIPT_DIR}/check_cli.cmake")
+        set_tests_properties("system.cli.${_case}" PROPERTIES
+            LABELS "system"
+            TIMEOUT 60)
+    endforeach()
+endif()
+
+if(WJS_BUILD_APP)
+    foreach(_case IN ITEMS
+            missing-dictionary
+            damaged-store
+            phase-without-directory
+            smoke-headless)
+        add_test(NAME "system.app.${_case}"
+            COMMAND "${CMAKE_COMMAND}"
+                "-DAPP=$<TARGET_FILE:WordJewelsSolver>"
+                "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/system/app"
+                "-DCASE=${_case}"
+                -P "${WJS_SYSTEM_SCRIPT_DIR}/check_app.cmake")
+        set_tests_properties("system.app.${_case}" PROPERTIES
+            LABELS "system"
+            TIMEOUT 90)
+    endforeach()
+endif()
+
+# The install rules are always configured (the CLI may or may not be built), so
+# this case is registered whenever the CLI is: it is the CLI's installed copy
+# that proves the dictionary and notices landed beside it.
+if(WJS_BUILD_CLI)
+    add_test(NAME system.install
+        COMMAND "${CMAKE_COMMAND}"
+            "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/system/install"
+            "-DCONFIG=$<CONFIG>"
+            "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
+            "-DEXPECT_CLI=${WJS_BUILD_CLI}"
+            "-DEXPECT_APP=${WJS_BUILD_APP}"
+            "-DAPP_RELATIVE=${WJS_PLATFORM_INSTALL_APP_DATA_DIR}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}"
+            "-DRUNTIME_DIR=$<TARGET_FILE_DIR:wjs-cli>"
+            -P "${WJS_SYSTEM_SCRIPT_DIR}/check_install.cmake")
+    set_tests_properties(system.install PROPERTIES
+        LABELS "system"
+        TIMEOUT 300)
 endif()
 
 # The third-party notices (cmake/Notices.cmake): every section a package must
@@ -560,10 +665,12 @@ add_test(NAME platform.fragments
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/platform/check_fragments.cmake")
 
-# Nothing that ships has Tracy in it: only the *-profiling presets turn the
-# option on, it defaults to OFF, and the manifest feature that installs it is
-# neither a base dependency nor a default feature (docs/profiling.md). Runs on
-# every host and in every CI leg, since it only reads the presets.
+# The Tracy policy: Debug builds are instrumented by default, and nothing that
+# ships has it - the *-debug and *-profiling presets turn the option on, the
+# release and coverage presets keep it off, and the manifest feature that
+# installs it is neither a base dependency nor a default feature
+# (docs/profiling.md). Runs on every host and in every CI leg, since it only
+# reads the presets.
 add_test(NAME profiling.shipped_presets
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
@@ -621,7 +728,8 @@ if(WJS_PWSH)
     # The word lists: lowercase a-z, sorted, unique, and every category and
     # tier word is in the dictionary.
     # The project's dice are what tools/data/make_dice.ps1 makes from the
-    # dictionary as it is now: the source hash and the dice both have to match.
+    # published Scrabble-style letter table: the method and the dice both have
+    # to match.
     add_test(NAME data.dice
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/make_dice.ps1"
@@ -664,3 +772,34 @@ if(WJS_PWSH)
             "${PROJECT_SOURCE_DIR}/tools/checks/check_platform_isolation.ps1"
             -Root "${PROJECT_SOURCE_DIR}")
 endif()
+
+# ---------------------------------------------------------------------------
+# The quality tier: checks about the tree, the build and the shipped data
+# rather than a program's behaviour. They run on every host and in every CI leg
+# (several are repeated as their own CI jobs), and none needs a display. The
+# label is what `ctest -L quality` selects; the tiers proper are `unit`,
+# `integration`, `system` and `ui` (docs/testing.md, "The tiers").
+# ---------------------------------------------------------------------------
+set(WJS_QUALITY_TESTS
+    notices.sections
+    package.config
+    platform.fragments
+    profiling.shipped_presets
+    profiling.zone_names
+    toolchain.versions
+    privacy.sources
+    privacy.sources.selftest
+    parent.wording
+    parent.wording.selftest)
+if(WJS_BUILD_APP)
+    list(APPEND WJS_QUALITY_TESTS i18n.catalogues app.scene_contract)
+    if(TARGET Qt6::qmllint)
+        list(APPEND WJS_QUALITY_TESTS app.qml_lint)
+    endif()
+endif()
+if(WJS_PWSH)
+    list(APPEND WJS_QUALITY_TESTS
+        data.dice data.wordlists data.sounds data.phonics data.phonics.checker
+        platform.isolation)
+endif()
+set_tests_properties(${WJS_QUALITY_TESTS} PROPERTIES LABELS "quality")

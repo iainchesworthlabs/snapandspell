@@ -203,9 +203,10 @@ TestCase {
 
         face.lit = true
 
-        // Lit is a shape as well as a colour: the edge turns gold and thickens,
-        // and the tile grows. The face and its letter stay readable.
-        tryCompare(face, "scale", Theme.litScale)
+        // Lit is a shape as well as a colour: the edge turns gold and thickens.
+        // The tile keeps its size so the letter over the path cannot drift with
+        // the face's scale; the face and its letter stay readable.
+        compare(face.scale, 1)
         compare(faceRect.border.width, Theme.litEdge)
         compare(faceRect.border.color.toString(), Theme.gold.toString())
         compare(faceRect.color.toString(), Theme.die.toString())

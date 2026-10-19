@@ -15,6 +15,7 @@ Item {
     required property var solo
     required property bool wide
     signal historyRequested
+    signal finishRequested
 
     readonly property bool helpShown: solo.helpAllowed
     readonly property bool pending: solo.path.length > 0
@@ -23,8 +24,13 @@ Item {
     // hint card is present, for the screen's tests.
     readonly property bool hintShown: helpShown
     readonly property bool mirrored: Theme.rightToLeft
-    readonly property string hintLetter: solo.helpTile >= 0 && solo.helpTile < solo.tiles.length
-                                          ? solo.tiles[solo.helpTile] : ""
+    readonly property int hintLevel: solo.hintLevel
+    readonly property string hintLabel: hintLevel === 0 ? SoloWording.showStart
+                                      : hintLevel === 1 ? SoloWording.twoLetters
+                                                        : SoloWording.hideHint
+    readonly property string hintHelp: hintLevel === 0 ? ""
+                                     : hintLevel === 1 ? SoloWording.startHintShown
+                                                       : SoloWording.twoLettersShown
 
     Rectangle {
         anchors.fill: parent
@@ -63,24 +69,35 @@ Item {
 
                 Item {
                     width: parent.width
-                    height: 26
+                    height: 40
                     Text {
                         anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.top: parent.top
                         text: qsTr("Words I found")
                         font.family: Theme.uiFont
                         font.pixelSize: Theme.headingSize
                         font.weight: Font.DemiBold
                         color: Theme.ink
                     }
-                    Text {
+                    Column {
                         anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.solo.found.length === 1 ? qsTr("1 word")
-                                                          : qsTr("%1 words").arg(root.solo.found.length)
-                        font.family: Theme.monoFont
-                        font.pixelSize: Theme.monoSize
-                        color: Theme.inkSecondary
+                        anchors.top: parent.top
+                        spacing: 1
+                        Text {
+                            anchors.right: parent.right
+                            text: root.solo.found.length === 1 ? qsTr("1 word")
+                                                              : qsTr("%1 words").arg(root.solo.found.length)
+                            font.family: Theme.monoFont
+                            font.pixelSize: Theme.monoSize
+                            color: Theme.inkSecondary
+                        }
+                        Text {
+                            anchors.right: parent.right
+                            text: qsTr("%1 points").arg(root.solo.boardPoints)
+                            font.family: Theme.monoFont
+                            font.pixelSize: Theme.monoSize
+                            color: Theme.goldInk
+                        }
                     }
                 }
                 Rectangle {
@@ -123,11 +140,23 @@ Item {
                     Text {
                         anchors.left: parent.left
                         anchors.leftMargin: 38
+                        anchors.right: points.left
+                        anchors.rightMargin: Theme.space2
                         anchors.verticalCenter: parent.verticalCenter
                         text: row.modelData.word
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.wordSize
                         color: Theme.ink
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        id: points
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: qsTr("+%1").arg(row.modelData.points)
+                        font.family: Theme.monoFont
+                        font.pixelSize: Theme.monoSize
+                        color: Theme.goldInk
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -184,21 +213,26 @@ Item {
                     size: "child"
                     variant: "secondary"
                     iconName: "hint"
-                    label: SoloWording.showStart
-                    accessibleName: SoloWording.showStart
+                    label: root.hintLabel
+                    accessibleName: root.hintLabel
                     onClicked: root.solo.askHelp()
                 }
                 Text {
-                    visible: root.hintLetter.length > 0
-                    text: qsTr("Start here: %1").arg(root.hintLetter)
+                    width: parent.width
+                    visible: root.hintLevel > 0
+                    text: root.hintHelp
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.bodySize
                     color: Theme.inkSecondary
+                    wrapMode: Text.WordWrap
                 }
             }
         }
 
-        // --- earlier boards ---------------------------------------------------
+        // --- finish this board ------------------------------------------------
+        // The standard board holds tens to hundreds of dictionary words, so its
+        // "all words found" ending is not a real ending for a child. This is:
+        // the board is safely saved, and the summary shows what was found.
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: 62
@@ -212,10 +246,10 @@ Item {
                 anchors.margins: Theme.space1
                 variant: "ghost"
                 size: "min"
-                iconName: "history"
-                label: SoloWording.earlierBoards
-                accessibleName: SoloWording.earlierBoards
-                onClicked: root.historyRequested()
+                iconName: "done"
+                label: SoloWording.finishBoard
+                accessibleName: SoloWording.finishBoard
+                onClicked: root.finishRequested()
             }
         }
     }

@@ -77,9 +77,12 @@ add_subdirectory(feedback)
 # to the source list there rather than made a library of its own.
 add_subdirectory(camera)
 
-qt_add_executable(wjs_app
+# The target is named after the program it makes, so the application is the
+# obvious entry in an IDE's target list and `--target WordJewelsSolver` builds
+# it alone. On Windows it is a GUI-subsystem program and on macOS a bundle;
+# that is the platform fragment's to say (wjs_platform_configure_app below).
+qt_add_executable(WordJewelsSolver
     main.cpp)
-set_target_properties(wjs_app PROPERTIES OUTPUT_NAME WordJewelsSolver)
 
 # The kit's singletons: tokens, navigation, the sound and touch seam, and the
 # two wording files of the child-facing screens.
@@ -88,13 +91,14 @@ set_source_files_properties(
     qml/kit/Feedback.qml
     qml/kit/Navigation.qml
     qml/kit/Theme.qml
+    qml/solo/JewelsWording.qml
     qml/solo/SoloWording.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 # Main.qml shows the parent area and the Family Assistant's screens, modules of
 # their own that are built under parent/ and scan/ (added below), and SoloScreen
 # uses the scene module built above: qmllint looks for them there.
-qt_add_qml_module(wjs_app
+qt_add_qml_module(WordJewelsSolver
     URI WordJewelsSolver
     VERSION 1.0
     IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}/parent"
@@ -119,6 +123,8 @@ qt_add_qml_module(wjs_app
         qml/solo/BoardThumb.qml
         qml/solo/FlatBoard.qml
         qml/solo/HistorySheet.qml
+        qml/solo/JewelsScreen.qml
+        qml/solo/JewelsWording.qml
         qml/solo/PlayingPanel.qml
         qml/solo/SoloBox.qml
         qml/solo/SoloResting.qml
@@ -170,7 +176,7 @@ foreach(WJS_SOUND_NAME IN LISTS WJS_SOUND_NAMES)
     endif()
     list(APPEND WJS_SOUND_FILES "${WJS_SOUND_FILE}")
 endforeach()
-qt_add_resources(wjs_app wjs_sounds
+qt_add_resources(WordJewelsSolver wjs_sounds
     PREFIX "/sounds"
     BASE "${PROJECT_SOURCE_DIR}/assets/sounds"
     FILES ${WJS_SOUND_FILES})
@@ -192,7 +198,7 @@ foreach(WJS_FONT_FILE IN LISTS WJS_FONT_FILES)
         message(FATAL_ERROR "The application font ${WJS_FONT_FILE} is missing.")
     endif()
 endforeach()
-qt_add_resources(wjs_app wjs_fonts
+qt_add_resources(WordJewelsSolver wjs_fonts
     PREFIX "/fonts"
     BASE "${PROJECT_SOURCE_DIR}/assets/fonts"
     FILES ${WJS_FONT_FILES})
@@ -200,7 +206,7 @@ qt_add_resources(wjs_app wjs_fonts
 # The window and taskbar icon. The Windows executable's own icon comes from the
 # .rc file below; the QML window also sets it so a bundled Linux/macOS build has
 # the same mark.
-qt_add_resources(wjs_app wjs_icon
+qt_add_resources(WordJewelsSolver wjs_icon
     PREFIX "/icons"
     BASE "${PROJECT_SOURCE_DIR}/assets/icon"
     FILES "${PROJECT_SOURCE_DIR}/assets/icon/app.png")
@@ -208,7 +214,7 @@ if(WJS_PLATFORM_APP_RC_TEMPLATE)
     file(TO_CMAKE_PATH "${WJS_PLATFORM_APP_ICON}" WJS_APP_ICON)
     configure_file("${WJS_PLATFORM_APP_RC_TEMPLATE}"
         "${CMAKE_CURRENT_BINARY_DIR}/app.rc" @ONLY)
-    target_sources(wjs_app PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
+    target_sources(WordJewelsSolver PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
 endif()
 
 # The Qt Multimedia QML module is part of the camera's deployment. A static QML
@@ -218,7 +224,7 @@ endif()
 # qml/QtMultimedia beside the window, and the live view loads. A kit without the
 # module compiles neither the file nor the preview.
 if(WJS_QT_HAS_MULTIMEDIA)
-    qt_add_resources(wjs_app wjs_camera_import
+    qt_add_resources(WordJewelsSolver wjs_camera_import
         PREFIX "/camera"
         BASE "${CMAKE_CURRENT_SOURCE_DIR}/camera"
         FILES "${CMAKE_CURRENT_SOURCE_DIR}/camera/CameraImport.qml")
@@ -226,14 +232,14 @@ endif()
 
 # The QML compiler's generated C++ includes src/app/solo's headers by bare name
 # (the type registrations), so that directory is on the include path.
-target_include_directories(wjs_app PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/solo")
+target_include_directories(WordJewelsSolver PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/solo")
 
 # The C++ the QML compiler writes for each QML file is built with the target's
 # warnings as errors, and MSVC's code generator reports C4702 (unreachable code)
 # from inside Qt's own headers while compiling it. /external:W0 does not silence
 # a warning raised after the front end, so those files, and only those, are told
 # to leave C4702 alone; the code written by hand keeps it.
-get_target_property(_wjs_app_sources wjs_app SOURCES)
+get_target_property(_wjs_app_sources WordJewelsSolver SOURCES)
 foreach(_wjs_source IN LISTS _wjs_app_sources)
     if(_wjs_source MATCHES "/[.]rcc/qmlcache/")
         set_source_files_properties("${_wjs_source}" PROPERTIES
@@ -249,7 +255,7 @@ add_subdirectory(parent)
 # board, a module of their own (src/app/scan) for the screen shell to show.
 add_subdirectory(scan)
 
-target_link_libraries(wjs_app
+target_link_libraries(WordJewelsSolver
     PRIVATE
         wjs_parentplugin
         wjs_scan_uiplugin
@@ -271,7 +277,7 @@ target_link_libraries(wjs_app
 
 # What makes it a program of the platform's desktop, and its Qt runtime beside
 # it: both are the selected platform's to say (src/platforms/<name>/).
-wjs_platform_configure_app(wjs_app)
+wjs_platform_configure_app(WordJewelsSolver)
 # The live view imports QtMultimedia from the camera variant, which is not under
 # qml/: its directory is a second place windeployqt scans for imports, so a build
 # tree has qml/QtMultimedia for the preview (the packaged copy gets it from the
@@ -280,30 +286,30 @@ set(WJS_APP_QML_DEPLOY_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/qml")
 if(WJS_QT_HAS_MULTIMEDIA)
     list(APPEND WJS_APP_QML_DEPLOY_DIRS "${WJS_CAMERA_VARIANT_DIR}")
 endif()
-wjs_platform_deploy_qt_runtime(wjs_app ${WJS_APP_QML_DEPLOY_DIRS})
-wjs_deploy_sanitizer_runtime(wjs_app)
+wjs_platform_deploy_qt_runtime(WordJewelsSolver ${WJS_APP_QML_DEPLOY_DIRS})
+wjs_deploy_sanitizer_runtime(WordJewelsSolver)
 
 # The default dictionary the model looks for, and the standard board's dice the
 # game is played with: dictionaries/en.txt and dice/3x3.txt to 6x6.txt beside
 # the executable (see SolverModel::loadDefaultDictionary and SoloGameSetup).
-add_custom_command(TARGET wjs_app POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:wjs_app>/dictionaries"
+add_custom_command(TARGET WordJewelsSolver POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WordJewelsSolver>/dictionaries"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
         "${PROJECT_SOURCE_DIR}/data/dictionaries/en.txt"
-        "$<TARGET_FILE_DIR:wjs_app>/dictionaries/en.txt"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:wjs_app>/dice"
+        "$<TARGET_FILE_DIR:WordJewelsSolver>/dictionaries/en.txt"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WordJewelsSolver>/dice"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
         "${PROJECT_SOURCE_DIR}/data/dice/3x3.txt"
-        "$<TARGET_FILE_DIR:wjs_app>/dice/3x3.txt"
+        "$<TARGET_FILE_DIR:WordJewelsSolver>/dice/3x3.txt"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
         "${PROJECT_SOURCE_DIR}/data/dice/4x4.txt"
-        "$<TARGET_FILE_DIR:wjs_app>/dice/4x4.txt"
+        "$<TARGET_FILE_DIR:WordJewelsSolver>/dice/4x4.txt"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
         "${PROJECT_SOURCE_DIR}/data/dice/5x5.txt"
-        "$<TARGET_FILE_DIR:wjs_app>/dice/5x5.txt"
+        "$<TARGET_FILE_DIR:WordJewelsSolver>/dice/5x5.txt"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
         "${PROJECT_SOURCE_DIR}/data/dice/6x6.txt"
-        "$<TARGET_FILE_DIR:wjs_app>/dice/6x6.txt"
+        "$<TARGET_FILE_DIR:WordJewelsSolver>/dice/6x6.txt"
     COMMENT "Placing the English dictionary and the dice beside the application")
 
 # ---------------------------------------------------------------------------
@@ -319,7 +325,7 @@ add_custom_command(TARGET wjs_app POST_BUILD
 # command-line program is built too and both share the bindir, its own rule
 # installs the one file and this one stays out of the way.
 # ---------------------------------------------------------------------------
-install(TARGETS wjs_app
+install(TARGETS WordJewelsSolver
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
     BUNDLE DESTINATION ".")
 install(FILES
@@ -357,7 +363,7 @@ endif()
 # ---------------------------------------------------------------------------
 if(WJS_PLATFORM_QT_DEPLOY_AT_INSTALL)
     qt_generate_deploy_qml_app_script(
-        TARGET wjs_app
+        TARGET WordJewelsSolver
         OUTPUT_SCRIPT WJS_APP_DEPLOY_SCRIPT
         NO_UNSUPPORTED_PLATFORM_ERROR
         NO_TRANSLATIONS
@@ -369,7 +375,7 @@ endif()
 # The third-party notices, as :/notices/NOTICES.txt, for the About screen's
 # Licences view (cmake/Notices.cmake; the file itself is installed beside the
 # programs by wjs_install_notices()).
-wjs_add_notices_resource(wjs_app)
+wjs_add_notices_resource(WordJewelsSolver)
 
 # The harness around the 3D board scene is a program of its own, behind its own
 # option. It links the same scene module as the application (and so Qt Quick 3D,

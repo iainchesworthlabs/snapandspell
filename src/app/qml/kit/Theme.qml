@@ -121,7 +121,9 @@ QtObject {
 
     readonly property real appBarHeight: 72
     readonly property real barHeight: appBarHeight
-    readonly property real actionBarHeight: 88
+    // Tall enough for the 96 dp Done target plus a little breathing room; the
+    // old 88 clipped the bottom of the primary action.
+    readonly property real actionBarHeight: 104
 
     // Pictures and panels.
     readonly property real pictureMax: 520

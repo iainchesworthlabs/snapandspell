@@ -20,11 +20,10 @@ foreach(side 3 4 5 6)
     list(APPEND WJS_SHAKE_DICE_FILES "${dice_file}")
 endforeach()
 
-qt_add_executable(wjs_shake_prototype
+qt_add_executable(ShakePrototype
     main.cpp)
-set_target_properties(wjs_shake_prototype PROPERTIES OUTPUT_NAME ShakePrototype)
 
-qt_add_qml_module(wjs_shake_prototype
+qt_add_qml_module(ShakePrototype
     URI ShakePrototype
     VERSION 1.0
     IMPORT_PATH "${WJS_SCENE_IMPORT_DIR}"
@@ -38,7 +37,7 @@ qt_add_qml_module(wjs_shake_prototype
         frame_stats.cpp
         frame_stats.hpp)
 
-target_link_libraries(wjs_shake_prototype
+target_link_libraries(ShakePrototype
     PRIVATE
         wjs_sceneplugin
         Qt6::Core
@@ -54,5 +53,5 @@ target_link_libraries(wjs_shake_prototype
 
 # The scene's QML is in src/app/qml/scene: that is where windeployqt has to look
 # for the Qt Quick 3D modules the harness now shows through the scene.
-wjs_platform_deploy_qt_runtime(wjs_shake_prototype "${PROJECT_SOURCE_DIR}/src/app/qml")
-wjs_deploy_sanitizer_runtime(wjs_shake_prototype)
+wjs_platform_deploy_qt_runtime(ShakePrototype "${PROJECT_SOURCE_DIR}/src/app/qml")
+wjs_deploy_sanitizer_runtime(ShakePrototype)

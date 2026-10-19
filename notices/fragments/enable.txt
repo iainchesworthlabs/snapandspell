@@ -14,5 +14,6 @@ statement is the one published with the list; it has not been independently
 verified, and the chain of title is not recorded in this repository
 (docs/licensing.md, "The word list").
 
-The dice in dice/ are the project's own work, made from this list by
-tools/data/make_dice.ps1, and data/README.md records the method.
+The dice in dice/ are the project's own work, made by tools/data/make_dice.ps1
+from published Scrabble-style English letter counts, not from this word list and
+not from a copied printed die set. data/README.md records the method.

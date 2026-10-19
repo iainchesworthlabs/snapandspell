@@ -92,21 +92,24 @@ ApplicationWindow {
         // parent's settings that decide what a cue plays and says.
         Feedback.engine = feedback;
         feedback.settings = parentController.settings;
-        // Centre the first window on the screen it opens on. The parent's
+        // Centre the first window on the screen it opens on. Use the window's
+        // own screen, not Screen.desktopAvailableWidth: that is the union of
+        // every monitor, so on a multi-monitor desk it can place the window in
+        // the gap between two screens (or off every one of them). The parent's
         // window geometry is not persisted yet; the default is a comfortable
         // desktop size rather than a phone-sized minimum.
-        const screenWidth = Screen.desktopAvailableWidth > 0 ? Screen.desktopAvailableWidth
-                                                            : (Screen.width > 0 ? Screen.width : width);
-        const screenHeight = Screen.desktopAvailableHeight > 0 ? Screen.desktopAvailableHeight
-                                                              : (Screen.height > 0 ? Screen.height : height);
+        const screenX = typeof Screen.virtualX === "number" ? Screen.virtualX : 0;
+        const screenY = typeof Screen.virtualY === "number" ? Screen.virtualY : 0;
+        const screenWidth = Screen.width > 0 ? Screen.width : width;
+        const screenHeight = Screen.height > 0 ? Screen.height : height;
         if (width > screenWidth - 32) {
             width = Math.max(minimumWidth, screenWidth - 32);
         }
         if (height > screenHeight - 32) {
             height = Math.max(minimumHeight, screenHeight - 32);
         }
-        x = Math.max(0, Math.round((screenWidth - width) / 2));
-        y = Math.max(0, Math.round((screenHeight - height) / 2));
+        x = screenX + Math.max(0, Math.round((screenWidth - width) / 2));
+        y = screenY + Math.max(0, Math.round((screenHeight - height) / 2));
         if (smoke) {
             startSmoke();
         }
@@ -275,6 +278,8 @@ ApplicationWindow {
                     return assistScreen;
                 case "parent":
                     return parentScreen;
+                case "jewels":
+                    return jewelsScreen;
                 default:
                     return homeScreen;
                 }
@@ -307,8 +312,18 @@ ApplicationWindow {
     Component {
         id: homeScreen
         Home {
+            controller: window.parentController
             onSoloRequested: Navigation.go("solo")
             onParentRequested: Navigation.go("parent")
+            onCollectionRequested: Navigation.go("jewels")
+        }
+    }
+    Component {
+        id: jewelsScreen
+        JewelsScreen {
+            controller: window.parentController
+            onClosed: Navigation.back()
+            onPlayRequested: Navigation.go("solo")
         }
     }
     Component {
@@ -334,11 +349,12 @@ ApplicationWindow {
             // The check screen is where the person came from, with the board it
             // confirmed still in the draft; the assistant's board is recorded.
             onClosed: Navigation.back()
-            // A new round is a new scan, entered as if from home: Back from it
-            // goes home, not to the board that was just left.
+            // A new round is a new scan, but it is still entered from the board
+            // the child was on: Back returns to that board rather than jumping
+            // out to the parent area. The board that was left is already saved.
             onNewBoardRequested: {
                 scanGame.readAgain();
-                Navigation.replace("scan");
+                Navigation.go("scan");
             }
         }
     }

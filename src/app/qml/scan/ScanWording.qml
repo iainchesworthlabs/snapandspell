@@ -7,7 +7,7 @@ import QtQuick
 // game.md, "Mode A"). A screen says nothing of its own.
 //
 // The words are the design's. A message never blames a child for a camera or a
-// reading: the reader's failures are "read again", and the camera's absence is a
+// reading: the reader's failures are "scan again", and the camera's absence is a
 // fact with the typed board beside it (docs/design/game.md, "No camera";
 // docs/design/scanner.md, "A doubt is data, not a message").
 QtObject {
@@ -22,9 +22,13 @@ QtObject {
     readonly property string capture: qsTr("Capture")
     readonly property string typeBoard: qsTr("Type in your board")
     readonly property string reading: qsTr("Reading the board…")
-    readonly property string cameraAbsent: qsTr("There is no camera on this device. You can type in your board.")
-    readonly property string cameraRefused: qsTr("The camera is not allowed. You can type in your board.")
-    readonly property string cameraBroken: qsTr("The camera did not start. You can type in your board.")
+    //: A camera that was not found may still be there: covered, busy or plugged
+    //: in after the screen opened. The retry button is the way to look again.
+    readonly property string cameraAbsent: qsTr("No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.")
+    readonly property string cameraRefused: qsTr("The camera is not allowed. Allow it in your device settings, then try again. You can type in your board.")
+    readonly property string cameraBroken: qsTr("The camera did not start. Close other apps that use it and try again, or type in your board.")
+    //: Look for the camera again without leaving the ready screen.
+    readonly property string tryCameraAgain: qsTr("Try camera again")
     readonly property string readAgainMessage: qsTr("I could not read the board. Try again, or type it in.")
 
     function cameraProblem(code) {
@@ -63,10 +67,13 @@ QtObject {
     readonly property string doubtfulHint: qsTr("A ringed tile may be wrong. Tap it to change the letter.")
     readonly property string incomplete: qsTr("Every tile needs a letter before the board can play.")
     readonly property string noGame: qsTr("The board could not be started. Try again.")
-    //: Go back to the camera and read the board again.
-    readonly property string readAgain: qsTr("Read again")
+    //: A typed board's secondary action: clear it and start typing a fresh one.
+    readonly property string startOver: qsTr("Start over")
+    //: A camera-read board's secondary action: go back to the frame and read it
+    //: again.
+    readonly property string scanAgain: qsTr("Scan again")
     //: The grown-up confirms the board and starts the round.
-    readonly property string yesPlay: qsTr("Yes, play")
+    readonly property string startPlaying: qsTr("Start playing")
     readonly property string doubtfulMark: "?"
 
     function sizeChoice(side) {

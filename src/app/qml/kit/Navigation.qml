@@ -18,6 +18,7 @@ QtObject {
     // change (the family game's scanner; the parent area's gate is routed in Main).
     property bool parentAvailable: true
     property bool scanAvailable: true
+    property bool jewelsAvailable: true
 
     function go(id) {
         if (id === screen) {

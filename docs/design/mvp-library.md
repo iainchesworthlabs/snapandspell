@@ -125,7 +125,7 @@ The six questions this page first asked, and what was done.
 | 10 | Should the performance pages name the board mode each budget is for? | Yes | [Performance](performance.md) has a table of what each board mode solves against and loads, and labels the seeding rows |
 | 11 | May the brief (12.4, 12.5) and the roadmap's MVP paragraph be amended? | Yes | Section 12.7 of the brief; 12.4 and 12.5 point at it; the roadmap's MVP paragraph and M1 list say it |
 | 12 | The standard board's word list? | The full dictionary, as it is (ENABLE). Block lists, and a child-appropriate cut, later, after the MVP | Nothing to build: the standard board solves against `data/dictionaries/en.txt`. The risk is below |
-| 13 | May the project make its own dice from the dictionary's letter counts? | Yes. The faces of a set the author owns are for the scanner mode, where the board is physical and the app does not mix letters | `tools/data/make_dice.ps1` and `data/dice/3x3` to `6x6`; the model and the roll |
+| 13 | May the project make its own dice from a published English letter-frequency table? | Yes. The faces of a set the author owns are for the scanner mode, where the board is physical and the app does not mix letters | `tools/data/make_dice.ps1` and `data/dice/3x3` to `6x6`; the model and the roll |
 | 14 | The standard board's sizes in the MVP? | 3x3 to 6x6 | The dice exist for all four; the library takes them |
 
 ## The guided fill, tried (question 3)
@@ -198,14 +198,17 @@ seam (`Board::parse`). A standard board needed three things, all MVP scope now,
 where the design put them after it. After the author's answers:
 
 1. **A dice model: built.** `wjs::DiceSet` and `wjs::roll`, and the project's own
-   dice for 3x3 to 6x6 in `data/dice`, made by `tools/data/make_dice.ps1` from
-   the dictionary's letter counts, as the design recommended, with the source
-   hash, the method and the seed in each header. `wjs::roll_with_placements`
-   returns, with the board, the die on each tile and the face of it that is up,
-   which is what a scene that draws six faces to a die needs
-   ([Board](board.md#what-the-scene-is-given)). Boards from them hold about the
-   words a random board does (30, 105, 254 and 471 on average). No `QU` tile
-   appeared in 1,000 boards of any size; a rule to carry one is not written.
+   dice for 3x3 to 6x6 in `data/dice`, made by `tools/data/make_dice.ps1` from a
+   fixed Scrabble-style English tile-frequency table (2026-10-19), with the
+   table, the method and the seed in each header. The tool keeps six different
+   letters to a die, one to three vowels and at most one of J K Q V X Z on each,
+   30% to 40% vowels and at most 8% S in a set, and Q as `QU`; every shipped size
+   carries a `QU` tile. `wjs::roll_with_placements` returns, with the board, the
+   die on each tile and the face of it that is up, which is what a scene that
+   draws six faces to a die needs ([Board](board.md#what-the-scene-is-given)).
+   Boards from them hold about 32, 102, 194 and 322 dictionary words on average,
+   a 3x3 to a 6x6: fewer than the dictionary-count sets on the larger boards
+   because S is capped, and more even on the small ones.
 2. **The standard board's word list: the full dictionary**, decided. The
    dictionary's load is on the standard board's path (the performance note), and
    the risk is above.
@@ -222,11 +225,9 @@ Nothing of the author's is waiting on this page. What is not built:
   above made concrete: no word is withheld. The touch tracing, the tray and the
   stars on a dice board are application work, as for the phonics board, and the
   screens do not play it yet. A standard board is cleared only by every word of
-  the dictionary on it (about 30 on a 3x3 and 470 on a 6x6), so how a standard
+  the dictionary on it (about 32 on a 3x3 and 322 on a 6x6), so how a standard
   board ends is a question for [Game](game.md); and the store keeps no standard
   game in progress yet.
-- **A `QU` face** in the dice, if the author wants one in every set (the real game
-  has one): a rule in `make_dice.ps1`.
 - **Block lists and a child-appropriate cut** of the dictionary: after the MVP,
   and the gate to wider use.
 - **The literacy review** of the phonics board's content, as before.

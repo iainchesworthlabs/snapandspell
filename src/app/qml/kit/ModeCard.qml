@@ -3,6 +3,10 @@ import WordJewelsSolver
 
 // A large choice on the home screen: a picture, a verb and a short line. The
 // whole card is the target, so a child does not have to find a small button.
+//
+// The picture takes the space the words leave, not a fixed share of the card.
+// At the minimum window height the card is shorter; the art shrinks and the
+// label block keeps its place at the bottom instead of the two overlapping.
 Rectangle {
     id: root
 
@@ -53,11 +57,13 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
+        anchors.bottom: words.top
         anchors.margins: Theme.space4
-        height: Math.max(120, parent.height * 0.56)
+        anchors.bottomMargin: Theme.space3
     }
 
     Column {
+        id: words
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -81,6 +87,8 @@ Rectangle {
             font.weight: Font.ExtraBold
             color: Theme.ink
             wrapMode: Text.WordWrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
         }
         Text {
             width: parent.width
@@ -89,6 +97,8 @@ Rectangle {
             font.pixelSize: Theme.bodySize
             color: Theme.inkSecondary
             wrapMode: Text.WordWrap
+            maximumLineCount: root.primary ? 2 : 3
+            elide: Text.ElideRight
         }
         Row {
             spacing: Theme.space2

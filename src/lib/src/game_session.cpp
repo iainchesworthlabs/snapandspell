@@ -305,6 +305,18 @@ std::optional<Position> GameSession::lit_tile() const {
     return std::nullopt;
 }
 
+std::vector<Position> GameSession::lit_path() const {
+    if (!lit_) {
+        return {};
+    }
+    for (const FoundWord& word : viable_) {
+        if (word.word == *lit_) {
+            return word.path;
+        }
+    }
+    return {};
+}
+
 bool GameSession::choose_size(BoardSize size) {
     if (state_ != SessionState::box || !is_played_at(options_.mode, size)) {
         return false;

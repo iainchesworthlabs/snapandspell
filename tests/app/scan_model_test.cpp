@@ -4,16 +4,21 @@
 #include <QVariantMap>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <memory>
+#include <utility>
 
+#include "camera_source.hpp"
+#include "fake_camera.hpp"
 #include "scan_model.hpp"
 #include "wjs/scan/reading.hpp"
 
 // The check screen's model (src/app/scan/scan_model.*): the draft a grown-up
 // corrects, the reader's doubts and alternatives, the board size, the typed-board
-// fallback, and the confirmation that is the only way to a Board. The camera
-// source's own cases are in camera_test.cpp; this model is given none, so it
-// takes the platform interface's path (unavailable on the three desktops) and
-// the typed board is beside it.
+// fallback, where the draft came from, the camera retry, and the confirmation
+// that is the only way to a Board. The camera source's own cases are in
+// camera_test.cpp; the model is given none or a fake backend here, so the
+// platform interface's path (unavailable on the three desktops) and the source's
+// path are both driven without a device.
 
 namespace {
 
@@ -78,6 +83,7 @@ TEST_CASE("the typed board is an empty 4x4 the grown-up fills", "[app][scan]") {
     CHECK(model.sizes().size() == 4);
     CHECK(model.letters().size() == 16);
     CHECK_FALSE(model.complete());
+    CHECK_FALSE(model.draftFromCamera());
     CHECK(model.doubtful().isEmpty());
     for (const QString& letter : model.letters()) {
         CHECK(letter.isEmpty());
@@ -155,6 +161,7 @@ TEST_CASE("the reader's doubts are the tiles to ring, with its other thoughts", 
     CHECK(model.state() == "check");
     CHECK(model.rows() == 2);
     CHECK(model.columns() == 2);
+    CHECK(model.draftFromCamera());
     CHECK(letters_of(model) == QStringList({"C", "A", "", "T"}));
     CHECK_FALSE(model.complete());
 
@@ -172,9 +179,11 @@ TEST_CASE("the reader's doubts are the tiles to ring, with its other thoughts", 
     CHECK(model.doubtful() == indices({2, 3}));
     CHECK_FALSE(model.acceptTile(2));
 
-    // A tap corrects the empty tile; the picker's suggestions come first.
+    // A correction keeps the draft's origin: it is still the board the camera
+    // read, merely corrected.
     CHECK(model.setTile(2, "R"));
     CHECK(model.letters().at(2) == "R");
+    CHECK(model.draftFromCamera());
     CHECK(model.doubtful() == indices({3}));
 
     // "Yes, play" does not refuse a board with a ringed tile left: the press is
@@ -219,9 +228,57 @@ TEST_CASE("without a camera the typed board is the way on, and nothing is faked"
     // again (or, here, unavailable again), and the draft is gone.
     model.typeBoard();
     CHECK(model.state() == "check");
+    CHECK_FALSE(model.draftFromCamera());
     model.readAgain();
     CHECK(model.state() == "ready");
     CHECK(model.rows() == 0);
+    CHECK_FALSE(model.draftFromCamera());
     CHECK_FALSE(model.confirmedBoard().has_value());
     CHECK(model.cameraProblem() == "unavailable");
+}
+
+TEST_CASE("Try camera again is a new attempt, and a camera that appears is found",
+          "[app][scan][camera]") {
+    // The platform path: no camera source, so the model enumerates the platform's
+    // devices. There is none here, and the retry says the same truth again.
+    {
+        ScanModel model;
+        model.open();
+        CHECK(model.cameraProblem() == "unavailable");
+        model.capture();
+        CHECK(model.readProblem() == "no_camera");
+
+        model.retryCamera();
+        CHECK(model.state() == "ready");
+        CHECK(model.cameraProblem() == "unavailable");
+        // The last read's sentence is about the attempt that failed, not this one.
+        CHECK(model.readProblem().isEmpty());
+        CHECK_FALSE(model.cameraAvailable());
+    }
+
+    // The supplied-source path: a camera that was not available when the screen
+    // opened is there when the person tries again. The backend is a fake, so no
+    // device is opened; the model's retry starts it exactly as open() would.
+    auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+    auto* camera = backend.get();
+    camera->setAvailable(false);
+    camera->setProblem(QStringLiteral("no_camera"));
+    wjs::app::CameraSource source(std::move(backend));
+
+    ScanModel model;
+    model.setCameraSource(&source);
+    model.open();
+    CHECK_FALSE(model.cameraAvailable());
+    CHECK(model.cameraProblem() == "no_camera");
+    CHECK_FALSE(model.cameraCapturing());
+
+    // The camera becomes ready (uncovered, plugged in, freed by another app).
+    camera->setAvailable(true);
+    camera->setProblem(QString());
+    model.retryCamera();
+
+    CHECK(model.state() == "ready");
+    CHECK(model.cameraAvailable());
+    CHECK(model.cameraCapturing());
+    CHECK(model.cameraProblem().isEmpty());
 }

@@ -52,10 +52,10 @@ after the MVP:
 | `wjs::scan` — board finder, glyph reader, `BoardDraft` confirm-and-correct | Built and held to a numeric accuracy target on **synthetic frames only** |
 | `wjs::platform` — paths, console, `camera` and `board_reader` interfaces | Built; every desktop answers the camera `unavailable` (no backend) |
 | `wjs-cli` | Built and tested end to end |
-| The Qt Quick window (`WJS_BUILD_APP`) — home, `solo.box`, `solo.playing`, `solo.resting`, the panel, history, the parent area (gate, dashboard, settings, about) | Built on Windows only, never in CI, **off by default**, and it plays the **fake game** unless started with `--phase-directory`, of which the repository has none |
+| The Qt Quick window (`WJS_BUILD_APP`) — home, `solo.box`, `solo.playing`, `solo.resting`, the panel, history, the parent area (gate, dashboard, settings, about) | Built on Windows and on the Windows CI leg. `WJS_BUILD_APP=AUTO` builds it whenever a Qt 6.12 kit is found, `ON` requires one and `OFF` leaves it out; the standard board is the real game, and the phonics board is behind a phase directory |
 | The 3D shake (`wjs_dice_world` sim + Qt Quick 3D scene) | The app's Solo Play scene since 2026-10-19: one `WordJewelsSolver.Scene` module shared with the `ShakePrototype` harness, real faces from `roll_with_placements`, created once behind home, drag-to-shake until Qt Sensors lands; the 2D scene is kept unbuilt for D2 |
 | Profiling (Tracy) | Preset, variant headers and zones exist for the library and the scanner; the vcpkg pin is now **0.14.1**; the app, scene and phase loader are uninstrumented |
-| Tests | 28+ ctests in CI on Windows/Linux/macOS; app tests only on Windows; no test builds the app in CI |
+| Tests | 28+ ctests in CI on Windows/Linux/macOS; the Windows leg builds the application and runs its tests, the QML suites, the lint and the smoke |
 | Camera (Mode A), audio, haptics, device shake, fonts, packaging, Android/iOS/web | Not built |
 
 ## 2. Why the Windows build was failing (found and fixed today)
@@ -151,7 +151,7 @@ System, Light and Dark, which this repository does not have.
 | Sound-it-out sequence (7.3) | — | the speech seam is wired and silent | build the segmentation/timeline with the reviewer's clips (allowed placeholder clips, phonics.md) | P1 (review) |
 | Typeface: Andika + school fonts (7.1) | `Theme.qml` names Andika | not bundled; platform fallback silently | licence read + glyph check + bundling, and the school-font list | P2 |
 | Performance: Tracy throughout, budgets (8) | `wjs/profiling.hpp`, 15 zones, perf tier | Library and scanner zones built; budgets run | Tracy pinned to **0.14.1** (done 2026-10-18); app/scene/phase-loader uninstrumented; no frame marks/messages | P1 (zones) |
-| Windows build that produces the app | presets, `windeployqt` | Works once section 2 is applied; no install/package step | CPack/installer is not built; `WJS_BUILD_APP` off by default and absent from CI | P1 |
+| Windows build that produces the app | presets, `windeployqt` | Done: the presets build `WordJewelsSolver` when Qt is found (`WJS_BUILD_APP=AUTO`), and CPack packages it | Qt 6.12 is a prerequisite for the application; a machine without it builds the CLI and tests | — |
 | Privacy: no network, no capture, no export, small store | store, CI scans | Done and checked | none | — |
 | Android/iOS/web/phone (2) | `src/platforms` | Not started (the PRD's own fact) | after the MVP | P2 |
 
@@ -273,9 +273,12 @@ System, Light and Dark, which this repository does not have.
     this repository has none.
 13. The coverage gate (a floor, as CountdownSolver's 80/80) and the
     toolchain-versions file (iclforge's single source of pinning).
-    *Partly done 2026-10-18:* `tests/profiling/check_presets.cmake` now
-    asserts the Tracy override (0.14.1, port-version 1); a
-    `.github/toolchain-versions.json` and a coverage floor remain.
+    *Done 2026-10-19:* `.github/toolchain-versions.json` (with
+    `tests/toolchain/check_versions.cmake` holding it) and the coverage gate:
+    `coverage-unit` and the CI job hold `src/lib` to 90% lines / 80% branches,
+    with `coverage-ui` reporting what the Qt Quick Test suites reach, and
+    `tests/profiling/check_presets.cmake` still asserts the Tracy override
+    (0.14.1, port-version 1).
 
 ## 7. Both modes, complete
 

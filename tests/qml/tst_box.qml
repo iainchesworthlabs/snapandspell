@@ -116,6 +116,18 @@ TestCase {
         verify(buttonNamed(tiny, SoloWording.shake) !== null)
     }
 
+    function test_theBoxPictureFollowsTheChosenSize() {
+        const screen = soloScreen()
+        const art = allItems(screen).find(item => item.closed === true
+                                                  && item.boardSize !== undefined)
+        verify(art !== null)
+        compare(art.boardSize, 3)
+        // The fake game offers 3 and 4; the picture follows the model, not a
+        // hard-coded preview.
+        soloModel.chooseSize(4)
+        compare(art.boardSize, 4)
+    }
+
     function test_aSizeIsChosenByPressingItsPicture() {
         const box = boxFor(1100, 700, false)
         const buttons = sizeButtons(box)

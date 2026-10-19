@@ -36,7 +36,7 @@ src/
                          reading.hpp  reader.hpp  confirmation.hpp  work.hpp
     src/                 one .cpp for each
   cli/                 main.cpp: wjs-cli
-  app/                 the Qt Quick application (built only with WJS_BUILD_APP)
+  app/                 the Qt Quick application (WordJewelsSolver; WJS_BUILD_APP=AUTO)
     qml/Main.qml         the window: a shell that shows the screen Navigation names
     qml/Home.qml         home
     qml/kit/             Theme (the tokens), Navigation, Feedback, AppButton, HoldButton,
@@ -258,12 +258,15 @@ it still. The set must hold a square number of dice, so the 3x3 is its own set
 and not a window on the 4x4.
 
 The library holds no set. The project's are `data/dice/<n>x<n>.txt` for 3x3 to
-6x6, made by `tools/data/make_dice.ps1` from the dictionary's letter counts: six
-different letters to a die dealt in proportion to the counts, a vowel on each, a
-Q shown as `QU`, a seed to each size, and the source's hash and the method in the
-header ([Data](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/data/README.md)).
-`data.dice` holds the files to what the tool makes. The faces of a printed set are
-not used: in the scanner mode the board is read from the table.
+6x6, made by `tools/data/make_dice.ps1` from a fixed Scrabble-style English
+tile-frequency table: six different letters to a die dealt in proportion to the
+table, one to three vowels and at most one of J K Q V X Z on each, 30% to 40%
+vowel faces and at most 8% S faces in a set, a Q shown as `QU`, a seed to each
+size, and the table, method and seed in the header
+([Data](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/data/README.md)).
+The dictionary is not an input. `data.dice` holds the files to what the tool
+makes. The faces of a printed set are not used: in the scanner mode the board is
+read from the table.
 
 `DiceSets` (`dice_sets.hpp`) is the four of them together, one `DiceSet` for each
 side from 3 to 6, which is what the game session takes for the standard board.
@@ -782,8 +785,9 @@ is the page for the lifecycle, the RGB24 conversion and what was verified.
 
 ## The Qt Quick window
 
-`src/app` is the Qt Quick application and is optional (`WJS_BUILD_APP`, off by
-default; it needs a prebuilt Qt 6.12). It plays both modes of
+`src/app` is the Qt Quick application. `WJS_BUILD_APP` is `AUTO`: it is built
+when a prebuilt Qt 6.12 is found, left out when there is none, and `ON`/`OFF`
+force that choice. It plays both modes of
 [Application design](design/application.md) and [Game design](design/game.md).
 Mode B is `home`, and `solo.box`, `solo.playing` and `solo.resting` with the
 moments between them (shaking, dropping, word-found, cleared) on one screen,
@@ -1007,12 +1011,12 @@ display. See [The parent area as built](design/parent-area.md).
 | `wjs_lib` (`wjs::lib`) | static library | The game logic |
 | `wjs_platform` (`wjs::platform`) | static library | The platform's implementations; links `wjs_scan` |
 | `wjs_scan` (`wjs::scan`) | static library | The scanner: finds a board in a frame and reads it. No third-party dependency |
-| `wjs_cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
-| `wjs_app` | executable `WordJewelsSolver` | `WJS_BUILD_APP`; links Qt Quick 3D, so GPL-3.0 only |
-| `wjs_scene` | static QML module (`WordJewelsSolver.Scene`) | The 3D board scene, its dice objects and the `wjs_dice_world` simulation. Linked by `wjs_app` and the prototype; GPL-3.0 only |
-| `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording, models and the camera source. Linked by `wjs_app` as `wjs_scan_uiplugin` |
+| `wjs-cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
+| `WordJewelsSolver` | executable `WordJewelsSolver` | `WJS_BUILD_APP=AUTO` when Qt 6.12 is found, `ON` to require it, `OFF` to skip; links Qt Quick 3D, so GPL-3.0 only |
+| `wjs_scene` | static QML module (`WordJewelsSolver.Scene`) | The 3D board scene, its dice objects and the `wjs_dice_world` simulation. Linked by `WordJewelsSolver` and the prototype; GPL-3.0 only |
+| `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording, models and the camera source. Linked by `WordJewelsSolver` as `wjs_scan_uiplugin` |
 | `wjs_trace` | static library | `PathTracer`, the touch half of making a word, shared by Solo Play's model and the assistant's |
-| `wjs_shake_prototype` | executable `ShakePrototype` | `WJS_BUILD_SHAKE_PROTOTYPE`, with `WJS_BUILD_APP`; the harness around `wjs_scene` |
+| `ShakePrototype` | executable `ShakePrototype` | `WJS_BUILD_SHAKE_PROTOTYPE`, with the application built; the harness around `wjs_scene` |
 | `wjs_unit_tests` | executable | Catch2 |
 | `wjs_perf_tests` | executable | Catch2; work budgets and opt-in wall-time checks, linked to `wjs::lib` and the scanner with its synthetic corpus |
 | `wjs_scan_tests` | executable | Catch2; the scanner, the camera and `board_reader` interfaces, and the corpus that holds it to its target |

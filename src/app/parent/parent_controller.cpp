@@ -14,6 +14,7 @@
 
 #include "wjs/dashboard.hpp"
 #include "wjs/platform/paths.hpp"
+#include "wjs/scoring.hpp"
 #include "wjs/settings.hpp"
 #include "wjs/version.hpp"
 
@@ -292,6 +293,12 @@ QStringList ParentController::phases() const {
     return names;
 }
 
+bool ParentController::retrySave() {
+    const auto saved = store_->save();
+    updateNote();
+    return saved.has_value();
+}
+
 void ParentController::refresh() {
     // The device's own calendar: Qt's Julian day of 1970-01-01 is 2440588.
     const wjs::Day today =
@@ -334,6 +341,84 @@ void ParentController::updateNote() {
 
 QString ParentController::storeNote() const {
     return note_;
+}
+
+int ParentController::lifetimeStars() const {
+    return static_cast<int>(store_->data().stars);
+}
+
+int ParentController::lifetimePoints() const {
+    int total = 0;
+    for (const wjs::VaultWord& word : store_->data().vault) {
+        total += wjs::word_points(word.word) * static_cast<int>(word.found);
+    }
+    return total;
+}
+
+int ParentController::lifetimeWords() const {
+    return static_cast<int>(store_->data().vault.size());
+}
+
+QString ParentController::longestWord() const {
+    std::string longest;
+    for (const wjs::VaultWord& word : store_->data().vault) {
+        if (word.word.size() > longest.size() ||
+            (word.word.size() == longest.size() && word.word < longest)) {
+            longest = word.word;
+        }
+    }
+    return text(longest);
+}
+
+int ParentController::boardsKept() const {
+    return static_cast<int>(store_->data().boards.size());
+}
+
+QVariantList ParentController::recentBoards() const {
+    QVariantList list;
+    const wjs::StoreData& data = store_->data();
+    for (auto board = data.boards.rbegin(); board != data.boards.rend(); ++board) {
+        QVariantMap map;
+        map.insert(QStringLiteral("rows"), board->size);
+        map.insert(QStringLiteral("columns"), board->size);
+        map.insert(QStringLiteral("stars"), board->stars);
+        map.insert(QStringLiteral("found"), board->found);
+        map.insert(QStringLiteral("cleared"), board->cleared);
+        map.insert(QStringLiteral("day"), static_cast<qint64>(board->day));
+
+        // The tiles are kept "A,B/C,D"; BoardThumb wants them row-major.
+        QStringList tiles;
+        const QString packed = text(board->tiles);
+        const QStringList rows = packed.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+        for (const QString& row : rows) {
+            const QStringList faces = row.split(QLatin1Char(','), Qt::SkipEmptyParts);
+            for (const QString& face : faces) {
+                tiles.append(face);
+            }
+        }
+        map.insert(QStringLiteral("tiles"), tiles);
+
+        QVariantList words;
+        for (const wjs::FindRecord& find : data.finds) {
+            if (find.board != board->serial) {
+                continue;
+            }
+            QVariantMap word;
+            word.insert(QStringLiteral("word"), text(find.word));
+            word.insert(QStringLiteral("stars"), find.stars);
+            word.insert(QStringLiteral("points"), wjs::word_points(find.word));
+            word.insert(QStringLiteral("assisted"), find.start_tile_used);
+            const std::size_t letters = find.word.size();
+            word.insert(QStringLiteral("tier"),
+                        letters <= 3 ? QStringLiteral("spark")
+                                     : (letters == 4 ? QStringLiteral("power")
+                                                     : QStringLiteral("mega")));
+            words.append(word);
+        }
+        map.insert(QStringLiteral("words"), words);
+        list.append(map);
+    }
+    return list;
 }
 
 QString ParentController::motion() const {

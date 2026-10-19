@@ -17,7 +17,7 @@ TestCase {
 
     Component { id: panelComponent; PlayingPanel { } }
 
-    SignalSpy { id: historySpy; signalName: "historyRequested" }
+    SignalSpy { id: finishSpy; signalName: "finishRequested" }
 
     // The fake's 3x3 board, seed 1: E N S / O A I / M P T. SIT is tiles 2, 5, 8.
     readonly property var sit: [2, 5, 8]
@@ -173,16 +173,30 @@ TestCase {
         compare(soloModel.found[0].word, "sit")
     }
 
-    function test_theHistoryButtonAsksForTheSheet() {
+    function test_theFinishButtonAsksForTheSummary() {
         play()
         const tray = panel()
-        historySpy.target = tray
-        historySpy.clear()
+        finishSpy.target = tray
+        finishSpy.clear()
 
-        const button = buttonNamed(tray, SoloWording.earlierBoards)
+        const button = buttonNamed(tray, SoloWording.finishBoard)
         verify(button !== null)
         mouseClick(button, button.width / 2, button.height / 2)
 
-        compare(historySpy.count, 1)
+        compare(finishSpy.count, 1)
+    }
+
+    function test_theTrayHeaderShowsPoints() {
+        play()
+        tapAndHandIn()
+        soloModel.wordShown()
+        const tray = panel()
+        // SIT is 10 + S1 I1 T1 = 13 points.
+        compare(soloModel.boardPoints, 13)
+        verify(textsShown(tray).indexOf("13 points") >= 0)
+        verify(textsShown(tray).indexOf("1 word") >= 0)
+        const list = allItems(tray).find(item => item.count !== undefined
+                                                 && item.model !== undefined)
+        compare(list.model[0].points, 13)
     }
 }

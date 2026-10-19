@@ -60,12 +60,12 @@ feature with a different privacy picture.
 
 ## Board
 
-**6. Which dice, and from where?** *design.* The MVP uses none: boards are
-seeded from the phase index (question 24). After the MVP, dice **made by this
-project** from letter counts of `data/dictionaries/en.txt`, recorded as
-`data/README.md` requires. Options: a set the author owns (a legal question, not
-answered here), a list found online (provenance unknown, so not usable), or
-made here. No distribution of letters is given on these pages. See
+**6. Which dice, and from where?** *design.* The standard board uses dice
+**made by this project** from a fixed Scrabble-style English tile-frequency
+table, recorded as `data/README.md` requires. The phonics board is seeded from
+the phase index (question 24). Options: a set the author owns (a legal question,
+not answered here), a list found online (provenance unknown, so not usable), or
+made here. No product's distribution of letters is given on these pages. See
 [Board](board.md#where-the-letters-come-from).
 
 **7. How is a 3x3 board related to the others?** *design.* A smaller board of

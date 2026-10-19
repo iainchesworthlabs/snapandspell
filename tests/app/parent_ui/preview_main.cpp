@@ -142,7 +142,7 @@ int run_check(const QString& out) {
     wjs::Store store = wjs::app::demo::busy_store(today);
 
     wjs::app::ParentController controller;
-    controller.useCalendar([today] { return today; }, 1);
+    controller.useCalendar([] { return today; }, 1);
     controller.useClock([] { return g_now; });
     controller.useStore(&store);
     controller.usePhases(&phases);
@@ -374,7 +374,7 @@ int run_language_check(const QString& out) {
         wjs::PhaseSet phases = wjs::app::demo::phases();
         wjs::Store store = wjs::app::demo::busy_store(today);
         wjs::app::ParentController controller;
-        controller.useCalendar([today] { return today; }, 1);
+        controller.useCalendar([] { return today; }, 1);
         controller.useClock([] { return g_now; });
         controller.useStore(&store);
         controller.usePhases(&phases);

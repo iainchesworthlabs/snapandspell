@@ -4,13 +4,19 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../src/app/qml/kit/AppBar.qml" line="+45"/>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+49"/>
         <location line="+1"/>
         <source>Back</source>
         <translation>צוריק</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
+        <location line="+1"/>
+        <source>My jewels</source>
+        <translation>My jewels</translation>
+    </message>
+    <message>
+        <location line="+9"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>פֿאַר דערוואַקסענע</translation>
@@ -27,7 +33,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+172"/>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+191"/>
         <source>Turn</source>
         <translation>קער</translation>
     </message>
@@ -35,7 +41,7 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../src/app/qml/Home.qml" line="+60"/>
+        <location filename="../src/app/qml/Home.qml" line="+90"/>
         <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
         <translation>א וואָרט-געפינען שפּיל פֿאַר יונגע לייענער</translation>
     </message>
@@ -45,52 +51,59 @@
         <translation>שאָקלען. געפֿינען. קלייַבן.</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+13"/>
         <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
         <translation>א רויק וואָרט שפּיל פֿאַר קליין לייענער. שאָקלען די בריליאַנט קעסטל, געפֿינען ווערטער און קלייַבן די דזשולז.</translation>
     </message>
     <message>
         <location line="+18"/>
+        <location line="+115"/>
         <source>Play on my own</source>
         <translation>שפּילן אַליין</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>שאָקלען די קעסטל. געפינען ווערטער. קלייַבן דזשולז.</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Play</source>
         <translation>שפּיל</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="-98"/>
+        <location line="+115"/>
         <source>FOR GROWN-UPS</source>
         <translation>פֿאַר דערוואַקסענע</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Play with a real board</source>
         <translation>שפּיל מיט אַ פאַקטיש ברעט</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Use the camera, or type the board. A grown-up sets this up.</source>
         <translation>ניצן די אַפּאַראַט, אָדער טיפּ די ברעט. א דערוואקסענער שטעלט דאס אויף.</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Continue</source>
         <translation>פאָרזעצן</translation>
     </message>
     <message>
-        <location line="+92"/>
+        <location line="+81"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+12"/>
         <source>Everything stays on this device.</source>
         <translation>אַלץ בלייבט אויף דעם מיטל.</translation>
     </message>
@@ -111,6 +124,137 @@
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>פֿאַר דערוואַקסענע</translation>
+    </message>
+</context>
+<context>
+    <name>JewelsWording</name>
+    <message>
+        <location filename="../src/app/qml/solo/JewelsWording.qml" line="+9"/>
+        <source>My jewels</source>
+        <translation>My jewels</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Back</source>
+        <translation>Back</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>1 jewel collected</source>
+        <translation>1 jewel collected</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 jewels collected</source>
+        <translation>%1 jewels collected</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>1 point</source>
+        <translation>1 point</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 points</source>
+        <translation>%1 points</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location line="+6"/>
+        <location line="+20"/>
+        <source>1 word</source>
+        <translation>1 word</translation>
+    </message>
+    <message>
+        <location line="-26"/>
+        <location line="+6"/>
+        <location line="+20"/>
+        <source>%1 words</source>
+        <translation>%1 words</translation>
+    </message>
+    <message>
+        <location line="-16"/>
+        <source>This week</source>
+        <translation>This week</translation>
+    </message>
+    <message>
+        <location line="-5"/>
+        <location line="+7"/>
+        <location line="+13"/>
+        <source>1 star</source>
+        <translation>1 star</translation>
+    </message>
+    <message>
+        <location line="-22"/>
+        <source>My best boards</source>
+        <translation>My best boards</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <location line="+7"/>
+        <location line="+13"/>
+        <source>%1 stars</source>
+        <translation>%1 stars</translation>
+    </message>
+    <message>
+        <location line="-18"/>
+        <source>%1 × %2</source>
+        <translation>%1 × %2</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>1 new word</source>
+        <translation>1 new word</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 new words</source>
+        <translation>%1 new words</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Longest word: %1</source>
+        <translation>Longest word: %1</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>My words</source>
+        <translation>My words</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Words you find will land here.</source>
+        <translation>Words you find will land here.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Boards I played</source>
+        <translation>Boards I played</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Boards you finish will appear here.</source>
+        <translation>Boards you finish will appear here.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Your jewel box is waiting</source>
+        <translation>Your jewel box is waiting</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play a board and the words you find will fill this shelf.</source>
+        <translation>Play a board and the words you find will fill this shelf.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play on my own</source>
+        <translation>Play on my own</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Hear the word</source>
+        <translation>Hear the word</translation>
     </message>
 </context>
 <context>
@@ -160,19 +304,19 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+82"/>
+        <location line="+87"/>
         <source>Settings</source>
         <translation>סעטינגס</translation>
     </message>
     <message>
-        <location line="-80"/>
-        <location line="+158"/>
+        <location line="-85"/>
+        <location line="+163"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>וועגן</translation>
     </message>
     <message>
-        <location line="-157"/>
+        <location line="-162"/>
         <source>Nothing to show yet.</source>
         <translation>נאָך נישטאָ וואָס צו ווײַזן.</translation>
     </message>
@@ -188,33 +332,58 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Progress could not be saved on this device.</source>
-        <translation>דער פֿאָרשריט האָט נישט געקענט געהיט ווערן אויף דעם אַפּאַראַט.</translation>
+        <source>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</source>
+        <translation>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Retry</source>
+        <translation>Retry</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Saved on this device.</source>
+        <translation>Saved on this device.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Still not saved. The board can still be played; progress may not last after the app closes.</source>
+        <translation>Still not saved. The board can still be played; progress may not last after the app closes.</translation>
     </message>
     <message>
         <location line="+3"/>
-        <source>For parents</source>
-        <translation>פֿאַר עלטערן</translation>
+        <source>For grown-ups</source>
+        <translation>For grown-ups</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Hold both circles at the same time for two seconds.</source>
-        <translation>האַלט ביידע קרײַזן אין דער זעלביקער צײַט פֿאַר צוויי סעקונדעס.</translation>
+        <source>Press and hold for two seconds.</source>
+        <translation>Press and hold for two seconds.</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>With a mouse and a keyboard: hold the left circle with the mouse and press Space.</source>
-        <translation>מיט אַ מויז און אַ קלאַוויאַטור: האַלט דעם לינקען קרײַז מיט דער מויז און דרוק די ליידיקע טאַסט.</translation>
+        <source>This keeps little fingers out of the settings and the progress.</source>
+        <translation>This keeps little fingers out of the settings and the progress.</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Or hold Enter for two seconds.</source>
-        <translation>אָדער האַלטן אַרייַן פֿאַר צוויי סעקונדעס.</translation>
+        <source>With a keyboard, hold Space or Enter for two seconds.</source>
+        <translation>With a keyboard, hold Space or Enter for two seconds.</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Open the parent area. Hold both circles with two fingers, or activate this to open it.</source>
-        <translation>עפֿענען דעם עלטערן־אָפּטייל. האַלט ביידע קרײַזן מיט צוויי פֿינגער, אָדער אַקטיוויזיר דאָס צו עפֿענען.</translation>
+        <source>Hold to enter</source>
+        <translation>Hold to enter</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Keep holding until the bar is full</source>
+        <translation>Keep holding until the bar is full</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Open the parent area</source>
+        <translation>Open the parent area</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -648,12 +817,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+70"/>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+76"/>
         <source>Words I found</source>
         <translation>ווערטער וואָס איך האָב געפֿונען</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <source>1 word</source>
         <translation>1 וואָרט</translation>
     </message>
@@ -663,7 +832,17 @@
         <translation>%1 ווערטער</translation>
     </message>
     <message>
-        <location line="+71"/>
+        <location line="+7"/>
+        <source>%1 points</source>
+        <translation>%1 points</translation>
+    </message>
+    <message>
+        <location line="+60"/>
+        <source>+%1</source>
+        <translation>+%1</translation>
+    </message>
+    <message>
+        <location line="+24"/>
         <source>Your words will land here.</source>
         <translation>דיין ווערטער וועט לאַנד דאָ.</translation>
     </message>
@@ -672,31 +851,26 @@
         <source>Need a start?</source>
         <translation>דאַרפֿן אַ אָנהייב?</translation>
     </message>
-    <message>
-        <location line="+17"/>
-        <source>Start here: %1</source>
-        <translation>אָנהייב דאָ: %1</translation>
-    </message>
 </context>
 <context>
     <name>ScanScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+95"/>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+107"/>
         <source>Set up a board</source>
         <translation>שטעלן אַ ברעט</translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+16"/>
         <source>1  Place</source>
         <translation>1 אָרט</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+14"/>
         <source>2  Check</source>
         <translation>2 קוק</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+14"/>
         <source>3  Play</source>
         <translation>3 שפּיל</translation>
     </message>
@@ -734,22 +908,7 @@
         <translation>מע לייענט דאָס ברעט…</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>There is no camera on this device. You can type in your board.</source>
-        <translation>עס איז נישטאָ קיין קאַמעראַ אויף דעם אַפּאַראַט. איר קענט אַרײַנטיפּן אייער ברעט.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>The camera is not allowed. You can type in your board.</source>
-        <translation>די קאַמעראַ איז נישט דערלויבט. איר קענט אַרײַנטיפּן אייער ברעט.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>The camera did not start. You can type in your board.</source>
-        <translation>די קאַמעראַ האָט נישט אָנגעהויבן. איר קענט אַרײַנטיפּן אייער ברעט.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+8"/>
         <source>I could not read the board. Try again, or type it in.</source>
         <translation>איך האָב נישט געקענט לייענען דאָס ברעט. פּרוּווט נאָכאַמאָל, אָדער טיפּט עס אַרײַן.</translation>
     </message>
@@ -785,16 +944,44 @@
         <translation>דאָס ברעט האָט נישט געקענט אָנגעהויבן ווערן. פּרוּווט נאָכאַמאָל.</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>Read again</source>
-        <extracomment>Go back to the camera and read the board again.</extracomment>
-        <translation>לייענען נאָכאַמאָל</translation>
+        <location line="-42"/>
+        <source>No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.</source>
+        <extracomment>A camera that was not found may still be there: covered, busy or plugged in after the screen opened. The retry button is the way to look again.</extracomment>
+        <translation>מע האָט נישט געפֿונען קיין קאַמעראַ. אויב דער אַפּאַראַט האָט איינע, איז זי אפשר פֿאַרדעקט אָדער אין ניץ פֿון אַן אַנדער אַפּ. איר קענט אַרײַנטיפּן אייער ברעט.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The camera is not allowed. Allow it in your device settings, then try again. You can type in your board.</source>
+        <translation>די קאַמעראַ איז נישט דערלויבט. דערלויבט זי אין די אַפּאַראַט־איינשטעלונגען און פּרוּווט נאָכאַמאָל. איר קענט אַרײַנטיפּן אייער ברעט.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The camera did not start. Close other apps that use it and try again, or type in your board.</source>
+        <translation>די קאַמעראַ האָט נישט אָנגעהויבן. פֿאַרמאַכט אַנדערע אַפּס וואָס ניצן זי און פּרוּווט נאָכאַמאָל, אָדער טיפּט אַרײַן אייער ברעט.</translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Yes, play</source>
+        <source>Try camera again</source>
+        <extracomment>Look for the camera again without leaving the ready screen.</extracomment>
+        <translation>פּרוּוון די קאַמעראַ נאָכאַמאָל</translation>
+    </message>
+    <message>
+        <location line="+40"/>
+        <source>Start over</source>
+        <extracomment>A typed board&apos;s secondary action: clear it and start typing a fresh one.</extracomment>
+        <translation>אָנהייבן פֿון פֿאָרנט</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Scan again</source>
+        <extracomment>A camera-read board&apos;s secondary action: go back to the frame and read it again.</extracomment>
+        <translation>סקאַנען נאָכאַמאָל</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Start playing</source>
         <extracomment>The grown-up confirms the board and starts the round.</extracomment>
-        <translation>יאָ, שפּילן</translation>
+        <translation>אָנהייבן שפּילן</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -888,7 +1075,7 @@
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloBox.qml" line="+94"/>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+113"/>
         <source>Choose a board</source>
         <translation>קלייַבן אַ ברעט</translation>
     </message>
@@ -898,7 +1085,7 @@
         <translation>3 × 3 איז אַ גוט אָנהייב. גרעסערע באָרדז האַלטן מער ווערטער.</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+47"/>
         <source>How it works</source>
         <translation>ווי עס אַרבעט</translation>
     </message>
@@ -940,12 +1127,17 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+198"/>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+227"/>
         <source>Solo Play</source>
         <translation>סאָלאָ שפּיל</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+1"/>
+        <source>Board finished</source>
+        <translation>Board finished</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>All words found</source>
         <translation>אַלע ווערטער געפונען</translation>
     </message>
@@ -955,12 +1147,7 @@
         <translation>געפֿינען אַ וואָרט</translation>
     </message>
     <message>
-        <location line="+60"/>
-        <source>Shake to open</source>
-        <translation>שאָקלען צו עפענען</translation>
-    </message>
-    <message>
-        <location line="+117"/>
+        <location line="+195"/>
         <source>Shaking the box…</source>
         <translation>מען שאָקלט די שוחט…</translation>
     </message>
@@ -970,12 +1157,12 @@
         <translation>מאַכן אַ וואָרט</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+16"/>
         <source>Tap the last die again, or press Done</source>
         <translation>צאַפּן ווידער אויף די לעצטע מאָל אָדער דריקן געטאן</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+15"/>
         <source>Clear</source>
         <translation>אויסמעקן</translation>
     </message>
@@ -985,15 +1172,20 @@
         <translation>מעק דאָס וואָרט</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <location line="+1"/>
         <source>Done</source>
         <translation>פֿאַרטיק</translation>
     </message>
     <message>
-        <location line="+36"/>
+        <location line="+38"/>
         <source>You found all %1 words!</source>
         <translation>איר האָט געפֿונען אַלע %1 ווערטער!</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>%1 points  ·  %2 stars</source>
+        <translation>%1 points  ·  %2 stars</translation>
     </message>
     <message>
         <location line="+10"/>
@@ -1001,29 +1193,44 @@
         <translation>קוק בייַ די דזשולז איר געזאמלט.</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+41"/>
         <source>Home</source>
         <translation>היים</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+14"/>
         <source>Play again</source>
         <translation>שפּילן נאָכאַמאָל</translation>
     </message>
     <message>
-        <location line="+77"/>
-        <source>you found a word!</source>
-        <translation>האסט געפונען א ווארט!</translation>
+        <location line="+87"/>
+        <source>You found this one already.</source>
+        <translation>You found this one already.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>You found a word. +%1 points</source>
+        <translation>You found a word. +%1 points</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>That&apos;s a real word.</source>
+        <translation>That&apos;s a real word.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>It is not on this board.</source>
+        <translation>It is not on this board.</translation>
     </message>
     <message>
         <location line="+3"/>
-        <source>That&apos;s a real word — not on this board.</source>
-        <translation>דאָס איז אַ פאַקטיש וואָרט - נישט אויף דעם ברעט.</translation>
+        <source>Not this time.</source>
+        <translation>Not this time.</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Not this time — try another.</source>
-        <translation>ניט דאָס מאָל - פּרוּווט אנדערן.</translation>
+        <location line="+1"/>
+        <source>Try another word.</source>
+        <translation>Try another word.</translation>
     </message>
 </context>
 <context>
@@ -1048,6 +1255,12 @@
         <source>Shake</source>
         <extracomment>Shake the box to roll the dice; the button and Space do the same.</extracomment>
         <translation>שאָקלען</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Shake the box to start</source>
+        <extracomment>The line under the closed box, before the first roll.</extracomment>
+        <translation>Shake the box to start</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -1097,6 +1310,52 @@
         <source>Start here</source>
         <extracomment>The screen-reader name of the ring that lights the start tile.</extracomment>
         <translation>אָנהייב דאָ</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The next letter</source>
+        <extracomment>The screen-reader name of the second ring, when the child asks for more.</extracomment>
+        <translation>The next letter</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Show me two letters</source>
+        <extracomment>The second rung of the help: two tiles are lit.</extracomment>
+        <translation>Show me two letters</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Hide the hint</source>
+        <extracomment>Put the help away and quiet the board again.</extracomment>
+        <translation>Hide the hint</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Finish board</source>
+        <extracomment>End this board early: the words are saved, and the child sees what was found.</extracomment>
+        <translation>Finish board</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Board finished!</source>
+        <translation>Board finished!</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Your words are safe in your collection.</source>
+        <translation>Your words are safe in your collection.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The first letter is lit. Trace a word from it.</source>
+        <extracomment>Shown under the button at the first rung.</extracomment>
+        <translation>The first letter is lit. Trace a word from it.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Two letters are lit. Find the rest of the word.</source>
+        <extracomment>Shown under the button at the second rung.</extracomment>
+        <translation>Two letters are lit. Find the rest of the word.</translation>
     </message>
     <message>
         <location line="+3"/>

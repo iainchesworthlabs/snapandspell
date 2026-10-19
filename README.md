@@ -32,7 +32,7 @@ frames only: no camera is connected to it and it has not seen a real board.
 | The library: board parsing, a trie dictionary, scoring, a depth-first solver, dice and deals, the game session, the store, the parent gate and dashboard. No GUI, no operating system code | `src/lib` | Unit tested |
 | `wjs-cli`, a command-line front end | `src/cli` | Works; not covered by a test of its own |
 | Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Built and tested by CI on Windows, Linux and macOS |
-| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the resting screen and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `src/app`, `src/lib` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI; installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
+| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the resting screen and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `src/app`, `src/lib` | Built when a prebuilt Qt 6.12 is found (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI; installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
 | A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces | `src/scan`, `src/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; no camera backend; never tried on a real board ([design](docs/design/scanner.md)) |
 | Catch2 unit tests, the app tests, a platform-contract test and the platform-isolation check | `tests`, `tools/checks` | Pass on Windows |
 
@@ -67,11 +67,14 @@ cmake --build --preset windows-msvc-debug
 ctest --preset windows-msvc-debug
 ```
 
-To build the window, enable `WJS_BUILD_APP` with a prebuilt Qt 6.12 kit: on the author's machine, dot-source `C:\Repos\common\env.ps1` and configure with `-DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON` (see [docs/building.md](docs/building.md#the-qt-quick-window)).
+The window is built too when a prebuilt Qt 6.12 kit is found: `WJS_BUILD_APP` defaults to `AUTO`, and the labs' shared kit at `C:\Repos\common\qt` is searched automatically (set `QT_ROOT_DIR` or `CMAKE_PREFIX_PATH` for a kit somewhere else). Pass `-DWJS_BUILD_APP=OFF` for a solver-only build, `ON` to require Qt, and `-DWJS_BUILD_SHAKE_PROTOTYPE=ON` for the scene harness (see [docs/building.md](docs/building.md#the-qt-quick-window)).
 
-The presets are `windows-msvc-{debug,release}`, `linux-gcc-{debug,release,coverage}`
-and `macos-clang-{debug,release}`; each builds into `build/<preset>/` and puts
-its programs in `build/<preset>/bin/`. To install and package a build, add
+The presets are `windows-msvc-{debug,release}`,
+`windows-clang-coverage`, `linux-gcc-{debug,release,coverage}` and
+`macos-clang-{debug,release}`; each builds into `build/<preset>/` and puts
+its programs in `build/<preset>/bin/`. The two coverage presets hold the unit
+tier to 90% line and 80% branch coverage (`coverage-unit`); see
+[docs/testing.md](docs/testing.md#coverage). To install and package a build, add
 `cpack --preset package-<os>-<compiler>-release` after the build: the ZIP (and
 the platform's own installer where its tool is installed), with the Qt runtime,
 the word list, the dice and the third-party notices, lands in
@@ -156,7 +159,7 @@ scheme), the exit codes and the board format are in
 src/
   lib/            wjs:: the game logic: board, dictionary, scoring, solver
   cli/            wjs-cli
-  app/            the Qt Quick window (built only with WJS_BUILD_APP)
+  app/            the Qt Quick window (WordJewelsSolver; WJS_BUILD_APP=AUTO)
   platforms/      everything that differs between operating systems
     interfaces/     one header per OS service (wjs/platform/*.hpp)
     windows/ linux/ macos/ posix/
@@ -197,6 +200,7 @@ check enforces it. See [docs/platform-isolation.md](docs/platform-isolation.md).
 | [docs/roadmap.md](docs/roadmap.md) | What is planned |
 | [docs/audit-0.1.md](docs/audit-0.1.md) | The codebase ordered against the requirements, and the work plan |
 | [docs/product-requirements.md](docs/product-requirements.md) | The product brief the roadmap is built from |
+| [docs/design/ux-audit-2026-10/index.md](docs/design/ux-audit-2026-10/index.md) | The human-factors audit and design overhaul direction (October 2026); [visual brief](docs/design/ux-audit-2026-10/visual-brief.html) and [PDF](docs/design/ux-audit-2026-10/visual-brief.pdf); the [follow-up pass](docs/design/ux-audit-2026-10/follow-up-2026-10-19.md) records the screen-by-screen corrections, points, collection and help rules |
 | [docs/faq.md](docs/faq.md) | Short answers |
 
 The documentation is built with mkdocs-material (`mkdocs.yml`) and will be
@@ -221,3 +225,4 @@ the English word list is ENABLE, a separate work that its originators released
 into the public domain (provenance in [data/README.md](data/README.md)).
 
 WordJewelsSolver is a project of Iain Chesworth Labs.
+

@@ -236,5 +236,5 @@ foreach(WJS_QUICK_TEST_FILE IN LISTS WJS_QUICK_TEST_FILES)
     set_tests_properties("quick.${WJS_QUICK_TEST_SUITE}" PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_FORCE_STDERR_LOGGING=1;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
         TIMEOUT 300
-        LABELS "gui")
+        LABELS "system;ui;gui")
 endforeach()

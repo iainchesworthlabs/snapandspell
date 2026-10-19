@@ -47,6 +47,7 @@ public:
     [[nodiscard]] bool helpAllowed() const override { return help_allowed_; }
     std::optional<Position> startTile() override;
     [[nodiscard]] std::optional<Position> litTile() const override;
+    [[nodiscard]] std::vector<Position> helpPath() const override;
 
     [[nodiscard]] const std::vector<SoloFound>& found() const override { return found_; }
 

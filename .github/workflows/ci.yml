@@ -29,9 +29,10 @@ on:
         description: >-
           Comma-separated legs to run, no spaces: clang-format,
           platform-isolation, windows, linux, macos, coverage, perf - or "all".
-          The profiling builds (Tracy) are never part of "all": name them -
-          profiling (all three), profiling-windows, profiling-linux or
-          profiling-macos.
+          The dedicated profiling builds (optimised, for Tracy numbers) are
+          never part of "all": name them - profiling (all three),
+          profiling-windows, profiling-linux or profiling-macos. The debug
+          legs build Tracy by default (docs/profiling.md), whatever legs run.
         type: string
         default: all
 
@@ -144,7 +145,9 @@ jobs:
           # The profiling presets (RelWithDebInfo with Tracy: docs/profiling.md)
           # are the same three platforms, and are only ever run when a dispatch
           # names them: the client opens a network port and the vcpkg tools
-          # take a while to build, so a push does not pay for them.
+          # take a while to build, so a push does not pay for them as well as
+          # for the debug legs, which are instrumented by default (their Tracy
+          # is a debug build's, for connecting, not for numbers).
           profiling='[
             {"leg": "profiling-windows", "name": "Profiling (Windows, MSVC)",     "os": "windows-2025-vs2026", "preset": "windows-msvc-profiling", "triplet": "x64-windows"},
             {"leg": "profiling-linux",   "name": "Profiling (Linux, GCC)",        "os": "ubuntu-26.04",        "preset": "linux-gcc-profiling",    "triplet": "x64-linux"},
@@ -178,10 +181,11 @@ jobs:
           echo "matrix=$selected" >> "$GITHUB_OUTPUT"
 
   # Configure, build and test one preset per desktop platform. The Debug
-  # presets turn on the sanitizers and every warning is an error, so a green
-  # leg means: the tree compiles warning-free on that compiler, and the unit
-  # tests, platform.fragments and platform.isolation pass under ASan (and
-  # UBSan where the compiler has it).
+  # presets turn on the sanitizers, Tracy (on by default for Debug builds:
+  # docs/profiling.md) and every warning is an error, so a green leg means:
+  # the tree compiles warning-free on that compiler, and the unit tests,
+  # platform.fragments and platform.isolation pass under ASan (and UBSan where
+  # the compiler has it).
   build-and-test:
     name: ${{ github.event_name == 'workflow_dispatch' && format('dispatch - {0}', matrix.name) || matrix.name }}
     needs: plan
@@ -273,12 +277,13 @@ jobs:
             Windows) cl 2>&1 | head -n 1 || true ;;
           esac
 
-      # Only the Linux profiling build needs this: vcpkg builds Tracy's
-      # command-line tools for the host, and on Linux that is a chain of
-      # autotools ports (dbus, libxcrypt, libsystemd) that the hosted image
-      # does not carry the tools for.
-      - name: Install what vcpkg needs for Tracy's tools (Linux profiling)
-        if: ${{ matrix.leg == 'profiling-linux' }}
+      # vcpkg builds Tracy's command-line tools for the host in every Linux
+      # leg now (the debug presets have Tracy on by default, and the profiling
+      # leg builds it for numbers), and on Linux that is a chain of autotools
+      # ports (dbus, libxcrypt, libsystemd) that the hosted image does not
+      # carry the tools for.
+      - name: Install what vcpkg needs for Tracy's tools (Linux)
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev python3-venv
 
       # The Windows leg also builds the Qt Quick application and its 3D scene
@@ -350,9 +355,13 @@ jobs:
       # plugins and QML modules (Quick 3D included), the dictionary, the dice,
       # NOTICES.txt and LICENSE.txt, writes SHA256SUMS, unpacks it, solves a
       # board with the packaged wjs-cli and runs the packaged window's offscreen
-      # smoke (docs/building.md#checking-a-package). NSIS is configured for a
-      # machine that has makensis; this step asks for the ZIP on purpose, and
-      # nothing here depends on whether the runner has NSIS.
+      # smoke (docs/building.md#checking-a-package). This leg packages its
+      # Debug build, so the artifact is a development build and carries
+      # TracyClient.dll by design; the packages that ship come from the
+      # release presets, which have Tracy off (tests/profiling/check_presets.cmake).
+      # NSIS is configured for a machine that has makensis; this step asks for
+      # the ZIP on purpose, and nothing here depends on whether the runner has
+      # NSIS.
       - name: Package and check the ZIP (Windows)
         if: matrix.leg == 'windows'
         shell: pwsh
@@ -443,10 +452,12 @@ jobs:
           triplet: x64-linux
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
-  # Line and branch coverage of src/ from the unit tests, as a report. There is
-  # NO threshold: nothing here fails on a number until the figures have been
-  # looked at, and a gate (gcovr --fail-under-line / --fail-under-branch) is a
-  # deliberate later change to this job.
+  # Line and branch coverage of the unit tier (src/lib), gated at the project's
+  # minimum standard: 90% of lines and 80% of branches. The same gate is the
+  # `coverage-unit` build target locally (tools/coverage/run_coverage.cmake);
+  # this job runs the unit label and then gcovr directly, so the report is also
+  # the CI job summary and an artifact. A failure here is a coverage failure,
+  # not a flaky test: the unit suite has just passed.
   coverage:
     name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - Coverage (Linux, GCC)' || 'Coverage (Linux, GCC)' }}
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || contains(format(',{0},', inputs.legs), ',coverage,') }}
@@ -507,23 +518,29 @@ jobs:
       - name: Build
         run: cmake --build --preset linux-gcc-coverage
 
-      - name: Test
-        run: ctest --preset linux-gcc-coverage
+      - name: Unit tier (the tier the coverage gate measures)
+        run: ctest --preset linux-gcc-coverage -L unit
 
       # --gcov-ignore-parse-errors ...warn_once_per_file: a counter gcov reads
       # back negative (gcc bug 68080) is taken as zero and named once, rather
-      # than aborting a report-only job. The coverage preset already updates
-      # counters atomically, which is what normally prevents it.
-      - name: Coverage report
+      # than aborting the report. The coverage preset already updates counters
+      # atomically, which is what normally prevents it.
+      #
+      # --fail-under-line / --fail-under-branch are the gate. The scope is
+      # src/lib: the game logic the unit tier owns. The scanner and the window's
+      # model have their own integration tiers, and the UI tier's report is
+      # `coverage-ui` (docs/testing.md, "Coverage").
+      - name: Coverage report and gate (90% lines, 80% branches)
         shell: bash
         run: |
           mkdir -p build/coverage
-          gcovr --root . --filter 'src/.*' \
+          gcovr --root . --filter '.*src/lib/.*' \
             --gcov-executable "$GCOV" \
             --object-directory build/linux-gcc-coverage \
             --exclude-throw-branches --exclude-unreachable-branches \
             --gcov-ignore-errors=no_working_dir_found \
             --gcov-ignore-parse-errors negative_hits.warn_once_per_file \
+            --fail-under-line 90 --fail-under-branch 80 \
             --print-summary \
             --html-details build/coverage/index.html \
             --json-summary build/coverage/summary.json --json-summary-pretty
@@ -532,7 +549,7 @@ jobs:
         if: ${{ always() && hashFiles('build/coverage/summary.json') != '' }}
         shell: bash
         run: |
-          jq -r '"### Coverage of src/ (report only, no threshold)\n\n| | covered | total | percent |\n|---|---|---|---|\n| lines | \(.line_covered // 0) | \(.line_total // 0) | \(.line_percent // 0) |\n| branches | \(.branch_covered // 0) | \(.branch_total // 0) | \(.branch_percent // 0) |"' \
+          jq -r '"### Coverage of src/lib from the unit tier (gate 90% lines / 80% branches)\n\n| | covered | total | percent |\n|---|---|---|---|\n| lines | \(.line_covered // 0) | \(.line_total // 0) | \(.line_percent // 0) |\n| branches | \(.branch_covered // 0) | \(.branch_total // 0) | \(.branch_percent // 0) |"' \
             build/coverage/summary.json >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report

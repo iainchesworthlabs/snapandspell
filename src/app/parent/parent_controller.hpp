@@ -49,6 +49,17 @@ class ParentController : public QObject {
     // --- what the screens show ------------------------------------------------
     // Computed when the dashboard is opened (refresh()), never on a schedule.
     Q_PROPERTY(QVariantMap dashboard READ dashboard NOTIFY dashboardChanged)
+    // The child-facing totals of the same store, for the collection screen:
+    // everything ever kept, not only this week. Derived, never stored anew.
+    Q_PROPERTY(int lifetimeStars READ lifetimeStars NOTIFY dashboardChanged)
+    Q_PROPERTY(int lifetimePoints READ lifetimePoints NOTIFY dashboardChanged)
+    Q_PROPERTY(int lifetimeWords READ lifetimeWords NOTIFY dashboardChanged)
+    Q_PROPERTY(int boardsKept READ boardsKept NOTIFY dashboardChanged)
+    Q_PROPERTY(QString longestWord READ longestWord NOTIFY dashboardChanged)
+    // The boards still held, newest first: rows, columns, tiles, stars, words
+    // and how many words were found. Plain values for BoardThumb and the
+    // history list; a standard board has no word list, only the count.
+    Q_PROPERTY(QVariantList recentBoards READ recentBoards NOTIFY dashboardChanged)
     Q_PROPERTY(QVariantMap settings READ settings NOTIFY settingsChanged)
     // The sounds the phase has, which can be ticked; empty with no phase data.
     Q_PROPERTY(QStringList focusChoices READ focusChoices NOTIFY settingsChanged)
@@ -142,6 +153,10 @@ public:
     // Computes the dashboard and reads the settings, as of now.
     Q_INVOKABLE void refresh();
 
+    // Tries the store's write again after a failure, and updates the note.
+    // False when it still cannot be saved.
+    Q_INVOKABLE bool retrySave();
+
     // Changes one setting by the name the settings map uses. False, and nothing
     // changes, for a name or a value the table of settings does not have.
     Q_INVOKABLE bool setSetting(const QString& key, const QVariant& value);
@@ -158,6 +173,12 @@ public:
     [[nodiscard]] double gateProgress() const noexcept { return progress_; }
     [[nodiscard]] QVariantList gateSpots() const;
     [[nodiscard]] QVariantMap dashboard() const { return dashboard_; }
+    [[nodiscard]] int lifetimeStars() const;
+    [[nodiscard]] int lifetimePoints() const;
+    [[nodiscard]] int lifetimeWords() const;
+    [[nodiscard]] int boardsKept() const;
+    [[nodiscard]] QString longestWord() const;
+    [[nodiscard]] QVariantList recentBoards() const;
     [[nodiscard]] QVariantMap settings() const { return settings_; }
     [[nodiscard]] QStringList focusChoices() const;
     [[nodiscard]] QStringList phases() const;

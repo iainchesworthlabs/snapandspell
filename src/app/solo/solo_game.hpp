@@ -90,6 +90,10 @@ struct SoloFound {
     std::string word;  // lower-case: the tray's text
     WordTier tier = WordTier::spark;
     int stars = 0;
+    // The word's child-facing points (wjs::word_points): length, letter value
+    // and the long-word bonus. Stars are the tier's reward; points are the
+    // running score the panel and summary show.
+    int points = 0;
 };
 
 struct TraceOutcome {
@@ -156,6 +160,9 @@ public:
     // The tile lit now: set by startTile(), gone once its word is found. Asking
     // this lights nothing; the app never lights a tile unasked.
     [[nodiscard]] virtual std::optional<Position> litTile() const = 0;
+    // The path of the word the help is for, empty when no word is lit. The
+    // second rung of the help reads only its first two tiles.
+    [[nodiscard]] virtual std::vector<Position> helpPath() const = 0;
 
     // The words found on this board, in order.
     [[nodiscard]] virtual const std::vector<SoloFound>& found() const = 0;

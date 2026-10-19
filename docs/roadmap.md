@@ -108,8 +108,8 @@ it, and collect a jewel.
   host and module with `aqt list-qt` and a real install before bumping).
 - Dice model, shake detection, `validate_path`, with unit tests. All three are
   done: the dice model reads a set of dice and rolls a board (`wjs::roll`), and
-  the project's own dice for 3x3 to 6x6 are in `data/dice`, made from the
-  dictionary's letter counts.
+  the project's own dice for 3x3 to 6x6 are in `data/dice`, made from a fixed
+  Scrabble-style English tile-frequency table.
 - Touch tracing with generous tolerance, tested on a real tablet with small
   fingers (the one thing no unit test can settle).
 - Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.
@@ -219,8 +219,9 @@ The same application on the other targets named in the brief.
 
 ### Cross-cutting
 
-Fuzz the board parser and dictionary loader; clang-tidy job; a coverage gate
-once a baseline exists; Tracy through the opt-in vcpkg feature (its macro API
+Fuzz the board parser and dictionary loader; clang-tidy job; raising the
+coverage gate beyond its 90% line / 80% branch baseline (the gate itself is in
+place: `coverage-unit`, the CI job and `coverage-ui`); Tracy through the opt-in vcpkg feature (its macro API
 conflicts with the no-`#define` rule: Cubeulator resolves it with macro-only
 variant headers chosen by CMake; a macro-free route through Tracy's runtime
 source-location API is **unverified**); a performance budget for dictionary

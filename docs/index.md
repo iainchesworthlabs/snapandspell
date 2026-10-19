@@ -27,7 +27,8 @@ type the board in, and the program finds and scores the words.
 - **`wjs-cli`**, a command-line front end to the library: give it a board and a
   word list, and it prints the words, their scores and the tiles that spell
   them.
-- **A small Qt Quick window**, opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12):
+- **A small Qt Quick window**, built when Qt 6.12 is found
+  (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it):
   the Solo Play game of [Game design](design/game.md) — shake the box, trace
   words on the board and collect jewels — played over the library's session.
   It is a shell over the same library, not the camera application.
@@ -135,8 +136,9 @@ word list is also missing.
 
 ## Using the window
 
-Build with `-DWJS_BUILD_APP=ON` (see [Building](building.md#the-qt-quick-window)),
-then start `WordJewelsSolver` from `build/<preset>/bin/`. It plays the Solo Play
+The window is built when a Qt 6.12 kit is found (`WJS_BUILD_APP=AUTO`; see
+[Building](building.md#the-qt-quick-window)), then start `WordJewelsSolver`
+from `build/<preset>/bin/`. It plays the Solo Play
 game: shake the box and trace words on the board. The default board is the
 **standard board**, a roll of the project's dice (`dice/` beside the executable)
 at 3x3 to 6x6 against the English dictionary (`dictionaries/en.txt` beside the

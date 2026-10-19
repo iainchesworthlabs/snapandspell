@@ -406,6 +406,12 @@ public:
     // word is found. Null otherwise.
     [[nodiscard]] std::optional<Position> lit_tile() const;
 
+    // The path of the word the start-tile help is for, from its first tile to
+    // its last: empty when no word is lit. The screens use only its first two
+    // tiles, for the second rung of the help; the library still never hands the
+    // word itself out.
+    [[nodiscard]] std::vector<Position> lit_path() const;
+
     // --- events ---------------------------------------------------------------
     // Each returns whether it applied. One that does not leaves everything as it
     // was: a screen may send an event late or twice.

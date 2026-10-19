@@ -145,9 +145,9 @@ int run_check(const QString& out) {
     language.apply(QStringLiteral("en"));
 
     wjs::app::ScanModel scan;
-    wjs::app::AssistModel assist([&dictionary, &store, today](wjs::Board board) {
+    wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
         return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
-                                                      [today] { return today; });
+                                                      [] { return today; });
     });
 
     QQmlApplicationEngine engine;
@@ -173,7 +173,8 @@ int run_check(const QString& out) {
     check(scan.state() == "ready", "the scan screen opens on ready");
     QStringList texts = visible_texts(window);
     check_says(texts, "Type in your board", "the typed board is offered");
-    check_says(texts, "There is no camera on this device", "the camera's absence is said");
+    check_says(texts, "No camera was found", "the camera's absence is said");
+    check_says(texts, "Try camera again", "the camera can be retried");
     check(!any_contains(texts, "Capture"), "there is no Capture without a camera");
     save(window, out, "scan-ready");
 
@@ -183,8 +184,8 @@ int run_check(const QString& out) {
     check(scan.state() == "check", "the typed board opens the check screen");
     texts = visible_texts(window);
     check_says(texts, "Is this your board?", "the check screen asks its question");
-    check_says(texts, "Read again", "Read again is there");
-    check_says(texts, "Yes, play", "Yes, play is there");
+    check_says(texts, "Start over", "Start over is there for the typed board");
+    check_says(texts, "Start playing", "Start playing is there");
     check(!any_contains(texts, "A ringed tile may be wrong"),
           "a typed board rings nothing, so there is no doubt to explain");
     save(window, out, "scan-check-empty");
@@ -199,7 +200,7 @@ int run_check(const QString& out) {
     check(scan.complete(), "the filled board is complete");
     save(window, out, "scan-check-filled");
 
-    // --- "Yes, play": assist.playing -------------------------------------------------
+    // --- "Start playing": assist.playing ---------------------------------------------
     QVariant played;
     check(QMetaObject::invokeMethod(window, "play", Q_RETURN_ARG(QVariant, played)),
           "the shell has its play function");
@@ -293,9 +294,9 @@ int run_camera_check(const QString& out) {
 
     wjs::app::ScanModel scan;
     scan.setCameraSource(&camera);
-    wjs::app::AssistModel assist([&dictionary, &store, today](wjs::Board board) {
+    wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
         return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
-                                                      [today] { return today; });
+                                                      [] { return today; });
     });
 
     QQmlApplicationEngine engine;
@@ -344,7 +345,8 @@ int run_camera_check(const QString& out) {
     check(!camera.running(), "the source is stopped after the read");
     texts = visible_texts(window);
     check_says(texts, "Is this your board?", "the check screen asks its question");
-    check_says(texts, "Yes, play", "Yes, play is there");
+    check_says(texts, "Scan again", "Scan again is there for the camera board");
+    check_says(texts, "Start playing", "Start playing is there");
     check(!any_contains(texts, "Capture"), "the ready screen's Capture is gone");
     save(window, out, "camera-check");
 
@@ -387,9 +389,9 @@ int run_language_check(const QString& out) {
         }
         wjs::Store store = wjs::Store::in_memory();
         wjs::app::ScanModel scan;
-        wjs::app::AssistModel assist([&dictionary, &store, today](wjs::Board board) {
+        wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
             return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
-                                                          [today] { return today; });
+                                                          [] { return today; });
         });
 
         QQmlApplicationEngine engine;
@@ -435,10 +437,11 @@ int run_language_check(const QString& out) {
         pump();
         const QString check_title =
             QCoreApplication::translate("ScanWording", "Is this your board?");
-        const QString yes_play = QCoreApplication::translate("ScanWording", "Yes, play");
+        const QString start_playing =
+            QCoreApplication::translate("ScanWording", "Start playing");
         texts = visible_texts(window);
         check(any_contains(texts, check_title), "the check screen asks its question: " + code);
-        check(any_contains(texts, yes_play), "Yes, play is on the check screen: " + code);
+        check(any_contains(texts, start_playing), "Start playing is on the check screen: " + code);
         const double yes_play_x = window->property("checkYesPlayX").toDouble();
         check(right_to_left ? yes_play_x < width / 2 : yes_play_x > width / 2,
               "the check screen's Yes, play is on the trailing side: " + code);

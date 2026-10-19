@@ -97,7 +97,7 @@ inline constexpr std::array<std::uint64_t, 4> kDiceMaxVisitsPerSize = {
 // A digest of every solution over those boards, in the order solve() returns
 // them. Exact, as kCorpusDigest is, and it moves with the dice files (which
 // move with the dictionary: data/README.md) or the roll, by a person's decision.
-inline constexpr std::uint64_t kDiceDigest = 9710656603150208005ULL;
+inline constexpr std::uint64_t kDiceDigest = 8038812626269854397ULL;
 
 // ---------------------------------------------------------------------------
 // PHONICS BOARD (a parent's switch): seeding and binding
@@ -253,20 +253,20 @@ struct StandardSessionBudget {
 // worst deal of a 5x5 and of a 6x6 is the very board that is worst there, and the
 // restore of a board that landed first time is the same solve again.
 inline constexpr std::array<StandardSessionBudget, 4> kStandardSessionBudgets = {{
-    // 3x3: 108 / 3 / 18,755 / 446 / 3,432 / 18,567
-    {135, 4, 23'500, 558, 3'432, 23'300},
-    // 4x4: 100 / 1 / 57,089 / 1,109 / 10,897 / 57,089
-    {125, 2, 71'400, 1'390, 10'897, 71'400},
-    // 5x5: 100 / 1 / 161,035 / 3,748 / 26,311 / 161,035
-    {125, 2, 202'000, 4'690, 26'311, 202'000},
-    // 6x6: 100 / 1 / 298,302 / 6,457 / 48,121 / 298,302
-    {125, 2, 373'000, 8'080, 48'121, 373'000},
+    // 3x3: measured visits unchanged in the budget; 3,273 words over the rolls
+    {135, 4, 23'500, 558, 3'273, 23'300},
+    // 4x4: 9,948 words
+    {125, 2, 71'400, 1'390, 9'948, 71'400},
+    // 5x5: 19,165 words
+    {125, 2, 202'000, 4'690, 19'165, 202'000},
+    // 6x6: 31,396 words
+    {125, 2, 373'000, 8'080, 31'396, 373'000},
 }};
 
 // A digest of every board a standard session dealt and played: the deal, the kind
 // of every trace, and the snapshots after the first find and at rest. Exact; it
 // moves with the session, the roll, the dice or the dictionary, deliberately.
-inline constexpr std::uint64_t kStandardSessionDigest = 8917212598945270856ULL;
+inline constexpr std::uint64_t kStandardSessionDigest = 6788242915648402942ULL;
 
 // ---------------------------------------------------------------------------
 // Time, as a multiple of the calibration workload (perf/measure.hpp)

@@ -53,10 +53,16 @@ target_compile_definitions(wjs_scan_tests PRIVATE _CRT_SECURE_NO_WARNINGS)
 
 wjs_deploy_sanitizer_runtime(wjs_scan_tests)
 
-catch_discover_tests(wjs_scan_tests ADD_TAGS_AS_LABELS)
+catch_discover_tests(wjs_scan_tests
+    TEST_PREFIX "integration."
+    ADD_TAGS_AS_LABELS)
 
 # Writes the corpus to a directory, to look at (tools/scan/render_corpus.cpp).
+# A tool rather than a test, so it is not part of the default build: ask for it
+# with `cmake --build <build> --target wjs_scan_render` when its pictures are
+# wanted (docs/testing.md, "The scanner").
 add_executable(wjs_scan_render "${PROJECT_SOURCE_DIR}/tools/scan/render_corpus.cpp")
+set_target_properties(wjs_scan_render PROPERTIES EXCLUDE_FROM_ALL ON)
 target_link_libraries(wjs_scan_render
     PRIVATE
         wjs_scan_synth
@@ -77,4 +83,6 @@ add_test(NAME scan.privacy.catches_a_leak
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/privacy_fixture"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/check_privacy.cmake")
+set_tests_properties(scan.privacy scan.privacy.catches_a_leak
+    PROPERTIES LABELS "quality")
 set_tests_properties(scan.privacy.catches_a_leak PROPERTIES WILL_FAIL TRUE)

@@ -211,8 +211,11 @@ Item {
     // air, in degrees. It comes upright as they settle, so the 2D layer lines up.
     property real lean: 0
     // "none", "procedural" (Qt's sky, prefiltered on the first frame) or
-    // "baked" (the same, prefiltered in advance and read from a file).
-    property string probeMode: "baked"
+    // "baked" (the same, prefiltered in advance and read from a file). None by
+    // default: the sky is blue, and it tinted the cream dice grey-blue. The
+    // dice are lit by the warm lights below and by their own face map instead.
+    // The probe stays for the prototype's comparison.
+    property string probeMode: "none"
     property real cameraDistance: 2.2   // times the board's side
     // Simulated dice: rigid cubes thrown about the box by the device's motion
     // that collide and then go to their cells (ShakeScript.js, DiceSim). False
@@ -415,7 +418,11 @@ Item {
             die.shadow.position = Qt.vector3d(state.px[i] - die.x + 0.45 * lift, state.py[i] - die.y - 0.45 * lift, 0.2);
             const radius = state.shadowRadius[i] / 50;
             die.shadow.scale = Qt.vector3d(radius, radius, 0.02);
-            die.shadow.opacity = warm ? Math.max(state.shadowOpacity[i], 0.02) : state.shadowOpacity[i];
+            // The flat board has no shadows: once the dice are down, only the
+            // scene's cross-fade is left, and a shadow would move with it.
+            // (The warm-up keeps 2% so the shadow's resources are made.)
+            die.shadow.opacity = warm ? Math.max(state.shadowOpacity[i], 0.02)
+                : (state.stage === "idle" ? 0 : state.shadowOpacity[i]);
         }
         // The letter on the face that is up is turned to read upright.
         if (state.turnChanges && state.turnChanges.length > 0) {
@@ -428,7 +435,11 @@ Item {
             }
             state.turnChanges = [];
         }
-        boxNode.eulerRotation = Qt.vector3d(state.boxRx, state.boxRy, 0);
+        // The box answers the device while it is being shaken, and comes square
+        // with the camera as the dice settle: at rest it has to be the flat
+        // board's square, not the angle the phone happens to be held at.
+        const tilt = state.leanFraction;
+        boxNode.eulerRotation = Qt.vector3d(state.boxRx * tilt, state.boxRy * tilt, 0);
         lidHinge.eulerRotation = Qt.vector3d(state.lidAngle, 0, 0);
         lidHinge.position = Qt.vector3d(0, boxY / 2 + rimWidth, lidHeight + state.lidLift);
         lid.opacity = warm ? Math.max(state.lidOpacity, 0.02) : state.lidOpacity;
@@ -595,6 +606,34 @@ Item {
     readonly property real zoomOut: Math.max(0, 1.1 * Math.max(boxX / Math.max(1, width), boxY / Math.max(1, height)) - 1)
     readonly property real standBack: 1 + 0.3 * (lean > 0 ? Math.min(1, leanNow / lean) : 0) + zoomOut * zoomNow
 
+    // The flat board's tray, for the settled board. It is 2D, behind the View3D:
+    // the box's shell has faded by then, so the dice sit in this and the
+    // application's own board area shows around it, exactly as FlatBoard draws
+    // them (same inset, radius, tray and gold edge). The scene is the theatre
+    // for the shake, and at rest it is the board the cross-fade leaves.
+    Rectangle {
+        id: settleTray
+
+        readonly property real inset: Math.max(10, root.tile * 0.08)
+
+        x: root.boardRect.x - inset
+        y: root.boardRect.y - inset
+        width: root.boardRect.width + 2 * inset
+        height: root.boardRect.height + 2 * inset
+        radius: 20
+        color: "#17323A"
+        border.width: 2
+        border.color: "#C98A1E"
+        visible: opacity > 0.001
+        opacity: root.stage === "idle" && !root.boxClosed ? 1 : 0
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+
     View3D {
         id: view
 
@@ -602,43 +641,71 @@ Item {
         y: -root.overdraw
         width: root.width + 2 * root.overdraw
         height: root.height + 2 * root.overdraw
-        camera: sceneCamera
 
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Transparent
             antialiasingMode: SceneEnvironment.MSAA
             antialiasingQuality: SceneEnvironment.Medium
             lightProbe: root.probeTexture
-            probeExposure: 0.82
+            // Only used if a probe is asked for above; a quarter of the old
+            // exposure, so it cannot tint the dice.
+            probeExposure: 0.2
         }
 
-        // Looks at the middle of the dice's top faces, from a distance chosen
-        // so that, upright, one scene unit is one pixel at that height: the 2D
-        // tiles over the scene are then exactly the dice's tops.
-        PerspectiveCamera {
-            id: sceneCamera
+        // The camera rig: looks at the middle of the dice's top faces, from a
+        // distance chosen so that, upright, one scene unit is one pixel at that
+        // height. While the dice are in the air the perspective camera below
+        // leans and stands back with the box; at rest the orthographic one
+        // shows the board parallel, exactly over the flat board.
+        Node {
+            id: cameraRig
 
             readonly property real radians: root.leanNow * Math.PI / 180
-            fieldOfView: root.fieldOfView
-            fieldOfViewOrientation: PerspectiveCamera.Vertical
-            clipNear: 10
-            clipFar: root.viewDistance * 5
+
             position: Qt.vector3d(0, -root.viewDistance * root.standBack * Math.sin(radians),
                                   root.tile + root.viewDistance * root.standBack * Math.cos(radians))
             eulerRotation: Qt.vector3d(root.leanNow, 0, 0)
+
+            PerspectiveCamera {
+                id: sceneCamera
+
+                fieldOfView: root.fieldOfView
+                fieldOfViewOrientation: PerspectiveCamera.Vertical
+                clipNear: 10
+                clipFar: root.viewDistance * 5
+            }
+
+            // The settled board's view: parallel projection, one scene unit to
+            // one pixel at magnification 1, so the tops of the dice are the
+            // flat board's tiles, edge for edge, and no side of a die is seen.
+            // The cross-fade to FlatBoard then moves nothing. It is also
+            // zoomed out by standBack while the box is still open.
+            OrthographicCamera {
+                id: boardCamera
+
+                verticalMagnification: 1 / root.standBack
+                horizontalMagnification: 1 / root.standBack
+                clipNear: 10
+                clipFar: root.viewDistance * 5
+            }
         }
+
+        // The theatre until the dice are down; the board itself once they are
+        // (an empty board is the closed box, and keeps the perspective view).
+        camera: root.stage === "idle" && !root.boxClosed ? boardCamera : sceneCamera
 
         DirectionalLight {
             eulerRotation: Qt.vector3d(-38, -28, 0)
-            brightness: 0.88
+            brightness: 0.8
             // The same warm paper the screens are made of, so the cream dice
-            // and the gold rim sit in the same light.
-            ambientColor: Qt.rgba(0.32, 0.27, 0.19, 1)
+            // and the gold rim sit in the same light. Warm, not orange: the
+            // light must not add a colour the flat board does not have.
+            ambientColor: Qt.rgba(0.30, 0.288, 0.264, 1)
         }
 
         DirectionalLight {
             eulerRotation: Qt.vector3d(28, 24, 0)
-            brightness: 0.3
+            brightness: 0.26
         }
 
         // Where the probe's texture lives.
@@ -650,54 +717,78 @@ Item {
         Node {
             id: boxNode
 
-            // The floor and the low rim.
-            Model {
-                source: "#Cube"
-                position: Qt.vector3d(0, 0, -root.boxDepth * 0.15)
-                scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100,
-                                   (root.boxY + 2 * root.rimWidth) / 100,
-                                   root.boxDepth * 0.3 / 100)
-                castsShadows: false
-                receivesShadows: false
-                materials: PrincipledMaterial {
-                    baseColor: "#143139"
-                    roughness: 0.82
-                }
-            }
-
-            Model {
-                source: "#Cube"
-                position: Qt.vector3d(0, root.boxY / 2 + root.rimWidth / 2, root.boxDepth / 2)
-                scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100, root.rimWidth / 100, root.boxDepth / 100)
-                materials: rimMaterial
-            }
-
-            Model {
-                source: "#Cube"
-                position: Qt.vector3d(0, -root.boxY / 2 - root.rimWidth / 2, root.boxDepth / 2)
-                scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100, root.rimWidth / 100, root.boxDepth / 100)
-                materials: rimMaterial
-            }
-
-            Model {
-                source: "#Cube"
-                position: Qt.vector3d(root.boxX / 2 + root.rimWidth / 2, 0, root.boxDepth / 2)
-                scale: Qt.vector3d(root.rimWidth / 100, root.boxY / 100, root.boxDepth / 100)
-                materials: rimMaterial
-            }
-
-            Model {
-                source: "#Cube"
-                position: Qt.vector3d(-root.boxX / 2 - root.rimWidth / 2, 0, root.boxDepth / 2)
-                scale: Qt.vector3d(root.rimWidth / 100, root.boxY / 100, root.boxDepth / 100)
-                materials: rimMaterial
-            }
-
-            PrincipledMaterial {
+            // The shell is a picture of the tray, not a lit object of its own:
+            // unlit, so it keeps the flat board's exact gold and deep teal under
+            // the warm dice lights.
+            DefaultMaterial {
                 id: rimMaterial
 
-                baseColor: "#C98A1E"
-                roughness: 0.55
+                // Theme.gold.
+                diffuseColor: "#C98A1E"
+                lighting: DefaultMaterial.NoLighting
+            }
+
+            // The floor and the low rim, the box's shell. When a board is down
+            // it fades away: the flat board's tray (drawn behind the View3D
+            // below) is what the settled dice then sit in, so the scene becomes
+            // the board instead of a dark box around it.
+            Node {
+                id: boxShell
+
+                // The warm-up draws the shell at 2% for its three frames (Qt
+                // skips anything under 1%), so the first shake does not pay for
+                // the floor's and rim's pipelines; at rest it is gone.
+                opacity: root.stage === "idle" && !root.boxClosed
+                    ? (root.warmFrames > 0 ? 0.02 : 0) : 1
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.OutCubic
+                    }
+                }
+
+                Model {
+                    source: "#Cube"
+                    position: Qt.vector3d(0, 0, -root.boxDepth * 0.15)
+                    scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100,
+                                       (root.boxY + 2 * root.rimWidth) / 100,
+                                       root.boxDepth * 0.3 / 100)
+                    castsShadows: false
+                    receivesShadows: false
+                    materials: DefaultMaterial {
+                        // Theme.tray; the same deep tray the flat board sits in.
+                        diffuseColor: "#17323A"
+                        lighting: DefaultMaterial.NoLighting
+                    }
+                }
+
+                Model {
+                    source: "#Cube"
+                    position: Qt.vector3d(0, root.boxY / 2 + root.rimWidth / 2, root.boxDepth / 2)
+                    scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100, root.rimWidth / 100, root.boxDepth / 100)
+                    materials: rimMaterial
+                }
+
+                Model {
+                    source: "#Cube"
+                    position: Qt.vector3d(0, -root.boxY / 2 - root.rimWidth / 2, root.boxDepth / 2)
+                    scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100, root.rimWidth / 100, root.boxDepth / 100)
+                    materials: rimMaterial
+                }
+
+                Model {
+                    source: "#Cube"
+                    position: Qt.vector3d(root.boxX / 2 + root.rimWidth / 2, 0, root.boxDepth / 2)
+                    scale: Qt.vector3d(root.rimWidth / 100, root.boxY / 100, root.boxDepth / 100)
+                    materials: rimMaterial
+                }
+
+                Model {
+                    source: "#Cube"
+                    position: Qt.vector3d(-root.boxX / 2 - root.rimWidth / 2, 0, root.boxDepth / 2)
+                    scale: Qt.vector3d(root.rimWidth / 100, root.boxY / 100, root.boxDepth / 100)
+                    materials: rimMaterial
+                }
             }
 
             Repeater3D {
@@ -742,7 +833,9 @@ Item {
                     castsShadows: false
                     receivesShadows: false
                     materials: PrincipledMaterial {
-                        baseColor: Qt.rgba(0.96, 0.88, 0.70, 0.24)
+                        // Theme.lid (#F7E8C6) at the same translucency as
+                        // before.
+                        baseColor: Qt.rgba(0.969, 0.910, 0.776, 0.24)
                         alphaMode: PrincipledMaterial.Blend
                         roughness: 0.22
                     }

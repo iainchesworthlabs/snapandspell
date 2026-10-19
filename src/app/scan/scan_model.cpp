@@ -7,6 +7,7 @@
 
 #include "wjs/platform/board_reader.hpp"
 #include "wjs/platform/camera.hpp"
+#include "wjs/profiling.hpp"
 #include "wjs/scan/reader.hpp"
 
 namespace wjs::app {
@@ -386,6 +387,9 @@ void ScanModel::tryFrame() {
 }
 
 void ScanModel::readFrame(const wjs::scan::OwnedFrame& frame) {
+    // The model's whole per-frame work: one captured frame becomes a reading or
+    // a reason why not (the camera poll that fetched it is not in here).
+    auto zone = wjs::profiling::zone<"scan.process_frame">();
     frame_timer_.stop();
     // The camera stops as soon as a frame is in hand, before the read: the
     // picture of a room is in memory, and the next one is not needed.
@@ -419,6 +423,7 @@ void ScanModel::typeBoard() {
         return;
     }
     draft_ = *empty;
+    draft_from_camera_ = false;
     confirmed_.reset();
     if (!read_problem_.isEmpty()) {
         read_problem_.clear();
@@ -432,6 +437,7 @@ void ScanModel::typeBoard() {
 void ScanModel::readAgain() {
     close();
     draft_.reset();
+    draft_from_camera_ = false;
     confirmed_.reset();
     if (!read_problem_.isEmpty()) {
         read_problem_.clear();
@@ -450,6 +456,7 @@ bool ScanModel::useReading(const wjs::scan::BoardReading& reading) {
         return false;
     }
     draft_ = wjs::scan::BoardDraft::from_reading(reading);
+    draft_from_camera_ = true;
     confirmed_.reset();
     if (!read_problem_.isEmpty()) {
         read_problem_.clear();
@@ -541,6 +548,21 @@ bool ScanModel::confirm() {
     confirmed_ = std::move(*board);
     emit confirmedChanged();
     return true;
+}
+
+void ScanModel::retryCamera() {
+    if (state_ != State::ready) {
+        return;
+    }
+    // A retry is a new attempt: the failed read's sentence is not about this
+    // one. The camera's own answer replaces the problem when it fails again.
+    if (!read_problem_.isEmpty()) {
+        read_problem_.clear();
+        emit readProblemChanged();
+    }
+    // open() enumerates the devices again (or starts the supplied source again)
+    // and says what the camera did; nothing is faked and nothing is kept.
+    open();
 }
 
 }  // namespace wjs::app

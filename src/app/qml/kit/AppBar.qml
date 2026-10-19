@@ -12,9 +12,13 @@ Item {
     property bool showWordmark: false
     property bool showParent: true
     property bool compact: false
+    // The child's own collection: home only, so the words and stars are one
+    // press from the first screen rather than hidden behind the play panel.
+    property bool showJewels: false
 
     signal back
     signal parentRequested
+    signal jewelsRequested
 
     implicitHeight: Theme.appBarHeight
     height: implicitHeight
@@ -64,16 +68,29 @@ Item {
         }
     }
 
-    AppButton {
-        visible: root.showParent
+    Row {
         anchors.right: parent.right
         anchors.rightMargin: Theme.space4
         anchors.verticalCenter: parent.verticalCenter
-        size: "min"
-        variant: "ghost"
-        iconName: "parent"
-        label: qsTr("For grown-ups")
-        accessibleName: qsTr("For grown-ups")
-        onClicked: root.parentRequested()
+        spacing: Theme.space2
+
+        AppButton {
+            visible: root.showJewels
+            size: "min"
+            variant: "ghost"
+            label: qsTr("My jewels")
+            accessibleName: qsTr("My jewels")
+            onClicked: root.jewelsRequested()
+        }
+
+        AppButton {
+            visible: root.showParent
+            size: "min"
+            variant: "ghost"
+            iconName: "parent"
+            label: qsTr("For grown-ups")
+            accessibleName: qsTr("For grown-ups")
+            onClicked: root.parentRequested()
+        }
     }
 }

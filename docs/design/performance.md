@@ -341,7 +341,7 @@ random boards' (514 / 1,548 / 2,859 / 5,174) on a 3x3 and up to a third above
 them from 4x4 up: a die has a vowel on it, so these boards hold more words than
 a draw by letter counts. The 50 ms budget for making a board is met by a factor
 of fifty on this desktop. The digest pins the dice files and the roll together;
-it moves when the files do (they are made from the dictionary:
+it moves when the files do (they are made from the fixed Scrabble-style table:
 `data/README.md`).
 
 **Phonics board (a parent's switch): seeding.** The corpus is the proxy index

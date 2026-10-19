@@ -6,6 +6,7 @@
 
 #include "wjs/board.hpp"
 #include "wjs/game_rules.hpp"
+#include "wjs/scoring.hpp"
 #include "wjs/seeding.hpp"
 #include "wjs/session_store.hpp"
 
@@ -36,6 +37,7 @@ namespace {
     found.word = lower(std::string(word));
     found.tier = tier_of(wjs::tier_for_letters(word.size()).value_or(wjs::Tier::spark));
     found.stars = stars;
+    found.points = wjs::word_points(word);
     return found;
 }
 
@@ -202,6 +204,10 @@ std::optional<Position> RealSoloGame::startTile() {
 
 std::optional<Position> RealSoloGame::litTile() const {
     return session_.lit_tile();
+}
+
+std::vector<Position> RealSoloGame::helpPath() const {
+    return session_.lit_path();
 }
 
 void RealSoloGame::lidOn() {

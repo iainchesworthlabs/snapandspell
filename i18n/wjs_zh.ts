@@ -4,13 +4,19 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../src/app/qml/kit/AppBar.qml" line="+45"/>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+49"/>
         <location line="+1"/>
         <source>Back</source>
         <translation>返回</translation>
     </message>
     <message>
-        <location line="+29"/>
+        <location line="+31"/>
+        <location line="+1"/>
+        <source>My jewels</source>
+        <translation>My jewels</translation>
+    </message>
+    <message>
+        <location line="+9"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>给大人</translation>
@@ -27,7 +33,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+172"/>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+191"/>
         <source>Turn</source>
         <translation>转动</translation>
     </message>
@@ -35,7 +41,7 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../src/app/qml/Home.qml" line="+60"/>
+        <location filename="../src/app/qml/Home.qml" line="+90"/>
         <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
         <translation>适合年轻读者的找词游戏</translation>
     </message>
@@ -45,52 +51,59 @@
         <translation>摇一摇。找一找。收集。</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+13"/>
         <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
         <translation>适合小读者的平静文字游戏。摇动珠宝盒，找到单词并收集珠宝。</translation>
     </message>
     <message>
         <location line="+18"/>
+        <location line="+115"/>
         <source>Play on my own</source>
         <translation>自己玩</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>摇动盒子。找词。收集珠宝。</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Play</source>
         <translation>玩</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="-98"/>
+        <location line="+115"/>
         <source>FOR GROWN-UPS</source>
         <translation>对于成年人</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Play with a real board</source>
         <translation>玩真实棋盘</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Use the camera, or type the board. A grown-up sets this up.</source>
         <translation>使用相机，或者在黑板上打字。这是一个成年人设置的。</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="-114"/>
+        <location line="+115"/>
         <source>Continue</source>
         <translation>继续</translation>
     </message>
     <message>
-        <location line="+92"/>
+        <location line="+81"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+12"/>
         <source>Everything stays on this device.</source>
         <translation>一切都保留在该设备上。</translation>
     </message>
@@ -111,6 +124,137 @@
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>给大人</translation>
+    </message>
+</context>
+<context>
+    <name>JewelsWording</name>
+    <message>
+        <location filename="../src/app/qml/solo/JewelsWording.qml" line="+9"/>
+        <source>My jewels</source>
+        <translation>My jewels</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Back</source>
+        <translation>Back</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>1 jewel collected</source>
+        <translation>1 jewel collected</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 jewels collected</source>
+        <translation>%1 jewels collected</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>1 point</source>
+        <translation>1 point</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 points</source>
+        <translation>%1 points</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <location line="+6"/>
+        <location line="+20"/>
+        <source>1 word</source>
+        <translation>1 word</translation>
+    </message>
+    <message>
+        <location line="-26"/>
+        <location line="+6"/>
+        <location line="+20"/>
+        <source>%1 words</source>
+        <translation>%1 words</translation>
+    </message>
+    <message>
+        <location line="-16"/>
+        <source>This week</source>
+        <translation>This week</translation>
+    </message>
+    <message>
+        <location line="-5"/>
+        <location line="+7"/>
+        <location line="+13"/>
+        <source>1 star</source>
+        <translation>1 star</translation>
+    </message>
+    <message>
+        <location line="-22"/>
+        <source>My best boards</source>
+        <translation>My best boards</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <location line="+7"/>
+        <location line="+13"/>
+        <source>%1 stars</source>
+        <translation>%1 stars</translation>
+    </message>
+    <message>
+        <location line="-18"/>
+        <source>%1 × %2</source>
+        <translation>%1 × %2</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>1 new word</source>
+        <translation>1 new word</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>%1 new words</source>
+        <translation>%1 new words</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>Longest word: %1</source>
+        <translation>Longest word: %1</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>My words</source>
+        <translation>My words</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Words you find will land here.</source>
+        <translation>Words you find will land here.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Boards I played</source>
+        <translation>Boards I played</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Boards you finish will appear here.</source>
+        <translation>Boards you finish will appear here.</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Your jewel box is waiting</source>
+        <translation>Your jewel box is waiting</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play a board and the words you find will fill this shelf.</source>
+        <translation>Play a board and the words you find will fill this shelf.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play on my own</source>
+        <translation>Play on my own</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Hear the word</source>
+        <translation>Hear the word</translation>
     </message>
 </context>
 <context>
@@ -160,19 +304,19 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+82"/>
+        <location line="+87"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location line="-80"/>
-        <location line="+158"/>
+        <location line="-85"/>
+        <location line="+163"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>关于</translation>
     </message>
     <message>
-        <location line="-157"/>
+        <location line="-162"/>
         <source>Nothing to show yet.</source>
         <translation>还没有可显示的内容。</translation>
     </message>
@@ -188,33 +332,58 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Progress could not be saved on this device.</source>
-        <translation>无法在此设备上保存进度。</translation>
+        <source>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</source>
+        <translation>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Retry</source>
+        <translation>Retry</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Saved on this device.</source>
+        <translation>Saved on this device.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Still not saved. The board can still be played; progress may not last after the app closes.</source>
+        <translation>Still not saved. The board can still be played; progress may not last after the app closes.</translation>
     </message>
     <message>
         <location line="+3"/>
-        <source>For parents</source>
-        <translation>给家长</translation>
+        <source>For grown-ups</source>
+        <translation>For grown-ups</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Hold both circles at the same time for two seconds.</source>
-        <translation>同时按住两个圆圈两秒钟。</translation>
+        <source>Press and hold for two seconds.</source>
+        <translation>Press and hold for two seconds.</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>With a mouse and a keyboard: hold the left circle with the mouse and press Space.</source>
-        <translation>使用鼠标和键盘时：用鼠标按住左边的圆圈，然后按空格键。</translation>
+        <source>This keeps little fingers out of the settings and the progress.</source>
+        <translation>This keeps little fingers out of the settings and the progress.</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Or hold Enter for two seconds.</source>
-        <translation>或者按住 Enter 两秒钟。</translation>
+        <source>With a keyboard, hold Space or Enter for two seconds.</source>
+        <translation>With a keyboard, hold Space or Enter for two seconds.</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Open the parent area. Hold both circles with two fingers, or activate this to open it.</source>
-        <translation>打开家长区。用两根手指按住两个圆圈，或激活此项以打开。</translation>
+        <source>Hold to enter</source>
+        <translation>Hold to enter</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Keep holding until the bar is full</source>
+        <translation>Keep holding until the bar is full</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Open the parent area</source>
+        <translation>Open the parent area</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -648,12 +817,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+70"/>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+76"/>
         <source>Words I found</source>
         <translation>我找到的词语</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <source>1 word</source>
         <translation>1 个字</translation>
     </message>
@@ -663,7 +832,17 @@
         <translation>%1 字</translation>
     </message>
     <message>
-        <location line="+71"/>
+        <location line="+7"/>
+        <source>%1 points</source>
+        <translation>%1 points</translation>
+    </message>
+    <message>
+        <location line="+60"/>
+        <source>+%1</source>
+        <translation>+%1</translation>
+    </message>
+    <message>
+        <location line="+24"/>
         <source>Your words will land here.</source>
         <translation>你的话将会落到这里。</translation>
     </message>
@@ -672,31 +851,26 @@
         <source>Need a start?</source>
         <translation>需要开始吗？</translation>
     </message>
-    <message>
-        <location line="+17"/>
-        <source>Start here: %1</source>
-        <translation>从这里开始：%1</translation>
-    </message>
 </context>
 <context>
     <name>ScanScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+95"/>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+107"/>
         <source>Set up a board</source>
         <translation>设立一个委员会</translation>
     </message>
     <message>
-        <location line="+21"/>
+        <location line="+16"/>
         <source>1  Place</source>
         <translation>1 名</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+14"/>
         <source>2  Check</source>
         <translation>2 检查</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+14"/>
         <source>3  Play</source>
         <translation>3 播放</translation>
     </message>
@@ -734,22 +908,7 @@
         <translation>正在读取棋盘…</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>There is no camera on this device. You can type in your board.</source>
-        <translation>此设备没有摄像头。您可以输入您的棋盘。</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>The camera is not allowed. You can type in your board.</source>
-        <translation>未允许使用摄像头。您可以输入您的棋盘。</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>The camera did not start. You can type in your board.</source>
-        <translation>摄像头没有启动。您可以输入您的棋盘。</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+8"/>
         <source>I could not read the board. Try again, or type it in.</source>
         <translation>我无法读取棋盘。请重试，或手动输入。</translation>
     </message>
@@ -785,16 +944,44 @@
         <translation>无法开始棋盘。请重试。</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <source>Read again</source>
-        <extracomment>Go back to the camera and read the board again.</extracomment>
-        <translation>重新读取</translation>
+        <location line="-42"/>
+        <source>No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.</source>
+        <extracomment>A camera that was not found may still be there: covered, busy or plugged in after the screen opened. The retry button is the way to look again.</extracomment>
+        <translation>未找到摄像头。如果此设备有摄像头，它可能被遮挡或正被其他应用使用。您可以输入您的棋盘。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The camera is not allowed. Allow it in your device settings, then try again. You can type in your board.</source>
+        <translation>未允许使用摄像头。请在设备设置中允许使用，然后重试。您可以输入您的棋盘。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The camera did not start. Close other apps that use it and try again, or type in your board.</source>
+        <translation>摄像头没有启动。请关闭正在使用它的其他应用后重试，或输入您的棋盘。</translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Yes, play</source>
+        <source>Try camera again</source>
+        <extracomment>Look for the camera again without leaving the ready screen.</extracomment>
+        <translation>重试摄像头</translation>
+    </message>
+    <message>
+        <location line="+40"/>
+        <source>Start over</source>
+        <extracomment>A typed board&apos;s secondary action: clear it and start typing a fresh one.</extracomment>
+        <translation>重新开始</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Scan again</source>
+        <extracomment>A camera-read board&apos;s secondary action: go back to the frame and read it again.</extracomment>
+        <translation>重新扫描</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Start playing</source>
         <extracomment>The grown-up confirms the board and starts the round.</extracomment>
-        <translation>是的，开始玩</translation>
+        <translation>开始游戏</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -888,7 +1075,7 @@
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloBox.qml" line="+94"/>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+113"/>
         <source>Choose a board</source>
         <translation>选择棋盘</translation>
     </message>
@@ -898,7 +1085,7 @@
         <translation>3 × 3 是一个好的开始。更大的木板可以容纳更多的单词。</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+47"/>
         <source>How it works</source>
         <translation>它是如何运作的</translation>
     </message>
@@ -940,12 +1127,17 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+198"/>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+227"/>
         <source>Solo Play</source>
         <translation>独奏</translation>
     </message>
     <message>
-        <location line="+0"/>
+        <location line="+1"/>
+        <source>Board finished</source>
+        <translation>Board finished</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>All words found</source>
         <translation>找到所有单词</translation>
     </message>
@@ -955,12 +1147,7 @@
         <translation>找一个词</translation>
     </message>
     <message>
-        <location line="+60"/>
-        <source>Shake to open</source>
-        <translation>摇动即可打开</translation>
-    </message>
-    <message>
-        <location line="+117"/>
+        <location line="+195"/>
         <source>Shaking the box…</source>
         <translation>正在摇晃盒子…</translation>
     </message>
@@ -970,12 +1157,12 @@
         <translation>组成一个单词</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+16"/>
         <source>Tap the last die again, or press Done</source>
         <translation>再次点击最后一个骰子，或按“完成”</translation>
     </message>
     <message>
-        <location line="+11"/>
+        <location line="+15"/>
         <source>Clear</source>
         <translation>清除</translation>
     </message>
@@ -985,15 +1172,20 @@
         <translation>清除这个词</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+12"/>
         <location line="+1"/>
         <source>Done</source>
         <translation>完成</translation>
     </message>
     <message>
-        <location line="+36"/>
+        <location line="+38"/>
         <source>You found all %1 words!</source>
         <translation>您找到了所有 %1 个单词！</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>%1 points  ·  %2 stars</source>
+        <translation>%1 points  ·  %2 stars</translation>
     </message>
     <message>
         <location line="+10"/>
@@ -1001,29 +1193,44 @@
         <translation>看看你收集的珠宝。</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+41"/>
         <source>Home</source>
         <translation>主页</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+14"/>
         <source>Play again</source>
         <translation>再玩一次</translation>
     </message>
     <message>
-        <location line="+77"/>
-        <source>you found a word!</source>
-        <translation>你找到了一个词！</translation>
+        <location line="+87"/>
+        <source>You found this one already.</source>
+        <translation>You found this one already.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>You found a word. +%1 points</source>
+        <translation>You found a word. +%1 points</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>That&apos;s a real word.</source>
+        <translation>That&apos;s a real word.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>It is not on this board.</source>
+        <translation>It is not on this board.</translation>
     </message>
     <message>
         <location line="+3"/>
-        <source>That&apos;s a real word — not on this board.</source>
-        <translation>这是一个真实的词——不在这个棋盘上。</translation>
+        <source>Not this time.</source>
+        <translation>Not this time.</translation>
     </message>
     <message>
-        <location line="+3"/>
-        <source>Not this time — try another.</source>
-        <translation>这次不行——再试一次。</translation>
+        <location line="+1"/>
+        <source>Try another word.</source>
+        <translation>Try another word.</translation>
     </message>
 </context>
 <context>
@@ -1048,6 +1255,12 @@
         <source>Shake</source>
         <extracomment>Shake the box to roll the dice; the button and Space do the same.</extracomment>
         <translation>摇一摇</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Shake the box to start</source>
+        <extracomment>The line under the closed box, before the first roll.</extracomment>
+        <translation>Shake the box to start</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -1097,6 +1310,52 @@
         <source>Start here</source>
         <extracomment>The screen-reader name of the ring that lights the start tile.</extracomment>
         <translation>从这里开始</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The next letter</source>
+        <extracomment>The screen-reader name of the second ring, when the child asks for more.</extracomment>
+        <translation>The next letter</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Show me two letters</source>
+        <extracomment>The second rung of the help: two tiles are lit.</extracomment>
+        <translation>Show me two letters</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Hide the hint</source>
+        <extracomment>Put the help away and quiet the board again.</extracomment>
+        <translation>Hide the hint</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Finish board</source>
+        <extracomment>End this board early: the words are saved, and the child sees what was found.</extracomment>
+        <translation>Finish board</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Board finished!</source>
+        <translation>Board finished!</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Your words are safe in your collection.</source>
+        <translation>Your words are safe in your collection.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The first letter is lit. Trace a word from it.</source>
+        <extracomment>Shown under the button at the first rung.</extracomment>
+        <translation>The first letter is lit. Trace a word from it.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Two letters are lit. Find the rest of the word.</source>
+        <extracomment>Shown under the button at the second rung.</extracomment>
+        <translation>Two letters are lit. Find the rest of the word.</translation>
     </message>
     <message>
         <location line="+3"/>

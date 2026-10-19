@@ -117,22 +117,12 @@ TestCase {
         // Nothing of the data is shown at the gate.
         verify(texts.indexOf(ParentWording.tabDashboard) < 0)
 
-        compare(parentController.gateSpots.length, 2)
-        const spots = parentController.gateSpots
-        const touchArea = allItems(view).find(item => item.minimumTouchPoints === 1
-                                                     && item.maximumTouchPoints === 32)
-        verify(touchArea !== null)
+        // The one target replaces the two circles: a press puts both virtual
+        // touches down, so the hand and the gate's own logic are one gesture.
+        const hold = allItems(view).find(item => item.objectName === "gateHoldTarget")
+        verify(hold !== null)
 
-        // One finger is not a hold.
-        const touch = touchEvent(touchArea)
-        touch.press(0, touchArea, spots[0].x, spots[0].y)
-        touch.commit()
-        compare(parentController.gateHolding, false)
-        compare(parentController.unlocked, false)
-
-        // Two are, and the time is the harness clock's.
-        touch.press(1, touchArea, spots[1].x, spots[1].y)
-        touch.commit()
+        mousePress(hold, hold.width / 2, hold.height / 2)
         compare(parentController.gateHolding, true)
         fixture.advance(1000)
         parentController.gateTick(parentController.now())
@@ -141,12 +131,19 @@ TestCase {
         compare(parentController.unlocked, false)
 
         // Letting go starts it over: nothing is lost and nothing opens.
-        touch.release(0, touchArea, spots[0].x, spots[0].y)
-        touch.release(1, touchArea, spots[1].x, spots[1].y)
-        touch.commit()
+        mouseRelease(hold, hold.width / 2, hold.height / 2)
         compare(parentController.gateHolding, false)
         compare(parentController.gateProgress, 0)
         compare(parentController.unlocked, false)
+
+        // A full hold opens it.
+        mousePress(hold, hold.width / 2, hold.height / 2)
+        fixture.advance(2100)
+        parentController.gateTick(parentController.now())
+        compare(parentController.unlocked, true)
+        // The gate's screen is replaced by the dashboard; clear the press on
+        // the test window rather than on an item that no longer exists.
+        mouseRelease(testCase, 0, 0)
     }
 
     function test_twoSecondsOpensTheGateAndShowsTheDashboard() {

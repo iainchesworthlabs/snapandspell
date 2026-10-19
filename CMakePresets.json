@@ -13,14 +13,16 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "WJS_BUILD_APP": "AUTO"
       }
     },
     {
       "name": "debug",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "WJS_ENABLE_TRACY": "ON"
       }
     },
     {
@@ -28,6 +30,7 @@
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "WJS_ENABLE_TRACY": "OFF",
         "WJS_REQUIRE_REVIEWED_PHONICS": "ON"
       }
     },
@@ -89,6 +92,35 @@
       ]
     },
     {
+      "name": "windows-clang-coverage",
+      "displayName": "Windows (ClangCL, Coverage)",
+      "inherits": [
+        "base"
+      ],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "generator": "Visual Studio 18 2026",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "toolset": {
+        "value": "ClangCL",
+        "strategy": "set"
+      },
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "WJS_BUILD_APP": "AUTO",
+        "WJS_ENABLE_TRACY": "OFF",
+        "WJS_ENABLE_COVERAGE": "ON",
+        "WJS_ENABLE_SANITIZERS": "OFF",
+        "WJS_REQUIRE_REVIEWED_PHONICS": "OFF"
+      }
+    },
+    {
       "name": "linux-gcc-base",
       "hidden": true,
       "inherits": [
@@ -136,6 +168,7 @@
         "debug"
       ],
       "cacheVariables": {
+        "WJS_ENABLE_TRACY": "OFF",
         "WJS_ENABLE_COVERAGE": "ON",
         "WJS_ENABLE_SANITIZERS": "OFF"
       }
@@ -189,6 +222,7 @@
     { "name": "macos-clang-debug", "configurePreset": "macos-clang-debug" },
     { "name": "macos-clang-release", "configurePreset": "macos-clang-release" },
     { "name": "windows-msvc-profiling", "configurePreset": "windows-msvc-profiling" },
+    { "name": "windows-clang-coverage", "configurePreset": "windows-clang-coverage", "configuration": "Debug" },
     { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling" },
     { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling" }
   ],
@@ -205,6 +239,7 @@
     },
     { "name": "windows-msvc-debug", "configurePreset": "windows-msvc-debug", "inherits": ["base"] },
     { "name": "windows-msvc-release", "configurePreset": "windows-msvc-release", "inherits": ["base"] },
+    { "name": "windows-clang-coverage", "configurePreset": "windows-clang-coverage", "inherits": ["base"], "configuration": "Debug" },
     { "name": "linux-gcc-debug", "configurePreset": "linux-gcc-debug", "inherits": ["base"] },
     { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release", "inherits": ["base"] },
     { "name": "linux-gcc-coverage", "configurePreset": "linux-gcc-coverage", "inherits": ["base"] },
@@ -213,6 +248,42 @@
     { "name": "windows-msvc-profiling", "configurePreset": "windows-msvc-profiling", "inherits": ["base"] },
     { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling", "inherits": ["base"] },
     { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling", "inherits": ["base"] },
+    {
+      "name": "unit",
+      "hidden": true,
+      "inherits": ["base"],
+      "filter": { "include": { "label": "unit" } }
+    },
+    {
+      "name": "integration",
+      "hidden": true,
+      "inherits": ["base"],
+      "filter": { "include": { "name": "^integration\\." } }
+    },
+    {
+      "name": "system",
+      "hidden": true,
+      "inherits": ["base"],
+      "filter": { "include": { "label": "system" } }
+    },
+    {
+      "name": "ui",
+      "hidden": true,
+      "inherits": ["base"],
+      "filter": { "include": { "label": "ui" } }
+    },
+    { "name": "windows-msvc-debug-unit", "configurePreset": "windows-msvc-debug", "inherits": ["unit"] },
+    { "name": "windows-msvc-debug-integration", "configurePreset": "windows-msvc-debug", "inherits": ["integration"] },
+    { "name": "windows-msvc-debug-system", "configurePreset": "windows-msvc-debug", "inherits": ["system"] },
+    { "name": "windows-msvc-debug-ui", "configurePreset": "windows-msvc-debug", "inherits": ["ui"] },
+    { "name": "linux-gcc-debug-unit", "configurePreset": "linux-gcc-debug", "inherits": ["unit"] },
+    { "name": "linux-gcc-debug-integration", "configurePreset": "linux-gcc-debug", "inherits": ["integration"] },
+    { "name": "linux-gcc-debug-system", "configurePreset": "linux-gcc-debug", "inherits": ["system"] },
+    { "name": "linux-gcc-debug-ui", "configurePreset": "linux-gcc-debug", "inherits": ["ui"] },
+    { "name": "macos-clang-debug-unit", "configurePreset": "macos-clang-debug", "inherits": ["unit"] },
+    { "name": "macos-clang-debug-integration", "configurePreset": "macos-clang-debug", "inherits": ["integration"] },
+    { "name": "macos-clang-debug-system", "configurePreset": "macos-clang-debug", "inherits": ["system"] },
+    { "name": "macos-clang-debug-ui", "configurePreset": "macos-clang-debug", "inherits": ["ui"] },
     {
       "name": "perf",
       "hidden": true,

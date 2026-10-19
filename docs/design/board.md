@@ -67,18 +67,20 @@ the app reads it with OCR and does not mix letters.
 | --- | --- | --- |
 | The printed faces of a set the author owns | Facts read off an object | Whether a set's letters, as a selection, can belong to someone is a legal question and is **not answered here** ([L]) |
 | A list found online | Unknown origin | Not usable. `data/README.md` says "Do not add a list whose origin you cannot state" |
-| Made by this project from letter counts | The project's own work, from the list the repository already records as public domain | Clean |
+| Made by this project from a fixed English letter-frequency table | The project's own work, from published Scrabble-style tile counts | Clean |
 
-The third is the recommendation. A tool in `tools/data` would count the
-letters of `data/dictionaries/en.txt`, deal 6 faces to each die in proportion
-to the counts (no die repeating a letter, a vowel on each), check the dice by
-rolling them 1,000 times (seeded) against the solver, and write
-`data/dice/<n>x<n>.txt` with the source, its SHA-256 and the seed in the header,
-as `data/README.md` requires. Nothing here gives a distribution of letters, and
-the numbers inside that tool are outputs of its tuning, not inputs. In the
-scanner the real dice are read from the table, so no product's distribution is
-needed at all. Boggle is another company's name: public text should say "a
-word-finding game" ([L]).
+The third is the recommendation and is what is built. `tools/data/make_dice.ps1`
+deals six different faces to each die in proportion to the fixed table
+(A9 B2 C2 D4 E12 ... Z1, the 100-tile English counts with the two blanks not
+counted), with one to three vowels and at most one of J K Q V X Z on a die. Q is
+the tile QU. A set is dealt again unless 30% to 40% of its faces are vowels and S
+is at most 8% of them, so a small board has letters that make words rather than
+a heap of plurals. It writes `data/dice/<n>x<n>.txt` with the table, the method
+and the seed in the header, as `data/README.md` requires. Nothing here copies a
+product's distribution of letters: the table is published frequency data, not a
+printed die set. In the scanner the real dice are read from the table, so no
+product's distribution is needed at all. Boggle is another company's name:
+public text should say "a word-finding game" ([L]).
 
 **Fact, measured, so the open dictionary can be designed later.** Share of
 boards a floor of K known words would reject, on the test corpus:

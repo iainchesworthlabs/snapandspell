@@ -151,23 +151,23 @@ TestCase {
                                               solo: soloModel })
         verify(panel !== null)
         const hint = buttonNamed(panel, SoloWording.showStart)
-        const history = buttonNamed(panel, SoloWording.earlierBoards)
+        const finish = buttonNamed(panel, SoloWording.finishBoard)
         verify(hint !== null)
-        verify(history !== null)
+        verify(finish !== null)
         // The cards are stacked in reading order, not placed side by side; the
         // panel itself mirrors, and its cards keep the same start edge.
         const hintCard = hint.parent
-        const historyCard = history.parent
+        const finishCard = finish.parent
         compare(panel.mirrored, false)
         verify(hintCard.width > 0)
-        verify(historyCard.width > 0)
-        verify(hintCard.y < historyCard.y)
+        verify(finishCard.width > 0)
+        verify(hintCard.y < finishCard.y)
 
         Theme.rightToLeft = true
         compare(panel.mirrored, true)
         verify(hintCard.width > 0)
-        verify(historyCard.width > 0)
-        verify(hintCard.y < historyCard.y)
+        verify(finishCard.width > 0)
+        verify(hintCard.y < finishCard.y)
     }
 
     function test_theSplitMirrorsButTheBoardDoesNot() {

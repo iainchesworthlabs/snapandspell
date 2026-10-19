@@ -4,8 +4,8 @@ import WordJewelsSolver
 
 // Mode A, the Family Companion's first screen (docs/design/game.md, "The MVP:
 // one capture"): `scan.ready`, `scan.reading` and `scan.check` are one screen,
-// because the camera, the frame and the check belong to one act and the check
-// screen comes back to the ready screen with "Read again".
+// because the camera, the frame and the check belong to one act. The three steps
+// are shown throughout: Place, Check, Play.
 //
 //   scan.ready    the frame to put the board in, Capture (96 dp), and Type in
 //                 your board. The camera is on only here: the screen starts it
@@ -13,13 +13,16 @@ import WordJewelsSolver
 //                 model's rule; docs/design/game.md, "Mode A"). Where there is a
 //                 camera, its live picture is shown in the frame.
 //   scan.reading one frame is read on the device; nothing is kept.
-//   scan.check    the replica, the doubts, the letter picker and "Yes, play"
-//                 (CheckScreen.qml). "Yes, play" hands the confirmed board to the
-//                 assistant and asks the shell to show it.
+//   scan.check    the replica, the doubts, the letter picker and "Start playing"
+//                 (CheckScreen.qml). "Start playing" hands the confirmed board to
+//                 the assistant and asks the shell to show it. The secondary
+//                 action says what it does: "Scan again" for a camera board,
+//                 "Start over" for a typed one.
 //
 // With no camera (a desktop with no webcam, or a kit without Qt Multimedia) the
-// camera's absence is said in words and "Type in your board" is the way on: the
-// check screen with an empty 4x4 (docs/design/game.md, "No camera").
+// camera's absence is said in words, "Try camera again" looks for it afresh, and
+// "Type in your board" is the way on: the check screen with an empty 4x4
+// (docs/design/game.md, "No camera").
 FocusScope {
     id: root
 
@@ -28,7 +31,7 @@ FocusScope {
 
     // Back from `scan.ready`: out of Mode A, to wherever the person came from.
     signal closed
-    // "Yes, play" has confirmed a board and the assistant has it.
+    // "Start playing" has confirmed a board and the assistant has it.
     signal playRequested
 
     readonly property string scanState: root.scan.state
@@ -38,7 +41,13 @@ FocusScope {
     readonly property bool cameraRunning: root.scan.cameraCapturing
     readonly property bool previewShown: cameraPreview.active
     readonly property string cameraMessage: ScanWording.cameraProblem(root.scan.cameraProblem)
-    readonly property string readMessage: ScanWording.readProblem(root.scan.readProblem)
+    // The camera's absence is already in cameraMessage; a capture pressed without
+    // one must not say it a second time.
+    readonly property string readMessage: root.scan.readProblem === "no_camera"
+                                              ? "" : ScanWording.readProblem(root.scan.readProblem)
+    // The step the person is on: Place while the frame is shown, Check once the
+    // draft is in front of them. Play is the assistant's screen.
+    readonly property int step: root.scanState === "check" ? 2 : 1
     // The interface's direction, set by the shell: Hebrew and Yiddish are right
     // to left. The frame, the bar and the check screen's rows follow it; the
     // replica of the board does not.
@@ -66,8 +75,11 @@ FocusScope {
 
     Component.onDestruction: root.scan.close()
 
-    // The way back: from the check screen it is "Read again" (to the frame and a
-    // camera that is on again); from the ready screen it leaves Mode A.
+    // The way back: from the check screen it is the step back (to the frame and a
+    // camera that is on again, which is also a camera board's "Scan again"); from
+    // the ready screen it leaves Mode A. A typed board's "Start over" is the
+    // check screen's own secondary action, not the bar: it keeps the person on
+    // the typing task.
     function back() {
         if (root.scanState === "check" || root.scanState === "reading") {
             root.scan.readAgain();
@@ -96,46 +108,67 @@ FocusScope {
         onBack: root.back()
     }
 
+    // --- the steps -------------------------------------------------------------
+    // Place, Check, Play: the grown-up's three steps, the one they are on in the
+    // accent. The check screen inside this screen is step 2; Play is the
+    // assistant's screen, which the shell shows after "Start playing".
+    Row {
+        id: stepper
+        anchors.top: appBar.bottom
+        anchors.topMargin: Theme.space3
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: Theme.space2
+
+        Text {
+            text: qsTr("1  Place")
+            font.family: Theme.monoFont
+            font.pixelSize: Theme.smallSize
+            font.weight: root.step === 1 ? Font.DemiBold : Font.Normal
+            color: root.step === 1 ? Theme.accent : Theme.inkSecondary
+        }
+        Text {
+            text: "·"
+            font.family: Theme.monoFont
+            font.pixelSize: Theme.smallSize
+            color: Theme.inkSecondary
+            Accessible.ignored: true
+        }
+        Text {
+            text: qsTr("2  Check")
+            font.family: Theme.monoFont
+            font.pixelSize: Theme.smallSize
+            font.weight: root.step === 2 ? Font.DemiBold : Font.Normal
+            color: root.step === 2 ? Theme.accent : Theme.inkSecondary
+        }
+        Text {
+            text: "·"
+            font.family: Theme.monoFont
+            font.pixelSize: Theme.smallSize
+            color: Theme.inkSecondary
+            Accessible.ignored: true
+        }
+        Text {
+            text: qsTr("3  Play")
+            font.family: Theme.monoFont
+            font.pixelSize: Theme.smallSize
+            font.weight: root.step === 3 ? Font.DemiBold : Font.Normal
+            color: root.step === 3 ? Theme.accent : Theme.inkSecondary
+        }
+    }
+
     // --- scan.ready and scan.reading ------------------------------------------------
     Item {
         id: readyStage
-        anchors.top: appBar.bottom
+        anchors.top: stepper.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         visible: root.scanState !== "check"
 
-        Row {
-            id: stepper
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
-            anchors.topMargin: Theme.space4
-            spacing: Theme.space3
-
-            Text {
-                text: qsTr("1  Place")
-                font.family: Theme.monoFont
-                font.pixelSize: Theme.smallSize
-                color: Theme.accent
-            }
-            Text {
-                text: qsTr("2  Check")
-                font.family: Theme.monoFont
-                font.pixelSize: Theme.smallSize
-                color: Theme.inkSecondary
-            }
-            Text {
-                text: qsTr("3  Play")
-                font.family: Theme.monoFont
-                font.pixelSize: Theme.smallSize
-                color: Theme.inkSecondary
-            }
-        }
-
         Text {
             id: prompt
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: stepper.bottom
+            anchors.top: parent.top
             anchors.topMargin: Theme.space3
             width: Math.min(parent.width - 2 * Theme.space6, 720)
             horizontalAlignment: Text.AlignHCenter
@@ -186,6 +219,7 @@ FocusScope {
 
                 Item {
                     id: corner
+                    objectName: "frameCorner"
                     required property int index
                     readonly property bool onRight: index % 2 === 1
                     readonly property bool onBottom: index >= 2
@@ -194,17 +228,22 @@ FocusScope {
                     width: Math.min(viewfinder.width, viewfinder.height) * 0.16
                     height: width
 
+                    // The two strokes meet at the frame's corner: the horizontal
+                    // one at the top for a top corner and at the bottom for a
+                    // bottom one, the vertical one on the outer side in both.
                     Rectangle {
+                        objectName: "cornerHorizontal"
                         width: parent.width
                         height: Theme.heavy
+                        y: corner.onBottom ? parent.height - height : 0
                         color: Theme.die
                     }
                     Rectangle {
+                        objectName: "cornerVertical"
                         width: Theme.heavy
                         height: parent.height
-                        color: Theme.die
                         x: corner.onRight ? parent.width - width : 0
-                        y: corner.onBottom ? parent.height - height : 0
+                        color: Theme.die
                     }
                 }
             }
@@ -270,6 +309,24 @@ FocusScope {
                 font.pixelSize: Theme.bodySize
                 color: Theme.inkSecondary
             }
+
+            // The camera's absence is retried here, without leaving the screen:
+            // open() enumerates the devices again, so a camera that was covered,
+            // busy or plugged in since the screen opened is found. When it is
+            // found, the message and this button go and Capture appears; when it
+            // is not, the camera says so again and the typed board stays primary.
+            AppButton {
+                id: tryCamera
+                visible: root.scanState === "ready" && root.cameraMessage !== ""
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Math.max(implicitWidth, Theme.targetMin)
+                height: Theme.targetMin
+                size: "min"
+                variant: "secondary"
+                label: ScanWording.tryCameraAgain
+                accessibleName: ScanWording.tryCameraAgain
+                onClicked: root.scan.retryCamera()
+            }
         }
 
         // Capture, and the typed board beside it: the grown-up chooses.
@@ -308,14 +365,13 @@ FocusScope {
     // --- scan.check --------------------------------------------------------------------
     CheckScreen {
         id: check
-        anchors.top: appBar.bottom
+        anchors.top: stepper.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         visible: root.scanState === "check"
         scan: root.scan
         assist: root.assist
-        onBackRequested: root.scan.readAgain()
         onPlayRequested: root.playRequested()
     }
 }

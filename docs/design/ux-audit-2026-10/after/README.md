@@ -5,6 +5,12 @@ running Windows build on 19 October 2026. It is the record of the overhaul, not 
 second audit: the findings and the rationale stay in
 [the audit](../index.md) and [the visual brief](../visual-brief.html).
 
+The first running build was then played screen by screen and corrected. The
+screen-by-screen defects, the scoring and collection rules, the two-rung help,
+the one-hold gate and the remaining camera limitation are in
+[the follow-up pass](../follow-up-2026-10-19.md). Where this record and the
+follow-up differ, the follow-up is the current state.
+
 ## Home
 
 The child's way in is one large placard. The adult way in is a labelled card and

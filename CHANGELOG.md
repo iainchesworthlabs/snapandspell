@@ -16,6 +16,22 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **The test suite as four tiers, with a coverage gate and a UI coverage
+  report.** The Catch2 and CTest entries are now selected as `unit`
+  (`ctest -L unit`), `integration` (`ctest -R "^integration\\."`), `system`
+  (`ctest -L system`) and `ui` (`ctest -L ui`), with `quality` for the checks
+  about the tree itself; test presets (`windows-msvc-debug-unit`, ...) make each
+  one word. The system tier is new: `wjs-cli` is run as a program (help,
+  version, the README board, every option and every exit code), the application's
+  start-up and headless smoke run are run as a program, and
+  `cmake --install` is run into a throw-away prefix where the installed `wjs-cli`
+  solves a board from the installed dictionary. Coverage is no longer report-only:
+  `coverage-unit` (gcovr on GCC, llvm-cov on clang-cl) holds `src/lib` to **90%
+  of lines and 80% of branches** and fails below either, and `coverage-ui` runs
+  the Qt Quick Test suites under the same instrumentation and reports `src/app`,
+  the C++ the QML drives. The Windows coverage preset is
+  `windows-clang-coverage`; the Linux gate is the `Coverage (Linux, GCC)` CI job.
+  See [docs/testing.md](docs/testing.md#coverage).
 - **Mode A's camera on the desktop: a live preview and one capture.** The
   Family Assistant's ready screen now shows the camera's own picture in its
   frame and its **Capture** reads one frame on the device. The camera is a new
@@ -498,6 +514,43 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Changed
 
+- **The post-overhaul design pass: the screens now hold at the minimum window,
+  the board is traced again, and the game has a visible progression.** Home and
+  Solo are laid out from the room they are given rather than fixed heights, so
+  the privacy line, both home cards, the box panel and the play action bar stay
+  on screen at 900 by 620. The jewel box fits its own dice and its picture
+  follows the chosen board size. The path is a gold ribbon over the dice and
+  under the letters again; the 1-2-3 badges are gone. A found word earns points
+  by length and letter value, the tray shows the running points and stars, a
+  board can be finished deliberately (the standard board holds too many words to
+  clear in play), and the clear/finish summary carries the words, points and
+  stars. A new **My jewels** screen from home shows the lifetime stars, points,
+  words, longest word, this week, the word shelf and the earlier boards; the
+  play panel no longer hides the history. The help has two rungs (the start tile,
+  then its first two letters) and a third press hides it. The parent gate is one
+  two-second hold instead of two circles; a failed save names the problem and
+  offers Retry, and the store now uses Qt's per-user application data directory.
+  The scan screen has correctly turned corner brackets, a typed-board **Start
+  over** and a camera **Scan again**, a camera-only **Turn**, and a **Try camera
+  again** action. The 3D dice use the flat dice's cream, edge, ink, Andika face
+  and warm light; the settle is orthographic and 1:1 with the flat board. The
+  project dice are drawn once more from a Scrabble-style English letter table
+  rather than the dictionary's own letter counts, which was over-weighting S and
+  rare letters. The app and unit tests cover the new points, hints and box
+  picture, and the Qt Quick suites cover the new panel, gate and layout.
+- **The Qt Quick application is a first-class build target on every platform.**
+  `WJS_BUILD_APP` now defaults to `AUTO`: a preset builds `WordJewelsSolver`
+  when it finds a Qt 6.12 kit and builds only the command-line program and the
+  tests when it does not, so nobody has to know the option to get the
+  application. `ON` makes a missing kit a configure error and `OFF` skips the
+  window deliberately. `cmake/FindQt6.cmake` also searches the labs' shared
+  `C:/Repos/common/qt` tree on Windows, and the presets pass `AUTO` so an old
+  build tree that cached the previous `OFF` default picks the new behaviour up
+  on its next configure. The executable targets are named after the programs
+  they make (`WordJewelsSolver`, `wjs-cli`, `ShakePrototype`), IDEs group the
+  targets into Application, Libraries, Tests and Tools folders, and the
+  corpus renderer `wjs_scan_render` left the default build: it is built by
+  target when wanted.
 - **Rebuilt as a portable C++23 project.** The Visual Studio solution is
   replaced by CMake (4.0 or newer), Ninja and the presets above, and the
   program is split into a library, front ends and a platform layer, with tests.

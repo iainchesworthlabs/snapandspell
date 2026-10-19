@@ -134,7 +134,7 @@ endif()
 # (`tools/package/check_package.ps1`) then requires both directories in the
 # package itself.
 if(EXPECT_MULTIMEDIA)
-    set(_import_scan "${BUILD_DIR}/src/app/.qt/qml_imports/wjs_app_build.rsp")
+    set(_import_scan "${BUILD_DIR}/src/app/.qt/qml_imports/WordJewelsSolver_build.rsp")
     if(NOT EXISTS "${_import_scan}")
         list(APPEND _failures
             "the application's QML import scan input is missing: ${_import_scan}")

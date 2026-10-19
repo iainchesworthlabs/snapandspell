@@ -13,6 +13,10 @@ Flickable {
     signal scanRequested
     signal playRequested
 
+    // The result of the parent's one retry of a failed save, if they pressed it.
+    property bool retryTried: false
+    property bool retrySucceeded: false
+
     // The parent area's direction, from the shell: the rows and their counts
     // follow it (the numbers themselves do not).
     LayoutMirroring.enabled: ParentTheme.rightToLeft
@@ -95,30 +99,52 @@ Flickable {
         // A note about the saved progress, for the parent only.
         Rectangle {
             Layout.fillWidth: true
-            visible: root.controller.storeNote.length > 0
-            implicitHeight: noteText.implicitHeight + 2 * ParentTheme.space3
+            visible: root.controller.storeNote.length > 0 || root.retryTried
+            implicitHeight: noteColumn.implicitHeight + 2 * ParentTheme.space3
             radius: ParentTheme.radius
             color: ParentTheme.note
             border.width: ParentTheme.hair * 2
             border.color: ParentTheme.outline
 
-            Text {
-                id: noteText
+            ColumnLayout {
+                id: noteColumn
                 anchors.fill: parent
                 anchors.margins: ParentTheme.space3
-                wrapMode: Text.WordWrap
-                font.pixelSize: ParentTheme.sizeBody
-                color: ParentTheme.noteInk
-                text: {
-                    switch (root.controller.storeNote) {
-                    case "unreadable":
-                        return ParentWording.noteUnreadable;
-                    case "newer":
-                        return ParentWording.noteNewer;
-                    case "unsaved":
-                        return ParentWording.noteUnsaved;
-                    default:
-                        return "";
+                spacing: ParentTheme.space2
+
+                Text {
+                    id: noteText
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: ParentTheme.sizeBody
+                    color: ParentTheme.noteInk
+                    text: {
+                        switch (root.controller.storeNote) {
+                        case "unreadable":
+                            return ParentWording.noteUnreadable;
+                        case "newer":
+                            return ParentWording.noteNewer;
+                        case "unsaved":
+                            return ParentWording.noteUnsaved;
+                        default:
+                            return "";
+                        }
+                    }
+                }
+                Text {
+                    Layout.fillWidth: true
+                    visible: root.retryTried
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: ParentTheme.sizeSmall
+                    color: ParentTheme.noteInk
+                    text: root.retrySucceeded ? ParentWording.saved : ParentWording.saveStillNotSaved
+                }
+                PButton {
+                    visible: root.controller.storeNote === "unsaved"
+                    text: ParentWording.retry
+                    onClicked: {
+                        root.retrySucceeded = root.controller.retrySave();
+                        root.retryTried = true;
                     }
                 }
             }

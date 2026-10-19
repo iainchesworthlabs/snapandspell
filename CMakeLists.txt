@@ -62,8 +62,28 @@ if(NOT DEFINED WJS_BUILD_TESTS OR WJS_BUILD_TESTS)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif()
 
-# Tracy is opt-in: the one switch (declared in cmake/Tracy.cmake) both makes
-# the profiling calls real and asks vcpkg for the client and the tools.
+# Tracy, and the one switch for it, before project(): the vcpkg manifest
+# feature must be chosen before the toolchain reads the manifest at project()
+# time. A Debug build is instrumented by default, so a regular development
+# build can be connected to by the profiler without any option; every
+# configuration a package can be made from (Release and the rest) is not,
+# unless a person turns the option on. Multi-config generators have no build
+# type at configure time and are opt-in: the coverage preset is that shape,
+# and Tracy would distort coverage. cmake/Tracy.cmake makes the calls real
+# from this one switch, and tests/profiling/check_presets.cmake holds the
+# policy.
+if(CMAKE_CONFIGURATION_TYPES)
+    set(_wjs_tracy_default OFF)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(_wjs_tracy_default ON)
+else()
+    set(_wjs_tracy_default OFF)
+endif()
+option(WJS_ENABLE_TRACY
+    "Enable Tracy profiler instrumentation (on by default for a Debug build; never for a shipped build)"
+    ${_wjs_tracy_default})
+unset(_wjs_tracy_default)
+
 if(WJS_ENABLE_TRACY)
     list(APPEND VCPKG_MANIFEST_FEATURES "profiling")
 endif()
@@ -104,19 +124,24 @@ include(Translations)
 # Options
 # ---------------------------------------------------------------------------
 option(WJS_BUILD_CLI "Build the wjs-cli command-line solver" ON)
-# Off by default: the application needs a prebuilt Qt 6.12 found via
-# QT_ROOT_DIR or CMAKE_PREFIX_PATH (cmake/FindQt6.cmake), which is not vcpkg's,
-# so a machine that only builds the solver does not need one. The Windows CI
-# leg installs it and turns it on. It links Qt Quick 3D for the board scene, so
-# the binary it makes is GPL-3.0 only (the author's decision of 2026-10-16;
-# docs/design/board.md).
-option(WJS_BUILD_APP "Build the Qt Quick application (needs Qt 6.12; GPL-3.0 only)" OFF)
-option(WJS_BUILD_TESTS "Build the unit test suite" ON)
+# The application is the product, but it is the one target that needs a
+# prebuilt Qt 6.12 kit (cmake/FindQt6.cmake), which vcpkg does not build. AUTO
+# builds it when such a kit is found and leaves it out when it is not, so one
+# preset is useful both on a machine that only builds the solver and on a
+# desktop with Qt; ON makes a missing Qt an error, and OFF never looks for it.
+# The resolved value is ON or OFF from the Qt section below onwards. The
+# application links Qt Quick 3D for the board scene, so the binary it makes is
+# GPL-3.0 only (the author's decision of 2026-10-16; docs/design/board.md).
+set(WJS_BUILD_APP "AUTO" CACHE STRING
+    "Build the Qt Quick application: AUTO when Qt 6.12 is found, ON to require it, OFF to skip it")
+set_property(CACHE WJS_BUILD_APP PROPERTY STRINGS AUTO ON OFF)
+option(WJS_BUILD_TESTS "Build the unit, integration, system and UI test suites" ON)
 # The harness around the 3D board scene (src/app/prototype/shake, and
 # docs/design/shake-prototype.md): a window with a Shake button, a drag standing
 # in for the accelerometer and the frame timing, over the scene module the
 # application also links (WordJewelsSolver.Scene, GPL-3.0 only). A program of its
-# own, not part of the application. Needs WJS_BUILD_APP=ON.
+# own, not part of the application. Needs the application built
+# (WJS_BUILD_APP=AUTO with a Qt 6.12 kit found, or ON).
 option(WJS_BUILD_SHAKE_PROTOTYPE "Build the 3D board-scene prototype harness (needs Qt Quick 3D; GPL-3.0 only)" OFF)
 
 # The review gate. Phonics data (data/phonics) is written and reviewed by a
@@ -146,10 +171,52 @@ option(WJS_REQUIRE_REVIEWED_PHONICS
 # Quick3D is the board scene's, and it makes the application GPL-3.0 only: it is
 # a required component now, not the prototype's alone. LinguistTools is the
 # catalogues' (lupdate/lrelease).
+#
+# WJS_BUILD_APP is resolved here first: AUTO looks for the kit and builds the
+# application when it is there, ON requires it, OFF never looks. Every use
+# after this point sees ON or OFF, whichever the person asked for.
 # ---------------------------------------------------------------------------
+string(TOUPPER "${WJS_BUILD_APP}" WJS_BUILD_APP_MODE)
+if(WJS_BUILD_APP_MODE STREQUAL "AUTO")
+    set(_wjs_qt_requirement QUIET)
+elseif(WJS_BUILD_APP)
+    set(_wjs_qt_requirement REQUIRED)
+elseif(WJS_BUILD_APP_MODE MATCHES "^(OFF|FALSE|NO|N|0)$")
+    set(_wjs_qt_requirement "")
+else()
+    message(FATAL_ERROR
+        "WJS_BUILD_APP is '${WJS_BUILD_APP}'. It takes AUTO (build the "
+        "application when Qt 6.12 is found), ON (require Qt) or OFF (never "
+        "build the application).")
+endif()
+
+set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 Quick3D LinguistTools)
+if(_wjs_qt_requirement)
+    find_package(Qt6 6.12 ${_wjs_qt_requirement} COMPONENTS ${WJS_QT_COMPONENTS})
+endif()
+
+if(WJS_BUILD_APP_MODE STREQUAL "AUTO")
+    if(Qt6_FOUND)
+        set(WJS_BUILD_APP ON)
+        message(STATUS
+            "Qt ${Qt6_VERSION} found: the Qt Quick application is built "
+            "(WJS_BUILD_APP=AUTO). Pass -DWJS_BUILD_APP=OFF to leave it out.")
+    else()
+        set(WJS_BUILD_APP OFF)
+        message(STATUS
+            "Qt 6.12 with the modules the application needs was not found: the "
+            "Qt Quick application is not built (WJS_BUILD_APP=AUTO). Point "
+            "QT_ROOT_DIR or CMAKE_PREFIX_PATH at a Qt 6.12 kit, or pass "
+            "-DWJS_BUILD_APP=ON to make its absence an error.")
+    endif()
+elseif(WJS_BUILD_APP)
+    set(WJS_BUILD_APP ON)
+else()
+    set(WJS_BUILD_APP OFF)
+endif()
+unset(_wjs_qt_requirement)
+
 if(WJS_BUILD_APP)
-    set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 Quick3D LinguistTools)
-    find_package(Qt6 6.12 REQUIRED COMPONENTS ${WJS_QT_COMPONENTS})
     # The feedback engines' modules are optional: the application's sound,
     # speech and motion have silent variants selected by CMake when a module is
     # absent (src/app/feedback/CMakeLists.txt), so a contributor's kit without
@@ -238,7 +305,9 @@ endif()
 if(WJS_BUILD_APP)
     add_subdirectory(src/app)
 elseif(WJS_BUILD_SHAKE_PROTOTYPE)
-    message(WARNING "WJS_BUILD_SHAKE_PROTOTYPE needs WJS_BUILD_APP=ON; the prototype is not built.")
+    message(WARNING
+        "WJS_BUILD_SHAKE_PROTOTYPE needs WJS_BUILD_APP=ON and a Qt 6.12 kit; "
+        "the prototype is not built.")
 endif()
 
 if(WJS_BUILD_TESTS)
@@ -253,11 +322,68 @@ endif()
 # ---------------------------------------------------------------------------
 include(Packaging)
 
+# ---------------------------------------------------------------------------
+# How an IDE shows the target list. FOLDER is what Visual Studio's CMake
+# Targets View (and the solution generators) group targets by; it changes
+# nothing about what is built. The programs and the application's modules come
+# first, then the libraries they are made of, then the test harnesses and the
+# one-off tools, so opening this tree shows WordJewelsSolver rather than a flat
+# list of wjs_* targets. Conditional targets are guarded by if(TARGET) because
+# this runs once all the subdirectories have had their say.
+# ---------------------------------------------------------------------------
+function(wjs_set_target_folder folder)
+    foreach(target IN LISTS ARGN)
+        if(TARGET "${target}")
+            set_target_properties("${target}" PROPERTIES FOLDER "${folder}")
+        endif()
+    endforeach()
+endfunction()
+
+wjs_set_target_folder("Application"
+    WordJewelsSolver
+    wjs_scene
+    wjs_sceneplugin
+    wjs_parent
+    wjs_parentplugin
+    wjs_scan_ui
+    wjs_scan_uiplugin
+    wjs_i18n
+    wjs_trace
+    wjs_feedback)
+wjs_set_target_folder("Command line" wjs-cli)
+wjs_set_target_folder("Libraries"
+    wjs_lib
+    wjs_platform
+    wjs_scan
+    wjs_dice_world
+    wjs_tracy
+    wjs_profiling
+    wjs_warnings
+    wjs_sanitizers
+    wjs_coverage)
+wjs_set_target_folder("Tests"
+    wjs_unit_tests
+    wjs_perf_tests
+    wjs_scan_tests
+    wjs_scan_synth
+    wjs_app_tests
+    wjs_shake_script_tests
+    wjs_frame_timing_tests
+    wjs_parent_preview
+    wjs_scan_preview
+    wjs_quick_tests
+    wjs_quick_tests_support
+    wjs_quick_test_scene
+    wjs_quick_test_sceneplugin
+    wjs_dice_tests)
+wjs_set_target_folder("Tools" wjs_scan_render ShakePrototype)
+wjs_set_target_folder("Packaging" "package-${PROJECT_NAME}")
+
 message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_NAME}")
 message(STATUS "  Build CLI   : ${WJS_BUILD_CLI}")
-message(STATUS "  Build app   : ${WJS_BUILD_APP}")
+message(STATUS "  Build app   : ${WJS_BUILD_APP} (requested ${WJS_BUILD_APP_MODE})")
 message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")
-message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY}")
+message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY} (default: ON for a Debug build type)")
 message(STATUS "  Reviewed phonics data required : ${WJS_REQUIRE_REVIEWED_PHONICS}")
 message(STATUS "  Build shake prototype : ${WJS_BUILD_SHAKE_PROTOTYPE}")
 message(STATUS "  Package generators : ${WJS_PACKAGE_GENERATORS}")

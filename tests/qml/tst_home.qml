@@ -15,7 +15,7 @@ TestCase {
     width: 900
     height: 600
 
-    Component { id: homeComponent; Home { } }
+    Component { id: homeComponent; Home { controller: parentController } }
 
     SignalSpy { id: soloSpy; signalName: "soloRequested" }
     SignalSpy { id: parentSpy; signalName: "parentRequested" }
@@ -139,9 +139,9 @@ TestCase {
         const screen = home()
         const play = picture(screen, HomeWording.soloPicture)
         const board = picture(screen, HomeWording.familyPicture)
-        verify(play.x < board.x)
+        tryVerify(() => play.x < board.x, 2000)
 
         Theme.rightToLeft = true
-        tryVerify(() => play.x > board.x)
+        tryVerify(() => play.x > board.x, 2000)
     }
 }

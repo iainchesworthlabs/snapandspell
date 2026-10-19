@@ -59,6 +59,12 @@ class ScanModel : public QObject {
     // The indices to ring: the tiles the reader doubted and no one has settled.
     Q_PROPERTY(QVariantList doubtful READ doubtful NOTIFY draftChanged)
     Q_PROPERTY(bool complete READ complete NOTIFY draftChanged)
+    // Where the draft in front of the grown-up came from: true when a camera
+    // reading filled it, false for the typed board. The check screen words its
+    // secondary action by it ("Scan again" for a camera board, "Start over" for
+    // a typed one) and offers Turn only for a board a camera read. False while
+    // there is no draft.
+    Q_PROPERTY(bool draftFromCamera READ draftFromCamera NOTIFY draftChanged)
 
     // The board size, and those the check screen offers. The size is counted
     // from the picture first; the adult can change it (docs/design/game.md,
@@ -97,6 +103,7 @@ public:
     [[nodiscard]] QVariantList tiles() const;
     [[nodiscard]] QVariantList doubtful() const;
     [[nodiscard]] bool complete() const;
+    [[nodiscard]] bool draftFromCamera() const noexcept { return draft_from_camera_; }
     [[nodiscard]] int size() const;
     [[nodiscard]] QVariantList sizes() const;
     [[nodiscard]] bool cameraAvailable() const noexcept { return camera_available_; }
@@ -126,9 +133,14 @@ public:
 
     // The typed-board fallback: an empty 4x4, straight to the check screen.
     Q_INVOKABLE void typeBoard();
-    // The check screen's "Read again" and Back: the empty grid is dropped, the
-    // camera starts again, and the screen is `ready`.
+    // The check screen's "Scan again" for a camera board, and its Back: the grid
+    // is dropped, the camera starts again, and the screen is `ready`.
     Q_INVOKABLE void readAgain();
+    // "Try camera again": a new attempt at the camera without leaving `ready`.
+    // Drops the last read's problem and enumerates/opens the camera again, so a
+    // camera that was covered, busy or plugged in since open() is found. Does
+    // nothing outside `ready`.
+    Q_INVOKABLE void retryCamera();
 
     // --- the check screen's corrections -------------------------------------
     Q_INVOKABLE bool setTile(int index, const QString& letters);
@@ -175,6 +187,7 @@ private:
 
     State state_ = State::ready;
     std::optional<wjs::scan::BoardDraft> draft_;
+    bool draft_from_camera_ = false;
     std::optional<wjs::Board> confirmed_;
 
     QPointer<CameraSource> camera_source_;

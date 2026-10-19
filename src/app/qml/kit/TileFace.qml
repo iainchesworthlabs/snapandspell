@@ -10,17 +10,12 @@ Item {
 
     property string letters: ""
     property bool lit: false
+    // Kept for callers that still pass it, but the numbered badge is gone: the
+    // path itself shows the order, and a number on a five-year-old's die was
+    // harder to read than the line it replaced.
     property int order: 0
 
     readonly property string shown: letters === "QU" ? "Qu" : letters
-
-    scale: lit ? Theme.litScale : 1
-    Behavior on scale {
-        NumberAnimation {
-            duration: Theme.quick
-            easing.type: Easing.OutCubic
-        }
-    }
 
     Rectangle {
         objectName: "face"
@@ -63,23 +58,4 @@ Item {
         color: Theme.dieInk
     }
 
-    Rectangle {
-        visible: root.lit && root.order > 0
-        width: Math.max(18, root.height * 0.15)
-        height: width
-        radius: width / 2
-        x: Theme.space1
-        y: Theme.space1
-        color: Theme.gold
-        border.width: 1
-        border.color: Theme.tray
-        Text {
-            anchors.centerIn: parent
-            text: root.order
-            font.family: Theme.monoFont
-            font.pixelSize: Math.max(9, parent.height * 0.55)
-            font.weight: Font.DemiBold
-            color: Theme.tray
-        }
-    }
 }

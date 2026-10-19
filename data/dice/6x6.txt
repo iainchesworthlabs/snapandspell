@@ -1,44 +1,50 @@
 # dice for a 6x6 board: 36 dice of 6 faces, one a line
 # made-by: tools/data/make_dice.ps1
-# source: data/dictionaries/en.txt
-# source-sha256: 3F16130220645692ED49C7134E24A18504C2CA55B3C012F7290E3E77C63B1A89
-# method: six different letters to a die, dealt in proportion to the source's letter counts,
-#   at least one of A E I O U on each, Q as the tile QU, faces of a die in letter order
+# table: Scrabble-style English tile frequencies, the 100-tile English counts
+#   (98 letter tiles; the two blanks are not faces). These are published English
+#   letter counts, not a copied printed die set:
+#   A9 B2 C2 D4 E12 F2 G3 H2 I9 J1 K1 L4 M2 N6 O8 P2 Q1 R6 S4 T6 U4 V2 W2 X1 Y2 Z1
+# method: the project's own dice. Six different letters to a die, drawn without
+#   replacement in proportion to the table; a die is dealt again unless it has one
+#   to three vowels and at most one of J K Q V X Z. A set is dealt again unless
+#   30% to 40% of its faces are vowels and S is at most 8% of them.
+#   Q is the tile QU. Faces of a die are in ordinal letter order. Each size has
+#   its own seed and its own dice: the 3x3 is not a window on the 4x4.
 # prng: 32-bit LCG, state = state * 1664525 + 1013904223 mod 2^32; a draw below n is (state >> 8) mod n
 # seed: 47514
-E M R S T U
-L N O R S U
-A C D E I V
-C I N R S W
-A E M O S T
-A E L R S Y
-A C E I K S
-A E K L N S
-B E I O S T
-A E H M O T
-E I O P S V
-A E L O S W
-A G P R S T
-C E I N O T
-A C L N R S
-A D E L N U
-D H I N S T
-A B H O R S
-A I N O R S
-D E I R T V
-A C I M P S
-E K P R S X
-A C D I L M
-A D E K O T
-E G I P S T
-G H I R S U
-E L O P S W
-A E I O S T
-A E N O S T
-A C E L R S
-C I N O S T
-A C D E M O
-C D E O S U
-C I L N P Z
-A D L M N S
-E H I M N R
+D E L O R T
+D I N O R T
+E I N P R S
+B E I L R U
+A I M S U Y
+A C E F H T
+A E L O P Z
+A I R T U X
+E I QU S U W
+B D M O P R
+C G H I L U
+A D E F N S
+A E F I N Y
+A E G L T Y
+A D N O R U
+A D E G O T
+B L N O R U
+A E L O S T
+B I N T U W
+A B E N T U
+A C M T U Y
+D L P S T U
+I N O S U Y
+A C D O R X
+H M O R S T
+A B E H W Z
+A D I N R U
+D F G H O Y
+D F O P R V
+E F H I P R
+C I J N R W
+A D E G R T
+C E G N U W
+A E I N R W
+A D O R S T
+C F H I QU Y

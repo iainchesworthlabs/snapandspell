@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Layouts
 import WordJewelsSolver
 import WordJewelsSolver.Scene
 
@@ -20,7 +21,10 @@ FocusScope {
     readonly property bool boxShown: soloState === "box"
     readonly property bool shaking: soloState === "shaking" || soloState === "dropping"
     readonly property bool boardShown: soloState === "playing" || soloState === "word-found" || soloState === "cleared"
-    readonly property bool summaryShown: soloState === "cleared"
+    // A board can be ended by the child before every dictionary word is found.
+    // The summary is the same card, worded for a finish rather than a clear.
+    property bool finishSummary: false
+    readonly property bool summaryShown: soloState === "cleared" || root.finishSummary
     readonly property bool actionShown: soloState === "playing" || soloState === "word-found"
     // The strip is reserved for the whole shake and landing, so the 3D theatre
     // and the flat board keep one geometry through the moment the dice settle.
@@ -104,6 +108,7 @@ FocusScope {
     property var pendingBoard: null
     property int pendingSeed: 0
     property string feedbackText: ""
+    property string feedbackDetail: ""
     property bool feedbackWord: false
 
     function startPendingPlay() {
@@ -126,7 +131,11 @@ FocusScope {
     Timer {
         id: feedbackTimer
         interval: 1800
-        onTriggered: root.feedbackText = ""
+        onTriggered: {
+            root.feedbackText = "";
+                root.feedbackDetail = "";
+            root.feedbackDetail = "";
+        }
     }
 
     // The 3D dice and the flat dice are one object seen twice: when the scene
@@ -147,7 +156,27 @@ FocusScope {
         return letters.join(" · ");
     }
 
+    function finishBoard() {
+        if (root.soloState !== "playing" && root.soloState !== "word-found") {
+            return;
+        }
+        root.finishSummary = true;
+    }
+
+    function leaveFinishSummary() {
+        root.finishSummary = false;
+        if (root.soloState === "word-found") {
+            root.solo.wordShown();
+        }
+        root.solo.lidOn();
+    }
+
     function back() {
+        if (root.finishSummary) {
+            root.leaveFinishSummary();
+            root.homeRequested();
+            return;
+        }
         if (history.open) {
             history.close();
             return;
@@ -195,7 +224,9 @@ FocusScope {
         showBack: true
         showWordmark: false
         showParent: true
-        title: root.boxShown ? qsTr("Solo Play") : (root.summaryShown ? qsTr("All words found") : qsTr("Find a word"))
+        title: root.boxShown ? qsTr("Solo Play")
+               : root.finishSummary ? qsTr("Board finished")
+               : (root.soloState === "cleared" ? qsTr("All words found") : qsTr("Find a word"))
         onBack: root.back()
         onParentRequested: root.parentRequested()
     }
@@ -216,18 +247,21 @@ FocusScope {
             color: Theme.boardArea
         }
 
-        // The closed box, before the shake.
+        // The closed box, before the shake. Its compartments change with the
+        // board size, so the picture on the left answers the choice on the
+        // right. The caption is aligned to the box, not to the whole window.
         JewelBox {
             id: boxArt
-            readonly property real boxSide: Math.min(root.boardArea.width * 0.72,
-                                                     root.boardArea.height * 0.82, 600)
+            readonly property real boxSide: Math.min(root.boardArea.width * 0.66,
+                                                     root.boardArea.height * 0.64, 560)
             x: root.boardArea.x + (root.boardArea.width - width) / 2
-            y: root.boardArea.y + (root.boardArea.height - height) / 2 - 18
+            y: root.boardArea.y + (root.boardArea.height - height) / 2 - 28
             width: boxSide
-            height: boxSide * 0.78
+            height: boxSide * 0.80
             closed: true
             asleep: false
             showDice: false
+            boardSize: root.solo.boardSize
             visible: root.boxShown
             opacity: root.boxShown ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.base } }
@@ -252,10 +286,13 @@ FocusScope {
         }
 
         Text {
+            id: boxCaption
             visible: root.boxShown
-            anchors.horizontalCenter: parent.horizontalCenter
+            width: Math.min(boxArt.width * 1.2, root.boardArea.width)
+            x: boxArt.x + (boxArt.width - width) / 2
             y: boxArt.y + boxArt.height + Theme.space4
-            text: qsTr("Shake to open")
+            horizontalAlignment: Text.AlignHCenter
+            text: SoloWording.shakeToOpen
             font.family: Theme.fontFamily
             font.pixelSize: Theme.headingSize
             color: Theme.inkSecondary
@@ -264,14 +301,17 @@ FocusScope {
         // The 3D theatre: the shake and the drop only.
         BoardScene {
             id: scene
-            // The same breathing room the flat tray has, so the 3D box does not
-            // swell edge to edge and then shrink at the landing.
-            x: root.boardArea.x + Theme.space4
-            y: root.boardArea.y + Theme.space4
-            width: root.boardArea.width - 2 * Theme.space4
-            height: root.boardArea.height - 2 * Theme.space4
-            // The camera comes in as the dice settle; keep the box's outer rim
-            // inside the stage instead of letting it paint across the panel.
+            // Exactly the flat board's rectangle, with no inset: the settled 3D
+            // dice and the flat dice have to occupy the same pixels for the
+            // cross-fade to read as one object changing surface. The scene's
+            // own overdraw may paint past this rect; the panel is drawn after
+            // it, so nothing spills into the panel.
+            x: root.boardArea.x
+            y: root.boardArea.y
+            width: root.boardArea.width
+            height: root.boardArea.height
+            // The full board rectangle is what aligns the settle; clipping keeps
+            // the scene's overdraw out of the app bar above and the panel beside.
             clip: true
             reducedMotion: Theme.reducedMotion
             LayoutMirroring.enabled: false
@@ -341,15 +381,20 @@ FocusScope {
                 x: rule.wide && !Theme.reducedMotion ? (1 - shown) * width : 0
                 y: !rule.wide && !Theme.reducedMotion ? (1 - shown) * height : 0
                 onHistoryRequested: history.open = true
+                onFinishRequested: root.finishBoard()
             }
         }
 
         // --- the action bar -------------------------------------------------------
+        // It belongs to the board, not to the whole window: Clear and Done line
+        // up with the board's edge and never sit under the panel. The two
+        // controls share a baseline and a gap, so Done is no longer a giant
+        // green block floating beside a small Clear.
         Rectangle {
             visible: root.actionBarShown
-            x: 0
+            x: root.boardArea.x
             y: stage.height - Theme.actionBarHeight
-            width: root.width
+            width: root.boardArea.width
             height: Theme.actionBarHeight
             color: Theme.surface
             border.width: 0
@@ -361,23 +406,29 @@ FocusScope {
                 color: Theme.line
             }
 
-            Row {
+            RowLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Theme.space6
                 anchors.rightMargin: Theme.space6
                 spacing: Theme.space4
 
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Math.max(120, parent.width - 360)
-                    spacing: 1
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 2
                     Text {
+                        Layout.fillWidth: true
+                        // A found word is the big line; the praise is the small
+                        // one. Keeping them apart is what stops "SIR — you found
+                        // a word!" from eliding in the board's half of the bar.
                         text: root.shaking ? qsTr("Shaking the box…")
                                            : (root.feedbackText.length > 0 ? root.feedbackText
                                               : (root.solo.path.length > 0 ? root.currentWord()
                                                                            : qsTr("Make a word")))
-                        font.family: root.feedbackWord ? Theme.fontFamily : Theme.uiFont
-                        font.pixelSize: root.feedbackWord ? Theme.wordSize : Theme.headingSize
+                        font.family: root.feedbackWord || root.solo.path.length > 0
+                                     ? Theme.fontFamily : Theme.uiFont
+                        font.pixelSize: root.feedbackWord || root.solo.path.length > 0
+                                        ? Theme.wordSize : Theme.headingSize
                         font.weight: Font.DemiBold
                         color: root.shaking ? Theme.inkSecondary
                                             : (root.feedbackText.length > 0 && !root.feedbackWord
@@ -385,24 +436,34 @@ FocusScope {
                         elide: Text.ElideRight
                     }
                     Text {
-                        visible: !root.shaking && root.solo.path.length > 0
-                        text: qsTr("Tap the last die again, or press Done")
+                        Layout.fillWidth: true
+                        visible: !root.shaking
+                                 && (root.feedbackDetail.length > 0 || root.solo.path.length > 0)
+                        text: root.feedbackDetail.length > 0 ? root.feedbackDetail
+                                                             : qsTr("Tap the last die again, or press Done")
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.smallSize
                         color: Theme.inkSecondary
+                        elide: Text.ElideRight
                     }
                 }
 
                 AppButton {
+                    Layout.preferredWidth: 96
+                    Layout.preferredHeight: 64
+                    Layout.alignment: Qt.AlignVCenter
                     visible: root.actionShown
-                    size: "min"
+                    size: "child"
                     variant: "secondary"
                     label: qsTr("Clear")
                     accessibleName: qsTr("Clear the word")
-                    enabled: root.solo.path.length > 0
+                    enabled: root.solo.path.length > 0 || root.feedbackText.length > 0
                     onClicked: root.solo.clearPath()
                 }
                 AppButton {
+                    Layout.preferredWidth: 160
+                    Layout.preferredHeight: Theme.targetPrimary
+                    Layout.alignment: Qt.AlignVCenter
                     visible: root.actionShown
                     size: "primary"
                     variant: "primary"
@@ -444,7 +505,9 @@ FocusScope {
                     Text {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
-                        text: qsTr("You found all %1 words!").arg(root.solo.found.length)
+                        text: root.finishSummary
+                              ? SoloWording.finishTitle
+                              : qsTr("You found all %1 words!").arg(root.solo.found.length)
                         font.family: Theme.uiFont
                         font.pixelSize: Theme.titleSize
                         font.weight: Font.ExtraBold
@@ -454,10 +517,21 @@ FocusScope {
                     Text {
                         width: parent.width
                         horizontalAlignment: Text.AlignHCenter
-                        text: qsTr("Look at the jewels you collected.")
+                        text: qsTr("%1 points  ·  %2 stars").arg(root.solo.boardPoints).arg(root.solo.boardStars)
+                        font.family: Theme.monoFont
+                        font.pixelSize: Theme.labelSize
+                        color: Theme.goldInk
+                    }
+                    Text {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: root.finishSummary
+                              ? SoloWording.finishBody
+                              : qsTr("Look at the jewels you collected.")
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.bodySize
                         color: Theme.inkSecondary
+                        wrapMode: Text.WordWrap
                     }
                     Row {
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -496,8 +570,12 @@ FocusScope {
                             size: "child"
                             label: qsTr("Home")
                             onClicked: {
-                                root.solo.celebrated();
-                                root.solo.again();
+                                if (root.finishSummary) {
+                                    root.leaveFinishSummary();
+                                } else {
+                                    root.solo.celebrated();
+                                    root.solo.again();
+                                }
                                 root.homeRequested();
                             }
                         }
@@ -507,8 +585,13 @@ FocusScope {
                             label: qsTr("Play again")
                             iconName: "again"
                             onClicked: {
-                                root.solo.celebrated();
-                                root.solo.again();
+                                if (root.finishSummary) {
+                                    root.leaveFinishSummary();
+                                    root.solo.shake();
+                                } else {
+                                    root.solo.celebrated();
+                                    root.solo.again();
+                                }
                             }
                         }
                     }
@@ -554,6 +637,7 @@ FocusScope {
                 root.pendingSeed = root.solo.seed;
                 playStart.restart();
                 root.feedbackText = "";
+                root.feedbackDetail = "";
                 break;
             }
             case "box":
@@ -561,7 +645,9 @@ FocusScope {
                 settleFade.stop();
                 root.settlingNow = false;
                 root.pendingBoard = null;
+                root.finishSummary = false;
                 root.feedbackText = "";
+                root.feedbackDetail = "";
                 break;
             case "playing":
                 // The scene has settled. Keep it for one cross-fade, under the
@@ -574,6 +660,7 @@ FocusScope {
                 settleFade.stop();
                 root.settlingNow = false;
                 root.feedbackText = "";
+                root.feedbackDetail = "";
                 break;
             }
         }
@@ -581,13 +668,19 @@ FocusScope {
         function onTraced(kind, path, word, tier, stars, again, newBest, cleared) {
             if (kind === "word") {
                 root.feedbackWord = true;
-                root.feedbackText = word.toUpperCase() + " — " + qsTr("you found a word!");
+                root.feedbackText = word.toUpperCase() + "!";
+                root.feedbackDetail = again ? qsTr("You found this one already.")
+                                            : qsTr("You found a word. +%1 points").arg(
+                                                  root.solo.found.length > 0
+                                                  ? root.solo.found[root.solo.found.length - 1].points : 0);
             } else if (kind === "tick") {
                 root.feedbackWord = false;
-                root.feedbackText = qsTr("That's a real word — not on this board.");
+                root.feedbackText = qsTr("That's a real word.");
+                root.feedbackDetail = qsTr("It is not on this board.");
             } else {
                 root.feedbackWord = false;
-                root.feedbackText = qsTr("Not this time — try another.");
+                root.feedbackText = qsTr("Not this time.");
+                root.feedbackDetail = qsTr("Try another word.");
             }
             feedbackTimer.restart();
         }

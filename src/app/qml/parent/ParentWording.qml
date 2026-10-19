@@ -40,14 +40,19 @@ QtObject {
     // --- the store's notes ---------------------------------------------------
     readonly property string noteUnreadable: qsTr("The saved progress could not be read, so a new one was started. The old file was kept on this device.")
     readonly property string noteNewer: qsTr("The saved progress was made by a newer version of this app. It has been left as it is, and nothing will be saved this time.")
-    readonly property string noteUnsaved: qsTr("Progress could not be saved on this device.")
+    readonly property string noteUnsaved: qsTr("Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.")
+    readonly property string retry: qsTr("Retry")
+    readonly property string saved: qsTr("Saved on this device.")
+    readonly property string saveStillNotSaved: qsTr("Still not saved. The board can still be played; progress may not last after the app closes.")
 
     // --- the gate -------------------------------------------------------------
-    readonly property string gateTitle: qsTr("For parents")
-    readonly property string gateInstruction: qsTr("Hold both circles at the same time for two seconds.")
-    readonly property string gateKeys: qsTr("With a mouse and a keyboard: hold the left circle with the mouse and press Space.")
-    readonly property string gateEnterHold: qsTr("Or hold Enter for two seconds.")
-    readonly property string gateSpot: qsTr("Open the parent area. Hold both circles with two fingers, or activate this to open it.")
+    readonly property string gateTitle: qsTr("For grown-ups")
+    readonly property string gateInstruction: qsTr("Press and hold for two seconds.")
+    readonly property string gateWhy: qsTr("This keeps little fingers out of the settings and the progress.")
+    readonly property string gateKeys: qsTr("With a keyboard, hold Space or Enter for two seconds.")
+    readonly property string gateHoldButton: qsTr("Hold to enter")
+    readonly property string gateHoldHint: qsTr("Keep holding until the bar is full")
+    readonly property string gateSpot: qsTr("Open the parent area")
 
     // --- the dashboard ---------------------------------------------------------
     //: The graphemes of the phonics phase, and how often each has come up.
