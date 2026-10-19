@@ -2,7 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
+#include <utility>
 
+#include "scratch.hpp"
 #include "wjs/profiling.hpp"
 #include "wjs/scan/board_finder.hpp"
 #include "wjs/scan/glyph_reader.hpp"
@@ -76,15 +79,30 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
         tally.largest_buffers = std::max(tally.largest_buffers, tally.buffers - buffers_before);
     };
 
+    // The picture chain, into this thread's scratch so that a warm read allocates
+    // nothing (src/scan/src/scratch.hpp): the luma of the frame, the analysis
+    // picture it is averaged down to, and the working picture the board is looked
+    // for in. A picture that already fits is used as it is - a pointer, where it
+    // was a whole copy before.
+    detail::Scratch& scratch = detail::thread_scratch();
+
     int to_analysis = 1;
     int to_working = 1;
-    const GrayImage luma = luma_from_frame(frame);
-    const GrayImage analysis = shrink(luma, options.analysis_size, to_analysis);
-    const GrayImage working = shrink(analysis, options.working_size, to_working);
+    {
+        auto zone = profiling::zone<"scan.decode_frame">();
+        detail::luma_into(scratch.luma, frame);
+    }
+    detail::shrink_into(scratch.analysis, scratch.luma, options.analysis_size, to_analysis);
+    const GrayImage* analysis = to_analysis > 1 ? &scratch.analysis : &scratch.luma;
+    {
+        auto zone = profiling::zone<"scan.convert_working">();
+        detail::shrink_into(scratch.working, *analysis, options.working_size, to_working);
+    }
+    const GrayImage* working = to_working > 1 ? &scratch.working : analysis;
     tally.working_pixels +=
-        static_cast<std::uint64_t>(working.width) * static_cast<std::uint64_t>(working.height);
+        static_cast<std::uint64_t>(working->width) * static_cast<std::uint64_t>(working->height);
 
-    const std::optional<BoardFind> found = find_board(working);
+    const std::optional<BoardFind> found = detail::find_board_using(*working, 8, scratch);
     if (!found) {
         finish();
         return std::unexpected(ReadError::board_not_found);
@@ -95,13 +113,20 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
     for (std::size_t k = 0; k < 4; ++k) {
         outline[k] = found->corners[k] * static_cast<double>(to_working);
     }
-    const GrayImage board = warp_to_square(analysis, outline, options.board_side);
+    {
+        auto zone = profiling::zone<"scan.warp_board">();
+        detail::warp_into(scratch.board, *analysis, outline, options.board_side);
+    }
+    const GrayImage& board = scratch.board;
 
+    // The board's column and row profiles, computed once and shared by the cell
+    // count and the cell centres (each computed them for itself before).
+    const BoardProfiles profiles = profiles_of(board);
     std::optional<CellCount> count;
     if (options.size) {
         count = CellCount{*options.size, 1.0};
     } else {
-        count = count_cells(board, options.min_size, options.max_size, found->dice,
+        count = count_cells(board, profiles, options.min_size, options.max_size, found->dice,
                             found->size_estimate);
     }
     if (!count) {
@@ -126,59 +151,81 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
             static_cast<double>(options.board_side) / static_cast<double>(count->size);
         const double half_side =
             kPatchOfCell * cell * (options.glyph_height_ratio / kStrokeFontGlyphRatio);
-        const CellCentres centres = locate_cells(board, count->size);
+        const CellCentres centres = locate_cells(board, profiles, count->size);
 
         // The glyph height, from a sample of the cells read at trial heights: the
         // height at which they match best. Coarse (a quarter either way), then fine.
+        // The sample cells are read again when the board's tiles are read at the
+        // winning height; the winning trial's reads are kept and used then, so
+        // each sample cell is read once at that height, not twice.
         double scale = 1.0;
+        std::vector<std::size_t> sample_cells;
+        std::vector<GlyphRead> sample_reads;
         if (options.estimate_glyph_height) {
-            std::vector<Point> sample_cells;
             const std::size_t cells = count->size * count->size;
             const std::size_t step = std::max<std::size_t>(1, cells / 8);
             for (std::size_t k = step / 2; k < cells; k += step) {
-                sample_cells.push_back({centres.x[k % count->size], centres.y[k / count->size]});
+                sample_cells.push_back(k);
             }
             const auto fit_at = [&](double trial) {
                 double total = 0.0;
                 int seen = 0;
-                for (const Point& centre : sample_cells) {
+                std::vector<GlyphRead> reads;
+                reads.reserve(sample_cells.size());
+                for (const std::size_t k : sample_cells) {
+                    const Point centre{centres.x[k % count->size], centres.y[k / count->size]};
                     const GlyphRead read =
                         reader.read(board, centre, half_side * trial, options.min_contrast);
+                    reads.push_back(read);
                     if (read.has_ink) {
                         total += read.best[0].score;
                         ++seen;
                     }
                 }
-                return seen == 0 ? -1.0 : total / seen;
+                return std::pair{seen == 0 ? -1.0 : total / seen, std::move(reads)};
             };
             double best_fit = -1e300;
             for (const double trial : {0.8, 1.0, 1.25}) {
-                const double fit = fit_at(trial);
+                auto [fit, reads] = fit_at(trial);
                 if (fit > best_fit) {
                     best_fit = fit;
                     scale = trial;
+                    sample_reads = std::move(reads);
                 }
             }
             const double middle = scale;
             for (const double trial : {middle / 1.1, middle * 1.1}) {
-                const double fit = fit_at(trial);
+                auto [fit, reads] = fit_at(trial);
                 if (fit > best_fit) {
                     best_fit = fit;
                     scale = trial;
+                    sample_reads = std::move(reads);
                 }
             }
         }
         reading.glyph_height_ratio = options.glyph_height_ratio * scale;
         reading.tiles.reserve(count->size * count->size);
+        // The sample cells' reads at the winning height, for the tile loop to
+        // take instead of reading those cells again.
+        std::vector<std::optional<GlyphRead>> cached(count->size * count->size);
+        for (std::size_t i = 0; i < sample_cells.size(); ++i) {
+            cached[sample_cells[i]] = sample_reads[i];
+        }
         std::size_t blank = 0;
-        for (std::size_t row = 0; row < count->size; ++row) {
-            for (std::size_t column = 0; column < count->size; ++column) {
-                const Point centre{centres.x[column], centres.y[row]};
-                const GlyphRead read =
-                    reader.read(board, centre, half_side * scale, options.min_contrast);
-                reading.tiles.push_back(to_tile(read, options));
-                if (reading.tiles.back().letters.empty()) {
-                    ++blank;
+        {
+            auto glyph_zone = profiling::zone<"scan.read_glyphs">();
+            for (std::size_t row = 0; row < count->size; ++row) {
+                for (std::size_t column = 0; column < count->size; ++column) {
+                    const std::size_t index = row * count->size + column;
+                    const Point centre{centres.x[column], centres.y[row]};
+                    const GlyphRead read =
+                        cached[index] ? *cached[index]
+                                      : reader.read(board, centre, half_side * scale,
+                                                    options.min_contrast);
+                    reading.tiles.push_back(to_tile(read, options));
+                    if (reading.tiles.back().letters.empty()) {
+                        ++blank;
+                    }
                 }
             }
         }

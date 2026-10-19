@@ -7,6 +7,7 @@
 
 #include "wjs/platform/board_reader.hpp"
 #include "wjs/platform/camera.hpp"
+#include "wjs/profiling.hpp"
 #include "wjs/scan/reader.hpp"
 
 namespace wjs::app {
@@ -386,6 +387,9 @@ void ScanModel::tryFrame() {
 }
 
 void ScanModel::readFrame(const wjs::scan::OwnedFrame& frame) {
+    // The model's whole per-frame work: one captured frame becomes a reading or
+    // a reason why not (the camera poll that fetched it is not in here).
+    auto zone = wjs::profiling::zone<"scan.process_frame">();
     frame_timer_.stop();
     // The camera stops as soon as a frame is in hand, before the read: the
     // picture of a room is in memory, and the next one is not needed.
