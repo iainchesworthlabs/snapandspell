@@ -64,11 +64,18 @@ with the rulesets.
 | `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes. The leg also builds the Qt application, runs its offscreen smoke, and packages a ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64` artifact). |
 | `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. |
-| `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and passes its tests, and a gcovr report of `src/` is produced as the `coverage-report` artifact (HTML, plus `summary.json` and a table in the job summary). **Report only: there is no threshold.** |
+| `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit tier, and gcovr over `src/lib` **fails the job below the project's minimum standard: 90% of lines and 80% of branches**. The HTML, `summary.json` and the table in the job summary are the `coverage-report` artifact. The same gate is `coverage-unit` locally ([Testing](testing.md#coverage)). |
 | `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one leg that builds a Release preset) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks run only in a manual run. **Not a required check** (the rulesets are as they were). |
 
-What a build-and-test leg's ctest contains: the Catch2 unit suite, the repository
-checks `platform.fragments` (every platform fragment satisfies the platform
+What a build-and-test leg's ctest contains: the four tiers of
+[Testing](testing.md#the-tiers) - the unit suite, the integration suite (the
+scanner on every leg; the window's model and the Quick Test suites where Qt is
+built), the system suite (`system.cli.*` runs `wjs-cli` itself and
+`system.install` runs `cmake --install` into a throw-away prefix and executes
+the installed solver on every leg; `system.app.*` runs the application's
+start-up where the window is built) - and the repository
+checks, which carry the `quality` label: `platform.fragments` (every platform
+fragment satisfies the platform
 contract, on whichever host this is, including that every interface header in
 `src/platforms/interfaces` has an implementation in the fragment's sources),
 `platform.isolation` (the same script as the `platform-isolation` job; it needs
@@ -195,12 +202,14 @@ profiling builds (`windows-msvc-profiling`, `linux-gcc-profiling`,
 named `profiling-windows`, `profiling-linux` and `profiling-macos`, or
 `profiling` for all three. They configure, build warning-free against the real
 Tracy headers, and run all of ctest, which includes the test that the real
-variant of `wjs/profiling.hpp` is the one in use. A push does not pay for them:
-the client opens a network port, and vcpkg builds Tracy's tools for the host
-(on Linux that is a chain of ports that needs autoconf and Python's venv). An unknown
-name fails the run rather than running nothing. Jobs of a dispatched run are
-named `dispatch - <leg>`, deliberately not the names of the required checks: a
-run that skips legs would otherwise report "skipped" (which counts as a pass)
+variant of `wjs/profiling.hpp` is the one in use. A push does not pay for them
+as well as for the debug legs, which build Tracy by default (a Debug build is
+instrumented: [Profiling](profiling.md)): the client opens a network port, and
+vcpkg builds Tracy's tools for the host in every Linux leg (there that is a
+chain of ports that needs autoconf and Python's venv). An unknown name fails
+the run rather than running nothing. Jobs of a dispatched run are named
+`dispatch - <leg>`, deliberately not the names of the required checks: a run
+that skips legs would otherwise report "skipped" (which counts as a pass)
 under a required check's name on the branch's head commit.
 
 A branch other than `main` and `develop` gets no CI from a push; open a pull
@@ -355,18 +364,24 @@ suspects, in order of likelihood:
 4. **The vcpkg clone**: one without enough history for the baseline (the
    setup action clones in full for that reason), or a `cmake/vcpkg-commit.txt`
    the fork does not have.
-5. **Coverage**: gcovr refusing a counter; the report step passes
+5. **Coverage**: gcovr refusing a counter, or the gate refusing the tree. The
+   report step passes
    `--gcov-ignore-parse-errors negative_hits.warn_once_per_file` for the known
-   gcov bug, and the coverage preset updates counters atomically.
+   gcov bug, and the coverage preset updates counters atomically. A failure
+   that names a percentage and a floor is the gate, not the tool: the message
+   lists the file and line in `summary.json`/the HTML report.
 
 ## Not here yet
 
 clang-tidy (the `.clang-tidy` file exists; there is no job), the Release
-presets on Windows and macOS (Linux's is the `Performance` leg), a coverage
-threshold, Qt on the Linux and macOS legs (the application has only been built
-on Windows so far), the Android/iOS targets (and with them the real Qt Sensors
-and haptics backends; the desktops answer haptics with the shared no-op), and
-web. Each is a new job or a flag flip, not a redesign.
+presets on Windows and macOS (Linux's is the `Performance` leg), Qt on the Linux
+and macOS legs (the application has only been built on Windows so far), and the
+Android/iOS targets (and with them the real Qt Sensors and haptics backends; the
+desktops answer haptics with the shared no-op), and web. The Windows clang-cl
+coverage preset (`windows-clang-coverage`, with `coverage-unit` and
+`coverage-ui`) is available for a local run but is not a CI job: the Linux GCC
+job runs the same unit gate. Each remaining item is a new job or a flag flip,
+not a redesign.
 
 Packaging is now built on the Windows leg only (above). The Linux `.deb`, `.rpm`
 and `.tgz` and the macOS `.dmg` are configured and their generators are selected

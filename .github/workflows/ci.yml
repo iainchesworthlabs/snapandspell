@@ -29,9 +29,10 @@ on:
         description: >-
           Comma-separated legs to run, no spaces: clang-format,
           platform-isolation, windows, linux, macos, coverage, perf - or "all".
-          The profiling builds (Tracy) are never part of "all": name them -
-          profiling (all three), profiling-windows, profiling-linux or
-          profiling-macos.
+          The dedicated profiling builds (optimised, for Tracy numbers) are
+          never part of "all": name them - profiling (all three),
+          profiling-windows, profiling-linux or profiling-macos. The debug
+          legs build Tracy by default (docs/profiling.md), whatever legs run.
         type: string
         default: all
 
@@ -144,7 +145,9 @@ jobs:
           # The profiling presets (RelWithDebInfo with Tracy: docs/profiling.md)
           # are the same three platforms, and are only ever run when a dispatch
           # names them: the client opens a network port and the vcpkg tools
-          # take a while to build, so a push does not pay for them.
+          # take a while to build, so a push does not pay for them as well as
+          # for the debug legs, which are instrumented by default (their Tracy
+          # is a debug build's, for connecting, not for numbers).
           profiling='[
             {"leg": "profiling-windows", "name": "Profiling (Windows, MSVC)",     "os": "windows-2025-vs2026", "preset": "windows-msvc-profiling", "triplet": "x64-windows"},
             {"leg": "profiling-linux",   "name": "Profiling (Linux, GCC)",        "os": "ubuntu-26.04",        "preset": "linux-gcc-profiling",    "triplet": "x64-linux"},
@@ -178,10 +181,11 @@ jobs:
           echo "matrix=$selected" >> "$GITHUB_OUTPUT"
 
   # Configure, build and test one preset per desktop platform. The Debug
-  # presets turn on the sanitizers and every warning is an error, so a green
-  # leg means: the tree compiles warning-free on that compiler, and the unit
-  # tests, platform.fragments and platform.isolation pass under ASan (and
-  # UBSan where the compiler has it).
+  # presets turn on the sanitizers, Tracy (on by default for Debug builds:
+  # docs/profiling.md) and every warning is an error, so a green leg means:
+  # the tree compiles warning-free on that compiler, and the unit tests,
+  # platform.fragments and platform.isolation pass under ASan (and UBSan where
+  # the compiler has it).
   build-and-test:
     name: ${{ github.event_name == 'workflow_dispatch' && format('dispatch - {0}', matrix.name) || matrix.name }}
     needs: plan
@@ -273,12 +277,13 @@ jobs:
             Windows) cl 2>&1 | head -n 1 || true ;;
           esac
 
-      # Only the Linux profiling build needs this: vcpkg builds Tracy's
-      # command-line tools for the host, and on Linux that is a chain of
-      # autotools ports (dbus, libxcrypt, libsystemd) that the hosted image
-      # does not carry the tools for.
-      - name: Install what vcpkg needs for Tracy's tools (Linux profiling)
-        if: ${{ matrix.leg == 'profiling-linux' }}
+      # vcpkg builds Tracy's command-line tools for the host in every Linux
+      # leg now (the debug presets have Tracy on by default, and the profiling
+      # leg builds it for numbers), and on Linux that is a chain of autotools
+      # ports (dbus, libxcrypt, libsystemd) that the hosted image does not
+      # carry the tools for.
+      - name: Install what vcpkg needs for Tracy's tools (Linux)
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev python3-venv
 
       # The Windows leg also builds the Qt Quick application and its 3D scene
@@ -350,9 +355,13 @@ jobs:
       # plugins and QML modules (Quick 3D included), the dictionary, the dice,
       # NOTICES.txt and LICENSE.txt, writes SHA256SUMS, unpacks it, solves a
       # board with the packaged wjs-cli and runs the packaged window's offscreen
-      # smoke (docs/building.md#checking-a-package). NSIS is configured for a
-      # machine that has makensis; this step asks for the ZIP on purpose, and
-      # nothing here depends on whether the runner has NSIS.
+      # smoke (docs/building.md#checking-a-package). This leg packages its
+      # Debug build, so the artifact is a development build and carries
+      # TracyClient.dll by design; the packages that ship come from the
+      # release presets, which have Tracy off (tests/profiling/check_presets.cmake).
+      # NSIS is configured for a machine that has makensis; this step asks for
+      # the ZIP on purpose, and nothing here depends on whether the runner has
+      # NSIS.
       - name: Package and check the ZIP (Windows)
         if: matrix.leg == 'windows'
         shell: pwsh

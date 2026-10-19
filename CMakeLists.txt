@@ -62,8 +62,28 @@ if(NOT DEFINED WJS_BUILD_TESTS OR WJS_BUILD_TESTS)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif()
 
-# Tracy is opt-in: the one switch (declared in cmake/Tracy.cmake) both makes
-# the profiling calls real and asks vcpkg for the client and the tools.
+# Tracy, and the one switch for it, before project(): the vcpkg manifest
+# feature must be chosen before the toolchain reads the manifest at project()
+# time. A Debug build is instrumented by default, so a regular development
+# build can be connected to by the profiler without any option; every
+# configuration a package can be made from (Release and the rest) is not,
+# unless a person turns the option on. Multi-config generators have no build
+# type at configure time and are opt-in: the coverage preset is that shape,
+# and Tracy would distort coverage. cmake/Tracy.cmake makes the calls real
+# from this one switch, and tests/profiling/check_presets.cmake holds the
+# policy.
+if(CMAKE_CONFIGURATION_TYPES)
+    set(_wjs_tracy_default OFF)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(_wjs_tracy_default ON)
+else()
+    set(_wjs_tracy_default OFF)
+endif()
+option(WJS_ENABLE_TRACY
+    "Enable Tracy profiler instrumentation (on by default for a Debug build; never for a shipped build)"
+    ${_wjs_tracy_default})
+unset(_wjs_tracy_default)
+
 if(WJS_ENABLE_TRACY)
     list(APPEND VCPKG_MANIFEST_FEATURES "profiling")
 endif()
@@ -257,7 +277,7 @@ message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_N
 message(STATUS "  Build CLI   : ${WJS_BUILD_CLI}")
 message(STATUS "  Build app   : ${WJS_BUILD_APP}")
 message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")
-message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY}")
+message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY} (default: ON for a Debug build type)")
 message(STATUS "  Reviewed phonics data required : ${WJS_REQUIRE_REVIEWED_PHONICS}")
 message(STATUS "  Build shake prototype : ${WJS_BUILD_SHAKE_PROTOTYPE}")
 message(STATUS "  Package generators : ${WJS_PACKAGE_GENERATORS}")

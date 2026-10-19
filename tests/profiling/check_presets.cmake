@@ -1,24 +1,33 @@
 # ---------------------------------------------------------------------------
-# Nothing that ships has Tracy in it.
+# Tracy is on by default in Debug builds, and never in anything that ships.
 #
 #   cmake -DREPO_ROOT=<repository root> -P tests/profiling/check_presets.cmake
 #
 # A Tracy client opens a TCP listener (port 8086, on every interface) and
 # answers UDP discovery broadcasts, independently of anything the application
 # does (docs/profiling.md, "The profiler listens on the network"). So a build
-# with it in is a development build and is never packaged. This is the check
-# that a shipped preset did not quietly turn it on, and it runs in every
-# ctest, which is every CI leg:
+# with it in is a development build and is never packaged. A Debug build is a
+# development build by definition, so the policy is: Debug has Tracy ON by
+# default (a regular build can be connected to by the profiler with no option),
+# everything a package is made from has it OFF unless a person turns it on by
+# hand. This is the check that the policy holds, and it runs in every ctest,
+# which is every CI leg:
 #
 #   1. Resolving `inherits` the way CMake does, WJS_ENABLE_TRACY is ON for a
-#      configure preset only if the preset is named *-profiling (or is the
-#      hidden `profiling` preset those inherit). The *-release presets, which
-#      are what a package is built from, are named in the failure if they are.
-#   2. The option's default, in cmake/Tracy.cmake, is OFF.
+#      configure preset exactly when the preset is a debug or profiling one
+#      (the hidden `debug` / `profiling` presets, or named *-debug /
+#      *-profiling). The *-release and *-coverage presets, which are what a
+#      package and a coverage report are made from, resolve to OFF and are
+#      named in the failure if they do not.
+#   2. The option's default, declared in the top-level CMakeLists.txt before
+#      project(), is ON for a Debug build type and OFF for every other build
+#      type and for multi-config generators, and cmake/Tracy.cmake declares
+#      no second default of its own.
 #   3. Tracy is a vcpkg manifest FEATURE (`profiling`) and not a base
 #      dependency, and the feature is not a default feature.
 #   4. The top-level CMakeLists.txt adds that feature only when the option is on.
-#   5. No CI workflow turns the option on by hand.
+#   5. No CI workflow sets the option by hand: the presets and the default
+#      decide, so a leg that quietly overrides either is a failure.
 #
 # It runs on whatever host runs the tests: only the presets' JSON is read.
 # ---------------------------------------------------------------------------
@@ -100,7 +109,7 @@ function(_effective name result)
     set(${result} "" PARENT_SCOPE)
 endfunction()
 
-set(_profiling_presets "")
+set(_instrumented_presets "")
 foreach(_name IN LISTS _names)
     _effective("${_name}" _value)
     if(_value MATCHES "^(ON|TRUE|YES|Y|1)$" OR _value MATCHES "^[1-9][0-9]*$")
@@ -108,31 +117,56 @@ foreach(_name IN LISTS _names)
     else()
         set(_on FALSE)
     endif()
+
+    set(_is_debug_name FALSE)
+    if(_name MATCHES "-debug$" OR _name STREQUAL "debug")
+        set(_is_debug_name TRUE)
+    endif()
     set(_is_profiling_name FALSE)
     if(_name MATCHES "-profiling$" OR _name STREQUAL "profiling")
         set(_is_profiling_name TRUE)
     endif()
 
-    if(_on AND NOT _is_profiling_name)
-        _fail("configure preset '${_name}' turns WJS_ENABLE_TRACY on; only *-profiling presets may")
+    # ON is allowed exactly for the debug and profiling presets.
+    if(_on AND NOT (_is_debug_name OR _is_profiling_name))
+        _fail("configure preset '${_name}' turns WJS_ENABLE_TRACY on; only the *-debug and *-profiling presets may")
     endif()
+    # The policy itself: a debug preset IS instrumented.
+    if(_is_debug_name AND NOT _on)
+        _fail("the debug preset '${_name}' does not resolve WJS_ENABLE_TRACY to ON; a Debug build is instrumented by default")
+    endif()
+    # Nothing a package or a coverage report is made from may be.
     if(_name MATCHES "release" AND _on)
         _fail("the release preset '${_name}' has Tracy in it; a package is built from it")
     endif()
+    if((_name MATCHES "coverage" OR _name STREQUAL "coverage") AND _on)
+        _fail("the coverage preset '${_name}' has Tracy in it; the two instrumentations corrupt each other's numbers")
+    endif()
     if(_on)
-        list(APPEND _profiling_presets "${_name}")
+        list(APPEND _instrumented_presets "${_name}")
     endif()
 endforeach()
 
-if(NOT _profiling_presets)
-    _fail("no preset turns WJS_ENABLE_TRACY on, so the profiling build cannot be made from a preset")
+if(NOT _instrumented_presets)
+    _fail("no preset turns WJS_ENABLE_TRACY on, so an instrumented build cannot be made from a preset")
 endif()
 
 # ---- 2. the option's default -------------------------------------------------
 
+file(READ "${REPO_ROOT}/CMakeLists.txt" _root_cmake)
+if(NOT _root_cmake MATCHES "option\\(WJS_ENABLE_TRACY")
+    _fail("the top-level CMakeLists.txt does not declare option(WJS_ENABLE_TRACY ...); the manifest feature must be chosen before project()")
+endif()
+if(NOT _root_cmake MATCHES "if\\(CMAKE_CONFIGURATION_TYPES\\)[\r\n \t]+set\\(_wjs_tracy_default OFF\\)")
+    _fail("the top-level CMakeLists.txt does not default WJS_ENABLE_TRACY to OFF for multi-config generators")
+endif()
+if(NOT _root_cmake MATCHES "elseif\\(CMAKE_BUILD_TYPE STREQUAL \"Debug\"\\)[\r\n \t]+set\\(_wjs_tracy_default ON\\)")
+    _fail("the top-level CMakeLists.txt does not default WJS_ENABLE_TRACY to ON for a Debug build type")
+endif()
+
 file(READ "${REPO_ROOT}/cmake/Tracy.cmake" _tracy_cmake)
-if(NOT _tracy_cmake MATCHES "option\\(WJS_ENABLE_TRACY \"[^\"]*\" OFF\\)")
-    _fail("cmake/Tracy.cmake: option(WJS_ENABLE_TRACY ...) is not declared with default OFF")
+if(_tracy_cmake MATCHES "option\\(WJS_ENABLE_TRACY")
+    _fail("cmake/Tracy.cmake declares a second default for WJS_ENABLE_TRACY; the top-level CMakeLists.txt is its one declaration")
 endif()
 
 # ---- 3. the manifest ---------------------------------------------------------
@@ -219,18 +253,18 @@ endif()
 file(GLOB _workflows "${REPO_ROOT}/.github/workflows/*.yml" "${REPO_ROOT}/.github/workflows/*.yaml")
 foreach(_workflow IN LISTS _workflows)
     file(READ "${_workflow}" _text)
-    if(_text MATCHES "WJS_ENABLE_TRACY=(ON|1|TRUE)")
+    if(_text MATCHES "WJS_ENABLE_TRACY=")
         get_filename_component(_file "${_workflow}" NAME)
-        _fail("${_file} turns WJS_ENABLE_TRACY on by hand; use a *-profiling preset")
+        _fail("${_file} sets WJS_ENABLE_TRACY by hand; the presets and the option's default decide")
     endif()
 endforeach()
 
 # ---- result ------------------------------------------------------------------
 
 if(_failures)
-    message(FATAL_ERROR "A shipped configuration can have Tracy in it:${_failures}")
+    message(FATAL_ERROR "The Tracy policy does not hold:${_failures}")
 endif()
 
 list(LENGTH _names _preset_count)
-list(JOIN _profiling_presets ", " _profiling_list)
-message(STATUS "OK: ${_preset_count} configure presets; Tracy is on only in: ${_profiling_list}")
+list(JOIN _instrumented_presets ", " _instrumented_list)
+message(STATUS "OK: ${_preset_count} configure presets; Tracy is on in: ${_instrumented_list}")

@@ -71,9 +71,31 @@ cmake --build --preset macos-clang-debug
 ctest --preset macos-clang-debug
 ```
 
-The programs are in `build/<preset>/bin/`: `wjs-cli` (`wjs-cli.exe` on Windows),
-`wjs_unit_tests` and `wjs_perf_tests` ([Testing](testing.md#performance-tests)). `ctest` fails if it finds no tests at all. A build can also be installed and
-made into a package; [Packaging](#packaging) has the commands and the output.
+The programs are in `build/<preset>/bin/`: `WordJewelsSolver`
+(`WordJewelsSolver.exe` on Windows), `wjs-cli` (`wjs-cli.exe`), and the test
+binaries `wjs_unit_tests` and `wjs_perf_tests`
+([Testing](testing.md#performance-tests)). The window is built when Qt 6.12 is
+found; the paragraph under [The Qt Quick window](#the-qt-quick-window) says how
+it is found and how to skip it. `ctest` fails if it finds no tests at all. A
+build can also be installed and made into a package; [Packaging](#packaging) has
+the commands and the output.
+
+The executable targets are named after the programs they make, so one of them
+can be built alone:
+
+```sh
+cmake --build --preset windows-msvc-debug --target WordJewelsSolver
+cmake --build --preset windows-msvc-debug --target wjs-cli
+```
+
+The rest of the target list is libraries (`wjs_*`), the test binaries
+(`wjs_*_tests`), and the screens' test harnesses (`wjs_parent_preview`,
+`wjs_scan_preview`, `wjs_quick_tests`). IDEs that read CMake's `FOLDER`
+property, Visual Studio's CMake Targets View among them, put the programs and
+the application's modules in an Application folder, the libraries under
+Libraries, and the tests and tools under Tests and Tools. `wjs_scan_render` is
+a one-off corpus renderer and is not part of the default build; ask for it by
+target when it is wanted ([Testing](testing.md#the-scanner)).
 
 ## Presets
 
@@ -87,7 +109,8 @@ A preset configures into `build/<preset>/` and is named
 | `windows-msvc-release` | Windows | `x64-windows` | Release |
 | `linux-gcc-debug` | Linux | `x64-linux` | Debug, with AddressSanitizer and UBSan; uses `g++` |
 | `linux-gcc-release` | Linux | `x64-linux` | Release |
-| `linux-gcc-coverage` | Linux | `x64-linux` | Debug with gcov instrumentation and the sanitizers off |
+| `linux-gcc-coverage` | Linux | `x64-linux` | Debug with gcov instrumentation and the sanitizers off; `coverage-unit` gates it at 90% lines / 80% branches |
+| `windows-clang-coverage` | Windows | `x64-windows` | Debug with LLVM source-based coverage (clang-cl, Visual Studio generator, multi-config); `coverage-unit` is the same gate |
 | `macos-clang-debug` | macOS | `arm64-osx` | Debug, with AddressSanitizer and UBSan |
 | `macos-clang-release` | macOS | `arm64-osx` | Release |
 | `windows-msvc-profiling` | Windows | `x64-windows` | RelWithDebInfo with Tracy, sanitizers off. A development build, never shipped: see [Profiling](profiling.md) |
@@ -110,25 +133,30 @@ Pass these to the configure step, for example
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `WJS_BUILD_CLI` | `ON` | Build `wjs-cli` |
-| `WJS_BUILD_APP` | `OFF` | Build the Qt Quick window. Needs Qt 6.12, including Quick 3D; the binary is GPL-3.0 only |
+| `WJS_BUILD_APP` | `AUTO` | Build the Qt Quick window. `AUTO` builds it when Qt 6.12 is found and leaves it out otherwise; `ON` requires Qt and fails the configure without it; `OFF` never looks. Needs Quick 3D, so the binary is GPL-3.0 only |
 | `WJS_BUILD_TESTS` | `ON` | Build the test suites, and register the platform tests. Turning it off also stops vcpkg building Catch2 |
-| `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the harness around the 3D board scene as `ShakePrototype`. Needs `WJS_BUILD_APP=ON` and Qt Quick 3D; the harness links the same scene module as the application, so both are GPL-3.0 only. See [the prototype](design/shake-prototype.md#how-it-was-measured) |
+| `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the harness around the 3D board scene as `ShakePrototype`. Needs the application built (`WJS_BUILD_APP=AUTO` with Qt found, or `ON`) and Qt Quick 3D; the harness links the same scene module as the application, so both are GPL-3.0 only. See [the prototype](design/shake-prototype.md#how-it-was-measured) |
 | `WJS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
-| `WJS_ENABLE_COVERAGE` | `OFF` | gcov instrumentation. Only the `linux-gcc-coverage` preset turns it on |
+| `WJS_ENABLE_COVERAGE` | `OFF` | Source coverage instrumentation, read back with gcovr (GCC/Clang) or llvm-cov (clang-cl). Only the `*-coverage` presets turn it on. See [Coverage](#coverage) |
+| `WJS_COVERAGE_MIN_LINE` | `90` | The unit tier's line floor, as a percentage. `coverage-unit` fails below it |
+| `WJS_COVERAGE_MIN_BRANCH` | `80` | The unit tier's branch floor, as a percentage. `coverage-unit` fails below it |
+| `WJS_COVERAGE_OUTPUT_DIR` | `<build>/coverage` | Where the reports and profile data are written |
 | `WJS_REQUIRE_REVIEWED_PHONICS` | `ON` for the release build types, else `OFF` | The review gate: the build runs `tools/data/check_phonics.ps1 -RequireReviewed` and stops while a file in `data/phonics` has no reviewed-by and reviewed-on header. Needs PowerShell 7. The release presets set it. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
-| `WJS_ENABLE_TRACY` | `OFF` | The Tracy profiler: makes the calls in `wjs/profiling.hpp` real, and installs the client and its tools through the vcpkg `profiling` feature. Only the `*-profiling` presets turn it on, and nothing that ships may ([Profiling](profiling.md)) |
+| `WJS_ENABLE_TRACY` | `ON` for Debug build types, else `OFF` | The Tracy profiler: makes the calls in `wjs/profiling.hpp` real, and installs the client and its tools through the vcpkg `profiling` feature. A Debug build is instrumented by default, so a regular development build can be connected to by the profiler; a Release build can be instrumented by hand, for data from a real session; nothing that ships may have it on ([Profiling](profiling.md)) |
 
 C++23 is required, with compiler extensions off, for every target.
 
 ## The Qt Quick window
 
 The window is the Solo Play game of [Application design](design/application.md)
-in Qt Quick, over the library (`src/app`; [Architecture](architecture.md#the-qt-quick-window)). It is the
-optional target `wjs_app`, built as `WordJewelsSolver` (`WordJewelsSolver.exe`
-on Windows, where it is a GUI-subsystem program with no console window; an
-application bundle on macOS). It is off by default, because it needs a prebuilt
-Qt that a machine building only the solver does not; the Windows CI leg installs
-one and turns it on.
+in Qt Quick, over the library (`src/app`; [Architecture](architecture.md#the-qt-quick-window)). Its target is
+`WordJewelsSolver`, the program it makes (`WordJewelsSolver.exe` on Windows,
+where it is a GUI-subsystem program with no console window; an application
+bundle on macOS). `WJS_BUILD_APP` is `AUTO`, so the window is built whenever a
+Qt 6.12 kit is found and the same preset still builds `wjs-cli` and the tests on
+a machine without one. Pass `-DWJS_BUILD_APP=OFF` to leave the window out
+deliberately, or `-DWJS_BUILD_APP=ON` to make a missing Qt a configure error
+(the Windows CI leg does the latter).
 
 It needs Qt 6.12 with the modules Core, Gui, Qml, Quick, Quick Controls 2,
 Quick 3D and LinguistTools (the `qttools` module: `lupdate` and `lrelease`), as
@@ -146,10 +174,10 @@ without one builds that engine's **silent variant**, or for the camera the
 typed board as the scanner's way in. The shared kit on the author's machine,
 `C:\Repos\common\qt\6.12.0\msvc2022_64`, has all three: the module archives were
 fetched from the Qt repository and merged into the kit
-(`lib/cmake/Qt6{Multimedia,Sensors,TextToSpeech}`, their DLLs in `bin`), and
-`CMAKE_PREFIX_PATH` finds them with no other flag. A kit that lacks them needs
-nothing special — configure and build as below — and `cmake/FindQt6.cmake`'s
-search path is unchanged. The Windows CI leg installs all three with
+(`lib/cmake/Qt6{Multimedia,Sensors,TextToSpeech}`, their DLLs in `bin`), and the
+kit is found with no other flag. A kit that lacks them needs
+nothing special — configure and build as below — and the silent variants are
+chosen for the missing modules. The Windows CI leg installs all three with
 [install-qt-action](https://github.com/jurplel/install-qt-action) instead of the
 PyPI aqtinstall, because Qt 6.11+ split the Windows repository per architecture
 ([CI](ci.md#toolchain-choices)).
@@ -181,14 +209,23 @@ without a speaker or a sensor; `ctest -L camera` runs the camera's cases and
 1. `-DCMAKE_PREFIX_PATH=<path to the kit>` or `-DQt6_DIR=<...>`, which always win;
 2. the `QT_ROOT_DIR` environment variable, which `install-qt-action` and similar
    tools export;
-3. the usual install locations for the platform: `C:/Qt` and `~/Qt` on
-   Windows, `~/Qt` and `/opt/Qt` and the system `qt6` directories on Linux,
-   `~/Qt` and Homebrew's `qt6` on macOS.
+3. the usual install locations for the platform: `C:/Qt`, `~/Qt` and the labs'
+   shared `C:/Repos/common/qt` on Windows; `~/Qt`, `/opt/Qt` and the system
+   `qt6` directories on Linux; `~/Qt` and Homebrew's `qt6` on macOS.
+
+With a kit in one of those places, the preset needs no flag at all:
+
+```sh
+cmake --preset windows-msvc-debug
+cmake --build --preset windows-msvc-debug --target WordJewelsSolver
+build/windows-msvc-debug/bin/WordJewelsSolver.exe
+```
+
+A kit somewhere else is named on the command line. `ON` here also proves the
+configure fails if that kit cannot be found:
 
 ```sh
 cmake --preset windows-msvc-debug -DWJS_BUILD_APP=ON -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64
-cmake --build --preset windows-msvc-debug
-build/windows-msvc-debug/bin/WordJewelsSolver.exe
 ```
 
 On Windows the build runs `windeployqt` after linking, so Qt's DLLs and the QML
@@ -427,9 +464,32 @@ off for a Debug build.
 `linux-gcc-coverage` is Debug with `WJS_ENABLE_COVERAGE=ON` and the sanitizers
 off: it compiles the library, the platform layer and the tests with
 `--coverage -fprofile-update=atomic -fno-inline`, so running the tests writes
-gcov data (`.gcda` files beside the objects). Turning that into a report is
-done with a tool such as gcovr; how CI does it, and what it requires, is in
-[CI](ci.md). See also [Testing](testing.md#coverage).
+gcov data (`.gcda` files beside the objects). `windows-clang-coverage` is the
+same build with clang-cl and LLVM's source-based coverage
+(`-fprofile-instr-generate -fcoverage-mapping`), read back with
+`llvm-profdata`/`llvm-cov`; it uses the Visual Studio generator because the
+ClangCL toolset is a multi-config one, so the build is
+`cmake --build --preset windows-clang-coverage` and the tests need
+`--config Debug` (`ctest --preset windows-clang-coverage`).
+
+Both presets define the same targets:
+
+```sh
+cmake --build --preset linux-gcc-coverage --target coverage-unit
+cmake --build --preset windows-clang-coverage --target coverage-unit
+```
+
+- `coverage-unit` runs the `unit` tier and gates `src/lib` at **90% of lines and
+  80% of branches** (the project's minimum standard). Below either floor the
+  build fails and names the report.
+- `coverage-ui` runs the `ui` tier (the Qt Quick Test suites) and reports
+  `src/app`, the C++ the QML reaches; it has no floor.
+- `coverage` runs both.
+
+The reports are under `build/<preset>/coverage/<tier>/` (`summary.json`,
+`report.txt`, `coverage.md` and HTML), and the same gate is CI's
+`Coverage (Linux, GCC)` job. See [Testing](testing.md#coverage) for the scopes,
+the thresholds and how a tier's counters are isolated.
 
 ## Platform notes
 
@@ -470,10 +530,13 @@ the build placed beside them.
   there is no `dictionaries/en.txt` beside the executable. A build copies it
   there from `data/dictionaries/en.txt`; if you moved the executable, move the
   `dictionaries` folder with it, or pass a word list with `-d <file>`.
-- **Qt is not found**: pass `-DCMAKE_PREFIX_PATH=<kit directory>` (the directory
-  that holds `lib/cmake/Qt6`), or set `QT_ROOT_DIR`. On the author's machine the
-  shared tree is `C:\Repos\common\qt\6.12.0\msvc2022_64`, and
-  `C:\Repos\common\env.ps1` sets it: dot-source that script before configuring.
+- **The window is missing from the build**: `WJS_BUILD_APP=AUTO` found no Qt
+  6.12 and built the command-line program and tests alone; the configure says so.
+  Pass `-DCMAKE_PREFIX_PATH=<kit directory>` (the directory that holds
+  `lib/cmake/Qt6`) or set `QT_ROOT_DIR`, then reconfigure. On Windows the labs'
+  shared tree at `C:\Repos\common\qt\6.12.0\msvc2022_64` is searched
+  automatically; `C:\Repos\common\env.ps1` also sets `QT_ROOT_DIR`. Pass
+  `-DWJS_BUILD_APP=ON` to turn a missing kit into an error instead.
 - **A program fails to start with `STATUS_DLL_NOT_FOUND`**: on Windows, a Debug
   build needs the ASan runtime beside it (the build copies it) and the Qt window
   needs Qt's DLLs (the build runs `windeployqt`). If you moved the executable

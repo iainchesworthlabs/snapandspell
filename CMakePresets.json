@@ -20,7 +20,8 @@
       "name": "debug",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "WJS_ENABLE_TRACY": "ON"
       }
     },
     {
@@ -28,6 +29,7 @@
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "WJS_ENABLE_TRACY": "OFF",
         "WJS_REQUIRE_REVIEWED_PHONICS": "ON"
       }
     },
@@ -136,6 +138,7 @@
         "debug"
       ],
       "cacheVariables": {
+        "WJS_ENABLE_TRACY": "OFF",
         "WJS_ENABLE_COVERAGE": "ON",
         "WJS_ENABLE_SANITIZERS": "OFF"
       }

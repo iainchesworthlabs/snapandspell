@@ -560,10 +560,12 @@ add_test(NAME platform.fragments
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/platform/check_fragments.cmake")
 
-# Nothing that ships has Tracy in it: only the *-profiling presets turn the
-# option on, it defaults to OFF, and the manifest feature that installs it is
-# neither a base dependency nor a default feature (docs/profiling.md). Runs on
-# every host and in every CI leg, since it only reads the presets.
+# The Tracy policy: Debug builds are instrumented by default, and nothing that
+# ships has it - the *-debug and *-profiling presets turn the option on, the
+# release and coverage presets keep it off, and the manifest feature that
+# installs it is neither a base dependency nor a default feature
+# (docs/profiling.md). Runs on every host and in every CI leg, since it only
+# reads the presets.
 add_test(NAME profiling.shipped_presets
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
