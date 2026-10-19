@@ -149,7 +149,7 @@ TestCase {
         compare(soloModel.helpTile, 1)
     }
 
-    function test_doneEndsATappedPath() {
+    function test_aTappedPathLeavesTheHintAndThePanelAlone() {
         play()
         const tray = panel()
         compare(tray.pending, false)
@@ -159,14 +159,13 @@ TestCase {
 
         compare(tray.pending, true)
         compare(tray.hintShown, true)
-        // While a path waits, the hint's place holds Done instead.
-        compare(buttonNamed(tray, SoloWording.showStart).visible, false)
-        const done = buttonNamed(tray, SoloWording.done)
-        verify(done !== null)
-        compare(done.visible, true)
+        // Done belongs to the screen's action bar now, so the panel keeps its
+        // hint rather than swapping a second primary action into the card.
+        compare(buttonNamed(tray, SoloWording.showStart).visible, true)
+        compare(buttonNamed(tray, SoloWording.done), null)
 
         soloModel.tapTile(8)
-        mouseClick(done, done.width / 2, done.height / 2)
+        soloModel.done()
 
         compare(soloModel.path.length, 0)
         compare(soloModel.state, "word-found")

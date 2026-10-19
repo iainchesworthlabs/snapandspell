@@ -11,12 +11,20 @@ ColumnLayout {
 
     spacing: ParentTheme.space3
 
+    Rectangle {
+        Layout.fillWidth: true
+        height: 1
+        color: ParentTheme.line
+        visible: root.title.length > 0
+    }
+
     Text {
         Layout.fillWidth: true
         visible: root.title.length > 0
         text: root.title
+        font.family: ParentTheme.uiFont
         font.pixelSize: ParentTheme.sizeLead
-        font.bold: true
+        font.weight: Font.ExtraBold
         color: ParentTheme.ink
         wrapMode: Text.WordWrap
         Accessible.role: Accessible.Heading

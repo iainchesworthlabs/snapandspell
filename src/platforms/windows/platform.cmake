@@ -22,14 +22,20 @@ set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "QT_QPA_FONTDIR=$ENV{SystemRoot}/Fonts"
 # detail/ is what no platform differs in: no native camera backend yet, the portable
 # board reader (docs/design/scanner.md), and the no-op haptics every desktop
 # answers with (src/platforms/interfaces/wjs/platform/haptics.hpp).
+# The application's executable icon comes from a Windows resource script. The
+# application names the template and icon; only this platform sets them.
+set(WJS_PLATFORM_APP_RC_TEMPLATE "${PROJECT_SOURCE_DIR}/src/app/app.rc.in")
+set(WJS_PLATFORM_APP_ICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
+
 set(WJS_PLATFORM_SOURCES
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
     detail/haptics_none.cpp
     windows/console_windows.cpp
-    windows/paths_windows.cpp)
+    windows/paths_windows.cpp
+    windows/window_chrome_win.cpp)
 
-set(WJS_PLATFORM_LINK_LIBRARIES "")
+set(WJS_PLATFORM_LINK_LIBRARIES dwmapi)
 
 # <windows.h> without the parts and macros nobody asked for (min/max, the
 # rarely used APIs) and with the wide-character API as the default. Passed by

@@ -20,6 +20,7 @@ Flickable {
 
     component Paragraph: Text {
         Layout.fillWidth: true
+        font.family: ParentTheme.uiFont
         font.pixelSize: ParentTheme.sizeBody
         color: ParentTheme.ink
         wrapMode: Text.WordWrap
@@ -32,11 +33,64 @@ Flickable {
         width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
         spacing: ParentTheme.space8
 
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: ParentTheme.space1
+            Text {
+                Layout.fillWidth: true
+                text: ParentWording.appName
+                font.family: ParentTheme.uiFont
+                font.pixelSize: ParentTheme.sizeTitle
+                font.weight: Font.ExtraBold
+                color: ParentTheme.ink
+            }
+            Text {
+                Layout.fillWidth: true
+                text: ParentWording.tagline
+                font.family: ParentTheme.fontFamily
+                font.pixelSize: ParentTheme.sizeLead
+                color: ParentTheme.inkSecondary
+                wrapMode: Text.WordWrap
+            }
+        }
+
         Section {
             Layout.fillWidth: true
             title: ParentWording.aboutHeading
             Paragraph {
                 text: ParentWording.version(root.controller.version)
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: privacySummary.implicitHeight + 2 * ParentTheme.space4
+            radius: ParentTheme.radius
+            color: ParentTheme.card
+            border.width: 1
+            border.color: ParentTheme.gold
+
+            ColumnLayout {
+                id: privacySummary
+                anchors.fill: parent
+                anchors.margins: ParentTheme.space4
+                spacing: ParentTheme.space1
+                Text {
+                    Layout.fillWidth: true
+                    text: ParentWording.privacyHeading
+                    font.family: ParentTheme.uiFont
+                    font.pixelSize: ParentTheme.sizeLead
+                    font.weight: Font.ExtraBold
+                    color: ParentTheme.ink
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: ParentWording.privacySummary
+                    font.family: ParentTheme.uiFont
+                    font.pixelSize: ParentTheme.sizeBody
+                    color: ParentTheme.inkSecondary
+                    wrapMode: Text.WordWrap
+                }
             }
         }
 

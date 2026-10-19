@@ -609,7 +609,7 @@ Item {
             antialiasingMode: SceneEnvironment.MSAA
             antialiasingQuality: SceneEnvironment.Medium
             lightProbe: root.probeTexture
-            probeExposure: 0.55
+            probeExposure: 0.82
         }
 
         // Looks at the middle of the dice's top faces, from a distance chosen
@@ -630,8 +630,10 @@ Item {
 
         DirectionalLight {
             eulerRotation: Qt.vector3d(-38, -28, 0)
-            brightness: 0.7
-            ambientColor: Qt.rgba(0.20, 0.20, 0.22, 1)
+            brightness: 0.88
+            // The same warm paper the screens are made of, so the cream dice
+            // and the gold rim sit in the same light.
+            ambientColor: Qt.rgba(0.32, 0.27, 0.19, 1)
         }
 
         DirectionalLight {
@@ -658,8 +660,8 @@ Item {
                 castsShadows: false
                 receivesShadows: false
                 materials: PrincipledMaterial {
-                    baseColor: "#2C4C61"
-                    roughness: 0.85
+                    baseColor: "#143139"
+                    roughness: 0.82
                 }
             }
 
@@ -694,8 +696,8 @@ Item {
             PrincipledMaterial {
                 id: rimMaterial
 
-                baseColor: "#1F3646"
-                roughness: 0.7
+                baseColor: "#C98A1E"
+                roughness: 0.55
             }
 
             Repeater3D {
@@ -740,9 +742,9 @@ Item {
                     castsShadows: false
                     receivesShadows: false
                     materials: PrincipledMaterial {
-                        baseColor: Qt.rgba(0.86, 0.93, 0.97, 0.28)
+                        baseColor: Qt.rgba(0.96, 0.88, 0.70, 0.24)
                         alphaMode: PrincipledMaterial.Blend
-                        roughness: 0.25
+                        roughness: 0.22
                     }
                 }
             }

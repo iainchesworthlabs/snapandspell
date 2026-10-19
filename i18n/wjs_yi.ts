@@ -2,6 +2,100 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="yi_UA">
 <context>
+    <name>AppBar</name>
+    <message>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+45"/>
+        <location line="+1"/>
+        <source>Back</source>
+        <translation>צוריק</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <location line="+1"/>
+        <source>For grown-ups</source>
+        <translation>פֿאַר דערוואַקסענע</translation>
+    </message>
+</context>
+<context>
+    <name>AssistScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+103"/>
+        <source>Find words</source>
+        <translation>געפינען ווערטער</translation>
+    </message>
+</context>
+<context>
+    <name>CheckScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+172"/>
+        <source>Turn</source>
+        <translation>קער</translation>
+    </message>
+</context>
+<context>
+    <name>Home</name>
+    <message>
+        <location filename="../src/app/qml/Home.qml" line="+60"/>
+        <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
+        <translation>א וואָרט-געפינען שפּיל פֿאַר יונגע לייענער</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Shake. Find. Collect.</source>
+        <translation>שאָקלען. געפֿינען. קלייַבן.</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
+        <translation>א רויק וואָרט שפּיל פֿאַר קליין לייענער. שאָקלען די בריליאַנט קעסטל, געפֿינען ווערטער און קלייַבן די דזשולז.</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Play on my own</source>
+        <translation>שפּילן אַליין</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shake the box. Find words. Collect jewels.</source>
+        <translation>שאָקלען די קעסטל. געפינען ווערטער. קלייַבן דזשולז.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play</source>
+        <translation>שפּיל</translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>FOR GROWN-UPS</source>
+        <translation>פֿאַר דערוואַקסענע</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play with a real board</source>
+        <translation>שפּיל מיט אַ פאַקטיש ברעט</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Use the camera, or type the board. A grown-up sets this up.</source>
+        <translation>ניצן די אַפּאַראַט, אָדער טיפּ די ברעט. א דערוואקסענער שטעלט דאס אויף.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Continue</source>
+        <translation>פאָרזעצן</translation>
+    </message>
+    <message>
+        <location line="+92"/>
+        <source>Word Jewels Solver</source>
+        <translation>Word Jewels Solver</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Everything stays on this device.</source>
+        <translation>אַלץ בלייבט אויף דעם מיטל.</translation>
+    </message>
+</context>
+<context>
     <name>HomeWording</name>
     <message>
         <location filename="../src/app/qml/HomeWording.qml" line="+8"/>
@@ -22,7 +116,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../src/app/qml/Main.qml" line="+39"/>
+        <location filename="../src/app/qml/Main.qml" line="+40"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>
@@ -31,6 +125,21 @@
     <name>ParentWording</name>
     <message>
         <location filename="../src/app/qml/parent/ParentWording.qml" line="+28"/>
+        <source>Word Jewels</source>
+        <translation>Word Jewels</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Word Jewels Solver</source>
+        <translation>Word Jewels Solver</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A word-finding game for young readers, played with a grown-up.</source>
+        <translation>א וואָרט-געפינען שפּיל פֿאַר יונגע לייענער, געשפילט מיט אַ דערוואַקסענער.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Parent area</source>
         <translation>עלטערן־אָפּטייל</translation>
     </message>
@@ -41,23 +150,29 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Kept on this device. No recording, no network.</source>
+        <translation>געהאַלטן אויף דעם מיטל. קיין רעקאָרדינג, קיין נעץ.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Dashboard</source>
         <translation>איבערבליק</translation>
     </message>
     <message>
         <location line="+1"/>
+        <location line="+82"/>
         <source>Settings</source>
         <translation>סעטינגס</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <location line="+146"/>
+        <location line="-80"/>
+        <location line="+158"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>וועגן</translation>
     </message>
     <message>
-        <location line="-145"/>
+        <location line="-157"/>
         <source>Nothing to show yet.</source>
         <translation>נאָך נישטאָ וואָס צו ווײַזן.</translation>
     </message>
@@ -93,13 +208,38 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Or hold Enter for two seconds.</source>
+        <translation>אָדער האַלטן אַרייַן פֿאַר צוויי סעקונדעס.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Open the parent area. Hold both circles with two fingers, or activate this to open it.</source>
         <translation>עפֿענען דעם עלטערן־אָפּטייל. האַלט ביידע קרײַזן מיט צוויי פֿינגער, אָדער אַקטיוויזיר דאָס צו עפֿענען.</translation>
     </message>
     <message>
         <location line="+4"/>
-        <source>Sounds</source>
+        <source>Play with a real board</source>
         <extracomment>The graphemes of the phonics phase, and how often each has come up.</extracomment>
+        <translation>שפּיל מיט אַ פאַקטיש ברעט</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Set the tablet beside the board. A grown-up checks the letters before the child plays.</source>
+        <translation>שטעלן די טאַבלעט בייַ די ברעט. א דערוואקסענער טשעק די אותיות איידער דער קינד שפּילט.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Set up a real board</source>
+        <translation>שטעלן אַרויף אַ פאַקטיש ברעט</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Back to play</source>
+        <translation>צוריק צו שפּילן</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Sounds</source>
         <translation>קלאַנגען</translation>
     </message>
     <message>
@@ -209,7 +349,37 @@
         <translation>%1x%1: %2</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+5"/>
+        <source>How the game behaves for your child.</source>
+        <translation>ווי די שפּיל ביכייווז פֿאַר דיין קינד.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>PLAY</source>
+        <translation>שפּיל</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>SOUND &amp; TOUCH</source>
+        <translation>געזונט &amp; ריר</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>APPEARANCE</source>
+        <translation>אויסזען</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>LANGUAGE</source>
+        <translation>LANGUAGE</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>DATA</source>
+        <translation>DATA</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Help</source>
         <translation>הילף</translation>
     </message>
@@ -434,6 +604,11 @@
         <translation>פּריוואַטקייט</translation>
     </message>
     <message>
+        <location line="+1"/>
+        <source>Kept on this device. No recording, no network. Nothing moves between devices.</source>
+        <translation>געהאַלטן אויף דעם מיטל. קיין רעקאָרדינג, קיין נעץ. גאָרנישט באוועגט צווישן דעוויסעס.</translation>
+    </message>
+    <message>
         <location line="+3"/>
         <source>Word Jewels Solver, version %1</source>
         <translation>Word Jewels Solver, ווערסיע %1</translation>
@@ -468,6 +643,62 @@
         <location line="+1"/>
         <source>Nothing moves between devices. A new device starts fresh.</source>
         <translation>גאָרנישט באַוועגט זיך נישט צווישן אַפּאַראַטן. אַ נײַער אַפּאַראַט הײבט אָן פֿון פֿאָרש.</translation>
+    </message>
+</context>
+<context>
+    <name>PlayingPanel</name>
+    <message>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+70"/>
+        <source>Words I found</source>
+        <translation>ווערטער וואָס איך האָב געפֿונען</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>1 word</source>
+        <translation>1 וואָרט</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 words</source>
+        <translation>%1 ווערטער</translation>
+    </message>
+    <message>
+        <location line="+71"/>
+        <source>Your words will land here.</source>
+        <translation>דיין ווערטער וועט לאַנד דאָ.</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Need a start?</source>
+        <translation>דאַרפֿן אַ אָנהייב?</translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>Start here: %1</source>
+        <translation>אָנהייב דאָ: %1</translation>
+    </message>
+</context>
+<context>
+    <name>ScanScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+95"/>
+        <source>Set up a board</source>
+        <translation>שטעלן אַ ברעט</translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>1  Place</source>
+        <translation>1 אָרט</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>2  Check</source>
+        <translation>2 קוק</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>3  Play</source>
+        <translation>3 שפּיל</translation>
     </message>
 </context>
 <context>
@@ -655,6 +886,147 @@
     </message>
 </context>
 <context>
+    <name>SoloBox</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+94"/>
+        <source>Choose a board</source>
+        <translation>קלייַבן אַ ברעט</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
+        <translation>3 × 3 איז אַ גוט אָנהייב. גרעסערע באָרדז האַלטן מער ווערטער.</translation>
+    </message>
+    <message>
+        <location line="+46"/>
+        <source>How it works</source>
+        <translation>ווי עס אַרבעט</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>1   Shake the box.</source>
+        <translation>1 שאָקלען די קעסטל.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>2   Find a word.</source>
+        <translation>2 געפֿינען אַ וואָרט.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>3   Collect the jewels.</source>
+        <translation>3 קלייַבן די דזשולז.</translation>
+    </message>
+</context>
+<context>
+    <name>SoloResting</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloResting.qml" line="+46"/>
+        <source>Time for a rest.</source>
+        <translation>צייט פֿאַר אַ מנוחה.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>You did it. The words are safe in your collection.</source>
+        <translation>איר האט עס. די ווערטער זענען זיכער אין דיין זאַמלונג.</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <location line="+1"/>
+        <source>Play again</source>
+        <translation>שפּילן נאָכאַמאָל</translation>
+    </message>
+</context>
+<context>
+    <name>SoloScreen</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+198"/>
+        <source>Solo Play</source>
+        <translation>סאָלאָ שפּיל</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>All words found</source>
+        <translation>אַלע ווערטער געפונען</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Find a word</source>
+        <translation>געפֿינען אַ וואָרט</translation>
+    </message>
+    <message>
+        <location line="+60"/>
+        <source>Shake to open</source>
+        <translation>שאָקלען צו עפענען</translation>
+    </message>
+    <message>
+        <location line="+117"/>
+        <source>Shaking the box…</source>
+        <translation>מען שאָקלט די שוחט…</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Make a word</source>
+        <translation>מאַכן אַ וואָרט</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Tap the last die again, or press Done</source>
+        <translation>צאַפּן ווידער אויף די לעצטע מאָל אָדער דריקן געטאן</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Clear</source>
+        <translation>אויסמעקן</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Clear the word</source>
+        <translation>מעק דאָס וואָרט</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <location line="+1"/>
+        <source>Done</source>
+        <translation>פֿאַרטיק</translation>
+    </message>
+    <message>
+        <location line="+36"/>
+        <source>You found all %1 words!</source>
+        <translation>איר האָט געפֿונען אַלע %1 ווערטער!</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Look at the jewels you collected.</source>
+        <translation>קוק בייַ די דזשולז איר געזאמלט.</translation>
+    </message>
+    <message>
+        <location line="+40"/>
+        <source>Home</source>
+        <translation>היים</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Play again</source>
+        <translation>שפּילן נאָכאַמאָל</translation>
+    </message>
+    <message>
+        <location line="+77"/>
+        <source>you found a word!</source>
+        <translation>האסט געפונען א ווארט!</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>That&apos;s a real word — not on this board.</source>
+        <translation>דאָס איז אַ פאַקטיש וואָרט - נישט אויף דעם ברעט.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Not this time — try another.</source>
+        <translation>ניט דאָס מאָל - פּרוּווט אנדערן.</translation>
+    </message>
+</context>
+<context>
     <name>SoloWording</name>
     <message>
         <location filename="../src/app/qml/solo/SoloWording.qml" line="+16"/>
@@ -735,6 +1107,19 @@
         <location line="+4"/>
         <source>Jewel, row %1, column %2</source>
         <translation>געשמײַד, רייע %1, שטאַפּל %2</translation>
+    </message>
+</context>
+<context>
+    <name>Wordmark</name>
+    <message>
+        <location filename="../src/app/qml/kit/Wordmark.qml" line="+26"/>
+        <source>Word Jewels</source>
+        <translation>Word Jewels</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>SOLVER</source>
+        <translation>SOLVER</translation>
     </message>
 </context>
 </TS>

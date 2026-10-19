@@ -239,15 +239,17 @@ trace path and the 2D and 3D scenes keep their reading order and their
 coordinates in every language (`LayoutMirroring.enabled: false` on the board
 containers). Numbers and dates use the locale.
 
-**Fonts.** Andika (SIL OFL) remains the intended face for beginning readers and
-is **not bundled yet**; Qt falls back per glyph through the platform's fonts.
-On Windows that is Segoe UI/Arial for Hebrew and Yiddish and Microsoft YaHei and
-Yu Gothic for Chinese and Japanese; on the iPad it is PingFang and Hiragino.
-CJK faces are **not bundled** (about 16 MB); the system fallback is documented
-and accepted, and no CJK text is ever drawn into a picture. If a device's chain
-turned out to lack a Hebrew or Yiddish glyph, Noto Sans Hebrew (OFL, also not
-bundled) would be added to the asset directory, the resource and the font family
-list, and recorded in [Licensing](../licensing.md). A test lays out a sample
+**Fonts.** Andika (SIL OFL) is bundled and is the face for beginning readers,
+the dice and the reading text; Archivo carries the interface's headings, buttons
+and labels, and IBM Plex Mono the small uppercase labels. All three are
+compiled into the application's resources. Hebrew, Yiddish and CJK still fall
+back per glyph through the platform's fonts: Segoe UI/Arial and Microsoft YaHei
+and Yu Gothic on Windows, PingFang and Hiragino on the iPad. CJK faces are
+**not bundled** (about 16 MB); the system fallback is documented and accepted,
+and no CJK text is ever drawn into a picture. If a device's chain turned out to
+lack a Hebrew or Yiddish glyph, Noto Sans Hebrew (OFL, also not bundled) would
+be added to the asset directory, the resource and the font family list, and
+recorded in [Licensing](../licensing.md). A test lays out a sample
 sentence in each of the eight languages with the app's font chain and skips
 itself, with a message, on a platform whose fonts lack the script; it is a
 Windows check today (docs/testing.md). **Recorded:** run on Windows on

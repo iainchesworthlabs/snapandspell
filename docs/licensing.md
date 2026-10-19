@@ -107,7 +107,9 @@ build used and a package cannot be made without it. Its layers:
 - ENABLE, the public-domain word list ([below](#the-word-list)), with its
   SHA-256 and the pointer to `data/README.md`;
 - the interface's translations, which are this repository's own text;
-- the bundled light probe, the project's own, and that no font is bundled;
+- the bundled light probe, the project's own, and the three bundled typefaces
+  (Archivo, Andika and IBM Plex Mono), each under the SIL Open Font License with
+  its copyright and licence text reproduced in the notices;
 - Catch2, BSL-1.0, used to build and test and **not shipped**.
 
 The `notices.sections` test holds the generated file to those sections in every
@@ -198,13 +200,23 @@ Rules for word lists:
 
 ## Fonts and the interface's languages
 
-**No font is bundled yet.** The app asks for Andika (SIL OFL) and falls back per
-glyph through the platform's own fonts; the licence file and the glyph check
-are still to be done before Andika ships (application.md, "Type"). Nothing of
-Microsoft's, Apple's or Google's is copied into the repository or a package:
-Segoe UI/Arial (Hebrew), Microsoft YaHei and Yu Gothic (Chinese and Japanese) are
-the system fallback on Windows, PingFang and Hiragino on the iPad, and CJK faces
-are deliberately **not** bundled because of their size
+**Three typefaces are bundled**, all under the SIL Open Font License 1.1:
+
+- **Andika** (Regular, Bold), SIL Global, for the reading text and the dice;
+- **Archivo** (Regular, SemiBold, ExtraBold), The Archivo Project Authors, for
+  the interface's headings, buttons and labels;
+- **IBM Plex Mono** (Medium), IBM Corp., for small uppercase labels and counts.
+
+Their copyright lines and full licence texts are in
+`notices/fragments/fonts.txt`, which is reproduced in the generated
+`NOTICES.txt`; the original OFL files stay beside the typefaces in
+`assets/fonts/`. The files are compiled into the application's resources as
+`:/fonts/...` and are not installed separately.
+
+Nothing of Microsoft's, Apple's or Google's is copied into the repository or a
+package: Segoe UI/Arial (Hebrew), Microsoft YaHei and Yu Gothic (Chinese and
+Japanese) are the system fallback on Windows, PingFang and Hiragino on the iPad,
+and CJK faces are deliberately **not** bundled because of their size
 ([Application design](design/application.md#languages-right-to-left-and-fonts)).
 If a Hebrew or Yiddish glyph is ever missing from a device's chain, Noto Sans
 Hebrew (OFL) is the candidate: it would be added under an `assets/` directory,

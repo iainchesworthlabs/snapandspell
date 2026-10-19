@@ -104,15 +104,20 @@ qt_add_qml_module(wjs_app
         qml/Home.qml
         qml/HomeWording.qml
         qml/Main.qml
+        qml/kit/AppBar.qml
         qml/kit/AppButton.qml
         qml/kit/Feedback.qml
         qml/kit/HoldButton.qml
         qml/kit/Icon.qml
         qml/kit/Jewel.qml
+        qml/kit/JewelBox.qml
+        qml/kit/ModeCard.qml
         qml/kit/Navigation.qml
         qml/kit/Theme.qml
         qml/kit/TileFace.qml
+        qml/kit/Wordmark.qml
         qml/solo/BoardThumb.qml
+        qml/solo/FlatBoard.qml
         qml/solo/HistorySheet.qml
         qml/solo/PlayingPanel.qml
         qml/solo/SoloBox.qml
@@ -169,6 +174,42 @@ qt_add_resources(wjs_app wjs_sounds
     PREFIX "/sounds"
     BASE "${PROJECT_SOURCE_DIR}/assets/sounds"
     FILES ${WJS_SOUND_FILES})
+
+# The fonts the screens use: the house faces (Archivo for the UI and wordmark,
+# IBM Plex Mono for labels) and Andika for the learning text and the dice. They
+# are SIL Open Font Licence works; the notices carry the licence text. They are
+# compiled in rather than installed beside the program, so a package cannot be
+# missing one and QML's font lookup is the same on every target.
+set(WJS_FONT_FILES
+    "${PROJECT_SOURCE_DIR}/assets/fonts/Archivo-Regular.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/Archivo-SemiBold.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/Archivo-ExtraBold.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/IBMPlexMono-Medium.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/Andika-Regular.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/Andika-Bold.ttf")
+foreach(WJS_FONT_FILE IN LISTS WJS_FONT_FILES)
+    if(NOT EXISTS "${WJS_FONT_FILE}")
+        message(FATAL_ERROR "The application font ${WJS_FONT_FILE} is missing.")
+    endif()
+endforeach()
+qt_add_resources(wjs_app wjs_fonts
+    PREFIX "/fonts"
+    BASE "${PROJECT_SOURCE_DIR}/assets/fonts"
+    FILES ${WJS_FONT_FILES})
+
+# The window and taskbar icon. The Windows executable's own icon comes from the
+# .rc file below; the QML window also sets it so a bundled Linux/macOS build has
+# the same mark.
+qt_add_resources(wjs_app wjs_icon
+    PREFIX "/icons"
+    BASE "${PROJECT_SOURCE_DIR}/assets/icon"
+    FILES "${PROJECT_SOURCE_DIR}/assets/icon/app.png")
+if(WJS_PLATFORM_APP_RC_TEMPLATE)
+    file(TO_CMAKE_PATH "${WJS_PLATFORM_APP_ICON}" WJS_APP_ICON)
+    configure_file("${WJS_PLATFORM_APP_RC_TEMPLATE}"
+        "${CMAKE_CURRENT_BINARY_DIR}/app.rc" @ONLY)
+    target_sources(wjs_app PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
+endif()
 
 # The Qt Multimedia QML module is part of the camera's deployment. A static QML
 # module's own imports are not what the application's QML import scanner reads,

@@ -92,22 +92,16 @@ FocusScope {
     }
 
     // --- the bar ------------------------------------------------------------------
-    Item {
+    AppBar {
         id: bar
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: root.barOffset
-
-        AppButton {
-            anchors.left: parent.left
-            anchors.leftMargin: Theme.space2
-            anchors.verticalCenter: parent.verticalCenter
-            size: "child"
-            iconName: "back"
-            accessibleName: ScanWording.back
-            onClicked: root.back()
-        }
+        showBack: true
+        showWordmark: false
+        showParent: false
+        title: qsTr("Find words")
+        onBack: root.back()
     }
 
     // --- the replica, leading two-thirds --------------------------------------------
@@ -148,9 +142,14 @@ FocusScope {
 
         Rectangle {
             anchors.fill: parent
-            color: Theme.panel
-            border.width: Theme.hair
-            border.color: Theme.outline
+            color: Theme.surface
+        }
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: Theme.hair
+            color: Theme.line
         }
 
         // Words I found.
@@ -160,9 +159,11 @@ FocusScope {
             y: panel.margin
             width: parent.width - 2 * panel.margin
             height: parent.height - 2 * panel.margin - panel.actions - Theme.space2
+            radius: Theme.radius
             color: Theme.card
-            border.width: Theme.rule
-            border.color: Theme.outline
+            border.width: 1
+            border.color: Theme.line
+            clip: true
 
             Accessible.role: Accessible.List
             Accessible.name: ScanWording.wordsFound
@@ -172,11 +173,11 @@ FocusScope {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: Theme.space2
+                anchors.margins: Theme.space4
                 text: ScanWording.wordsFound
-                font.family: Theme.fontFamily
-                font.bold: true
-                font.pixelSize: Theme.labelSize
+                font.family: Theme.uiFont
+                font.weight: Font.DemiBold
+                font.pixelSize: Theme.headingSize
                 color: Theme.ink
                 elide: Text.ElideRight
             }
@@ -187,7 +188,9 @@ FocusScope {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.margins: Theme.space2
+                anchors.leftMargin: Theme.space4
+                anchors.rightMargin: Theme.space4
+                anchors.bottomMargin: Theme.space4
                 clip: true
                 model: root.assist.found
                 spacing: Theme.space1
@@ -244,13 +247,22 @@ FocusScope {
                 }
             }
 
-            Text {
+            Column {
                 visible: root.assist.found.length === 0
                 anchors.centerIn: parent
-                text: ScanWording.noWordsYet
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.bodySize
-                color: Theme.inkSecondary
+                spacing: Theme.space2
+                Jewel {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Theme.jewelPower
+                    height: width
+                    tier: "power"
+                }
+                Text {
+                    text: ScanWording.noWordsYet
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.bodySize
+                    color: Theme.inkSecondary
+                }
             }
         }
 
@@ -269,19 +281,10 @@ FocusScope {
             height: Theme.targetPrimary
             size: "primary"
             variant: "primary"
+            label: ScanWording.showStart
+            labelPointSize: Theme.smallSize
             accessibleName: ScanWording.showStart
             onClicked: root.assist.askHelp()
-
-            Text {
-                anchors.centerIn: parent
-                width: parent.width - 2 * Theme.space2
-                horizontalAlignment: Text.AlignHCenter
-                text: ScanWording.showStart
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.labelSize
-                color: Theme.buttonInk
-                elide: Text.ElideRight
-            }
         }
 
         // Earlier boards, the same history as Solo Play's: the child opens it on
@@ -311,19 +314,10 @@ FocusScope {
             height: Theme.targetChild
             size: "child"
             variant: "secondary"
+            label: ScanWording.newBoard
+            labelPointSize: Theme.smallSize
             accessibleName: ScanWording.newBoard
             onClicked: root.newBoard()
-
-            Text {
-                anchors.centerIn: parent
-                width: parent.width - 2 * Theme.space2
-                horizontalAlignment: Text.AlignHCenter
-                text: ScanWording.newBoard
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.labelSize
-                color: Theme.ink
-                elide: Text.ElideRight
-            }
         }
     }
 

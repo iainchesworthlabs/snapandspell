@@ -26,8 +26,8 @@ Item {
 
         // The outline: a cut stone seen from above.
         ShapePath {
-            strokeColor: Theme.ink
-            strokeWidth: Theme.rule
+            strokeColor: Theme.gold
+            strokeWidth: Theme.rule * 2
             fillColor: root.color
             joinStyle: ShapePath.RoundJoin
             startX: root.width * 0.5

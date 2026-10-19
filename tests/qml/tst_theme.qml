@@ -32,34 +32,34 @@ TestCase {
         Theme.colourScheme = "light"
 
         compare(Theme.dark, false)
-        compare(Theme.page.toString(), "#fbf8f1")
-        compare(Theme.ink.toString(), "#1f2a37")
-        compare(Theme.inkSecondary.toString(), "#4a5666")
-        compare(Theme.outline.toString(), "#5b6879")
-        compare(Theme.buttonFill.toString(), "#1f5fa8")
+        compare(Theme.page.toString(), "#f6f1e7")
+        compare(Theme.ink.toString(), "#1e2a30")
+        compare(Theme.inkSecondary.toString(), "#5c6b70")
+        compare(Theme.outline.toString(), "#6e7a78")
+        compare(Theme.buttonFill.toString(), "#166b5c")
         compare(Theme.buttonInk.toString(), "#ffffff")
         compare(Theme.hoverWash.toString(), "#ede6d6")
         compare(Theme.pressWash.toString(), "#e0d8c4")
         compare(Theme.boardArea.toString(), "#efe9da")
-        compare(Theme.panel.toString(), "#dce6f2")
-        compare(Theme.card.toString(), "#ffffff")
+        compare(Theme.panel.toString(), "#ede7da")
+        compare(Theme.card.toString(), "#fffdf8")
     }
 
     function test_theDarkTokens() {
         Theme.colourScheme = "dark"
 
         compare(Theme.dark, true)
-        compare(Theme.page.toString(), "#12161c")
-        compare(Theme.ink.toString(), "#f4efe3")
-        compare(Theme.inkSecondary.toString(), "#b4bdc9")
-        compare(Theme.outline.toString(), "#8c98a8")
-        compare(Theme.buttonFill.toString(), "#7db4ee")
-        compare(Theme.buttonInk.toString(), "#0e1620")
-        compare(Theme.hoverWash.toString(), "#27303b")
-        compare(Theme.pressWash.toString(), "#323d4a")
-        compare(Theme.boardArea.toString(), "#1a1f26")
-        compare(Theme.panel.toString(), "#1d2733")
-        compare(Theme.card.toString(), "#263140")
+        compare(Theme.page.toString(), "#11181b")
+        compare(Theme.ink.toString(), "#f2ecde")
+        compare(Theme.inkSecondary.toString(), "#b3bdbb")
+        compare(Theme.outline.toString(), "#8c9a98")
+        compare(Theme.buttonFill.toString(), "#63c7b2")
+        compare(Theme.buttonInk.toString(), "#0e1f1c")
+        compare(Theme.hoverWash.toString(), "#243136")
+        compare(Theme.pressWash.toString(), "#2e3d42")
+        compare(Theme.boardArea.toString(), "#1a2428")
+        compare(Theme.panel.toString(), "#1a2428")
+        compare(Theme.card.toString(), "#1e2a2f")
     }
 
     function test_theBoardIsTheSameInBothThemes() {
@@ -93,19 +93,19 @@ TestCase {
 
     function test_theTextScaleMultipliesTheType() {
         Theme.textScale = 1.0
-        compare(Theme.labelSize, 16.0)
+        compare(Theme.labelSize, 18.0)
         compare(Theme.bodySize, 16.0)
         compare(Theme.wordSize, 24.0)
         compare(Theme.smallSize, 14.0)
         compare(Theme.rem(1.0), 16.0)
 
         Theme.textScale = 1.25
-        compare(Theme.labelSize, 20.0)
+        compare(Theme.labelSize, 22.5)
         compare(Theme.wordSize, 30.0)
         compare(Theme.smallSize, 17.5)
 
         Theme.textScale = 1.5
-        compare(Theme.labelSize, 24.0)
+        compare(Theme.labelSize, 27.0)
         compare(Theme.wordSize, 36.0)
         compare(Theme.smallSize, 21.0)
     }
@@ -139,17 +139,17 @@ TestCase {
         compare(Theme.targetChild, 64)
         compare(Theme.targetPrimary, 96)
         compare(Theme.targetGap, 8)
-        compare(Theme.rule, 2)
-        compare(Theme.heavy, 3)
-        compare(Theme.litEdge, 4)
-        compare(Theme.litScale, 1.06)
-        compare(Theme.barHeight, Theme.targetChild + Theme.space2)
+        compare(Theme.rule, 1)
+        compare(Theme.heavy, 2)
+        compare(Theme.litEdge, 3)
+        compare(Theme.litScale, 1.03)
+        compare(Theme.barHeight, Theme.appBarHeight)
     }
 
     function test_theJewelSizesSayTheirTier() {
-        compare(Theme.jewelSpark, 28)
-        compare(Theme.jewelPower, 38)
-        compare(Theme.jewelMega, 50)
+        compare(Theme.jewelSpark, 26)
+        compare(Theme.jewelPower, 34)
+        compare(Theme.jewelMega, 44)
         compare(Theme.jewelColors.length, 5)
     }
 }

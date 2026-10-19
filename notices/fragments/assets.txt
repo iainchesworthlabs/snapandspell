@@ -14,8 +14,8 @@ Bundled assets
   otherwise make at run time, and it is not third-party artwork. It is compiled
   into the application's resources, so no file of it is installed.
 
-- No font is bundled. The screens ask for Andika, which is not shipped, and
-  fall back through the platform's own fonts per glyph. Andika (SIL Open Font
-  License) will be added with its licence text and glyph check before it ships
-  (docs/licensing.md, "Fonts and the interface's languages"), and no CJK face
-  is bundled.
+- The interface fonts, assets/fonts/*.ttf, are bundled under the SIL Open Font
+  License 1.1: Archivo, Andika and IBM Plex Mono. Their copyright notices and
+  licence texts are in the Bundled fonts section below. They are compiled into
+  the application's resources as :/fonts/<name>.ttf, so no font file is
+  installed separately. No CJK face is bundled.

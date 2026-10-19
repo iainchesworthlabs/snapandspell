@@ -349,12 +349,14 @@ if(WJS_BUILD_APP)
 
     set(WJS_SCAN_PREVIEW_KIT_DIR "${PROJECT_SOURCE_DIR}/src/app/qml/kit")
     set(WJS_SCAN_PREVIEW_KIT_FILES
+        AppBar.qml
         AppButton.qml
         Feedback.qml
         Icon.qml
         Jewel.qml
         Theme.qml
-        TileFace.qml)
+        TileFace.qml
+        Wordmark.qml)
     set(WJS_SCAN_PREVIEW_KIT_SOURCES "")
     foreach(_file IN LISTS WJS_SCAN_PREVIEW_KIT_FILES)
         set_source_files_properties("${WJS_SCAN_PREVIEW_KIT_DIR}/${_file}"

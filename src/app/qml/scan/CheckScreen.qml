@@ -167,8 +167,9 @@ FocusScope {
         anchors.rightMargin: Theme.space4
         anchors.bottom: sizeRow.top
         anchors.bottomMargin: Theme.space2
-        size: "child"
+        size: "min"
         iconName: "again"
+        label: qsTr("Turn")
         accessibleName: ScanWording.turn
         onClicked: root.scan.turn()
     }
@@ -198,9 +199,13 @@ FocusScope {
                 // button a child reads.
                 Rectangle {
                     anchors.centerIn: parent
-                    width: parent.width * 0.64
+                    anchors.verticalCenterOffset: -7
+                    width: parent.width * 0.58
                     height: width
+                    radius: 4
                     color: Theme.tray
+                    border.width: 1
+                    border.color: Theme.gold
 
                     Grid {
                         id: sizeGrid
@@ -220,6 +225,15 @@ FocusScope {
                             }
                         }
                     }
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 3
+                    text: sizeChoice.modelData + " × " + sizeChoice.modelData
+                    font.family: Theme.monoFont
+                    font.pixelSize: 10
+                    color: sizeChoice.checked ? Theme.accent : Theme.inkSecondary
                 }
             }
         }
@@ -261,17 +275,9 @@ FocusScope {
             height: Theme.targetChild
             size: "child"
             variant: "secondary"
+            label: ScanWording.readAgain
             accessibleName: ScanWording.readAgain
             onClicked: root.backRequested()
-
-            Text {
-                anchors.centerIn: parent
-                text: ScanWording.readAgain
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.labelSize
-                color: Theme.ink
-                elide: Text.ElideRight
-            }
         }
 
         AppButton {
@@ -282,16 +288,9 @@ FocusScope {
             height: Theme.targetPrimary
             size: "primary"
             variant: "primary"
+            label: ScanWording.yesPlay
             accessibleName: ScanWording.yesPlay
             onClicked: root.play()
-
-            Text {
-                anchors.centerIn: parent
-                text: ScanWording.yesPlay
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.labelSize
-                color: Theme.buttonInk
-            }
         }
     }
 

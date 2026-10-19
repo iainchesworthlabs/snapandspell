@@ -2,6 +2,100 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="fr_FR">
 <context>
+    <name>AppBar</name>
+    <message>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+45"/>
+        <location line="+1"/>
+        <source>Back</source>
+        <translation>Retour</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <location line="+1"/>
+        <source>For grown-ups</source>
+        <translation>Pour les adultes</translation>
+    </message>
+</context>
+<context>
+    <name>AssistScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+103"/>
+        <source>Find words</source>
+        <translation>Trouver des mots</translation>
+    </message>
+</context>
+<context>
+    <name>CheckScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+172"/>
+        <source>Turn</source>
+        <translation>Tourner</translation>
+    </message>
+</context>
+<context>
+    <name>Home</name>
+    <message>
+        <location filename="../src/app/qml/Home.qml" line="+60"/>
+        <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
+        <translation>UN JEU DE MOTS POUR LES JEUNES LECTEURS</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Shake. Find. Collect.</source>
+        <translation>Secoue. Trouve. Récolte.</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
+        <translation>Un jeu de mots calme pour les petits lecteurs. Secouez le coffret à bijoux, trouvez des mots et récupérez les bijoux.</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Play on my own</source>
+        <translation>Jouer tout seul</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shake the box. Find words. Collect jewels.</source>
+        <translation>Secouez la boîte. Trouvez des mots. Collectionnez des bijoux.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play</source>
+        <translation>Jouer</translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>FOR GROWN-UPS</source>
+        <translation>POUR LES GRANDS</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play with a real board</source>
+        <translation>Jouez avec un vrai plateau</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Use the camera, or type the board. A grown-up sets this up.</source>
+        <translation>Utilise la caméra ou saisis le plateau. Un adulte prépare cela.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Continue</source>
+        <translation>Continuer</translation>
+    </message>
+    <message>
+        <location line="+92"/>
+        <source>Word Jewels Solver</source>
+        <translation>Word Jewels Solver</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Everything stays on this device.</source>
+        <translation>Tout reste sur cet appareil.</translation>
+    </message>
+</context>
+<context>
     <name>HomeWording</name>
     <message>
         <location filename="../src/app/qml/HomeWording.qml" line="+8"/>
@@ -22,7 +116,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../src/app/qml/Main.qml" line="+39"/>
+        <location filename="../src/app/qml/Main.qml" line="+40"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>
@@ -31,6 +125,21 @@
     <name>ParentWording</name>
     <message>
         <location filename="../src/app/qml/parent/ParentWording.qml" line="+28"/>
+        <source>Word Jewels</source>
+        <translation>Word Jewels</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Word Jewels Solver</source>
+        <translation>Word Jewels Solver</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A word-finding game for young readers, played with a grown-up.</source>
+        <translation>Un jeu de recherche de mots pour les jeunes lecteurs, joué avec un adulte.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Parent area</source>
         <translation>Espace parents</translation>
     </message>
@@ -41,23 +150,29 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Kept on this device. No recording, no network.</source>
+        <translation>Conservé sur cet appareil. Pas d&apos;enregistrement, pas de réseau.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Dashboard</source>
         <translation>Tableau de bord</translation>
     </message>
     <message>
         <location line="+1"/>
+        <location line="+82"/>
         <source>Settings</source>
         <translation>Réglages</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <location line="+146"/>
+        <location line="-80"/>
+        <location line="+158"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>À propos</translation>
     </message>
     <message>
-        <location line="-145"/>
+        <location line="-157"/>
         <source>Nothing to show yet.</source>
         <translation>Rien à afficher pour le moment.</translation>
     </message>
@@ -93,13 +208,38 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Or hold Enter for two seconds.</source>
+        <translation>Ou maintenez Entrée pendant deux secondes.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Open the parent area. Hold both circles with two fingers, or activate this to open it.</source>
         <translation>Ouvrir l&apos;espace parents. Maintenez les deux cercles avec deux doigts, ou activez ceci pour l&apos;ouvrir.</translation>
     </message>
     <message>
         <location line="+4"/>
-        <source>Sounds</source>
+        <source>Play with a real board</source>
         <extracomment>The graphemes of the phonics phase, and how often each has come up.</extracomment>
+        <translation>Jouez avec un vrai plateau</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Set the tablet beside the board. A grown-up checks the letters before the child plays.</source>
+        <translation>Place la tablette à côté du plateau. Un adulte vérifie les lettres avant que l’enfant joue.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Set up a real board</source>
+        <translation>Installez un vrai plateau</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Back to play</source>
+        <translation>Retour au jeu</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Sounds</source>
         <translation>Sons</translation>
     </message>
     <message>
@@ -209,7 +349,37 @@
         <translation>%1x%1 : %2</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+5"/>
+        <source>How the game behaves for your child.</source>
+        <translation>Comment le jeu se comporte pour votre enfant.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>PLAY</source>
+        <translation>JOUER</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>SOUND &amp; TOUCH</source>
+        <translation>SON ET TACTILE</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>APPEARANCE</source>
+        <translation>APPARENCE</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>LANGUAGE</source>
+        <translation>LANGUE</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>DATA</source>
+        <translation>DONNÉES</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Help</source>
         <translation>Aide</translation>
     </message>
@@ -434,6 +604,11 @@
         <translation>Confidentialité</translation>
     </message>
     <message>
+        <location line="+1"/>
+        <source>Kept on this device. No recording, no network. Nothing moves between devices.</source>
+        <translation>Conservé sur cet appareil. Pas d&apos;enregistrement, pas de réseau. Rien ne bouge entre les appareils.</translation>
+    </message>
+    <message>
         <location line="+3"/>
         <source>Word Jewels Solver, version %1</source>
         <translation>Word Jewels Solver, version %1</translation>
@@ -468,6 +643,62 @@
         <location line="+1"/>
         <source>Nothing moves between devices. A new device starts fresh.</source>
         <translation>Rien ne circule entre appareils. Un nouvel appareil repart de zéro.</translation>
+    </message>
+</context>
+<context>
+    <name>PlayingPanel</name>
+    <message>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+70"/>
+        <source>Words I found</source>
+        <translation>Mots que j&apos;ai trouvés</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>1 word</source>
+        <translation>1 mot</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 words</source>
+        <translation>%1 mots</translation>
+    </message>
+    <message>
+        <location line="+71"/>
+        <source>Your words will land here.</source>
+        <translation>Tes mots apparaîtront ici.</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Need a start?</source>
+        <translation>Besoin d’un début ?</translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>Start here: %1</source>
+        <translation>Commencez ici&#xa0;: %1</translation>
+    </message>
+</context>
+<context>
+    <name>ScanScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+95"/>
+        <source>Set up a board</source>
+        <translation>Installer un plateau</translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>1  Place</source>
+        <translation>1  Placer</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>2  Check</source>
+        <translation>2  Vérifier</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>3  Play</source>
+        <translation>3  Jouer</translation>
     </message>
 </context>
 <context>
@@ -655,6 +886,147 @@
     </message>
 </context>
 <context>
+    <name>SoloBox</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+94"/>
+        <source>Choose a board</source>
+        <translation>Choisis un plateau</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
+        <translation>3 × 3 est un bon début. Les grands plateaux contiennent plus de mots.</translation>
+    </message>
+    <message>
+        <location line="+46"/>
+        <source>How it works</source>
+        <translation>Comment ça marche</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>1   Shake the box.</source>
+        <translation>1 Secouez la boîte.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>2   Find a word.</source>
+        <translation>2 Trouvez un mot.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>3   Collect the jewels.</source>
+        <translation>3 Récupérez les bijoux.</translation>
+    </message>
+</context>
+<context>
+    <name>SoloResting</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloResting.qml" line="+46"/>
+        <source>Time for a rest.</source>
+        <translation>Il est temps de se reposer.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>You did it. The words are safe in your collection.</source>
+        <translation>Tu as réussi. Les mots sont bien gardés dans ta collection.</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <location line="+1"/>
+        <source>Play again</source>
+        <translation>Rejouer</translation>
+    </message>
+</context>
+<context>
+    <name>SoloScreen</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+198"/>
+        <source>Solo Play</source>
+        <translation>Jouer en solo</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>All words found</source>
+        <translation>Tous les mots trouvés</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Find a word</source>
+        <translation>Trouver un mot</translation>
+    </message>
+    <message>
+        <location line="+60"/>
+        <source>Shake to open</source>
+        <translation>Secouez pour ouvrir</translation>
+    </message>
+    <message>
+        <location line="+117"/>
+        <source>Shaking the box…</source>
+        <translation>On secoue la boîte…</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Make a word</source>
+        <translation>Forme un mot</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Tap the last die again, or press Done</source>
+        <translation>Touche à nouveau le dernier dé ou appuie sur « Terminé ».</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Clear</source>
+        <translation>Effacer</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Clear the word</source>
+        <translation>Effacer le mot</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <location line="+1"/>
+        <source>Done</source>
+        <translation>Terminé</translation>
+    </message>
+    <message>
+        <location line="+36"/>
+        <source>You found all %1 words!</source>
+        <translation>Vous avez trouvé tous les %1&#xa0;mots&#xa0;!</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Look at the jewels you collected.</source>
+        <translation>Regarde les bijoux que tu as collectionnés.</translation>
+    </message>
+    <message>
+        <location line="+40"/>
+        <source>Home</source>
+        <translation>Accueil</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Play again</source>
+        <translation>Rejouer</translation>
+    </message>
+    <message>
+        <location line="+77"/>
+        <source>you found a word!</source>
+        <translation>tu as trouvé un mot !</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>That&apos;s a real word — not on this board.</source>
+        <translation>C’est un vrai mot — mais pas sur ce plateau.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Not this time — try another.</source>
+        <translation>Pas cette fois – essayez-en une autre.</translation>
+    </message>
+</context>
+<context>
     <name>SoloWording</name>
     <message>
         <location filename="../src/app/qml/solo/SoloWording.qml" line="+16"/>
@@ -735,6 +1107,19 @@
         <location line="+4"/>
         <source>Jewel, row %1, column %2</source>
         <translation>Bijou, ligne %1, colonne %2</translation>
+    </message>
+</context>
+<context>
+    <name>Wordmark</name>
+    <message>
+        <location filename="../src/app/qml/kit/Wordmark.qml" line="+26"/>
+        <source>Word Jewels</source>
+        <translation>Word Jewels</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>SOLVER</source>
+        <translation>SOLVER</translation>
     </message>
 </context>
 </TS>

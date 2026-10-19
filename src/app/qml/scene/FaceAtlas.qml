@@ -28,9 +28,13 @@ Item {
     readonly property int blockColumns: 3
     readonly property int blockRows: 2
     readonly property int facesPerDie: blockColumns * blockRows
-    readonly property color faceColor: "#F4E9CC"
-    readonly property color edgeColor: "#2B2622"
-    readonly property color inkColor: "#1F1B18"
+    // The same cream, dark-teal edge and ink as TileFace.qml. The face is inset
+    // and rounded here so a lit cube reads as the same die the child picks up on
+    // the flat board, not as a square photo pasted on a cube.
+    readonly property color faceColor: "#FFF7E3"
+    readonly property color edgeColor: "#20323A"
+    readonly property color inkColor: "#1F2A30"
+    readonly property color jewelColor: "#8FA1B8"
 
     width: columns * blockColumns * cell
     height: rows * blockRows * cell
@@ -66,6 +70,7 @@ Item {
         model: atlas.letterPool
 
         Rectangle {
+            id: cellFace
             required property int index
             readonly property var place: atlas.letterCells[index]
 
@@ -74,17 +79,47 @@ Item {
             y: place ? place.y : 0
             width: atlas.cell
             height: atlas.cell
-            color: atlas.faceColor
-            border.color: atlas.edgeColor
-            border.width: 10
+            radius: 12
+            color: atlas.edgeColor
 
-            Text {
-                anchors.centerIn: parent
-                textFormat: Text.PlainText
-                text: parent.place ? parent.place.letters : ""
-                color: atlas.inkColor
-                font.bold: true
-                font.pixelSize: parent.place ? parent.place.pixelSize : 88
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 4
+                radius: 9
+                color: atlas.faceColor
+
+                // The top catches the light and the foot sits in its shadow, as
+                // on the flat tile.
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 7
+                    height: 3
+                    radius: 2
+                    color: "#FFFFFF"
+                    opacity: 0.55
+                }
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.margins: 7
+                    height: 4
+                    radius: 2
+                    color: "#000000"
+                    opacity: 0.12
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    textFormat: Text.PlainText
+                    text: cellFace.place ? cellFace.place.letters : ""
+                    color: atlas.inkColor
+                    font.family: "Andika"
+                    font.weight: Font.Bold
+                    font.pixelSize: cellFace.place ? cellFace.place.pixelSize : 88
+                }
             }
         }
     }
@@ -121,44 +156,53 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            color: "#2E9F92"
-            border.color: atlas.edgeColor
-            border.width: 10
+            radius: 12
+            color: atlas.edgeColor
+        }
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 4
+            radius: 9
+            color: atlas.faceColor
         }
 
-        // The four facets, from the middle of the cell to each edge.
-        Shape {
-            ShapePath {
-                fillColor: "#63D6C7"
-                strokeColor: "transparent"
-                startX: 64; startY: 64
-                PathLine { x: 10; y: 10 }
-                PathLine { x: 118; y: 10 }
-                PathLine { x: 64; y: 64 }
-            }
-            ShapePath {
-                fillColor: "#2E9F92"
-                strokeColor: "transparent"
-                startX: 64; startY: 64
-                PathLine { x: 118; y: 10 }
-                PathLine { x: 118; y: 118 }
-                PathLine { x: 64; y: 64 }
-            }
-            ShapePath {
-                fillColor: "#1B6A61"
-                strokeColor: "transparent"
-                startX: 64; startY: 64
-                PathLine { x: 118; y: 118 }
-                PathLine { x: 10; y: 118 }
-                PathLine { x: 64; y: 64 }
-            }
-            ShapePath {
-                fillColor: "#46B8A9"
-                strokeColor: "transparent"
-                startX: 64; startY: 64
-                PathLine { x: 10; y: 118 }
-                PathLine { x: 10; y: 10 }
-                PathLine { x: 64; y: 64 }
+        // The dead jewel is the same cut stone the tray shows: slate facets, a
+        // gold outline and a small table, on a cream die.
+        Item {
+            id: gem
+            anchors.centerIn: parent
+            width: 74
+            height: 74
+
+            Shape {
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+
+                ShapePath {
+                    strokeColor: "#C98A1E"
+                    strokeWidth: 4
+                    fillColor: atlas.jewelColor
+                    joinStyle: ShapePath.RoundJoin
+                    startX: gem.width * 0.5
+                    startY: gem.height * 0.04
+                    PathLine { x: gem.width * 0.94; y: gem.height * 0.36 }
+                    PathLine { x: gem.width * 0.74; y: gem.height * 0.94 }
+                    PathLine { x: gem.width * 0.26; y: gem.height * 0.94 }
+                    PathLine { x: gem.width * 0.06; y: gem.height * 0.36 }
+                    PathLine { x: gem.width * 0.5; y: gem.height * 0.04 }
+                }
+                ShapePath {
+                    strokeColor: "#20323A"
+                    strokeWidth: 1
+                    fillColor: "transparent"
+                    capStyle: ShapePath.RoundCap
+                    startX: gem.width * 0.06
+                    startY: gem.height * 0.36
+                    PathLine { x: gem.width * 0.94; y: gem.height * 0.36 }
+                    PathMove { x: gem.width * 0.34; y: gem.height * 0.36 }
+                    PathLine { x: gem.width * 0.5; y: gem.height * 0.94 }
+                    PathLine { x: gem.width * 0.66; y: gem.height * 0.36 }
+                }
             }
         }
     }

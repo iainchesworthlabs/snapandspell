@@ -35,13 +35,19 @@ foreach(_module IN LISTS _modules)
         message(STATUS "a module has not been built: ${_response}")
         cmake_language(EXIT 4)
     endif()
+    # Qt 6.12's qmllint exits -1 for `--max-warnings 0` even when it has no
+    # warning to report (measured on this kit), so the count is read from the
+    # text instead. Infos are suggestions, not failures; warnings and errors are.
     execute_process(
-        COMMAND "${QMLLINT}" --max-warnings 0 "@${_response}"
+        COMMAND "${QMLLINT}" "@${_response}"
         RESULT_VARIABLE _result
         OUTPUT_VARIABLE _output
         ERROR_VARIABLE _errors)
-    if(NOT _result EQUAL 0)
-        message("${_output}${_errors}")
+    set(_lint_text "${_output}${_errors}")
+    string(FIND "${_lint_text}" "Warning:" _warning)
+    string(FIND "${_lint_text}" "Error:" _error)
+    if(NOT _result EQUAL 0 OR NOT _warning EQUAL -1 OR NOT _error EQUAL -1)
+        message("${_lint_text}")
         message(FATAL_ERROR "qmllint found a problem in the application's QML: ${_response}")
     endif()
 endforeach()

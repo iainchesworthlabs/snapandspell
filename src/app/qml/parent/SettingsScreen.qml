@@ -17,6 +17,15 @@ Flickable {
 
     readonly property var s: controller.settings
 
+    component GroupTitle: Text {
+        Layout.fillWidth: true
+        topPadding: ParentTheme.space4
+        font.family: ParentTheme.monoFont
+        font.pixelSize: 11
+        font.letterSpacing: 1.2
+        color: ParentTheme.accent
+    }
+
     function onOff() {
         return [{value: true, label: ParentWording.valueOn}, {value: false, label: ParentWording.valueOff}];
     }
@@ -34,9 +43,30 @@ Flickable {
         width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
         spacing: ParentTheme.space8
 
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: ParentTheme.space1
+            Text {
+                Layout.fillWidth: true
+                text: ParentWording.tabSettings
+                font.family: ParentTheme.uiFont
+                font.pixelSize: ParentTheme.sizeTitle
+                font.weight: Font.ExtraBold
+                color: ParentTheme.ink
+            }
+            Text {
+                Layout.fillWidth: true
+                text: ParentWording.settingsSubtitle
+                font.family: ParentTheme.uiFont
+                font.pixelSize: ParentTheme.sizeBody
+                color: ParentTheme.inkSecondary
+            }
+        }
+
         Section {
             Layout.fillWidth: true
-            title: ParentWording.tabSettings
+
+            GroupTitle { text: ParentWording.groupPlay }
 
             SettingRow {
                 Layout.fillWidth: true
@@ -151,6 +181,8 @@ Flickable {
                 }
             }
 
+            GroupTitle { text: ParentWording.groupSoundTouch }
+
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsSoundItOut
@@ -214,6 +246,8 @@ Flickable {
                 }
             }
 
+            GroupTitle { text: ParentWording.groupAppearance }
+
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsMotion
@@ -270,6 +304,8 @@ Flickable {
                 }
             }
 
+            GroupTitle { text: ParentWording.groupLanguage }
+
             // The interface's language. The board and the words on it are the
             // same English board in every language; the screens around it change,
             // and Hebrew and Yiddish turn the layout around.
@@ -286,6 +322,8 @@ Flickable {
                 }
             }
         }
+
+        GroupTitle { Layout.fillWidth: true; text: ParentWording.groupData }
 
         Section {
             Layout.fillWidth: true

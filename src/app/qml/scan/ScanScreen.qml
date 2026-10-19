@@ -45,7 +45,8 @@ FocusScope {
     property bool rightToLeft: Theme.rightToLeft
     // For the RTL check in the stub shell: the bar's way back follows the
     // leading edge, and the window's mirroring reaches this screen.
-    readonly property real backButtonX: backButton.x
+    readonly property real backButtonX: Theme.rightToLeft ? width - Theme.space4 - Theme.targetMin
+                                                          : Theme.space4
     readonly property bool mirrored: LayoutMirroring.enabled
     // The check screen's confirm button, for the RTL check.
     readonly property real checkYesPlayX: check.yesPlayX
@@ -81,57 +82,68 @@ FocusScope {
         color: Theme.page
     }
 
-    // --- the bar ------------------------------------------------------------------
-    Item {
-        id: bar
+    // --- the bar ---------------------------------------------------------------
+    AppBar {
+        id: appBar
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: Theme.barHeight
-
-        AppButton {
-            id: backButton
-            anchors.left: parent.left
-            anchors.leftMargin: Theme.space2
-            anchors.verticalCenter: parent.verticalCenter
-            size: "child"
-            iconName: "back"
-            accessibleName: ScanWording.back
-            onClicked: root.back()
-        }
-
-        // The check screen's question, where a grown-up looks first.
-        Text {
-            visible: root.scanState === "check"
-            anchors.centerIn: parent
-            text: ScanWording.checkTitle
-            font.family: Theme.fontFamily
-            font.bold: true
-            font.pixelSize: Theme.labelSize
-            color: Theme.ink
-        }
+        showBack: true
+        showWordmark: false
+        showParent: false
+        title: root.scanState === "check" ? ScanWording.checkTitle
+             : (root.scanState === "reading" ? ScanWording.reading : qsTr("Set up a board"))
+        onBack: root.back()
     }
 
     // --- scan.ready and scan.reading ------------------------------------------------
     Item {
         id: readyStage
-        anchors.top: bar.bottom
+        anchors.top: appBar.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         visible: root.scanState !== "check"
 
-        Text {
-            id: prompt
+        Row {
+            id: stepper
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             anchors.topMargin: Theme.space4
+            spacing: Theme.space3
+
+            Text {
+                text: qsTr("1  Place")
+                font.family: Theme.monoFont
+                font.pixelSize: Theme.smallSize
+                color: Theme.accent
+            }
+            Text {
+                text: qsTr("2  Check")
+                font.family: Theme.monoFont
+                font.pixelSize: Theme.smallSize
+                color: Theme.inkSecondary
+            }
+            Text {
+                text: qsTr("3  Play")
+                font.family: Theme.monoFont
+                font.pixelSize: Theme.smallSize
+                color: Theme.inkSecondary
+            }
+        }
+
+        Text {
+            id: prompt
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: stepper.bottom
+            anchors.topMargin: Theme.space3
             width: Math.min(parent.width - 2 * Theme.space6, 720)
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             text: root.scanState === "reading" ? ScanWording.reading : ScanWording.readyTitle
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.labelSize
+            font.family: Theme.uiFont
+            font.pixelSize: Theme.headingSize
+            font.weight: Font.DemiBold
             color: Theme.ink
         }
 
@@ -147,9 +159,10 @@ FocusScope {
             width: Math.max(Theme.targetMin, Math.min(parent.width - 2 * Theme.space8,
                                                      Math.min(parent.height * 0.55, 640)))
             height: width * 0.72
-            color: Theme.boardArea
-            border.width: Theme.rule
-            border.color: Theme.outline
+            radius: Theme.radiusLarge
+            color: Theme.tray
+            border.width: 2
+            border.color: Theme.gold
             clip: true
 
             // The camera's picture. The view is a CameraPreview of the build's
@@ -243,7 +256,7 @@ FocusScope {
                 wrapMode: Text.WordWrap
                 visible: text !== ""
                 text: root.cameraMessage
-                font.family: Theme.fontFamily
+                font.family: Theme.uiFont
                 font.pixelSize: Theme.bodySize
                 color: Theme.inkSecondary
             }
@@ -253,7 +266,7 @@ FocusScope {
                 wrapMode: Text.WordWrap
                 visible: text !== ""
                 text: root.readMessage
-                font.family: Theme.fontFamily
+                font.family: Theme.uiFont
                 font.pixelSize: Theme.bodySize
                 color: Theme.inkSecondary
             }
@@ -273,37 +286,21 @@ FocusScope {
                 height: Theme.targetPrimary
                 size: "primary"
                 variant: "primary"
+                iconName: ""
+                label: ScanWording.capture
                 accessibleName: ScanWording.capture
                 onClicked: root.scan.capture()
-
-                Text {
-                    anchors.centerIn: parent
-                    text: ScanWording.capture
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.labelSize
-                    color: Theme.buttonInk
-                }
             }
 
             AppButton {
                 id: typeBoard
-                width: Math.max(root.width / 3, Theme.targetChild)
-                height: Theme.targetChild
-                size: "child"
-                variant: "secondary"
+                width: Math.max(root.width / 3, root.cameraShown ? Theme.targetChild : Theme.targetPrimary)
+                height: root.cameraShown ? Theme.targetChild : Theme.targetPrimary
+                size: root.cameraShown ? "child" : "primary"
+                variant: root.cameraShown ? "secondary" : "primary"
+                label: ScanWording.typeBoard
                 accessibleName: ScanWording.typeBoard
                 onClicked: root.scan.typeBoard()
-
-                Text {
-                    anchors.centerIn: parent
-                    width: parent.width - 2 * Theme.space2
-                    horizontalAlignment: Text.AlignHCenter
-                    text: ScanWording.typeBoard
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.labelSize
-                    color: Theme.ink
-                    elide: Text.ElideRight
-                }
             }
         }
     }
@@ -311,7 +308,7 @@ FocusScope {
     // --- scan.check --------------------------------------------------------------------
     CheckScreen {
         id: check
-        anchors.top: bar.bottom
+        anchors.top: appBar.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom

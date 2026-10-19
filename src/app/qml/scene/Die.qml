@@ -78,6 +78,9 @@ Node {
         roughness: 0.7
         metalness: 0.0
         specularAmount: 0.15
+        // Lift the cream just enough that the lit dice match the paper tiles
+        // rather than turning grey in the box's shadow.
+        emissiveFactor: Qt.vector3d(0.055, 0.048, 0.035)
         baseColorMap: Texture {
             sourceItem: slot.atlas
             scaleU: 1 / slot.columns

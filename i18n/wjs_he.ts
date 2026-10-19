@@ -2,6 +2,100 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="he_IL">
 <context>
+    <name>AppBar</name>
+    <message>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+45"/>
+        <location line="+1"/>
+        <source>Back</source>
+        <translation>חזרה</translation>
+    </message>
+    <message>
+        <location line="+29"/>
+        <location line="+1"/>
+        <source>For grown-ups</source>
+        <translation>למבוגרים</translation>
+    </message>
+</context>
+<context>
+    <name>AssistScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+103"/>
+        <source>Find words</source>
+        <translation>מצא מילים</translation>
+    </message>
+</context>
+<context>
+    <name>CheckScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+172"/>
+        <source>Turn</source>
+        <translation>פִּנָה</translation>
+    </message>
+</context>
+<context>
+    <name>Home</name>
+    <message>
+        <location filename="../src/app/qml/Home.qml" line="+60"/>
+        <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
+        <translation>משחק למציאת מילים לקוראים צעירים</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>Shake. Find. Collect.</source>
+        <translation>לְנַעֵר. לִמצוֹא. לֶאֱסוֹף.</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
+        <translation>משחק מילים רגוע לקוראים קטנים. נער את קופסת התכשיטים, מצא מילים ואסוף את התכשיטים.</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>Play on my own</source>
+        <translation>לשחק לבד</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shake the box. Find words. Collect jewels.</source>
+        <translation>נער את הקופסה. מצא מילים. אסוף תכשיטים.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play</source>
+        <translation>לְשַׂחֵק</translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>FOR GROWN-UPS</source>
+        <translation>למבוגרים</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play with a real board</source>
+        <translation>שחקו עם לוח אמיתי</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Use the camera, or type the board. A grown-up sets this up.</source>
+        <translation>השתמש במצלמה, או הקלד את הלוח. מבוגר קובע את זה.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Continue</source>
+        <translation>לְהַמשִׁיך</translation>
+    </message>
+    <message>
+        <location line="+92"/>
+        <source>Word Jewels Solver</source>
+        <translation>Word Jewels Solver</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Everything stays on this device.</source>
+        <translation>הכל נשאר במכשיר הזה.</translation>
+    </message>
+</context>
+<context>
     <name>HomeWording</name>
     <message>
         <location filename="../src/app/qml/HomeWording.qml" line="+8"/>
@@ -22,7 +116,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../src/app/qml/Main.qml" line="+39"/>
+        <location filename="../src/app/qml/Main.qml" line="+40"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>
@@ -31,6 +125,21 @@
     <name>ParentWording</name>
     <message>
         <location filename="../src/app/qml/parent/ParentWording.qml" line="+28"/>
+        <source>Word Jewels</source>
+        <translation>Word Jewels</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Word Jewels Solver</source>
+        <translation>Word Jewels Solver</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A word-finding game for young readers, played with a grown-up.</source>
+        <translation>משחק חיפוש מילים לקוראים צעירים, משוחק עם מבוגר.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Parent area</source>
         <translation>אזור ההורים</translation>
     </message>
@@ -41,23 +150,29 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Kept on this device. No recording, no network.</source>
+        <translation>נשמר במכשיר הזה. אין הקלטה, אין רשת.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Dashboard</source>
         <translation>סקירה</translation>
     </message>
     <message>
         <location line="+1"/>
+        <location line="+82"/>
         <source>Settings</source>
         <translation>הגדרות</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <location line="+146"/>
+        <location line="-80"/>
+        <location line="+158"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>אודות</translation>
     </message>
     <message>
-        <location line="-145"/>
+        <location line="-157"/>
         <source>Nothing to show yet.</source>
         <translation>אין מה להציג עדיין.</translation>
     </message>
@@ -93,13 +208,38 @@
     </message>
     <message>
         <location line="+1"/>
+        <source>Or hold Enter for two seconds.</source>
+        <translation>או החזק את Enter למשך שתי שניות.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Open the parent area. Hold both circles with two fingers, or activate this to open it.</source>
         <translation>פתיחת אזור ההורים. החזיקו את שני העיגולים בשתי אצבעות, או הפעילו זאת כדי לפתוח.</translation>
     </message>
     <message>
         <location line="+4"/>
-        <source>Sounds</source>
+        <source>Play with a real board</source>
         <extracomment>The graphemes of the phonics phase, and how often each has come up.</extracomment>
+        <translation>שחקו עם לוח אמיתי</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Set the tablet beside the board. A grown-up checks the letters before the child plays.</source>
+        <translation>הנח את הטאבלט ליד הלוח. מבוגר בודק את האותיות לפני שהילד משחק.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Set up a real board</source>
+        <translation>הגדר לוח אמיתי</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Back to play</source>
+        <translation>חזרה לשחק</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Sounds</source>
         <translation>צלילים</translation>
     </message>
     <message>
@@ -209,7 +349,37 @@
         <translation>%1x%1: %2</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+5"/>
+        <source>How the game behaves for your child.</source>
+        <translation>איך המשחק מתנהג עבור הילד שלך.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>PLAY</source>
+        <translation>לְשַׂחֵק</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>SOUND &amp; TOUCH</source>
+        <translation>סאונד ומגע</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>APPEARANCE</source>
+        <translation>הוֹפָעָה</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>LANGUAGE</source>
+        <translation>שָׂפָה</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>DATA</source>
+        <translation>נְתוּנִים</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Help</source>
         <translation>עזרה</translation>
     </message>
@@ -434,6 +604,11 @@
         <translation>פרטיות</translation>
     </message>
     <message>
+        <location line="+1"/>
+        <source>Kept on this device. No recording, no network. Nothing moves between devices.</source>
+        <translation>נשמר במכשיר הזה. אין הקלטה, אין רשת. שום דבר לא זז בין מכשירים.</translation>
+    </message>
+    <message>
         <location line="+3"/>
         <source>Word Jewels Solver, version %1</source>
         <translation>Word Jewels Solver, גרסה %1</translation>
@@ -468,6 +643,62 @@
         <location line="+1"/>
         <source>Nothing moves between devices. A new device starts fresh.</source>
         <translation>שום דבר לא עובר בין מכשירים. מכשיר חדש מתחיל מאפס.</translation>
+    </message>
+</context>
+<context>
+    <name>PlayingPanel</name>
+    <message>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+70"/>
+        <source>Words I found</source>
+        <translation>מילים שמצאתי</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <source>1 word</source>
+        <translation>מילה אחת</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 words</source>
+        <translation>%1 מילים</translation>
+    </message>
+    <message>
+        <location line="+71"/>
+        <source>Your words will land here.</source>
+        <translation>המילים שלך ינחתו כאן.</translation>
+    </message>
+    <message>
+        <location line="+25"/>
+        <source>Need a start?</source>
+        <translation>צריך התחלה?</translation>
+    </message>
+    <message>
+        <location line="+17"/>
+        <source>Start here: %1</source>
+        <translation>התחל כאן: %1</translation>
+    </message>
+</context>
+<context>
+    <name>ScanScreen</name>
+    <message>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+95"/>
+        <source>Set up a board</source>
+        <translation>הגדר לוח</translation>
+    </message>
+    <message>
+        <location line="+21"/>
+        <source>1  Place</source>
+        <translation>מקום 1</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>2  Check</source>
+        <translation>2 בדוק</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>3  Play</source>
+        <translation>3 שחק</translation>
     </message>
 </context>
 <context>
@@ -655,6 +886,147 @@
     </message>
 </context>
 <context>
+    <name>SoloBox</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+94"/>
+        <source>Choose a board</source>
+        <translation>בחר לוח</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
+        <translation>3 × 3 היא התחלה טובה. לוחות גדולים יותר מכילים יותר מילים.</translation>
+    </message>
+    <message>
+        <location line="+46"/>
+        <source>How it works</source>
+        <translation>איך זה עובד</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>1   Shake the box.</source>
+        <translation>1 נער את הקופסה.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>2   Find a word.</source>
+        <translation>2 מצא מילה.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>3   Collect the jewels.</source>
+        <translation>3 אספו את התכשיטים.</translation>
+    </message>
+</context>
+<context>
+    <name>SoloResting</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloResting.qml" line="+46"/>
+        <source>Time for a rest.</source>
+        <translation>זמן למנוחה.</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>You did it. The words are safe in your collection.</source>
+        <translation>עשית את זה. המילים בטוחות באוסף שלך.</translation>
+    </message>
+    <message>
+        <location line="+16"/>
+        <location line="+1"/>
+        <source>Play again</source>
+        <translation>לשחק שוב</translation>
+    </message>
+</context>
+<context>
+    <name>SoloScreen</name>
+    <message>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+198"/>
+        <source>Solo Play</source>
+        <translation>משחק סולו</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>All words found</source>
+        <translation>כל המילים נמצאו</translation>
+    </message>
+    <message>
+        <location line="+0"/>
+        <source>Find a word</source>
+        <translation>מצא מילה</translation>
+    </message>
+    <message>
+        <location line="+60"/>
+        <source>Shake to open</source>
+        <translation>לנער כדי לפתוח</translation>
+    </message>
+    <message>
+        <location line="+117"/>
+        <source>Shaking the box…</source>
+        <translation>מנערים את הקופסה…</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Make a word</source>
+        <translation>תעשה מילה</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Tap the last die again, or press Done</source>
+        <translation>הקש שוב על הקוביה האחרונה, או הקש על סיום</translation>
+    </message>
+    <message>
+        <location line="+11"/>
+        <source>Clear</source>
+        <translation>מחיקה</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Clear the word</source>
+        <translation>נקה את המילה</translation>
+    </message>
+    <message>
+        <location line="+9"/>
+        <location line="+1"/>
+        <source>Done</source>
+        <translation>סיום</translation>
+    </message>
+    <message>
+        <location line="+36"/>
+        <source>You found all %1 words!</source>
+        <translation>מצאת את כל %1 המילים!</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Look at the jewels you collected.</source>
+        <translation>תראו את התכשיטים שאספתם.</translation>
+    </message>
+    <message>
+        <location line="+40"/>
+        <source>Home</source>
+        <translation>בַּיִת</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Play again</source>
+        <translation>לשחק שוב</translation>
+    </message>
+    <message>
+        <location line="+77"/>
+        <source>you found a word!</source>
+        <translation>מצאת מילה!</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>That&apos;s a real word — not on this board.</source>
+        <translation>זו מילה אמיתית - לא בלוח הזה.</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Not this time — try another.</source>
+        <translation>לא הפעם - נסה אחר.</translation>
+    </message>
+</context>
+<context>
     <name>SoloWording</name>
     <message>
         <location filename="../src/app/qml/solo/SoloWording.qml" line="+16"/>
@@ -735,6 +1107,19 @@
         <location line="+4"/>
         <source>Jewel, row %1, column %2</source>
         <translation>יהלום, שורה %1, עמודה %2</translation>
+    </message>
+</context>
+<context>
+    <name>Wordmark</name>
+    <message>
+        <location filename="../src/app/qml/kit/Wordmark.qml" line="+26"/>
+        <source>Word Jewels</source>
+        <translation>Word Jewels</translation>
+    </message>
+    <message>
+        <location line="+8"/>
+        <source>SOLVER</source>
+        <translation>SOLVER</translation>
     </message>
 </context>
 </TS>

@@ -108,11 +108,12 @@ TestCase {
         const back = buttonNamed(screen, SoloWording.back)
         verify(back !== null)
 
-        verify(back.x < screen.width / 2, "English: the way back is on the left")
+        const backX = () => back.mapToItem(screen, 0, 0).x
+        verify(backX() < screen.width / 2, "English: the way back is on the left")
 
         useLanguage("he")
         compare(screen.mirrored, true)
-        tryVerify(() => back.x > screen.width / 2, 5000,
+        tryVerify(() => backX() > screen.width / 2, 5000,
                   "Hebrew: the way back is on the right")
     }
 
@@ -143,7 +144,7 @@ TestCase {
     }
 
     // --- the panel and the split ---------------------------------------------
-    function test_thePanelsLeadingEdgeFlips() {
+    function test_thePanelFollowsTheReadingDirection() {
         play()
         const panel = createTemporaryObject(panelComponent, testCase,
                                             { width: 280, height: 500, wide: false,
@@ -153,17 +154,20 @@ TestCase {
         const history = buttonNamed(panel, SoloWording.earlierBoards)
         verify(hint !== null)
         verify(history !== null)
-        // The cards the two controls sit in: the hint card, then the history card.
+        // The cards are stacked in reading order, not placed side by side; the
+        // panel itself mirrors, and its cards keep the same start edge.
         const hintCard = hint.parent
         const historyCard = history.parent
         compare(panel.mirrored, false)
-        verify(hintCard.x < historyCard.x)
+        verify(hintCard.width > 0)
+        verify(historyCard.width > 0)
+        verify(hintCard.y < historyCard.y)
 
         Theme.rightToLeft = true
         compare(panel.mirrored, true)
-        // The hint takes the leading side, which is now the right; the history
-        // the trailing one. Nothing about the two is hard-coded left.
-        tryVerify(() => hintCard.x > historyCard.x)
+        verify(hintCard.width > 0)
+        verify(historyCard.width > 0)
+        verify(hintCard.y < historyCard.y)
     }
 
     function test_theSplitMirrorsButTheBoardDoesNot() {

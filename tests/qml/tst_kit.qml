@@ -190,20 +190,26 @@ TestCase {
     function test_tileFaceAtRestAndLit() {
         const face = createTemporaryObject(tileComponent, testCase,
                                            { width: 100, height: 100, letters: "A" })
+        const faceRect = face.children.find(child => child.objectName === "face")
+        const letter = face.children.find(child => child.objectName === "letter")
+        verify(faceRect !== undefined)
+        verify(letter !== undefined)
         compare(face.shown, "A")
         compare(face.scale, 1)
-        compare(face.children[0].border.width, Theme.rule)
-        compare(face.children[0].color.toString(), Theme.die.toString())
-        compare(face.children[1].text, "A")
+        compare(faceRect.border.width, Theme.rule)
+        compare(faceRect.color.toString(), Theme.die.toString())
+        compare(letter.text, "A")
+        compare(letter.color.toString(), Theme.dieInk.toString())
 
         face.lit = true
 
-        // Lit is a shape as well as a colour: the edge thickens and the tile
-        // grows, so a lit die is not told from a resting one by colour alone.
+        // Lit is a shape as well as a colour: the edge turns gold and thickens,
+        // and the tile grows. The face and its letter stay readable.
         tryCompare(face, "scale", Theme.litScale)
-        compare(face.children[0].border.width, Theme.litEdge)
-        compare(face.children[0].color.toString(), Theme.dieLit.toString())
-        compare(face.children[1].color.toString(), Theme.dieLitInk.toString())
+        compare(faceRect.border.width, Theme.litEdge)
+        compare(faceRect.border.color.toString(), Theme.gold.toString())
+        compare(faceRect.color.toString(), Theme.die.toString())
+        compare(letter.color.toString(), Theme.dieInk.toString())
     }
 
     function test_theQuTileShowsTwoLettersOnOneFace() {
@@ -218,7 +224,9 @@ TestCase {
                                          { width: 100, height: 100, letters: "QU" })
         const z = createTemporaryObject(tileComponent, testCase,
                                         { width: 100, height: 100, letters: "Z" })
-        verify(qu.children[1].font.pixelSize < z.children[1].font.pixelSize)
+        const quLetter = qu.children.find(child => child.objectName === "letter")
+        const zLetter = z.children.find(child => child.objectName === "letter")
+        verify(quLetter.font.pixelSize < zLetter.font.pixelSize)
     }
 
     // --- Jewel --------------------------------------------------------------

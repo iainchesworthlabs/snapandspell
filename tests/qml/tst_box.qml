@@ -143,7 +143,7 @@ TestCase {
         verify(wideShake !== null)
         compare(wideShake.size, "primary")
         compare(wideShake.height, Theme.targetPrimary)
-        compare(wideShake.width, wide.width - 2 * Theme.space4)
+        compare(wideShake.width, wide.width - 2 * Theme.space6)
 
         const tall = boxFor(400, 420, false)
         const tallShake = buttonNamed(tall, SoloWording.shake)

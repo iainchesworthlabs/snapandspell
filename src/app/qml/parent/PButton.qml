@@ -59,12 +59,12 @@ Item {
                 return ParentTheme.page;
             }
             if (root.primary || root.checked) {
-                return ParentTheme.buttonFill;
+                return taps.pressed ? Qt.darker(ParentTheme.buttonFill, 1.15) : ParentTheme.buttonFill;
             }
-            return taps.pressed ? ParentTheme.pressWash : (hover.hovered ? ParentTheme.hoverWash : ParentTheme.card);
+            return taps.pressed ? ParentTheme.pressWash : (hover.hovered ? ParentTheme.hoverWash : ParentTheme.surface);
         }
-        border.width: root.checked ? ParentTheme.rule * 2 : ParentTheme.hair * 2
-        border.color: root.enabled ? (root.checked ? ParentTheme.ink : ParentTheme.outline) : ParentTheme.hoverWash
+        border.width: root.checked ? ParentTheme.rule * 2 : ParentTheme.hair
+        border.color: root.enabled ? (root.checked ? ParentTheme.gold : ParentTheme.outline) : ParentTheme.hoverWash
     }
 
     Rectangle {
@@ -85,8 +85,9 @@ Item {
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
         text: root.text
+        font.family: ParentTheme.uiFont
         font.pixelSize: root.compact ? ParentTheme.sizeSmall : ParentTheme.sizeBody
-        font.bold: root.checked || root.primary
+        font.weight: (root.checked || root.primary) ? Font.DemiBold : Font.Normal
         color: !root.enabled ? ParentTheme.outline : ((root.primary || root.checked) ? ParentTheme.buttonInk : ParentTheme.ink)
     }
 

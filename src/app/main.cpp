@@ -1,8 +1,11 @@
 #include <QDate>
 #include <QDebug>
+#include <QFontDatabase>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
+#include <QStyleHints>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -30,6 +33,7 @@
 #include "solo/solo_game_setup.hpp"
 #include "wjs/calendar.hpp"
 #include "wjs/platform/paths.hpp"
+#include "wjs/platform/window_chrome.hpp"
 #include "wjs/profiling.hpp"
 #include "wjs/settings.hpp"
 #include "wjs/store.hpp"
@@ -266,9 +270,27 @@ int main(int argc, char* argv[]) {
 
     QGuiApplication application(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("WordJewelsSolver"));
+    QGuiApplication::setApplicationDisplayName(QStringLiteral("Word Jewels Solver"));
     QGuiApplication::setOrganizationName(QStringLiteral("Iain Chesworth Labs"));
     QGuiApplication::setApplicationVersion(QString::fromUtf8(
         wjs::project_version.data(), static_cast<qsizetype>(wjs::project_version.size())));
+    QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/app.png")));
+
+    // The house faces and Andika are compiled into the program (src/app/
+    // CMakeLists.txt). Register them before the engine loads so every QML
+    // `font.family` resolves to the face the design names rather than a
+    // platform fallback.
+    for (const char* font : {":/fonts/Archivo-Regular.ttf",
+                             ":/fonts/Archivo-SemiBold.ttf",
+                             ":/fonts/Archivo-ExtraBold.ttf",
+                             ":/fonts/IBMPlexMono-Medium.ttf",
+                             ":/fonts/Andika-Regular.ttf",
+                             ":/fonts/Andika-Bold.ttf"}) {
+        const int id = QFontDatabase::addApplicationFont(QString::fromLatin1(font));
+        if (id < 0) {
+            qWarning() << "The bundled font" << font << "could not be loaded.";
+        }
+    }
     const QStringList arguments = application.arguments();
 
     // Everything the engine points at is declared before it, which is gone first:
@@ -348,6 +370,9 @@ int main(int argc, char* argv[]) {
                        " attach to.";
         return 1;
     }
+    wjs::platform::set_window_chrome(
+        reinterpret_cast<void*>(window->winId()),
+        QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
 
     // The frame clock is attached after the QML is loaded (the scene's creation
     // is in app.load_qml's span) and before the event loop, so the first frame

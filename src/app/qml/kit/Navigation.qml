@@ -39,6 +39,16 @@ QtObject {
         screen = id;
     }
 
+    // A step within the same place (a new scan for the assistant), without
+    // pushing the screen being left onto the history: Back then goes to the
+    // place the workflow was entered from, not to the board just left.
+    function replace(id) {
+        if (id === screen) {
+            return;
+        }
+        screen = id;
+    }
+
     function back() {
         if (history.length === 0) {
             return;

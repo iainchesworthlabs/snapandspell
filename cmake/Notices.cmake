@@ -169,7 +169,7 @@ function(wjs_write_notices)
     endif()
     list(APPEND fragments enable translations)
     if(WJS_BUILD_APP)
-        list(APPEND fragments assets)
+        list(APPEND fragments assets fonts)
     endif()
     list(APPEND fragments catch2)
 

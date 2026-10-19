@@ -30,6 +30,7 @@ set(WJS_PLATFORM_SOURCES
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
     detail/haptics_none.cpp
+    detail/window_chrome_none.cpp
     linux/paths_linux.cpp
     posix/console_posix.cpp)
 

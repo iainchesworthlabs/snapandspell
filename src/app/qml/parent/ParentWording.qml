@@ -25,8 +25,12 @@ import QtQuick
 // the sentence is this file's and not the code's.
 QtObject {
     // --- the screens ------------------------------------------------------
+    readonly property string wordmarkTitle: qsTr("Word Jewels")
+    readonly property string appName: qsTr("Word Jewels Solver")
+    readonly property string tagline: qsTr("A word-finding game for young readers, played with a grown-up.")
     readonly property string parentArea: qsTr("Parent area")
     readonly property string back: qsTr("Back")
+    readonly property string privacyLine: qsTr("Kept on this device. No recording, no network.")
     readonly property string tabDashboard: qsTr("Dashboard")
     readonly property string tabSettings: qsTr("Settings")
     //: The About tab of the parent area, and the heading of the page it shows.
@@ -42,10 +46,15 @@ QtObject {
     readonly property string gateTitle: qsTr("For parents")
     readonly property string gateInstruction: qsTr("Hold both circles at the same time for two seconds.")
     readonly property string gateKeys: qsTr("With a mouse and a keyboard: hold the left circle with the mouse and press Space.")
+    readonly property string gateEnterHold: qsTr("Or hold Enter for two seconds.")
     readonly property string gateSpot: qsTr("Open the parent area. Hold both circles with two fingers, or activate this to open it.")
 
     // --- the dashboard ---------------------------------------------------------
     //: The graphemes of the phonics phase, and how often each has come up.
+    readonly property string welcomeTitle: qsTr("Play with a real board")
+    readonly property string welcomeBody: qsTr("Set the tablet beside the board. A grown-up checks the letters before the child plays.")
+    readonly property string setUpBoard: qsTr("Set up a real board")
+    readonly property string backToPlay: qsTr("Back to play")
     readonly property string soundsHeading: qsTr("Sounds")
     readonly property string vaultHeading: qsTr("The vault")
     //: The best board found at each board size.
@@ -105,6 +114,13 @@ QtObject {
     }
 
     // --- the settings ----------------------------------------------------------
+    readonly property string settingsTitle: qsTr("Settings")
+    readonly property string settingsSubtitle: qsTr("How the game behaves for your child.")
+    readonly property string groupPlay: qsTr("PLAY")
+    readonly property string groupSoundTouch: qsTr("SOUND & TOUCH")
+    readonly property string groupAppearance: qsTr("APPEARANCE")
+    readonly property string groupLanguage: qsTr("LANGUAGE")
+    readonly property string groupData: qsTr("DATA")
     readonly property string settingsHelp: qsTr("Help")
     readonly property string settingsHelpHint: qsTr("The start tile: one tile glows to show where a word begins.")
     //: The board setting (standard dice or the phonics words), not its size.
@@ -179,6 +195,7 @@ QtObject {
     readonly property string aboutHeading: qsTr("About")
     readonly property string licencesHeading: qsTr("Licences")
     readonly property string privacyHeading: qsTr("Privacy")
+    readonly property string privacySummary: qsTr("Kept on this device. No recording, no network. Nothing moves between devices.")
 
     function version(v) {
         return qsTr("Word Jewels Solver, version %1").arg(v);

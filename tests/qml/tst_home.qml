@@ -2,16 +2,14 @@ import QtQuick
 import QtTest
 import WordJewelsSolver
 
-// Home (src/app/qml/Home.qml): the box, the family's tablet once its screen
-// exists, and the small corner button for a grown-up. A picture and not a word,
-// so what is checked is which pictures are there, that pressing one asks for its
-// screen, that the box has the keyboard, and that Back does nothing here.
+// Home (src/app/qml/Home.qml): one large child placard, one adult card, and the
+// app bar's adult entry. The brief's first rule is that the child's way in is
+// the obvious one; these checks hold that shape, its keyboard focus, and the
+// reading direction, without looking for the retired family-scanner card.
 TestCase {
     id: testCase
     name: "Home"
     when: windowShown
-    // Quick Test's own root is invisible; a screen created under it needs the
-    // test window visible for pointer events and focus.
     visible: true
 
     width: 900
@@ -20,12 +18,9 @@ TestCase {
     Component { id: homeComponent; Home { } }
 
     SignalSpy { id: soloSpy; signalName: "soloRequested" }
-    SignalSpy { id: scanSpy; signalName: "scanRequested" }
     SignalSpy { id: parentSpy; signalName: "parentRequested" }
 
     function init() {
-        // A QML warning in a test function fails it, as one outside does the
-        // whole run: a screen that warned is a screen that is wrong.
         failOnWarning(/.?/)
         fixture.reset()
         Navigation.home()
@@ -66,87 +61,68 @@ TestCase {
         return home
     }
 
-    function test_theBoxTheFamilyAndTheGrownUpsButton() {
+    function test_oneChildPlacardAndTheAdultWayIn() {
         const screen = home()
 
         compare(screen.pictures, 2)
-        const box = picture(screen, HomeWording.soloPicture)
-        const family = picture(screen, HomeWording.familyPicture)
+        const play = picture(screen, HomeWording.soloPicture)
+        const board = picture(screen, HomeWording.familyPicture)
         const grownUps = picture(screen, HomeWording.forGrownUps)
-        verify(box !== null)
-        verify(family !== null)
+        verify(play !== null)
+        verify(board !== null)
         verify(grownUps !== null)
-        compare(box.visible, true)
-        compare(family.visible, true)
+        compare(play.visible, true)
+        compare(board.visible, true)
         compare(grownUps.visible, true)
-        // The pictures are big touch targets, at least the primary target:
-        verify(box.width >= Theme.targetPrimary)
-        verify(box.height >= Theme.targetPrimary)
-        // The grown-ups' button is the adult 48 dp in the corner.
-        compare(grownUps.targetHeight, Theme.targetChild)
+        verify(play.width >= Theme.targetPrimary)
+        verify(play.height >= Theme.targetPrimary)
+        compare(grownUps.targetHeight, Theme.targetMin)
     }
 
-    function test_theFamilyPictureShowsOnlyOnceItsScreenExists() {
-        // Navigation.scanAvailable is the shell's switch: a picture that does
-        // nothing is not shown.
-        Navigation.scanAvailable = false
-        const screen = home()
-
-        compare(screen.pictures, 1)
-        compare(picture(screen, HomeWording.familyPicture).visible, false)
-        compare(picture(screen, HomeWording.soloPicture).visible, true)
-    }
-
-    function test_eachPictureAsksForItsScreen() {
+    function test_eachWayInAsksForItsScreen() {
         const screen = home()
         soloSpy.target = screen
-        scanSpy.target = screen
         parentSpy.target = screen
         soloSpy.clear()
-        scanSpy.clear()
         parentSpy.clear()
 
-        const box = picture(screen, HomeWording.soloPicture)
-        mouseClick(box, box.width / 2, box.height / 2)
+        const play = picture(screen, HomeWording.soloPicture)
+        const board = picture(screen, HomeWording.familyPicture)
+        // The Grid gets its child widths in the first frame; wait until the two
+        // cards have taken their places, so the click cannot fall through to the
+        // card underneath.
+        tryVerify(() => board.x > play.x + play.width, 2000)
+        mouseClick(play, play.width / 2, play.height / 2)
         compare(soloSpy.count, 1)
-        compare(scanSpy.count, 0)
         compare(parentSpy.count, 0)
 
-        const family = picture(screen, HomeWording.familyPicture)
-        mouseClick(family, family.width / 2, family.height / 2)
-        compare(scanSpy.count, 1)
+        mouseClick(board, board.width / 2, board.height / 2)
+        compare(parentSpy.count, 1)
         compare(soloSpy.count, 1)
 
         const grownUps = picture(screen, HomeWording.forGrownUps)
         mouseClick(grownUps, grownUps.width / 2, grownUps.height / 2)
-        compare(parentSpy.count, 1)
+        compare(parentSpy.count, 2)
     }
 
-    function test_theBoxHasTheKeyboardAndSpaceOpensIt() {
+    function test_theChildPlacardHasTheKeyboardAndSpaceOpensIt() {
         const screen = home()
         soloSpy.target = screen
         soloSpy.clear()
 
         screen.forceActiveFocus()
-        const box = picture(screen, HomeWording.soloPicture)
-        tryCompare(box, "activeFocus", true)
+        const play = picture(screen, HomeWording.soloPicture)
+        tryCompare(play, "activeFocus", true)
 
         keyClick(Qt.Key_Space)
-
         compare(soloSpy.count, 1)
     }
 
     function test_backOnHomeDoesNothing() {
-        // The shell's Back is Main.qml's (Esc and the system back do what the
-        // visible Back does, and on home they do nothing). Home itself has no
-        // deeper state to undo, so a key it does not use changes nothing: no
-        // screen is asked for and the navigation stack stays empty.
         const screen = home()
         soloSpy.target = screen
-        scanSpy.target = screen
         parentSpy.target = screen
         soloSpy.clear()
-        scanSpy.clear()
         parentSpy.clear()
         screen.forceActiveFocus()
 
@@ -156,20 +132,16 @@ TestCase {
         compare(Navigation.screen, "home")
         compare(Navigation.history.length, 0)
         compare(soloSpy.count, 0)
-        compare(scanSpy.count, 0)
         compare(parentSpy.count, 0)
     }
 
-    function test_thePicturesFollowTheReadingDirection() {
-        // Home's Grid is mirrored, so the box is on the leading side: left in
-        // English, right in Hebrew. The pictures themselves are not mirrored
-        // (their drawings are not words), only their places.
+    function test_theCardsFollowTheReadingDirection() {
         const screen = home()
-        const box = picture(screen, HomeWording.soloPicture)
-        const family = picture(screen, HomeWording.familyPicture)
-        verify(box.x < family.x)
+        const play = picture(screen, HomeWording.soloPicture)
+        const board = picture(screen, HomeWording.familyPicture)
+        verify(play.x < board.x)
 
         Theme.rightToLeft = true
-        tryVerify(() => box.x > family.x)
+        tryVerify(() => play.x > board.x)
     }
 }

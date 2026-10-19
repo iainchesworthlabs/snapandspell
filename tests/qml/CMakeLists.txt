@@ -116,14 +116,18 @@ set(WJS_QUICK_TEST_QML_DIR "${PROJECT_SOURCE_DIR}/src/app/qml")
 set(WJS_QUICK_TEST_QML_SOURCES "")
 
 set(WJS_QUICK_TEST_KIT_FILES
+    AppBar.qml
     AppButton.qml
     Feedback.qml
     HoldButton.qml
     Icon.qml
     Jewel.qml
+    JewelBox.qml
+    ModeCard.qml
     Navigation.qml
     Theme.qml
-    TileFace.qml)
+    TileFace.qml
+    Wordmark.qml)
 foreach(_file IN LISTS WJS_QUICK_TEST_KIT_FILES)
     set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/kit/${_file}"
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")
@@ -132,6 +136,7 @@ endforeach()
 
 set(WJS_QUICK_TEST_SOLO_FILES
     BoardThumb.qml
+    FlatBoard.qml
     HistorySheet.qml
     PlayingPanel.qml
     SoloBox.qml

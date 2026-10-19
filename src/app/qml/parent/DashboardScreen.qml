@@ -10,6 +10,9 @@ Flickable {
 
     required property var controller
 
+    signal scanRequested
+    signal playRequested
+
     // The parent area's direction, from the shell: the rows and their counts
     // follow it (the numbers themselves do not).
     LayoutMirroring.enabled: ParentTheme.rightToLeft
@@ -31,6 +34,63 @@ Flickable {
         y: ParentTheme.space6
         width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
         spacing: ParentTheme.space8
+
+        Text {
+            Layout.fillWidth: true
+            text: ParentWording.privacyLine
+            font.family: ParentTheme.monoFont
+            font.pixelSize: ParentTheme.sizeSmall
+            color: ParentTheme.inkSecondary
+        }
+
+        // The adult way into the family game. The scanner is a parent's
+        // workflow, so it lives behind this gate rather than on the child's
+        // home.
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: welcome.implicitHeight + 2 * ParentTheme.space4
+            radius: ParentTheme.radius
+            color: ParentTheme.card
+            border.width: 1
+            border.color: ParentTheme.gold
+
+            ColumnLayout {
+                id: welcome
+                anchors.fill: parent
+                anchors.margins: ParentTheme.space4
+                spacing: ParentTheme.space2
+
+                Text {
+                    Layout.fillWidth: true
+                    text: ParentWording.welcomeTitle
+                    font.family: ParentTheme.uiFont
+                    font.pixelSize: ParentTheme.sizeLead
+                    font.weight: Font.ExtraBold
+                    color: ParentTheme.ink
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: ParentWording.welcomeBody
+                    font.family: ParentTheme.uiFont
+                    font.pixelSize: ParentTheme.sizeBody
+                    color: ParentTheme.inkSecondary
+                    wrapMode: Text.WordWrap
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: ParentTheme.space2
+                    PButton {
+                        text: ParentWording.setUpBoard
+                        primary: true
+                        onClicked: root.scanRequested()
+                    }
+                    PButton {
+                        text: ParentWording.backToPlay
+                        onClicked: root.playRequested()
+                    }
+                }
+            }
+        }
 
         // A note about the saved progress, for the parent only.
         Rectangle {

@@ -2,86 +2,101 @@ pragma Singleton
 import QtQuick
 import WordJewelsSolver
 
-// Every colour, size, time and type size a screen uses is a token here; a screen
-// writes none of its own. The values are the placeholders of
-// docs/design/application.md ("Colour and contrast", "Touch targets", "Motion",
-// "Type"), which are the gate a final palette has to meet. A school font, a
-// world (7.2) or a dark theme is a swap of these tokens and changes no rule.
+// The one design system of the application: the Jewel Box. Warm paper, a deep
+// tray, cream dice, an emerald action colour and a gold reward. Archivo is the
+// house UI face, IBM Plex Mono the label face, Andika the learning face (dice
+// letters and words). Every screen, the parent area included, reads these
+// tokens; a screen writes no colour, size or type value of its own.
 //
-// The board is dark in both themes, so the dice read the same; only the chrome
-// around it follows the person's colour scheme, which is System (the operating
-// system's light or dark setting) unless a parent chose Light or Dark.
+// Light and dark are chosen by the parent's Colour scheme setting, or by the
+// system when that is System. The board is the one object that stays warm in
+// both: its tray, dice and gold rim are the physical toy on the table.
 QtObject {
     id: root
 
     // --- what the person or the system chooses ------------------------------
-    // Set by Main.qml from the parent area's Motion setting: System follows the
-    // operating system (SystemMotion), Reduced forces it. Nothing here is a child's
-    // choice.
     property bool reducedMotion: false
-    // The app's own text size (1, 1.25 or 1.5), which the design says is to be
-    // multiplied by the system's and clamped to 0.85 to 2.0. Qt 6.12 does not say what
-    // the system's is (docs/design/parent-area.md, "Integration"), so for now this is
-    // the app's own alone.
     property real textScale: 1.0
-    // Set by Main.qml from the parent area's Colour scheme setting: "system",
-    // "light" or "dark". Light and Dark are the parent's choice; System follows
-    // what the operating system asks for (SystemColourScheme).
     property string colourScheme: "system"
-    // Set by Main.qml from LanguageManager: Hebrew and Yiddish read right to
-    // left. Positioners, icons and the two-thirds split read this; the board
-    // containers switch it off (qml/solo/TraceLayer.qml).
     property bool rightToLeft: false
 
     readonly property bool dark: colourScheme === "dark"
                                  || (colourScheme !== "light" && SystemColourScheme.dark)
 
     // --- colour: the chrome (light / dark) ----------------------------------
-    readonly property color page: dark ? "#12161C" : "#FBF8F1"
-    readonly property color ink: dark ? "#F4EFE3" : "#1F2A37"
-    readonly property color inkSecondary: dark ? "#B4BDC9" : "#4A5666"
-    readonly property color outline: dark ? "#8C98A8" : "#5B6879"
-    readonly property color buttonFill: dark ? "#7DB4EE" : "#1F5FA8"
-    readonly property color buttonInk: dark ? "#0E1620" : "#FFFFFF"
-    readonly property color hoverWash: dark ? "#27303B" : "#EDE6D6"
-    readonly property color pressWash: dark ? "#323D4A" : "#E0D8C4"
-    readonly property color boardArea: dark ? "#1A1F26" : "#EFE9DA"
-    readonly property color panel: dark ? "#1D2733" : "#DCE6F2"
-    readonly property color card: dark ? "#263140" : "#FFFFFF"
-    readonly property color hintCard: "#FFD54F"
-    readonly property color hintCardInk: "#1F2A37"
-    readonly property color scrim: Qt.rgba(0.07, 0.09, 0.11, 0.6)
+    readonly property color page: dark ? "#11181B" : "#F6F1E7"
+    readonly property color surface: dark ? "#1A2428" : "#FFFDF8"
+    readonly property color card: dark ? "#1E2A2F" : "#FFFDF8"
+    readonly property color panel: dark ? "#1A2428" : "#EDE7DA"
+    readonly property color boardArea: dark ? "#1A2428" : "#EFE9DA"
+    readonly property color ink: dark ? "#F2ECDE" : "#1E2A30"
+    readonly property color inkSecondary: dark ? "#B3BDBB" : "#5C6B70"
+    readonly property color line: dark ? "#3A474B" : "#D9D1C2"
+    readonly property color outline: dark ? "#8C9A98" : "#6E7A78"
+    readonly property color accent: dark ? "#63C7B2" : "#166B5C"
+    readonly property color accentSoft: dark ? "#1E3A36" : "#DDEDE8"
+    readonly property color buttonFill: accent
+    readonly property color buttonInk: dark ? "#0E1F1C" : "#FFFFFF"
+    readonly property color gold: "#C98A1E"
+    readonly property color goldInk: dark ? "#F0C879" : "#7A4E08"
+    readonly property color goldSoft: dark ? "#3A2E1A" : "#F7E8C6"
+    readonly property color hoverWash: dark ? "#243136" : "#EDE6D6"
+    readonly property color pressWash: dark ? "#2E3D42" : "#E0D8C4"
+    readonly property color danger: dark ? "#F08A78" : "#A33A2B"
+    readonly property color focusRing: accent
+    readonly property color scrim: Qt.rgba(0.067, 0.094, 0.106, 0.64)
 
-    // The resting screen is meant to be looked at without wanting anything: low
-    // contrast, nothing to chase.
+    // The hint's own card. Gold is the reward and the hint, never the chrome.
+    readonly property color hintCard: goldSoft
+    readonly property color hintCardInk: ink
+
+    // The resting screen is meant to be looked at without wanting anything.
     readonly property color restPage: dark ? "#161B22" : "#F1ECDF"
     readonly property color restShape: dark ? "#2B3542" : "#D9D2BF"
     readonly property color restDetail: dark ? "#3A4757" : "#C7BFA9"
 
-    // --- colour: the board (the same in both themes) ---------------------------
-    readonly property color tray: "#1F2A37"
-    readonly property color trayEdge: dark ? "#8C98A8" : "#1F2A37"
-    readonly property color lid: "#DCE6F2"
-    readonly property color well: "#41536B"
-    readonly property color die: "#FFF8E1"
-    readonly property color dieInk: "#1F2A37"
-    readonly property color dieEdge: "#1F2A37"
-    readonly property color dieLit: "#FFD54F"
-    readonly property color dieLitInk: "#1F2A37"
-    readonly property color pathCasing: "#FFFFFF"
-    readonly property color pathCore: "#1F2A37"
+    // --- colour: the board (the same warm object in both themes) ------------
+    readonly property color tray: "#17323A"
+    readonly property color trayEdge: gold
+    readonly property color lid: "#F7E8C6"
+    readonly property color well: "#0D2229"
+    readonly property color die: "#FFF7E3"
+    readonly property color dieInk: "#1F2A30"
+    readonly property color dieEdge: "#20323A"
+    readonly property color dieLit: "#F7E8C6"
+    readonly property color dieLitInk: "#1F2A30"
+    readonly property color pathCasing: gold
+    readonly property color pathCore: "#17323A"
     readonly property color jewelDead: "#8FA1B8"
 
-    // A jewel's colour is decoration: its size says its tier (game.md). These are
-    // taken in turn by the order a word was found.
+    // A jewel's colour is decoration: its size says its tier. These are taken
+    // in turn by the order a word was found.
     readonly property var jewelColors: ["#E0556B", "#3F9E8F", "#7B6FD6", "#E39A2D", "#4B8BD3"]
 
-    // --- sizes, in dp ----------------------------------------------------------
-    // Touch targets (application.md, "Touch targets").
-    readonly property real targetMin: 48       // anything an adult touches
-    readonly property real targetChild: 64     // anything a child taps that is not primary
-    readonly property real targetPrimary: 96   // Shake, and the like: this high, at least a third wide
-    readonly property real targetGap: 8        // between neighbouring child targets
+    // --- type --------------------------------------------------------------
+    readonly property string uiFont: "Archivo"
+    readonly property string fontFamily: "Andika"
+    readonly property string monoFont: "IBM Plex Mono"
+
+    function rem(amount) {
+        return amount * 16 * textScale;
+    }
+
+    readonly property real displaySize: rem(2.75)
+    readonly property real titleSize: rem(1.875)
+    readonly property real headingSize: rem(1.25)
+    readonly property real labelSize: rem(1.125)
+    readonly property real bodySize: rem(1.0)
+    readonly property real wordSize: rem(1.5)
+    readonly property real childLabelSize: rem(1.375)
+    readonly property real smallSize: rem(0.875)
+    readonly property real monoSize: rem(0.75)
+
+    // --- sizes, in dp ------------------------------------------------------
+    readonly property real targetMin: 48
+    readonly property real targetChild: 64
+    readonly property real targetPrimary: 96
+    readonly property real targetGap: 8
 
     readonly property real space1: 4
     readonly property real space2: 8
@@ -93,73 +108,61 @@ QtObject {
     readonly property real space16: 64
 
     readonly property real hair: 1
-    readonly property real rule: 2
-    readonly property real heavy: 3
-    readonly property real litEdge: 4          // a lit tile's edge
-    readonly property real litScale: 1.06      // a lit tile's scale
-    readonly property real pathCoreWidth: 6
-    readonly property real pathCasingWidth: 12
+    readonly property real rule: 1
+    readonly property real heavy: 2
+    readonly property real litEdge: 3
+    readonly property real litScale: 1.03
+    readonly property real pathCoreWidth: 5
+    readonly property real pathCasingWidth: 9
 
-    // Pictures and panels (a screen takes its sizes from here).
-    readonly property real pictureMax: 480     // the largest side of a picture on home
-    readonly property real roomyPanel: 300     // a panel this big on both sides has room for more
-    readonly property real thumbInline: 96     // a history thumbnail in the panel
-    readonly property real thumbSheet: 112     // a history thumbnail in the sheet
+    readonly property real radiusSmall: 8
+    readonly property real radius: 12
+    readonly property real radiusLarge: 20
+
+    readonly property real appBarHeight: 72
+    readonly property real barHeight: appBarHeight
+    readonly property real actionBarHeight: 88
+
+    // Pictures and panels.
+    readonly property real pictureMax: 520
+    readonly property real roomyPanel: 320
+    readonly property real thumbInline: 96
+    readonly property real thumbSheet: 112
     readonly property real thumbSheetCell: 136
     readonly property real sheetMaxWidth: 720
     readonly property real sheetMaxHeight: 560
-    readonly property real hintDisplay: 96     // the hint's picture of the board
-    readonly property real doneWidth: 160      // the Done jewel's button
-    readonly property real iconMax: 48
-    readonly property real startRing: 6        // the start tile's ring, outside its tile
-
-    // The bar above every Solo Play screen holds the way back and the quiet corner
-    // buttons, so neither lies over the board.
-    readonly property real barHeight: targetChild + space2
+    readonly property real hintDisplay: 96
+    readonly property real doneWidth: 160
+    readonly property real iconMax: 32
+    readonly property real startRing: 8
 
     // The letter on a die is this share of the tile (Qu: this share of that).
     readonly property real letterShare: 0.55
-    readonly property real quShare: 0.8
+    readonly property real quShare: 0.78
 
     // The size of a jewel in the tray, by tier.
-    readonly property real jewelSpark: 28
-    readonly property real jewelPower: 38
-    readonly property real jewelMega: 50
+    readonly property real jewelSpark: 26
+    readonly property real jewelPower: 34
+    readonly property real jewelMega: 44
 
-    // --- motion, in ms (application.md, "Motion") ----------------------------------
+    // --- motion, in ms -----------------------------------------------------
     readonly property int quick: ms(120, 0)
     readonly property int base: ms(200, 0)
     readonly property int screen: ms(280, 120)
     readonly property int turn: ms(380, 120)
-    readonly property int restFade: ms(600, 0)        // a cut when reduced
-    readonly property int pathFade: 300               // a path that is not a word
-    readonly property int tileFlashStep: 60           // the found word's tiles, in order
-    readonly property int tileFlashLength: 240        // each of them stays lit this long
-    readonly property int ringPulse: 500              // the start tile's ring, five pulses (under 5 s)
-    readonly property int glowRise: 600               // the one slow glow when the board clears
+    readonly property int restFade: ms(600, 0)
+    readonly property int pathFade: 300
+    readonly property int tileFlashStep: 60
+    readonly property int tileFlashLength: 240
+    readonly property int ringPulse: 500
+    readonly property int glowRise: 600
     readonly property int glowFall: 1200
-    readonly property real glowPeak: 0.35
-    readonly property int wordHold: ms(450, 150)      // the word stays lit this long
-    readonly property int clearedHold: 3000           // solo.cleared lasts about this long
-    readonly property int holdToPlay: 1000            // the resting screen's Again
+    readonly property real glowPeak: 0.28
+    readonly property int wordHold: ms(450, 150)
+    readonly property int clearedHold: 3000
+    readonly property int holdToPlay: 1000
 
     function ms(full, reduced) {
         return reducedMotion ? reduced : full;
     }
-
-    // --- type ----------------------------------------------------------------------
-    // Andika (SIL OFL) is the recommendation for beginning readers. It is not
-    // bundled: its licence file has to be read first and the glyph check of
-    // docs/design/application.md ("Type") done on a device. Until then Qt falls
-    // back to the platform's face.
-    readonly property string fontFamily: "Andika"
-
-    // Sizes are in rem: 1 rem is 16 px times the text scale.
-    function rem(amount) {
-        return amount * 16 * textScale;
-    }
-    readonly property real labelSize: rem(1.0)
-    readonly property real bodySize: rem(1.0)
-    readonly property real wordSize: rem(1.5)         // a word in the tray
-    readonly property real smallSize: rem(0.875)
 }

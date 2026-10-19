@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Window
 import WordJewelsSolver
 import WordJewelsSolver.Parent
 import WordJewelsSolver.Scan
@@ -31,10 +32,10 @@ ApplicationWindow {
     required property var feedback
     required property var motion
 
-    width: 1100
-    height: 700
-    minimumWidth: 320
-    minimumHeight: 320
+    width: 1160
+    height: 740
+    minimumWidth: 900
+    minimumHeight: 620
     visible: true
     title: qsTr("Word Jewels Solver")
     color: Theme.page
@@ -91,6 +92,21 @@ ApplicationWindow {
         // parent's settings that decide what a cue plays and says.
         Feedback.engine = feedback;
         feedback.settings = parentController.settings;
+        // Centre the first window on the screen it opens on. The parent's
+        // window geometry is not persisted yet; the default is a comfortable
+        // desktop size rather than a phone-sized minimum.
+        const screenWidth = Screen.desktopAvailableWidth > 0 ? Screen.desktopAvailableWidth
+                                                            : (Screen.width > 0 ? Screen.width : width);
+        const screenHeight = Screen.desktopAvailableHeight > 0 ? Screen.desktopAvailableHeight
+                                                              : (Screen.height > 0 ? Screen.height : height);
+        if (width > screenWidth - 32) {
+            width = Math.max(minimumWidth, screenWidth - 32);
+        }
+        if (height > screenHeight - 32) {
+            height = Math.max(minimumHeight, screenHeight - 32);
+        }
+        x = Math.max(0, Math.round((screenWidth - width) / 2));
+        y = Math.max(0, Math.round((screenHeight - height) / 2));
         if (smoke) {
             startSmoke();
         }
@@ -292,7 +308,6 @@ ApplicationWindow {
         id: homeScreen
         Home {
             onSoloRequested: Navigation.go("solo")
-            onScanRequested: Navigation.go("scan")
             onParentRequested: Navigation.go("parent")
         }
     }
@@ -323,7 +338,7 @@ ApplicationWindow {
             // goes home, not to the board that was just left.
             onNewBoardRequested: {
                 scanGame.readAgain();
-                Navigation.restart("scan");
+                Navigation.replace("scan");
             }
         }
     }
@@ -334,6 +349,10 @@ ApplicationWindow {
             controller: window.parentController
             rightToLeft: window.languageManager.rightToLeft
             onClosed: Navigation.back()
+            // The scanner is an adult workflow behind the gate. The parent
+            // area keeps the gate open while the scanner is shown, so Back
+            // returns here rather than to the gate.
+            onScanRequested: Navigation.go("scan")
         }
     }
 }
