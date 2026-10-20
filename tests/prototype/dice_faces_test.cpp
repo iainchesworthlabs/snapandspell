@@ -24,7 +24,7 @@ constexpr double kTwoPi = 2.0 * std::numbers::pi;
 // A hand shaking a box, as dice_world_test.cpp has it: strokes of 3 to 5 Hz up
 // to 1.2 g sideways and 3 g up and down, then put down.
 Reading shaking(double t, std::uint32_t seed) {
-    const auto phase = [seed](int k) {
+    const auto phase = [seed](std::uint32_t k) {
         return kTwoPi * std::fmod(0.6180339887 * (seed * 7 + k * 13 + 1), 1.0);
     };
     const double burst = t < 1.0 ? 1.0 : std::max(0.0, 1.0 - (t - 1.0) / 0.12);
