@@ -49,6 +49,10 @@
     Folder searched recursively for vcpkg.spdx.json files (vcpkg writes one per
     installed port). Optional.
 
+.PARAMETER Timestamp
+    The document's time, ISO 8601. Default: the commit's own time (so the same
+    release gives the same bytes), else now.
+
 .PARAMETER Output
     The file to write.
 
@@ -70,6 +74,8 @@ param(
     [string]$PackagesDir,
 
     [string]$VcpkgSpdxDir,
+
+    [string]$Timestamp,
 
     [Parameter(Mandatory = $true)]
     [string]$Output,
@@ -93,8 +99,13 @@ if ($Tag -notmatch '^v((0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*))(-[0-9A-Za-z.-]+
 $version = $Tag.Substring(1)
 
 if (-not $Commit) { $Commit = (git -C $Root rev-parse HEAD).Trim() }
-$timestamp = (git -C $Root show -s --format=%cI $Commit 2>$null)
-if ($LASTEXITCODE -ne 0 -or -not $timestamp) { $timestamp = [DateTimeOffset]::UtcNow.ToString('o') }
+if ($Timestamp) {
+    $timestamp = $Timestamp
+}
+else {
+    $timestamp = (git -C $Root show -s --format=%cI $Commit 2>$null)
+    if ($LASTEXITCODE -ne 0 -or -not $timestamp) { $timestamp = [DateTimeOffset]::UtcNow.ToString('o') }
+}
 $timestamp = ([DateTimeOffset]::Parse($timestamp.Trim())).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
 # --- the facts ---------------------------------------------------------------

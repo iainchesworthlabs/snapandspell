@@ -11,8 +11,11 @@
          no file inside any package that can be listed has Tracy in its name
          (TracyClient.dll, libTracyClient.so). A release with the profiler in
          it opens a network port (docs/profiling.md);
-      2. the build type is Release and the sanitizers are off (a sanitizer
-         runtime in a package is a Debug build shipped by mistake);
+      2. the build type is Release, and no package that can be listed holds a
+         sanitizer runtime (the option WJS_ENABLE_SANITIZERS is ON in every
+         tree but its flags apply to Debug only, so the option itself says
+         nothing; an asan or clang_rt file in a package is a Debug build
+         shipped by mistake);
       3. the packages that must exist for this platform do: -Expect names file
          suffixes, e.g. .zip, .exe, and each must match exactly one file.
 
@@ -63,9 +66,7 @@ $tracy = Get-CacheValue 'WJS_ENABLE_TRACY'
 if ($tracy -ne 'OFF') { Fail "WJS_ENABLE_TRACY is '$tracy' in $cache; a release is built with the profiler off." }
 $type = Get-CacheValue 'CMAKE_BUILD_TYPE'
 if ($type -ne 'Release') { Fail "CMAKE_BUILD_TYPE is '$type'; a release is built as Release." }
-$sanitizers = Get-CacheValue 'WJS_ENABLE_SANITIZERS'
-if ($sanitizers -and $sanitizers -ne 'OFF') { Fail "WJS_ENABLE_SANITIZERS is '$sanitizers'; a release has no sanitizer runtime." }
-Write-Host "    configuration: Release, Tracy off, sanitizers $(if ($sanitizers) { $sanitizers } else { 'not offered' })"
+Write-Host '    configuration: Release, Tracy off'
 
 # 3. The packages.
 $packagesDirectory = Join-Path $buildDirectory 'packages'
@@ -92,7 +93,9 @@ foreach ($file in $files) {
     }
     $hit = @($entries | Where-Object { $_ -match '(?i)tracy' })
     if ($hit.Count -gt 0) { Fail "$($file.Name) contains the profiler: $($hit -join ', ')" }
-    if ($entries.Count -gt 0) { Write-Host "    listed $($file.Name): $($entries.Count) entries, no Tracy" }
+    $runtime = @($entries | Where-Object { $_ -match '(?i)(asan|ubsan|clang_rt)' })
+    if ($runtime.Count -gt 0) { Fail "$($file.Name) contains a sanitizer runtime: $($runtime -join ', ')" }
+    if ($entries.Count -gt 0) { Write-Host "    listed $($file.Name): $($entries.Count) entries, no Tracy, no sanitizer runtime" }
 }
 
 Write-Host 'release build: ok' -ForegroundColor Green
