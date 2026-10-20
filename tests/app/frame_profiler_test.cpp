@@ -45,6 +45,9 @@ TEST_CASE("each of the window's signals adds to its own part of the report", "[a
     QQuickWindow window;
     FrameProfiler profiler(&window);
 
+    // The first swap starts the clock; with no warm-up, what comes after is measured.
+    window.frameSwapped();
+
     // The render thread's frame, its synchronisation and its recording of the pass.
     window.beforeFrameBegin();
     window.beforeSynchronizing();
@@ -52,7 +55,6 @@ TEST_CASE("each of the window's signals adds to its own part of the report", "[a
     window.beforeRenderPassRecording();
     window.afterRenderPassRecording();
     window.afterFrameEnd();
-    window.frameSwapped();
     window.frameSwapped();
 
     // The GUI thread's: the end of a frame's animations and polish.
@@ -75,6 +77,34 @@ TEST_CASE("each of the window's signals adds to its own part of the report", "[a
     CHECK(text.contains(QStringLiteral("ui.animate_ms:")));
 }
 
+TEST_CASE("the render and GUI threads' times leave out the warm-up, as the intervals do",
+          "[app][frame]") {
+    OffscreenApplication app;
+    QQuickWindow window;
+    FrameProfiler profiler(&window);
+    profiler.set_target(100, 2);
+
+    const auto frame = [&window] {
+        window.beforeFrameBegin();
+        window.afterFrameEnd();
+        window.afterAnimating();
+        window.frameSwapped();
+    };
+    // The swap that starts the clock, and the two warm-up frames: a frame before
+    // each swap is the one that swap ends.
+    window.frameSwapped();
+    frame();
+    frame();
+    CHECK(profiler.report().render_frames == 0);
+    CHECK(profiler.report().animate_frames == 0);
+    // The warm-up is over once its second frame has been swapped.
+    frame();
+    frame();
+    CHECK(profiler.report().render_frames == 2);
+    CHECK(profiler.report().animate_frames == 2);
+    CHECK(profiler.report().frames == 2);
+}
+
 TEST_CASE("the GUI thread's frame is the time it was busy, without the wait for the render thread",
           "[app][frame]") {
     OffscreenApplication app;
@@ -82,31 +112,41 @@ TEST_CASE("the GUI thread's frame is the time it was busy, without the wait for 
     FrameProfiler profiler(&window);
     QAbstractEventDispatcher* loop = QAbstractEventDispatcher::instance();
     REQUIRE(loop != nullptr);
+    window.frameSwapped();  // the clock starts; with no warm-up, what follows is measured
     using namespace std::chrono_literals;
+    // What the sleeps actually took: a loaded machine oversleeps, and the bounds
+    // below follow what happened and not what was asked for.
+    using Clock = std::chrono::steady_clock;
+    const auto sleep_for_ms = [](std::chrono::milliseconds asked) {
+        const auto start = Clock::now();
+        std::this_thread::sleep_for(asked);
+        return std::chrono::duration<double, std::milli>(Clock::now() - start).count();
+    };
 
     // A wakeup: busy for a while, then the animations and polish are done.
     loop->awake();
-    std::this_thread::sleep_for(15ms);
+    const double busy_first = sleep_for_ms(15ms);
     window.afterAnimating();
     // The render thread synchronises while the GUI thread waits for it, and for
     // longer than it was busy; only what comes after the wait is the next frame's.
-    std::this_thread::sleep_for(60ms);
+    const double waited = sleep_for_ms(60ms);
     window.beforeSynchronizing();
     window.afterSynchronizing();
-    std::this_thread::sleep_for(8ms);
+    const double busy_second = sleep_for_ms(8ms);
     loop->aboutToBlock();
     loop->awake();
     window.afterAnimating();
 
     const FrameProfiler::Report report = profiler.report();
     REQUIRE(report.animate_frames == 2);
-    // The larger of the two is the first, which was busy 15 ms: sleeps last at
-    // least what they were asked for, so this cannot fail on a slow machine.
-    CHECK(report.animate_max_ms >= 14.0);
-    // Both together are the 23 ms the thread was busy, and not the 83 ms it was
-    // in the middle of a wakeup for (a slow machine adds to the sleeps, so the
-    // bound is loose; the wait alone is 60).
-    CHECK(report.animate_mean_ms * 2.0 < 60.0);
+    const double counted = report.animate_mean_ms * 2.0;
+    INFO("busy " << busy_first << " + " << busy_second << " ms, waited " << waited
+                 << " ms, counted " << counted << " ms");
+    // All the time it was busy is in the two frames...
+    CHECK(counted >= busy_first + busy_second);
+    CHECK(report.animate_max_ms >= busy_first);
+    // ...and the wait is not: at most half of it is, for a machine's own noise.
+    CHECK(counted <= busy_first + busy_second + 0.5 * waited);
 }
 
 TEST_CASE("the target is reached once and told on the GUI thread", "[app][frame]") {

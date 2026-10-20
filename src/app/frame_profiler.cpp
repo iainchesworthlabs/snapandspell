@@ -133,6 +133,7 @@ struct FrameProfiler::State {
         target_ = std::max(0, frames);
         warmup_ = std::max(0, warmup);
         warmup_remaining_ = warmup_;
+        measuring_ = have_previous_ && warmup_remaining_ == 0;
         measured_ = 0;
         finished_posted_ = false;
         intervals_.clear();
@@ -178,7 +179,9 @@ struct FrameProfiler::State {
         const double elapsed = at - frame_begin_;
         {
             const QMutexLocker locker(&mutex_);
-            render_.push(elapsed, at);
+            if (measuring_) {
+                render_.push(elapsed, at);
+            }
         }
         wjs::profiling::plot("render.frame_ms", elapsed);
     }
@@ -191,7 +194,9 @@ struct FrameProfiler::State {
         sync_end_.store(at);
         {
             const QMutexLocker locker(&mutex_);
-            sync_.push(elapsed, at);
+            if (measuring_) {
+                sync_.push(elapsed, at);
+            }
         }
         wjs::profiling::plot("ui.sync_ms", elapsed);
     }
@@ -203,7 +208,9 @@ struct FrameProfiler::State {
         const double elapsed = at - record_begin_;
         {
             const QMutexLocker locker(&mutex_);
-            record_.push(elapsed, at);
+            if (measuring_) {
+                record_.push(elapsed, at);
+            }
         }
         wjs::profiling::plot("render.record_ms", elapsed);
     }
@@ -237,7 +244,9 @@ struct FrameProfiler::State {
         awake_at_ = at;
         {
             const QMutexLocker locker(&mutex_);
-            animate_.push(elapsed, at);
+            if (measuring_) {
+                animate_.push(elapsed, at);
+            }
         }
         wjs::profiling::plot("ui.animate_ms", elapsed);
     }
@@ -267,6 +276,11 @@ struct FrameProfiler::State {
                 }
             }
             previous_ = at;
+            // The render and GUI thread windows follow the intervals: they leave
+            // out the same warm-up, whose first frames create the scene and
+            // compile its shaders (render.frame_ms of the first frame was 150 ms
+            // and is not a frame the player sees again).
+            measuring_ = warmup_remaining_ == 0;
             if (reached && owner_ != nullptr) {
                 // Posted under the lock: the destructor takes it to clear owner_
                 // before the object goes, so the object is alive for the post.
@@ -352,6 +366,7 @@ private:
     double first_frame_ms_ = 0.0;
     int measured_ = 0;
     int warmup_remaining_ = 0;
+    bool measuring_ = false;  // guarded by mutex_: the warm-up is over
     int target_ = 0;
     int warmup_ = 0;
     bool finished_posted_ = false;

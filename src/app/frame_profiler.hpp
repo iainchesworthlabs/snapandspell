@@ -52,7 +52,8 @@ public:
 
     // Records `frames` frame intervals after leaving out the first `warmup` of
     // them (the window's first frames create the scene and its textures, and
-    // are not a steady frame), then emits finished() on the GUI thread. A
+    // are not a steady frame), then emits finished() on the GUI thread. The
+    // render thread's and the GUI thread's times leave out the same frames. A
     // target of 0 -- the default -- only keeps the rolling window.
     void set_target(int frames, int warmup);
 
