@@ -138,11 +138,14 @@ endif()
 # DEB, on Linux, when dpkg-deb and dpkg-shlibdeps were found. The package name
 # is lower case, as Debian requires, and the file name is dpkg's own
 # <name>_<version>_<arch>.deb form. dpkg-shlibdeps writes the shared-library
-# dependencies it can resolve; Qt's QML modules are not libraries the loader
-# sees, so a package that carries the application states them by hand - and
-# this is the one part of the Linux packaging no leg of this project has built,
-# because Qt is not installed on a Linux leg yet (docs/ci.md). The names are
-# Debian/Ubuntu's, reasoned, not measured.
+# dependencies it can resolve.
+#
+# A DEB or an RPM is made for the command-line solver only. The Linux platform
+# fragment offers them when the application is NOT built: the application needs a
+# Qt 6.12 with Quick 3D, which no distribution's Qt packages are, so a Depends:
+# line naming "libqt6core6 (>= 6.8)" would install a package that fails to start,
+# and one naming 6.12 could not be installed. The application is distributed as
+# an AppImage that carries its Qt (src/platforms/linux/packaging).
 # ---------------------------------------------------------------------------
 if("DEB" IN_LIST CPACK_GENERATOR)
     set(CPACK_DEBIAN_PACKAGE_NAME "wordjewelssolver")
@@ -154,27 +157,15 @@ if("DEB" IN_LIST CPACK_GENERATOR)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_VENDOR}")
     set(CPACK_DEBIAN_PACKAGE_SECTION "games")
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-    if(WJS_BUILD_APP)
-        set(CPACK_DEBIAN_PACKAGE_DEPENDS
-            "libqt6core6 (>= 6.8), libqt6gui6 (>= 6.8), libqt6qml6 (>= 6.8), libqt6quick6 (>= 6.8), libqt6quickcontrols2-6 (>= 6.8), libqt6quick3d6 (>= 6.8), qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-templates, qml6-module-qtquick-window, qml6-module-qtqml-models, qml6-module-qtqml-workerscript, qml6-module-qtquick3d")
-    endif()
 endif()
 
 # ---------------------------------------------------------------------------
-# RPM, on Linux, when rpmbuild was found. The licence field names the
-# application's GPL-3.0-only when the package carries the application (Qt Quick
-# 3D is why), and the repository's GPL-3.0-or-later when it carries only
-# wjs-cli. AUTOREQPROV writes the shared-library
-# requirements it can resolve; the Qt modules the application needs are stated
-# by hand for the same reason as the DEB block above, and with the same caveat:
-# Fedora/RHEL's package names, reasoned, not measured on an RPM host.
+# RPM, on Linux, when rpmbuild was found: the command-line solver, GPL-3.0-or-later
+# (the application, GPL-3.0-only because it links Qt Quick 3D, is the AppImage's).
+# AUTOREQPROV writes the shared-library requirements it can resolve.
 # ---------------------------------------------------------------------------
 if("RPM" IN_LIST CPACK_GENERATOR)
-    if(WJS_BUILD_APP)
-        set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-only")
-    else()
-        set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")
-    endif()
+    set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")
     set(CPACK_RPM_PACKAGE_GROUP "Amusements/Games")
     if(WJS_PACKAGE_PRERELEASE)
         # An RPM version cannot contain a hyphen and a release sorts after it, so a
@@ -186,10 +177,6 @@ if("RPM" IN_LIST CPACK_GENERATOR)
     endif()
     set(CPACK_RPM_PACKAGE_AUTOREQPROV ON)
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
-    if(WJS_BUILD_APP)
-        set(CPACK_RPM_PACKAGE_REQUIRES
-            "qt6-qtbase >= 6.8, qt6-qtdeclarative >= 6.8, qt6-qtquick3d >= 6.8, qt6-qtquickcontrols2 >= 6.8")
-    endif()
 endif()
 
 # ---------------------------------------------------------------------------

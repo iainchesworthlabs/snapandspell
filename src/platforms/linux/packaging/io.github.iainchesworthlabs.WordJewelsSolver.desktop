@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=WordJewelsSolver
+GenericName=Word game
+Comment=Finds every word on a Boggle board
+Exec=WordJewelsSolver
+Icon=io.github.iainchesworthlabs.WordJewelsSolver
+Terminal=false
+Categories=Game;LogicGame;
+Keywords=word;boggle;puzzle;jewels;spelling;
