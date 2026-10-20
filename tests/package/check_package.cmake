@@ -5,7 +5,7 @@
 #
 #   cmake -DBUILD_DIR=<build tree> -DVERSION=<project version>
 #         -DEXPECT_CLI=ON|OFF -DEXPECT_APP=ON|OFF
-#         -DEXPECT_QT_DEPLOY=ON|OFF -DNOTICES=<NOTICES.txt>
+#         -DEXPECT_QT_DEPLOY=ON|OFF -DNOTICES=<NOTICES.txt> [-DPRERELEASE=<rc.1>]
 #         -P tests/package/check_package.cmake
 #
 # It is deliberately cheap and runs in every ctest: CPackConfig.cmake must name
@@ -48,7 +48,13 @@ function(_expect variable value)
 endfunction()
 
 _expect(CPACK_PACKAGE_NAME "WordJewelsSolver")
-_expect(CPACK_PACKAGE_VERSION "${VERSION}")
+# The version a package carries is the project's, plus the prerelease
+# identifier when one was configured (WJS_PACKAGE_PRERELEASE).
+if(PRERELEASE)
+    _expect(CPACK_PACKAGE_VERSION "${VERSION}-${PRERELEASE}")
+else()
+    _expect(CPACK_PACKAGE_VERSION "${VERSION}")
+endif()
 _expect(CPACK_PACKAGE_VENDOR "Iain Chesworth")
 _expect(CPACK_PACKAGE_CONTACT "Iain Chesworth")
 _expect(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/iainchesworthlabs/wordjewelssolver")

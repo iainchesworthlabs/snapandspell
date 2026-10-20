@@ -25,7 +25,8 @@
 # v<version>-<label>, which is a valid prerelease tag and names that run's
 # files and SBOM.
 #
-# On success it prints version=, tag=, prerelease= lines (also appended to
+# On success it prints version=, tag=, prerelease= and suffix= lines (suffix is the
+# part after the hyphen, empty for a final release) (also appended to
 # $GITHUB_OUTPUT when that is set) and exits 0. Exit 1 = a check failed (the
 # message says which and how to fix it); exit 2 = bad invocation.
 set -euo pipefail
@@ -80,7 +81,8 @@ if ! [[ "$tag" =~ $re ]]; then
 fi
 version="${BASH_REMATCH[1]}"
 prerelease=false
-[ -n "${BASH_REMATCH[6]:-}" ] && prerelease=true
+suffix="${BASH_REMATCH[6]:-}"
+[ -n "$suffix" ] && prerelease=true
 
 # 2. The tag against the tree's own version.
 cmake_file="$root/CMakeLists.txt"
@@ -124,4 +126,5 @@ echo "release ref ok: $tag -> version $version (prerelease=$prerelease)"
   echo "version=$version"
   echo "tag=$tag"
   echo "prerelease=$prerelease"
+  echo "suffix=$suffix"
 } | tee -a "${GITHUB_OUTPUT:-/dev/null}"

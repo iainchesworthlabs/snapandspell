@@ -65,6 +65,7 @@ expect_status "v1.2.3 on main is a release" 0 ref --tag v1.2.3 --sha "$main_sha"
 expect_output "  and reports prerelease=false" '^prerelease=false$'
 expect_status "v1.2.3-rc.1 on a side branch is a prerelease" 0 ref --tag v1.2.3-rc.1 --sha "$side_sha"
 expect_output "  and reports prerelease=true" '^prerelease=true$'
+expect_output "  and reports its suffix" '^suffix=rc\.1$'
 expect_status "v1.2.3 off main is refused" 1 ref --tag v1.2.3 --sha "$side_sha"
 expect_output "  and says it must be on main" 'not on main'
 expect_status "a tag that disagrees with CMakeLists.txt is refused" 1 ref --tag v1.2.4 --sha "$main_sha"

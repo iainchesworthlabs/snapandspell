@@ -68,6 +68,7 @@ jobs:
       tag: ${{ steps.plan.outputs.tag }}
       version: ${{ steps.plan.outputs.version }}
       prerelease: ${{ steps.plan.outputs.prerelease }}
+      suffix: ${{ steps.plan.outputs.suffix }}
     steps:
       # The whole history: whether the tag is on main needs it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -208,11 +209,13 @@ jobs:
         env:
           CMAKE_PRESET: ${{ matrix.preset }}
           QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
+          # rc.1 for v0.1.0-rc.1: the packages then carry 0.1.0-rc.1 and not 0.1.0.
+          PRERELEASE: ${{ needs.prepare.outputs.suffix }}
         run: |
           if [ "${{ matrix.leg }}" = "windows" ]; then
-            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON
+            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON -DWJS_PACKAGE_PRERELEASE="$PRERELEASE"
           else
-            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF
+            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF -DWJS_PACKAGE_PRERELEASE="$PRERELEASE"
           fi
 
       - name: Build

@@ -42,6 +42,22 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "${PROJECT_HOMEPAGE_URL}")
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+
+# A prerelease (a v0.1.0-rc.1 tag, a rehearsal run) is packaged under its own
+# version, so its files are not named like the final release's. The release
+# workflow passes the part after the tag's hyphen. It is empty for a release and
+# for every development build, which keeps the plain project version.
+set(WJS_PACKAGE_PRERELEASE "" CACHE STRING
+    "Prerelease identifier appended to the package version (for example rc.1); empty for a final release")
+if(WJS_PACKAGE_PRERELEASE)
+    if(NOT WJS_PACKAGE_PRERELEASE MATCHES "^[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*$")
+        message(FATAL_ERROR
+            "WJS_PACKAGE_PRERELEASE is '${WJS_PACKAGE_PRERELEASE}'; it takes SemVer "
+            "prerelease identifiers: letters, digits and hyphens, separated by dots "
+            "(rc.1, dryrun.17).")
+    endif()
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}-${WJS_PACKAGE_PRERELEASE}")
+endif()
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "WordJewelsSolver")
 # The GPL text: the installer shows it before installing, and
 # cmake/Notices.cmake installs it as LICENSE.txt beside the programs (the
@@ -101,6 +117,10 @@ endif()
 # ---------------------------------------------------------------------------
 if("DEB" IN_LIST CPACK_GENERATOR)
     set(CPACK_DEBIAN_PACKAGE_NAME "wordjewelssolver")
+    if(WJS_PACKAGE_PRERELEASE)
+        # dpkg sorts "0.1.0~rc.1" before "0.1.0"; a hyphen would make rc.1 the revision.
+        set(CPACK_DEBIAN_PACKAGE_VERSION "${PROJECT_VERSION}~${WJS_PACKAGE_PRERELEASE}")
+    endif()
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_VENDOR}")
     set(CPACK_DEBIAN_PACKAGE_SECTION "games")
@@ -127,6 +147,14 @@ if("RPM" IN_LIST CPACK_GENERATOR)
         set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")
     endif()
     set(CPACK_RPM_PACKAGE_GROUP "Amusements/Games")
+    if(WJS_PACKAGE_PRERELEASE)
+        # An RPM version cannot contain a hyphen and a release sorts after it, so a
+        # prerelease is release 0.<identifier>, below the final release's 1.
+        string(REPLACE "-" "_" _wjs_rpm_pre "${WJS_PACKAGE_PRERELEASE}")
+        set(CPACK_RPM_PACKAGE_VERSION "${PROJECT_VERSION}")
+        set(CPACK_RPM_PACKAGE_RELEASE "0.${_wjs_rpm_pre}")
+        unset(_wjs_rpm_pre)
+    endif()
     set(CPACK_RPM_PACKAGE_AUTOREQPROV ON)
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
     if(WJS_BUILD_APP)
