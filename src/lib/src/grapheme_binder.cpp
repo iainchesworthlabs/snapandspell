@@ -5,21 +5,15 @@
 #include <string_view>
 #include <utility>
 
+#include "ascii.hpp"
 #include "wjs/binder_work.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
 namespace {
 
-[[nodiscard]] constexpr char to_lower(char c) noexcept {
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
-}
-
-[[nodiscard]] std::string lower(std::string_view text) {
-    std::string result(text);
-    std::ranges::transform(result, result.begin(), to_lower);
-    return result;
-}
+using ascii::lower;
+using ascii::to_lower;
 
 }  // namespace
 

@@ -1,0 +1,7 @@
+# Pinned tooling that validates the release SBOM against the CycloneDX JSON
+# Schema (tests/package/validate_sbom.py), for the Release tooling workflow and
+# for local use:
+#   pip install -r .github/requirements/sbom.txt
+# Dependabot's pip ecosystem for /.github/requirements keeps this current.
+jsonschema==4.26.0
+referencing==0.37.0

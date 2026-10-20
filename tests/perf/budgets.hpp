@@ -149,7 +149,7 @@ inline constexpr std::uint64_t kSeedMaxTries = 20;
 // the words found, tries and solves. Exact; it moves with the seeding
 // algorithm or the phase, deliberately, and with the pinned boards of
 // seeding_test.cpp.
-inline constexpr std::uint64_t kSeedDigest = 15489434241397487766ULL;
+inline constexpr std::uint64_t kSeedDigest = 6255957985524133718ULL;
 
 // The binder's comparisons for a path of nine tiles (corpus.hpp, kBindPaths
 // order: none, all, mixed) against the 31 multi-letter graphemes of its test

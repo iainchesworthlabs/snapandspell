@@ -98,11 +98,11 @@ std::size_t size_index(std::size_t size) {
 
 FakeSoloGame::FakeSoloGame() : binder_(test_graphemes()) {
     for (const auto word : todays_words) {
-        todays_.insert(word);
-        real_.insert(word);
+        static_cast<void>(todays_.insert(word));
+        static_cast<void>(real_.insert(word));
     }
     for (const auto word : other_real_words) {
-        real_.insert(word);
+        static_cast<void>(real_.insert(word));
     }
 }
 

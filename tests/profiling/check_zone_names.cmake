@@ -250,6 +250,7 @@ set(_required_zones
     motion.push
     path.validate
     phonics.bind
+    phonics.sound_it_out
     rules.classify
     scan.convert_working
     scan.decode_frame
@@ -260,6 +261,7 @@ set(_required_zones
     scan.read_tiles
     scan.warp_board
     scene.step
+    session.finish
     settings.normalize
     shake.detect
     solo.blocks
@@ -267,7 +269,6 @@ set(_required_zones
     solo.path
     solo.submit
     solver.model
-    solver.score
     solver.solve
     store.parse
     store.serialize

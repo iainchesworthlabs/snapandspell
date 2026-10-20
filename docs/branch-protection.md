@@ -56,6 +56,7 @@ feature/* bugfix/* ──PR──▶ merge queue ──▶ develop ──release
 | `develop-protection.json` | `develop-protection` | `refs/heads/develop` | Pull request required; required checks with "up to date" **off** (the queue makes each entry current); no deletion; no force push. |
 | `merge-queue-develop.json` | `merge-queue-develop` | `refs/heads/develop` | The merge queue: merge commits, `ALLGREEN`, build up to 4 entries and merge up to 5, wait 1 minute, 180-minute check timeout. |
 | `branch-names.json` | `branch-names` | every branch except the gitflow names (`~ALL` minus `main`, `develop`, and the namespaces `feature/`, `bugfix/`, `release/`, `hotfix/`, `support/`, `dependabot/` and `gh-readonly-queue/` to the depths listed below) | Creating any other branch is refused. No bypass actors. |
+| `release-tags.json` | `release-tags` | `refs/tags/v*` | Creating, moving or deleting a release tag is refused; the repository admin role bypasses. |
 
 ### `main-protection` and `develop-protection`
 
@@ -136,6 +137,17 @@ Consequences worth knowing:
 - Branches created in the web UI must follow the same names.
 - Existing non-conforming branches are not renamed by the rule; delete or
   rename them.
+
+### `release-tags`
+
+A tag ruleset on `refs/tags/v*`: creation, update, deletion and force-update
+are all refused, with the **repository admin role** as the one bypass actor.
+A pushed `v*` tag starts `release.yml`, which builds, signs and publishes a
+release ([CI, "Releases"](ci.md#releases)), so who can create one is who can
+publish one. The tag cannot then be moved or deleted to swap what a version
+names. It is in `.github/rulesets/release-tags.json` like the rest, and
+`tools/repo/apply_rulesets.ps1` applies it, and it was applied on 2026-10-20
+(ruleset id 25471521).
 
 ## Required checks
 

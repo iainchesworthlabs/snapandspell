@@ -96,10 +96,10 @@ const wjs::Dictionary& english() {
     static const wjs::Dictionary dictionary = [] {
         wjs::Dictionary words;
         for (const std::string_view word : phase_words) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         for (const std::string_view word : extra_words) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         return words;
     }();
@@ -237,7 +237,7 @@ wjs::GameSession reach(SessionState state) {
         return session;
     }
     for (const wjs::FoundWord& word : wjs::solve(*session.board(), phase_a().dictionary())) {
-        session.trace(word.path, today);
+        static_cast<void>(session.trace(word.path, today));
     }
     REQUIRE(session.state() == SessionState::cleared);
     if (state == SessionState::cleared) {
@@ -384,7 +384,7 @@ TEST_CASE("a shake that deals no board answers false and stays in the box", "[ap
         "# phase: A\na  /x/  clip:a\nb  /x/  clip:b\nc  /x/  clip:c\nd  /x/  clip:d\n";
     const std::string words = "# phase: A\nabcd  a b c d\n";
     wjs::Dictionary dictionary;
-    dictionary.insert("abcd");
+    REQUIRE(dictionary.insert("abcd"));
     std::istringstream graphemes_in{graphemes};
     std::istringstream words_in{words};
     const auto built = wjs::PhaseSet::build({*wjs::parse_graphemes(graphemes_in, "g")},

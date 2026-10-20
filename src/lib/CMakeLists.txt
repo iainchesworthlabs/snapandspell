@@ -30,6 +30,7 @@ add_library(wjs_lib STATIC
     src/seeding.cpp
     src/session_store.cpp
     src/solver.cpp
+    src/sound_it_out.cpp
     src/store.cpp
     src/store_format.cpp
     src/version.cpp)

@@ -137,7 +137,7 @@ int run_check(const QString& out) {
     // the rest.
     wjs::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-        dictionary.insert(word);
+        static_cast<void>(dictionary.insert(word));
     }
     wjs::Store store = wjs::Store::in_memory();
 
@@ -276,7 +276,7 @@ int run_camera_check(const QString& out) {
 
     wjs::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-        dictionary.insert(word);
+        static_cast<void>(dictionary.insert(word));
     }
     wjs::Store store = wjs::Store::in_memory();
 
@@ -385,7 +385,7 @@ int run_language_check(const QString& out) {
 
         wjs::Dictionary dictionary;
         for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-            dictionary.insert(word);
+            static_cast<void>(dictionary.insert(word));
         }
         wjs::Store store = wjs::Store::in_memory();
         wjs::app::ScanModel scan;
@@ -528,7 +528,7 @@ int main(int argc, char* argv[]) {
     // Interactive: the two screens, empty, to look at.
     wjs::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-        dictionary.insert(word);
+        static_cast<void>(dictionary.insert(word));
     }
     wjs::Store store = wjs::Store::in_memory();
     wjs::app::LanguageManager language;

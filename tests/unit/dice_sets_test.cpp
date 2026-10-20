@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/dice.hpp"
 #include "wjs/dice_sets.hpp"
 
@@ -118,4 +119,69 @@ TEST_CASE("a directory without the files is unreadable", "[dice_sets]") {
 
     REQUIRE_FALSE(loaded.has_value());
     CHECK(loaded.error() == wjs::DiceError::unreadable);
+}
+
+namespace {
+
+// A directory of the four files, `swap` of whose names are given each other's dice.
+void write_dice_directory(const wjs::test::TempDirectory& dir, bool swap_4_and_5) {
+    for (std::size_t side = 3; side <= 6; ++side) {
+        std::size_t content = side;
+        if (swap_4_and_5 && side == 4) {
+            content = 5;
+        } else if (swap_4_and_5 && side == 5) {
+            content = 4;
+        }
+        std::string text;
+        for (std::size_t die = 0; die < content * content; ++die) {
+            text += "a b c d e f\n";
+        }
+        dir.write(std::to_string(side) + "x" + std::to_string(side) + ".txt", text);
+    }
+}
+
+}  // namespace
+
+TEST_CASE("a directory of the right files is a set for each side", "[dice_sets]") {
+    const wjs::test::TempDirectory dir;
+    write_dice_directory(dir, false);
+
+    const auto loaded = wjs::DiceSets::load_directory(dir.path());
+
+    REQUIRE(loaded.has_value());
+    CHECK(loaded->find(4)->side() == 4);
+}
+
+TEST_CASE("files holding each other's dice are refused, not taken for a set", "[dice_sets]") {
+    const wjs::test::TempDirectory dir;
+    write_dice_directory(dir, true);  // 4x4.txt holds a board of five and 5x5.txt of four
+
+    const auto loaded = wjs::DiceSets::load_directory(dir.path());
+
+    REQUIRE_FALSE(loaded.has_value());
+    CHECK(loaded.error() == wjs::DiceError::wrong_count);
+}
+
+TEST_CASE("a file whose dice are not a square is refused by name of the side", "[dice_sets]") {
+    const wjs::test::TempDirectory dir;
+    write_dice_directory(dir, false);
+    dir.write("5x5.txt", "a b c\na b c\na b c\n");
+
+    const auto loaded = wjs::DiceSets::load_directory(dir.path());
+
+    REQUIRE_FALSE(loaded.has_value());
+    CHECK(loaded.error() == wjs::DiceError::not_square);
+}
+
+TEST_CASE("every dice error says something", "[dice_sets]") {
+    for (const wjs::DiceError error :
+         {wjs::DiceError::empty, wjs::DiceError::bad_die, wjs::DiceError::bad_face,
+          wjs::DiceError::not_square, wjs::DiceError::wrong_count, wjs::DiceError::unreadable}) {
+        CHECK_FALSE(wjs::to_string(error).empty());
+    }
+    // A die of no faces is a blank line, which is skipped; the error is for too many.
+    CHECK(wjs::to_string(wjs::DiceError::bad_die).find("no faces") == std::string_view::npos);
+    const auto too_many = wjs::DiceSet::parse("a b c d e f g h i j k l m\n");
+    REQUIRE_FALSE(too_many.has_value());
+    CHECK(too_many.error() == wjs::DiceError::bad_die);
 }

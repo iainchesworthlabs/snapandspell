@@ -51,7 +51,7 @@ wjs::Dictionary english() {
     wjs::Dictionary dictionary;
     for (const std::string_view word : {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "zap",
                                         "cow", "pain", "paint", "saint", "stain"}) {
-        dictionary.insert(word);
+        static_cast<void>(dictionary.insert(word));
     }
     return dictionary;
 }
@@ -101,7 +101,8 @@ wjs::Store busy_store(wjs::Day today) {
         board.tiles = tiles(variant++);
         board.viable = std::move(viable);
         board.finds = std::move(finds);
-        store.record(board, board.finds.empty() ? today : board.finds.back().day);
+        static_cast<void>(
+            store.record(board, board.finds.empty() ? today : board.finds.back().day));
     };
 
     // Last week: a few boards of phase B.
@@ -128,7 +129,7 @@ wjs::Store busy_store(wjs::Day today) {
     standard.viable_total = 60;
     standard.finds = {found("stain", 5, false, today), found("pins", 1, false, today),
                       found("tans", 1, false, today)};
-    store.record(standard, today);
+    static_cast<void>(store.record(standard, today));
 
     wjs::Settings settings;
     settings.board = wjs::BoardMode::phonics;

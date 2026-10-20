@@ -320,9 +320,10 @@ and the configure says which it will make. A ZIP is always offered.
 | Tool | Adds | Where |
 | --- | --- | --- |
 | `makensis` | the NSIS installer (`.exe`) | Windows, from [NSIS](https://nsis.sourceforge.io/) |
-| `dpkg-deb` and `dpkg-shlibdeps` | the `.deb` | Linux, in `dpkg-dev` |
-| `rpmbuild` | the `.rpm` | Linux, in `rpm` |
+| `dpkg-deb` and `dpkg-shlibdeps` | the `.deb` (command-line solver only) | Linux, in `dpkg-dev` |
+| `rpmbuild` | the `.rpm` (command-line solver only) | Linux, in `rpm` |
 | `hdiutil` | the `.dmg` | macOS, part of the system |
+| `linuxdeploy` and its Qt plugin | the `.AppImage` (the application, with Qt inside) | Linux; `src/platforms/linux/packaging/build_appimage.sh` fetches them, pinned |
 
 ```sh
 # Windows, from the same Developer PowerShell the build used
@@ -348,8 +349,22 @@ What lands in `build/<preset>/packages/`:
 | NSIS | `WordJewelsSolver-<version>-win64.exe` | Windows, when `makensis` is found |
 | DragNDrop | `WordJewelsSolver-<version>-Darwin.dmg` | macOS |
 | TGZ | `WordJewelsSolver-<version>-Linux.tar.gz` | Linux |
-| DEB | `wordjewelssolver_<version>_<arch>.deb` | Linux, when `dpkg-deb` and `dpkg-shlibdeps` are found |
-| RPM | `wordjewelssolver-<version>-<release>.<arch>.rpm` | Linux, when `rpmbuild` is found |
+| DEB | `wordjewelssolver_<version>_<arch>.deb` | Linux, when `dpkg-deb` and `dpkg-shlibdeps` are found and the application is not built |
+| RPM | `wordjewelssolver-<version>-<release>.<arch>.rpm` | Linux, when `rpmbuild` is found and the application is not built |
+| *(AppImage)* | `WordJewelsSolver-<version>-x86_64.AppImage` | Linux, with the application: `build_appimage.sh`, not CPack |
+
+The deb and rpm are for the command-line solver: the application needs a Qt 6.12
+with Quick 3D that no distribution packages, so a package of it could only declare
+dependencies nobody can satisfy. On Linux the application is the AppImage, which
+carries its Qt. A prerelease is packaged under its own version:
+`-DWJS_PACKAGE_PRERELEASE=rc.1` gives `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1` and
+an rpm release `0.rc.1`.
+
+CPack **refuses to package a build that has Tracy in it** (the Debug and profiling
+presets): `cmake/PackagePreflight.cmake` stops it and says why, and a development
+package has to be asked for by name with `cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON`.
+The Release presets turn the application on (a missing Qt is an error), Tracy off
+and the sanitizers off.
 
 The ZIP's contents are under one directory named after the package (CPack's
 default for the archive generators):
@@ -417,6 +432,67 @@ Two checks cover packaging:
 ```
 
 The Windows CI leg runs the same script and uploads the ZIP ([CI](ci.md)).
+
+### Making a release package
+
+A release is the Release presets, packaged, checked and signed. `release.yml`
+does it on a `v*` tag ([CI, "Releases"](ci.md#releases)); the steps are the
+ones to run by hand to see what a release will contain:
+
+```powershell
+# Windows, from a Developer PowerShell (the application needs Qt 6.12.0:
+# QT_ROOT_DIR or CMAKE_PREFIX_PATH)
+cmake --preset windows-msvc-release -DWJS_BUILD_APP=ON
+cmake --build --preset windows-msvc-release
+ctest --preset windows-msvc-release
+./tools/package/check_package.ps1 -Build build/windows-msvc-release
+./tools/release/check_release_build.ps1 -Build build/windows-msvc-release -Expect .zip
+```
+
+```sh
+# Linux, the command-line solver (no Qt needed)
+cmake --preset linux-gcc-release -DWJS_BUILD_APP=OFF
+cmake --build --preset linux-gcc-release
+ctest --preset linux-gcc-release
+cpack --preset package-linux-gcc-release                  # every generator the configure chose
+tools/release/smoke_package.sh build/linux-gcc-release/packages/*.{zip,tar.gz,deb,rpm}
+
+# Linux, the application, as an AppImage (QT_ROOT_DIR names a Qt 6.12 kit)
+cmake --preset linux-gcc-release
+cmake --build --preset linux-gcc-release
+src/platforms/linux/packaging/build_appimage.sh --build build/linux-gcc-release   --version 0.1.0 --out build/linux-gcc-release/packages --qt-prefix "$QT_ROOT_DIR" --smoke
+
+# macOS, the application bundle in a disk image
+cmake --preset macos-clang-release
+cmake --build --preset macos-clang-release
+cpack --preset package-macos-clang-release
+src/platforms/macos/packaging/verify_bundle.sh build/macos-clang-release/packages/*.dmg --smoke
+```
+
+The Release presets turn the application on, Tracy and the sanitizers off, and
+require reviewed phonics data (`WJS_REQUIRE_REVIEWED_PHONICS`; it needs `pwsh`).
+`check_release_build.ps1` fails if the profiler or the sanitizers are on in the
+cache or a package holds either, and `smoke_package.sh`
+opens each format a user would (ZIP, tar.gz, deb, rpm, a mounted disk image)
+and solves a board with the dictionary it carries. For the NSIS installer,
+install NSIS before configuring (`makensis` is found at configure time), then
+`cpack -G NSIS --config build/windows-msvc-release/CPackConfig.cmake`.
+
+The SBOM, the checksums and the signatures of a release directory:
+
+```sh
+pwsh tools/release/generate_sbom.ps1 -Tag v0.1.0 -PackagesDir dist -Output dist/WordJewelsSolver-0.1.0.cdx.json
+tools/release/sign_release.sh --dist dist --ephemeral   # a throw-away key; the real one is CI's
+tools/release/verify_release.sh --dir dist --unpinned
+```
+
+With `--ephemeral` nothing needs a secret and the signatures verify only
+against the `KEYS` that run wrote beside them. The real key, the secrets and the
+fingerprint are set up once, by the author ([CI](ci.md#what-the-author-sets-up-once));
+users check a download as in [CI](ci.md#checking-a-download). Packages are
+named after the project version (`0.1.0`), also for a `-rc` tag, so a
+prerelease's files and the final release's differ in their checksums and in
+which release they are attached to, not in their names.
 
 ### Third-party notices
 

@@ -12,8 +12,10 @@ set(WJS_PLATFORM_INSTALL_APP_DATA_DIR "${CMAKE_INSTALL_BINDIR}")
 # run time the same way it was found at build time. Qt's install-time deploy
 # script would write a qt.conf beside the installed program, which misdirects
 # that system Qt's QML import path ("/usr/qml" rather than the multiarch one) and
-# breaks QtQuick.Controls at startup; the DEB/RPM generators declare the
-# runtime packages instead (cmake/Packaging.cmake).
+# breaks QtQuick.Controls at startup. So an installed copy relies on its Qt being
+# where it was built; the way the application is distributed with its own is the
+# AppImage (packaging/build_appimage.sh), whose linuxdeploy Qt plugin lays Qt out
+# for the bundle.
 set(WJS_PLATFORM_QT_DEPLOY_AT_INSTALL OFF)
 
 set(WJS_PLATFORM_QT_SEARCH_ROOTS
@@ -49,19 +51,28 @@ endfunction()
 # A tarball needs no tool installed. The distribution packages are offered only
 # when the tool that writes one is there, so a machine without dpkg-dev or rpm
 # still gets a ZIP and a TGZ rather than a failed configure (docs/building.md,
-# "Packaging"). dpkg-shlibdeps is asked for beside dpkg-deb because the DEB
-# generator is configured to work out the shared-library dependencies, and
-# without it the packaging would stop half way.
+# "Packaging"), and only for the command-line solver: the application needs a
+# Qt 6.12 with Quick 3D that no distribution package provides, so it is
+# distributed as an AppImage that carries Qt (packaging/build_appimage.sh), and a
+# deb or rpm of it would declare dependencies nobody can satisfy. dpkg-shlibdeps
+# is asked for beside dpkg-deb because the DEB generator is configured to work
+# out the shared-library dependencies, and without it the packaging would stop
+# half way.
 function(wjs_platform_configure_packaging)
     list(APPEND CPACK_GENERATOR "TGZ")
-    find_program(WJS_DPKG_DEB_EXECUTABLE NAMES dpkg-deb)
-    find_program(WJS_DPKG_SHLIBDEPS_EXECUTABLE NAMES dpkg-shlibdeps)
-    if(WJS_DPKG_DEB_EXECUTABLE AND WJS_DPKG_SHLIBDEPS_EXECUTABLE)
-        list(APPEND CPACK_GENERATOR "DEB")
-    endif()
-    find_program(WJS_RPMBUILD_EXECUTABLE NAMES rpmbuild)
-    if(WJS_RPMBUILD_EXECUTABLE)
-        list(APPEND CPACK_GENERATOR "RPM")
+    if(WJS_BUILD_APP)
+        message(STATUS "Packaging: the application is distributed as an AppImage "
+            "(src/platforms/linux/packaging); no deb or rpm is made for it")
+    else()
+        find_program(WJS_DPKG_DEB_EXECUTABLE NAMES dpkg-deb)
+        find_program(WJS_DPKG_SHLIBDEPS_EXECUTABLE NAMES dpkg-shlibdeps)
+        if(WJS_DPKG_DEB_EXECUTABLE AND WJS_DPKG_SHLIBDEPS_EXECUTABLE)
+            list(APPEND CPACK_GENERATOR "DEB")
+        endif()
+        find_program(WJS_RPMBUILD_EXECUTABLE NAMES rpmbuild)
+        if(WJS_RPMBUILD_EXECUTABLE)
+            list(APPEND CPACK_GENERATOR "RPM")
+        endif()
     endif()
     message(STATUS "Packaging: ${CPACK_GENERATOR}")
     set(CPACK_GENERATOR "${CPACK_GENERATOR}" PARENT_SCOPE)
