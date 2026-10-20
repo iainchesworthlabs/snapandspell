@@ -592,6 +592,7 @@ if(WJS_BUILD_CLI)
     foreach(_case IN ITEMS
             help
             version
+            output-every-time
             solve
             min-length
             rarity

@@ -96,6 +96,20 @@ if(CASE STREQUAL "help")
     expect_in("--dictionary" "${RUN_OUT}")
     expect_in("--scoring" "${RUN_OUT}")
     expect_in("--repeat" "${RUN_OUT}")
+elseif(CASE STREQUAL "output-every-time")
+    # The program's whole output reaches the caller on every run, not on most. In the
+    # Debug build (AddressSanitizer and the profiler's client) the flush at exit was
+    # lost about one run in ten, so --version and --help sometimes left 0 with nothing
+    # printed; one run proves nothing, so each is run 60 times, which a loss of
+    # one in ten does not survive. The program flushes its output itself now (src/cli/main.cpp).
+    foreach(_run RANGE 1 60)
+        run_cli(--version)
+        expect_code(0)
+        expect_match("wjs-cli [0-9]+\\.[0-9]+\\.[0-9]+" "${RUN_OUT}")
+        run_cli(--help)
+        expect_code(0)
+        expect_in("Usage: wjs-cli" "${RUN_OUT}")
+    endforeach()
 elseif(CASE STREQUAL "version")
     run_cli(--version)
     expect_code(0)
