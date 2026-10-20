@@ -3,7 +3,9 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 #include "wjs/scan/frame.hpp"
@@ -51,6 +53,36 @@ TEST_CASE("a frame is valid if its buffer holds its rows", "[scan][image]") {
     CHECK_FALSE(frame_of(bytes, 2, 2, PixelFormat::gray8, 11).valid());  // the second row's 2 bytes
     CHECK_FALSE(frame_of(bytes, 4, 1, PixelFormat::gray8, 3).valid());   // a stride under the width
     CHECK(OwnedFrame{}.view().valid() == false);
+}
+
+TEST_CASE("a hostile frame size cannot wrap the arithmetic that checks it", "[scan][image]") {
+    constexpr std::size_t huge = std::size_t{1} << 62;
+    const std::vector<std::uint8_t> bytes(16, 0);
+
+    // 4 * (2^62 + 1) wraps to 4, which a four-byte row would hold.
+    CHECK_FALSE(frame_of(bytes, huge + 1, 1, PixelFormat::rgba8).valid());
+    CHECK_FALSE(frame_of(bytes, huge + 1, 1, PixelFormat::gray8).valid());
+    // (3 - 1) * 2^63 wraps to 0, and a one-row buffer then looks long enough.
+    CHECK_FALSE(frame_of(bytes, 2, 3, PixelFormat::gray8, huge * 2).valid());
+    CHECK_FALSE(frame_of(bytes, 2, huge + 2, PixelFormat::gray8, 4).valid());
+
+    // A side no picture has, even when the buffer is as long as the rows say.
+    const std::vector<std::uint8_t> wide(Frame::max_side + 1, 0);
+    CHECK_FALSE(frame_of(wide, Frame::max_side + 1, 1, PixelFormat::gray8).valid());
+    CHECK(frame_of(wide, Frame::max_side, 1, PixelFormat::gray8).valid());
+    // A side of one that is as tall as the cap is a frame, though; it just has a lot of rows.
+    CHECK_FALSE(frame_of(bytes, 1, Frame::max_side + 1, PixelFormat::gray8, 1).valid());
+}
+
+TEST_CASE("the luma of a frame that is not valid is an empty picture, not an overrun",
+          "[scan][image]") {
+    constexpr std::size_t huge = std::size_t{1} << 62;
+    const std::vector<std::uint8_t> bytes(4, 7);
+    const GrayImage none = luma_from_frame(frame_of(bytes, huge + 1, 1, PixelFormat::rgba8));
+    CHECK(none.empty());
+    CHECK(none.width == 0);
+    CHECK(none.height == 0);
+    CHECK(luma_from_frame(Frame{}).empty());
 }
 
 TEST_CASE("the luma of a pixel is the BT.601 weighting, whatever the order of its bytes",
@@ -126,6 +158,53 @@ TEST_CASE("sampling interpolates between pixel centres and repeats the edge", "[
     CHECK(sample(image, 1.0, 1.0) == Approx(87.5));
     CHECK(sample(image, -5.0, -5.0) == Approx(0.0));
     CHECK(sample(image, 10.0, 10.0) == Approx(50.0));
+}
+
+TEST_CASE("sampling a point that is not on the picture still gives a pixel's grey",
+          "[scan][image]") {
+    GrayImage image(3, 2);
+    for (std::size_t i = 0; i < image.pixels.size(); ++i) {
+        image.pixels[i] = static_cast<std::uint8_t>(10 + 40 * i);
+    }
+    constexpr double inf = std::numeric_limits<double>::infinity();
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+    // A warp through a degenerate map hands sample() these; none may be converted
+    // to an int unchecked. The edge repeats, so a far point is the nearest corner.
+    CHECK(sample(image, inf, inf) == Approx(image.at(2, 1)));
+    CHECK(sample(image, -inf, -inf) == Approx(image.at(0, 0)));
+    CHECK(sample(image, 1e300, -1e300) == Approx(image.at(2, 0)));
+    CHECK(sample(image, -3e9, 3e9) == Approx(image.at(0, 1)));
+    for (const double bad : {nan, -nan}) {
+        const double grey = sample(image, bad, 1.0);
+        CHECK((grey >= 10.0 && grey <= 255.0));
+        const double other = sample(image, 1.0, bad);
+        CHECK((other >= 10.0 && other <= 255.0));
+        CHECK(std::isfinite(sample(image, bad, bad)));
+    }
+
+    // Nothing to sample is black, where it was an out-of-range clamp.
+    CHECK(sample(GrayImage{}, 0.5, 0.5) == 0.0);
+    CHECK(sample(GrayImage(0, 5), 0.5, 0.5) == 0.0);
+    CHECK(sample(GrayImage(5, 0), 0.5, 0.5) == 0.0);
+}
+
+TEST_CASE("a grey picture cannot be asked for with a negative size", "[scan][image]") {
+    CHECK(GrayImage(-4, 5).empty());
+    CHECK(GrayImage(4, -5).empty());
+    CHECK(GrayImage(-4, -5).empty());
+    CHECK(GrayImage(-4, -5).width == 0);
+    CHECK(GrayImage(-4, -5).height == 0);
+}
+
+TEST_CASE("shrinking by a huge factor does not overflow the block's sum", "[scan][image]") {
+    // A block of 5000 x 5000 pixels of 255 sums to 6.4e9, over what 32 bits hold.
+    const GrayImage image(5000, 5000, 255);
+    int factor = 0;
+    const GrayImage tiny = shrink(image, 1, factor);
+    CHECK(factor == 5000);
+    REQUIRE(tiny.width == 1);
+    REQUIRE(tiny.height == 1);
+    CHECK(tiny.at(0, 0) == 255);
 }
 
 TEST_CASE("a box blur keeps a constant picture and spreads a point", "[scan][image]") {

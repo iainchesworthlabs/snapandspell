@@ -197,6 +197,22 @@ TEST_CASE("a frame that is not a frame is refused", "[scan][reader]") {
     CHECK(read_board(Frame{}).error() == ReadError::invalid_frame);
 }
 
+TEST_CASE("a frame whose sizes would wrap the arithmetic is refused, not read", "[scan][reader]") {
+    // Width 2^62 + 1 of four-byte pixels: 4 * width wraps to 4, which the four bytes
+    // below hold. It was a valid frame, and the luma loop then ran to the full width.
+    const std::vector<std::uint8_t> bytes(4, 90);
+    constexpr std::size_t huge = (std::size_t{1} << 62) + 1;
+    const Frame hostile{std::span<const std::uint8_t>(bytes), huge, 1, 0, PixelFormat::rgba8};
+    const auto refused = read_board(hostile);
+    REQUIRE_FALSE(refused.has_value());
+    CHECK(refused.error() == ReadError::invalid_frame);
+
+    // And a stride that wraps the offset of a later row.
+    const Frame strided{std::span<const std::uint8_t>(bytes), 2, 3, std::size_t{1} << 63,
+                        PixelFormat::gray8};
+    CHECK(read_board(strided).error() == ReadError::invalid_frame);
+}
+
 TEST_CASE("a frame with no board is answered with board_not_found", "[scan][reader]") {
     const GrayImage blank(640, 480, 120);
     const auto reading = read_board(blank.view());

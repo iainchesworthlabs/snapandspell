@@ -1,6 +1,7 @@
 #include "wjs/scan/image.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 
 #include "scratch.hpp"
@@ -9,11 +10,16 @@
 namespace wjs::scan {
 
 GrayImage::GrayImage(int w, int h, std::uint8_t fill)
-    : width(w), height(h), pixels(static_cast<std::size_t>(w) * static_cast<std::size_t>(h), fill) {
+    : width(w > 0 && h > 0 ? w : 0),
+      height(w > 0 && h > 0 ? h : 0),
+      pixels(static_cast<std::size_t>(width) * static_cast<std::size_t>(height), fill) {
     detail::note_buffer();
 }
 
 void detail::luma_into(GrayImage& out, const Frame& frame) {
+    // The loops below trust the frame's sizes: they are checked by valid(), which
+    // also keeps them within an int.
+    assert(frame.valid());
     const int width = static_cast<int>(frame.width);
     const int height = static_cast<int>(frame.height);
     detail::acquire_image(out, width, height);
@@ -57,39 +63,18 @@ void detail::luma_into(GrayImage& out, const Frame& frame) {
 
 GrayImage luma_from_frame(const Frame& frame) {
     GrayImage out;
+    if (!frame.valid()) {
+        return out;
+    }
     detail::luma_into(out, frame);
     return out;
 }
 
 GrayImage shrink(const GrayImage& image, int max_long_side, int& factor) {
-    const int long_side = std::max(image.width, image.height);
-    factor = 1;
-    if (max_long_side > 0 && long_side > max_long_side) {
-        factor = (long_side + max_long_side - 1) / max_long_side;
-    }
+    GrayImage out;
+    detail::shrink_into(out, image, max_long_side, factor);
     if (factor == 1) {
         return image;
-    }
-
-    const int width = std::max(1, image.width / factor);
-    const int height = std::max(1, image.height / factor);
-    GrayImage out(width, height);
-    for (int y = 0; y < height; ++y) {
-        // A block is whole except where the picture is smaller than a block.
-        const int rows = std::min(factor, image.height - y * factor);
-        for (int x = 0; x < width; ++x) {
-            const int columns = std::min(factor, image.width - x * factor);
-            unsigned sum = 0;
-            for (int dy = 0; dy < rows; ++dy) {
-                const std::uint8_t* row =
-                    image.pixels.data() + image.index(x * factor, y * factor + dy);
-                for (int dx = 0; dx < columns; ++dx) {
-                    sum += row[dx];
-                }
-            }
-            const unsigned block = static_cast<unsigned>(rows) * static_cast<unsigned>(columns);
-            out.at(x, y) = static_cast<std::uint8_t>((sum + block / 2U) / block);
-        }
     }
     return out;
 }
@@ -113,7 +98,8 @@ void detail::shrink_into(GrayImage& out, const GrayImage& image, int max_long_si
         const int rows = std::min(factor, image.height - y * factor);
         for (int x = 0; x < width; ++x) {
             const int columns = std::min(factor, image.width - x * factor);
-            unsigned sum = 0;
+            // 64 bits: a block of more than 4096 on a side overflows 32.
+            std::uint64_t sum = 0;
             for (int dy = 0; dy < rows; ++dy) {
                 const std::uint8_t* row =
                     image.pixels.data() + image.index(x * factor, y * factor + dy);
@@ -121,23 +107,44 @@ void detail::shrink_into(GrayImage& out, const GrayImage& image, int max_long_si
                     sum += row[dx];
                 }
             }
-            const unsigned block = static_cast<unsigned>(rows) * static_cast<unsigned>(columns);
+            const auto block =
+                static_cast<std::uint64_t>(rows) * static_cast<std::uint64_t>(columns);
             out.at(x, y) = static_cast<std::uint8_t>((sum + block / 2U) / block);
         }
     }
 }
 
+namespace {
+
+// A coordinate held to [0, hi]; NaN is 0. A point beyond the picture reads its
+// edge, and this is that rule before any conversion to an integer, so that no
+// double the caller hands in (a degenerate warp gives infinities and NaNs) can
+// reach a cast it does not fit.
+double held(double v, double hi) noexcept {
+    if (!(v > 0.0)) {
+        return 0.0;
+    }
+    return v < hi ? v : hi;
+}
+
+}  // namespace
+
 double sample(const GrayImage& image, double x, double y) noexcept {
-    const double fx = x - 0.5;
-    const double fy = y - 0.5;
+    if (image.width <= 0 || image.height <= 0 ||
+        image.pixels.size() <
+            static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height)) {
+        return 0.0;
+    }
+    const double fx = held(x - 0.5, image.width - 1);
+    const double fy = held(y - 0.5, image.height - 1);
     const double floor_x = std::floor(fx);
     const double floor_y = std::floor(fy);
     const double tx = fx - floor_x;
     const double ty = fy - floor_y;
-    const int x0 = std::clamp(static_cast<int>(floor_x), 0, image.width - 1);
-    const int y0 = std::clamp(static_cast<int>(floor_y), 0, image.height - 1);
-    const int x1 = std::clamp(static_cast<int>(floor_x) + 1, 0, image.width - 1);
-    const int y1 = std::clamp(static_cast<int>(floor_y) + 1, 0, image.height - 1);
+    const int x0 = static_cast<int>(floor_x);
+    const int y0 = static_cast<int>(floor_y);
+    const int x1 = std::min(x0 + 1, image.width - 1);
+    const int y1 = std::min(y0 + 1, image.height - 1);
     const double top = image.at(x0, y0) * (1.0 - tx) + image.at(x1, y0) * tx;
     const double bottom = image.at(x0, y1) * (1.0 - tx) + image.at(x1, y1) * tx;
     return top * (1.0 - ty) + bottom * ty;
