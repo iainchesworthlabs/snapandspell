@@ -75,6 +75,21 @@ add_test(NAME toolchain.versions
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${WJS_TESTS_DIR}/toolchain/check_versions.cmake")
 
+# The version is one number: project(VERSION), vcpkg.json and the newest
+# CHANGELOG.md release agree (and the release job runs the same script with the
+# tag, tests/toolchain/check_version.cmake). The check held to a table of cases
+# on throw-away trees.
+add_test(NAME toolchain.version
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        "-DVERSION=${PROJECT_VERSION}"
+        -P "${WJS_TESTS_DIR}/toolchain/check_version.cmake")
+add_test(NAME toolchain.version.selftest
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/toolchain-version"
+        -P "${WJS_TESTS_DIR}/toolchain/test_check_version.cmake")
+
 # The nightly analysis integration: the presets the workflow names exist with
 # their settings, the workflow is scheduled and stays out of merge_group, and
 # CodeQL is nightly rather than per-push. Runs on every host; it only reads the
@@ -121,6 +136,8 @@ set(WJS_QUALITY_TESTS
     profiling.shipped_presets
     profiling.zone_names
     toolchain.versions
+    toolchain.version
+    toolchain.version.selftest
     analysis.config
     privacy.sources
     privacy.sources.selftest
