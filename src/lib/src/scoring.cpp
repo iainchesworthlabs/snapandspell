@@ -82,8 +82,7 @@ constexpr std::array<double, 26> letter_frequency_percent = {
 // The English Scrabble tile values, indexed A..Z. They are a public table and
 // a simple, explainable proxy for how rare a letter is.
 constexpr std::array<int, 26> letter_value = {
-    1,  3,  3,  2,  1,  4,  2,  4,  1,  8,  5,  1,  3,
-    1,  1,  3,  10, 1,  1,  1,  1,  4,  4,  8,  4,  10,
+    1, 3, 3, 2, 1, 4, 2, 4, 1, 8, 5, 1, 3, 1, 1, 3, 10, 1, 1, 1, 1, 4, 4, 8, 4, 10,
 };
 
 [[nodiscard]] int points_for_length(std::size_t length) noexcept {

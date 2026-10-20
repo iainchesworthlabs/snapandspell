@@ -179,9 +179,8 @@ int run_check(const QString& out) {
     QStringList texts = visible_texts(window);
     check(any_contains(texts, QCoreApplication::translate("ParentWording", "For grown-ups")),
           "the gate has its title");
-    check(any_contains(texts,
-                       QCoreApplication::translate("ParentWording",
-                                                   "Press and hold for two seconds.")),
+    check(any_contains(texts, QCoreApplication::translate("ParentWording",
+                                                          "Press and hold for two seconds.")),
           "the gate says what to do");
     check(!any_contains(texts, "This week"), "nothing of the data is shown at the gate");
     check(!any_contains(texts, "Sounds"), "no sound is shown at the gate");
@@ -273,8 +272,8 @@ int run_check(const QString& out) {
     // The board's clock: a count-down of the length the parent chose.
     check(controller.setSetting("timer", "down"), "the board's clock can count down");
     check(controller.setSetting("timerLength", 10), "and its length can be chosen");
-    check(store.settings().solo_clock == wjs::SoloClock::count_down
-              && store.settings().solo_clock_minutes == 10,
+    check(store.settings().solo_clock == wjs::SoloClock::count_down &&
+              store.settings().solo_clock_minutes == 10,
           "and the store keeps both");
     check(!controller.setSetting("timer", "sideways"), "a clock that is not offered is refused");
     pump();
@@ -387,8 +386,7 @@ int run_empty_check(const QString& out) {
           "the phonics board cannot be chosen without its words");
     check(any_contains(settings, "Phonics needs the phonics data"),
           "and the settings say why Phonics is not offered");
-    check(controller.setSetting("timer", "up"),
-          "the board's clock does not need phase data");
+    check(controller.setSetting("timer", "up"), "the board's clock does not need phase data");
     save(window, out, "settings-no-phases");
     return (g_failures == 0 && g_warnings == 0) ? 0 : 1;
 }

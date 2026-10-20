@@ -141,10 +141,9 @@ std::size_t words_starting_with(std::span<const FoundWord> viable, const FoundWo
         if (found.contains(word.word) || word.path.size() < prefix.size()) {
             continue;
         }
-        const bool begins = std::equal(prefix.begin(), prefix.end(), word.path.begin(),
-                                       [](Position a, Position b) {
-                                           return a.row == b.row && a.column == b.column;
-                                       });
+        const bool begins = std::equal(
+            prefix.begin(), prefix.end(), word.path.begin(),
+            [](Position a, Position b) { return a.row == b.row && a.column == b.column; });
         if (begins) {
             ++count;
         }

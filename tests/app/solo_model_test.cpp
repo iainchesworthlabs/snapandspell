@@ -357,8 +357,7 @@ TEST_CASE("the parent's level starts at the two rungs", "[app][solo]") {
     CHECK(f.model.helpAllowed());
 }
 
-TEST_CASE("the start-tile level stops at the first rung, and the next press hides",
-          "[app][solo]") {
+TEST_CASE("the start-tile level stops at the first rung, and the next press hides", "[app][solo]") {
     Fixture f;
     f.play();
     f.model.setHelpLevel("start");
@@ -420,8 +419,7 @@ TEST_CASE("a level the table does not have changes nothing", "[app][solo]") {
     CHECK(f.model.helpLevel() == "two");
 }
 
-TEST_CASE("a find made from the lit start answers the help and says what is left",
-          "[app][solo]") {
+TEST_CASE("a find made from the lit start answers the help and says what is left", "[app][solo]") {
     Fixture f;
     f.play();
     f.model.askHelp();
@@ -828,8 +826,7 @@ TEST_CASE("a new game that was brought back is shown as the constructor shows on
 // tile's lit test and the action bar's word. The pointer's jank is these
 // numbers growing, so they are held exactly (docs/design/performance.md).
 
-TEST_CASE("a trace tells the path once per change and once at the hand-in",
-          "[app][solo]") {
+TEST_CASE("a trace tells the path once per change and once at the hand-in", "[app][solo]") {
     Fixture f;
     f.play();
     const int path = f.heard.path_changes;
@@ -886,8 +883,7 @@ TEST_CASE("a move that changes nothing rebuilds nothing", "[app][solo]") {
     CHECK(f.heard.path_changes - after_press == 1);  // the diagonal tile joins
 }
 
-TEST_CASE("a tapped word is told once a tile, and the tray once at Done",
-          "[app][solo]") {
+TEST_CASE("a tapped word is told once a tile, and the tray once at Done", "[app][solo]") {
     Fixture f;
     f.play();
     const int path = f.heard.path_changes;
@@ -906,8 +902,7 @@ TEST_CASE("a tapped word is told once a tile, and the tray once at Done",
     CHECK(f.model.state() == "word-found");
 }
 
-TEST_CASE("the path, the tiles and the tray are built once and read many times",
-          "[app][solo]") {
+TEST_CASE("the path, the tiles and the tray are built once and read many times", "[app][solo]") {
     Fixture f;
     f.play();
     f.model.tapTile(2);

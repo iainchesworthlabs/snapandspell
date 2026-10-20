@@ -53,8 +53,8 @@ private:
 
 }  // namespace
 
-void detail::box_blur_into(GrayImage& out, std::span<std::uint32_t> across,
-                           const GrayImage& image, int radius) {
+void detail::box_blur_into(GrayImage& out, std::span<std::uint32_t> across, const GrayImage& image,
+                           int radius) {
     if (radius <= 0 || image.empty()) {
         out = image;
         return;
@@ -120,14 +120,12 @@ void detail::summed_area(std::span<std::uint32_t> table, const GrayImage& image)
         for (int x = 0; x < width; ++x) {
             row += image.at(x, y);
             table[static_cast<std::size_t>(y + 1) * stride + static_cast<std::size_t>(x + 1)] =
-                table[static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x + 1)] +
-                row;
+                table[static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x + 1)] + row;
         }
     }
 }
 
-void detail::bright_mask_into(std::span<std::uint8_t> mask,
-                              std::span<const std::uint32_t> table,
+void detail::bright_mask_into(std::span<std::uint8_t> mask, std::span<const std::uint32_t> table,
                               const GrayImage& image, int window, int margin) {
     const int width = image.width;
     const int height = image.height;

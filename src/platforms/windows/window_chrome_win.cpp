@@ -32,9 +32,9 @@ void set_window_chrome(void* native_handle, bool dark) {
     // The content colours, not an arbitrary accent: the title bar is part of the
     // same paper as the page.
     if (dark) {
-        set_colour(native, kCaptionColor, RGB(24, 31, 34));    // #181F22, Theme.surface
-        set_colour(native, kTextColor, RGB(242, 236, 222));    // #F2ECDE, Theme.ink
-        set_colour(native, kBorderColor, RGB(30, 42, 47));     // #1E2A2F, Theme.card
+        set_colour(native, kCaptionColor, RGB(24, 31, 34));  // #181F22, Theme.surface
+        set_colour(native, kTextColor, RGB(242, 236, 222));  // #F2ECDE, Theme.ink
+        set_colour(native, kBorderColor, RGB(30, 42, 47));   // #1E2A2F, Theme.card
     } else {
         set_colour(native, kCaptionColor, RGB(246, 241, 231));  // #F6F1E7, Theme.page
         set_colour(native, kTextColor, RGB(30, 42, 48));        // #1E2A30, Theme.ink

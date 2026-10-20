@@ -286,6 +286,5 @@ TEST_CASE("a seed rolls the same board from the shipped dice on every compiler",
     // The same boards from the function that returns the placements, which
     // must not have moved a board: a board of today is a board of before.
     CHECK(text(wjs::roll_with_placements(load(3), 1)->board) == "T A E/H T Y/D A A");
-    CHECK(text(wjs::roll_with_placements(load(4), 1)->board) ==
-          "C A T E/S C O D/T L A L/I Y T H");
+    CHECK(text(wjs::roll_with_placements(load(4), 1)->board) == "C A T E/S C O D/T L A L/I Y T H");
 }

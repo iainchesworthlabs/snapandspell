@@ -365,9 +365,7 @@ int SoloModel::clockSeconds() const {
 QString SoloModel::clockText() const {
     const int minutes = clock_seconds_ / 60;
     const int seconds = clock_seconds_ % 60;
-    return QStringLiteral("%1:%2")
-        .arg(minutes)
-        .arg(seconds, 2, 10, QLatin1Char('0'));
+    return QStringLiteral("%1:%2").arg(minutes).arg(seconds, 2, 10, QLatin1Char('0'));
 }
 
 void SoloModel::setClockMode(const QString& mode) {
@@ -530,9 +528,9 @@ void SoloModel::submitPath() {
             // The help: a find made from its start answers it - the rings are
             // put away, and the panel says whether the start still leads to
             // more of the board's words (a count, never a word).
-            const bool from_hint_start = hint_level_ >= 1 && help_tile_ >= 0
-                                         && !traced_path.isEmpty()
-                                         && traced_path.constFirst().toInt() == help_tile_;
+            const bool from_hint_start = hint_level_ >= 1 && help_tile_ >= 0 &&
+                                         !traced_path.isEmpty() &&
+                                         traced_path.constFirst().toInt() == help_tile_;
             if (from_hint_start) {
                 std::vector<Position> prefix;
                 const std::size_t columns = game_->board().columns;
