@@ -783,6 +783,15 @@ if(WJS_PWSH)
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/checks/check_platform_isolation.ps1"
             -Root "${PROJECT_SOURCE_DIR}")
+
+    # The release tooling (tools/release): the tag checks, signing and
+    # verification with a throw-away key, and the SBOM. It needs bash, gpg, jq,
+    # git and pwsh; without them it skips (exit 77) rather than fails, and
+    # release-tooling.yml runs it on a runner that has them (docs/ci.md, "Releases").
+    add_test(NAME release.tooling
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${CMAKE_CURRENT_SOURCE_DIR}/package/run_release_tools_test.ps1")
+    set_tests_properties(release.tooling PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -812,6 +821,6 @@ endif()
 if(WJS_PWSH)
     list(APPEND WJS_QUALITY_TESTS
         data.dice data.wordlists data.sounds data.phonics data.phonics.checker
-        platform.isolation)
+        platform.isolation release.tooling)
 endif()
 set_tests_properties(${WJS_QUALITY_TESTS} PROPERTIES LABELS "quality")
