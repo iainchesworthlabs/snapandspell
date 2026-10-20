@@ -28,9 +28,12 @@
     {
       "name": "release",
       "hidden": true,
+      "description": "What a package is made from: Release, the Qt Quick application built (a missing Qt is an error, not a command-line-only package), no Tracy, no sanitizer runtime, reviewed phonics data required. A job that only wants the solver passes -DWJS_BUILD_APP=OFF.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "WJS_BUILD_APP": "ON",
         "WJS_ENABLE_TRACY": "OFF",
+        "WJS_ENABLE_SANITIZERS": "OFF",
         "WJS_REQUIRE_REVIEWED_PHONICS": "ON"
       }
     },

@@ -175,6 +175,10 @@ rm -rf "$pkgs"; mkdir -p "$pkgs"; printf 'deb\n' > "$pkgs/p.deb"
 pwsh -NoProfile -File "$tools/generate_sbom.ps1" -Tag v1.2.3 -Commit "$main_sha" -PackagesDir "$pkgs" -Output "$work/cli.cdx.json" -Root "$repo" >/dev/null 2>&1
 jq -e '[.components[].name] | index("qtbase") == null' "$work/cli.cdx.json" >/dev/null && ok "  a command-line-only release does not claim Qt" || bad "  Qt claimed without a Qt package"
 
+# --- the package check's refusal of development leftovers ---------------------------
+echo "check_package.ps1"
+expect_status "a Release package must not carry Tracy, an ASan runtime or a pdb" 0 pwsh -NoProfile -File "$repo/tests/package/test_check_package_forbid.ps1"
+
 # --- the release workflow ---------------------------------------------------------
 echo "release.yml"
 workflow="$repo/.github/workflows/release.yml"

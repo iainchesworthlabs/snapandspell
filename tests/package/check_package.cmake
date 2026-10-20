@@ -5,7 +5,7 @@
 #
 #   cmake -DBUILD_DIR=<build tree> -DVERSION=<project version>
 #         -DEXPECT_CLI=ON|OFF -DEXPECT_APP=ON|OFF
-#         -DEXPECT_QT_DEPLOY=ON|OFF -DNOTICES=<NOTICES.txt> [-DPRERELEASE=<rc.1>]
+#         -DEXPECT_QT_DEPLOY=ON|OFF -DNOTICES=<NOTICES.txt> [-DPRERELEASE=<rc.1>] [-DEXPECT_TRACY=ON|OFF]
 #         -P tests/package/check_package.cmake
 #
 # It is deliberately cheap and runs in every ctest: CPackConfig.cmake must name
@@ -59,6 +59,31 @@ _expect(CPACK_PACKAGE_VENDOR "Iain Chesworth")
 _expect(CPACK_PACKAGE_CONTACT "Iain Chesworth")
 _expect(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/iainchesworthlabs/wordjewelssolver")
 _expect(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Finds every word on a Boggle board")
+
+# CPack refuses to package a Tracy build unless a development package is asked
+# for by name (cmake/PackagePreflight.cmake): the script has to be wired in, and
+# CPack has to be told whether this build has Tracy.
+if(NOT CPACK_PRE_BUILD_SCRIPTS MATCHES "PackagePreflight\.cmake$" OR NOT EXISTS "${CPACK_PRE_BUILD_SCRIPTS}")
+    list(APPEND _failures
+        "CPack does not run cmake/PackagePreflight.cmake before packaging "
+        "(CPACK_PRE_BUILD_SCRIPTS is '${CPACK_PRE_BUILD_SCRIPTS}')")
+endif()
+if(DEFINED EXPECT_TRACY)
+    if(EXPECT_TRACY)
+        set(_tracy_on ON)
+    else()
+        set(_tracy_on OFF)
+    endif()
+    if(NOT "${CPACK_WJS_TRACY}" STREQUAL "${_tracy_on}")
+        list(APPEND _failures
+            "CPack thinks Tracy is '${CPACK_WJS_TRACY}' but the build has it ${_tracy_on}")
+    endif()
+endif()
+if(CPACK_WJS_ALLOW_DEV_PACKAGE)
+    list(APPEND _failures
+        "CPACK_WJS_ALLOW_DEV_PACKAGE is on in CPackConfig.cmake; a development "
+        "package has to be asked for on the cpack command line, not configured")
+endif()
 
 string(FIND "${CPACK_GENERATOR}" "ZIP" _zip)
 if(_zip EQUAL -1)

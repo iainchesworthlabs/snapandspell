@@ -11,11 +11,11 @@
          no file inside any package that can be listed has Tracy in its name
          (TracyClient.dll, libTracyClient.so). A release with the profiler in
          it opens a network port (docs/profiling.md);
-      2. the build type is Release, and no package that can be listed holds a
-         sanitizer runtime (the option WJS_ENABLE_SANITIZERS is ON in every
-         tree but its flags apply to Debug only, so the option itself says
-         nothing; an asan or clang_rt file in a package is a Debug build
-         shipped by mistake);
+      2. the build type is Release, the sanitizers are off in the cache (the
+         Release presets set WJS_ENABLE_SANITIZERS=OFF, so no sanitizer runtime is
+         copied into the tree), and no package that can be listed holds a
+         sanitizer runtime (an asan or clang_rt file in a package is a Debug
+         build shipped by mistake);
       3. the packages that must exist for this platform do: -Expect names file
          suffixes, e.g. .zip, .exe, and each must match exactly one file.
 
@@ -66,7 +66,9 @@ $tracy = Get-CacheValue 'WJS_ENABLE_TRACY'
 if ($tracy -ne 'OFF') { Fail "WJS_ENABLE_TRACY is '$tracy' in $cache; a release is built with the profiler off." }
 $type = Get-CacheValue 'CMAKE_BUILD_TYPE'
 if ($type -ne 'Release') { Fail "CMAKE_BUILD_TYPE is '$type'; a release is built as Release." }
-Write-Host '    configuration: Release, Tracy off'
+$sanitizers = Get-CacheValue 'WJS_ENABLE_SANITIZERS'
+if ($sanitizers -ne 'OFF') { Fail "WJS_ENABLE_SANITIZERS is '$sanitizers' in $cache; the Release presets turn it off." }
+Write-Host '    configuration: Release, Tracy off, sanitizers off'
 
 # 3. The packages.
 $packagesDirectory = Join-Path $buildDirectory 'packages'

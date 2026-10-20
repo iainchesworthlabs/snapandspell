@@ -174,6 +174,15 @@ if("DragNDrop" IN_LIST CPACK_GENERATOR)
     set(CPACK_DMG_VOLUME_NAME "${CPACK_PACKAGE_NAME} ${PROJECT_VERSION}")
 endif()
 
+# CPack refuses to package a build that has the Tracy profiler in it, unless a
+# development package is asked for by name (cmake/PackagePreflight.cmake says why).
+# The two variables reach the script through CPackConfig.cmake, which only
+# carries CPACK_ ones. A refusal writes no package, says why and makes cpack
+# (and so the package target) exit non-zero.
+set(CPACK_WJS_TRACY "${WJS_ENABLE_TRACY}")
+set(CPACK_WJS_ALLOW_DEV_PACKAGE OFF)
+set(CPACK_PRE_BUILD_SCRIPTS "${PROJECT_SOURCE_DIR}/cmake/PackagePreflight.cmake")
+
 # Remembered before include(CPack): the module ends by pointing CPACK_GENERATOR
 # at CPACK_SOURCE_GENERATOR for the source package it also configures, so after
 # it returns CPACK_GENERATOR no longer names the binary package's generators.
