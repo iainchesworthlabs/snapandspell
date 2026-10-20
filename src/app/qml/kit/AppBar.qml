@@ -47,7 +47,9 @@ Item {
     readonly property real naturalLeading: (backButton.visible ? backButton.implicitWidth + Theme.space3 : 0)
                                            + (mark.visible ? mark.implicitWidth + Theme.space3 : 0)
                                            + (titleLabel.visible ? titleLabel.implicitWidth : 0)
-    readonly property bool stacked: hasTrailing && naturalLeading + trailing.implicitWidth + 3 * margin > root.width
+    // The width both groups want on one line.
+    readonly property real naturalWidth: naturalLeading + trailing.implicitWidth + 3 * margin
+    readonly property bool stacked: hasTrailing && naturalWidth > root.width
 
     // The first line is 72 dp or, at a large text size, whatever the wordmark and
     // the Back button need; a second line is added when the trailing group drops.

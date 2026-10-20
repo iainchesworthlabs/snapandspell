@@ -476,10 +476,26 @@ TestCase {
     }
 
     // --- ActionBar ---------------------------------------------------------------
+    // The buttons of a component, wherever it nests them.
+    function buttonsIn(root) {
+        const found = []
+        const walk = item => {
+            if (typeof item.checkable === "boolean" && item.label !== undefined) {
+                found.push(item)
+                return
+            }
+            for (const child of item.children) {
+                walk(child)
+            }
+        }
+        walk(root)
+        return found
+    }
+
     function test_theActionBarKeepsBothButtonsInANarrowPanel() {
         const bar = createTemporaryObject(actionBarComponent, testCase,
             { width: 244, primaryLabel: "Done", primaryIcon: "done", secondaryLabel: "Clear" })
-        const buttons = bar.children.filter(child => typeof child.checkable === "boolean")
+        const buttons = buttonsIn(bar)
         compare(buttons.length, 2)
         compare(buttons[0].implicitHeight, Theme.targetChild, "secondary: 64")
         compare(buttons[1].implicitHeight, Theme.targetPrimary, "primary: 96")
@@ -488,10 +504,43 @@ TestCase {
             verify(button.x >= 0 && button.x + button.width <= 244 + 0.5, "inside the panel: " + button.x + "+" + button.width)
         }
         compare(bar.primarySize, "primary")
+        // However it lays them out - a row, or one under the other when the row
+        // does not fit - nothing is truncated.
+        for (const button of buttons) {
+            const texts = []
+            const walk = item => {
+                if (item.truncated === true) {
+                    texts.push(item.text)
+                }
+                for (const child of item.children) {
+                    walk(child)
+                }
+            }
+            walk(button)
+            compare(texts.length, 0, "truncated: " + texts.join())
+        }
 
         bar.tier = "parent"
         compare(bar.primarySize, "child")
         compare(bar.secondarySize, "min")
+    }
+
+    function test_anActionBarStacksWhenItsButtonsDoNotFitOneRow() {
+        const bar = createTemporaryObject(actionBarComponent, testCase,
+            { width: 2000, primaryLabel: "Done", primaryIcon: "done", secondaryLabel: "Clear" })
+        tryCompare(bar, "stacked", false)
+        const wide = buttonsIn(bar)
+        verify(Math.abs(wide[0].y + wide[0].height / 2 - (wide[1].y + wide[1].height / 2)) < 40, "side by side")
+
+        bar.width = bar.naturalWidth - 20
+        tryCompare(bar, "stacked", true)
+        const buttons = buttonsIn(bar)
+        // The layout follows on its next polish.
+        tryVerify(() => buttons[1].y >= buttons[0].y + buttons[0].height, 2000, "one under the other, the primary last")
+        for (const button of buttons) {
+            verify(button.x >= -0.5 && button.x + button.width <= bar.width + 0.5, "inside: " + button.x + "+" + button.width)
+        }
+        verify(bar.implicitHeight >= buttons[0].height + buttons[1].height)
     }
 
     function test_theActionBarsButtonsEmitTheirSignals() {
@@ -499,7 +548,7 @@ TestCase {
             { width: 400, primaryLabel: "Done", secondaryLabel: "Clear" })
         const primary = createTemporaryObject(spyComponent, testCase, { target: bar, signalName: "primaryClicked" })
         const secondary = createTemporaryObject(spyComponent, testCase, { target: bar, signalName: "secondaryClicked" })
-        const buttons = bar.children.filter(child => typeof child.checkable === "boolean")
+        const buttons = buttonsIn(bar)
         mouseClick(buttons[1], 10, 10)
         compare(primary.count, 1)
         compare(secondary.count, 0)
@@ -585,16 +634,21 @@ TestCase {
 
     function test_aCrowdedBarDropsItsTrailingGroupToASecondRow() {
         const bar = createTemporaryObject(appBarComponent, testCase,
-            { width: 700, showWordmark: true, showJewels: true, showBoards: true })
+            { width: 2000, showWordmark: true, showJewels: true, showBoards: true })
         tryCompare(bar, "stacked", false)
-        compare(bar.height, Theme.appBarHeight)
+        // Just wide enough for one line at this text size (the fonts, and so the
+        // widths, differ from machine to machine): 150% text is wider, so no longer.
+        bar.width = bar.naturalWidth + 20
+        tryCompare(bar, "stacked", false)
+        verify(bar.height >= Theme.appBarHeight)
+        const oneLine = bar.height
         Theme.textScale = 1.5
         // Text lays out on the next polish, so the bar follows a frame later.
         tryCompare(bar, "stacked", true)
-        verify(bar.height > Theme.appBarHeight + Theme.targetMin)
+        verify(bar.height > oneLine + Theme.targetMin)
         Theme.textScale = 1.0
         tryCompare(bar, "stacked", false)
-        tryCompare(bar, "height", Theme.appBarHeight)
+        tryCompare(bar, "height", oneLine)
     }
 
     // --- TabletArt ---------------------------------------------------------------

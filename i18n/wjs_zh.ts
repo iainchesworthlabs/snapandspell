@@ -9,7 +9,7 @@
         <translation>返回</translation>
     </message>
     <message>
-        <location line="+95"/>
+        <location line="+97"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>My boards</translation>
