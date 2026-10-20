@@ -715,6 +715,55 @@ add_test(NAME profiling.zone_names
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_zone_names.cmake")
 
+# A trace of the program holds the names the documents say it does: the program
+# is run with the Tracy capture attached and the exported trace is read
+# (check_trace.cmake). check_zone_names reads the sources, which cannot tell a zone
+# in code that never runs, or a name chosen at run time (the scene's stage zones),
+# from one a trace has. Only a build with Tracy on has a client to capture, and the
+# capture tools are built with it (vcpkg's `profiling` feature, in
+# vcpkg_installed/<triplet>/tools/tracy); in any other build the cases report
+# themselves skipped (exit 4) with the reason. A port of its own for each, since
+# every Tracy client listens on 8086 and a capture attaches to whichever program
+# started first (docs/profiling.md, "Which program the capture attaches to").
+set(WJS_TRACY_TOOLS_DIR "")
+if(WJS_ENABLE_TRACY)
+    set(WJS_TRACY_TOOLS_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/tracy")
+endif()
+set(WJS_TRACE_TESTS "")
+if(WJS_BUILD_CLI)
+    add_test(NAME profiling.trace_cli
+        COMMAND "${CMAKE_COMMAND}"
+            -DCASE=cli
+            "-DTRACY_TOOLS=${WJS_TRACY_TOOLS_DIR}"
+            "-DPROGRAM=$<TARGET_FILE:wjs-cli>"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+            -DPORT=18086
+            "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_trace.cmake")
+    list(APPEND WJS_TRACE_TESTS profiling.trace_cli)
+endif()
+if(WJS_BUILD_APP)
+    add_test(NAME profiling.trace_app
+        COMMAND "${CMAKE_COMMAND}"
+            -DCASE=app
+            "-DTRACY_TOOLS=${WJS_TRACY_TOOLS_DIR}"
+            "-DPROGRAM=$<TARGET_FILE:WordJewelsSolver>"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+            -DPORT=18087
+            "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_trace.cmake")
+    list(APPEND WJS_TRACE_TESTS profiling.trace_app)
+endif()
+if(WJS_TRACE_TESTS)
+    # Alone: a capture needs the machine's attention for the seconds it takes to
+    # find the program, and the two use ports of their own but share a disk.
+    set_tests_properties(${WJS_TRACE_TESTS} PROPERTIES
+        SKIP_RETURN_CODE 4
+        RUN_SERIAL TRUE
+        TIMEOUT 240
+        LABELS "system;profiling")
+endif()
+
 # The workflow's toolchain pins (CMake, Ninja, Qt, aqtinstall) are the ones in
 # .github/toolchain-versions.json, and the vcpkg baseline is the pinned commit.
 # Runs on every host: it only reads the files.
