@@ -705,7 +705,9 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
         }
         for (const auto& [key, entry] : known_words) {
             index.words_.push_back(entry.first);
-            index.dictionary_.insert(key);
+            // Every word of a words file was checked against the English
+            // dictionary above, and is letters only.
+            static_cast<void>(index.dictionary_.insert(key));
             for (const char c : key) {
                 letters.insert(to_upper(c));
             }

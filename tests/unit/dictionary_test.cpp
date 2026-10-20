@@ -20,7 +20,7 @@ TEST_CASE("words are found in either case", "[dictionary]") {
 
 TEST_CASE("a prefix is a prefix but not a word", "[dictionary]") {
     wjs::Dictionary dictionary;
-    dictionary.insert("planet");
+    REQUIRE(dictionary.insert("planet"));
 
     CHECK(dictionary.has_prefix("plan"));
     CHECK(dictionary.has_prefix(""));
@@ -59,17 +59,17 @@ TEST_CASE("a word refused part-way leaves nothing behind", "[dictionary]") {
 
 TEST_CASE("a word inserted twice is counted once", "[dictionary]") {
     wjs::Dictionary dictionary;
-    dictionary.insert("tea");
-    dictionary.insert("TEA");
-    dictionary.insert("team");
+    REQUIRE(dictionary.insert("tea"));
+    REQUIRE(dictionary.insert("TEA"));
+    REQUIRE(dictionary.insert("team"));
 
     CHECK(dictionary.size() == 2U);
 }
 
 TEST_CASE("a cursor follows a word one letter at a time", "[dictionary]") {
     wjs::Dictionary dictionary;
-    dictionary.insert("TO");
-    dictionary.insert("TOP");
+    REQUIRE(dictionary.insert("TO"));
+    REQUIRE(dictionary.insert("TOP"));
 
     auto cursor = dictionary.step(wjs::Dictionary::root, 'T');
     REQUIRE(cursor != wjs::Dictionary::no_node);
@@ -86,7 +86,7 @@ TEST_CASE("a cursor follows a word one letter at a time", "[dictionary]") {
 TEST_CASE("a step from no node is no node, and a cursor from elsewhere is nowhere",
           "[dictionary]") {
     wjs::Dictionary dictionary;
-    dictionary.insert("to");
+    REQUIRE(dictionary.insert("to"));
 
     CHECK(dictionary.step(wjs::Dictionary::no_node, 'T') == wjs::Dictionary::no_node);
     CHECK(dictionary.step(wjs::Dictionary::no_node, 'O') == wjs::Dictionary::no_node);

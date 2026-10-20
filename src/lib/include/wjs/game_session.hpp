@@ -430,7 +430,7 @@ public:
     // `solo.box`: choose a size. False, and nothing changes, outside the box and
     // for a size the mode's board is not played at (5x5 and 6x6 on the phonics
     // board).
-    bool choose_size(BoardSize size);
+    [[nodiscard]] bool choose_size(BoardSize size);
 
     // `solo.box` to `solo.shaking`: the Shake button, a device shake or Space.
     // The board is dealt here, before the shake begins, from the next seed of the
@@ -441,10 +441,10 @@ public:
 
     // `solo.shaking` to `solo.dropping`: the shake has been long enough and is
     // over. How long is the screens' (docs/design/board.md).
-    bool still();
+    [[nodiscard]] bool still();
 
     // `solo.dropping` to `solo.playing`: the dice have landed and the panel is in.
-    bool landed();
+    [[nodiscard]] bool landed();
 
     // In `solo.playing`: a traced or tapped path, with the moment it was made.
     // The last viable word moves the session to `cleared`: on the standard board
@@ -452,7 +452,7 @@ public:
     // hundreds on a 6x6, so a board there ends when the child puts the lid back
     // on, far more often than by clearing. Anything in any other state is
     // `ignored`.
-    TraceOutcome trace(std::span<const Position> path, Stamp when);
+    [[nodiscard]] TraceOutcome trace(std::span<const Position> path, Stamp when);
 
     // In `solo.playing`: the start-tile help (docs/design/game.md, "Help"). The
     // tile of the shortest viable word not yet found, nearest the top left; the
@@ -460,20 +460,20 @@ public:
     // not in `playing`, or no word is left. The word is not handed out: the
     // child does the finding. A word found while its tile is lit is an assisted
     // find.
-    std::optional<Position> request_help();
+    [[nodiscard]] std::optional<Position> request_help();
 
     // `solo.cleared` to `solo.resting`: the celebration is over (about 3 s on the
     // screen).
-    bool rest();
+    [[nodiscard]] bool rest();
 
     // `solo.resting` to `solo.box`: Again.
-    bool again();
+    [[nodiscard]] bool again();
 
     // The back control: puts the lid back on. `solo.shaking`, `solo.dropping` and
     // `solo.playing` to `solo.box`. A board that was reached in `playing` is kept
     // in record() until the next shake, so it can be saved either way. From
     // `cleared` and `resting` the screens leave Solo Play without the session.
-    bool back();
+    [[nodiscard]] bool back();
 
     // --- what the store keeps -------------------------------------------------
 

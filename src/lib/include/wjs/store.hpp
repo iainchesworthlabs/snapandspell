@@ -364,7 +364,7 @@ public:
     // again. `today` is the day a board is first seen and the day it is cleared;
     // each find has its own. `stored` in the outcome is false if the snapshot
     // was refused; whether the disk took it is last_save_error().
-    RecordOutcome record(const BoardSnapshot& snapshot, Day today);
+    [[nodiscard]] RecordOutcome record(const BoardSnapshot& snapshot, Day today);
 
     // The game in progress, to be brought back after a restart, or none. Refused
     // (false, nothing changed) if the board cannot be kept whole: a board of
@@ -375,7 +375,7 @@ public:
     // store is on a file and the disk refused it (last_save_error()): the game
     // is then held in memory (session()), not on disk, and the next change
     // writes it again.
-    bool save_session(const std::optional<SavedSession>& session);
+    [[nodiscard]] bool save_session(const std::optional<SavedSession>& session);
     [[nodiscard]] const std::optional<SavedSession>& session() const noexcept {
         return data_.session;
     }

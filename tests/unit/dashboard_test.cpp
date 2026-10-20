@@ -58,7 +58,7 @@ wjs::Dictionary english() {
     wjs::Dictionary dictionary;
     for (const std::string_view word : {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "zap",
                                         "cow", "pain", "paint", "saint", "stain"}) {
-        dictionary.insert(word);
+        REQUIRE(dictionary.insert(word));
     }
     return dictionary;
 }

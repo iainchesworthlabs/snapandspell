@@ -32,7 +32,7 @@ public:
 
     // Adds a word. Returns false, and leaves the dictionary unchanged, for an
     // empty word or one with anything but ASCII letters in it.
-    bool insert(std::string_view word);
+    [[nodiscard]] bool insert(std::string_view word);
 
     // One word per line. Blank lines are skipped, and so is a line that is not
     // a word (a proper noun with an apostrophe, a hyphenated compound).

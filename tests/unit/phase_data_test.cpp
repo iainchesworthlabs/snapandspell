@@ -61,7 +61,7 @@ wjs::Dictionary english() {
     for (const std::string_view word :
          {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain", "xyz",
           "qqq", "cake", "like", "snow", "cow"}) {
-        dictionary.insert(word);
+        REQUIRE(dictionary.insert(word));
     }
     return dictionary;
 }
@@ -580,7 +580,7 @@ TEST_CASE("a phase with only one of its files is a phase", "[phase]") {
     // Phase B adds words and no grapheme.
     files.words.push_back(read_words("# phase: B\ntaps  t a p s\n"));
     auto dictionary = english();
-    dictionary.insert("taps");
+    REQUIRE(dictionary.insert("taps"));
 
     const auto built = wjs::PhaseSet::build(files.graphemes, files.words, dictionary);
 

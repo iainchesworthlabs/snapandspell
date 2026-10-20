@@ -773,9 +773,10 @@ TEST_CASE("the dead jewels are listed in row order when the planted words are al
         const auto board = seed(index, *options, seed_value);
 
         INFO("seed " << seed_value);
-        CHECK(std::ranges::is_sorted(board.dead, [](const wjs::Position& a, const wjs::Position& b) {
-            return a.row != b.row ? a.row < b.row : a.column < b.column;
-        }));
+        CHECK(
+            std::ranges::is_sorted(board.dead, [](const wjs::Position& a, const wjs::Position& b) {
+                return a.row != b.row ? a.row < b.row : a.column < b.column;
+            }));
         if (!board.dead.empty()) {
             ++with_dead;
         }
@@ -834,7 +835,7 @@ TEST_CASE("a phase that uses every letter has none to keep out", "[seeding][guid
     REQUIRE(parsed_graphemes.has_value());
     REQUIRE(parsed_words.has_value());
     wjs::Dictionary dictionary;
-    dictionary.insert("abc");
+    REQUIRE(dictionary.insert("abc"));
     const auto built = wjs::PhaseSet::build({*parsed_graphemes}, {*parsed_words}, dictionary);
     REQUIRE(built.has_value());
 

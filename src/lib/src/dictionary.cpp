@@ -108,7 +108,8 @@ std::expected<Dictionary, DictionaryError> Dictionary::load(std::istream& words)
             text.remove_prefix(byte_order_mark.size());
         }
         first_line = false;
-        dictionary.insert(trim(text));
+        // A line that is not a word is refused, and skipped, as the header says.
+        static_cast<void>(dictionary.insert(trim(text)));
     }
     if (words.bad()) {
         return std::unexpected(DictionaryError::read_failed);

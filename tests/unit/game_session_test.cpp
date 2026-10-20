@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/deal.hpp"
 #include "wjs/dice.hpp"
@@ -21,7 +22,6 @@
 #include "wjs/dictionary.hpp"
 #include "wjs/game_rules.hpp"
 #include "wjs/game_session.hpp"
-#include "support/test_support.hpp"
 #include "wjs/phase_data.hpp"
 #include "wjs/seeding.hpp"
 #include "wjs/settings.hpp"
@@ -79,10 +79,10 @@ const wjs::Dictionary& english() {
         wjs::Dictionary words;
         for (const std::string_view word :
              {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain"}) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         for (const std::string_view word : extra_words) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         return words;
     }();
@@ -223,7 +223,7 @@ wjs::GameSession reach(SessionState state, const wjs::SessionOptions& options = 
     }
     // Every word the solver finds on the board, traced along its path.
     for (const wjs::FoundWord& word : wjs::solve(*session.board(), phase_a().dictionary())) {
-        session.trace(word.path, 0);
+        static_cast<void>(session.trace(word.path, 0));
     }
     REQUIRE(session.state() == SessionState::cleared);
     if (state == SessionState::cleared) {
@@ -332,8 +332,8 @@ TEST_CASE("a phase that uses every letter has none to leave out, and is refused"
         "abcdefghijklm  a b c d e f g h i j k l m\n"
         "nopqrstuvwxyz  n o p q r s t u v w x y z\n";
     wjs::Dictionary dictionary;
-    dictionary.insert("abcdefghijklm");
-    dictionary.insert("nopqrstuvwxyz");
+    REQUIRE(dictionary.insert("abcdefghijklm"));
+    REQUIRE(dictionary.insert("nopqrstuvwxyz"));
     std::istringstream graphemes_in{graphemes};
     std::istringstream words_in{words};
     const auto built = wjs::PhaseSet::build({*wjs::parse_graphemes(graphemes_in, "g")},
@@ -354,7 +354,7 @@ TEST_CASE("a phase with no word of three letters or fewer deals no board and sta
         "d  /x/  clip:d\n";
     const std::string words = "# phase: A\nabcd  a b c d\n";
     wjs::Dictionary dictionary;
-    dictionary.insert("abcd");
+    REQUIRE(dictionary.insert("abcd"));
     std::istringstream graphemes_in{graphemes};
     std::istringstream words_in{words};
     const auto built = wjs::PhaseSet::build({*wjs::parse_graphemes(graphemes_in, "g")},
@@ -713,7 +713,7 @@ TEST_CASE("after the last word nothing is traced, and the celebration then the r
           "[session]") {
     wjs::GameSession session = hand_session();
     for (const Path* path : {&pat, &tap, &pin, &nip, &pan}) {
-        session.trace(*path, 0);
+        static_cast<void>(session.trace(*path, 0));
     }
     REQUIRE(session.state() == SessionState::cleared);
     CHECK(session.trace(pat, 0).kind == TraceKind::ignored);
@@ -1171,8 +1171,8 @@ TEST_CASE("the dead jewels are the tiles of the letter the phase leaves out", "[
 
 TEST_CASE("the record holds the board, the words on it and the finds", "[session]") {
     wjs::GameSession session = hand_session();
-    session.trace(pan, 7);
-    session.trace(tap, 8);
+    static_cast<void>(session.trace(pan, 7));
+    static_cast<void>(session.trace(tap, 8));
     const auto record = session.record();
     REQUIRE(record.has_value());
     CHECK(record->phase == "A");
@@ -1191,7 +1191,7 @@ TEST_CASE("the record of a board that is left is still there to be saved", "[ses
     wjs::GameSession session = reach(SessionState::playing);
     const auto tiles = session.record()->tiles;
     const auto word = wjs::solve(*session.board(), phase_a().dictionary())[0];
-    session.trace(word.path, 3);
+    static_cast<void>(session.trace(word.path, 3));
     REQUIRE(session.back());
     REQUIRE(session.record().has_value());
     CHECK(session.record()->tiles == tiles);
@@ -1219,8 +1219,8 @@ TEST_CASE("a snapshot brings a session back as it was, in each state", "[session
         wjs::GameSession session = reach(state);
         if (state == SessionState::playing) {
             const auto words = wjs::solve(*session.board(), phase_a().dictionary());
-            session.trace(words[0].path, 12);
-            session.request_help();
+            static_cast<void>(session.trace(words[0].path, 12));
+            static_cast<void>(session.request_help());
         }
         const wjs::SessionSnapshot snapshot = session.snapshot();
         CHECK(snapshot.state == state);
@@ -1269,8 +1269,8 @@ TEST_CASE("a snapshot in cleared is saved as resting", "[session]") {
 TEST_CASE("a restored session keeps the lit tile and the finds' flags", "[session]") {
     wjs::GameSession session = hand_session();
     REQUIRE(session.request_help().has_value());
-    session.trace(pan, 5);  // assisted
-    session.trace(tap, 6);  // not
+    static_cast<void>(session.trace(pan, 5));  // assisted
+    static_cast<void>(session.trace(tap, 6));  // not
     REQUIRE(session.request_help().has_value());
     const auto lit = session.lit_tile();
 
@@ -1545,7 +1545,7 @@ TEST_CASE("a word that is only in the dictionary is never handed out", "[session
     CHECK(session.trace(tip, 0).kind == TraceKind::real_not_todays);
     CHECK(session.trace(tab, 0).kind == TraceKind::real_not_todays);
     for (const Path* path : {&pan, &pat, &pin, &nip, &tap}) {
-        session.request_help();
+        static_cast<void>(session.request_help());
         const wjs::TraceOutcome outcome = session.trace(*path, 0);
         CHECK(outcome.kind == TraceKind::found);
         CHECK_FALSE(found_of(outcome).word == "TIP");
@@ -1919,7 +1919,7 @@ TEST_CASE("no board that holds a word can be rolled: no board, and the box stays
           "[session][standard]") {
     // A word list with no word the dice can spell.
     wjs::Dictionary other;
-    other.insert("zebra");
+    REQUIRE(other.insert("zebra"));
     wjs::GameSession session = [&] {
         auto created = wjs::GameSession::create({.dictionary = other, .dice = &test_dice()}, {});
         REQUIRE(created.has_value());
@@ -2166,8 +2166,8 @@ TEST_CASE("the help of the standard board stays on its word until that word is f
 TEST_CASE("a standard board's record says its mode, has no phase and counts its words",
           "[session][standard]") {
     wjs::GameSession session = standard_hand_session();
-    session.trace(tip, 7);
-    session.trace(pain_path, 8);
+    static_cast<void>(session.trace(tip, 7));
+    static_cast<void>(session.trace(pain_path, 8));
 
     const auto record = session.record();
     REQUIRE(record.has_value());
@@ -2221,11 +2221,11 @@ TEST_CASE("a standard snapshot brings a session back as it was, in each state",
             REQUIRE(session.landed());
             const auto words = wjs::solve(*session.board(), english());
             if (state == SessionState::playing) {
-                session.trace(words[0].path, 12);
-                session.request_help();
+                static_cast<void>(session.trace(words[0].path, 12));
+                static_cast<void>(session.request_help());
             } else {
                 for (const wjs::FoundWord& word : words) {
-                    session.trace(word.path, 12);
+                    static_cast<void>(session.trace(word.path, 12));
                 }
                 REQUIRE(session.state() == SessionState::cleared);
                 REQUIRE(session.rest());
@@ -2441,8 +2441,8 @@ TEST_CASE("a tile of two letters counts both on the standard board, and goes thr
           "[session][standard]") {
     // QU I T / X E X: QUIT is four letters and QUITE five, as the tiers count them.
     wjs::Dictionary quiet;
-    quiet.insert("quit");
-    quiet.insert("quite");
+    REQUIRE(quiet.insert("quit"));
+    REQUIRE(quiet.insert("quite"));
     const wjs::SessionData data{.dictionary = quiet, .dice = &test_dice()};
     wjs::SessionSnapshot snapshot = standard_snapshot();
     snapshot.board->tiles = "QU I T/X E X/X X X";
