@@ -292,6 +292,31 @@ if(WJS_BUILD_APP)
         TEST_PREFIX "system.frame."
         PROPERTIES RUN_SERIAL TRUE TIMEOUT 240 LABELS "system;perf;gui")
 
+    # The window's frame clock (src/app/frame_profiler.cpp) on a window that is
+    # never shown: the signals it listens to are emitted by the test, from a
+    # thread of its own for the render thread's. Its own binary because it needs
+    # Qt Quick and a GUI application on the offscreen platform.
+    add_executable(wjs_frame_profiler_tests
+        app/frame_profiler_test.cpp
+        "${PROJECT_SOURCE_DIR}/src/app/frame_profiler.cpp")
+    set_target_properties(wjs_frame_profiler_tests PROPERTIES AUTOMOC ON)
+    target_include_directories(wjs_frame_profiler_tests PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
+    target_link_libraries(wjs_frame_profiler_tests
+        PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Quick
+            wjs::profiling
+            wjs::warnings
+            wjs::sanitizers
+            wjs::coverage
+            Catch2::Catch2WithMain)
+    wjs_deploy_sanitizer_runtime(wjs_frame_profiler_tests)
+    wjs_platform_deploy_qt_runtime(wjs_frame_profiler_tests "")
+    catch_discover_tests(wjs_frame_profiler_tests
+        TEST_PREFIX "integration."
+        ADD_TAGS_AS_LABELS)
+
     # The parent area's screens in a stub shell (app/parent_ui): a program to
     # look at them with, and, with --check, a test that walks the gate, the
     # dashboard, the settings and the about page without a display, checks what

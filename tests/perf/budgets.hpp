@@ -350,14 +350,47 @@ inline constexpr std::uint64_t kSceneAtlasJewels = 48;
 // The window's frame, during a smoke run's shake cycle (docs/profiling.md,
 // "The smoke mode"). The design's budget is one frame's 16.7 ms at 60 Hz and no
 // frame over 33 ms during the shake, drop and confetti (docs/design/
-// performance.md, "Budgets"). The median gets 0.3 ms of room for the display's
-// own period (16.68 ms measured on the desktop) and a timer's granularity; the
-// maximum gets none, because a missed refresh is what it is there to catch.
-// Measured by tests/app/frame_timing_test.cpp, which runs the window: a debug, a
-// Tracy or a coverage build cannot take a clock reading and skips it, and it is
-// opt-in (WJS_PERF_FRAME_TIMING=1), so a shared runner never runs it.
-inline constexpr double kFrameP50Ms = 17.0;
+// performance.md, "Budgets").
+//
+// The frame is held against the DISPLAY's period and not a fixed 16.7 ms. A window
+// that holds every refresh of a 100 Hz screen has a 10 ms median; one that holds
+// every second refresh (50 frames a second, a 20 ms median) has missed half its
+// frames. A fixed 17 ms is right for a 60 Hz screen, fails the 100 Hz one for a
+// reason that is the display's and not the program's, and cannot see the same miss
+// at 144 Hz, where 17 ms is two and a half periods. The smoke report carries the
+// refresh rate of the screen the window was on (`refresh_hz`), and the budget
+// follows it:
+//
+//   median   one period and 0.3 ms of room for the display's own period (16.68 ms
+//            measured on a 60 Hz one) and a timer's granularity: 16.97 ms at 60 Hz,
+//            which is the 17.0 the budget was
+//   95th     one period and 2 ms: one frame in twenty may be late, by a little. A
+//            100 Hz display measured 10.0 / 10.4 (median / 95th) at idle and
+//            13.8 / 17.5 with every core busy; the load fails it, as it should
+//   maximum  33 ms, the design's, whatever the display: no frame the player can
+//            see as a stall
+//
+// A report with no refresh rate (0, from a screen that does not say) is held to
+// 60 Hz. Measured by tests/app/frame_timing_test.cpp, which runs the window: a
+// debug, a Tracy or a coverage build cannot take a clock reading and skips it, and
+// it is opt-in (WJS_PERF_FRAME_TIMING=1), so a shared runner never runs it.
+inline constexpr double kFrameFallbackHz = 60.0;
+inline constexpr double kFrameP50RoomMs = 0.3;
+inline constexpr double kFrameP95RoomMs = 2.0;
 inline constexpr double kFrameMaxMs = 33.0;
+
+// The display's period in ms: from its refresh rate when that is one a screen has,
+// 60 Hz's when it is not (unknown, zero or nonsense).
+[[nodiscard]] constexpr double frame_period_ms(double refresh_hz) {
+    const bool known = refresh_hz >= 24.0 && refresh_hz <= 1000.0;
+    return 1000.0 / (known ? refresh_hz : kFrameFallbackHz);
+}
+[[nodiscard]] constexpr double frame_p50_budget_ms(double refresh_hz) {
+    return frame_period_ms(refresh_hz) + kFrameP50RoomMs;
+}
+[[nodiscard]] constexpr double frame_p95_budget_ms(double refresh_hz) {
+    return frame_period_ms(refresh_hz) + kFrameP95RoomMs;
+}
 
 // ---------------------------------------------------------------------------
 // The scanner, counted (wjs/scan/work.hpp)
