@@ -106,7 +106,8 @@ fi
   rm -f SHA256SUMS ./*.asc
   # Everything except KEYS (a public key proves nothing about itself) in the
   # byte order of the C locale, so the file is the same on every machine.
-  find . -maxdepth 1 -type f ! -name KEYS ! -name SHA256SUMS -printf '%f\n' | LC_ALL=C sort > "$home/files.txt"
+  # (No find -printf: the macOS find has none.)
+  find . -maxdepth 1 -type f ! -name KEYS ! -name SHA256SUMS | sed 's|^\./||' | LC_ALL=C sort > "$home/files.txt"
   [ -s "$home/files.txt" ] || { echo "sign_release.sh: nothing to sign in $dist" >&2; exit 1; }
   : > SHA256SUMS
   while IFS= read -r name; do
