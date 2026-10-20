@@ -378,6 +378,21 @@ jobs:
           pattern: sbom-inputs-*
           path: sbom-inputs
 
+      # The source of exactly this commit, as a release asset: git archive at the
+      # tagged commit (so .gitattributes' export-ignore decides what stays out),
+      # with a fixed prefix and no timestamp in the gzip header, so the same commit
+      # gives the same bytes.
+      - name: Archive the source
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          prefix="WordJewelsSolver-${version}-source"
+          git archive --format=tar --prefix="$prefix/" HEAD | gzip -n -9 > "dist/${prefix}.tar.gz"
+          tar -tzf "dist/${prefix}.tar.gz" | grep -qx "$prefix/CMakeLists.txt"
+          ls -l "dist/${prefix}.tar.gz"
+
       - name: Generate the SBOM (CycloneDX 1.6)
         shell: pwsh
         env:
