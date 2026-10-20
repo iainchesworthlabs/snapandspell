@@ -590,7 +590,7 @@ jobs:
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
           pwsh --version
-          for kit in "$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" "$QT_HOST_PATH/bin/moc"; do
+          for kit in "$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" "$QT_HOST_PATH/lib/cmake/Qt6/Qt6Config.cmake"; do
             [ -e "$kit" ] || { echo "::error::$kit is not there: the Qt install put its kits somewhere else (look at the install step's log)"; exit 1; }
           done
 
