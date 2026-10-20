@@ -46,7 +46,8 @@ on:
         description: >-
           Also build and sign the iOS ad-hoc IPA, with the Apple signing secrets
           (it fails at once if they are not set). Untick it to rehearse the
-          desktop packages alone. A tag always builds it.
+          desktop packages alone. A tag builds it too, unless the repository
+          variable RELEASE_WITHOUT_IOS is true.
         type: boolean
         default: true
 
@@ -95,15 +96,24 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           SIGNING_INPUT: ${{ inputs.signing }}
           IOS_INPUT: ${{ inputs.ios }}
+          RELEASE_WITHOUT_IOS: ${{ vars.RELEASE_WITHOUT_IOS }}
           RUN_NUMBER: ${{ github.run_number }}
           SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = push ] && [ "$REF_TYPE" = tag ]; then
+            # A tag builds iOS, unless the author has said, with this repository
+            # variable, that a release is to go out without it (an iOS build that
+            # is broken must not hold the desktop packages back).
+            ios=true
+            if [ "${RELEASE_WITHOUT_IOS:-}" = true ]; then
+              ios=false
+              echo "::warning title=No iOS build::The repository variable RELEASE_WITHOUT_IOS is true, so this release has no iOS IPA. Delete the variable to build it again."
+            fi
             {
               echo "mode=release"
               echo "signing=repository"
-              echo "ios=true"
+              echo "ios=$ios"
             } >> "$GITHUB_OUTPUT"
             tools/release/check_release_ref.sh --tag "$REF_NAME" --sha "$SHA"
           else
