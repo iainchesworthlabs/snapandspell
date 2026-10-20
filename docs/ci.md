@@ -417,28 +417,37 @@ one describe something that is no longer there.
 None of this is done by the repository, and the workflow stops, with the same
 list in its message, if any of it is missing.
 
-1. **Create the signing key** on your own machine, from a checkout:
+1. **Create the signing key** on your own machine, from a checkout, in your own
+   terminal (it prints no secret, and the output folder is outside the
+   repository; the script refuses a folder in any git working tree):
 
-   ```sh
-   tools/release/new_signing_key.sh --email <you@example.org> --install
-   # Windows: ./tools/release/new_signing_key.ps1 -Email <you@example.org> -Install
+   ```powershell
+   ./tools/release/new_signing_key.ps1                       # -> ~/wjs-release-key
+   ./tools/release/new_signing_key.ps1 -OutDir D:\keys\wjs -Email you@example.org -Install
    ```
 
-   It makes an Ed25519 signing-only key (expires in two years) in a temporary
-   keyring that never touches yours, writes `private-key.asc`, `passphrase.txt`,
-   `KEYS`, `FINGERPRINT` and a revocation certificate into `release-key-out/`, and
-   prints the commands below. `--install` also copies `KEYS` and `FINGERPRINT` to
-   `.github/release-signing/`.
-2. **Upload the two secrets** (repository secrets, `Settings → Secrets and
-   variables → Actions`; the script prints these exact commands):
+   (`tools/release/new_signing_key.sh --out <dir> --email <addr> --install` is the
+   same for a POSIX shell.) It uses a temporary keyring that never touches yours,
+   makes an Ed25519 sign-only key (expires in two years, user id
+   `WordJewelsSolver Release <address>`, the address from `git config user.email`
+   unless given) protected by a random passphrase, and writes, into a folder only
+   your account can read: `private-key.asc`, `public-key.asc`,
+   `revocation-cert.asc`, `passphrase.txt`, `fingerprint.txt` and a `README.md`
+   with the commands below. It then signs and verifies a test file with the
+   exported files in fresh keyrings and shreds the temporary ones. `-Install`
+   also copies the public key and fingerprint to `.github/release-signing/`.
+   With Git for Windows' gpg (an MSYS build) the script hands gpg its home as
+   `/c/...`, which that build's agent needs.
+2. **Upload the two secrets** (repository secrets; `gh secret set` reads the
+   value from standard input, so these print nothing of it):
 
-   ```sh
-   gh secret set GPG_PRIVATE_KEY --repo iainchesworthlabs/wordjewelssolver < release-key-out/private-key.asc
-   gh secret set GPG_PASSPHRASE  --repo iainchesworthlabs/wordjewelssolver < release-key-out/passphrase.txt
+   ```powershell
+   Get-Content -Raw private-key.asc | gh secret set GPG_PRIVATE_KEY --repo iainchesworthlabs/wordjewelssolver
+   Get-Content -Raw passphrase.txt  | gh secret set GPG_PASSPHRASE  --repo iainchesworthlabs/wordjewelssolver
    ```
 
-   Then keep the private key and passphrase in a password manager, the
-   revocation certificate offline, and delete the files from disk.
+   Then keep the private key and passphrase in your key store, the revocation
+   certificate offline, and delete the first two from the output folder.
 3. **Commit the public half**: `.github/release-signing/KEYS` and `FINGERPRINT`,
    and put the fingerprint where a reader will find it independently of the
    download: `SECURITY.md` and the README. The workflow refuses to sign with a key

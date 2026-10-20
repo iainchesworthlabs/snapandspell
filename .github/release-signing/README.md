@@ -9,9 +9,9 @@ exists:
 | `FINGERPRINT` | its 40-hex-digit fingerprint, one line |
 
 **Neither file is here yet.** They are written by
-`tools/release/new_signing_key.sh --install` (or `new_signing_key.ps1 -Install`),
-which the author runs once on their own machine; the script also prints the
-`gh secret set` commands that upload the matching private key as the repository
+`tools/release/new_signing_key.ps1 -Install` (or `new_signing_key.sh --install`),
+which the author runs once on their own machine; the script also writes, beside
+the key it makes, a README.md with the `gh secret set` commands that upload the matching private key as the repository
 secret `GPG_PRIVATE_KEY` (and `GPG_PASSPHRASE`). `release.yml` stops with those
 steps while either file or either secret is missing, and refuses to sign with a
 key whose fingerprint is not the one in `FINGERPRINT`.

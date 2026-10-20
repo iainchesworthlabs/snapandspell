@@ -111,14 +111,14 @@ expect_status "an edited SHA256SUMS is caught by its signature" 1 "$tools/verify
 # A real-key flow with a throw-away key made by the same script the author runs.
 printf 'throw-away-passphrase' > "$work/pass.txt"
 "$tools/new_signing_key.sh" --out "$work/key" --passphrase-file "$work/pass.txt" --expire 1d >/dev/null 2>&1
-if [ -s "$work/key/private-key.asc" ] && [ -s "$work/key/KEYS" ] && [ -s "$work/key/FINGERPRINT" ] && [ -s "$work/key/revocation.asc" ]; then
+if [ -s "$work/key/private-key.asc" ] && [ -s "$work/key/public-key.asc" ] && [ -s "$work/key/fingerprint.txt" ] && [ -s "$work/key/revocation-cert.asc" ]; then
   ok "new_signing_key.sh writes the key, the public key, the fingerprint and a revocation certificate"
 else
   bad "new_signing_key.sh left out a file: $(ls "$work/key" 2>&1 | tr '\n' ' ')"
 fi
 mkdir -p "$work/keys"
-cp "$work/key/KEYS" "$work/key/FINGERPRINT" "$work/keys/"
-fingerprint="$(tr -d '[:space:]' < "$work/key/FINGERPRINT")"
+cp "$work/key/public-key.asc" "$work/keys/KEYS"; cp "$work/key/fingerprint.txt" "$work/keys/FINGERPRINT"
+fingerprint="$(tr -d "[:space:]" < "$work/key/fingerprint.txt")"
 private_key="$(cat "$work/key/private-key.asc")"
 
 dist2="$work/dist2"
@@ -128,7 +128,7 @@ expect_status "missing secrets stop with exit 3" 3 "$tools/sign_release.sh" --di
 expect_output "  and say how to fix it" 'new_signing_key'
 expect_status "a wrong passphrase stops with exit 3" 3 env GPG_PRIVATE_KEY="$private_key" GPG_PASSPHRASE=wrong "$tools/sign_release.sh" --dist "$dist2" --keys-dir "$work/keys"
 mkdir -p "$work/keys-other"
-cp "$work/key/KEYS" "$work/keys-other/KEYS"
+cp "$work/key/public-key.asc" "$work/keys-other/KEYS"
 printf '0000000000000000000000000000000000000000\n' > "$work/keys-other/FINGERPRINT"
 expect_status "a key that is not the committed one stops with exit 3" 3 env GPG_PRIVATE_KEY="$private_key" GPG_PASSPHRASE=throw-away-passphrase "$tools/sign_release.sh" --dist "$dist2" --keys-dir "$work/keys-other"
 expect_output "  and names both fingerprints" 'fingerprint is'

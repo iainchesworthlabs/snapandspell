@@ -13,13 +13,13 @@
 #      never read or changed, and removes it when it finishes;
 #   2. generates an Ed25519 signing-only key (default: expires in 2 years) under a
 #      passphrase: --passphrase-file, or a random one it writes to the output;
-#   3. writes, into --out (default ./release-key-out, created mode 700):
+#   3. writes, into --out (default ~/wjs-release-key, mode 700; never inside a git work tree):
 #        private-key.asc     the secret key  -> repository secret GPG_PRIVATE_KEY
 #        passphrase.txt      the passphrase  -> repository secret GPG_PASSPHRASE
-#        KEYS                the public key (commit this)
-#        FINGERPRINT         the 40-hex fingerprint (commit this)
-#        revocation.asc      the revocation certificate (keep it OFFLINE)
-#   4. with --install, copies KEYS and FINGERPRINT to .github/release-signing/
+#        public-key.asc      the public key (commit it as .github/release-signing/KEYS)
+#        fingerprint.txt      the 40-hex fingerprint (commit it as .../FINGERPRINT)
+#        revocation-cert.asc  the revocation certificate (keep it OFFLINE)
+#   4. with --install, copies the public key and fingerprint to .github/release-signing/
 #      in this checkout, ready to commit;
 #   5. prints the gh commands that upload the two secrets, and what to delete.
 #
@@ -27,7 +27,7 @@
 # Needs gpg (GnuPG 2.2 or later) and, to read the printed commands, nothing else.
 set -euo pipefail
 
-out="release-key-out"
+out="$HOME/wjs-release-key"
 uid_name="WordJewelsSolver release signing key"
 email=""
 expire="2y"
@@ -62,6 +62,12 @@ fi
 umask 077
 mkdir -p "$out"
 out="$(cd "$out" && pwd)"
+# Secrets must never be where a commit can pick them up.
+if [[ "$out/" == "$repo_root"/* ]] || [ "$(git -C "$out" rev-parse --is-inside-work-tree 2>/dev/null)" = true ]; then
+  rmdir "$out" 2>/dev/null || true
+  echo "new_signing_key.sh: $out is inside a git working tree. Choose a folder that is not under version control (the default is ~/wjs-release-key)." >&2
+  exit 1
+fi
 
 home="$(mktemp -d)"
 cleanup() {
@@ -97,17 +103,17 @@ g --quick-generate-key "$uid" ed25519 sign "$expire" >/dev/null 2>&1 || {
 fpr="$(gpg --quiet --no-auto-check-trustdb --homedir "$home" --batch --with-colons --list-secret-keys | awk -F: '/^fpr:/ {print $10; exit}')"
 [ -n "$fpr" ] || { echo "new_signing_key.sh: could not read the new key's fingerprint." >&2; exit 1; }
 
-g --armor --export "$fpr" > "$out/KEYS"
+g --armor --export "$fpr" > "$out/public-key.asc"
 g --armor --export-secret-keys "$fpr" > "$out/private-key.asc"
-printf '%s\n' "$fpr" > "$out/FINGERPRINT"
+printf '%s\n' "$fpr" > "$out/fingerprint.txt"
 # gpg writes a revocation certificate beside the key when it is generated.
 rev="$home/openpgp-revocs.d/$fpr.rev"
 if [ -f "$rev" ]; then
-  cp "$rev" "$out/revocation.asc"
+  cp "$rev" "$out/revocation-cert.asc"
 else
   echo "warning: gpg wrote no revocation certificate; make one with 'gpg --gen-revoke' once the key is in your keyring." >&2
 fi
-chmod 600 "$out/private-key.asc" "$out/revocation.asc" 2>/dev/null || true
+chmod 600 "$out/private-key.asc" "$out/revocation-cert.asc" 2>/dev/null || true
 
 # Prove the pair works before anyone depends on it.
 probe="$home/probe.txt"
@@ -121,8 +127,8 @@ gpg --quiet --no-auto-check-trustdb --homedir "$home" --batch --verify "$probe.a
 if [ "$install" = true ]; then
   dest="$repo_root/.github/release-signing"
   mkdir -p "$dest"
-  cp "$out/KEYS" "$dest/KEYS"
-  cp "$out/FINGERPRINT" "$dest/FINGERPRINT"
+  cp "$out/public-key.asc" "$dest/KEYS"
+  cp "$out/fingerprint.txt" "$dest/FINGERPRINT"
   echo "==> installed the public key and fingerprint in $dest"
 fi
 
@@ -147,7 +153,7 @@ NEXT STEPS - in this order:
      gh secret set GPG_PASSPHRASE  --repo $repo < "$out/passphrase.txt"
 
 2. Keep a copy of private-key.asc and passphrase.txt in your password manager,
-   and revocation.asc somewhere OFFLINE. Then delete the files from disk:
+   and revocation-cert.asc somewhere OFFLINE. Then delete the files from disk:
 
      shred -u "$out/private-key.asc" "$out/passphrase.txt"   # or rm, if shred is missing
 
@@ -158,7 +164,7 @@ if [ "$install" = true ]; then
 else
   cat <<EOF
      mkdir -p .github/release-signing
-     cp "$out/KEYS" "$out/FINGERPRINT" .github/release-signing/
+     cp "$out/public-key.asc" .github/release-signing/KEYS; cp "$out/fingerprint.txt" .github/release-signing/FINGERPRINT
 EOF
 fi
 cat <<EOF
