@@ -38,6 +38,13 @@ BoardReading reading_of_two_by_three() {
     return reading;
 }
 
+// The draft of that reading, which has to be made: it is a grid.
+BoardDraft draft_of_two_by_three() {
+    auto draft = BoardDraft::try_from_reading(reading_of_two_by_three());
+    REQUIRE(draft.has_value());
+    return *draft;
+}
+
 std::string text_of(const Board& board) {
     std::string text;
     for (std::size_t row = 0; row < board.rows(); ++row) {
@@ -65,7 +72,7 @@ static_assert(!std::is_convertible_v<BoardDraft, Board>);
 static_assert(!std::is_constructible_v<BoardDraft, BoardReading>);  // only from_reading() makes one
 
 TEST_CASE("a draft starts as the grid was read", "[scan][draft]") {
-    const BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    const BoardDraft draft = draft_of_two_by_three();
     CHECK(draft.rows() == 2);
     CHECK(draft.columns() == 3);
     CHECK(draft.tile({0, 0}).letters == "C");
@@ -85,7 +92,7 @@ TEST_CASE("a draft starts as the grid was read", "[scan][draft]") {
 
 TEST_CASE("the doubted tiles are listed in reading order, and so are the empty ones",
           "[scan][draft]") {
-    const BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    const BoardDraft draft = draft_of_two_by_three();
     const std::vector<Position> doubtful = draft.doubtful();
     REQUIRE(doubtful.size() == 3);
     CHECK(doubtful[0] == Position{0, 1});
@@ -98,14 +105,14 @@ TEST_CASE("the doubted tiles are listed in reading order, and so are the empty o
 }
 
 TEST_CASE("a board with a tile missing cannot be confirmed", "[scan][draft]") {
-    const BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    const BoardDraft draft = draft_of_two_by_three();
     const auto board = draft.confirm();
     REQUIRE_FALSE(board.has_value());
     CHECK(board.error() == DraftError::incomplete);
 }
 
 TEST_CASE("a correction settles a tile and is kept upper-case", "[scan][draft]") {
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     REQUIRE(draft.set_tile({1, 0}, "s").has_value());
     CHECK(draft.tile({1, 0}).letters == "S");
     CHECK(draft.tile({1, 0}).origin == TileOrigin::corrected);
@@ -121,7 +128,7 @@ TEST_CASE("a correction settles a tile and is kept upper-case", "[scan][draft]")
 }
 
 TEST_CASE("letters that are not a tile are refused and the tile is left alone", "[scan][draft]") {
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     for (const std::string_view bad : {"", "ABCD", "A1", "A B", "-", "\xC3\xA9"}) {
         const auto result = draft.set_tile({0, 0}, bad);
         INFO("letters '" << bad << "'");
@@ -136,7 +143,7 @@ TEST_CASE("letters that are not a tile are refused and the tile is left alone", 
 }
 
 TEST_CASE("accepting a doubted tile settles it without changing it", "[scan][draft]") {
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     REQUIRE(draft.accept_tile({0, 1}).has_value());
     CHECK(draft.tile({0, 1}).letters == "A");
     CHECK(draft.tile({0, 1}).origin == TileOrigin::corrected);
@@ -155,7 +162,7 @@ TEST_CASE("accepting a doubted tile settles it without changing it", "[scan][dra
 }
 
 TEST_CASE("clearing a tile leaves it missing and not doubted", "[scan][draft]") {
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     REQUIRE(draft.clear_tile({0, 0}).has_value());
     CHECK(draft.tile({0, 0}).letters.empty());
     CHECK(draft.tile({0, 0}).origin == TileOrigin::empty);
@@ -166,7 +173,7 @@ TEST_CASE("clearing a tile leaves it missing and not doubted", "[scan][draft]") 
 
 TEST_CASE("pressing Yes, play on a filled grid makes the board, doubted tiles and all",
           "[scan][draft]") {
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     REQUIRE(draft.set_tile({1, 0}, "S").has_value());
     REQUIRE(draft.complete());
     // Two tiles are still doubted. The grown-up looked and said yes: the board is made.
@@ -181,7 +188,7 @@ TEST_CASE("pressing Yes, play on a filled grid makes the board, doubted tiles an
 
 TEST_CASE("the solver is given the confirmed board and finds its words", "[scan][draft]") {
     // The whole flow, read to played: a reading, a correction, a confirmation, a solve.
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     REQUIRE(draft.set_tile({1, 0}, "S").has_value());
     REQUIRE(draft.set_tile({1, 1}, "A").has_value());  // the doubted O was an A
     const auto board = draft.confirm();
@@ -198,7 +205,7 @@ TEST_CASE("the solver is given the confirmed board and finds its words", "[scan]
 }
 
 TEST_CASE("a quarter turn turns the grid, and four are the grid as it was", "[scan][draft]") {
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     REQUIRE(draft.set_tile({1, 0}, "S").has_value());
     const auto original = draft.confirm();
     REQUIRE(original.has_value());
@@ -224,7 +231,7 @@ TEST_CASE("a quarter turn turns the grid, and four are the grid as it was", "[sc
 }
 
 TEST_CASE("a tile's doubt goes with it when the grid turns", "[scan][draft]") {
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     draft.turn(Turn::clockwise);
     // The doubted A was at (0, 1); clockwise it is at (1, 1).
     CHECK(draft.tile({1, 1}).letters == "A");
@@ -233,7 +240,7 @@ TEST_CASE("a tile's doubt goes with it when the grid turns", "[scan][draft]") {
 }
 
 TEST_CASE("a grid corrected for size keeps the tiles that are on both", "[scan][draft]") {
-    BoardDraft draft = BoardDraft::from_reading(reading_of_two_by_three());
+    BoardDraft draft = draft_of_two_by_three();
     REQUIRE(draft.resize(3, 3).has_value());
     CHECK(draft.rows() == 3);
     CHECK(draft.columns() == 3);
@@ -285,7 +292,96 @@ TEST_CASE("a grid of no rows, or one too large to be a board, cannot be made", "
 TEST_CASE("each draft error says what is wrong", "[scan][draft]") {
     for (const DraftError error :
          {DraftError::empty_grid, DraftError::too_large, DraftError::bad_letters,
-          DraftError::off_grid, DraftError::incomplete}) {
+          DraftError::off_grid, DraftError::incomplete, DraftError::inconsistent_reading}) {
         CHECK_FALSE(to_string(error).empty());
     }
+}
+
+TEST_CASE("a reading that is not a grid is refused, and a grid is not", "[scan][draft]") {
+    // Three rows of three and not a tile: set_tile on {2, 2} would have written past the
+    // end of an empty vector.
+    BoardReading reading;
+    reading.rows = 3;
+    reading.columns = 3;
+    CHECK(BoardDraft::try_from_reading(reading).error() == DraftError::inconsistent_reading);
+
+    reading.tiles.assign(8, TileReading{});  // one short
+    CHECK(BoardDraft::try_from_reading(reading).error() == DraftError::inconsistent_reading);
+    reading.tiles.assign(10, TileReading{});  // one over
+    CHECK(BoardDraft::try_from_reading(reading).error() == DraftError::inconsistent_reading);
+    reading.tiles.assign(9, TileReading{});
+    REQUIRE(BoardDraft::try_from_reading(reading).has_value());
+
+    BoardReading no_rows;
+    no_rows.columns = 3;
+    CHECK(BoardDraft::try_from_reading(no_rows).error() == DraftError::empty_grid);
+    BoardReading no_columns;
+    no_columns.rows = 3;
+    no_columns.tiles.assign(3, TileReading{});
+    CHECK(BoardDraft::try_from_reading(no_columns).error() == DraftError::empty_grid);
+
+    BoardReading big;
+    big.rows = 17;
+    big.columns = 2;
+    big.tiles.assign(34, TileReading{});
+    CHECK(BoardDraft::try_from_reading(big).error() == DraftError::too_large);
+    // A size that would wrap the product of rows and columns is too large, not a small grid.
+    BoardReading wrapped;
+    wrapped.rows = (std::size_t{1} << 63) + 1;
+    wrapped.columns = 2;
+    wrapped.tiles.assign(2, TileReading{});
+    CHECK(BoardDraft::try_from_reading(wrapped).error() == DraftError::too_large);
+
+    BoardReading largest;
+    largest.rows = Board::max_dimension;
+    largest.columns = Board::max_dimension;
+    largest.tiles.assign(Board::max_dimension * Board::max_dimension, TileReading{});
+    CHECK(BoardDraft::try_from_reading(largest).has_value());
+}
+
+TEST_CASE("the unchecked call gives the same draft for a grid and a safe blank for a non-grid",
+          "[scan][draft]") {
+    const BoardDraft same = BoardDraft::from_reading(reading_of_two_by_three());
+    const BoardDraft checked = draft_of_two_by_three();
+    CHECK(same.rows() == checked.rows());
+    CHECK(same.columns() == checked.columns());
+    CHECK(same.doubtful() == checked.doubtful());
+    CHECK(same.unfilled() == checked.unfilled());
+
+    BoardReading hollow;
+    hollow.rows = 3;
+    hollow.columns = 3;
+    BoardDraft blank = BoardDraft::from_reading(hollow);
+    REQUIRE(blank.rows() == 3);
+    REQUIRE(blank.columns() == 3);
+    CHECK(blank.unfilled().size() == 9);
+    CHECK(blank.doubtful().size() == 9);
+    // Every position is on the grid and has a tile behind it.
+    CHECK(blank.set_tile({2, 2}, "A").has_value());
+    CHECK(blank.tile({2, 2}).letters == "A");
+    blank.turn(Turn::clockwise);
+    CHECK(blank.unfilled().size() == 8);
+
+    BoardReading nothing;  // no rows, no columns: held to a grid of one
+    const BoardDraft one = BoardDraft::from_reading(nothing);
+    CHECK(one.rows() == 1);
+    CHECK(one.columns() == 1);
+    BoardReading huge;
+    huge.rows = 1000;
+    huge.columns = 1000;
+    const BoardDraft capped = BoardDraft::from_reading(huge);
+    CHECK(capped.rows() == Board::max_dimension);
+    CHECK(capped.columns() == Board::max_dimension);
+}
+
+TEST_CASE("a correction is upper-cased by ASCII and nothing else", "[scan][draft]") {
+    BoardDraft draft = draft_of_two_by_three();
+    REQUIRE(draft.set_tile({0, 0}, "qu").has_value());
+    CHECK(draft.tile({0, 0}).letters == "QU");
+    // Bytes that are not letters of the alphabet, whatever a locale makes of them.
+    CHECK(draft.set_tile({0, 0}, "\xE9").error() == DraftError::bad_letters);
+    CHECK(draft.set_tile({0, 0}, "a1").error() == DraftError::bad_letters);
+    CHECK(draft.set_tile({0, 0}, "[").error() == DraftError::bad_letters);
+    CHECK(draft.set_tile({0, 0}, "{").error() == DraftError::bad_letters);
+    CHECK(draft.tile({0, 0}).letters == "QU");  // a refusal changes nothing
 }
