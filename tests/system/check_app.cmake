@@ -102,7 +102,9 @@ elseif(CASE STREQUAL "smoke-headless")
     # frame can be presented the program says so and leaves with 3; that is a
     # different machine's answer, not a failure of this one, so the assertion
     # follows whichever the program says and checks that the two agree.
-    run_app(45
+    # 120 s: a Debug build with AddressSanitizer took 56 s on a busy host, and
+    # a timeout is a failure, not a skip.
+    run_app(120
         --smoke 2
         --store "${_work}/smoke.store")
     if(RUN_CODE STREQUAL "3")

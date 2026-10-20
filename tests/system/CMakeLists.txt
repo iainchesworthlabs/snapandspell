@@ -55,7 +55,7 @@ if(WJS_BUILD_APP)
                 -P "${WJS_SYSTEM_SCRIPT_DIR}/check_app.cmake")
         set_tests_properties("system.app.${_case}" PROPERTIES
             LABELS "system"
-            TIMEOUT 90)
+            TIMEOUT 150)
     endforeach()
 endif()
 
