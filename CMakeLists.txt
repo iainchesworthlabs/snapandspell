@@ -216,6 +216,9 @@ if(WJS_BUILD_APP)
     if(TARGET Qt6::TextToSpeech)
         set(WJS_QT_HAS_TEXTTOSPEECH ON)
     endif()
+    # clang-cl under the Visual Studio generator (the coverage preset) does not
+    # treat Qt's headers as system headers by itself (cmake/CompilerWarnings.cmake).
+    wjs_treat_qt_headers_as_system()
 endif()
 
 # ---------------------------------------------------------------------------
