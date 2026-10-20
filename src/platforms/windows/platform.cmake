@@ -39,6 +39,7 @@ set(WJS_PLATFORM_SOURCES
     detail/camera_unavailable.cpp
     detail/haptics_none.cpp
     windows/console_windows.cpp
+    windows/fatal_error_windows.cpp
     windows/paths_windows.cpp
     windows/window_chrome_win.cpp)
 
