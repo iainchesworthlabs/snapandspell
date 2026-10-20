@@ -67,7 +67,12 @@ qt_add_qml_module(wjs_parent
         parent_controller.cpp
         parent_controller.hpp)
 
-target_include_directories(wjs_parent PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(wjs_parent
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    PRIVATE
+        # qt_text.hpp, the one place text crosses between the library and Qt.
+        "${PROJECT_SOURCE_DIR}/src/app")
 
 target_link_libraries(wjs_parent
     PUBLIC
