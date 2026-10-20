@@ -13,6 +13,7 @@
 #include <string_view>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/store.hpp"
 
 namespace fs = std::filesystem;
@@ -39,38 +40,10 @@ std::string seal(const std::string& body) {
     return body + "end " + hex + "\n";
 }
 
-// A directory of its own that is gone when the case ends.
-class TempDirectory {
-public:
-    TempDirectory() {
-        static int counter = 0;
-        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
-        path_ = fs::temp_directory_path() /
-                ("wjs_store_test_" + std::to_string(stamp) + "_" + std::to_string(++counter));
-        fs::create_directories(path_);
-    }
-    TempDirectory(const TempDirectory&) = delete;
-    TempDirectory& operator=(const TempDirectory&) = delete;
-    ~TempDirectory() {
-        std::error_code error;
-        fs::remove_all(path_, error);
-    }
-    [[nodiscard]] const fs::path& path() const { return path_; }
+using wjs::test::TempDirectory;
 
-private:
-    fs::path path_;
-};
-
-std::string slurp(const fs::path& file) {
-    std::ifstream in(file, std::ios::binary);
-    return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-}
-
-void spit(const fs::path& file, const std::string& text) {
-    fs::create_directories(file.parent_path());
-    std::ofstream out(file, std::ios::binary | std::ios::trunc);
-    out << text;
-}
+using wjs::test::slurp;
+using wjs::test::spit;
 
 std::set<std::string> names_in(const fs::path& directory) {
     std::set<std::string> names;

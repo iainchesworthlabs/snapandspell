@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/solver.hpp"
@@ -14,18 +15,15 @@
 
 namespace {
 
+using wjs::test::board_of;
+using wjs::test::dictionary_of;
+
 wjs::Dictionary make_dictionary(std::initializer_list<std::string_view> words) {
-    wjs::Dictionary dictionary;
-    for (const auto word : words) {
-        dictionary.insert(word);
-    }
-    return dictionary;
+    return dictionary_of(words);
 }
 
 wjs::Board make_board(std::string_view text) {
-    auto board = wjs::Board::parse(text);
-    REQUIRE(board.has_value());
-    return *board;
+    return board_of(text);
 }
 
 std::vector<std::string> words_of(const std::vector<wjs::FoundWord>& found) {

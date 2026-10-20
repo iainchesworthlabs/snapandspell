@@ -9,6 +9,7 @@
 #include <string_view>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/phase_data.hpp"
@@ -638,33 +639,7 @@ TEST_CASE("a set is reviewed only when every file is", "[phase][review]") {
 
 namespace {
 
-// A directory under the system's temporary directory, removed with the test.
-class TempDirectory {
-public:
-    TempDirectory() {
-        static int counter = 0;
-        path_ = std::filesystem::temp_directory_path() /
-                ("wjs_phase_data_test_" + std::to_string(++counter) + "_" +
-                 std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
-        std::filesystem::create_directories(path_);
-    }
-    ~TempDirectory() {
-        std::error_code ignored;
-        std::filesystem::remove_all(path_, ignored);
-    }
-    TempDirectory(const TempDirectory&) = delete;
-    TempDirectory& operator=(const TempDirectory&) = delete;
-
-    [[nodiscard]] const std::filesystem::path& path() const { return path_; }
-
-    void write(const std::string& name, std::string_view text) const {
-        std::ofstream out(path_ / name, std::ios::binary);
-        out << text;
-    }
-
-private:
-    std::filesystem::path path_;
-};
+using wjs::test::TempDirectory;
 
 }  // namespace
 

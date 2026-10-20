@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/dashboard.hpp"
 #include "wjs/path.hpp"
@@ -51,12 +52,8 @@ constexpr std::string_view test_words_b =
     "stain  s t ai n\n";
 
 wjs::Dictionary english() {
-    wjs::Dictionary dictionary;
-    for (const std::string_view word :
-         {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain"}) {
-        dictionary.insert(word);
-    }
-    return dictionary;
+    return wjs::test::dictionary_of(
+        {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain"});
 }
 
 // The phase set of the test data: A, then B which adds the "ai" grapheme.
@@ -82,18 +79,9 @@ wjs::PhaseSet make_set() {
     return *std::move(built);
 }
 
-// The board as text, for comparing two boards.
+// The board as text, for comparing two boards: the tiles run together.
 std::string text_of(const wjs::Board& board) {
-    std::string text;
-    for (std::size_t row = 0; row < board.rows(); ++row) {
-        if (row > 0) {
-            text += '/';
-        }
-        for (std::size_t column = 0; column < board.columns(); ++column) {
-            text += board.tile({row, column});
-        }
-    }
-    return text;
+    return wjs::test::text_of(board, "");
 }
 
 wjs::SeededBoard seed(const wjs::PhaseIndex& index, const wjs::SeedOptions& options,

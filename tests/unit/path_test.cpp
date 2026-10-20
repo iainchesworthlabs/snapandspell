@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "wjs/board.hpp"
+#include "support/test_support.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/path.hpp"
 #include "wjs/solver.hpp"
@@ -12,9 +13,7 @@
 namespace {
 
 wjs::Board make_board(std::string_view text) {
-    auto board = wjs::Board::parse(text);
-    REQUIRE(board.has_value());
-    return *board;
+    return wjs::test::board_of(text);
 }
 
 }  // namespace

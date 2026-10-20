@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "wjs/board.hpp"
+#include "support/test_support.hpp"
 #include "wjs/dice.hpp"
 
 // TEST DATA. The dice below were written for these tests: nine dice whose faces
@@ -35,21 +36,7 @@ wjs::DiceSet nine() {
     return *std::move(set);
 }
 
-std::string text_of(const wjs::Board& board) {
-    std::string text;
-    for (std::size_t row = 0; row < board.rows(); ++row) {
-        if (row > 0) {
-            text += '/';
-        }
-        for (std::size_t column = 0; column < board.columns(); ++column) {
-            if (column > 0) {
-                text += ' ';
-            }
-            text += board.tile({row, column});
-        }
-    }
-    return text;
-}
+using wjs::test::text_of;
 
 // "die:face" for each tile, row-major, space separated: a placement pin that
 // reads as itself when it fails.

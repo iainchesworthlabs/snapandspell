@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "support/test_support.hpp"
 #include "wjs/dictionary.hpp"
 
 TEST_CASE("words are found in either case", "[dictionary]") {
@@ -119,7 +120,8 @@ TEST_CASE("a byte-order mark does not cost the first word", "[dictionary]") {
 }
 
 TEST_CASE("a missing file is reported, not thrown", "[dictionary]") {
-    const auto missing = std::filesystem::temp_directory_path() / "wjs_no_such_dictionary.txt";
+    const wjs::test::TempDirectory dir;
+    const auto missing = dir.path() / "no_such_dictionary.txt";
 
     const auto dictionary = wjs::Dictionary::load_file(missing);
 
@@ -128,14 +130,12 @@ TEST_CASE("a missing file is reported, not thrown", "[dictionary]") {
 }
 
 TEST_CASE("a dictionary is read back from a file", "[dictionary]") {
-    const auto path = std::filesystem::temp_directory_path() / "wjs_dictionary_roundtrip.txt";
-    {
-        std::ofstream out(path);
-        out << "apple\nbanana\n";
-    }
+    // A directory of its own, so that two runs at once (two worktrees, two
+    // ctest jobs) never read or remove each other's file.
+    const wjs::test::TempDirectory dir;
+    dir.write("words.txt", "apple\nbanana\n");
 
-    const auto dictionary = wjs::Dictionary::load_file(path);
-    std::filesystem::remove(path);
+    const auto dictionary = wjs::Dictionary::load_file(dir.path() / "words.txt");
 
     REQUIRE(dictionary.has_value());
     CHECK(dictionary->size() == 2U);

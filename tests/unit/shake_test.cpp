@@ -100,8 +100,28 @@ TEST_CASE("a vigorous shake is one shake, found where it is", "[shake]") {
     CHECK(shakes[0].end >= 2.2);
     CHECK(shakes[0].end <= 2.5);
     CHECK(shakes[0].jolts >= 8);
-    CHECK(shakes[0].peak >= 1.2);
+    CHECK(shakes[0].peak > 1.2);  // above the jolt threshold
     CHECK_FALSE(shakes[0].ongoing);  // half a second of stillness follows
+}
+
+TEST_CASE("the peak of a shake follows how hard it was", "[shake]") {
+    // A push of 1.6 g and one of 3.2 g, the same in every other way. The peak is
+    // the hardest jolt beyond gravity, so it is near the push and the harder
+    // shake has the greater, whatever the threshold is.
+    const auto peak_of = [](double amplitude) {
+        TraceSpec spec;
+        spec.bursts = {{1.0, 2.5, amplitude, 4.0}};
+        const auto shakes = wjs::detect_shakes(make_trace(spec));
+        REQUIRE(shakes.size() == 1);
+        return shakes[0].peak;
+    };
+    const double gentle = peak_of(1.6);
+    const double hard = peak_of(3.2);
+
+    CHECK(gentle > 1.2);
+    CHECK(gentle < 1.9);
+    CHECK(hard > gentle * 1.5);
+    CHECK(hard < 3.5);
 }
 
 TEST_CASE("a shake the trace ends in the middle of is ongoing", "[shake]") {

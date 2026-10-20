@@ -31,18 +31,11 @@ namespace {
 
 using wjs::Position;
 
-wjs::Board make_board(std::string_view text) {
-    auto board = wjs::Board::parse(text);
-    REQUIRE(board.has_value());
-    return *board;
-}
+using wjs::test::board_of;
+using wjs::test::dictionary_of;
 
-wjs::Dictionary dictionary_of(std::initializer_list<std::string_view> words) {
-    wjs::Dictionary dictionary;
-    for (const std::string_view word : words) {
-        REQUIRE(dictionary.insert(word));
-    }
-    return dictionary;
+wjs::Board make_board(std::string_view text) {
+    return board_of(text);
 }
 
 // Every word of the tests' English, which is also the standard board's word set.
