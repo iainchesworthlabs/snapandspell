@@ -1,6 +1,7 @@
 // Frames and the image operations the finder is built from: luma, shrinking,
 // sampling, blurring, the local threshold and the connected blobs.
 
+#include <algorithm>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
@@ -303,4 +304,55 @@ TEST_CASE("allocating a pixel buffer is counted", "[scan][image]") {
     reset_scan_work();
     CHECK(scan_work().buffers == 0);
     CHECK(scan_work().reads == 0);
+}
+
+TEST_CASE("a threshold window under a pixel is a pixel", "[scan][image]") {
+    // A negative half-side put the window's far edge before its near one: the summed
+    // area table was read outside itself and the count of pixels was negative.
+    GrayImage image(20, 12, 100);
+    image.at(5, 5) = 200;
+    for (const int window : {1, 0, -1, -5, -2'000'000'000}) {
+        INFO("window " << window);
+        const std::vector<std::uint8_t> mask = bright_mask(image, window, 8);
+        REQUIRE(mask.size() == 20U * 12U);
+        // A pixel is never brighter than the mean of itself.
+        CHECK(std::count(mask.begin(), mask.end(), std::uint8_t{1}) == 0);
+    }
+    // And a window the size of the picture is the picture's mean.
+    const std::vector<std::uint8_t> mask = bright_mask(image, 1001, 8);
+    CHECK(mask[image.index(5, 5)] == 1);
+}
+
+TEST_CASE("blobs are not found in a mask that is shorter than its picture", "[scan][image]") {
+    const std::vector<std::uint8_t> short_mask(10 * 10 - 1, 1);
+    CHECK(find_blobs(short_mask, 10, 10, 1, 1000).empty());
+    const std::vector<std::uint8_t> mask(100, 1);
+    CHECK(find_blobs(mask, 10, 10, 1, 1000).size() == 1);
+    CHECK(find_blobs(mask, 0, 10, 1, 1000).empty());
+    CHECK(find_blobs(mask, 10, 0, 1, 1000).empty());
+    CHECK(find_blobs(mask, -10, -10, 1, 1000).empty());
+    CHECK(find_blobs(mask, 100000, 100000, 1, 1000).empty());
+    CHECK(find_blobs({}, 3, 3, 1, 1000).empty());
+}
+
+TEST_CASE("a blur of any radius keeps a constant picture constant", "[scan][image]") {
+    // Radius 3000 on a bright picture: the second pass's sum is 255 * (2 * 3000 + 1)^2,
+    // 9.2e9, which does not fit 32 bits and came out wrong.
+    const GrayImage flat(8, 6, 255);
+    for (const int radius : {2047, 2048, 3000, 70000, 1 << 24, 2'000'000'000}) {
+        INFO("radius " << radius);
+        const GrayImage blurred = box_blur(flat, radius);
+        REQUIRE(blurred.pixels.size() == flat.pixels.size());
+        for (const std::uint8_t v : blurred.pixels) {
+            CHECK(v == 255);
+        }
+    }
+    GrayImage ramp(8, 1);
+    for (int x = 0; x < 8; ++x) {
+        ramp.at(x, 0) = static_cast<std::uint8_t>(x * 30);
+    }
+    const GrayImage wide = box_blur(ramp, 1 << 24);
+    for (const std::uint8_t v : wide.pixels) {
+        CHECK(v == wide.pixels.front());  // the whole picture is in the window: one mean
+    }
 }

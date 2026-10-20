@@ -263,3 +263,44 @@ TEST_CASE("a room with a sheet of paper in it is not a board", "[scan][finder]")
         CHECK_FALSE(find_in_frame(room).has_value());
     }
 }
+
+TEST_CASE("the profiles of a picture with nothing in it are empty, not a dereference",
+          "[scan][finder]") {
+    const BoardProfiles none = profiles_of(GrayImage{});
+    CHECK(none.columns.empty());
+    CHECK(none.rows.empty());
+    const BoardProfiles no_rows = profiles_of(GrayImage(8, 0));
+    CHECK(no_rows.rows.empty());
+    CHECK(locate_cells(GrayImage{}, none, 4).x.empty());
+    CHECK_FALSE(count_cells(GrayImage{}, none, 3, 8).has_value());
+}
+
+TEST_CASE("a comb needs two cells to have a seam", "[scan][finder]") {
+    // A count of 0 or 1 has no seams, and the score is a mean over none of them.
+    const GrayImage flat(120, 120, 128);
+    CHECK(comb_scores(flat, 0, 4).empty());
+    CHECK(comb_scores(flat, 1, 4).empty());
+    CHECK(comb_scores(flat, 5, 4).empty());
+    CHECK(comb_scores(flat, 2, 4).size() == 3);
+    for (const double score : comb_scores(flat, 2, 8)) {
+        CHECK(std::isfinite(score));
+    }
+}
+
+TEST_CASE("a board is not drawn at a size that is not one", "[scan][finder]") {
+    const GrayImage source(100, 100, 90);
+    const Quad corners = {{{10, 10}, {90, 10}, {90, 90}, {10, 90}}};
+    CHECK(warp_to_square(source, corners, 0).empty());
+    CHECK(warp_to_square(source, corners, -5).empty());
+    CHECK(warp_to_square(source, corners, 0).width == 0);
+    CHECK(warp_to_square(source, corners, 1 << 20).empty());
+    CHECK(warp_to_square(source, corners, 20).width == 20);
+    // Corners that are not places draw nothing the picture does not hold: black.
+    Quad bad = corners;
+    bad[1].x = std::numeric_limits<double>::quiet_NaN();
+    const GrayImage black = warp_to_square(source, bad, 8);
+    CHECK(black.width == 8);
+    for (const std::uint8_t v : black.pixels) {
+        CHECK(v == 0);
+    }
+}

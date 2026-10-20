@@ -3,7 +3,10 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <numeric>
+#include <optional>
+#include <span>
 
 #include "scratch.hpp"
 #include "wjs/profiling.hpp"
@@ -13,6 +16,14 @@
 namespace wjs::scan {
 
 namespace {
+
+// The longest side a board is drawn at: a fourth of the 65536 a frame may have,
+// which is a hundred times what a board needs.
+constexpr int kMaxWarpSide = 1 << 14;
+
+// A comb that fits a board's outline this well (the share of the board's range
+// between a die's middle and a seam) is a board.
+constexpr double kGoodFit = 0.35;
 
 // A blob that is shaped like a die.
 struct Die {
@@ -148,6 +159,9 @@ double axis_score(const std::vector<double>& profile, std::size_t cells) {
 
 // A profile smoothed over three samples and stretched to run from 0 to 1.
 std::vector<double> normalised(std::vector<double> profile) {
+    if (profile.empty()) {
+        return profile;  // no range to find: minmax_element's end is not a value
+    }
     std::vector<double> smooth(profile.size());
     for (std::size_t i = 0; i < profile.size(); ++i) {
         const double before = profile[i == 0 ? 0 : i - 1];
@@ -255,7 +269,7 @@ std::vector<double> axis_centres(const std::vector<double>& profile, std::size_t
 // picture's summed-area table, made once for all the looks, and the mask, the blob
 // labels and the trial warps are the scratch's, reused across looks and reads.
 std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blurred,
-                                   std::span<const std::uint32_t> sat, std::size_t min_dice,
+                                   std::span<const std::uint64_t> sat, std::size_t min_dice,
                                    double window_fraction, int margin, double& pass_fit,
                                    detail::Scratch& scratch) {
     pass_fit = -1e300;
@@ -307,7 +321,6 @@ std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blur
     std::size_t best_dice = 0;
     double best_fit = -1e300;
     constexpr int kAttempts = 5;
-    constexpr double kGoodFit = 0.35;
     for (int attempt = 0; attempt < kAttempts; ++attempt) {
         const std::optional<Quad> outline = outline_of(members);
         if (!outline) {
@@ -390,7 +403,7 @@ std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::s
     // threshold built its own copy of the same values before, five passes and five
     // buffers where one of each will do.
     const std::size_t stride = static_cast<std::size_t>(image.width) + 1;
-    const std::span<std::uint32_t> sat =
+    const std::span<std::uint64_t> sat =
         detail::acquire(scratch.sat, stride * (static_cast<std::size_t>(image.height) + 1));
     detail::summed_area(sat, scratch.blurred);
 
@@ -404,7 +417,6 @@ std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::s
         int margin;
     };
     constexpr std::array<Look, 5> kLooks{{{0.30, 8}, {0.20, 4}, {0.42, 5}, {0.30, 2}, {0.30, -4}}};
-    constexpr double kGoodFit = 0.35;
     std::optional<BoardFind> best;
     double best_fit = -1e300;
     bool best_is_good = false;
@@ -441,6 +453,10 @@ std::optional<BoardFind> find_board(const GrayImage& image, std::size_t min_dice
 }
 
 void detail::warp_into(GrayImage& out, const GrayImage& source, const Quad& corners, int side) {
+    if (side <= 0 || side > kMaxWarpSide) {
+        detail::acquire_image(out, 0, 0);
+        return;
+    }
     detail::acquire_image(out, side, side);
     const auto s = static_cast<double>(side);
     const Quad square{{{0.0, 0.0}, {s, 0.0}, {s, s}, {0.0, s}}};
@@ -527,7 +543,9 @@ std::optional<CellCount> pick_count(const std::vector<double>& scores, std::size
 
 std::vector<double> comb_scores(const GrayImage& warped, std::size_t min_size,
                                 std::size_t max_size) {
-    if (warped.empty()) {
+    // A count of fewer than two has no seam to score (0 / 0), and the scores are
+    // one for each count from min_size, so there is nothing to give instead.
+    if (warped.empty() || min_size < 2 || max_size < min_size) {
         return {};
     }
     return comb_scores_of(profiles_of(warped), min_size, max_size);

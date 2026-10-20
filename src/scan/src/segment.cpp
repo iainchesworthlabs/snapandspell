@@ -1,7 +1,9 @@
 #include "wjs/scan/segment.hpp"
 
 #include <algorithm>
-#include <numeric>
+#include <cmath>
+#include <limits>
+#include <utility>
 
 #include "scratch.hpp"
 #include "wjs/profiling.hpp"
@@ -10,6 +12,10 @@
 namespace wjs::scan {
 
 namespace {
+
+// The largest blur radius used as it is. A box this wide holds every pixel of any
+// picture the reader reads, so a larger one cannot blur more.
+constexpr int kMaxBlurRadius = 1 << 20;
 
 // A union-find over blob labels, labels counted from 1 (0 is the background).
 class Labels {
@@ -51,6 +57,16 @@ private:
     std::vector<std::int32_t> parent_;
 };
 
+// Whether a mask of `mask_size` bytes holds a picture of width x height, and the
+// picture is one whose labels fit an int32 (a pixel makes at most one label).
+bool blob_buffers_fit(std::size_t mask_size, int width, int height) noexcept {
+    if (width <= 0 || height <= 0) {
+        return false;
+    }
+    const auto pixels = static_cast<std::uint64_t>(width) * static_cast<std::uint64_t>(height);
+    return pixels <= (std::uint64_t{1} << 30) && mask_size >= pixels;
+}
+
 }  // namespace
 
 void detail::box_blur_into(GrayImage& out, std::span<std::uint32_t> across, const GrayImage& image,
@@ -59,6 +75,9 @@ void detail::box_blur_into(GrayImage& out, std::span<std::uint32_t> across, cons
         out = image;
         return;
     }
+    // A radius past this is the same picture in effect (the edge repeats), and
+    // would put the sums of one pass past 32 bits.
+    radius = std::min(radius, kMaxBlurRadius);
     const int width = image.width;
     const int height = image.height;
     const int span = 2 * radius + 1;
@@ -78,9 +97,10 @@ void detail::box_blur_into(GrayImage& out, std::span<std::uint32_t> across, cons
     }
 
     detail::acquire_image(out, width, height);
-    const std::uint32_t area = static_cast<std::uint32_t>(span) * static_cast<std::uint32_t>(span);
+    // 64 bits: a radius of 2048 puts the second pass's sums past 32.
+    const std::uint64_t area = static_cast<std::uint64_t>(span) * static_cast<std::uint64_t>(span);
     for (int x = 0; x < width; ++x) {
-        std::uint32_t sum = 0;
+        std::uint64_t sum = 0;
         for (int k = -radius; k <= radius; ++k) {
             sum += across[image.index(x, std::clamp(k, 0, height - 1))];
         }
@@ -103,7 +123,7 @@ GrayImage box_blur(const GrayImage& image, int radius) {
     return out;
 }
 
-void detail::summed_area(std::span<std::uint32_t> table, const GrayImage& image) {
+void detail::summed_area(std::span<std::uint64_t> table, const GrayImage& image) {
     const int width = image.width;
     const int height = image.height;
     // One row and one column larger so a window is four reads; the border is
@@ -116,7 +136,7 @@ void detail::summed_area(std::span<std::uint32_t> table, const GrayImage& image)
         table[static_cast<std::size_t>(y) * stride] = 0;
     }
     for (int y = 0; y < height; ++y) {
-        std::uint32_t row = 0;
+        std::uint64_t row = 0;
         for (int x = 0; x < width; ++x) {
             row += image.at(x, y);
             table[static_cast<std::size_t>(y + 1) * stride + static_cast<std::size_t>(x + 1)] =
@@ -125,7 +145,7 @@ void detail::summed_area(std::span<std::uint32_t> table, const GrayImage& image)
     }
 }
 
-void detail::bright_mask_into(std::span<std::uint8_t> mask, std::span<const std::uint32_t> table,
+void detail::bright_mask_into(std::span<std::uint8_t> mask, std::span<const std::uint64_t> table,
                               const GrayImage& image, int window, int margin) {
     const int width = image.width;
     const int height = image.height;
@@ -136,7 +156,9 @@ void detail::bright_mask_into(std::span<std::uint8_t> mask, std::span<const std:
     }
 
     const std::size_t stride = static_cast<std::size_t>(width) + 1;
-    const int half = window / 2;
+    // A window under one pixel is one pixel (a half-side under zero would put the
+    // window's far edge before its near one).
+    const int half = std::max(window, 1) / 2;
     for (int y = 0; y < height; ++y) {
         const int y0 = std::max(0, y - half);
         const int y1 = std::min(height, y + half + 1);
@@ -173,8 +195,8 @@ std::vector<std::uint8_t> bright_mask(const GrayImage& image, int window, int ma
     // The summed-area table, one row and one column larger so a window is four
     // reads.
     const std::size_t stride = static_cast<std::size_t>(width) + 1;
-    std::vector<std::uint32_t> table;
-    const std::span<std::uint32_t> sums =
+    std::vector<std::uint64_t> table;
+    const std::span<std::uint64_t> sums =
         detail::acquire(table, stride * (static_cast<std::size_t>(height) + 1));
     detail::summed_area(sums, image);
     detail::bright_mask_into(bytes, sums, image, window, margin);
@@ -185,8 +207,12 @@ std::vector<Blob> detail::find_blobs(std::span<const std::uint8_t> mask, int wid
                                      std::int64_t min_area, std::int64_t max_area,
                                      std::span<std::int32_t> labels) {
     [[maybe_unused]] auto zone = profiling::zone<"scan.find_blobs">();
-    const std::size_t w = static_cast<std::size_t>(width);
-    const std::size_t h = static_cast<std::size_t>(height);
+    if (!blob_buffers_fit(mask.size(), width, height) ||
+        labels.size() < static_cast<std::size_t>(width) * static_cast<std::size_t>(height)) {
+        return {};
+    }
+    const auto w = static_cast<std::size_t>(width);
+    const auto h = static_cast<std::size_t>(height);
     Labels sets;
 
     for (std::size_t y = 0; y < h; ++y) {
@@ -288,8 +314,11 @@ std::vector<Blob> detail::find_blobs(std::span<const std::uint8_t> mask, int wid
 
 std::vector<Blob> find_blobs(std::span<const std::uint8_t> mask, int width, int height,
                              std::int64_t min_area, std::int64_t max_area) {
-    const std::size_t w = static_cast<std::size_t>(width);
-    const std::size_t h = static_cast<std::size_t>(height);
+    if (!blob_buffers_fit(mask.size(), width, height)) {
+        return {};
+    }
+    const auto w = static_cast<std::size_t>(width);
+    const auto h = static_cast<std::size_t>(height);
     std::vector<std::int32_t> labels;
     const std::span<std::int32_t> room = detail::acquire(labels, w * h);
     return detail::find_blobs(mask, width, height, min_area, max_area, room);

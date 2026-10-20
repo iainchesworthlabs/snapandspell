@@ -9,10 +9,19 @@ namespace wjs::scan {
 
 namespace {
 
-constexpr double kEpsilon = 1e-12;
+// How small a pivot or a determinant may be, as a share of the size of the numbers
+// it was made from: the points are in pixels, a thousand times a unit, and a
+// number that is rounding noise on them is nothing on a unit square. An absolute
+// epsilon was too small for the first and too large for the second. (Rounding is
+// about 1e-16 of the numbers; a map that is well posed has pivots of 1e-3 and over.)
+constexpr double kRelativeEpsilon = 1e-9;
 
 double cross2(Point a, Point b) noexcept {
     return a.x * b.y - a.y * b.x;
+}
+
+bool finite(Point p) noexcept {
+    return std::isfinite(p.x) && std::isfinite(p.y);
 }
 
 }  // namespace
@@ -33,6 +42,10 @@ double distance(Point a, Point b) noexcept {
 }
 
 std::vector<Point> convex_hull(std::vector<Point> points) {
+    // A NaN breaks the strict weak ordering the sort needs, which is undefined
+    // behaviour and not just a wrong hull: a point that is not a place is no part
+    // of the outline.
+    std::erase_if(points, [](Point p) { return !finite(p); });
     std::ranges::sort(points, [](Point a, Point b) { return a.x != b.x ? a.x < b.x : a.y < b.y; });
     points.erase(std::unique(points.begin(), points.end()), points.end());
     if (points.size() < 3) {
@@ -81,7 +94,10 @@ std::optional<Quad> enclosing_quad(std::span<const Point> convex_polygon) {
             const Point r = b - a;
             const Point s = c - d;
             const double denominator = cross2(r, s);
-            if (std::abs(denominator) < kEpsilon) {
+            // Parallel, or as near as the sine of the angle between them can tell
+            // (and a zero-length edge, which has no direction).
+            if (std::abs(denominator) <=
+                kRelativeEpsilon * std::hypot(r.x, r.y) * std::hypot(s.x, s.y)) {
                 continue;
             }
             const Point from_a = d - a;
@@ -138,6 +154,9 @@ Point Homography::apply(Point p) const noexcept {
 }
 
 std::optional<Homography> homography(const Quad& from, const Quad& to) noexcept {
+    if (!std::ranges::all_of(from, finite) || !std::ranges::all_of(to, finite)) {
+        return std::nullopt;
+    }
     // Eight unknowns h0..h7 (h8 = 1), two equations a point.
     std::array<std::array<double, 9>, 8> a{};
     for (std::size_t k = 0; k < 4; ++k) {
@@ -167,6 +186,16 @@ std::optional<Homography> homography(const Quad& from, const Quad& to) noexcept 
         row_v[8] = v;
     }
 
+    // The size of each column's numbers, which its pivot is to be small against. The
+    // columns are of very different sizes (1, a coordinate, a product of two), so
+    // one size for the whole matrix would call a small shape's pivots noise.
+    std::array<double, 8> column_size{};
+    for (const auto& row : a) {
+        for (std::size_t j = 0; j < 8; ++j) {
+            column_size.at(j) = std::max(column_size.at(j), std::abs(row.at(j)));
+        }
+    }
+
     // Gaussian elimination with partial pivoting.
     for (std::size_t column = 0; column < 8; ++column) {
         std::size_t pivot = column;
@@ -175,7 +204,7 @@ std::optional<Homography> homography(const Quad& from, const Quad& to) noexcept 
                 pivot = row;
             }
         }
-        if (std::abs(a.at(pivot).at(column)) < kEpsilon) {
+        if (!(std::abs(a.at(pivot).at(column)) > kRelativeEpsilon * column_size.at(column))) {
             return std::nullopt;
         }
         if (pivot != column) {
@@ -199,6 +228,9 @@ std::optional<Homography> homography(const Quad& from, const Quad& to) noexcept 
         h.m[i] = a.at(i).at(8) / a.at(i).at(i);
     }
     h.m[8] = 1.0;
+    if (!std::ranges::all_of(h.m, [](double v) { return std::isfinite(v); })) {
+        return std::nullopt;
+    }
     return h;
 }
 
@@ -208,7 +240,13 @@ std::optional<Homography> inverse(const Homography& h) noexcept {
     const double c1 = m[5] * m[6] - m[3] * m[8];
     const double c2 = m[3] * m[7] - m[4] * m[6];
     const double det = m[0] * c0 + m[1] * c1 + m[2] * c2;
-    if (std::abs(det) < kEpsilon) {
+    // Singular against the size of the matrix: the product of its rows' lengths
+    // bounds the determinant (Hadamard), so this is "has no volume to speak of".
+    const auto row_length = [&](std::size_t r) {
+        return std::sqrt(m[r] * m[r] + m[r + 1] * m[r + 1] + m[r + 2] * m[r + 2]);
+    };
+    const double bound = row_length(0) * row_length(3) * row_length(6);
+    if (!std::isfinite(det) || !(std::abs(det) > kRelativeEpsilon * bound)) {
         return std::nullopt;
     }
     Homography out;

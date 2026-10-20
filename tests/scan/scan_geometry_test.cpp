@@ -4,6 +4,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
+#include <limits>
 #include <vector>
 
 #include "wjs/scan/geometry.hpp"
@@ -154,4 +155,92 @@ TEST_CASE("distance and the cross product agree with the shapes they describe",
     // Clockwise on a screen is a positive turn.
     CHECK(cross({0, 0}, {1, 0}, {1, 1}) > 0.0);
     CHECK(cross({0, 0}, {1, 0}, {1, -1}) < 0.0);
+}
+
+TEST_CASE("a map from corners that are on a line to within rounding does not exist",
+          "[scan][geometry]") {
+    // Pixel-sized numbers: the pivots of the elimination are rounding noise of about
+    // 1e-10 here, which an absolute epsilon of 1e-12 took for a number.
+    const Quad square = {{{0, 0}, {480, 0}, {480, 480}, {0, 480}}};
+    const Quad nearly_flat = {{{10, 10}, {310, 10.0000000001}, {610, 9.99999999995}, {910, 10}}};
+    CHECK_FALSE(homography(square, nearly_flat).has_value());
+    CHECK_FALSE(homography(nearly_flat, square).has_value());
+}
+
+TEST_CASE("a map from corners that are not numbers does not exist", "[scan][geometry]") {
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+    constexpr double inf = std::numeric_limits<double>::infinity();
+    const Quad square = {{{0, 0}, {100, 0}, {100, 100}, {0, 100}}};
+    Quad bad = square;
+    bad[2].x = nan;
+    CHECK_FALSE(homography(square, bad).has_value());
+    CHECK_FALSE(homography(bad, square).has_value());
+    bad = square;
+    bad[1].y = inf;
+    CHECK_FALSE(homography(square, bad).has_value());
+    bad = square;
+    bad[0] = {-inf, 0};
+    CHECK_FALSE(homography(bad, square).has_value());
+}
+
+TEST_CASE("a map between small shapes exists as one between large ones does", "[scan][geometry]") {
+    // The same pair of quadrilaterals at a millionth and at a thousand times the size.
+    for (const double scale : {1e-6, 1e-3, 1.0, 1e3}) {
+        const Quad from = {{{0, 0}, {scale, 0}, {scale, scale}, {0, scale}}};
+        const Quad to = {
+            {{0.1 * scale, 0}, {scale, 0.1 * scale}, {0.9 * scale, scale}, {0, 0.8 * scale}}};
+        INFO("scale " << scale);
+        const auto map = homography(from, to);
+        REQUIRE(map.has_value());
+        for (std::size_t k = 0; k < 4; ++k) {
+            CHECK(near(map->apply(from[k]), to[k], 1e-6 * scale));
+        }
+        const auto back = inverse(*map);
+        REQUIRE(back.has_value());
+        CHECK(near(back->apply(to[2]), from[2], 1e-6 * scale));
+    }
+}
+
+TEST_CASE("an inverse is judged against the size of the matrix, and not found for a non-number",
+          "[scan][geometry]") {
+    Homography small;
+    small.m = {1e-6, 0, 0, 0, 1e-6, 0, 0, 0, 1e-6};  // a determinant of 1e-18, and invertible
+    const auto inverted = inverse(small);
+    REQUIRE(inverted.has_value());
+    CHECK(inverted->m[0] == Approx(1e6));
+
+    Homography nan;
+    nan.m = {std::numeric_limits<double>::quiet_NaN(), 0, 0, 0, 1, 0, 0, 0, 1};
+    CHECK_FALSE(inverse(nan).has_value());
+    Homography flat;
+    flat.m = {1e6, 1e6, 0, 1e6, 1e6 + 1e-6, 0, 0, 0, 1};  // rows alike to 1e-12 of their size
+    CHECK_FALSE(inverse(flat).has_value());
+}
+
+TEST_CASE("the outline of a shape is found at any size", "[scan][geometry]") {
+    // An octagon, at a pixel and at a millionth of one: the test for edges that never meet
+    // was an absolute number, and at the small size no pair of edges passed it.
+    for (const double scale : {1e-6, 1.0, 1e4}) {
+        std::vector<Point> octagon;
+        for (int k = 0; k < 8; ++k) {
+            const double angle = (22.5 + 45.0 * k) * 3.14159265358979 / 180.0;
+            octagon.push_back({scale * std::cos(angle), scale * std::sin(angle)});
+        }
+        INFO("scale " << scale);
+        const auto quad = enclosing_quad(convex_hull(octagon));
+        REQUIRE(quad.has_value());
+        CHECK(std::abs(signed_area(*quad)) > 1.9 * scale * scale);  // the octagon is 2.83
+    }
+}
+
+TEST_CASE("points that are not places are no part of a hull", "[scan][geometry]") {
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+    constexpr double inf = std::numeric_limits<double>::infinity();
+    // A NaN in the sort makes the ordering not a strict weak one, which is undefined.
+    const std::vector<Point> points = {{0, 0},   {nan, 3}, {10, 0},  {5, inf},
+                                       {10, 10}, {0, 10},  {4, nan}, {-inf, 2}};
+    const std::vector<Point> hull = convex_hull(points);
+    CHECK(hull.size() == 4);
+    CHECK(signed_area(hull) == Approx(100.0));
+    CHECK(convex_hull(std::vector<Point>{{nan, nan}}).empty());
 }
