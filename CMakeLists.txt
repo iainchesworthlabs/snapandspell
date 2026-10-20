@@ -66,6 +66,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Put all runtime artefacts in one place.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+# One link at a time under Ninja. Every program's link ends in post-build steps
+# that copy what it needs (the vcpkg DLLs, Qt's runtime, the sanitizer runtime)
+# into that one directory, and two of them at once copy the same files over
+# each other: "The process cannot access the file because it is being used by
+# another process" failed a release build linking wjs_perf_tests and
+# wjs_frame_timing_tests together. Compiling, which is where the time goes,
+# stays parallel. Other generators ignore the pool.
+set_property(GLOBAL APPEND PROPERTY JOB_POOLS wjs_link=1)
+set(CMAKE_JOB_POOL_LINK wjs_link)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # The one place the target OS is decided (cmake/Platform.cmake); every other
 # CMake file reads what the platform's fragment declared.
