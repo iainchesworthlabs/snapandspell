@@ -2,11 +2,15 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <charconv>
 #include <cstdint>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <vector>
 
 namespace wjs::scan::synth {
@@ -99,18 +103,72 @@ bool write_png(const std::filesystem::path& path, const GrayImage& image) {
     return stream.good();
 }
 
+namespace {
+
+// The next field of a PGM header: white space and comments skipped, then the characters
+// up to the next white space. Empty at the end of the file.
+std::string next_field(std::istream& stream) {
+    std::string field;
+    for (int c = stream.peek(); c != std::char_traits<char>::eof(); c = stream.peek()) {
+        if (c == '#') {
+            std::string comment;
+            std::getline(stream, comment);
+        } else if (std::isspace(c) != 0) {
+            stream.get();
+        } else {
+            break;
+        }
+    }
+    for (int c = stream.peek();
+         c != std::char_traits<char>::eof() && std::isspace(c) == 0 && c != '#';
+         c = stream.peek()) {
+        field.push_back(static_cast<char>(stream.get()));
+    }
+    return field;
+}
+
+std::optional<int> as_int(const std::string& field) {
+    int value = 0;
+    const char* end = field.data() + field.size();
+    const auto [stop, error] = std::from_chars(field.data(), end, value);
+    if (error != std::errc{} || stop != end) {
+        return std::nullopt;
+    }
+    return value;
+}
+
+}  // namespace
+
+bool write_pgm(const std::filesystem::path& path, const GrayImage& image) {
+    std::ofstream stream(path, std::ios::binary);
+    stream << "P5\n" << image.width << ' ' << image.height << "\n255\n";
+    stream.write(reinterpret_cast<const char*>(image.pixels.data()),
+                 static_cast<std::streamsize>(image.pixels.size()));
+    return stream.good();
+}
+
 GrayImage read_pgm(const std::filesystem::path& path) {
     std::ifstream stream(path, std::ios::binary);
-    std::string magic;
-    int width = 0;
-    int height = 0;
-    int maxval = 0;
-    if (!(stream >> magic >> width >> height >> maxval) || magic != "P5" || maxval != 255 ||
-        width <= 0 || height <= 0) {
+    if (next_field(stream) != "P5") {
         return {};
     }
-    stream.get();  // the one whitespace after maxval
-    GrayImage image(width, height);
+    const std::optional<int> width = as_int(next_field(stream));
+    const std::optional<int> height = as_int(next_field(stream));
+    const std::optional<int> maxval = as_int(next_field(stream));
+    constexpr int kMaxSide = 1 << 16;
+    if (!width || !height || !maxval || *maxval != 255 || *width <= 0 || *height <= 0 ||
+        *width > kMaxSide || *height > kMaxSide) {
+        return {};
+    }
+    stream.get();  // the one white space after maxval
+    const auto count = static_cast<std::uintmax_t>(*width) * static_cast<std::uintmax_t>(*height);
+    std::error_code ignored;
+    const std::uintmax_t size = std::filesystem::file_size(path, ignored);
+    const auto offset = static_cast<std::uintmax_t>(std::max<std::streamoff>(stream.tellg(), 0));
+    if (ignored || size < offset + count) {
+        return {};  // cut short: do not make a picture for it to be read into
+    }
+    GrayImage image(*width, *height);
     stream.read(reinterpret_cast<char*>(image.pixels.data()),
                 static_cast<std::streamsize>(image.pixels.size()));
     if (stream.gcount() != static_cast<std::streamsize>(image.pixels.size())) {
