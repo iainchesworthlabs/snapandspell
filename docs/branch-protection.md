@@ -146,8 +146,8 @@ A pushed `v*` tag starts `release.yml`, which builds, signs and publishes a
 release ([CI, "Releases"](ci.md#releases)), so who can create one is who can
 publish one. The tag cannot then be moved or deleted to swap what a version
 names. It is in `.github/rulesets/release-tags.json` like the rest, and
-`tools/repo/apply_rulesets.ps1` applies it; it has not been applied yet (see
-[Releases](ci.md#what-the-author-sets-up-once)).
+`tools/repo/apply_rulesets.ps1` applies it, and it was applied on 2026-10-20
+(ruleset id 25471521).
 
 ## Required checks
 

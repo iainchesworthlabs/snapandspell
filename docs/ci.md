@@ -476,8 +476,9 @@ list in its message, if any of it is missing.
    and put the fingerprint where a reader will find it independently of the
    download: `SECURITY.md` and the README (both now carry it). The workflow refuses to sign with a key
    whose fingerprint is not the committed one.
-4. **Apply the tag ruleset**: `tools/repo/apply_rulesets.ps1 -Only release-tags`
-   (a dry run), then `-Apply`. It restricts `v*` tags to the admin role.
+4. **Apply the tag ruleset** (done, 2026-10-20): `tools/repo/apply_rulesets.ps1
+   -Only release-tags` (a dry run), then `-Apply`. It restricts `v*` tags to the
+   admin role.
 5. **Get the workflows onto `main`**: merge `develop` there. Until then nothing
    scheduled or dispatched from this repository exists on the default branch
    except `codeql.yml` and `scorecard.yml` (older copies).
