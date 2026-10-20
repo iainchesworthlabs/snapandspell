@@ -22,9 +22,15 @@
 
 namespace {
 
+// The exit codes are the program's contract (tests/system/check_cli.cmake): 0 for
+// a board solved, and one code a reason for any other end, so that a script can
+// tell them apart. Usage is 1; a failure the program did not foresee is not
+// usage, and has a code of its own.
 constexpr int exit_usage = 1;
 constexpr int exit_dictionary = 2;
 constexpr int exit_board = 3;
+constexpr int exit_internal = 4;  // an exception the program did not foresee
+constexpr int exit_output = 5;    // the result could not be written to standard output
 
 constexpr std::string_view usage_text =
     "Usage: wjs-cli [options] <row>...\n"
@@ -166,6 +172,14 @@ struct Arguments {
                                  describe_path(found.path));
     }
     std::cout << std::format("{} words, {} points\n", words.size(), total);
+    // A closed pipe or a full disk fails the stream without a word: a program
+    // whose output is the point says so, and does not leave 0 for a result that
+    // never arrived.
+    std::cout.flush();
+    if (!std::cout) {
+        std::cerr << "wjs-cli: the result could not be written to standard output\n";
+        return exit_output;
+    }
     return 0;
 }
 
@@ -210,9 +224,9 @@ int main(int argc, char** argv) {
         return run_cli(argc, argv);
     } catch (const std::exception& error) {
         std::cerr << "wjs-cli: " << error.what() << '\n';
-        return 1;
+        return exit_internal;
     } catch (...) {
         std::cerr << "wjs-cli: unknown error\n";
-        return 1;
+        return exit_internal;
     }
 }
