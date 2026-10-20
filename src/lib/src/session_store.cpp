@@ -9,31 +9,15 @@
 #include <utility>
 #include <vector>
 
+#include "ascii.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
 
 namespace {
 
-[[nodiscard]] std::string upper(std::string_view text) {
-    std::string result{text};
-    for (char& c : result) {
-        if (c >= 'a' && c <= 'z') {
-            c = static_cast<char>(c - 'a' + 'A');
-        }
-    }
-    return result;
-}
-
-[[nodiscard]] std::string lower(std::string_view text) {
-    std::string result{text};
-    for (char& c : result) {
-        if (c >= 'A' && c <= 'Z') {
-            c = static_cast<char>(c - 'A' + 'a');
-        }
-    }
-    return result;
-}
+using ascii::lower;
+using ascii::upper;
 
 [[nodiscard]] std::optional<Day> day_of(Stamp stamp) {
     if (stamp < std::numeric_limits<Day>::min() || stamp > std::numeric_limits<Day>::max()) {

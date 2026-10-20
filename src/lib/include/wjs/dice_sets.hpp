@@ -30,7 +30,9 @@ public:
     [[nodiscard]] static std::expected<DiceSets, DiceError> make(std::vector<DiceSet> sets);
 
     // `<n>x<n>.txt` of `directory` for each side, read with DiceSet::load_file;
-    // the first error stops it. Each file must hold the dice of its own side.
+    // the first error stops it. Each file must hold the dice of its own side: a
+    // file whose dice make another board is DiceError::wrong_count (not_square
+    // when their number is no square at all).
     [[nodiscard]] static std::expected<DiceSets, DiceError> load_directory(
         const std::filesystem::path& directory);
 

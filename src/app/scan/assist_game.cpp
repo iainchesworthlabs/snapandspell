@@ -212,7 +212,7 @@ void AssistGame::leave() {
     }
 
     if (const std::optional<wjs::BoardSnapshot> snapshot = wjs::snapshot_of(record)) {
-        store_->record(*snapshot, day);
+        static_cast<void>(store_->record(*snapshot, day));
     }
 }
 

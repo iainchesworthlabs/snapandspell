@@ -1,0 +1,704 @@
+name: Release
+
+# Builds the Release packages on hosted runners, tests them, writes the SBOM and
+# the checksums, signs them with the project's GPG key, attests where they were
+# built, and publishes a GitHub Release. The whole of it - what each step proves,
+# what the author has to set up once, and how a user checks a download - is in
+# docs/ci.md ("Releases"). In short:
+#
+#   v* tag pushed        a real release: build, test, package, SBOM, checksums,
+#                        GPG signatures with the repository key, attestations,
+#                        draft release, publish, verify what was published.
+#   workflow_dispatch    a rehearsal that publishes nothing. signing=ephemeral
+#                        (default) signs with a throw-away key made for the run,
+#                        so the pipeline is tested end to end without the real
+#                        key; signing=repository uses the real secrets, to check
+#                        them before a tag does.
+#   schedule (weekly)    the same rehearsal, so a release does not meet a broken
+#                        Windows/Linux/macOS Release build for the first time on
+#                        the day. GitHub runs a schedule from the DEFAULT branch
+#                        (main) only.
+#
+# Not a required check, and not on a pull request or the merge queue: nothing
+# here blocks a merge. The Release presets turn Tracy off
+# (tests/profiling/check_presets.cmake), and each build job fails if the
+# profiler is in its cache or in a package it can list.
+
+on:
+  push:
+    tags: ["v*"]
+  schedule:
+    # Sunday 03:23 UTC: well away from the nightly analysis (02:17 and 02:47).
+    - cron: "23 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      signing:
+        description: >-
+          Which key signs a manual run (nothing is published either way):
+          ephemeral = a throw-away key made for the run, no secrets needed;
+          repository = the real GPG_PRIVATE_KEY / GPG_PASSPHRASE secrets.
+        type: choice
+        options: [ephemeral, repository]
+        default: ephemeral
+
+concurrency:
+  group: release-${{ github.ref }}
+  # A release is never cancelled half way: a second push of the same tag waits.
+  cancel-in-progress: false
+
+# No job gets more than it names below.
+permissions: {}
+
+env:
+  VCPKG_DISABLE_METRICS: "1"
+
+jobs:
+  # Decides what this run is and refuses a tag that cannot be a release: its
+  # shape, its version against CMakeLists.txt and vcpkg.json, its CHANGELOG
+  # section, and that a final release is on main (tools/release/check_release_ref.sh).
+  prepare:
+    name: Prepare the release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+      signing: ${{ steps.plan.outputs.signing }}
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      suffix: ${{ steps.plan.outputs.suffix }}
+    steps:
+      # The whole history: whether the tag is on main needs it.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the ref and decide the mode
+        id: plan
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          SIGNING_INPUT: ${{ inputs.signing }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = push ] && [ "$REF_TYPE" = tag ]; then
+            {
+              echo "mode=release"
+              echo "signing=repository"
+            } >> "$GITHUB_OUTPUT"
+            tools/release/check_release_ref.sh --tag "$REF_NAME" --sha "$SHA"
+          else
+            signing="${SIGNING_INPUT:-ephemeral}"
+            {
+              echo "mode=dry-run"
+              echo "signing=$signing"
+            } >> "$GITHUB_OUTPUT"
+            tools/release/check_release_ref.sh --dry-run "dryrun.${RUN_NUMBER}"
+          fi
+
+  # One Release build per package family. Each configures its Release preset (the
+  # application on or off as the leg says, Tracy off, reviewed phonics required),
+  # builds, runs the whole ctest suite, packages, smoke-tests what it packaged and
+  # checks what is in it.
+  #
+  #   windows    the Qt Quick application and wjs-cli: ZIP and NSIS installer
+  #   linux      wjs-cli: ZIP, tar.gz, deb, rpm (the distributions' own formats
+  #              cannot carry a Qt 6.12 application, so they are the solver's)
+  #   linux-app  the application as an AppImage that carries Qt
+  #   macos      the application bundle and wjs-cli: a disk image, signed and
+  #              notarised when the signing secrets exist
+  #
+  # The Qt kit is the one in .github/toolchain-versions.json for each host. The
+  # application has only ever been built on Windows (docs/ci.md, "Not here yet"):
+  # linux-app and macos are its first builds elsewhere, so a rehearsal that is red
+  # on them is the pipeline doing its job.
+  build:
+    name: Build ${{ matrix.name }}
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: windows
+            name: Windows x64 (MSVC, with the application)
+            os: windows-2025-vs2026
+            preset: windows-msvc-release
+            package-preset: package-windows-msvc-release
+            triplet: x64-windows
+            app: "ON"
+            qt-host: windows
+            qt-arch: win64_msvc2022_64
+            qt-dir: msvc2022_64
+          - leg: linux
+            name: Linux x64 (GCC, command line)
+            os: ubuntu-26.04
+            preset: linux-gcc-release
+            package-preset: package-linux-gcc-release
+            triplet: x64-linux
+            app: "OFF"
+          - leg: linux-app
+            name: Linux x64 (GCC, with the application, AppImage)
+            os: ubuntu-26.04
+            preset: linux-gcc-release
+            package-preset: package-linux-gcc-release
+            triplet: x64-linux
+            app: "ON"
+            qt-host: linux
+            qt-arch: linux_gcc_64
+            qt-dir: gcc_64
+          - leg: macos
+            name: macOS arm64 (AppleClang, with the application)
+            os: macos-26
+            preset: macos-clang-release
+            package-preset: package-macos-clang-release
+            triplet: arm64-osx
+            app: "ON"
+            qt-host: mac
+            qt-arch: clang_64
+            qt-dir: macos
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      - name: Restore vcpkg binaries
+        id: vcpkg-cache
+        uses: ./.github/actions/vcpkg-cache/restore
+        with:
+          triplet: ${{ matrix.triplet }}
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      - name: Set up MSVC environment (Windows)
+        if: matrix.leg == 'windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      # The Qt kit, from the same pins as ci.yml's Windows leg (the action, the
+      # version, the module list and the aqtinstall commit are in
+      # .github/toolchain-versions.json; tests/package/test_release_tools.sh holds
+      # this file to them). Only the legs that build the application need it.
+      - name: Install Qt
+        if: matrix.app == 'ON'
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        with:
+          version: "6.12.0"
+          host: ${{ matrix.qt-host }}
+          target: desktop
+          arch: ${{ matrix.qt-arch }}
+          dir: ${{ runner.temp }}
+          aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          cache: true
+
+      # CPack's NSIS settings are decided at configure time, when makensis is
+      # found, so the installer tool goes in before Configure. The image may or
+      # may not carry it; a missing one after this is an error, not a package
+      # that quietly lacks its installer.
+      - name: Install NSIS (Windows)
+        if: matrix.leg == 'windows'
+        shell: pwsh
+        run: |
+          $dir = 'C:\Program Files (x86)\NSIS'
+          if (-not (Test-Path "$dir\makensis.exe")) {
+            choco install nsis --version 3.13.0 --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw "choco could not install NSIS 3.13.0" }
+          }
+          if (-not (Test-Path "$dir\makensis.exe")) { throw "makensis.exe is not in $dir" }
+          Add-Content -LiteralPath $env:GITHUB_PATH -Value $dir
+          & "$dir\makensis.exe" /VERSION
+
+      # The packaging tools for Linux's native formats: dpkg-shlibdeps for the
+      # .deb, rpmbuild (and rpm2cpio, to open it) for the .rpm. CPack drops a
+      # generator whose tool is missing, so the checks below would otherwise be the
+      # first to notice.
+      - name: Install packaging tools (Linux, command line)
+        if: matrix.leg == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev rpm cpio
+
+      # What Qt itself needs on a bare Ubuntu: the GL and EGL loaders and a software
+      # renderer for the offscreen smoke, the X, font and D-Bus libraries its
+      # platform plugin links, and the validators the AppImage recipe uses. The
+      # list is Qt's documented one for Linux; it is unmeasured on the hosted image
+      # (docs/ci.md, "Releases").
+      - name: Install what Qt needs (Linux, application)
+        if: matrix.leg == 'linux-app'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev libglu1-mesa-dev libegl1 libopengl0 libgl1-mesa-dri \
+            libxkbcommon-dev libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 \
+            libxcb-xinerama0 libxcb-xkb1 libxcb-shape0 libxcb-randr0 libxcb-shm0 libxcb-sync1 \
+            libxcb-xfixes0 libx11-xcb1 libxi6 libsm6 libice6 libxrender1 \
+            libpulse-dev libasound2-dev libwayland-client0 \
+            desktop-file-utils appstream file
+
+      - name: Configure
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          APP: ${{ matrix.app }}
+          QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/${{ matrix.qt-dir }}
+          # rc.1 for v0.1.0-rc.1: the packages then carry 0.1.0-rc.1 and not 0.1.0.
+          PRERELEASE: ${{ needs.prepare.outputs.suffix }}
+        run: cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP="$APP" -DWJS_PACKAGE_PRERELEASE="$PRERELEASE"
+
+      - name: Build
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+        run: cmake --build --preset "$CMAKE_PRESET"
+
+      # The whole suite, on the Release build that is about to be packaged. The
+      # test preset errors out when no test is found.
+      - name: Test
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          QT_QPA_PLATFORM: offscreen
+          QT_QPA_FONTDIR: ${{ runner.os == 'Windows' && 'C:\Windows\Fonts' || '' }}
+        run: ctest --preset "$CMAKE_PRESET"
+
+      # The window starts, loads every screen and presents frames (docs/profiling.md,
+      # "The smoke mode"). Quick 3D cannot render offscreen, so this is the start-up
+      # path and the 2D graph. The macOS bundle and the AppImage are smoked again from
+      # the package they end up in.
+      - name: Application smoke
+        if: matrix.leg == 'windows' || matrix.leg == 'linux-app'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          QT_QPA_PLATFORM: offscreen
+          QSG_RHI_BACKEND: opengl
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
+          else
+            build/"$CMAKE_PRESET"/bin/WordJewelsSolver --smoke 60
+          fi
+
+      # The ZIP, from the script a developer runs too: it checks the contents,
+      # forbids a TracyClient, AddressSanitizer runtime or .pdb, unpacks it, solves a
+      # board with the packaged wjs-cli and runs the packaged window offscreen
+      # (docs/building.md#checking-a-package).
+      - name: Package and check the ZIP (Windows)
+        if: matrix.leg == 'windows'
+        shell: pwsh
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+        run: ./tools/package/check_package.ps1 -Build "build/$env:CMAKE_PRESET"
+
+      # The installer, and proof it installs and runs: a silent install into a
+      # scratch directory, the programs and Qt in it, and the solver run from it.
+      - name: Package and check the NSIS installer (Windows)
+        if: matrix.leg == 'windows'
+        shell: pwsh
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $build = Join-Path $PWD "build/$env:CMAKE_PRESET"
+          Push-Location $build
+          try {
+            cpack -G NSIS --config CPackConfig.cmake
+            if ($LASTEXITCODE -ne 0) { throw "cpack -G NSIS exited $LASTEXITCODE" }
+          } finally { Pop-Location }
+          $installer = @(Get-ChildItem (Join-Path $build 'packages') -Filter *.exe)
+          if ($installer.Count -ne 1) { throw "expected one installer, found $($installer.Count)" }
+          $target = Join-Path $env:RUNNER_TEMP 'wjs-installed'
+          # /D= must be the last argument and is not quoted (NSIS).
+          $process = Start-Process -FilePath $installer[0].FullName -ArgumentList '/S', "/D=$target" -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "the installer exited $($process.ExitCode)" }
+          foreach ($relative in 'bin\wjs-cli.exe', 'bin\WordJewelsSolver.exe', 'bin\Qt6Core.dll', 'bin\dictionaries\en.txt', 'bin\NOTICES.txt') {
+            if (-not (Test-Path -LiteralPath (Join-Path $target $relative))) { throw "the installed tree has no $relative" }
+          }
+          $solved = & (Join-Path $target 'bin\wjs-cli.exe') CAT ORE DGS
+          foreach ($word in 'CAT', 'CARE', 'TAR') {
+            if (-not ($solved -match "(?m)^$word\s")) { throw "the installed wjs-cli did not find $word" }
+          }
+          Write-Host "installer ok: $($installer[0].Name) installs, and the installed wjs-cli solves a board"
+          $uninstaller = Join-Path $target 'Uninstall.exe'
+          if (Test-Path -LiteralPath $uninstaller) {
+            Start-Process -FilePath $uninstaller -ArgumentList '/S', "_?=$target" -Wait | Out-Null
+          }
+
+      # Linux, command line: ZIP, tar.gz, .deb and .rpm. macOS: ZIP and disk image
+      # (the ZIP is made but not published: its application would be unsigned).
+      # Every generator the configure selected runs (cmake/Packaging.cmake).
+      - name: Package (Linux command line, macOS)
+        if: matrix.leg == 'linux' || matrix.leg == 'macos'
+        shell: bash
+        env:
+          PACKAGE_PRESET: ${{ matrix.package-preset }}
+        run: cpack --preset "$PACKAGE_PRESET"
+
+      # The application's own Linux package: an AppImage that carries Qt
+      # (src/platforms/linux/packaging/build_appimage.sh). The tarball CPack would
+      # make of it has no Qt, so it is not made.
+      - name: Package the AppImage (Linux application)
+        if: matrix.leg == 'linux-app'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SUFFIX: ${{ needs.prepare.outputs.suffix }}
+          QT_PREFIX: ${{ runner.temp }}/Qt/6.12.0/gcc_64
+        run: |
+          set -euo pipefail
+          version="$VERSION${SUFFIX:+-$SUFFIX}"
+          src/platforms/linux/packaging/build_appimage.sh \
+            --build "build/$CMAKE_PRESET" --version "$version" \
+            --out "build/$CMAKE_PRESET/packages" --qt-prefix "$QT_PREFIX" --smoke
+
+      - name: Smoke-test every package (Linux command line, macOS)
+        if: matrix.leg == 'linux' || matrix.leg == 'macos'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+        run: |
+          shopt -s nullglob
+          tools/release/smoke_package.sh build/"$CMAKE_PRESET"/packages/*.{zip,tar.gz,deb,rpm,dmg}
+
+      # The bundle: Info.plist, the camera text, Qt inside it, no link to the build
+      # machine, and the application starting from the image.
+      - name: Verify the application bundle (macOS)
+        if: matrix.leg == 'macos'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          shopt -s nullglob
+          for dmg in build/"$CMAKE_PRESET"/packages/*.dmg; do
+            src/platforms/macos/packaging/verify_bundle.sh "$dmg" --version "$VERSION" --smoke
+          done
+
+      # Sign, notarise and staple when the six secrets exist; say so and carry on
+      # unsigned when none does (an incomplete set is an error). The signed image
+      # is then verified again, with the signature.
+      - name: Sign and notarise the disk image (macOS)
+        if: matrix.leg == 'macos'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for dmg in build/"$CMAKE_PRESET"/packages/*.dmg; do
+            src/platforms/macos/packaging/sign_and_notarize.sh "$dmg"
+            if [ -n "$MACOS_SIGN_IDENTITY" ]; then
+              src/platforms/macos/packaging/verify_bundle.sh "$dmg" --version "$VERSION" --signed
+            fi
+          done
+
+      # The profiler is off in the cache and absent from every package that can
+      # be listed; the packages that must exist for this platform do.
+      - name: Check the build and its packages
+        shell: pwsh
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          LEG: ${{ matrix.leg }}
+        run: |
+          $expect = switch ($env:LEG) {
+            'windows' { @('.zip', '.exe') }
+            'linux' { @('.zip', '.tar.gz', '.deb', '.rpm') }
+            'linux-app' { @('.AppImage') }
+            'macos' { @('.zip', '.dmg') }
+          }
+          ./tools/release/check_release_build.ps1 -Build "build/$env:CMAKE_PRESET" -Expect $expect
+
+      # What is published from each leg. The ZIP of the macOS leg holds an application
+      # that is not signed, and the tarball CPack could make of the Linux
+      # application has no Qt in it, so neither is published; the AppImage and the
+      # disk image are those platforms' packages of the application.
+      - name: Collect the packages to publish
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          LEG: ${{ matrix.leg }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          packages="build/$CMAKE_PRESET/packages"
+          publish="build/$CMAKE_PRESET/publish"
+          mkdir -p "$publish"
+          case "$LEG" in
+            windows) cp "$packages"/*.zip "$packages"/*.exe "$publish"/ ;;
+            linux) cp "$packages"/*.zip "$packages"/*.tar.gz "$packages"/*.deb "$packages"/*.rpm "$publish"/ ;;
+            linux-app) cp "$packages"/*.AppImage "$publish"/ ;;
+            macos) cp "$packages"/*.dmg "$publish"/ ;;
+          esac
+          ls -l "$publish"
+
+      - name: Upload the packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-${{ matrix.leg }}
+          path: build/${{ matrix.preset }}/publish/*
+          if-no-files-found: error
+          retention-days: 14
+
+      # vcpkg writes an SPDX document for every port it installs; the SBOM job
+      # reads them for the versions and licences of what built and tested this.
+      - name: Upload vcpkg's SPDX documents
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-inputs-${{ matrix.leg }}
+          path: build/${{ matrix.preset }}/vcpkg_installed/**/vcpkg.spdx.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Save vcpkg binaries
+        if: ${{ always() }}
+        uses: ./.github/actions/vcpkg-cache/save
+        with:
+          triplet: ${{ matrix.triplet }}
+          restored: ${{ steps.vcpkg-cache.outputs.listing }}
+
+  # The SBOM, the checksums and the signatures, in one directory that is both
+  # what a release publishes and what a rehearsal leaves for inspection.
+  sign:
+    name: SBOM, checksums and signatures
+    needs: [prepare, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the packages
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: package-*
+          merge-multiple: true
+          path: dist
+
+      - name: Download vcpkg's SPDX documents
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: sbom-inputs-*
+          path: sbom-inputs
+
+      # The source of exactly this commit, as a release asset: git archive at the
+      # tagged commit (so .gitattributes' export-ignore decides what stays out),
+      # with a fixed prefix and no timestamp in the gzip header, so the same commit
+      # gives the same bytes.
+      - name: Archive the source
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          prefix="WordJewelsSolver-${version}-source"
+          git archive --format=tar --prefix="$prefix/" HEAD | gzip -n -9 > "dist/${prefix}.tar.gz"
+          tar -tzf "dist/${prefix}.tar.gz" | grep -qx "$prefix/CMakeLists.txt"
+          ls -l "dist/${prefix}.tar.gz"
+
+      - name: Generate the SBOM (CycloneDX 1.6)
+        shell: pwsh
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          COMMIT: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:TAG.Substring(1)
+          ./tools/release/generate_sbom.ps1 -Tag $env:TAG -Commit $env:COMMIT -Repository $env:REPOSITORY `
+            -PackagesDir dist -VcpkgSpdxDir sbom-inputs -Output "dist/WordJewelsSolver-$version.cdx.json"
+
+      # The failure a missing secret gets is its own step and its own message,
+      # before anything is signed: sign_release.sh says the same thing, but
+      # this is the line a person reads first in the run's summary.
+      - name: Require the signing secrets (repository key)
+        if: needs.prepare.outputs.signing == 'repository'
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          missing=""
+          [ -n "$GPG_PRIVATE_KEY" ] || missing="$missing GPG_PRIVATE_KEY"
+          [ -n "$GPG_PASSPHRASE" ] || missing="$missing GPG_PASSPHRASE"
+          if [ -n "$missing" ]; then
+            echo "::error title=Release signing secrets missing::Repository secret(s) not set:$missing. Run tools/release/new_signing_key.sh (or .ps1) on your own machine and follow what it prints (gh secret set ...; commit .github/release-signing). To rehearse without the key, dispatch this workflow with signing=ephemeral. docs/ci.md, 'Releases'."
+            exit 1
+          fi
+
+      - name: Checksums and signatures (repository key)
+        if: needs.prepare.outputs.signing == 'repository'
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: tools/release/sign_release.sh --dist dist --keys-dir .github/release-signing
+
+      - name: Checksums and signatures (ephemeral key, rehearsal only)
+        if: needs.prepare.outputs.signing == 'ephemeral'
+        run: tools/release/sign_release.sh --dist dist --ephemeral
+
+      # The way a user would, from the files alone: the key against the
+      # committed fingerprint (read from this checkout), every signature, every
+      # checksum. A rehearsal's ephemeral key has no published fingerprint.
+      - name: Verify the signed directory
+        env:
+          SIGNING: ${{ needs.prepare.outputs.signing }}
+        run: |
+          if [ "$SIGNING" = ephemeral ]; then
+            tools/release/verify_release.sh --dir dist --unpinned
+          else
+            tools/release/verify_release.sh --dir dist
+          fi
+
+      - name: Summarise
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          MODE: ${{ needs.prepare.outputs.mode }}
+          SIGNING: ${{ needs.prepare.outputs.signing }}
+        run: |
+          {
+            echo "### Release files ($TAG, $MODE, signing: $SIGNING)"
+            echo
+            echo '```text'
+            cat dist/SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the signed release files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Build-provenance attestations: a signed statement from GitHub's Sigstore
+  # instance that this workflow, at this commit, built these exact files, and a
+  # second one tying the SBOM to the packages. Real releases only: a rehearsal's
+  # files are never published, and an attestation is a public record.
+  attest:
+    name: Attest provenance and SBOM
+    if: needs.prepare.outputs.mode == 'release'
+    needs: [prepare, sign]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download the signed release files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-dist
+          path: dist
+
+      - name: Attest the build provenance of every file
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/SHA256SUMS
+
+      # The SBOM describes the packages, so it is attested for them and not for
+      # itself.
+      - name: List the packages
+        run: grep -v 'cdx\.json$' dist/SHA256SUMS > packages.sha256
+
+      - name: Attest the SBOM for the packages
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-checksums: packages.sha256
+          sbom-path: dist/WordJewelsSolver-${{ needs.prepare.outputs.version }}.cdx.json
+
+  # The release itself: a draft with every file attached, published only after
+  # that, then checked from the public side - signatures, checksums and
+  # attestations - and put back to a draft if any of it fails.
+  publish:
+    name: Publish the release
+    if: needs.prepare.outputs.mode == 'release'
+    needs: [prepare, attest]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the signed release files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-dist
+          path: dist
+
+      - name: Write the release notes
+        run: |
+          set -euo pipefail
+          fingerprint="$(tr -d '[:space:]' < .github/release-signing/FINGERPRINT)"
+          {
+            if tools/release/changelog_section.sh "$VERSION" CHANGELOG.md 2>/dev/null; then :; else
+              echo "Release candidate $TAG. No changelog section yet."
+            fi
+            echo
+            echo "### Verifying this release"
+            echo
+            echo "Every file is listed in \`SHA256SUMS\`, and every file has a detached GPG signature (\`.asc\`). The signing key's fingerprint is"
+            echo
+            echo "    $fingerprint"
+            echo
+            echo "- Check it against the fingerprint in SECURITY.md in the repository, not against \`KEYS\` from this page."
+            echo "- Then: \`tools/release/verify_release.sh --dir <folder with these files> --fingerprint $fingerprint\`, or by hand: \`gpg --import KEYS\`, \`gpg --verify SHA256SUMS.asc SHA256SUMS\`, \`sha256sum -c SHA256SUMS\`."
+            echo "- Build provenance: \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`."
+            echo "- \`*.cdx.json\` is the CycloneDX software bill of materials."
+          } > notes.md
+
+      - name: Create the draft release and attach everything
+        run: |
+          set -euo pipefail
+          flags=(--draft --verify-tag --title "WordJewelsSolver $TAG" --notes-file notes.md)
+          if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); else flags+=(--latest); fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" "${flags[@]}" dist/*
+
+      - name: Publish
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+
+      # What a user downloads, checked as a user would, including the
+      # attestations. If it fails the release goes back to a draft so that it is
+      # not left public and unverifiable.
+      - name: Verify the published release
+        run: tools/release/verify_release.sh --repo "$GITHUB_REPOSITORY" --tag "$TAG" --attest
+
+      - name: Return the release to a draft if it did not verify
+        if: ${{ failure() }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=true || true

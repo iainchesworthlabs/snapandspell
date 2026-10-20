@@ -175,7 +175,7 @@ TEST_CASE("opening the gate computes the dashboard as of that moment", "[app][pa
     board.tiles = "Q Q Q/P I N/T A P";
     board.viable_total = 5;
     board.finds = {{"quiz", false, friday, 5}};
-    f.store.record(board, friday);
+    REQUIRE(f.store.record(board, friday).stored);
     CHECK(map(f.controller.dashboard()).value("week").toMap() == before.value("week").toMap());
 
     open_gate(f.controller);

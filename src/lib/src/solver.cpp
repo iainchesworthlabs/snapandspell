@@ -82,8 +82,7 @@ public:
     [[nodiscard]] std::vector<FoundWord> run() {
         for (std::size_t row = 0; row < board_.rows(); ++row) {
             for (std::size_t column = 0; column < board_.columns(); ++column) {
-                const std::uint16_t index =
-                    static_cast<std::uint16_t>(row * board_.columns() + column);
+                const auto index = static_cast<std::uint16_t>(row * board_.columns() + column);
                 extend(index, Dictionary::root);
             }
         }
@@ -129,7 +128,7 @@ private:
         }
 
         for (std::size_t i = 0; i < neighbour_count_[index]; ++i) {
-            const std::uint16_t next = neighbours_[index * 8 + i];
+            const std::uint16_t next = neighbours_[static_cast<std::size_t>(index) * 8 + i];
             if (!visited_.test(next)) {
                 extend(next, cursor);
             }
@@ -161,10 +160,10 @@ private:
     std::bitset<max_tiles> visited_;
     std::string word_;
     std::uint16_t depth_ = 0;
-    std::array<std::uint16_t, max_tiles> path_;
-    std::array<std::uint16_t, max_tiles * 8> neighbours_;
-    std::array<std::uint8_t, max_tiles> neighbour_count_;
-    std::array<const std::string*, max_tiles> tiles_;
+    std::array<std::uint16_t, max_tiles> path_{};
+    std::array<std::uint16_t, max_tiles * 8> neighbours_{};
+    std::array<std::uint8_t, max_tiles> neighbour_count_{};
+    std::array<const std::string*, max_tiles> tiles_{};
     std::unordered_map<std::string, FoundWord> found_;
 };
 

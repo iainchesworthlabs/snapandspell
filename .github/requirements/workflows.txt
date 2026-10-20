@@ -1,0 +1,7 @@
+# Pinned workflow-lint tooling for the Release tooling workflow and for local use:
+#   pip install -r .github/requirements/workflows.txt
+# actionlint-py is the actionlint binary in a wheel; shellcheck-py is ShellCheck
+# in a wheel, which actionlint runs over every `run:` block when it is on PATH.
+# Dependabot's pip ecosystem for /.github/requirements keeps this current.
+actionlint-py==1.7.12.25
+shellcheck-py==0.11.0.1
