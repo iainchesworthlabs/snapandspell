@@ -8,7 +8,8 @@
 #
 #   - frames are not written to disk: nothing in the scanning library, the camera and
 #     board_reader interfaces or their implementations includes a file or stream
-#     header, uses a file class, or calls a file API;
+#     header, uses a file class, or calls a file API; and no camera class is asked to
+#     keep one (QImageCapture, captureToFile, QBuffer, a QImage or QPixmap save);
 #   - no audio is captured: no audio-capture class, and no microphone permission;
 #   - nothing is sent: no network class or socket header.
 #
@@ -49,12 +50,21 @@ set(_rules
     "file output|std::(ofstream|ifstream|fstream|filesystem)"
     "file output|[^A-Za-z_](fopen|freopen|fwrite|fputs|fprintf|tmpfile|mkstemp|CreateFile[AW]?|NSFileManager|writeToFile|AVAssetWriter|AVCaptureMovieFileOutput|UIImageWriteToSavedPhotosAlbum|PHPhotoLibrary)[^A-Za-z_]"
     "file output|[^A-Za-z_](QFile|QSaveFile|QTemporaryFile|QImageWriter)[^A-Za-z_]"
+    "frame capture|[^A-Za-z_](QImageCapture|QCameraImageCapture|captureToFile|QBuffer)[^A-Za-z_]"
+    "frame capture|[^A-Za-z_](QImage|QPixmap)::save[^A-Za-z_]"
     "audio capture|[^A-Za-z_](QAudioSource|QAudioInput|QMediaRecorder|AVAudioRecorder|AVAudioEngine|AVCaptureAudioDataOutput|AVCaptureDeviceInput.*audio|AVMediaTypeAudio|NSMicrophoneUsageDescription)[^A-Za-z_]"
     "network|[^A-Za-z_](QNetworkAccessManager|QNetworkRequest|QTcpSocket|QUdpSocket|NSURLSession|NSURLConnection|curl_easy_init)[^A-Za-z_]"
     "network|#[ \t]*include[ \t]*<(sys/socket[.]h|netinet/[a-z.]+|arpa/inet[.]h|winsock2?[.]h|netdb[.]h)>")
 
 set(_failures "")
 set(_checked 0)
+if(NOT _sources)
+    # A root with nothing to read passes every rule, which is the wrong root and not a clean
+    # scanner (tests/scan/check_privacy_selftest.cmake holds this).
+    message(FATAL_ERROR
+        "No scanner sources found under ${REPO_ROOT}: src/scan, the camera and board_reader "
+        "files of src/platforms and src/app/camera are where the check looks.")
+endif()
 foreach(_source IN LISTS _sources)
     file(RELATIVE_PATH _relative "${REPO_ROOT}" "${_source}")
     math(EXPR _checked "${_checked} + 1")

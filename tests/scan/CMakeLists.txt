@@ -79,10 +79,13 @@ add_test(NAME scan.privacy
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/check_privacy.cmake")
+# The check's own test: it has to fail each fixture for the rule that fixture breaks, and
+# for no other, pass the clean one, and refuse a root with nothing in it. A single
+# WILL_FAIL on the check would pass on any failure, a syntax error in the script included.
 add_test(NAME scan.privacy.catches_a_leak
     COMMAND "${CMAKE_COMMAND}"
-        "-DREPO_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/privacy_fixture"
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/check_privacy.cmake")
+        "-DCHECK=${CMAKE_CURRENT_SOURCE_DIR}/check_privacy.cmake"
+        "-DFIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/privacy_fixture"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/check_privacy_selftest.cmake")
 set_tests_properties(scan.privacy scan.privacy.catches_a_leak
     PROPERTIES LABELS "quality")
-set_tests_properties(scan.privacy.catches_a_leak PROPERTIES WILL_FAIL TRUE)
