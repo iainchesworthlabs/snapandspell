@@ -106,12 +106,23 @@ fi
   rm -f SHA256SUMS ./*.asc
   # Everything except KEYS (a public key proves nothing about itself) in the
   # byte order of the C locale, so the file is the same on every machine.
-  # (No find -printf: the macOS find has none.)
-  find . -maxdepth 1 -type f ! -name KEYS ! -name SHA256SUMS | sed 's|^\./||' | LC_ALL=C sort > "$home/files.txt"
+  # (A shell glob, not find -printf and not ls: the BSD tools on macOS lack the
+  # first, and a glob needs no parsing. sort -z is avoided for the same reason.)
+  : > "$home/files.txt"
+  for candidate in ./*; do
+    [ -f "$candidate" ] || continue
+    name="${candidate#./}"
+    case "$name" in KEYS|SHA256SUMS) continue ;; esac
+    printf '%s
+' "$name" >> "$home/files.txt"
+  done
+  LC_ALL=C sort -o "$home/files.txt" "$home/files.txt"
   [ -s "$home/files.txt" ] || { echo "sign_release.sh: nothing to sign in $dist" >&2; exit 1; }
   : > SHA256SUMS
   while IFS= read -r name; do
-    sha256sum -b -- "$name" | sed 's/ \*/  /' >> SHA256SUMS
+    # "<hash>  <name>", from sha256sum where there is one and shasum on macOS.
+    # (sed: sha256sum marks a binary-mode name with " *" on some builds; the file is the same everywhere.)
+    if command -v sha256sum >/dev/null 2>&1; then sha256sum -- "$name"; else shasum -a 256 -- "$name"; fi | sed 's/ \*/  /' >> SHA256SUMS
   done < "$home/files.txt"
   echo "SHA256SUMS:"; sed 's/^/  /' SHA256SUMS
 )
