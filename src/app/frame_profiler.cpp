@@ -482,6 +482,7 @@ FrameProfiler::Report FrameProfiler::report() const {
     Report out = state_->report();
     if (window_ != nullptr && window_->screen() != nullptr) {
         out.refresh_hz = window_->screen()->refreshRate();
+        out.screen = window_->screen()->name();
     }
     return out;
 }
@@ -500,7 +501,8 @@ QString FrameProfiler::report_text() const {
                 "smoke: frames=%1 warmup=%2 span_ms=%3 p50_ms=%4 p95_ms=%5 p99_ms=%6 "
                 "max_ms=%7 over16_7=%8 over33=%9 first_frame_ms=%10 render_mean_ms=%11 "
                 "render_max_ms=%12 sync_mean_ms=%13 sync_max_ms=%14 refresh_hz=%15 "
-                "record_mean_ms=%16 record_max_ms=%17 animate_mean_ms=%18 animate_max_ms=%19\n")
+                "record_mean_ms=%16 record_max_ms=%17 animate_mean_ms=%18 animate_max_ms=%19 "
+                "screen=%20\n")
                 .arg(r.frames)
                 .arg(r.warmup)
                 .arg(two(r.span_ms))
@@ -519,11 +521,14 @@ QString FrameProfiler::report_text() const {
                 .arg(two(r.record_mean_ms))
                 .arg(two(r.record_max_ms))
                 .arg(two(r.animate_mean_ms))
-                .arg(two(r.animate_max_ms));
+                .arg(two(r.animate_max_ms))
+                .arg(r.screen.isEmpty()
+                         ? QStringLiteral("unknown")
+                         : QString(r.screen).replace(QLatin1Char(' '), QLatin1Char('_')));
 
     text += QStringLiteral(
                 "ui.frame_ms: %1 frames over %2 ms: mean %3, p50 %4, p95 %5, p99 %6, max %7 "
-                "ms (the screen refreshes at %8 Hz)\n")
+                "ms (the window is on '%9', which refreshes at %8 Hz)\n")
                 .arg(r.frames)
                 .arg(two(r.span_ms))
                 .arg(two(r.mean_ms))
@@ -531,7 +536,8 @@ QString FrameProfiler::report_text() const {
                 .arg(two(r.p95_ms))
                 .arg(two(r.p99_ms))
                 .arg(two(r.max_ms))
-                .arg(two(r.refresh_hz));
+                .arg(two(r.refresh_hz))
+                .arg(r.screen);
     text += QStringLiteral("ui.frame_ms over 16.7 ms: %1 (%2%)   over 33 ms: %3\n")
                 .arg(r.over_16_7)
                 .arg(two(over_share))

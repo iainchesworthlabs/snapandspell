@@ -107,6 +107,21 @@ void skip_unless_frame_wanted() {
     return values;
 }
 
+// A word of the summary line that is not a number (`screen=Acer_X34_P`).
+[[nodiscard]] QString smoke_word(const QString& output, const QString& key) {
+    for (const QString& line : output.split(QLatin1Char('\n'))) {
+        if (!line.startsWith(QStringLiteral("smoke: "))) {
+            continue;
+        }
+        for (const QString& token : line.mid(7).split(QLatin1Char(' '), Qt::SkipEmptyParts)) {
+            if (token.startsWith(key + QLatin1Char('='))) {
+                return token.mid(key.size() + 1);
+            }
+        }
+    }
+    return {};
+}
+
 // The application object QProcess needs, made once (Catch2's main makes none).
 QCoreApplication& application() {
     static int argc = 1;
@@ -170,7 +185,8 @@ TEST_CASE("the window holds the frame budget through the smoke run's shakes", "[
     REQUIRE(report.contains(QStringLiteral("over33")));
     REQUIRE(report.contains(QStringLiteral("refresh_hz")));
 
-    INFO("frames " << report.value(QStringLiteral("frames")) << ", display "
+    INFO("frames " << report.value(QStringLiteral("frames")) << ", window on screen '"
+                   << smoke_word(output, QStringLiteral("screen")).toStdString() << "', display "
                    << report.value(QStringLiteral("refresh_hz")) << " Hz, p50 "
                    << report.value(QStringLiteral("p50_ms")) << " ms, p95 "
                    << report.value(QStringLiteral("p95_ms")) << " ms, max "

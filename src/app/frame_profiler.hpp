@@ -107,6 +107,9 @@ public:
         // The refresh rate of the window's screen in Hz, 0 when it is not known
         // (no window or no screen).
         double refresh_hz = 0.0;
+        // And its name ("SyncMaster"), empty when not known: which of several
+        // screens the window was on is half of reading a frame time.
+        QString screen;
     };
 
     [[nodiscard]] Report report() const;

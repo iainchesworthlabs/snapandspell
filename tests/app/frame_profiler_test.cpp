@@ -70,9 +70,11 @@ TEST_CASE("each of the window's signals adds to its own part of the report", "[a
     CHECK(profiler.first_frame_seen());
     CHECK(report.refresh_hz == window.screen()->refreshRate());
     CHECK(report.refresh_hz > 0.0);
+    CHECK(report.screen == window.screen()->name());
 
     const QString text = profiler.report_text();
     CHECK(text.contains(QStringLiteral("refresh_hz=")));
+    CHECK(text.contains(QStringLiteral("screen=")));
     CHECK(text.contains(QStringLiteral("render.record_ms:")));
     CHECK(text.contains(QStringLiteral("ui.animate_ms:")));
 }

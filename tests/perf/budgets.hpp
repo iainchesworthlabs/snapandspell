@@ -461,8 +461,8 @@ inline constexpr std::uint64_t kSceneAtlasJewels = 48;
 //            measured on a 60 Hz one) and a timer's granularity: 16.97 ms at 60 Hz,
 //            which is the 17.0 the budget was
 //   95th     one period and 2 ms: one frame in twenty may be late, by a little. A
-//            100 Hz display measured 10.0 / 10.4 (median / 95th) at idle and
-//            13.8 / 17.5 with every core busy; the load fails it, as it should
+//            100 Hz display measured 10.0 / 10.5 (median / 95th) at idle and
+//            10.1 / 14.2 with every core busy; the load fails it, as it should
 //   maximum  33 ms, the design's, whatever the display: no frame the player can
 //            see as a stall
 //
