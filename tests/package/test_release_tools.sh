@@ -186,15 +186,24 @@ versions="$repo/.github/toolchain-versions.json"
 cmake_pin="$(jq -r .cmake "$versions")"
 ninja_pin="$(jq -r .ninja "$versions")"
 qt_version="$(jq -r .qt.version "$versions")"
-qt_arch="$(jq -r .qt.kit "$versions")"
 qt_modules="$(jq -r .qt.modules "$versions")"
 qt_action="$(jq -r .qt.action "$versions")"
 aqt_source="$(jq -r .qt.aqtsource "$versions")"
 grep -q "cmakeVersion: \"$cmake_pin\"" "$workflow" && ok "CMake is the pinned $cmake_pin" || bad "CMake pin differs from toolchain-versions.json"
 grep -q "ninjaVersion: \"$ninja_pin\"" "$workflow" && ok "Ninja is the pinned $ninja_pin" || bad "Ninja pin differs from toolchain-versions.json"
 grep -q "uses: $qt_action" "$workflow" && ok "Qt is installed by the pinned action" || bad "install-qt-action differs from toolchain-versions.json"
-grep -q "version: \"$qt_version\"" "$workflow" && grep -q "arch: $qt_arch" "$workflow" && grep -q "modules: \"$qt_modules\"" "$workflow" && grep -q "aqtsource: \"$aqt_source\"" "$workflow" \
-  && ok "Qt's version, kit, modules and aqtsource are the pinned ones" || bad "Qt settings differ from toolchain-versions.json"
+grep -q "version: \"$qt_version\"" "$workflow" && grep -q "modules: \"$qt_modules\"" "$workflow" && grep -q "aqtsource: \"$aqt_source\"" "$workflow" \
+  && ok "Qt's version, modules and aqtsource are the pinned ones" || bad "Qt settings differ from toolchain-versions.json"
+for platform in windows linux macos; do
+  kit_host="$(jq -r ".qt.kits.$platform.host" "$versions")"
+  kit_arch="$(jq -r ".qt.kits.$platform.arch" "$versions")"
+  kit_dir="$(jq -r ".qt.kits.$platform.dir" "$versions")"
+  if grep -q "qt-host: $kit_host" "$workflow" && grep -q "qt-arch: $kit_arch" "$workflow" && grep -q "qt-dir: $kit_dir" "$workflow"; then
+    ok "the $platform Qt kit is $kit_arch on $kit_host, as pinned"
+  else
+    bad "the $platform Qt kit in release.yml differs from toolchain-versions.json ($kit_host $kit_arch $kit_dir)"
+  fi
+done
 if grep -E '^\s*(-\s*)?uses:\s*[^./ ]' "$workflow" | grep -Ev '@[0-9a-f]{40}( |$)' | grep -q .; then
   bad "an action in release.yml is not pinned to a full commit SHA"
 else
@@ -204,7 +213,7 @@ grep -q 'WJS_ENABLE_TRACY' "$workflow" && bad "release.yml mentions WJS_ENABLE_T
 grep -Eq '^permissions: \{\}$' "$workflow" && ok "no permissions at the top level" || bad "release.yml has top-level permissions"
 if awk '/^\s*run:/{r=1} r && /\$\{\{ *(github\.event|inputs|github\.head_ref)/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "no event or input data is interpolated into a run block"; else bad "event or input data in a run block"; fi
 grep -q 'persist-credentials: false' "$workflow" && ok "checkouts do not persist credentials" || bad "a checkout persists credentials"
-if grep -E 'secrets\.' "$workflow" | grep -Ev 'GPG_PRIVATE_KEY|GPG_PASSPHRASE' | grep -q .; then bad "release.yml uses a secret other than the two signing secrets"; else ok "the only secrets are the two signing secrets"; fi
+if grep -E 'secrets\.' "$workflow" | grep -Ev 'GPG_PRIVATE_KEY|GPG_PASSPHRASE|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD' | grep -q .; then bad "release.yml uses a secret other than the GPG and macOS signing secrets"; else ok "the only secrets are the GPG signing secrets and the macOS signing ones"; fi
 
 echo
 if [ "$failures" -eq 0 ]; then

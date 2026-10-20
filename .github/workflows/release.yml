@@ -103,12 +103,22 @@ jobs:
             tools/release/check_release_ref.sh --dry-run "dryrun.${RUN_NUMBER}"
           fi
 
-  # One Release build per desktop platform. Each configures its Release preset
-  # (Tracy off, reviewed phonics required), builds, runs the whole ctest suite,
-  # packages with CPack, smoke-tests what it packaged and checks what is in it.
-  # Windows is the one platform with the Qt Quick application: it is the only
-  # one the application has been built on (docs/ci.md, "Not here yet"), so the
-  # Linux and macOS packages are the command-line solver.
+  # One Release build per package family. Each configures its Release preset (the
+  # application on or off as the leg says, Tracy off, reviewed phonics required),
+  # builds, runs the whole ctest suite, packages, smoke-tests what it packaged and
+  # checks what is in it.
+  #
+  #   windows    the Qt Quick application and wjs-cli: ZIP and NSIS installer
+  #   linux      wjs-cli: ZIP, tar.gz, deb, rpm (the distributions' own formats
+  #              cannot carry a Qt 6.12 application, so they are the solver's)
+  #   linux-app  the application as an AppImage that carries Qt
+  #   macos      the application bundle and wjs-cli: a disk image, signed and
+  #              notarised when the signing secrets exist
+  #
+  # The Qt kit is the one in .github/toolchain-versions.json for each host. The
+  # application has only ever been built on Windows (docs/ci.md, "Not here yet"):
+  # linux-app and macos are its first builds elsewhere, so a rehearsal that is red
+  # on them is the pipeline doing its job.
   build:
     name: Build ${{ matrix.name }}
     needs: prepare
@@ -126,18 +136,37 @@ jobs:
             preset: windows-msvc-release
             package-preset: package-windows-msvc-release
             triplet: x64-windows
+            app: "ON"
+            qt-host: windows
+            qt-arch: win64_msvc2022_64
+            qt-dir: msvc2022_64
           - leg: linux
             name: Linux x64 (GCC, command line)
             os: ubuntu-26.04
             preset: linux-gcc-release
             package-preset: package-linux-gcc-release
             triplet: x64-linux
+            app: "OFF"
+          - leg: linux-app
+            name: Linux x64 (GCC, with the application, AppImage)
+            os: ubuntu-26.04
+            preset: linux-gcc-release
+            package-preset: package-linux-gcc-release
+            triplet: x64-linux
+            app: "ON"
+            qt-host: linux
+            qt-arch: linux_gcc_64
+            qt-dir: gcc_64
           - leg: macos
-            name: macOS arm64 (AppleClang, command line)
+            name: macOS arm64 (AppleClang, with the application)
             os: macos-26
             preset: macos-clang-release
             package-preset: package-macos-clang-release
             triplet: arm64-osx
+            app: "ON"
+            qt-host: mac
+            qt-arch: clang_64
+            qt-dir: macos
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -163,16 +192,18 @@ jobs:
         if: matrix.leg == 'windows'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
-      # The same Qt kit, from the same pins, as ci.yml's Windows leg - see the
-      # comments there and .github/toolchain-versions.json.
-      - name: Install Qt (Windows)
-        if: matrix.leg == 'windows'
+      # The Qt kit, from the same pins as ci.yml's Windows leg (the action, the
+      # version, the module list and the aqtinstall commit are in
+      # .github/toolchain-versions.json; tests/package/test_release_tools.sh holds
+      # this file to them). Only the legs that build the application need it.
+      - name: Install Qt
+        if: matrix.app == 'ON'
         uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
         with:
           version: "6.12.0"
-          host: windows
+          host: ${{ matrix.qt-host }}
           target: desktop
-          arch: win64_msvc2022_64
+          arch: ${{ matrix.qt-arch }}
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
           modules: "qttools qtmultimedia qtsensors qtspeech"
@@ -195,28 +226,41 @@ jobs:
           Add-Content -LiteralPath $env:GITHUB_PATH -Value $dir
           & "$dir\makensis.exe" /VERSION
 
-      # A Release configure does not need Tracy's tools (Tracy is off), but the
-      # packaging tools for Linux's native formats come from here: dpkg-shlibdeps
-      # for the .deb, rpmbuild (and rpm2cpio, to open it) for the .rpm. CPack
-      # drops a generator whose tool is missing, so the checks below would
-      # otherwise be the first to notice.
-      - name: Install packaging tools (Linux)
+      # The packaging tools for Linux's native formats: dpkg-shlibdeps for the
+      # .deb, rpmbuild (and rpm2cpio, to open it) for the .rpm. CPack drops a
+      # generator whose tool is missing, so the checks below would otherwise be the
+      # first to notice.
+      - name: Install packaging tools (Linux, command line)
         if: matrix.leg == 'linux'
         run: sudo apt-get update && sudo apt-get install -y dpkg-dev rpm cpio
+
+      # What Qt itself needs on a bare Ubuntu: the GL and EGL loaders and a software
+      # renderer for the offscreen smoke, the X, font and D-Bus libraries its
+      # platform plugin links, and the validators the AppImage recipe uses. The
+      # list is Qt's documented one for Linux; it is unmeasured on the hosted image
+      # (docs/ci.md, "Releases").
+      - name: Install what Qt needs (Linux, application)
+        if: matrix.leg == 'linux-app'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev libglu1-mesa-dev libegl1 libopengl0 libgl1-mesa-dri \
+            libxkbcommon-dev libxkbcommon-x11-0 libfontconfig1 libdbus-1-3 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 \
+            libxcb-xinerama0 libxcb-xkb1 libxcb-shape0 libxcb-randr0 libxcb-shm0 libxcb-sync1 \
+            libxcb-xfixes0 libx11-xcb1 libxi6 libsm6 libice6 libxrender1 \
+            libpulse-dev libasound2-dev libwayland-client0 \
+            desktop-file-utils appstream file
 
       - name: Configure
         shell: bash
         env:
           CMAKE_PRESET: ${{ matrix.preset }}
-          QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
+          APP: ${{ matrix.app }}
+          QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/${{ matrix.qt-dir }}
           # rc.1 for v0.1.0-rc.1: the packages then carry 0.1.0-rc.1 and not 0.1.0.
           PRERELEASE: ${{ needs.prepare.outputs.suffix }}
-        run: |
-          if [ "${{ matrix.leg }}" = "windows" ]; then
-            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON -DWJS_PACKAGE_PRERELEASE="$PRERELEASE"
-          else
-            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF -DWJS_PACKAGE_PRERELEASE="$PRERELEASE"
-          fi
+        run: cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP="$APP" -DWJS_PACKAGE_PRERELEASE="$PRERELEASE"
 
       - name: Build
         shell: bash
@@ -234,18 +278,28 @@ jobs:
           QT_QPA_FONTDIR: ${{ runner.os == 'Windows' && 'C:\Windows\Fonts' || '' }}
         run: ctest --preset "$CMAKE_PRESET"
 
-      - name: Application smoke (Windows)
-        if: matrix.leg == 'windows'
+      # The window starts, loads every screen and presents frames (docs/profiling.md,
+      # "The smoke mode"). Quick 3D cannot render offscreen, so this is the start-up
+      # path and the 2D graph. The macOS bundle and the AppImage are smoked again from
+      # the package they end up in.
+      - name: Application smoke
+        if: matrix.leg == 'windows' || matrix.leg == 'linux-app'
         shell: bash
         env:
           CMAKE_PRESET: ${{ matrix.preset }}
           QT_QPA_PLATFORM: offscreen
           QSG_RHI_BACKEND: opengl
-        run: build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
+          else
+            build/"$CMAKE_PRESET"/bin/WordJewelsSolver --smoke 60
+          fi
 
       # The ZIP, from the script a developer runs too: it checks the contents,
-      # unpacks it, solves a board with the packaged wjs-cli and runs the
-      # packaged window offscreen (docs/building.md#checking-a-package).
+      # forbids a TracyClient, AddressSanitizer runtime or .pdb, unpacks it, solves a
+      # board with the packaged wjs-cli and runs the packaged window offscreen
+      # (docs/building.md#checking-a-package).
       - name: Package and check the ZIP (Windows)
         if: matrix.leg == 'windows'
         shell: pwsh
@@ -287,23 +341,81 @@ jobs:
             Start-Process -FilePath $uninstaller -ArgumentList '/S', "_?=$target" -Wait | Out-Null
           }
 
-      # Linux: ZIP, tar.gz, .deb and .rpm. macOS: ZIP and the disk image. Every
-      # generator the configure selected runs (cmake/Packaging.cmake).
-      - name: Package (Linux and macOS)
-        if: matrix.leg != 'windows'
+      # Linux, command line: ZIP, tar.gz, .deb and .rpm. macOS: ZIP and disk image
+      # (the ZIP is made but not published: its application would be unsigned).
+      # Every generator the configure selected runs (cmake/Packaging.cmake).
+      - name: Package (Linux command line, macOS)
+        if: matrix.leg == 'linux' || matrix.leg == 'macos'
         shell: bash
         env:
           PACKAGE_PRESET: ${{ matrix.package-preset }}
         run: cpack --preset "$PACKAGE_PRESET"
 
-      - name: Smoke-test every package (Linux and macOS)
-        if: matrix.leg != 'windows'
+      # The application's own Linux package: an AppImage that carries Qt
+      # (src/platforms/linux/packaging/build_appimage.sh). The tarball CPack would
+      # make of it has no Qt, so it is not made.
+      - name: Package the AppImage (Linux application)
+        if: matrix.leg == 'linux-app'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SUFFIX: ${{ needs.prepare.outputs.suffix }}
+          QT_PREFIX: ${{ runner.temp }}/Qt/6.12.0/gcc_64
+        run: |
+          set -euo pipefail
+          version="$VERSION${SUFFIX:+-$SUFFIX}"
+          src/platforms/linux/packaging/build_appimage.sh \
+            --build "build/$CMAKE_PRESET" --version "$version" \
+            --out "build/$CMAKE_PRESET/packages" --qt-prefix "$QT_PREFIX" --smoke
+
+      - name: Smoke-test every package (Linux command line, macOS)
+        if: matrix.leg == 'linux' || matrix.leg == 'macos'
         shell: bash
         env:
           CMAKE_PRESET: ${{ matrix.preset }}
         run: |
           shopt -s nullglob
           tools/release/smoke_package.sh build/"$CMAKE_PRESET"/packages/*.{zip,tar.gz,deb,rpm,dmg}
+
+      # The bundle: Info.plist, the camera text, Qt inside it, no link to the build
+      # machine, and the application starting from the image.
+      - name: Verify the application bundle (macOS)
+        if: matrix.leg == 'macos'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          shopt -s nullglob
+          for dmg in build/"$CMAKE_PRESET"/packages/*.dmg; do
+            src/platforms/macos/packaging/verify_bundle.sh "$dmg" --version "$VERSION" --smoke
+          done
+
+      # Sign, notarise and staple when the six secrets exist; say so and carry on
+      # unsigned when none does (an incomplete set is an error). The signed image
+      # is then verified again, with the signature.
+      - name: Sign and notarise the disk image (macOS)
+        if: matrix.leg == 'macos'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for dmg in build/"$CMAKE_PRESET"/packages/*.dmg; do
+            src/platforms/macos/packaging/sign_and_notarize.sh "$dmg"
+            if [ -n "$MACOS_SIGN_IDENTITY" ]; then
+              src/platforms/macos/packaging/verify_bundle.sh "$dmg" --version "$VERSION" --signed
+            fi
+          done
 
       # The profiler is off in the cache and absent from every package that can
       # be listed; the packages that must exist for this platform do.
@@ -316,21 +428,39 @@ jobs:
           $expect = switch ($env:LEG) {
             'windows' { @('.zip', '.exe') }
             'linux' { @('.zip', '.tar.gz', '.deb', '.rpm') }
+            'linux-app' { @('.AppImage') }
             'macos' { @('.zip', '.dmg') }
           }
           ./tools/release/check_release_build.ps1 -Build "build/$env:CMAKE_PRESET" -Expect $expect
+
+      # What is published from each leg. The ZIP of the macOS leg holds an application
+      # that is not signed, and the tarball CPack could make of the Linux
+      # application has no Qt in it, so neither is published; the AppImage and the
+      # disk image are those platforms' packages of the application.
+      - name: Collect the packages to publish
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          LEG: ${{ matrix.leg }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          packages="build/$CMAKE_PRESET/packages"
+          publish="build/$CMAKE_PRESET/publish"
+          mkdir -p "$publish"
+          case "$LEG" in
+            windows) cp "$packages"/*.zip "$packages"/*.exe "$publish"/ ;;
+            linux) cp "$packages"/*.zip "$packages"/*.tar.gz "$packages"/*.deb "$packages"/*.rpm "$publish"/ ;;
+            linux-app) cp "$packages"/*.AppImage "$publish"/ ;;
+            macos) cp "$packages"/*.dmg "$publish"/ ;;
+          esac
+          ls -l "$publish"
 
       - name: Upload the packages
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: package-${{ matrix.leg }}
-          path: |
-            build/${{ matrix.preset }}/packages/*.zip
-            build/${{ matrix.preset }}/packages/*.tar.gz
-            build/${{ matrix.preset }}/packages/*.deb
-            build/${{ matrix.preset }}/packages/*.rpm
-            build/${{ matrix.preset }}/packages/*.dmg
-            build/${{ matrix.preset }}/packages/*.exe
+          path: build/${{ matrix.preset }}/publish/*
           if-no-files-found: error
           retention-days: 14
 
