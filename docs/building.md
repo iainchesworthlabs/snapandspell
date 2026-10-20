@@ -320,9 +320,10 @@ and the configure says which it will make. A ZIP is always offered.
 | Tool | Adds | Where |
 | --- | --- | --- |
 | `makensis` | the NSIS installer (`.exe`) | Windows, from [NSIS](https://nsis.sourceforge.io/) |
-| `dpkg-deb` and `dpkg-shlibdeps` | the `.deb` | Linux, in `dpkg-dev` |
-| `rpmbuild` | the `.rpm` | Linux, in `rpm` |
+| `dpkg-deb` and `dpkg-shlibdeps` | the `.deb` (command-line solver only) | Linux, in `dpkg-dev` |
+| `rpmbuild` | the `.rpm` (command-line solver only) | Linux, in `rpm` |
 | `hdiutil` | the `.dmg` | macOS, part of the system |
+| `linuxdeploy` and its Qt plugin | the `.AppImage` (the application, with Qt inside) | Linux; `src/platforms/linux/packaging/build_appimage.sh` fetches them, pinned |
 
 ```sh
 # Windows, from the same Developer PowerShell the build used
@@ -348,8 +349,22 @@ What lands in `build/<preset>/packages/`:
 | NSIS | `WordJewelsSolver-<version>-win64.exe` | Windows, when `makensis` is found |
 | DragNDrop | `WordJewelsSolver-<version>-Darwin.dmg` | macOS |
 | TGZ | `WordJewelsSolver-<version>-Linux.tar.gz` | Linux |
-| DEB | `wordjewelssolver_<version>_<arch>.deb` | Linux, when `dpkg-deb` and `dpkg-shlibdeps` are found |
-| RPM | `wordjewelssolver-<version>-<release>.<arch>.rpm` | Linux, when `rpmbuild` is found |
+| DEB | `wordjewelssolver_<version>_<arch>.deb` | Linux, when `dpkg-deb` and `dpkg-shlibdeps` are found and the application is not built |
+| RPM | `wordjewelssolver-<version>-<release>.<arch>.rpm` | Linux, when `rpmbuild` is found and the application is not built |
+| *(AppImage)* | `WordJewelsSolver-<version>-x86_64.AppImage` | Linux, with the application: `build_appimage.sh`, not CPack |
+
+The deb and rpm are for the command-line solver: the application needs a Qt 6.12
+with Quick 3D that no distribution packages, so a package of it could only declare
+dependencies nobody can satisfy. On Linux the application is the AppImage, which
+carries its Qt. A prerelease is packaged under its own version:
+`-DWJS_PACKAGE_PRERELEASE=rc.1` gives `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1` and
+an rpm release `0.rc.1`.
+
+CPack **refuses to package a build that has Tracy in it** (the Debug and profiling
+presets): `cmake/PackagePreflight.cmake` stops it and says why, and a development
+package has to be asked for by name with `cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON`.
+The Release presets turn the application on (a missing Qt is an error), Tracy off
+and the sanitizers off.
 
 The ZIP's contents are under one directory named after the package (CPack's
 default for the archive generators):
@@ -435,17 +450,29 @@ ctest --preset windows-msvc-release
 ```
 
 ```sh
-# Linux or macOS (the command-line solver)
-cmake --preset linux-gcc-release -DWJS_BUILD_APP=OFF      # macos-clang-release on a Mac
+# Linux, the command-line solver (no Qt needed)
+cmake --preset linux-gcc-release -DWJS_BUILD_APP=OFF
 cmake --build --preset linux-gcc-release
 ctest --preset linux-gcc-release
 cpack --preset package-linux-gcc-release                  # every generator the configure chose
 tools/release/smoke_package.sh build/linux-gcc-release/packages/*.{zip,tar.gz,deb,rpm}
+
+# Linux, the application, as an AppImage (QT_ROOT_DIR names a Qt 6.12 kit)
+cmake --preset linux-gcc-release
+cmake --build --preset linux-gcc-release
+src/platforms/linux/packaging/build_appimage.sh --build build/linux-gcc-release   --version 0.1.0 --out build/linux-gcc-release/packages --qt-prefix "$QT_ROOT_DIR" --smoke
+
+# macOS, the application bundle in a disk image
+cmake --preset macos-clang-release
+cmake --build --preset macos-clang-release
+cpack --preset package-macos-clang-release
+src/platforms/macos/packaging/verify_bundle.sh build/macos-clang-release/packages/*.dmg --smoke
 ```
 
-The Release presets turn Tracy off and require reviewed phonics data
-(`WJS_REQUIRE_REVIEWED_PHONICS`; it needs `pwsh`). `check_release_build.ps1`
-fails if the profiler is in the cache or in a package, and `smoke_package.sh`
+The Release presets turn the application on, Tracy and the sanitizers off, and
+require reviewed phonics data (`WJS_REQUIRE_REVIEWED_PHONICS`; it needs `pwsh`).
+`check_release_build.ps1` fails if the profiler or the sanitizers are on in the
+cache or a package holds either, and `smoke_package.sh`
 opens each format a user would (ZIP, tar.gz, deb, rpm, a mounted disk image)
 and solves a board with the dictionary it carries. For the NSIS installer,
 install NSIS before configuring (`makensis` is found at configure time), then

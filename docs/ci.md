@@ -29,6 +29,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report and the performance work budgets | yes |
 | `analysis.yml` | nightly `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
 | `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag) |
+| `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages from `main` once the author has enabled that ([Documentation site](#documentation-site)); only when the docs change | yes (the build; the publication needs Pages) |
 | `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change | yes |
 | `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
 | `commit-policy.yml` | no attribution in the PR title, PR body or any commit message of the PR | yes |
@@ -233,7 +234,7 @@ a report for the next morning, not a blocked pull request.
 
 | Job | Runs on | What it does |
 | --- | --- | --- |
-| `clang-tidy` | ubuntu-26.04 | Configures `linux-gcc-debug` for the compile database only (no tests, no Qt application, sanitizers off, C++ module scanning off because GCC 15's `-fdeps` flags are not clang-tidy 22 arguments) and runs the pinned clang-tidy (`.github/requirements/analysis.txt`) over it with `.clang-tidy`'s checks and **warnings as errors**. The database is checked to be non-empty first, so a misconfigured run cannot pass with nothing analysed. |
+| `clang-tidy` | ubuntu-26.04 | Configures `linux-gcc-analysis` for the compile database only (Debug, no tests, no Qt application, Tracy and sanitizers off, so vcpkg installs nothing; C++ module scanning off because GCC 15's `-fdeps` flags are not clang-tidy 22 arguments) and runs the pinned clang-tidy (`.github/requirements/analysis.txt`) over it with `.clang-tidy`'s checks and **warnings as errors**. The database is checked to be non-empty first, so a misconfigured run cannot pass with nothing analysed. |
 | `MSVC /analyze` | windows-2025-vs2026 | Preset `windows-msvc-analysis` builds the library, platform layer, scanner and CLI with `/analyze /analyze:external- /W4 /WX`. The C6xxx findings are errors, so a finding is a red build; the SARIF each translation unit writes goes to **Security → Code scanning** (category `msvc-analyze`). |
 | `Sanitizers (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-debug`: the image's `clang++` builds the tree with AddressSanitizer and UBSan, and the whole ctest suite runs under them. The push legs cover GCC, AppleClang and MSVC; this is the nightly Clang build. |
 | `Analyze (C++)` | ubuntu-26.04 | `codeql.yml` runs CodeQL with the `security-extended` query suite over the lean library/platform/CLI build and uploads to code scanning. Public-only, as above. |
@@ -248,9 +249,8 @@ sanitizer runtimes the whole ctest suite without waiting for a push.
 ```sh
 # clang-tidy: the pinned wheel and the compile database
 pip install -r .github/requirements/analysis.txt
-cmake --preset linux-gcc-debug -DWJS_BUILD_TESTS=OFF -DWJS_BUILD_APP=OFF \
-  -DWJS_ENABLE_SANITIZERS=OFF -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
-run-clang-tidy.py -p build/linux-gcc-debug -config-file "$PWD/.clang-tidy" \
+cmake --preset linux-gcc-analysis
+run-clang-tidy.py -p build/linux-gcc-analysis -config-file "$PWD/.clang-tidy" \
   -warnings-as-errors '*'
 
 # MSVC's analyzer: the SARIF is written beside the objects
@@ -278,17 +278,25 @@ the default branch. At the time of writing `main` is at the merge of PR #2,
 so it has the older `codeql.yml` and `scorecard.yml` (both have run green on
 their schedules) and **no `analysis.yml` at all**: the nightly clang-tidy, MSVC
 `/analyze` and Clang-sanitizer jobs, like the weekly release rehearsal, start
-only once `develop` has been merged to `main`. To analyse another branch
-before that, or after it, dispatch `analysis.yml` or `codeql.yml` on it from the
-Actions tab (once the workflow is on `main`).
+only once `develop` has been merged to `main`.
+
+**What a scheduled run analyses is `develop`, not `main`.** A schedule runs
+`main`'s copy of the workflow on `main`'s commit, but the code worth checking
+every night is the integration branch's, so `analysis.yml` and `codeql.yml` check
+out `develop` when `github.event_name` is `schedule` (and the dispatched branch
+otherwise), and the two jobs that upload to code scanning (`MSVC /analyze`,
+CodeQL) pass `ref: refs/heads/develop` and the checked-out `sha` so the alerts
+belong to the code that was analysed. To analyse another branch, dispatch
+`analysis.yml` or `codeql.yml` on it from the Actions tab (once the workflow is on
+`main`).
 
 Every Debug preset has Tracy on, so a Debug configure on Linux has vcpkg build
 Tracy's tools for the host, which needs autotools. The composite action
-`.github/actions/linux-tracy-tools` installs them, and `ci.yml`'s Linux leg and
-the nightly `clang-tidy`, `Sanitizers (Linux, Clang)` and CodeQL jobs all use
-it before Configure; `clang-tidy` and CodeQL also restore and save the
-`x64-linux` vcpkg archives, and CodeQL configures before its tracer starts so
-none of vcpkg's or Tracy's code is analysed as ours.
+`.github/actions/linux-tracy-tools` installs them: `ci.yml`'s Linux leg and the
+nightly `Sanitizers (Linux, Clang)` job (`linux-clang-debug` is a Debug preset) use
+it before Configure. `clang-tidy` and CodeQL do not need it: they configure
+`linux-gcc-analysis`, which has Tracy off, so there is nothing to install or to
+cache, and CodeQL configures before its tracer starts regardless.
 
 ## Releases
 
@@ -302,8 +310,13 @@ request or the merge queue, and none of it is a required check.
 | Platform | Built on | Packages | Holds |
 | --- | --- | --- | --- |
 | Windows x64 | `windows-2025-vs2026`, MSVC, Qt 6.12.0 | `WordJewelsSolver-<v>-win64.zip`, `WordJewelsSolver-<v>-win64.exe` (NSIS installer) | the Qt Quick application and `wjs-cli`, with Qt's runtime, plugins and QML modules |
-| Linux x64 | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` | `wjs-cli` only |
-| macOS arm64 | `macos-26`, AppleClang | `.zip`, `.dmg` | `wjs-cli` only |
+| Linux x64, the application | `ubuntu-26.04`, GCC, Qt 6.12.0 | `WordJewelsSolver-<v>-x86_64.AppImage` | the Qt Quick application with Qt inside it (linuxdeploy and its Qt plugin) |
+| Linux x64, the solver | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` | `wjs-cli` only |
+| macOS arm64 | `macos-26`, AppleClang, Qt 6.12.0 | `WordJewelsSolver-<v>-Darwin.dmg` | the application bundle (Qt inside it) and `wjs-cli`; signed and notarised when the Apple secrets are set |
+| Any | the tagged commit | `WordJewelsSolver-<v>-source.tar.gz` | `git archive` of the tag, so `.gitattributes`' `export-ignore` decides what stays out |
+
+A prerelease's files carry its version (`...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1`, an
+rpm release `0.rc.1`): the tag's suffix reaches CPack as `WJS_PACKAGE_PRERELEASE`.
 
 and, for the release as a whole:
 
@@ -322,11 +335,14 @@ its name.
 
 **What is not built, and why.**
 
-- **The application on Linux and macOS.** Qt is not installed on those legs and
-  the application has only ever been built on Windows (see "Not here yet"), so
-  their packages are the command-line solver. Putting Qt on those legs is a
-  change to the build legs first, then to the release matrix; a release job
-  that could not be tested would be a stub.
+- **A deb or rpm of the application.** It needs a Qt 6.12 with Quick 3D that no
+  distribution packages, so such a package could only declare dependencies nobody
+  can satisfy (it used to ask for Qt 6.8). The application is the AppImage; the
+  deb and rpm are the command-line solver's.
+- **A ZIP of the macOS application, or a tarball of the Linux one.** The first
+  holds an application that is not signed; the second has no Qt in it. CPack makes
+  them (`check_package.ps1`-style checks do not need them) but the workflow does
+  not publish them.
 - **iOS and Android.** There is no platform section for either
   (`src/platforms` has `windows`, `linux`, `macos`), and building them needs
   what this repository does not hold: Qt's mobile kits, an Android keystore, and
@@ -336,11 +352,15 @@ its name.
   CountdownSolver; until the platform sections and those secrets exist, a job
   here could not be run, so none is added. Releasing to a public store is
   a separate licensing decision (D2).
-- **Authenticode and notarisation.** The Windows ZIP and installer are not
-  Authenticode-signed (that needs a code-signing certificate), and the macOS
-  disk image is not signed or notarised (an Apple identity). The GPG signature
-  and the attestation prove who built a file and that it is intact; they do not
-  stop SmartScreen or Gatekeeper warning on first run.
+- **Authenticode.** The Windows ZIP and installer are not Authenticode-signed
+  (that needs a code-signing certificate), so SmartScreen warns on first run. The
+  GPG signature and the attestation prove who built a file and that it is intact;
+  they do not stop that warning.
+- **macOS signing and notarisation need an Apple Developer ID**, which the
+  repository does not hold. The release workflow signs, notarises and staples the
+  disk image when six secrets exist (below), does nothing and says so when none
+  does, and fails when only some do. Until then the disk image is unsigned and
+  Gatekeeper warns.
 - **Intel macOS and Linux arm64.** No hosted runner is in the matrix for them.
 
 ### The jobs
@@ -348,8 +368,8 @@ its name.
 | Job | Runs on | What it does |
 | --- | --- | --- |
 | `Prepare the release` | ubuntu-24.04 | Decides the mode. For a tag: `tools/release/check_release_ref.sh` requires `vMAJOR.MINOR.PATCH[-prerelease]`, the same version in `CMakeLists.txt` and `vcpkg.json`, a `## [x.y.z]` section in `CHANGELOG.md` (the release notes) and, for a final release, that the commit is on `main`. A prerelease (`v0.1.0-rc.1`) may be cut from a branch and gets generated notes if it has no changelog section. |
-| `Build ...` (3 legs) | as the table | Configures the Release preset (`WJS_BUILD_APP=ON` on Windows, so a missing Qt is an error and not a silent command-line-only package), builds, runs **all** of ctest, then packages. Windows also runs the application's offscreen smoke, `tools/package/check_package.ps1` on the ZIP, and installs the NSIS installer silently and runs the installed `wjs-cli`. Linux and macOS run `tools/release/smoke_package.sh` over every package they made (unpack, or mount the disk image, and solve a board with the packaged dictionary). Every leg ends with `tools/release/check_release_build.ps1` (Tracy off, the expected packages present). |
-| `SBOM, checksums and signatures` | ubuntu-24.04 | Collects the packages, writes the SBOM, writes `SHA256SUMS`, signs every file, then verifies the directory the way a user would. Uploads it as the `release-dist` artifact. |
+| `Build ...` (4 legs: Windows, Linux solver, Linux application, macOS) | as the table | Configures the Release preset (the application on for the three legs that build it, so a missing Qt is an error and not a silent command-line-only package; Qt 6.12.0 from `install-qt-action`, the kit per host in `.github/toolchain-versions.json`), builds, runs **all** of ctest, then packages. Windows also runs the application's offscreen smoke, `tools/package/check_package.ps1` on the ZIP, and installs the NSIS installer silently and runs the installed `wjs-cli`. The Linux application leg makes the AppImage with `build_appimage.sh` and smokes it. Linux solver and macOS run `tools/release/smoke_package.sh` over every package they made; macOS then runs `verify_bundle.sh` (plist, camera text, Qt inside, no link to the build machine, offscreen start) and `sign_and_notarize.sh`. Every leg ends with `tools/release/check_release_build.ps1` (Tracy and sanitizers off, the expected packages present). |
+| `SBOM, checksums and signatures` | ubuntu-24.04 | Collects the packages, archives the source (`git archive`), writes the SBOM, writes `SHA256SUMS`, signs every file, then verifies the directory the way a user would. Uploads it as the `release-dist` artifact. |
 | `Attest provenance and SBOM` | ubuntu-24.04 | Release only. `actions/attest-build-provenance` for every file, `actions/attest-sbom` tying the SBOM to the packages. This is the only job with `id-token: write` and `attestations: write`. |
 | `Publish the release` | ubuntu-24.04 | Release only. Creates a **draft** with every file attached, publishes it, downloads it again and runs `verify_release.sh --attest` against the public release; if that fails the release is returned to a draft. The only job with `contents: write`. |
 
@@ -460,7 +480,18 @@ list in its message, if any of it is missing.
 5. **Get the workflows onto `main`**: merge `develop` there. Until then nothing
    scheduled or dispatched from this repository exists on the default branch
    except `codeql.yml` and `scorecard.yml` (older copies).
-6. **Rehearse**: `gh workflow run release.yml --ref main -f signing=repository`,
+6. **Pin the AppImage tools** (once, on a machine you trust):
+   `src/platforms/linux/packaging/pin_linuxdeploy.sh`, then commit
+   `linuxdeploy.pins`. Until then the Linux application leg downloads linuxdeploy
+   by its release tag, prints each file's SHA-256 with a warning and carries on
+   (trust on first use); afterwards a download that differs fails the build.
+7. **Optional: macOS signing.** With an Apple Developer ID Application
+   certificate, set the six secrets `MACOS_CERTIFICATE` (base64 of the `.p12`),
+   `MACOS_CERTIFICATE_PASSWORD`, `MACOS_SIGN_IDENTITY` (`Developer ID Application:
+   Name (TEAMID)`), `NOTARY_APPLE_ID`, `NOTARY_TEAM_ID` and `NOTARY_PASSWORD` (an
+   app-specific password), e.g. `base64 -i cert.p12 | gh secret set MACOS_CERTIFICATE`.
+   Without them the disk image is unsigned (the run says so in an annotation).
+8. **Rehearse**: `gh workflow run release.yml --ref main -f signing=repository`,
    download the `release-dist` artifact and run
    `tools/release/verify_release.sh --dir <folder>` (it reads the committed
    fingerprint from your checkout).
@@ -540,13 +571,49 @@ the release itself.
 
 ### Not verified until it runs on GitHub
 
-The Windows Release build, ctest suite and ZIP package check, the SBOM (against
-the CycloneDX schema), `sign_release.sh` / `verify_release.sh` and the key script
-have been run locally. The things only a hosted run can show: the Linux and macOS
-Release builds and their native packages (`.deb`, `.rpm`, `.dmg`), the NSIS
-installer, `actions/attest-*` and `gh attestation verify`, `gh release create`,
-that GitHub accepts the tag ruleset, and the Qt install in the release matrix.
+Run locally on Windows: the Release build, the whole ctest suite and the ZIP package
+check (and its refusal of TracyClient, an AddressSanitizer runtime and a .pdb), the
+executable's version resource, the prerelease naming and the deb on Linux (WSL),
+CPack's refusal of a Tracy build, the SBOM against the CycloneDX schema,
+`sign_release.sh` / `verify_release.sh` and the key script. Everything below is
+written, linted (actionlint, ShellCheck) and reasoned, and has not run:
+
+- the Linux and macOS **Qt builds** (the application has only ever been built on
+  Windows), the **AppImage** (`build_appimage.sh`, linuxdeploy and its Qt plugin,
+  and the list of system libraries Qt needs on the hosted image), the macOS
+  **bundle**, `verify_bundle.sh`, **signing and notarisation** (no certificate
+  exists to try them with) and the `.dmg`;
+- the NSIS installer and its branding (icon, shortcuts, `Program Files` path) and
+  its silent install test;
+- `actions/attest-*`, `gh attestation verify`, `gh release create`, that GitHub
+  accepts the tag ruleset, and the Pages deployment;
+- the nightly jobs that scan `develop`, including CodeQL's `ref`/`sha` upload.
+
 The first dry run is expected to need a fix or two; that is what it is for.
+
+## Documentation site
+
+`docs.yml` builds the site (`mkdocs.yml`, `docs/`) with
+`mkdocs build --strict --config-file .github/mkdocs-ci.yml`. The CI config inherits
+`mkdocs.yml` and raises MkDocs' own checks from information to warnings, which
+`--strict` turns into failures: a link to a page, a heading or a target that does
+not exist is a red build. Pages that exist but are not in the nav stay
+information (`docs/` holds design notes that are not meant for the menu). MkDocs
+and the Material theme are pinned in `.github/requirements/docs.txt`, MkDocs below
+2.0. The job runs only when something under `docs/` or the docs tooling changes,
+so it is not a required check.
+
+Publishing is off until the author turns it on, once:
+
+```sh
+gh api -X POST repos/iainchesworthlabs/wordjewelssolver/pages -f build_type=workflow   # Pages from GitHub Actions
+gh variable set PUBLISH_DOCS --body true --repo iainchesworthlabs/wordjewelssolver
+```
+
+After that a push to `main` that changes the docs deploys the site to
+`https://iainchesworthlabs.github.io/wordjewelssolver/` (`site_url` in
+`mkdocs.yml`). Until then `Publish to GitHub Pages` is skipped, not red. A build
+of a pull request is never deployed.
 
 ## Required checks and their staging
 
@@ -565,10 +632,19 @@ contexts equal the job display names above and in the two policy workflows.
 | `macOS (AppleClang)` | `ci.yml` | yes |
 | `Coverage (Linux, GCC)` | `ci.yml` | yes |
 | `Scan dependency diff` | `dependency-review.yml` | **no - staged**: added after it has reported on a pull request on the public repository (see below) |
+| `Package (Windows, Release)` | `ci.yml` | no - **candidate**: add after it has been green on a few pull requests (it is the push-time proof that a Release package is clean) |
 | `Analyze (C++)` | `codeql.yml` | no - nightly, informational |
 | `clang-tidy` | `analysis.yml` | no - nightly, informational |
 | `MSVC /analyze` | `analysis.yml` | no - nightly, informational |
 | `Sanitizers (Linux, Clang)` | `analysis.yml` | no - nightly, informational |
+
+`Build the documentation (strict)` (`docs.yml`), the two `release-tooling.yml` jobs
+and everything in `release.yml` are not required and cannot be: each is
+path-filtered or is a tag, schedule or manual run, and a required check that a
+filter keeps from running never reports, which would hold every unrelated pull
+request. `Package (Windows, Release)` runs on every push and pull request and so
+could be; it is not required yet because it is new (`.github/rulesets/*.json` are
+untouched by this work, and `tools/repo/apply_rulesets.ps1` stays a manual step).
 
 The three `analysis.yml` jobs and `Analyze (C++)` are deliberately absent from
 `.github/rulesets/*.json`: they are a nightly report, and a required check that
@@ -725,12 +801,14 @@ suspects, in order of likelihood:
 
 ## Not here yet
 
-A Release build on every push (Windows and macOS Release are built by the weekly
-release rehearsal, [Releases](#releases), and Linux's by the `Performance` leg),
-Qt on the Linux and macOS legs (the application has only been built on Windows so
-far), the Android/iOS targets (and with them the real Qt Sensors and haptics
-backends; the desktops answer haptics with the shared no-op), and web. The
-Windows clang-cl coverage preset (`windows-clang-coverage`, with
+Qt on the push legs of Linux and macOS: `release.yml` builds the application on
+both (the Linux AppImage and the macOS bundle are its first non-Windows builds), but
+`ci.yml`'s Linux and macOS legs still build the library, CLI and scanner alone. They
+should get the kit once a rehearsal has built the application on them, so that a
+regression is red in the pull request; until then the weekly rehearsal is the only
+check on them. Also not here: the Android/iOS targets (and with them the real Qt
+Sensors and haptics backends; the desktops answer haptics with the shared no-op),
+and web. The Windows clang-cl coverage preset (`windows-clang-coverage`, with
 `coverage-unit` and `coverage-ui`) is available for a local run but is not a CI
 job: the Linux GCC job runs the same unit gate. Each remaining item is a new job
 or a flag flip, not a redesign.
@@ -739,16 +817,13 @@ SonarQube or SonarCloud is not wired: it needs a server (or a SonarCloud
 organisation), a token and a quality-gate policy, and CodeQL, clang-tidy and
 MSVC's analyzer already cover the C++ with no account to keep. The C++
 compilation-database route is the one to add if a server appears: configure the
-same lean `linux-gcc-debug` database and point the scanner at
-`build/linux-gcc-debug/compile_commands.json`.
+same lean `linux-gcc-analysis` database and point the scanner at
+`build/linux-gcc-analysis/compile_commands.json`.
 
 Packaging is built by `ci.yml` on the Windows leg only (above), as a Debug
-development build, and for real by `release.yml` on all three desktops, as
-Release builds ([Releases](#releases)): Windows ZIP and NSIS installer, Linux
-ZIP, tar.gz, deb and rpm, macOS ZIP and disk image. The Linux and macOS
-packages are the command-line solver: the Linux and macOS legs do not install
-Qt, so the application is not in them, and no Mac has built the application at
-all. The Linux and macOS packages and the NSIS installer are covered by the
-release rehearsal, not by a push; they are built and smoke-tested there, and
-have not yet run on GitHub. iOS and Android have no platform section and no
-job.
+development build, plus the `Package (Windows, Release)` job, and for real by
+`release.yml` on all three desktops ([Releases](#releases)): the Windows ZIP and
+NSIS installer, the Linux AppImage of the application and the Linux solver's ZIP,
+tar.gz, deb and rpm, and the macOS disk image. The Linux and macOS application
+builds, the AppImage, the bundle and the signing path have not yet run on GitHub.
+iOS and Android have no platform section and no job.

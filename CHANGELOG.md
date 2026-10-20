@@ -37,6 +37,32 @@ that release, so that its rules (branch protection, required checks) can apply.
   restricts who can create `v*` tags. `release-tooling.yml` lints the workflows
   (actionlint, ShellCheck) and self-tests the scripts. See
   [CI, "Releases"](docs/ci.md#releases).
+- **Packages that ship with their own branding, and a Linux and macOS application.**
+  The Windows executable has a version resource and the NSIS installer an icon, a
+  desktop shortcut, a 64-bit install path and the links Programs and Features shows.
+  The Linux application is distributed as an AppImage (linuxdeploy and its Qt
+  plugin, a desktop entry, AppStream metadata and icons in
+  `src/platforms/linux/packaging`); the deb and rpm are now the command-line
+  solver's, no longer declaring a Qt 6.8 dependency that could not describe what
+  the application needs. The macOS application is a bundle with its own `Info.plist`
+  (identifier, languages and the camera usage text macOS requires), an icon and a
+  signing path (`sign_and_notarize.sh`, gated on six Apple secrets) with
+  `verify_bundle.sh` to check it. A prerelease is packaged under its own version
+  (`WJS_PACKAGE_PRERELEASE`), a source archive is attached to every release, and a
+  development package carries Tracy's licence in its notices.
+- **cpack refuses to package a Tracy build, and a Release package is checked for
+  development leftovers.** `cmake/PackagePreflight.cmake` stops cpack when the tree
+  has the profiler in it (a development package has to be asked for with
+  `-D CPACK_WJS_ALLOW_DEV_PACKAGE=ON`); the Release presets now build the
+  application and turn the sanitizers off; `check_package.ps1` fails a Release
+  package holding a `TracyClient` library, an AddressSanitizer runtime or a `.pdb`;
+  and a `Package (Windows, Release)` job in `ci.yml` does that check on every push.
+  The Debug leg's artifact is now `wordjewelssolver-windows-x64-debug-dev`.
+- **A documentation site.** `docs.yml` builds the site with
+  `mkdocs build --strict` and a configuration that makes broken links to pages and
+  headings failures, and publishes it to GitHub Pages from `main` once Pages is
+  enabled and `PUBLISH_DOCS` is set. `.github/release.yml` gives GitHub's generated
+  release notes their categories.
 
 - **The test suite as four tiers, with a coverage gate and a UI coverage
   report.** The Catch2 and CTest entries are now selected as `unit`
@@ -540,8 +566,10 @@ that release, so that its rules (branch protection, required checks) can apply.
   Debug preset has Tracy on, so the nightly `clang-tidy`, `Sanitizers (Linux,
   Clang)` and CodeQL jobs, which configure Debug presets, need the autotools
   packages vcpkg builds Tracy's host tools with. They now run the same composite
-  action as the `Linux (GCC)` leg, `clang-tidy` and CodeQL restore and save the
-  `x64-linux` archives, and CodeQL configures before its tracer starts.
+  action as the `Linux (GCC)` leg. `clang-tidy` and CodeQL now configure a new
+  `linux-gcc-analysis` preset (Debug, no tests, no application, Tracy and sanitizers
+  off), which installs nothing through vcpkg, and a scheduled run scans `develop`
+  rather than `main`.
 
 - **The second post-overhaul pass: the board's clock, the full-height panel, a
   resume, the About and Licences pages, and the camera's build-tree label.** The
