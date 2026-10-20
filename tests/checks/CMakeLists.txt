@@ -163,6 +163,24 @@ if(WJS_BUILD_APP)
     list(APPEND WJS_QUALITY_TESTS i18n.catalogues)
 endif()
 
+# The release build's phonics gate (tools/data/check_phonics_review.cmake): a
+# CMake script, so it runs on a host without PowerShell. Held to a table of
+# cases on throw-away data, and, with the gate on (a release configuration), to
+# the data there is.
+add_test(NAME data.phonics.review_gate.selftest
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/phonics-review"
+        -P "${PROJECT_SOURCE_DIR}/tools/data/test_check_phonics_review.cmake")
+list(APPEND WJS_QUALITY_TESTS data.phonics.review_gate.selftest)
+if(WJS_REQUIRE_REVIEWED_PHONICS)
+    add_test(NAME data.phonics.review_gate
+        COMMAND "${CMAKE_COMMAND}"
+            "-DROOT=${PROJECT_SOURCE_DIR}"
+            -P "${PROJECT_SOURCE_DIR}/tools/data/check_phonics_review.cmake")
+    list(APPEND WJS_QUALITY_TESTS data.phonics.review_gate)
+endif()
+
 # The script checks that run a PowerShell tool over the tree. No preprocessor
 # conditionals or defines, no OS headers outside the platform section, no OS
 # tests in CMake outside the selector: CI runs the isolation check as its own

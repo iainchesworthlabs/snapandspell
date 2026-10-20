@@ -106,7 +106,7 @@ option(WJS_BUILD_SHAKE_PROTOTYPE "Build the 3D board-scene prototype harness (ne
 # The review gate. Phonics data (data/phonics) is written and reviewed by a
 # person qualified to do it, and a file says so in its header (reviewed-by and
 # reviewed-on). A file without them is test data. With this on, the build runs
-# tools/data/check_phonics.ps1 -RequireReviewed before the library is built and
+# tools/data/check_phonics_review.cmake before the library is built and
 # stops if any file is test data, so a release cannot carry unreviewed content.
 # On by default for the release build types, and for any multi-config generator
 # (which has no build type at configure time, so it is the developer who says
@@ -235,22 +235,17 @@ add_subdirectory(src/lib)
 # dependency of its own to fetch.
 add_subdirectory(src/scan)
 
-find_program(WJS_PWSH NAMES pwsh)
 if(WJS_REQUIRE_REVIEWED_PHONICS)
-    if(NOT WJS_PWSH)
-        message(FATAL_ERROR
-            "WJS_REQUIRE_REVIEWED_PHONICS is ON, and it is checked by "
-            "tools/data/check_phonics.ps1, which needs PowerShell 7 (pwsh). "
-            "Install it, or configure with -DWJS_REQUIRE_REVIEWED_PHONICS=OFF "
-            "for a build that is not to be released.")
-    endif()
+    # A CMake script, so that a release build needs nothing but CMake: it holds
+    # the review headers (tools/data/check_phonics_review.cmake); the lines of the
+    # data are the `data.phonics` ctest case's (tools/data/check_phonics.ps1).
     # Always out of date, so every build looks at the data as it is now, not as
     # it was when CMake last ran. The library depends on it, so building any
     # target that links the library is gated.
     add_custom_target(wjs_phonics_review_gate ALL
-        COMMAND "${WJS_PWSH}" -NoProfile -File
-            "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/check_phonics.ps1"
-            -Root "${CMAKE_CURRENT_SOURCE_DIR}" -RequireReviewed
+        COMMAND "${CMAKE_COMMAND}"
+            "-DROOT=${CMAKE_CURRENT_SOURCE_DIR}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/check_phonics_review.cmake"
         COMMENT "Checking that the phonics data has been reviewed"
         VERBATIM)
     add_dependencies(wjs_lib wjs_phonics_review_gate)
