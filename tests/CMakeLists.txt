@@ -76,6 +76,8 @@ add_subdirectory(scan)
 # docs/testing.md, "Performance tests".
 add_executable(wjs_perf_tests
     perf/corpus.cpp
+    perf/data_metrics.cpp
+    perf/data_work_test.cpp
     perf/game_work_test.cpp
     perf/measure.cpp
     perf/metrics.cpp

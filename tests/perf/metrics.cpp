@@ -13,6 +13,7 @@
 #include "budgets.hpp"
 #include "corpus.hpp"
 #include "measure.hpp"
+#include "metric_builders.hpp"
 #include "perf_build.hpp"
 #include "scene.hpp"
 #include "wjs/dictionary.hpp"
@@ -25,46 +26,6 @@ namespace {
 
 [[nodiscard]] std::string size_label(std::size_t size) {
     return std::format("{}x{}", size, size);
-}
-
-// Every metric states the board mode it is for, with no default to fall back
-// on: a figure for one mode says nothing about the other.
-[[nodiscard]] Metric exact(std::string name, BoardMode mode, std::uint64_t measured,
-                           std::uint64_t budget, std::string unit) {
-    Metric metric;
-    metric.name = std::move(name);
-    metric.mode = mode;
-    metric.measured = static_cast<double>(measured);
-    metric.budget = static_cast<double>(budget);
-    metric.bound = Bound::exactly;
-    metric.unit = std::move(unit);
-    return metric;
-}
-
-[[nodiscard]] Metric at_most(std::string name, BoardMode mode, std::uint64_t measured,
-                             std::uint64_t budget, std::string unit, unsigned seed = kNoSeed) {
-    Metric metric;
-    metric.name = std::move(name);
-    metric.mode = mode;
-    metric.measured = static_cast<double>(measured);
-    metric.budget = static_cast<double>(budget);
-    metric.seed = seed;
-    metric.unit = std::move(unit);
-    return metric;
-}
-
-[[nodiscard]] Metric ratio(std::string name, BoardMode mode, const RelativeTime& time,
-                           const budget::TimeBudget& allowed) {
-    Metric metric;
-    metric.name = std::move(name);
-    metric.mode = mode;
-    metric.measured = time.ratio;
-    metric.budget = allowed.ratio;
-    metric.unit = "x calibration";
-    metric.note =
-        std::format("fastest {:.3f} ms against {:.3f} ms (medians {:.3f} / {:.3f})", time.task_ms,
-                    time.calibration_ms, time.task_median_ms, time.calibration_median_ms);
-    return metric;
 }
 
 // The frames the scanner's metrics read: fixed specs of the synthetic corpus
@@ -697,7 +658,10 @@ std::vector<Metric> scan_timing_metrics() {
     const struct {
         std::size_t which;
         const budget::TimeBudget& allowed;
-    } cases[] = {{0, budget::kScanRead4Time}, {2, budget::kScanRead6Time}};
+    } cases[] = {{0, budget::kScanRead4Time},
+                 {1, budget::kScanRead5Time},
+                 {2, budget::kScanRead6Time},
+                 {3, budget::kScanReadGlareTime}};
     for (const auto& one : cases) {
         const ScanFrame& which = kScanFrames[one.which];
         const scan::synth::Rendered frame = draw_scan_frame(which);
@@ -707,8 +671,12 @@ std::vector<Metric> scan_timing_metrics() {
                 return reading ? reading->tiles.size() : 0U;
             },
             budget::kScanRuns, Weight::heavy);
-        metrics.push_back(
-            ratio("time.read." + size_label(which.size), BoardMode::standard, time, one.allowed));
+        // The glare frame is a 4x4 as the first is; the angled 5x5 and the loose 6x6
+        // are named for their sizes, and the glare one for its condition.
+        const std::string label = which.condition == scan::synth::Condition::glare
+                                      ? std::string("glare")
+                                      : size_label(which.size);
+        metrics.push_back(ratio("time.read." + label, BoardMode::standard, time, one.allowed));
     }
     return metrics;
 }

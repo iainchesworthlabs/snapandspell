@@ -44,3 +44,11 @@ TEST_CASE("reading a frame takes no more than a multiple of the calibration work
     wjs::perf::skip_unless_timing_wanted();
     wjs::perf::check_within_budget(wjs::perf::scan_timing_metrics());
 }
+
+TEST_CASE(
+    "the store, the dashboard, the phase directory and a submit take no more than a "
+    "multiple of the calibration workload",
+    "[perf][timing][store][dashboard][phase][submit]") {
+    wjs::perf::skip_unless_timing_wanted();
+    wjs::perf::check_within_budget(wjs::perf::data_timing_metrics());
+}

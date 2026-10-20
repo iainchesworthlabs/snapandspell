@@ -94,6 +94,15 @@ inline constexpr unsigned kSeedsPerSize = 100;
 // budgets.hpp) is what says a changed list changed the corpus.
 [[nodiscard]] const wjs::PhaseIndex& phonics_phase();
 
+// The same phase as the two files a data directory holds for it
+// (phase-a.graphemes.txt and phase-a.words.txt), so that loading a directory is
+// measured on the phase the seeding is.
+struct PhaseTexts {
+    std::string graphemes;
+    std::string words;
+};
+[[nodiscard]] const PhaseTexts& phonics_phase_texts();
+
 // The sizes the game session plays on the PHONICS board: the first release's 3x3
 // and 4x4 (wjs::BoardSize). The seeds are corpus_seed(size, index) for the first
 // kSeedsPerSize indexes, the same seeds the seeding rows use. The STANDARD
