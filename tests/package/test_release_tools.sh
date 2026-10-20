@@ -175,6 +175,25 @@ rm -rf "$pkgs"; mkdir -p "$pkgs"; printf 'deb\n' > "$pkgs/p.deb"
 pwsh -NoProfile -File "$tools/generate_sbom.ps1" -Tag v1.2.3 -Commit "$main_sha" -PackagesDir "$pkgs" -Output "$work/cli.cdx.json" -Root "$repo" >/dev/null 2>&1
 jq -e '[.components[].name] | index("qtbase") == null' "$work/cli.cdx.json" >/dev/null && ok "  a command-line-only release does not claim Qt" || bad "  Qt claimed without a Qt package"
 
+# --- the iOS over-the-air manifest -------------------------------------------------
+echo "make_ios_manifest.sh"
+manifest="$work/manifest.plist"
+ios_args=(--out "$manifest" --ipa WordJewelsSolver-1.2.3-rc.1-ios-adhoc.ipa --repo example/repo --tag v1.2.3-rc.1 --version 1.2.3)
+expect_status "a manifest is written" 0 "$tools/make_ios_manifest.sh" "${ios_args[@]}"
+grep -q '<string>https://github.com/example/repo/releases/download/v1.2.3-rc.1/WordJewelsSolver-1.2.3-rc.1-ios-adhoc.ipa</string>' "$manifest" \
+  && ok "  it names the release asset's URL" || bad "  the IPA's URL is wrong"
+grep -q '<string>org.iainchesworth.wordjewelssolver</string>' "$manifest" && ok "  it names the bundle identifier" || bad "  the bundle identifier is missing"
+grep -q '<key>bundle-version</key>' "$manifest" && grep -q '<string>1.2.3</string>' "$manifest" && ok "  it carries the plain version" || bad "  the version is missing"
+if command -v xmllint >/dev/null 2>&1; then
+  xmllint --noout "$manifest" 2>/dev/null && ok "  it is well-formed XML" || bad "  not well-formed XML"
+else
+  echo "  skip  the well-formedness check (no xmllint)"
+fi
+expect_status "a file name with a space is refused" 2 "$tools/make_ios_manifest.sh" --out "$work/x.plist" --ipa "a b.ipa" --repo example/repo --tag v1.2.3 --version 1.2.3
+expect_status "a tag that is not a release tag is refused" 2 "$tools/make_ios_manifest.sh" --out "$work/x.plist" --ipa a.ipa --repo example/repo --tag main --version 1.2.3
+expect_status "a version with a suffix is refused (the tag carries it)" 2 "$tools/make_ios_manifest.sh" --out "$work/x.plist" --ipa a.ipa --repo example/repo --tag v1.2.3 --version 1.2.3-rc.1
+expect_status "a repository that is not owner/name is refused" 2 "$tools/make_ios_manifest.sh" --out "$work/x.plist" --ipa a.ipa --repo 'a&b' --tag v1.2.3 --version 1.2.3
+
 # --- the package check's refusal of development leftovers ---------------------------
 echo "check_package.ps1"
 expect_status "a Release package must not carry Tracy, an ASan runtime or a pdb" 0 pwsh -NoProfile -File "$repo/tests/package/test_check_package_forbid.ps1"
@@ -220,7 +239,49 @@ grep -q 'WJS_ENABLE_TRACY' "$workflow" && bad "release.yml mentions WJS_ENABLE_T
 grep -Eq '^permissions: \{\}$' "$workflow" && ok "no permissions at the top level" || bad "release.yml has top-level permissions"
 if awk '/^\s*run:/{r=1} r && /\$\{\{ *(github\.event|inputs|github\.head_ref)/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "no event or input data is interpolated into a run block"; else bad "event or input data in a run block"; fi
 grep -q 'persist-credentials: false' "$workflow" && ok "checkouts do not persist credentials" || bad "a checkout persists credentials"
-if grep -E 'secrets\.' "$workflow" | grep -Ev 'GPG_PRIVATE_KEY|GPG_PASSPHRASE|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD' | grep -q .; then bad "release.yml uses a secret other than the GPG and macOS signing secrets"; else ok "the only secrets are the GPG signing secrets and the macOS signing ones"; fi
+ios_secrets='IOS_DIST_CERTIFICATE_BASE64|IOS_DIST_CERTIFICATE_PASSWORD|IOS_PROVISIONING_PROFILE_BASE64|APPLE_TEAM_ID|APPLE_PROVISIONING_PROFILE_NAME'
+if grep -E 'secrets\.' "$workflow" | grep -Ev "GPG_PRIVATE_KEY|GPG_PASSPHRASE|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets" | grep -q .; then bad "release.yml uses a secret other than the GPG, macOS and iOS signing secrets"; else ok "the only secrets are the GPG signing secrets, the macOS ones and the five iOS ones"; fi
+
+# --- the iOS job: its secrets, its kit and what it hands to the signing job ---------
+echo "release.yml, iOS"
+for secret in IOS_DIST_CERTIFICATE_BASE64 IOS_DIST_CERTIFICATE_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 APPLE_TEAM_ID APPLE_PROVISIONING_PROFILE_NAME; do
+  if [ "$(grep -c "secrets\.$secret" "$workflow")" -ge 2 ] && grep -q "\[ -n \"\$$secret\" \] || missing=" "$workflow"; then
+    ok "$secret is required by name before anything is built, and used"
+  else
+    bad "$secret is not both checked for by the early step and used by a later one in release.yml"
+  fi
+done
+require_line="$(grep -n 'name: Require the Apple signing secrets' "$workflow" | cut -d: -f1)"
+qt_line="$(grep -n 'name: Install Qt (iOS kit and macOS host kit)' "$workflow" | cut -d: -f1)"
+if [ -n "$require_line" ] && [ -n "$qt_line" ] && [ "$require_line" -lt "$qt_line" ]; then ok "the missing-secret step comes before Qt is installed"; else bad "no 'Require the Apple signing secrets' step before the Qt install"; fi
+ios_kit_host="$(jq -r .qt.kits.ios.host "$versions")"
+ios_kit_arch="$(jq -r .qt.kits.ios.arch "$versions")"
+ios_kit_dir="$(jq -r .qt.kits.ios.dir "$versions")"
+ios_host_dir="$(jq -r .qt.kits.ios.hostdir "$versions")"
+for file in "$workflow" "$repo/.github/workflows/ios-build.yml"; do
+  name="$(basename "$file")"
+  if grep -q "host: $ios_kit_host" "$file" && grep -q 'target: ios' "$file" && grep -q "arch: $ios_kit_arch" "$file" \
+    && grep -q "Qt/$qt_version/$ios_kit_dir" "$file" && grep -q "Qt/$qt_version/$ios_host_dir" "$file"; then
+    ok "$name installs the pinned iOS kit ($ios_kit_arch on $ios_kit_host, with the $ios_host_dir host kit)"
+  else
+    bad "$name's iOS Qt kit differs from toolchain-versions.json (qt.kits.ios)"
+  fi
+  grep -q "cmakeVersion: \"$cmake_pin\"" "$file" && grep -q "ninjaVersion: \"$ninja_pin\"" "$file" && grep -q "uses: $qt_action" "$file" \
+    && grep -q "version: \"$qt_version\"" "$file" && grep -q "modules: \"$qt_modules\"" "$file" && grep -q "aqtsource: \"$aqt_source\"" "$file" \
+    && ok "$name pins CMake, Ninja and Qt as toolchain-versions.json does" || bad "$name's toolchain pins differ from toolchain-versions.json"
+  if grep -E '^\s*(-\s*)?uses:\s*[^./ ]' "$file" | grep -Ev '@[0-9a-f]{40}( |$)' | grep -q .; then bad "an action in $name is not pinned to a full commit SHA"; else ok "$name pins every action to a full commit SHA"; fi
+  grep -Eq '^permissions: \{\}$' "$file" && ok "$name has no permissions at the top level" || bad "$name has top-level permissions"
+done
+grep -q 'name: package-ios' "$workflow" && grep -q 'pattern: package-\*' "$workflow" && ok "the IPA and its manifest are uploaded as package-ios, which the signing job downloads with the other packages" || bad "package-ios is not uploaded, or the signing job does not take package-*"
+if grep -E 'secrets\.' "$repo/.github/workflows/ios-build.yml" | grep -q .; then bad "ios-build.yml (the unsigned check) uses a secret"; else ok "ios-build.yml uses no secret"; fi
+# One bundle identifier everywhere (it is the App ID the profile was made for).
+bundle_id="org.iainchesworth.wordjewelssolver"
+for file in "$workflow" "$repo/src/platforms/ios/platform.cmake" "$repo/src/platforms/macos/platform.cmake" "$repo/src/platforms/ios/packaging/verify_ipa.sh"; do
+  grep -q "$bundle_id" "$file" && ok "$(basename "$file") says $bundle_id" || bad "$(basename "$file") does not say $bundle_id"
+done
+grep -q 'NSCameraUsageDescription' "$repo/src/platforms/ios/packaging/Info.plist.in" \
+  && [ "$(grep -A1 NSCameraUsageDescription "$repo/src/platforms/ios/packaging/Info.plist.in" | sed -n 2p | sed 's/^ *//')" = "$(grep -A1 NSCameraUsageDescription "$repo/src/platforms/macos/packaging/Info.plist.in" | sed -n 2p | sed 's/^ *//')" ] \
+  && ok "the iOS camera usage text is the macOS one" || bad "the iOS camera usage text differs from the macOS one"
 
 echo
 if [ "$failures" -eq 0 ]; then

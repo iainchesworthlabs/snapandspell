@@ -1,0 +1,133 @@
+name: iOS build
+
+# An unsigned compile check of the application for an iPhone/iPad: Qt 6.12's iOS
+# kit, the `ios-release` preset, and a look inside the .app Xcode made
+# (src/platforms/ios/packaging/verify_ipa.sh). It needs no Apple account and no
+# secret; the signed ad-hoc IPA is the `ios` job of release.yml (docs/ci.md,
+# "iOS").
+#
+# Not a required check, and not on the merge queue: it runs only when something
+# the iOS build reads changes (a required check that a path filter keeps from
+# running never reports, which would hold every unrelated pull request), and a
+# macOS runner is billed at a multiple. Dispatch it by hand to run it anywhere:
+#   gh workflow run ios-build.yml --ref <branch>
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "cmake/**"
+      - "data/**"
+      - "assets/**"
+      - "i18n/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "vcpkg.json"
+      - ".github/toolchain-versions.json"
+      - ".github/actions/vcpkg-setup/**"
+      - ".github/workflows/ios-build.yml"
+  push:
+    branches: [main, develop]
+    paths:
+      - "src/**"
+      - "cmake/**"
+      - "data/**"
+      - "assets/**"
+      - "i18n/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "vcpkg.json"
+      - ".github/toolchain-versions.json"
+      - ".github/actions/vcpkg-setup/**"
+      - ".github/workflows/ios-build.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main' }}
+
+# No job gets more than it names below.
+permissions: {}
+
+env:
+  VCPKG_DISABLE_METRICS: "1"
+
+jobs:
+  ios-build:
+    name: iOS (device, unsigned compile)
+    runs-on: macos-26
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The vcpkg toolchain is the CMAKE_TOOLCHAIN_FILE of every preset, iOS's
+      # included (it chains to Qt's). With no tests and no Tracy the manifest has
+      # no dependency, so nothing is built or cached through it.
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      # Two kits: Qt's iOS kit, and, installed alongside it by aqtinstall's
+      # --autodesktop (with the same modules), the macOS kit that supplies the
+      # host tools a cross build runs (moc, rcc, qmlcachegen, qsb, lrelease).
+      # The action exports QT_HOST_PATH for the second; the Configure step names
+      # both paths anyway. The pins are the ones in .github/toolchain-versions.json
+      # (tests/package/test_release_tools.sh holds this file to them). Not cached:
+      # the iOS kit is several gigabytes, and the repository's cache quota is
+      # better spent on the builds that run on every push.
+      - name: Install Qt (iOS kit and macOS host kit)
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        with:
+          version: "6.12.0"
+          host: mac
+          target: ios
+          arch: ios
+          dir: ${{ runner.temp }}
+          aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          cache: false
+
+      - name: Show the toolchain
+        shell: bash
+        env:
+          QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/ios
+          QT_HOST_PATH: ${{ runner.temp }}/Qt/6.12.0/macos
+        run: |
+          cmake --version | head -n 1
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          pwsh --version
+          for kit in "$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" "$QT_HOST_PATH/bin/moc"; do
+            [ -e "$kit" ] || { echo "::error::$kit is not there: the Qt install put its kits somewhere else (look at the install step's log)"; exit 1; }
+          done
+
+      - name: Configure
+        shell: bash
+        env:
+          QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/ios
+          QT_HOST_PATH: ${{ runner.temp }}/Qt/6.12.0/macos
+        run: cmake --preset ios-release
+
+      - name: Build
+        run: cmake --build --preset ios-release
+
+      # What Xcode made, from the bundle alone: the identifier, the camera text,
+      # the icon, the data beside the executable, arm64 and no link to the build
+      # machine. (An unsigned build: no --signed.)
+      - name: Check the application bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$(find build/ios-release -name WordJewelsSolver.app -type d | head -n 1)"
+          [ -n "$app" ] || { echo "::error::no WordJewelsSolver.app under build/ios-release"; exit 1; }
+          src/platforms/ios/packaging/verify_ipa.sh "$app"

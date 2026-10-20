@@ -14,8 +14,8 @@
         it links Qt Quick 3D; the library and wjs-cli are GPL-3.0-or-later);
       * Qt, by module, at the version in .github/toolchain-versions.json and
         under the licence each module is used under - but only if a ZIP in
-        -PackagesDir actually carries Qt6Core.dll, or a package is an AppImage or
-        a disk image (which carry Qt by construction) (the Linux and macOS packages
+        -PackagesDir actually carries Qt6Core.dll, or a package is an AppImage, a
+        disk image or an iOS IPA (which carry Qt by construction) (the Linux and macOS packages
         are command-line only today and say no Qt). Likewise the Microsoft
         Visual C++ runtime, if a ZIP carries vcruntime140.dll;
       * the data that ships: the ENABLE word list (its SHA-256 computed here,
@@ -126,9 +126,10 @@ if ($PackagesDir) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
     foreach ($file in (Get-ChildItem -LiteralPath $PackagesDir -File | Where-Object { $_.Extension -ne '.asc' -and $_.Name -ne 'SHA256SUMS' -and $_.Name -ne 'KEYS' -and $_.Name -notlike '*.cdx.json' -and $_.Name -notlike '*.spdx.json' } | Sort-Object Name)) {
         $packages += [pscustomobject]@{ Name = $file.Name; Sha256 = (Get-Sha256 $file.FullName); Size = $file.Length }
-        # An AppImage and a disk image of the application carry Qt by construction
-        # (linuxdeploy's Qt plugin, macOS's deploy script) and are not opened here.
-        if ($file.Extension -in '.AppImage', '.dmg') { $hasQt = $true }
+        # An AppImage, a disk image and an iOS IPA of the application carry Qt by
+        # construction (linuxdeploy's Qt plugin, macOS's deploy script, iOS's static
+        # Qt) and are not opened here.
+        if ($file.Extension -in '.AppImage', '.dmg', '.ipa') { $hasQt = $true }
         if ($file.Extension -eq '.zip') {
             $zip = [System.IO.Compression.ZipFile]::OpenRead($file.FullName)
             try {
@@ -157,7 +158,7 @@ $components.Add([ordered]@{
         'bom-ref'   = 'wjs-cli'
         name        = 'wjs-cli'
         version     = $version
-        description = 'The command-line solver, built from the same tree and shipped in every package.'
+        description = 'The command-line solver, built from the same tree and shipped in every desktop package.'
         licenses    = @(New-License 'GPL-3.0-or-later')
         purl        = "$appRef#wjs-cli"
     })
