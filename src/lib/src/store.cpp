@@ -28,12 +28,14 @@ namespace {
 [[nodiscard]] std::filesystem::path unused_sibling(const std::filesystem::path& file,
                                                    const std::string& suffix) {
     for (int attempt = 0; attempt < 100; ++attempt) {
-        std::string name = file.filename().string() + suffix;
-        if (attempt > 0) {
-            name += '.' + std::to_string(attempt);
-        }
+        // concat appends to the path's own native characters. Going through
+        // filename().string() would narrow them to the legacy code page on
+        // Windows, and a name outside it would not be the same file.
         std::filesystem::path candidate = file;
-        candidate.replace_filename(name);
+        candidate.concat(suffix);
+        if (attempt > 0) {
+            candidate.concat('.' + std::to_string(attempt));
+        }
         std::error_code error;
         if (!std::filesystem::exists(candidate, error) && !error) {
             return candidate;
@@ -144,6 +146,42 @@ struct CheckedBoard {
         checked.finds.push_back(std::move(find));
     }
     return checked;
+}
+
+// Whether `snapshot` is a later picture of `last`, the board recorded before,
+// and not a second game on the same tiles. The tiles, phase and size are the
+// same, and so are the finds already recorded: the snapshot lists every find so
+// far in order, so the first `last.found` of them are the ones the store has.
+// The store holds the last max_stored_finds, which for the board in play are
+// its newest, so those are the ones compared; a find has its word and its day.
+// What cannot be told apart is a second game that finds the same words, in the
+// same order, on the same day: it counts as the first sent again.
+[[nodiscard]] bool continues(const StoreData& data, const StoredBoard& last,
+                             const BoardSnapshot& snapshot, const CheckedBoard& checked) {
+    if (last.phase != snapshot.phase || last.size != snapshot.size || last.tiles != checked.tiles ||
+        static_cast<std::size_t>(last.found) > checked.finds.size()) {
+        return false;
+    }
+    std::size_t held = 0;
+    for (const FindRecord& find : data.finds) {
+        if (find.board == last.serial) {
+            ++held;
+        }
+    }
+    // The finds the store dropped were the board's first.
+    std::size_t next =
+        static_cast<std::size_t>(last.found) - std::min(held, static_cast<std::size_t>(last.found));
+    for (const FindRecord& find : data.finds) {
+        if (find.board != last.serial) {
+            continue;
+        }
+        if (next >= checked.finds.size() || checked.finds[next].word != find.word ||
+            checked.finds[next].day != find.day) {
+            return false;
+        }
+        ++next;
+    }
+    return true;
 }
 
 }  // namespace
@@ -273,15 +311,20 @@ std::expected<void, SaveError> Store::save() {
     }
 
     // Whole, then swapped in: a program stopped half way leaves the old file or
-    // the new one, not half of either.
+    // the new one, not half of either. The bytes are handed to the operating
+    // system (flush, then close, whose failure is a failed write too) but not
+    // forced to the disk: the library has no way to ask for that without an
+    // operating system call, and it includes none (see the header's note on
+    // power cuts). A file that does not come out whole fails its checksum and is
+    // set aside, never read.
     std::filesystem::path temporary = file_;
-    temporary.replace_filename(file_.filename().string() + ".tmp");
+    temporary.concat(".tmp");
     {
         std::ofstream out(temporary, std::ios::binary | std::ios::trunc);
         out.write(text.data(), static_cast<std::streamsize>(text.size()));
         out.flush();
+        out.close();
         if (!out) {
-            out.close();
             std::filesystem::remove(temporary, error);
             return std::unexpected(SaveError::cannot_write);
         }
@@ -350,15 +393,11 @@ RecordOutcome Store::record(const BoardSnapshot& snapshot, Day today) {
 
     // The same board as the last one? Boards are played one at a time and a
     // snapshot comes for the one in play, so only the last is looked at: the
-    // same phase, size and tiles, with no fewer finds than the store has.
+    // same phase, size and tiles, and the finds the store has among the ones now
+    // sent (continues). The same tiles with other finds are another game.
     StoredBoard* board = nullptr;
-    if (!data_.boards.empty()) {
-        StoredBoard& last = data_.boards.back();
-        if (last.phase == snapshot.phase && last.size == snapshot.size &&
-            last.tiles == checked->tiles &&
-            static_cast<std::size_t>(last.found) <= checked->finds.size()) {
-            board = &last;
-        }
+    if (!data_.boards.empty() && continues(data_, data_.boards.back(), snapshot, *checked)) {
+        board = &data_.boards.back();
     }
     if (board == nullptr) {
         StoredBoard fresh;
@@ -471,7 +510,7 @@ bool Store::save_session(const std::optional<SavedSession>& session) {
     if (!session) {
         data_.session.reset();
         persist();
-        return true;
+        return !last_save_error_;
     }
 
     if (session->size < 1 || std::cmp_greater(session->size, Board::max_dimension)) {
@@ -519,7 +558,7 @@ bool Store::save_session(const std::optional<SavedSession>& session) {
     }
     data_.session = std::move(kept);
     persist();
-    return true;
+    return !last_save_error_;
 }
 
 void Store::reset_boards_and_finds() {

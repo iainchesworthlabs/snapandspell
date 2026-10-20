@@ -134,8 +134,8 @@ void RealSoloGame::settled() {
     // The scene reports one moment for the shake, the lid and the drop, which the
     // session has as two. Each applies in its own state and ignores the others, so
     // from `shaking` both run and from `dropping` the second does.
-    session_.still();
-    session_.landed();
+    static_cast<void>(session_.still());
+    static_cast<void>(session_.landed());
     save_session();
 }
 
@@ -192,7 +192,7 @@ std::vector<GraphemeBinder::Block> RealSoloGame::blocks(std::span<const Position
 }
 
 void RealSoloGame::celebrated() {
-    session_.rest();
+    static_cast<void>(session_.rest());
     save_session();
 }
 
@@ -229,7 +229,7 @@ void RealSoloGame::lidOn() {
 }
 
 void RealSoloGame::again() {
-    session_.again();
+    static_cast<void>(session_.again());
     save_session();
 }
 
@@ -339,7 +339,7 @@ void RealSoloGame::save_session() {
     // A board the store cannot keep whole is refused and nothing changes, which
     // would leave the game before it to be brought back in this one's place.
     if (!store_->save_session(saved)) {
-        store_->save_session(std::nullopt);
+        static_cast<void>(store_->save_session(std::nullopt));
     }
 }
 

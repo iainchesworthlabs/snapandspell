@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/deal.hpp"
 #include "wjs/dice.hpp"
@@ -60,13 +61,7 @@ wjs::DiceSet load(std::size_t side) {
 }
 
 const wjs::Dictionary& english() {
-    static const wjs::Dictionary dictionary = [] {
-        auto loaded = wjs::Dictionary::load_file(std::filesystem::path(data_directory) /
-                                                 "dictionaries" / "en.txt");
-        REQUIRE(loaded.has_value());
-        return *std::move(loaded);
-    }();
-    return dictionary;
+    return wjs::test::shipped_english();
 }
 
 }  // namespace

@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/deal.hpp"
 #include "wjs/dice.hpp"
@@ -22,6 +23,8 @@
 #include "wjs/game_rules.hpp"
 #include "wjs/game_session.hpp"
 #include "wjs/phase_data.hpp"
+#include "wjs/seeding.hpp"
+#include "wjs/settings.hpp"
 #include "wjs/solver.hpp"
 
 // TEST DATA. Two phases written for these tests (the seven and four words the
@@ -76,10 +79,10 @@ const wjs::Dictionary& english() {
         wjs::Dictionary words;
         for (const std::string_view word :
              {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain"}) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         for (const std::string_view word : extra_words) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         return words;
     }();
@@ -139,6 +142,14 @@ wjs::GameSession make(const wjs::SessionOptions& options = {}) {
 }
 
 using Path = std::vector<Position>;
+using wjs::test::text_of;
+
+// The find of a trace that found a word; the case stops here if it found none,
+// rather than reading an empty find.
+const wjs::Find& found_of(const wjs::TraceOutcome& outcome) {
+    REQUIRE(outcome.find.has_value());
+    return *outcome.find;
+}
 
 // The board of the cases below, 3 by 3, in phase A; `B` is the phase's dead
 // letter (the first letter of A-Z that no word uses). Its five words and one path
@@ -212,7 +223,7 @@ wjs::GameSession reach(SessionState state, const wjs::SessionOptions& options = 
     }
     // Every word the solver finds on the board, traced along its path.
     for (const wjs::FoundWord& word : wjs::solve(*session.board(), phase_a().dictionary())) {
-        session.trace(word.path, 0);
+        static_cast<void>(session.trace(word.path, 0));
     }
     REQUIRE(session.state() == SessionState::cleared);
     if (state == SessionState::cleared) {
@@ -321,8 +332,8 @@ TEST_CASE("a phase that uses every letter has none to leave out, and is refused"
         "abcdefghijklm  a b c d e f g h i j k l m\n"
         "nopqrstuvwxyz  n o p q r s t u v w x y z\n";
     wjs::Dictionary dictionary;
-    dictionary.insert("abcdefghijklm");
-    dictionary.insert("nopqrstuvwxyz");
+    REQUIRE(dictionary.insert("abcdefghijklm"));
+    REQUIRE(dictionary.insert("nopqrstuvwxyz"));
     std::istringstream graphemes_in{graphemes};
     std::istringstream words_in{words};
     const auto built = wjs::PhaseSet::build({*wjs::parse_graphemes(graphemes_in, "g")},
@@ -343,7 +354,7 @@ TEST_CASE("a phase with no word of three letters or fewer deals no board and sta
         "d  /x/  clip:d\n";
     const std::string words = "# phase: A\nabcd  a b c d\n";
     wjs::Dictionary dictionary;
-    dictionary.insert("abcd");
+    REQUIRE(dictionary.insert("abcd"));
     std::istringstream graphemes_in{graphemes};
     std::istringstream words_in{words};
     const auto built = wjs::PhaseSet::build({*wjs::parse_graphemes(graphemes_in, "g")},
@@ -536,10 +547,10 @@ TEST_CASE("a viable path is a find, with the stars of its tier", "[session]") {
     const wjs::TraceOutcome outcome = session.trace(pat, 4242);
     CHECK(outcome.kind == TraceKind::found);
     REQUIRE(outcome.find.has_value());
-    CHECK(outcome.find->word == "PAT");
-    CHECK(outcome.find->when == 4242);
-    CHECK_FALSE(outcome.find->assisted);
-    CHECK(outcome.find->tier() == wjs::Tier::spark);
+    CHECK(found_of(outcome).word == "PAT");
+    CHECK(found_of(outcome).when == 4242);
+    CHECK_FALSE(found_of(outcome).assisted);
+    CHECK(found_of(outcome).tier() == wjs::Tier::spark);
     CHECK(outcome.stars() == 1);
     CHECK_FALSE(outcome.sticker());
     CHECK_FALSE(outcome.cleared);
@@ -550,8 +561,8 @@ TEST_CASE("a viable path is a find, with the stars of its tier", "[session]") {
 
 TEST_CASE("a word read the other way round is the other word", "[session]") {
     wjs::GameSession session = hand_session();
-    CHECK(session.trace(pat, 0).find->word == "PAT");
-    CHECK(session.trace(tap, 0).find->word == "TAP");
+    CHECK(found_of(session.trace(pat, 0)).word == "PAT");
+    CHECK(found_of(session.trace(tap, 0)).word == "TAP");
 }
 
 TEST_CASE("a word found again is not a new jewel and earns nothing", "[session]") {
@@ -560,8 +571,8 @@ TEST_CASE("a word found again is not a new jewel and earns nothing", "[session]"
     const wjs::TraceOutcome again = session.trace(pat, 20);
     CHECK(again.kind == TraceKind::found_again);
     REQUIRE(again.find.has_value());
-    CHECK(again.find->word == "PAT");
-    CHECK(again.find->when == 10);  // the find as it was recorded
+    CHECK(found_of(again).word == "PAT");
+    CHECK(found_of(again).when == 10);  // the find as it was recorded
     CHECK(again.stars() == 0);
     CHECK_FALSE(again.sticker());
     CHECK(session.stars() == 1);
@@ -659,19 +670,19 @@ TEST_CASE("the tiers pay one, two and five stars and a Power word carries a stic
     const Path pan_here{{0, 0}, {0, 1}, {1, 2}};
 
     const auto spark = session.trace(pan_here, 0);
-    CHECK(spark.find->tier() == wjs::Tier::spark);
+    CHECK(found_of(spark).tier() == wjs::Tier::spark);
     CHECK(spark.stars() == 1);
     CHECK_FALSE(spark.sticker());
 
     const auto power = session.trace(pain, 0);
-    CHECK(power.find->word == "PAIN");
-    CHECK(power.find->tier() == wjs::Tier::power);
+    CHECK(found_of(power).word == "PAIN");
+    CHECK(found_of(power).tier() == wjs::Tier::power);
     CHECK(power.stars() == 2);
     CHECK(power.sticker());
 
     const auto mega = session.trace(paint, 0);
-    CHECK(mega.find->word == "PAINT");
-    CHECK(mega.find->tier() == wjs::Tier::mega);
+    CHECK(found_of(mega).word == "PAINT");
+    CHECK(found_of(mega).tier() == wjs::Tier::mega);
     CHECK(mega.stars() == 5);
     CHECK_FALSE(mega.sticker());
 
@@ -702,7 +713,7 @@ TEST_CASE("after the last word nothing is traced, and the celebration then the r
           "[session]") {
     wjs::GameSession session = hand_session();
     for (const Path* path : {&pat, &tap, &pin, &nip, &pan}) {
-        session.trace(*path, 0);
+        static_cast<void>(session.trace(*path, 0));
     }
     REQUIRE(session.state() == SessionState::cleared);
     CHECK(session.trace(pat, 0).kind == TraceKind::ignored);
@@ -785,15 +796,15 @@ TEST_CASE("a word found while its tile is lit is an assisted find, and the light
     REQUIRE(session.request_help().has_value());  // PAN, from (0,0)
     const wjs::TraceOutcome helped = session.trace(pan, 0);
     REQUIRE(helped.find.has_value());
-    CHECK(helped.find->word == "PAN");
-    CHECK(helped.find->assisted);
+    CHECK(found_of(helped).word == "PAN");
+    CHECK(found_of(helped).assisted);
     CHECK_FALSE(session.lit_tile().has_value());
 
     // The next press names the next word, and a word found without it is not
     // assisted.
     REQUIRE(session.request_help().has_value());  // PAT
     const wjs::TraceOutcome unhelped = session.trace(tap, 0);
-    CHECK_FALSE(unhelped.find->assisted);
+    CHECK_FALSE(found_of(unhelped).assisted);
     REQUIRE(session.record().has_value());
     CHECK(session.record()->finds[0].assisted);
     CHECK_FALSE(session.record()->finds[1].assisted);
@@ -854,11 +865,13 @@ TEST_CASE("the help follows every word of the board to its end", "[session]") {
     wjs::GameSession session = hand_session();
     std::vector<std::string> order;
     while (session.request_help()) {
+        // A help that never ends is a failure, not a hung test run.
+        REQUIRE(order.size() < path_of.size());
         const std::string word = *session.snapshot().lit;
         order.push_back(word);
         const wjs::TraceOutcome outcome = session.trace(*path_of.at(word), 0);
         CHECK(outcome.kind == TraceKind::found);
-        CHECK(outcome.find->assisted);
+        CHECK(found_of(outcome).assisted);
     }
     // Shortest first, then nearest the top left, then alphabetical: PAN, PAT, PIN
     // start at the top left tile, then NIP (1,2) is nearer than TAP (0,2).
@@ -893,7 +906,7 @@ std::string play_one(wjs::GameSession& session) {
             log += std::to_string(help->row) + "," + std::to_string(help->column) + ";";
         }
         const wjs::TraceOutcome outcome = session.trace(word.path, 9);
-        log += std::string(wjs::to_string(outcome.kind)) + ":" + outcome.find->word + ":" +
+        log += std::string(wjs::to_string(outcome.kind)) + ":" + found_of(outcome).word + ":" +
                std::to_string(outcome.stars()) + ";";
     }
     REQUIRE(session.rest());
@@ -1030,13 +1043,94 @@ TEST_CASE("a seeding that misses the range is tried again, and the nearest is ke
     CHECK(deal.viable < 9U);
 }
 
+TEST_CASE("the board kept is the nearest of the seedings, the first of two as near", "[session]") {
+    // The same four seedings made by hand, from the same stream of seeds: the
+    // session keeps the board of the one nearest the range, and the earlier one
+    // when two are as near. Phase B holds eleven words in all, so no board lands in
+    // a range of twelve, and the seedings differ in how near they come.
+    wjs::SessionOptions options;
+    options.min_viable = 12;
+    options.max_viable = 12;
+    options.max_seedings = 4;
+    auto by_hand = wjs::phonics_board_options(phase_b(), 3);
+    REQUIRE(by_hand.has_value());
+    by_hand->min_viable = 12;
+    by_hand->max_viable = 12;
+
+    std::size_t later_than_first = 0;
+    for (std::uint32_t seed = 1; seed <= 20; ++seed) {
+        options.seed = seed;
+        std::uint32_t expected_seed = seed;
+        std::string expected_tiles;
+        std::size_t expected_distance = 0;
+        std::size_t expected_viable = 0;
+        std::uint32_t stream = seed;
+        for (std::size_t seeding = 0; seeding < options.max_seedings; ++seeding) {
+            const auto seeded = wjs::seed_board(phase_b(), *by_hand, wjs::RecentTargets{}, stream);
+            REQUIRE(seeded.has_value());
+            const std::size_t viable = seeded->viable.size();
+            const std::size_t distance = viable > 12 ? viable - 12 : 12 - viable;
+            if (seeding == 0 || distance < expected_distance) {
+                expected_distance = distance;
+                expected_viable = viable;
+                expected_seed = stream;
+                expected_tiles = text_of(seeded->board);
+            }
+            stream = wjs::next_deal_seed(stream);
+        }
+        if (expected_seed != seed) {
+            ++later_than_first;
+        }
+
+        wjs::GameSession session = make(phase_b(), options);
+        REQUIRE(session.shake().has_value());
+        INFO("seed " << seed);
+        CHECK(session.last_deal()->seedings == 4U);
+        CHECK(session.last_deal()->seed == expected_seed);
+        CHECK(session.last_deal()->viable == expected_viable);
+        REQUIRE(session.still());
+        REQUIRE(session.landed());
+        CHECK(text_of(*session.board()) == expected_tiles);
+    }
+    // The cases above are not all the first seeding: the nearest is not simply the first.
+    CHECK(later_than_first > 0);
+}
+
 TEST_CASE("the focus sounds the parent ticked reach the seeding", "[session]") {
     // Boards prefer targets with a grapheme that makes a ticked sound. `n` is
     // /t3/ in this test data, and NIP, PAN and PIN are the words with it: every
     // board holds one.
     wjs::SessionOptions options;
-    options.focus_sounds = {"/t3/"};
+    options.focus_sounds = {"n"};
     for (std::uint32_t seed = 1; seed <= 100; ++seed) {
+        options.seed = seed;
+        wjs::GameSession session = make(options);
+        REQUIRE(session.shake().has_value());
+        REQUIRE(session.still());
+        REQUIRE(session.landed());
+        const std::vector<std::string> viable = session.record()->viable;
+        INFO("seed " << seed);
+        CHECK(std::ranges::any_of(viable, [](const std::string& word) {
+            return word == "NIP" || word == "PAN" || word == "PIN";
+        }));
+    }
+}
+
+TEST_CASE("a focus sound ticked in the settings is dealt, from the settings to the board",
+          "[session]") {
+    // The path the app takes: what the parent ticked goes through
+    // Settings::normalized (which writes letters in lower case) and into the
+    // session's options, and the dealt boards carry the grapheme. A target is a
+    // word of three letters at most, so the grapheme is one that NIP, PAN and
+    // PIN have.
+    wjs::Settings settings;
+    settings.focus_sounds = {"N"};
+    settings = settings.normalized();
+    REQUIRE(settings.focus_sounds == std::vector<std::string>{"n"});
+
+    wjs::SessionOptions options;
+    options.focus_sounds = settings.focus_sounds;
+    for (std::uint32_t seed = 1; seed <= 50; ++seed) {
         options.seed = seed;
         wjs::GameSession session = make(options);
         REQUIRE(session.shake().has_value());
@@ -1077,8 +1171,8 @@ TEST_CASE("the dead jewels are the tiles of the letter the phase leaves out", "[
 
 TEST_CASE("the record holds the board, the words on it and the finds", "[session]") {
     wjs::GameSession session = hand_session();
-    session.trace(pan, 7);
-    session.trace(tap, 8);
+    static_cast<void>(session.trace(pan, 7));
+    static_cast<void>(session.trace(tap, 8));
     const auto record = session.record();
     REQUIRE(record.has_value());
     CHECK(record->phase == "A");
@@ -1097,7 +1191,7 @@ TEST_CASE("the record of a board that is left is still there to be saved", "[ses
     wjs::GameSession session = reach(SessionState::playing);
     const auto tiles = session.record()->tiles;
     const auto word = wjs::solve(*session.board(), phase_a().dictionary())[0];
-    session.trace(word.path, 3);
+    static_cast<void>(session.trace(word.path, 3));
     REQUIRE(session.back());
     REQUIRE(session.record().has_value());
     CHECK(session.record()->tiles == tiles);
@@ -1125,8 +1219,8 @@ TEST_CASE("a snapshot brings a session back as it was, in each state", "[session
         wjs::GameSession session = reach(state);
         if (state == SessionState::playing) {
             const auto words = wjs::solve(*session.board(), phase_a().dictionary());
-            session.trace(words[0].path, 12);
-            session.request_help();
+            static_cast<void>(session.trace(words[0].path, 12));
+            static_cast<void>(session.request_help());
         }
         const wjs::SessionSnapshot snapshot = session.snapshot();
         CHECK(snapshot.state == state);
@@ -1175,8 +1269,8 @@ TEST_CASE("a snapshot in cleared is saved as resting", "[session]") {
 TEST_CASE("a restored session keeps the lit tile and the finds' flags", "[session]") {
     wjs::GameSession session = hand_session();
     REQUIRE(session.request_help().has_value());
-    session.trace(pan, 5);  // assisted
-    session.trace(tap, 6);  // not
+    static_cast<void>(session.trace(pan, 5));  // assisted
+    static_cast<void>(session.trace(tap, 6));  // not
     REQUIRE(session.request_help().has_value());
     const auto lit = session.lit_tile();
 
@@ -1311,6 +1405,55 @@ TEST_CASE("a snapshot that no session makes is refused", "[session]") {
     }
 }
 
+TEST_CASE("more snapshots that no session makes are refused, each for its own reason",
+          "[session]") {
+    const auto refused = [](const wjs::SessionSnapshot& snapshot) {
+        const auto restored = wjs::GameSession::restore(snapshot, data_of(phase_a()), phonics());
+        return restored.has_value() ? std::nullopt : std::optional(restored.error());
+    };
+
+    SECTION("a total that is not the words listed") {
+        auto snapshot = playing_snapshot();
+        snapshot.board->viable_total = snapshot.board->viable.size() + 1;
+        CHECK(refused(snapshot) == std::optional(wjs::SessionError::bad_snapshot));
+        // The same total as the list is what a session writes.
+        auto same = playing_snapshot();
+        same.board->viable_total = same.board->viable.size();
+        CHECK(refused(same) == std::nullopt);
+    }
+    SECTION("the phase named in another case is another phase") {
+        auto snapshot = playing_snapshot();
+        snapshot.board->phase = "a";
+        CHECK(refused(snapshot) == std::optional(wjs::SessionError::wrong_phase));
+    }
+    SECTION("a board of the other mode, however the snapshot is labelled") {
+        auto snapshot = playing_snapshot();
+        snapshot.mode = wjs::BoardMode::standard;
+        snapshot.board->mode = wjs::BoardMode::standard;
+        snapshot.board->phase.clear();
+        CHECK(refused(snapshot) == std::optional(wjs::SessionError::wrong_mode));
+    }
+    SECTION("a box with a board in it") {
+        auto snapshot = playing_snapshot();
+        snapshot.state = SessionState::box;
+        snapshot.lit.reset();
+        CHECK(refused(snapshot) == std::optional(wjs::SessionError::bad_snapshot));
+    }
+    SECTION("a board with no tiles at all") {
+        auto snapshot = playing_snapshot();
+        snapshot.board->tiles.clear();
+        CHECK(refused(snapshot) == std::optional(wjs::SessionError::bad_snapshot));
+    }
+    SECTION("a light in a board at rest") {
+        auto snapshot = playing_snapshot(
+            {jewel("NIP"), jewel("PAN"), jewel("PAT"), jewel("PIN"), jewel("TAP")});
+        snapshot.state = SessionState::resting;
+        CHECK(refused(snapshot) == std::nullopt);
+        snapshot.lit = "NIP";
+        CHECK(refused(snapshot) == std::optional(wjs::SessionError::bad_snapshot));
+    }
+}
+
 TEST_CASE("a find in the snapshot may be in either case and comes back upper-case", "[session]") {
     const wjs::GameSession session = restore(playing_snapshot({jewel("pat", 3)}));
     REQUIRE(session.finds().size() == 1U);
@@ -1343,7 +1486,7 @@ TEST_CASE("no path of the board is answered wrongly, or names a word that is not
         if (today.contains(spelled)) {
             CHECK(outcome.kind == TraceKind::found);
             REQUIRE(outcome.find.has_value());
-            CHECK(outcome.find->word == spelled);
+            CHECK(found_of(outcome).word == spelled);
             ++named;
             return;
         }
@@ -1402,10 +1545,10 @@ TEST_CASE("a word that is only in the dictionary is never handed out", "[session
     CHECK(session.trace(tip, 0).kind == TraceKind::real_not_todays);
     CHECK(session.trace(tab, 0).kind == TraceKind::real_not_todays);
     for (const Path* path : {&pan, &pat, &pin, &nip, &tap}) {
-        session.request_help();
+        static_cast<void>(session.request_help());
         const wjs::TraceOutcome outcome = session.trace(*path, 0);
         CHECK(outcome.kind == TraceKind::found);
-        CHECK_FALSE(outcome.find->word == "TIP");
+        CHECK_FALSE(found_of(outcome).word == "TIP");
     }
     REQUIRE(session.state() == SessionState::cleared);
 
@@ -1563,22 +1706,6 @@ wjs::GameSession restore_standard(const wjs::SessionSnapshot& snapshot,
 // A session playing the standard hand board.
 wjs::GameSession standard_hand_session(const wjs::SessionOptions& options = {}) {
     return restore_standard(standard_snapshot(), options);
-}
-
-std::string text_of(const wjs::Board& board) {
-    std::string text;
-    for (std::size_t row = 0; row < board.rows(); ++row) {
-        if (row > 0) {
-            text += '/';
-        }
-        for (std::size_t column = 0; column < board.columns(); ++column) {
-            if (column > 0) {
-                text += ' ';
-            }
-            text += board.tile({row, column});
-        }
-    }
-    return text;
 }
 
 // A fresh standard session dealt to `playing`.
@@ -1792,7 +1919,7 @@ TEST_CASE("no board that holds a word can be rolled: no board, and the box stays
           "[session][standard]") {
     // A word list with no word the dice can spell.
     wjs::Dictionary other;
-    other.insert("zebra");
+    REQUIRE(other.insert("zebra"));
     wjs::GameSession session = [&] {
         auto created = wjs::GameSession::create({.dictionary = other, .dice = &test_dice()}, {});
         REQUIRE(created.has_value());
@@ -1887,8 +2014,8 @@ TEST_CASE("every word of the dictionary of three letters or more is a find on a 
         INFO("word " << hand.word);
         CHECK(outcome.kind == TraceKind::found);
         REQUIRE(outcome.find.has_value());
-        CHECK(outcome.find->word == hand.word);
-        CHECK(outcome.find->when == 4);
+        CHECK(found_of(outcome).word == hand.word);
+        CHECK(found_of(outcome).when == 4);
         CHECK(outcome.stars() >= 1);
     }
 }
@@ -1907,7 +2034,7 @@ TEST_CASE("the same trace is a tick on the phonics board and a find on the stand
     const wjs::TraceOutcome found = standard.trace(tip, 0);
     CHECK(found.kind == TraceKind::found);
     REQUIRE(found.find.has_value());
-    CHECK(found.find->word == "TIP");
+    CHECK(found_of(found).word == "TIP");
     CHECK(found.stars() == 1);
     CHECK(standard.stars() == 1);
 }
@@ -1916,17 +2043,17 @@ TEST_CASE("the standard board pays the tiers as the phonics board does", "[sessi
     wjs::GameSession session = standard_hand_session();
 
     const auto spark = session.trace(pat, 0);
-    CHECK(spark.find->tier() == wjs::Tier::spark);
+    CHECK(found_of(spark).tier() == wjs::Tier::spark);
     CHECK(spark.stars() == 1);
     CHECK_FALSE(spark.sticker());
 
     const auto power = session.trace(pain_path, 0);
-    CHECK(power.find->tier() == wjs::Tier::power);
+    CHECK(found_of(power).tier() == wjs::Tier::power);
     CHECK(power.stars() == 2);
     CHECK(power.sticker());
 
     const auto mega = session.trace(paint_path, 0);
-    CHECK(mega.find->tier() == wjs::Tier::mega);
+    CHECK(found_of(mega).tier() == wjs::Tier::mega);
     CHECK(mega.stars() == 5);
     CHECK_FALSE(mega.sticker());
 
@@ -1960,7 +2087,7 @@ TEST_CASE("a word found again on the standard board is not a new jewel", "[sessi
     const wjs::TraceOutcome same = session.trace(tip, 3);
     CHECK(same.kind == TraceKind::found_again);
     REQUIRE(same.find.has_value());
-    CHECK(same.find->when == 1);
+    CHECK(found_of(same).when == 1);
     CHECK(same.stars() == 0);
     CHECK(session.finds().size() == 2U);
     CHECK(session.stars() == 2);
@@ -1997,6 +2124,7 @@ TEST_CASE("the help of the standard board follows every word to its end", "[sess
     wjs::GameSession session = standard_hand_session();
     std::vector<std::string> order;
     while (const auto tile = session.request_help()) {
+        REQUIRE(order.size() < path_of.size());  // a help that never ends is a failure
         const std::string word = *session.snapshot().lit;
         order.push_back(word);
         // The tile that lights is the first tile of the word.
@@ -2004,7 +2132,7 @@ TEST_CASE("the help of the standard board follows every word to its end", "[sess
         CHECK(session.lit_tile() == tile);
         const wjs::TraceOutcome outcome = session.trace(*path_of.at(word), 0);
         CHECK(outcome.kind == TraceKind::found);
-        CHECK(outcome.find->assisted);
+        CHECK(found_of(outcome).assisted);
     }
     // The shortest words first, the nearest the top left first among them, then
     // alphabetical: PAN, PAT, PIN and PIT start at the top left tile, ANT is
@@ -2024,7 +2152,7 @@ TEST_CASE("the help of the standard board stays on its word until that word is f
     // Another word found: the light stays, and the find is not assisted.
     const wjs::TraceOutcome other = session.trace(tip, 0);
     CHECK(other.kind == TraceKind::found);
-    CHECK_FALSE(other.find->assisted);
+    CHECK_FALSE(found_of(other).assisted);
     CHECK(session.lit_tile() == first);
     // With the parent's switch off there is none.
     wjs::SessionOptions off;
@@ -2038,8 +2166,8 @@ TEST_CASE("the help of the standard board stays on its word until that word is f
 TEST_CASE("a standard board's record says its mode, has no phase and counts its words",
           "[session][standard]") {
     wjs::GameSession session = standard_hand_session();
-    session.trace(tip, 7);
-    session.trace(pain_path, 8);
+    static_cast<void>(session.trace(tip, 7));
+    static_cast<void>(session.trace(pain_path, 8));
 
     const auto record = session.record();
     REQUIRE(record.has_value());
@@ -2093,11 +2221,11 @@ TEST_CASE("a standard snapshot brings a session back as it was, in each state",
             REQUIRE(session.landed());
             const auto words = wjs::solve(*session.board(), english());
             if (state == SessionState::playing) {
-                session.trace(words[0].path, 12);
-                session.request_help();
+                static_cast<void>(session.trace(words[0].path, 12));
+                static_cast<void>(session.request_help());
             } else {
                 for (const wjs::FoundWord& word : words) {
-                    session.trace(word.path, 12);
+                    static_cast<void>(session.trace(word.path, 12));
                 }
                 REQUIRE(session.state() == SessionState::cleared);
                 REQUIRE(session.rest());
@@ -2313,8 +2441,8 @@ TEST_CASE("a tile of two letters counts both on the standard board, and goes thr
           "[session][standard]") {
     // QU I T / X E X: QUIT is four letters and QUITE five, as the tiers count them.
     wjs::Dictionary quiet;
-    quiet.insert("quit");
-    quiet.insert("quite");
+    REQUIRE(quiet.insert("quit"));
+    REQUIRE(quiet.insert("quite"));
     const wjs::SessionData data{.dictionary = quiet, .dice = &test_dice()};
     wjs::SessionSnapshot snapshot = standard_snapshot();
     snapshot.board->tiles = "QU I T/X E X/X X X";
@@ -2327,8 +2455,8 @@ TEST_CASE("a tile of two letters counts both on the standard board, and goes thr
     const Path quite{{0, 0}, {0, 1}, {0, 2}, {1, 1}};
     const wjs::TraceOutcome first = session.trace(quit, 3);
     CHECK(first.kind == TraceKind::found);
-    CHECK(first.find->word == "QUIT");
-    CHECK(first.find->tier() == wjs::Tier::power);
+    CHECK(found_of(first).word == "QUIT");
+    CHECK(found_of(first).tier() == wjs::Tier::power);
     CHECK(first.stars() == 2);
     CHECK(first.sticker());
 
@@ -2347,7 +2475,7 @@ TEST_CASE("a tile of two letters counts both on the standard board, and goes thr
 
     const wjs::TraceOutcome last = session.trace(quite, 4);
     CHECK(last.kind == TraceKind::found);
-    CHECK(last.find->tier() == wjs::Tier::mega);
+    CHECK(found_of(last).tier() == wjs::Tier::mega);
     CHECK(last.cleared);
     CHECK(session.state() == SessionState::cleared);
 }
@@ -2383,7 +2511,7 @@ TEST_CASE("every path of the standard hand board is answered as its spelling say
             CHECK(counting.contains(spelled));
             CHECK(outcome.kind == TraceKind::found);
             REQUIRE(outcome.find.has_value());
-            CHECK(outcome.find->word == spelled);
+            CHECK(found_of(outcome).word == spelled);
             ++named;
             return;
         }
@@ -2533,9 +2661,9 @@ TEST_CASE(
         REQUIRE(outcome.find.has_value());
         // The session names the word, and it is the dictionary's: every word of
         // three letters or more counts, and so is named, whatever it is.
-        CHECK(outcome.find->word == word.word);
-        CHECK(full_dictionary().contains(outcome.find->word));
-        CHECK(outcome.find->word.size() >= wjs::min_word_letters);
+        CHECK(found_of(outcome).word == word.word);
+        CHECK(full_dictionary().contains(found_of(outcome).word));
+        CHECK(found_of(outcome).word.size() >= wjs::min_word_letters);
         stars += outcome.stars();
     }
     CHECK(session.state() == SessionState::cleared);
