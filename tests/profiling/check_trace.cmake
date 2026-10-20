@@ -41,10 +41,10 @@ endforeach()
 if(CASE STREQUAL "cli")
     set(_args "S E R S/P A T G/L I N E/S E R S")
     # More work each time the capture was too late for the one before.
-    set(_repeats 1000 4000 16000)
+    set(_repeats 100 1000 8000)
     set(_zones solver.solve)
     set(_plots solver.visits)
-    set(_timeout 60)
+    set(_timeout 30)
 elseif(CASE STREQUAL "app")
     # The offscreen platform: Quick 3D draws nothing there but the frame clock
     # and the start-up are the same (docs/profiling.md, "The smoke mode").
@@ -102,7 +102,7 @@ endif()
 #
 # A capture takes about 0.7 s to find a program (Tracy is on-demand), and a program
 # that is quick (an optimised build) can be over by then, so the cli is run again
-# with more repeats until the trace has what it is asked for (60 s an attempt). A
+# with more repeats until the trace has what it is asked for (30 s an attempt). A
 # slow build (Debug with the sanitizers) is done in the first.
 set(_attempt 0)
 list(LENGTH _repeats _attempts)
@@ -127,9 +127,14 @@ foreach(_repeat IN LISTS _repeats)
     # A program that was over before the capture attached leaves the capture waiting
     # for one that is not coming; the timeout ends the attempt, and the next has more
     # to do.
-    if("${_codes}" MATCHES "timeout" AND _attempt LESS _attempts)
-        message(STATUS "attempt ${_attempt} of ${_attempts} timed out; running again")
-        continue()
+    if("${_codes}" MATCHES "timeout")
+        if(_attempt LESS _attempts)
+            message(STATUS "attempt ${_attempt} of ${_attempts} timed out; running again")
+            continue()
+        endif()
+        message(FATAL_ERROR
+            "${PROGRAM} did not finish in ${_timeout} s with the capture attached, in any of "
+            "${_attempts} attempts (${_repeats} repeats).\nstdout:\n${_out}\nstderr:\n${_err}")
     endif()
     list(GET _codes 1 _program_code)
     if(CASE STREQUAL "app" AND _program_code EQUAL 3)
