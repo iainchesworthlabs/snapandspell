@@ -3,6 +3,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
+#include <limits>
+#include <utility>
 #include <vector>
 
 #include "evaluate.hpp"
@@ -213,6 +215,111 @@ TEST_CASE("a frame whose sizes would wrap the arithmetic is refused, not read", 
     CHECK(read_board(strided).error() == ReadError::invalid_frame);
 }
 
+TEST_CASE("options out of range are refused before the frame is looked at", "[scan][reader]") {
+    // A board_side of 0 had profiles_of dereference an empty profile; a negative one
+    // wrapped a size_t into a request for an exabyte; a size of 500 read 250,000
+    // cells; a threshold of 0 made a confidence of NaN.
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+    constexpr double inf = std::numeric_limits<double>::infinity();
+    CHECK(ReadOptions{}.valid());
+
+    const std::vector<std::pair<const char*, ReadOptions>> bad = [] {
+        std::vector<std::pair<const char*, ReadOptions>> list;
+        const auto with = [&](const char* what, auto change) {
+            ReadOptions options;
+            change(options);
+            list.emplace_back(what, options);
+        };
+        with("board_side 0", [](ReadOptions& o) { o.board_side = 0; });
+        with("board_side -1", [](ReadOptions& o) { o.board_side = -1; });
+        with("board_side 31", [](ReadOptions& o) { o.board_side = 31; });
+        with("board_side 100000", [](ReadOptions& o) { o.board_side = 100000; });
+        with("size 0", [](ReadOptions& o) { o.size = 0; });
+        with("size 1", [](ReadOptions& o) { o.size = 1; });
+        with("size 17", [](ReadOptions& o) { o.size = 17; });
+        with("size 500", [](ReadOptions& o) { o.size = 500; });
+        with("min_size 0", [](ReadOptions& o) { o.min_size = 0; });
+        with("min_size 1", [](ReadOptions& o) { o.min_size = 1; });
+        with("min_size over max", [](ReadOptions& o) { o.min_size = 6, o.max_size = 5; });
+        with("max_size 17", [](ReadOptions& o) { o.max_size = 17; });
+        with("working_size 0", [](ReadOptions& o) { o.working_size = 0; });
+        with("working_size -480", [](ReadOptions& o) { o.working_size = -480; });
+        with("working_size 15", [](ReadOptions& o) { o.working_size = 15; });
+        with("analysis_size 0", [](ReadOptions& o) { o.analysis_size = 0; });
+        with("analysis_size huge", [](ReadOptions& o) { o.analysis_size = 1 << 30; });
+        with("glyph_height_ratio 0", [](ReadOptions& o) { o.glyph_height_ratio = 0.0; });
+        with("glyph_height_ratio 2", [](ReadOptions& o) { o.glyph_height_ratio = 2.0; });
+        with("glyph_height_ratio NaN", [&](ReadOptions& o) { o.glyph_height_ratio = nan; });
+        with("min_score 0", [](ReadOptions& o) { o.min_score = 0.0; });
+        with("min_score NaN", [&](ReadOptions& o) { o.min_score = nan; });
+        with("min_score inf", [&](ReadOptions& o) { o.min_score = inf; });
+        with("min_margin 0", [](ReadOptions& o) { o.min_margin = 0.0; });
+        with("min_margin NaN", [&](ReadOptions& o) { o.min_margin = nan; });
+        with("min_contrast -1", [](ReadOptions& o) { o.min_contrast = -1.0; });
+        with("min_contrast NaN", [&](ReadOptions& o) { o.min_contrast = nan; });
+        return list;
+    }();
+
+    // A blank frame, so that a refusal is told from an answer by its error.
+    const GrayImage blank(320, 240, 120);
+    for (const auto& [what, options] : bad) {
+        INFO(what);
+        CHECK_FALSE(options.valid());
+        const auto refused = read_board(blank.view(), options);
+        REQUIRE_FALSE(refused.has_value());
+        CHECK(refused.error() == ReadError::invalid_options);
+    }
+
+    // What the tuning tools do is still allowed: a negative threshold is the doubt
+    // switched off, and a contrast of zero asks for no ink at all.
+    ReadOptions open;
+    open.min_score = -2.0;
+    open.min_margin = -2.0;
+    open.min_contrast = 0.0;
+    CHECK(open.valid());
+    CHECK(read_board(blank.view(), open).error() == ReadError::board_not_found);
+    ReadOptions sized;
+    sized.size = 16;
+    sized.board_side = 4096;
+    CHECK(sized.valid());
+    CHECK(read_board(blank.view()).error() == ReadError::board_not_found);
+}
+
+TEST_CASE("a frame that is not valid is refused before its options are", "[scan][reader]") {
+    ReadOptions bad;
+    bad.board_side = 0;
+    CHECK(read_board(Frame{}, bad).error() == ReadError::invalid_frame);
+}
+
+TEST_CASE("a board with no letters on it is answered with no_letters", "[scan][reader]") {
+    // A real lattice of blank dice, found and counted, with nothing to read in it.
+    Spec spec = spec_of(Condition::upright, 4, 3);
+    const Rendered blank = render_blank(spec);
+    ReadOptions options;
+    options.size = 4;
+    const auto reading = read_board(blank.image.view(), options);
+    REQUIRE_FALSE(reading.has_value());
+    CHECK(reading.error() == ReadError::no_letters);
+    CHECK(to_string(reading.error()) != to_string(ReadError::board_not_found));
+}
+
+TEST_CASE("a board whose cells cannot be counted is answered with size_not_found",
+          "[scan][reader]") {
+    // A 4x4 board of 16 dice, asked to be counted as 7 or 8 a side: 49 cells for 16
+    // dice is over three times as many, so no count in range fits.
+    const Spec spec = spec_of(Condition::upright, 4, 2);
+    const Rendered& frame = fixtures::frame(spec);
+    ReadOptions options;
+    options.min_size = 7;
+    options.max_size = 8;
+    const auto reading = read_board(frame.image.view(), options);
+    REQUIRE_FALSE(reading.has_value());
+    CHECK(reading.error() == ReadError::size_not_found);
+
+    // And when no count in range is clear: the same frame is a board with the default range.
+    CHECK(read_board(frame.image.view()).has_value());
+}
+
 TEST_CASE("a frame with no board is answered with board_not_found", "[scan][reader]") {
     const GrayImage blank(640, 480, 120);
     const auto reading = read_board(blank.view());
@@ -237,8 +344,9 @@ TEST_CASE("a lattice of dice with no letters on them is not a board", "[scan][re
 }
 
 TEST_CASE("each error says what happened without blaming anyone", "[scan][reader]") {
-    for (const ReadError error : {ReadError::invalid_frame, ReadError::board_not_found,
-                                  ReadError::size_not_found, ReadError::no_letters}) {
+    for (const ReadError error :
+         {ReadError::invalid_frame, ReadError::board_not_found, ReadError::size_not_found,
+          ReadError::no_letters, ReadError::invalid_options}) {
         CHECK_FALSE(to_string(error).empty());
     }
 }

@@ -67,6 +67,11 @@ struct Rendered {
 
 [[nodiscard]] Rendered render(const Spec& spec);
 
+// The same board with nothing on the dice: a lattice of blank dice, in the lighting
+// and view of the spec's condition. The truth is empty letters. For a frame in which
+// a board and a size are found and not a letter.
+[[nodiscard]] Rendered render_blank(const Spec& spec);
+
 // The corpus of a split: for each condition 24 boards, 12 of 4x4, 6 of 5x5 and 6 of
 // 6x6.
 [[nodiscard]] std::vector<Spec> corpus(Split split);

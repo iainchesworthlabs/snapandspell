@@ -553,6 +553,14 @@ Rendered render(const Spec& spec) {
     return out;
 }
 
+Rendered render_blank(const Spec& spec) {
+    Rng rng(seed_of(spec) + 3U);
+    Rendered out = draw(rng, look_for(spec.condition), spec.size, true, false,
+                        1 + static_cast<int>(rng.below(2)));
+    out.seed = seed_of(spec);
+    return out;
+}
+
 std::vector<Spec> corpus(Split split) {
     std::vector<Spec> specs;
     for (std::size_t c = 0; c < kConditionCount; ++c) {

@@ -46,6 +46,8 @@ constexpr int kMaxFramePolls = 40;
             return QStringLiteral("size_not_found");
         case wjs::scan::ReadError::no_letters:
             return QStringLiteral("no_letters");
+        case wjs::scan::ReadError::invalid_options:
+            return QStringLiteral("invalid_options");
     }
     return QStringLiteral("board_not_found");
 }

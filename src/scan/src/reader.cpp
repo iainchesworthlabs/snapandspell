@@ -25,8 +25,37 @@ std::string_view to_string(ReadError error) noexcept {
             return "a board was found but its cells could not be counted";
         case ReadError::no_letters:
             return "a board was found but no letter on it could be seen";
+        case ReadError::invalid_options:
+            return "the reading options are out of range";
     }
     return "unknown read error";
+}
+
+bool ReadOptions::valid() const noexcept {
+    const auto picture = [](int side) {
+        return side >= 16 && static_cast<std::size_t>(side) <= Frame::max_side;
+    };
+    const auto counts = [](std::size_t n) { return n >= 2 && n <= Board::max_dimension; };
+    // Written as comparisons that a NaN fails, so that one is refused with no
+    // separate test.
+    const auto finite = [](double v) { return std::isfinite(v); };
+    if (!picture(working_size) || !picture(analysis_size)) {
+        return false;
+    }
+    if (board_side < 32 || board_side > 4096) {
+        return false;
+    }
+    if (size && !counts(*size)) {
+        return false;
+    }
+    if (!counts(min_size) || !counts(max_size) || min_size > max_size) {
+        return false;
+    }
+    if (!(glyph_height_ratio >= 0.1 && glyph_height_ratio <= 1.0)) {
+        return false;
+    }
+    return finite(min_score) && min_score != 0.0 && finite(min_margin) && min_margin != 0.0 &&
+           finite(min_contrast) && min_contrast >= 0.0;
 }
 
 namespace {
@@ -67,6 +96,9 @@ TileReading to_tile(const GlyphRead& read, const ReadOptions& options) {
 std::expected<BoardReading, ReadError> read_board(const Frame& frame, const ReadOptions& options) {
     if (!frame.valid()) {
         return std::unexpected(ReadError::invalid_frame);
+    }
+    if (!options.valid()) {
+        return std::unexpected(ReadError::invalid_options);
     }
 
     ScanWork& tally = detail::scan_tally();
@@ -167,48 +199,61 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
             for (std::size_t k = step / 2; k < cells; k += step) {
                 sample_cells.push_back(k);
             }
-            const auto fit_at = [&](double trial) {
-                double total = 0.0;
+            // The mean best correlation of the sample cells that have ink at all,
+            // and the reads themselves; `seen` is how many had any.
+            struct Trial {
+                double fit = 0.0;
                 int seen = 0;
                 std::vector<GlyphRead> reads;
-                reads.reserve(sample_cells.size());
+            };
+            const auto fit_at = [&](double trial) {
+                Trial result;
+                double total = 0.0;
+                result.reads.reserve(sample_cells.size());
                 for (const std::size_t k : sample_cells) {
                     const Point centre{centres.x[k % count->size], centres.y[k / count->size]};
                     const GlyphRead read =
                         reader.read(board, centre, half_side * trial, options.min_contrast);
-                    reads.push_back(read);
+                    result.reads.push_back(read);
                     if (read.has_ink) {
                         total += read.best[0].score;
-                        ++seen;
+                        ++result.seen;
                     }
                 }
-                return std::pair{seen == 0 ? -1.0 : total / seen, std::move(reads)};
+                result.fit = result.seen == 0 ? 0.0 : total / result.seen;
+                return result;
             };
+            // The nominal height is the incumbent, so that when nothing is measured
+            // (no sampled cell has ink at any trial height) or two heights tie, the
+            // height asked for stands, and a trial replaces it only by fitting better.
             double best_fit = -1e300;
-            for (const double trial : {0.8, 1.0, 1.25}) {
-                auto [fit, reads] = fit_at(trial);
-                if (fit > best_fit) {
-                    best_fit = fit;
-                    scale = trial;
-                    sample_reads = std::move(reads);
+            {
+                Trial nominal = fit_at(1.0);
+                if (nominal.seen > 0) {
+                    best_fit = nominal.fit;
                 }
+                sample_reads = std::move(nominal.reads);
             }
+            const auto try_height = [&](double trial) {
+                Trial candidate = fit_at(trial);
+                if (candidate.seen > 0 && candidate.fit > best_fit) {
+                    best_fit = candidate.fit;
+                    scale = trial;
+                    sample_reads = std::move(candidate.reads);
+                }
+            };
+            try_height(0.8);
+            try_height(1.25);
             const double middle = scale;
-            for (const double trial : {middle / 1.1, middle * 1.1}) {
-                auto [fit, reads] = fit_at(trial);
-                if (fit > best_fit) {
-                    best_fit = fit;
-                    scale = trial;
-                    sample_reads = std::move(reads);
-                }
-            }
+            try_height(middle / 1.1);
+            try_height(middle * 1.1);
         }
         reading.glyph_height_ratio = options.glyph_height_ratio * scale;
         reading.tiles.reserve(count->size * count->size);
         // The sample cells' reads at the winning height, for the tile loop to
         // take instead of reading those cells again.
         std::vector<std::optional<GlyphRead>> cached(count->size * count->size);
-        for (std::size_t i = 0; i < sample_cells.size(); ++i) {
+        for (std::size_t i = 0; i < sample_cells.size() && i < sample_reads.size(); ++i) {
             cached[sample_cells[i]] = sample_reads[i];
         }
         std::size_t blank = 0;
@@ -218,10 +263,10 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
                 for (std::size_t column = 0; column < count->size; ++column) {
                     const std::size_t index = row * count->size + column;
                     const Point centre{centres.x[column], centres.y[row]};
+                    const std::optional<GlyphRead>& kept = cached[index];
                     const GlyphRead read =
-                        cached[index]
-                            ? *cached[index]
-                            : reader.read(board, centre, half_side * scale, options.min_contrast);
+                        kept ? *kept
+                             : reader.read(board, centre, half_side * scale, options.min_contrast);
                     reading.tiles.push_back(to_tile(read, options));
                     if (reading.tiles.back().letters.empty()) {
                         ++blank;
