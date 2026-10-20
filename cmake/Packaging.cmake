@@ -56,6 +56,21 @@ set(CPACK_GENERATOR "ZIP")
 # every platform this project can be installed on.
 wjs_install_notices()
 
+# A build with Tracy in it is a development build, and its programs load Tracy's
+# client library at start-up: where Tracy is a shared library (vcpkg's dynamic
+# Windows triplet) the package has to carry it beside them, or the packaged
+# programs do not start (STATUS_DLL_NOT_FOUND). Only a development package is
+# ever made this way (cmake/PackagePreflight.cmake); a Release build links no
+# Tracy, and where Tracy is a static library there is nothing to install.
+if(WJS_ENABLE_TRACY AND TARGET Tracy::TracyClient)
+    get_target_property(_wjs_tracy_type Tracy::TracyClient TYPE)
+    if(_wjs_tracy_type STREQUAL "SHARED_LIBRARY")
+        install(IMPORTED_RUNTIME_ARTIFACTS Tracy::TracyClient
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    endif()
+    unset(_wjs_tracy_type)
+endif()
+
 if(NOT WJS_PLATFORM_DESKTOP)
     message(STATUS
         "Packaging: ${WJS_PLATFORM_DISPLAY_NAME} is not a desktop this project "

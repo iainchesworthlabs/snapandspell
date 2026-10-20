@@ -22,9 +22,15 @@
 
 namespace {
 
+// The exit codes are the program's contract (tests/system/check_cli.cmake): 0 for
+// a board solved, and one code a reason for any other end, so that a script can
+// tell them apart. Usage is 1; a failure the program did not foresee is not
+// usage, and has a code of its own.
 constexpr int exit_usage = 1;
 constexpr int exit_dictionary = 2;
 constexpr int exit_board = 3;
+constexpr int exit_internal = 4;  // an exception the program did not foresee
+constexpr int exit_output = 5;    // the result could not be written to standard output
 
 constexpr std::string_view usage_text =
     "Usage: wjs-cli [options] <row>...\n"
@@ -134,6 +140,22 @@ struct Arguments {
     return text;
 }
 
+// Brings what has been written to standard output to its destination and says
+// whether it got there. The stream is flushed here, by the program, and not left
+// to the flush at exit: in the Debug build (AddressSanitizer and the profiler's
+// client) the exit-time flush was lost about one run in ten, so that --version
+// and --help left 0 with nothing printed. A closed pipe or a full disk fails the
+// stream without a word; a program whose output is the point says so and does not
+// leave 0 for a result that never arrived.
+[[nodiscard]] int finish_output() {
+    std::cout.flush();
+    if (!std::cout) {
+        std::cerr << "wjs-cli: the result could not be written to standard output\n";
+        return exit_output;
+    }
+    return 0;
+}
+
 [[nodiscard]] int run(const Arguments& arguments) {
     auto zone = wjs::profiling::zone<"cli.run">();
 
@@ -166,7 +188,7 @@ struct Arguments {
                                  describe_path(found.path));
     }
     std::cout << std::format("{} words, {} points\n", words.size(), total);
-    return 0;
+    return finish_output();
 }
 
 int run_cli(int argc, char** argv) {
@@ -185,11 +207,11 @@ int run_cli(int argc, char** argv) {
     }
     if (arguments->version) {
         std::cout << std::format("wjs-cli {} ({})\n", wjs::project_version, wjs::target_platform);
-        return 0;
+        return finish_output();
     }
     if (arguments->help) {
         std::cout << usage_text;
-        return 0;
+        return finish_output();
     }
     if (arguments->board_text.empty()) {
         std::cerr << usage_text;
@@ -210,9 +232,9 @@ int main(int argc, char** argv) {
         return run_cli(argc, argv);
     } catch (const std::exception& error) {
         std::cerr << "wjs-cli: " << error.what() << '\n';
-        return 1;
+        return exit_internal;
     } catch (...) {
         std::cerr << "wjs-cli: unknown error\n";
-        return 1;
+        return exit_internal;
     }
 }
