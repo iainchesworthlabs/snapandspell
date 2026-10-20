@@ -20,6 +20,7 @@ add_test(NAME notices.sections
     COMMAND "${CMAKE_COMMAND}"
         "-DNOTICES=${WJS_NOTICES_FILE}"
         "-DVERSION=${PROJECT_VERSION}"
+        "-DEXPECT_CLI=${WJS_BUILD_CLI}"
         "-DEXPECT_QT=${WJS_BUILD_APP}"
         "-DQT_VERSION=${Qt6_VERSION}"
         -P "${WJS_TESTS_DIR}/notices/check_notices.cmake")
@@ -120,6 +121,7 @@ set(WJS_QUALITY_TESTS
     profiling.shipped_presets
     profiling.zone_names
     toolchain.versions
+    analysis.config
     privacy.sources
     privacy.sources.selftest
     parent.wording

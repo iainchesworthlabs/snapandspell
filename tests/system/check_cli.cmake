@@ -11,6 +11,9 @@
 #   -DCLI=<wjs-cli> -DDICTIONARY=<data/dictionaries/en.txt>
 #   -DWORK_DIR=<build>/system/cli -DCASE=<case>
 #
+# The cases run in parallel under `ctest -j`, so each writes under
+# <WORK_DIR>/<case>: they would otherwise rewrite one word list under each other.
+#
 # The exit codes are the program's contract: 0 solved, 1 usage, 2 dictionary,
 # 3 board.
 # ---------------------------------------------------------------------------
@@ -27,7 +30,7 @@ if(NOT EXISTS "${CLI}")
     message(FATAL_ERROR "check_cli.cmake: the program '${CLI}' was not built")
 endif()
 
-set(_work "${WORK_DIR}")
+set(_work "${WORK_DIR}/${CASE}")
 file(MAKE_DIRECTORY "${_work}")
 set(_words "${_work}/words.txt")
 file(WRITE "${_words}" "CAT\nCAR\nCARE\nARE\nTAR\nTEA\nDOG\nCOD\nROD\nCATS\nREST\nAT\nQUIT\n")

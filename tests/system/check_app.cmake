@@ -29,7 +29,7 @@ endif()
 set(ENV{QT_QPA_PLATFORM} "offscreen")
 set(ENV{QT_FORCE_STDERR_LOGGING} "1")
 
-set(_work "${WORK_DIR}")
+set(_work "${WORK_DIR}/${CASE}")
 file(MAKE_DIRECTORY "${_work}")
 
 function(run_app timeout)
