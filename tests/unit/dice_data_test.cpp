@@ -7,9 +7,9 @@
 #include <string_view>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/deal.hpp"
-#include "support/test_support.hpp"
 #include "wjs/dice.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/game_rules.hpp"

@@ -100,7 +100,7 @@ TEST_CASE("a vigorous shake is one shake, found where it is", "[shake]") {
     CHECK(shakes[0].end >= 2.2);
     CHECK(shakes[0].end <= 2.5);
     CHECK(shakes[0].jolts >= 8);
-    CHECK(shakes[0].peak > 1.2);  // above the jolt threshold
+    CHECK(shakes[0].peak > 1.2);     // above the jolt threshold
     CHECK_FALSE(shakes[0].ongoing);  // half a second of stillness follows
 }
 

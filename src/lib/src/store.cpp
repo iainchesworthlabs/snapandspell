@@ -158,8 +158,7 @@ struct CheckedBoard {
 // same order, on the same day: it counts as the first sent again.
 [[nodiscard]] bool continues(const StoreData& data, const StoredBoard& last,
                              const BoardSnapshot& snapshot, const CheckedBoard& checked) {
-    if (last.phase != snapshot.phase || last.size != snapshot.size ||
-        last.tiles != checked.tiles ||
+    if (last.phase != snapshot.phase || last.size != snapshot.size || last.tiles != checked.tiles ||
         static_cast<std::size_t>(last.found) > checked.finds.size()) {
         return false;
     }
@@ -170,7 +169,8 @@ struct CheckedBoard {
         }
     }
     // The finds the store dropped were the board's first.
-    std::size_t next = static_cast<std::size_t>(last.found) - std::min(held, static_cast<std::size_t>(last.found));
+    std::size_t next =
+        static_cast<std::size_t>(last.found) - std::min(held, static_cast<std::size_t>(last.found));
     for (const FindRecord& find : data.finds) {
         if (find.board != last.serial) {
             continue;

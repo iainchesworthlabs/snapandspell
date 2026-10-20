@@ -112,9 +112,8 @@ std::size_t FoundWords::CaseBlindHash::operator()(std::string_view word) const n
 
 bool FoundWords::CaseBlindEqual::operator()(std::string_view lhs,
                                             std::string_view rhs) const noexcept {
-    return std::ranges::equal(lhs, rhs, [](char a, char b) {
-        return ascii::to_upper(a) == ascii::to_upper(b);
-    });
+    return std::ranges::equal(
+        lhs, rhs, [](char a, char b) { return ascii::to_upper(a) == ascii::to_upper(b); });
 }
 
 bool FoundWords::contains(std::string_view word) const noexcept {

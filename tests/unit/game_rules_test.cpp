@@ -15,12 +15,12 @@
 #include <utility>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/game_rules.hpp"
 #include "wjs/path.hpp"
 #include "wjs/phase_data.hpp"
-#include "support/test_support.hpp"
 #include "wjs/solver.hpp"
 
 // TEST DATA. The words below were written for these tests: the ones of the
@@ -840,8 +840,8 @@ TEST_CASE("a word a child must never meet is counted by the standard board and n
 
         // The word laid along the first cells of a 3x3 board in a snake, the
         // rest filled with a letter that makes no word.
-        const std::array<Position, 9> snake = {{{0, 0}, {0, 1}, {0, 2}, {1, 2}, {1, 1}, {1, 0},
-                                                {2, 0}, {2, 1}, {2, 2}}};
+        const std::array<Position, 9> snake = {
+            {{0, 0}, {0, 1}, {0, 2}, {1, 2}, {1, 1}, {1, 0}, {2, 0}, {2, 1}, {2, 2}}};
         std::array<char, 9> cells;
         cells.fill('X');
         std::vector<Position> path;

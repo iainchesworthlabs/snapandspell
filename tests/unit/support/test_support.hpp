@@ -25,7 +25,8 @@ namespace wjs::test {
 // The board as text, rows by '/', tiles by `separator` ("C A T/X X X" by
 // default; "" for the tiles run together, which is how two boards are compared
 // when only the letters matter).
-[[nodiscard]] inline std::string text_of(const wjs::Board& board, std::string_view separator = " ") {
+[[nodiscard]] inline std::string text_of(const wjs::Board& board,
+                                         std::string_view separator = " ") {
     std::string text;
     for (std::size_t row = 0; row < board.rows(); ++row) {
         if (row > 0) {

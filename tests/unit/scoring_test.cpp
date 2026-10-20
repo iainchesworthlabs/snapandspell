@@ -69,7 +69,7 @@ TEST_CASE("a word of nine letters or more is worth 110 and 20 more for each lett
 TEST_CASE("each letter is worth its English Scrabble value in a word", "[scoring]") {
     // 3 letters: 10, then two A1 beside the letter tried.
     const int base = 10 + 2;
-    const int values[26] = {1, 3, 3, 2, 1, 4, 2, 4, 1, 8, 5, 1, 3,
+    const int values[26] = {1, 3, 3, 2,  1, 4, 2, 4, 1, 8, 5, 1, 3,
                             1, 1, 3, 10, 1, 1, 1, 1, 4, 4, 8, 4, 10};
     for (int i = 0; i < 26; ++i) {
         const char upper = static_cast<char>('A' + i);
@@ -80,8 +80,7 @@ TEST_CASE("each letter is worth its English Scrabble value in a word", "[scoring
     }
 }
 
-TEST_CASE("a character that is not a letter adds no value but counts in the length",
-          "[scoring]") {
+TEST_CASE("a character that is not a letter adds no value but counts in the length", "[scoring]") {
     CHECK(wjs::word_points("C-T") == 10 + 3 + 1);
     CHECK(wjs::word_points("---") == 10);
     CHECK(wjs::word_points("AA") == 0);

@@ -7,8 +7,8 @@
 #include <string_view>
 #include <vector>
 
-#include "wjs/board.hpp"
 #include "support/test_support.hpp"
+#include "wjs/board.hpp"
 #include "wjs/dice.hpp"
 
 // TEST DATA. The dice below were written for these tests: nine dice whose faces

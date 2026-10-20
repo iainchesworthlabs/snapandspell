@@ -80,7 +80,8 @@ std::vector<SoundStepKind> kinds_of(const wjs::SoundSequence& sequence) {
 
 }  // namespace
 
-TEST_CASE("the timings are the design's: 150 ms between sounds and a blend of 380", "[sound_it_out]") {
+TEST_CASE("the timings are the design's: 150 ms between sounds and a blend of 380",
+          "[sound_it_out]") {
     CHECK(wjs::segment_gap == 150ms);
     CHECK(wjs::blend_duration == 380ms);
 }
@@ -93,8 +94,8 @@ TEST_CASE("sounding out is each sound, the blend, the word and the cheer, in tha
     CHECK_FALSE(sequence.whole_word_only);
     CHECK(kinds_of(sequence) ==
           std::vector<SoundStepKind>{SoundStepKind::sound, SoundStepKind::sound,
-                                     SoundStepKind::sound, SoundStepKind::blend,
-                                     SoundStepKind::say, SoundStepKind::cheer});
+                                     SoundStepKind::sound, SoundStepKind::blend, SoundStepKind::say,
+                                     SoundStepKind::cheer});
 }
 
 TEST_CASE("there is one sound step for each grapheme, in the word's order", "[sound_it_out]") {
@@ -231,8 +232,8 @@ TEST_CASE("the same word under the same setting is the same sequence", "[sound_i
 }
 
 TEST_CASE("every step kind has a name", "[sound_it_out]") {
-    for (const SoundStepKind kind : {SoundStepKind::sound, SoundStepKind::blend, SoundStepKind::say,
-                                     SoundStepKind::cheer}) {
+    for (const SoundStepKind kind :
+         {SoundStepKind::sound, SoundStepKind::blend, SoundStepKind::say, SoundStepKind::cheer}) {
         CHECK_FALSE(wjs::to_string(kind).empty());
     }
 }
