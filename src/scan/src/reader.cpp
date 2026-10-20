@@ -121,13 +121,13 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
     int to_analysis = 1;
     int to_working = 1;
     {
-        auto zone = profiling::zone<"scan.decode_frame">();
+        [[maybe_unused]] auto zone = profiling::zone<"scan.decode_frame">();
         detail::luma_into(scratch.luma, frame);
     }
     detail::shrink_into(scratch.analysis, scratch.luma, options.analysis_size, to_analysis);
     const GrayImage* analysis = to_analysis > 1 ? &scratch.analysis : &scratch.luma;
     {
-        auto zone = profiling::zone<"scan.convert_working">();
+        [[maybe_unused]] auto zone = profiling::zone<"scan.convert_working">();
         detail::shrink_into(scratch.working, *analysis, options.working_size, to_working);
     }
     const GrayImage* working = to_working > 1 ? &scratch.working : analysis;
@@ -146,7 +146,7 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
         outline[k] = found->corners[k] * static_cast<double>(to_working);
     }
     {
-        auto zone = profiling::zone<"scan.warp_board">();
+        [[maybe_unused]] auto zone = profiling::zone<"scan.warp_board">();
         detail::warp_into(scratch.board, *analysis, outline, options.board_side);
     }
     const GrayImage& board = scratch.board;
@@ -258,7 +258,7 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
         }
         std::size_t blank = 0;
         {
-            auto glyph_zone = profiling::zone<"scan.read_glyphs">();
+            [[maybe_unused]] auto glyph_zone = profiling::zone<"scan.read_glyphs">();
             for (std::size_t row = 0; row < count->size; ++row) {
                 for (std::size_t column = 0; column < count->size; ++column) {
                     const std::size_t index = row * count->size + column;
