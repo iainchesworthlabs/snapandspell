@@ -79,8 +79,12 @@ wjs_install_notices()
 # ever made this way (cmake/PackagePreflight.cmake); a Release build links no
 # Tracy, and where Tracy is a static library there is nothing to install.
 if(WJS_ENABLE_TRACY AND TARGET Tracy::TracyClient)
-    install(IMPORTED_RUNTIME_ARTIFACTS Tracy::TracyClient
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    get_target_property(_wjs_tracy_type Tracy::TracyClient TYPE)
+    if(_wjs_tracy_type STREQUAL "SHARED_LIBRARY")
+        install(IMPORTED_RUNTIME_ARTIFACTS Tracy::TracyClient
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    endif()
+    unset(_wjs_tracy_type)
 endif()
 
 if(NOT WJS_PLATFORM_DESKTOP)
