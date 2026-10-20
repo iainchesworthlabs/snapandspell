@@ -766,6 +766,22 @@ if(WJS_TRACE_TESTS)
         LABELS "system;profiling")
 endif()
 
+# A leg that holds the performance tier's work budgets ran them. Every work case
+# stands aside (SKIP) in a build that is not optimised, and a skip is not a
+# failure, so a leg of Debug builds passes with the whole tier skipped. This runs
+# the work cases and fails when an optimised build (or a workflow that sets
+# WJS_REQUIRE_PERF_BUDGETS=1) ran none; in any other build it reports itself
+# skipped (exit 4) with the reason, so it is never a pass that checked nothing.
+add_test(NAME profiling.perf_budgets_ran
+    COMMAND "${CMAKE_COMMAND}"
+        "-DPERF_TESTS=$<TARGET_FILE:wjs_perf_tests>"
+        "-DEXPECT_RUN=$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,1,0>"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_perf_ran.cmake")
+set_tests_properties(profiling.perf_budgets_ran PROPERTIES
+    SKIP_RETURN_CODE 4
+    TIMEOUT 300)
+
 # The workflow's toolchain pins (CMake, Ninja, Qt, aqtinstall) are the ones in
 # .github/toolchain-versions.json, and the vcpkg baseline is the pinned commit.
 # Runs on every host: it only reads the files.
@@ -877,6 +893,7 @@ set(WJS_QUALITY_TESTS
     notices.sections
     package.config
     platform.fragments
+    profiling.perf_budgets_ran
     profiling.shipped_presets
     profiling.zone_names
     toolchain.versions
