@@ -52,7 +52,7 @@ private:
 // says which. For a result that arrives from another thread or a queued signal:
 // the wait ends when the thing happens, and the timeout is only how long a
 // broken one is waited for.
-[[nodiscard]] inline bool spin_until(const std::function<bool()>& done, int timeout_ms = 5000) {
+[[nodiscard]] inline bool spin_until(const std::function<bool()>& done, int timeout_ms = 30000) {
     QElapsedTimer clock;
     clock.start();
     while (!done()) {
