@@ -136,6 +136,22 @@
       }
     },
     {
+      "name": "linux-gcc-analysis",
+      "displayName": "Linux (GCC, static analysis: compile database only)",
+      "description": "The lean tree the nightly clang-tidy and CodeQL jobs read: Debug, no tests, no Qt application, Tracy and the sanitizers off, so configuring it installs nothing through vcpkg.",
+      "inherits": [
+        "linux-gcc-base",
+        "debug"
+      ],
+      "cacheVariables": {
+        "WJS_BUILD_APP": "OFF",
+        "WJS_BUILD_TESTS": "OFF",
+        "WJS_ENABLE_TRACY": "OFF",
+        "WJS_ENABLE_SANITIZERS": "OFF",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF"
+      }
+    },
+    {
       "name": "linux-gcc-base",
       "hidden": true,
       "inherits": [
@@ -265,6 +281,7 @@
     { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling" },
     { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling" },
     { "name": "windows-msvc-analysis", "configurePreset": "windows-msvc-analysis" },
+    { "name": "linux-gcc-analysis", "configurePreset": "linux-gcc-analysis" },
     { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" }
   ],
   "testPresets": [

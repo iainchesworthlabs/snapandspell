@@ -41,30 +41,22 @@ jobs:
     permissions:
       contents: read
     steps:
+      # A schedule runs the workflow file of the default branch (main) on main's
+      # commit; the code worth analysing every night is the integration branch's.
+      # A manual run analyses the branch it was started on.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
           persist-credentials: false
 
       - name: Set up vcpkg
         uses: ./.github/actions/vcpkg-setup
-
-      # linux-gcc-debug turns Tracy on, so this configure installs it (and its
-      # host tools) through vcpkg even though nothing is built: the same
-      # archives as the Linux (GCC) leg, restored rather than built every night.
-      - name: Restore vcpkg binaries
-        id: vcpkg-cache
-        uses: ./.github/actions/vcpkg-cache/restore
-        with:
-          triplet: x64-linux
 
       - name: Install CMake 4 + Ninja
         uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
-
-      - name: Install what vcpkg needs for Tracy's tools
-        uses: ./.github/actions/linux-tracy-tools
 
       - name: Install uv
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -86,12 +78,7 @@ jobs:
       # which clang-tidy 22 does not parse. Nothing here uses modules, so the
       # scan is off for the database rather than stripped afterwards.
       - name: Configure (library, platform, scanner and CLI only)
-        run: >
-          cmake --preset linux-gcc-debug
-          -DWJS_BUILD_TESTS=OFF
-          -DWJS_BUILD_APP=OFF
-          -DWJS_ENABLE_SANITIZERS=OFF
-          -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
+        run: cmake --preset linux-gcc-analysis -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
 
       # A zero-file run would be a pass with nothing checked, so the count is
       # printed and must be non-zero before the gate runs. The PyPI wheel names
@@ -102,24 +89,16 @@ jobs:
       - name: Run clang-tidy (warnings are errors)
         shell: bash
         run: |
-          database=build/linux-gcc-debug/compile_commands.json
+          database=build/linux-gcc-analysis/compile_commands.json
           count="$(jq 'length' "$database")"
           if [ "$count" -eq 0 ]; then
             echo "::error::the compile database has no translation units"
             exit 1
           fi
           echo "checking ${count} translation unit(s)"
-          run-clang-tidy.py -p build/linux-gcc-debug \
+          run-clang-tidy.py -p build/linux-gcc-analysis \
             -config-file "$GITHUB_WORKSPACE/.clang-tidy" \
             -j "$(nproc)" -quiet -warnings-as-errors '*'
-
-      # Saved even when the gate is red - see ci.yml.
-      - name: Save vcpkg binaries
-        if: ${{ always() }}
-        uses: ./.github/actions/vcpkg-cache/save
-        with:
-          triplet: x64-linux
-          restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
   # MSVC's analyzer is part of the compile, so this job builds the lean tree
   # (no tests, no Qt application, no sanitizers) and lets /WX turn a C6xxx
@@ -135,9 +114,18 @@ jobs:
       # upload is skipped below if it is ever made private.
       security-events: write
     steps:
+      # A schedule runs the workflow file of the default branch (main) on main's
+      # commit; the code worth analysing every night is the integration branch's.
+      # A manual run analyses the branch it was started on.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
           persist-credentials: false
+
+      - name: Record the commit that is analysed
+        id: analysed
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Set up vcpkg
         uses: ./.github/actions/vcpkg-setup
@@ -180,6 +168,9 @@ jobs:
         with:
           sarif_file: build/msvc-sarif
           category: msvc-analyze
+          # The workflow runs on main's ref; the code analysed is what was checked out.
+          ref: ${{ github.event_name == 'schedule' && 'refs/heads/develop' || github.ref }}
+          sha: ${{ steps.analysed.outputs.sha }}
 
   # The push legs build Debug with GCC and AppleClang; this is the one Clang
   # build of the tree, with AddressSanitizer and UndefinedBehaviorSanitizer and
@@ -196,8 +187,12 @@ jobs:
       # what makes a UBSan report in the log actionable.
       UBSAN_OPTIONS: print_stacktrace=1
     steps:
+      # A schedule runs the workflow file of the default branch (main) on main's
+      # commit; the code worth analysing every night is the integration branch's.
+      # A manual run analyses the branch it was started on.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
           persist-credentials: false
 
       - name: Set up vcpkg
