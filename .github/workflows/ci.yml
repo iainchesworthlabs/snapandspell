@@ -237,7 +237,8 @@ jobs:
       # pattern as the shared tree (docs/building.md). The application and the
       # 3D board-scene prototype are built and their tests run, so the QML
       # screens, the scene contract and qmllint are held on every push
-      # (docs/ci.md). The qttools module carries lupdate and lrelease: the
+      # (docs/ci.md). The base kit carries lupdate and lrelease (from Qt 6.12 qttools is an
+      # archive of the base package, no longer a module): the
       # interface's catalogues are compiled at build time and the drift check
       # regenerates them. qtmultimedia, qtsensors and qtspeech are the
       # application's sound, motion and speech; their silent variants exist for
@@ -261,7 +262,7 @@ jobs:
           # $RUNNER_WORKSPACE instead.
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qttools qtmultimedia qtsensors qtspeech"
+          modules: "qtmultimedia qtsensors qtspeech"
           cache: true
 
       # What the leg actually built with, in the log: the first thing to read
@@ -326,7 +327,7 @@ jobs:
       # The interface's catalogues are generated: lupdate regenerates them into a
       # temporary directory and the checked-in i18n/*.ts must be identical, so a
       # qsTr() added without regenerating them fails the Windows leg. It is
-      # already in ctest above; this step names the gate. The qttools module
+      # already in ctest above; this step names the gate. The base kit
       # installed above means lupdate is there, so a missing catalogue is a red
       # step and not a skip (docs/ci.md).
       - name: Interface catalogues (lupdate drift)
@@ -505,7 +506,7 @@ jobs:
           arch: win64_msvc2022_64
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qttools qtmultimedia qtsensors qtspeech"
+          modules: "qtmultimedia qtsensors qtspeech"
           cache: true
 
       - name: Configure (Release)

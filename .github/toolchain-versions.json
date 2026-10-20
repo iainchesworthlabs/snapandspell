@@ -11,7 +11,7 @@
       "linux": { "host": "linux", "arch": "linux_gcc_64", "dir": "gcc_64" },
       "macos": { "host": "mac", "arch": "clang_64", "dir": "macos" }
     },
-    "modules": "qttools qtmultimedia qtsensors qtspeech",
+    "modules": "qtmultimedia qtsensors qtspeech",
     "action": "jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125",
     "aqtsource": "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
   },
