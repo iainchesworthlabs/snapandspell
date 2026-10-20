@@ -119,7 +119,8 @@ endif()
 # a git commit, not a PyPI release: Qt 6.11+ split the Windows repository per
 # architecture and aqtinstall 3.3.0, the last PyPI release, cannot read it
 # (docs/ci.md, "Qt on the Windows leg"). the base kit carries lupdate and lrelease (qttools is an archive of the
-# base package from Qt 6.12, not a module), which the catalogue drift check needs; qtmultimedia, qtsensors and qtspeech
+# base package from Qt 6.12, not a module), which the catalogue drift check needs; qtquick3d and qtshadertools are the board scene's and, from 6.12, modules
+# of their own; qtmultimedia, qtsensors and qtspeech
 # are the application's sound, motion and speech (their silent variants exist
 # for a kit without them, but this leg is the one that proves the real ones).
 if(NOT _ci MATCHES "uses:[ \t]*jurplel/install-qt-action@[0-9a-f]+")

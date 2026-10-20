@@ -206,7 +206,7 @@ jobs:
           arch: ${{ matrix.qt-arch }}
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qtmultimedia qtsensors qtspeech"
+          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
           cache: true
 
       # CPack's NSIS settings are decided at configure time, when makensis is
