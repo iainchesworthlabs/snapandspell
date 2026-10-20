@@ -4,8 +4,9 @@ import WordJewelsSolver
 
 // Line icons on a 24 x 24 grid: 2 px stroke, round caps, no fill, drawn as
 // vector paths so they scale cleanly and take a colour token. A picture, never
-// text: the app's buttons for a child say what they do with a drawing. A
-// navigation arrow turns round when the layout is mirrored; nothing else does.
+// text: the app's buttons for a child say what they do with a drawing. The
+// navigation arrows (back, forward) turn round when the layout is mirrored;
+// nothing else does.
 Item {
     id: root
 
@@ -13,17 +14,22 @@ Item {
     property color color: Theme.ink
     property real strokeWidth: 2
 
-    readonly property bool mirrorsInRtl: name === "back"
+    readonly property bool mirrorsInRtl: name === "back" || name === "forward"
     // The attached property belongs to an Item, so it is read here.
     readonly property bool layoutMirrored: Theme.rightToLeft
 
-    implicitWidth: 24
-    implicitHeight: 24
+    // The drawing grid; the item scales it to whatever size it is given.
+    readonly property real grid: 24
+
+    implicitWidth: grid
+    implicitHeight: grid
 
     function pathFor(icon) {
         switch (icon) {
         case "back":
             return "M15 5 L8 12 L15 19";
+        case "forward":
+            return "M9 5 L16 12 L9 19";
         case "close":
             return "M6 6 L18 18 M18 6 L6 18";
         case "parent":
@@ -41,23 +47,25 @@ Item {
             // An arrow going round: play again.
             return "M19 12 a7 7 0 1 1 -2.1 -5 M19 4.5 L19 8.5 L15 8.5";
         case "shake":
-            // A box with strokes either side: it rattles.
-            return "M8 8 h8 v8 h-8 z M4 9 v6 M20 9 v6 M2 11 v2 M22 11 v2";
+            // A die with its four pips, and a shake-arc either side of it.
+            return "M8.5 6.5 h7 a2 2 0 0 1 2 2 v7 a2 2 0 0 1 -2 2 h-7 a2 2 0 0 1 -2 -2 v-7 a2 2 0 0 1 2 -2 z"
+                   + " M10.5 10 l0.01 0 M13.5 10 l0.01 0 M10.5 14 l0.01 0 M13.5 14 l0.01 0"
+                   + " M3.5 9 q-1.6 3 0 6 M20.5 9 q1.6 3 0 6";
         default:
             return "";
         }
     }
 
     Shape {
-        width: 24
-        height: 24
-        scale: Math.min(root.width, root.height) / 24
+        width: root.grid
+        height: root.grid
+        scale: Math.min(root.width, root.height) / root.grid
         transformOrigin: Item.TopLeft
-        x: (root.width - 24 * scale) / 2
-        y: (root.height - 24 * scale) / 2
+        x: (root.width - root.grid * scale) / 2
+        y: (root.height - root.grid * scale) / 2
         preferredRendererType: Shape.CurveRenderer
         transform: Scale {
-            origin.x: 12
+            origin.x: root.grid / 2
             xScale: root.mirrorsInRtl && root.layoutMirrored ? -1 : 1
         }
 

@@ -38,29 +38,19 @@ Item {
         width: root.trayWidth
         height: root.trayHeight
         radius: Theme.radiusLarge
-        color: "#0A1113"
+        color: Theme.trayShadow
         opacity: 0.18
     }
 
-    Rectangle {
+    BoardTray {
         id: tray
         x: (root.width - root.trayWidth) / 2
         y: (root.height - root.trayHeight) / 2
         width: root.trayWidth
         height: root.trayHeight
-        radius: Theme.radiusLarge
-        color: Theme.tray
-        border.width: 3
-        border.color: Theme.gold
-
-        Rectangle {
-            anchors.fill: parent
-            anchors.margins: 8
-            radius: Theme.radiusLarge - 4
-            color: Theme.well
-            border.width: 1
-            border.color: "#2A4A52"
-        }
+        rim: Theme.litEdge
+        showWell: true
+        wellInset: Theme.space2
 
         // The closed box shows the compartments of the size it is set to, so
         // choosing 6 x 6 really does change the object on the left.
@@ -76,9 +66,9 @@ Item {
                     width: root.cell
                     height: width
                     radius: Theme.radiusSmall
-                    color: "#1F3F49"
-                    border.width: 1
-                    border.color: "#2A4A52"
+                    color: Theme.wellCell
+                    border.width: Theme.hair
+                    border.color: Theme.trayLine
                 }
             }
         }
@@ -112,7 +102,7 @@ Item {
         height: Math.max(46, tray.height * 0.28)
         radius: Theme.radius
         color: Theme.lid
-        border.width: 3
+        border.width: Theme.litEdge
         border.color: Theme.gold
         rotation: -2.5
         transformOrigin: Item.Center
@@ -123,7 +113,7 @@ Item {
             anchors.top: parent.top
             height: parent.height * 0.28
             radius: parent.radius
-            color: "#FFFFFF"
+            color: Theme.bevelLight
             opacity: 0.22
         }
 

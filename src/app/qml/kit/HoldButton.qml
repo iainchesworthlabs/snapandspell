@@ -19,11 +19,17 @@ Item {
 
     // 0 to 1, how far the ring has filled.
     property real progress: 0
+    property bool pointerFocus: false
     readonly property bool holding: hold.running
 
     implicitWidth: Theme.targetChild * 2
     implicitHeight: Theme.targetChild
     activeFocusOnTab: true
+    onActiveFocusChanged: {
+        if (!root.activeFocus) {
+            root.pointerFocus = false;
+        }
+    }
 
     Accessible.role: Accessible.Button
     Accessible.name: accessibleName
@@ -34,7 +40,7 @@ Item {
         anchors.fill: parent
         radius: Theme.radius
         color: root.holding ? Theme.pressWash : Theme.card
-        border.width: 1
+        border.width: Theme.hair
         border.color: Theme.outline
     }
 
@@ -43,19 +49,17 @@ Item {
         spacing: Theme.space2
         Icon {
             name: root.iconName
-            width: 26
-            height: 26
+            width: Theme.iconMd
+            height: width
             anchors.verticalCenter: parent.verticalCenter
             color: Theme.ink
         }
-        Text {
+        Label {
             visible: root.label.length > 0
+            role: "label"
+            decorative: true
             text: root.label
             anchors.verticalCenter: parent.verticalCenter
-            font.family: Theme.uiFont
-            font.pixelSize: Theme.labelSize
-            font.weight: Font.DemiBold
-            color: Theme.ink
         }
     }
 
@@ -98,17 +102,9 @@ Item {
         }
     }
 
-    Rectangle {
-        visible: root.activeFocus && keyboardFocus
-        property bool keyboardFocus: false
-        x: -4
-        y: -4
-        width: root.width + 8
-        height: root.height + 8
-        color: "transparent"
-        border.width: Theme.rule
-        border.color: Theme.ink
-        id: focusRing
+    FocusRing {
+        visible: root.activeFocus && !root.pointerFocus
+        inner: Theme.radius
     }
 
     NumberAnimation {
@@ -127,7 +123,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         onPressed: {
-            focusRing.keyboardFocus = false;
+            root.pointerFocus = true;
             hold.restart();
         }
         onReleased: release()
@@ -148,10 +144,11 @@ Item {
     }
 
     Keys.onPressed: event => {
-        focusRing.keyboardFocus = true;
-        if (event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+        root.pointerFocus = false;
+        const acts = event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter;
+        if (acts) {
             root.activated();
-            event.accepted = true;
         }
+        event.accepted = acts;
     }
 }

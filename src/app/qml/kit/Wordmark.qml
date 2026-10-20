@@ -3,15 +3,20 @@ import WordJewelsSolver
 
 // The lockup: a faceted jewel and the name. Word Jewels is the child-facing
 // name; SOLVER is the product qualifier, in the house mono face. The same
-// lockup is used in the home bar and the About page.
+// lockup is used in the home bar, the parent area's bar and the About page.
+// Both words are Labels, so they follow the parent's Text size setting like the
+// rest of the bar (they were 23/18 px and 9/7 px literals that ignored it).
 Row {
     id: root
 
     property bool compact: false
     spacing: compact ? Theme.space2 : Theme.space3
 
+    Accessible.role: Accessible.StaticText
+    Accessible.name: qsTr("Word Jewels") + " " + qsTr("SOLVER")
+
     Jewel {
-        width: root.compact ? 22 : 30
+        width: root.compact ? Theme.jewelSm : Theme.jewelMd
         height: width
         anchors.verticalCenter: parent.verticalCenter
         tier: "power"
@@ -22,20 +27,17 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 0
 
-        Text {
+        Label {
+            role: "display"
+            decorative: true
             text: qsTr("Word Jewels")
-            font.family: Theme.uiFont
-            font.pixelSize: root.compact ? 18 : 23
-            font.weight: Font.ExtraBold
-            font.letterSpacing: -0.6
-            color: Theme.ink
+            size: root.compact ? Theme.headingSize : Theme.wordSize
+            lineHeight: Theme.lineHeading
         }
-        Text {
+        Label {
+            role: "mono"
+            decorative: true
             text: qsTr("SOLVER")
-            font.family: Theme.monoFont
-            font.pixelSize: root.compact ? 7 : 9
-            font.letterSpacing: 1.4
-            color: Theme.inkSecondary
         }
     }
 }

@@ -34,7 +34,7 @@ Item {
         anchors.margins: 2
         height: 2
         radius: 1
-        color: "#FFFFFF"
+        color: Theme.bevelLight
         opacity: 0.55
     }
     Rectangle {
@@ -44,17 +44,19 @@ Item {
         anchors.margins: 2
         height: 3
         radius: 1
-        color: "#000000"
+        color: Theme.bevelShade
         opacity: 0.12
     }
 
-    Text {
+    Label {
         objectName: "letter"
         anchors.centerIn: parent
+        decorative: true
         text: root.shown
         font.family: Theme.fontFamily
         font.weight: Font.Bold
-        font.pixelSize: root.height * Theme.letterShare * (root.letters === "QU" ? Theme.quShare : 1)
+        size: root.height * Theme.letterShare * (root.letters === "QU" ? Theme.quShare : 1)
+        lineHeight: 1.0
         color: Theme.dieInk
     }
 
