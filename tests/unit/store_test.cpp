@@ -1742,7 +1742,9 @@ TEST_CASE("a file and its keeping are named for the file's own characters", "[st
     opened.store.update_settings(wjs::Settings{});
     REQUIRE_FALSE(opened.store.last_save_error().has_value());
     CHECK(slurp(file).starts_with("wjs-store 2\n"));
-    CHECK(names_in(dir.path()).size() == 1);  // no temporary file left
+    // No temporary file left. (Counted, not named: the name is outside the
+    // legacy code page, and path::string() would throw for it.)
+    CHECK(std::distance(fs::directory_iterator(dir.path()), fs::directory_iterator{}) == 1);
 
     spit(file, "damaged");
     const auto second = wjs::Store::open(file);
