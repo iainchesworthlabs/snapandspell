@@ -180,6 +180,7 @@ set(_required_zones
     motion.push
     path.validate
     phonics.bind
+    phonics.sound_it_out
     rules.classify
     scan.convert_working
     scan.decode_frame

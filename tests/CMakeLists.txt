@@ -27,6 +27,7 @@ add_executable(wjs_unit_tests
     unit/seeding_test.cpp
     unit/session_store_test.cpp
     unit/solver_test.cpp
+    unit/sound_it_out_test.cpp
     unit/store_test.cpp
     unit/version_test.cpp)
 
