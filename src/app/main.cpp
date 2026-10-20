@@ -6,9 +6,9 @@
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 #include <QStandardPaths>
-#include <QStyleHints>
 #include <QString>
 #include <QStringList>
+#include <QStyleHints>
 #include <QTimer>
 #include <QVariant>
 #include <charconv>
@@ -34,7 +34,6 @@
 #include "solo/solo_game_setup.hpp"
 #include "wjs/calendar.hpp"
 #include "wjs/platform/paths.hpp"
-#include "wjs/store.hpp"
 #include "wjs/platform/window_chrome.hpp"
 #include "wjs/profiling.hpp"
 #include "wjs/settings.hpp"
@@ -157,8 +156,7 @@ void wait_for_profiler() {
         // old path was the bare LOCALAPPDATA: a second, unrelated folder, and
         // on a machine where that folder could not be made the store fell back
         // to memory and the parent was told progress could not be saved.
-        const QString base =
-            QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+        const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
         if (!base.isEmpty()) {
             file = to_path(base) / std::string{wjs::store_file_name};
         } else if (const std::filesystem::path fallback = wjs::platform::user_data_directory();
@@ -293,12 +291,9 @@ int main(int argc, char* argv[]) {
     // CMakeLists.txt). Register them before the engine loads so every QML
     // `font.family` resolves to the face the design names rather than a
     // platform fallback.
-    for (const char* font : {":/fonts/Archivo-Regular.ttf",
-                             ":/fonts/Archivo-SemiBold.ttf",
-                             ":/fonts/Archivo-ExtraBold.ttf",
-                             ":/fonts/IBMPlexMono-Medium.ttf",
-                             ":/fonts/Andika-Regular.ttf",
-                             ":/fonts/Andika-Bold.ttf"}) {
+    for (const char* font : {":/fonts/Archivo-Regular.ttf", ":/fonts/Archivo-SemiBold.ttf",
+                             ":/fonts/Archivo-ExtraBold.ttf", ":/fonts/IBMPlexMono-Medium.ttf",
+                             ":/fonts/Andika-Regular.ttf", ":/fonts/Andika-Bold.ttf"}) {
         const int id = QFontDatabase::addApplicationFont(QString::fromLatin1(font));
         if (id < 0) {
             qWarning() << "The bundled font" << font << "could not be loaded.";

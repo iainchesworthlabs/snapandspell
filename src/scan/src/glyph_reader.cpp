@@ -200,18 +200,18 @@ Plane fit_plane(const double* u, const double* v, const double* z, std::size_t n
     if (count < 3.0) {
         return {count > 0.0 ? sz / count : 0.0, 0.0, 0.0};
     }
-    const double det = count * (suu * svv - suv * suv) - su * (su * svv - suv * sv) +
-                       sv * (su * suv - suu * sv);
+    const double det =
+        count * (suu * svv - suv * suv) - su * (su * svv - suv * sv) + sv * (su * suv - suu * sv);
     if (std::abs(det) < 1e-9) {
         return {sz / count, 0.0, 0.0};
     }
     // Cramer's rule on [[n su sv] [su suu suv] [sv suv svv]] (a b c) = (sz suz svz).
-    const double da = sz * (suu * svv - suv * suv) - su * (suz * svv - suv * svz) +
-                      sv * (suz * suv - suu * svz);
-    const double db = count * (suz * svv - suv * svz) - sz * (su * svv - suv * sv) +
-                      sv * (su * svz - suz * sv);
-    const double dc = count * (suu * svz - suz * suv) - su * (su * svz - suz * sv) +
-                      sz * (su * suv - suu * sv);
+    const double da =
+        sz * (suu * svv - suv * suv) - su * (suz * svv - suv * svz) + sv * (suz * suv - suu * svz);
+    const double db =
+        count * (suz * svv - suv * svz) - sz * (su * svv - suv * sv) + sv * (su * svz - suz * sv);
+    const double dc =
+        count * (suu * svz - suz * suv) - su * (su * svz - suz * sv) + sz * (su * suv - suu * sv);
     return {da / det, db / det, dc / det};
 }
 
@@ -282,7 +282,8 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
     }
     std::array<double, kPatchPixels> sorted{};
     std::copy_n(values.begin(), static_cast<std::ptrdiff_t>(count), sorted.begin());
-    std::ranges::nth_element(sorted.begin(), sorted.begin() + static_cast<std::ptrdiff_t>(count / 2),
+    std::ranges::nth_element(sorted.begin(),
+                             sorted.begin() + static_cast<std::ptrdiff_t>(count / 2),
                              sorted.begin() + static_cast<std::ptrdiff_t>(count));
     const double median = sorted[count / 2];
     std::array<double, kPatchPixels> pu{};

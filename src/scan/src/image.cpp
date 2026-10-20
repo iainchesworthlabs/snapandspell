@@ -94,8 +94,7 @@ GrayImage shrink(const GrayImage& image, int max_long_side, int& factor) {
     return out;
 }
 
-void detail::shrink_into(GrayImage& out, const GrayImage& image, int max_long_side,
-                         int& factor) {
+void detail::shrink_into(GrayImage& out, const GrayImage& image, int max_long_side, int& factor) {
     const int long_side = std::max(image.width, image.height);
     factor = 1;
     if (max_long_side > 0 && long_side > max_long_side) {

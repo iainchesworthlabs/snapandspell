@@ -219,9 +219,9 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
                     const std::size_t index = row * count->size + column;
                     const Point centre{centres.x[column], centres.y[row]};
                     const GlyphRead read =
-                        cached[index] ? *cached[index]
-                                      : reader.read(board, centre, half_side * scale,
-                                                    options.min_contrast);
+                        cached[index]
+                            ? *cached[index]
+                            : reader.read(board, centre, half_side * scale, options.min_contrast);
                     reading.tiles.push_back(to_tile(read, options));
                     if (reading.tiles.back().letters.empty()) {
                         ++blank;

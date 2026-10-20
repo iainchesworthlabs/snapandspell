@@ -214,8 +214,7 @@ TEST_CASE("the cell count and the cell centres share one computation of the prof
     // receive garbage.
     REQUIRE(profiles.columns.size() == 480);
     REQUIRE(profiles.rows.size() == 480);
-    CHECK(std::ranges::all_of(profiles.columns,
-                              [](double v) { return std::isfinite(v); }));
+    CHECK(std::ranges::all_of(profiles.columns, [](double v) { return std::isfinite(v); }));
     CHECK(std::ranges::all_of(profiles.rows, [](double v) { return std::isfinite(v); }));
     CHECK(std::ranges::all_of(profiles.columns, [](double v) { return v >= 0.0; }));
     CHECK(std::ranges::all_of(profiles.rows, [](double v) { return v >= 0.0; }));

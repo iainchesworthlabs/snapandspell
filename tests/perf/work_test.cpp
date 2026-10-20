@@ -8,8 +8,8 @@
 // What a failure means, and how to move a budget: docs/testing.md,
 // "Performance tests". The numbers are in budgets.hpp.
 
-#include <catch2/catch_test_macros.hpp>
 #include <array>
+#include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <cstdint>
 

@@ -149,8 +149,8 @@ private:
         for (std::size_t i = 0; i < depth_; ++i) {
             path.emplace_back(path_[i] / board_.columns(), path_[i] % board_.columns());
         }
-        found_.emplace(
-            word_, FoundWord{word_, std::move(path), score_word(word_, options_.scoring)});
+        found_.emplace(word_,
+                       FoundWord{word_, std::move(path), score_word(word_, options_.scoring)});
     }
 
     const Board& board_;

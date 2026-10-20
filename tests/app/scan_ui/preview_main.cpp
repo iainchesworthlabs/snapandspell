@@ -437,8 +437,7 @@ int run_language_check(const QString& out) {
         pump();
         const QString check_title =
             QCoreApplication::translate("ScanWording", "Is this your board?");
-        const QString start_playing =
-            QCoreApplication::translate("ScanWording", "Start playing");
+        const QString start_playing = QCoreApplication::translate("ScanWording", "Start playing");
         texts = visible_texts(window);
         check(any_contains(texts, check_title), "the check screen asks its question: " + code);
         check(any_contains(texts, start_playing), "Start playing is on the check screen: " + code);

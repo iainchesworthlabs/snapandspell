@@ -263,7 +263,8 @@ std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blur
     // A window a bit over a die and its neighbours across, so the gaps between
     // dice are in it and the dice stand out from its mean.
     const int window = std::max(15, static_cast<int>(short_side * window_fraction)) | 1;
-    const std::size_t pixels = static_cast<std::size_t>(image.width) * image.height;
+    const std::size_t pixels =
+        static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
     const std::span<std::uint8_t> mask = detail::acquire(scratch.mask, pixels);
     detail::bright_mask_into(mask, sat, blurred, window, margin);
 
@@ -381,7 +382,8 @@ std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::s
     if (image.width < 16 || image.height < 16) {
         return std::nullopt;
     }
-    const std::size_t pixels = static_cast<std::size_t>(image.width) * image.height;
+    const std::size_t pixels =
+        static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
     const std::span<std::uint32_t> across = detail::acquire(scratch.blur_across, pixels);
     detail::box_blur_into(scratch.blurred, across, image, 1);
     // The summed-area table of the blurred picture, made once here: each look's
@@ -408,9 +410,8 @@ std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::s
     bool best_is_good = false;
     for (const Look& look : kLooks) {
         double fit = 0.0;
-        const std::optional<BoardFind> found = find_pass(image, scratch.blurred, sat, min_dice,
-                                                         look.window_fraction, look.margin, fit,
-                                                         scratch);
+        const std::optional<BoardFind> found = find_pass(
+            image, scratch.blurred, sat, min_dice, look.window_fraction, look.margin, fit, scratch);
         if (!found) {
             continue;
         }
@@ -578,8 +579,7 @@ CellCentres locate_cells(const GrayImage& warped, std::size_t size) {
     return locate_cells(warped, profiles_of(warped), size);
 }
 
-CellCentres locate_cells(const GrayImage& warped, const BoardProfiles& profiles,
-                         std::size_t size) {
+CellCentres locate_cells(const GrayImage& warped, const BoardProfiles& profiles, std::size_t size) {
     CellCentres centres;
     if (warped.empty() || size == 0) {
         return centres;

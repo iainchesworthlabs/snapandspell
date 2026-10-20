@@ -380,16 +380,18 @@ inline constexpr std::uint64_t kScanWorkingPixels = 4ULL * 480 * 360;
 inline constexpr std::uint64_t kScanWarpPixels = 2'600'000;  // measured 2,073,600
 inline constexpr std::uint64_t kScanBlobs = 3'240;           // measured 2,589
 inline constexpr std::uint64_t kScanDiceCandidates = 619;    // measured 495
-inline constexpr std::uint64_t kScanCellsRead = 282;         // measured 225 (a winning trial's sample cells are read once and reused)
-inline constexpr std::uint64_t kScanComparisons = 364'500;   // measured 291,600 (225 cells x 48 templates x 27)
+inline constexpr std::uint64_t kScanCellsRead =
+    282;  // measured 225 (a winning trial's sample cells are read once and reused)
+inline constexpr std::uint64_t kScanComparisons =
+    364'500;  // measured 291,600 (225 cells x 48 templates x 27)
 // A warm read allocates no pixel buffers at all: the whole pipeline runs on the
 // reader's thread-local scratch pool (src/scan/src/scratch.hpp); a cold first
 // read on a fresh thread allocates about ten, once. The pool's hand-outs over
 // the corpus are counted too, so a return to per-read allocation is caught both
 // ways.
-inline constexpr std::uint64_t kScanBuffers = 0;             // measured 0
-inline constexpr std::uint64_t kScanBuffersMax = 0;          // measured 0
-inline constexpr std::uint64_t kScanBufferReuses = 105;      // measured 84
+inline constexpr std::uint64_t kScanBuffers = 0;         // measured 0
+inline constexpr std::uint64_t kScanBuffersMax = 0;      // measured 0
+inline constexpr std::uint64_t kScanBufferReuses = 105;  // measured 84
 // Exact pins of what the optimised reader does, so a change that adds a read
 // or a comparison is a failure with a name on it, not a quiet drift.
 inline constexpr std::uint64_t kScanBuffersAllocated = 0;

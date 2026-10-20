@@ -412,9 +412,9 @@ QVariantList ParentController::recentBoards() const {
             word.insert(QStringLiteral("assisted"), find.start_tile_used);
             const std::size_t letters = find.word.size();
             word.insert(QStringLiteral("tier"),
-                        letters <= 3 ? QStringLiteral("spark")
-                                     : (letters == 4 ? QStringLiteral("power")
-                                                     : QStringLiteral("mega")));
+                        letters <= 3
+                            ? QStringLiteral("spark")
+                            : (letters == 4 ? QStringLiteral("power") : QStringLiteral("mega")));
             words.append(word);
         }
         map.insert(QStringLiteral("words"), words);
@@ -568,10 +568,9 @@ bool ParentController::setSetting(const QString& key, const QVariant& value) {
         s.solo_clock = *parsed;
     } else if (key == QLatin1String("timerLength")) {
         const auto minutes = whole_number(value);
-        if (!minutes ||
-            std::find(std::begin(wjs::solo_clock_minutes_choices),
-                      std::end(wjs::solo_clock_minutes_choices),
-                      *minutes) == std::end(wjs::solo_clock_minutes_choices)) {
+        if (!minutes || std::find(std::begin(wjs::solo_clock_minutes_choices),
+                                  std::end(wjs::solo_clock_minutes_choices),
+                                  *minutes) == std::end(wjs::solo_clock_minutes_choices)) {
             return false;
         }
         s.solo_clock_minutes = *minutes;

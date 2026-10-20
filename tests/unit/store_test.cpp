@@ -512,7 +512,8 @@ TEST_CASE("a colour scheme is written and read by its name", "[store][settings]"
 }
 
 TEST_CASE("a board's clock is written and read by its name and minutes", "[store][settings]") {
-    for (const auto clock : {wjs::SoloClock::off, wjs::SoloClock::count_up, wjs::SoloClock::count_down}) {
+    for (const auto clock :
+         {wjs::SoloClock::off, wjs::SoloClock::count_up, wjs::SoloClock::count_down}) {
         wjs::Store store = wjs::Store::in_memory();
         wjs::Settings settings;
         settings.solo_clock = clock;

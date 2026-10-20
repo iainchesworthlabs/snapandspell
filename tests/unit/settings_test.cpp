@@ -203,8 +203,7 @@ TEST_CASE("each enum is written by one name and read back by it", "[settings]") 
          {wjs::SoloClock::off, wjs::SoloClock::count_up, wjs::SoloClock::count_down}) {
         CHECK(wjs::solo_clock_from_string(wjs::to_string(v)) == v);
     }
-    for (const auto v :
-         {wjs::HelpLevel::off, wjs::HelpLevel::start, wjs::HelpLevel::two_letters}) {
+    for (const auto v : {wjs::HelpLevel::off, wjs::HelpLevel::start, wjs::HelpLevel::two_letters}) {
         CHECK(wjs::help_level_from_string(wjs::to_string(v)) == v);
     }
     CHECK_FALSE(wjs::board_mode_from_string("Standard").has_value());
@@ -244,8 +243,7 @@ TEST_CASE("a board's clock is off, up or down, and its minutes are one of the ch
 }
 
 TEST_CASE("the help is off, the start tile, or the start and two letters", "[settings]") {
-    for (const auto v :
-         {wjs::HelpLevel::off, wjs::HelpLevel::start, wjs::HelpLevel::two_letters}) {
+    for (const auto v : {wjs::HelpLevel::off, wjs::HelpLevel::start, wjs::HelpLevel::two_letters}) {
         wjs::Settings s;
         s.help = v;
         CHECK(s.normalized().help == v);
