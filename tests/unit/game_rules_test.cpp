@@ -2,6 +2,9 @@
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <initializer_list>
 #include <optional>
 #include <span>
@@ -17,6 +20,7 @@
 #include "wjs/game_rules.hpp"
 #include "wjs/path.hpp"
 #include "wjs/phase_data.hpp"
+#include "support/test_support.hpp"
 #include "wjs/solver.hpp"
 
 // TEST DATA. The words below were written for these tests: the ones of the
@@ -748,4 +752,95 @@ TEST_CASE("a board with no viable word has none left to find", "[rules]") {
     // The literal reading. The deal is meant never to make such a board (the
     // author, 2026-10-16), so this is only what the question answers for one.
     CHECK(wjs::is_cleared({}, wjs::FoundWords{}));
+}
+
+// ---------------------------------------------------------------------------
+// The accepted risk of the standard board (docs/design/mvp-library.md)
+//
+// The standard board counts every word of the full dictionary, ENABLE, with no
+// block list, so a word unsuitable for a child is found, named and read like
+// any other. The phonics board counts only the words of its phase. This case
+// holds both facts down against the real file, so that lifting the risk (a
+// block list, an allow-list) is a deliberate edit of this case and not an
+// accident of a refactor.
+//
+// The words that stand for "a word a child must never meet" are kept out of the
+// repository as FNV-1a hashes, so that nothing here prints one. The case finds
+// them in the shipped file by hash.
+
+namespace {
+
+constexpr std::uint64_t fnv1a(std::string_view text) noexcept {
+    std::uint64_t hash = 14695981039346656037ULL;
+    for (const char c : text) {
+        hash ^= static_cast<unsigned char>(c);
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+constexpr std::array<std::uint64_t, 8> never_meet_hashes = {
+    0x46f05e18e29ecd13ULL, 0x86585b78dafe862aULL, 0x4c6d7290acc036bfULL, 0x6f0b9ec3c2bac013ULL,
+    0xe0f0c58862cd1066ULL, 0x751c24ef5fd23b69ULL, 0x6acf1218f748a0dbULL, 0xbed4cc0dc4e48700ULL};
+
+// The words of the shipped dictionary whose hash is in the list.
+std::vector<std::string> never_meet_words() {
+    std::ifstream in(std::filesystem::path(WJS_DATA_DIRECTORY) / "dictionaries" / "en.txt");
+    REQUIRE(in);
+    std::vector<std::string> found;
+    std::string line;
+    while (std::getline(in, line)) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) {
+            line.pop_back();
+        }
+        if (std::ranges::find(never_meet_hashes, fnv1a(line)) != never_meet_hashes.end()) {
+            found.push_back(line);
+        }
+    }
+    return found;
+}
+
+}  // namespace
+
+TEST_CASE("a word a child must never meet is counted by the standard board and not by the phonics",
+          "[rules][data]") {
+    const std::vector<std::string> words = never_meet_words();
+    // Every word of the list is in the real dictionary: the list is still true.
+    REQUIRE(words.size() == never_meet_hashes.size());
+
+    const wjs::Dictionary& english = wjs::test::shipped_english();
+    const wjs::PhaseSet set = phase_a(english);
+    const wjs::PhaseIndex& phase = *set.find("A");
+    const wjs::WordSets standard = wjs::WordSets::standard(english);
+    const wjs::WordSets phonics = wjs::WordSets::phonics(english, phase);
+
+    for (const std::string& word : words) {
+        REQUIRE(word.size() >= wjs::min_word_letters);
+        REQUIRE(word.size() <= 9);
+
+        // The word laid along the first cells of a 3x3 board in a snake, the
+        // rest filled with a letter that makes no word.
+        const std::array<Position, 9> snake = {{{0, 0}, {0, 1}, {0, 2}, {1, 2}, {1, 1}, {1, 0},
+                                                {2, 0}, {2, 1}, {2, 2}}};
+        std::array<char, 9> cells;
+        cells.fill('X');
+        std::vector<Position> path;
+        for (std::size_t i = 0; i < word.size(); ++i) {
+            cells[snake[i].row * 3 + snake[i].column] = static_cast<char>(word[i] - 'a' + 'A');
+            path.push_back(snake[i]);
+        }
+        const std::string tiles{cells.begin(), cells.end()};
+        const wjs::Board board =
+            make_board(tiles.substr(0, 3) + "/" + tiles.substr(3, 3) + "/" + tiles.substr(6, 3));
+
+        INFO("a word of " << word.size() << " letters, hash " << std::hex << fnv1a(word));
+        // The standard board: a find, whatever the word is.
+        CHECK(classify(board, path, standard).state == wjs::WordState::viable);
+        CHECK(wjs::viable_words(board, standard).size() >= 1);
+        // The phonics board: a real word that is not today's, named by nobody.
+        const wjs::Classification on_phonics = classify(board, path, phonics);
+        CHECK(on_phonics.state == wjs::WordState::real_not_todays);
+        CHECK(on_phonics.word.empty());
+        CHECK(wjs::viable_words(board, phonics).empty());
+    }
 }
