@@ -10,6 +10,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <numbers>
 #include <vector>
 
@@ -539,4 +540,155 @@ TEST_CASE("after a shake the guide brings every die home, square, and still", "[
         CHECK(std::all_of(seen.begin(), seen.end(), [](int s) { return s == 1; }));
         CHECK(world.deepestOverlap() < 0.02);
     }
+}
+
+// ---- Input the caller can get wrong ---------------------------------------------------
+//
+// The world is driven from QML, where a number is whatever a script computed, so it
+// takes any input and stays a working world: no hang, no throw, no state it cannot
+// leave.
+
+TEST_CASE("a time that is not finite or not positive moves nothing", "[dice][input]") {
+    World world = roomy(1, 1, 3.0, 100.0);
+    run(world, 0.05);
+    const std::int64_t steps = world.steps();
+    const std::uint32_t digest = world.digest();
+    const double time = world.time();
+
+    // Infinite time would be a loop that never ends.
+    world.advance(std::numeric_limits<double>::infinity());
+    world.advance(-std::numeric_limits<double>::infinity());
+    world.advance(std::numeric_limits<double>::quiet_NaN());
+    world.advance(-1.0);
+    world.advance(0.0);
+    CHECK(world.steps() == steps);
+    CHECK(world.digest() == digest);
+    CHECK(world.time() == time);
+
+    // And the world still runs afterwards: a NaN did not stay in what is carried over.
+    world.advance(0.05);
+    CHECK(world.steps() > steps);
+    CHECK(finiteEverywhere(world));
+}
+
+TEST_CASE("one advance takes at most a second, however long the caller stalled", "[dice][input]") {
+    World world = roomy(1, 1, 3.0, 100.0);
+    world.advance(1.0e9);
+    const auto per_second = static_cast<std::int64_t>(std::llround(1.0 / world.tuning().substep));
+    CHECK(world.steps() <= per_second);
+    CHECK(world.steps() >= per_second - 1);
+    CHECK(world.time() <= kMaxAdvanceSeconds + 1e-9);
+    CHECK(finiteEverywhere(world));
+
+    // A time the cap does not touch is taken whole, as it always was.
+    World ordinary = roomy(1, 1, 3.0, 100.0);
+    ordinary.advance(0.5);
+    CHECK(ordinary.steps() == 600);
+}
+
+TEST_CASE("a box that is wrong is made right, not refused", "[dice][input]") {
+    struct Case {
+        int rows;
+        int columns;
+        double pitch;
+        double slack;
+        double lid;
+    };
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+    const std::vector<Case> cases = {
+        {0, 0, 1.08, 0.6, 2.4},
+        {-3, 2, 1.08, 0.6, 2.4},
+        {2, -3, 1.08, 0.6, 2.4},
+        {2'000'000'000, 2'000'000'000, 1.08, 0.6, 2.4},  // rows * columns overflows an int
+        {4, 4, nan, nan, nan},
+        {4, 4, inf, inf, inf},
+        {4, 4, -inf, -inf, -inf},
+        {4, 4, 0.0, -2.0, 0.0},
+        {4, 4, 1.0e9, 1.0e9, 1.0e9},
+    };
+    for (const Case& c : cases) {
+        Box box;
+        box.rows = c.rows;
+        box.columns = c.columns;
+        box.pitch = c.pitch;
+        box.slack = c.slack;
+        box.lidHeight = c.lid;
+        INFO("rows " << c.rows << ", columns " << c.columns << ", pitch " << c.pitch << ", slack "
+                     << c.slack << ", lid " << c.lid);
+
+        const Box used = sanitised(box);
+        CHECK(used.rows >= 1);
+        CHECK(used.rows <= kMaxBoxSide);
+        CHECK(used.columns >= 1);
+        CHECK(used.columns <= kMaxBoxSide);
+        CHECK(used.pitch >= kMinPitch);
+        CHECK(used.pitch <= kMaxPitch);
+        CHECK(used.slack >= 0.0);
+        CHECK(used.slack <= kMaxSlack);
+        CHECK(used.lidHeight >= kMinLidHeight);
+        CHECK(used.lidHeight <= kMaxLidHeight);
+
+        // Made, and runs, with a die for every cell of the box it has.
+        World world(box, Tuning{}, 1);
+        CHECK(world.count() == used.rows * used.columns);
+        CHECK(world.box().rows == used.rows);
+        world.advance(0.05);
+        CHECK(finiteEverywhere(world));
+        CHECK(outsideBox(world) < 0.05);
+    }
+}
+
+TEST_CASE("a box that is right is not changed", "[dice][input]") {
+    for (const int side : {1, 3, 4, 6, kMaxBoxSide}) {
+        Box box;
+        box.rows = side;
+        box.columns = side + (side < kMaxBoxSide ? 1 : 0);
+        box.pitch = 1.08;
+        box.slack = 0.6;
+        box.lidHeight = 2.42;
+        const Box used = sanitised(box);
+        CHECK(used.rows == box.rows);
+        CHECK(used.columns == box.columns);
+        CHECK(used.pitch == box.pitch);
+        CHECK(used.slack == box.slack);
+        CHECK(used.lidHeight == box.lidHeight);
+    }
+}
+
+TEST_CASE("a reading with a number that is not one is the box at rest in that axis",
+          "[dice][input]") {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+    Reading bad;
+    bad.force = Vec3{nan, inf, -inf};
+    bad.spin = Vec3{nan, 1.0e30, -1.0e30};
+    bad.spinChange = Vec3{inf, nan, 1.0e300};
+
+    const Reading used = sanitised(bad);
+    CHECK(used.force.x == 0.0);  // a device lying face up reads 0, 0, 1
+    CHECK(used.force.y == 0.0);
+    CHECK(used.force.z == 1.0);
+    CHECK(used.spin.x == 0.0);
+    CHECK(used.spin.y == kMaxSpin);
+    CHECK(used.spin.z == -kMaxSpin);
+    CHECK(used.spinChange.x == 0.0);
+    CHECK(used.spinChange.y == 0.0);
+    CHECK(used.spinChange.z == kMaxSpinChange);
+
+    // A reading that is right is the reading.
+    Reading right;
+    right.force = Vec3{0.3, -0.2, 1.4};
+    right.spin = Vec3{1.0, 2.0, -3.0};
+    right.spinChange = Vec3{10.0, -20.0, 30.0};
+    const Reading kept = sanitised(right);
+    CHECK(kept.force.z == 1.4);
+    CHECK(kept.spin.z == -3.0);
+    CHECK(kept.spinChange.y == -20.0);
+
+    // And a world given the bad one still has finite dice after a second of it.
+    World world = roomy(2, 2, 2.0, 100.0);
+    world.setReading(bad);
+    world.advance(0.5);
+    CHECK(finiteEverywhere(world));
 }

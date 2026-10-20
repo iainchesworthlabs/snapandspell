@@ -231,7 +231,10 @@ if(WJS_BUILD_APP)
     # the face the library's roll says is up, shows other faces on the way, and that
     # none of it moves a die before it is sent home. Built with the application,
     # whose scene the script is.
+    # With it, the scene's QML object that takes what a script gives it: DiceSim
+    # (dice_sim_test.cpp).
     add_executable(wjs_shake_script_tests
+        app/dice_sim_test.cpp
         app/shake_script_test.cpp
         "${PROJECT_SOURCE_DIR}/src/app/scene/dice_sim.cpp")
     set_target_properties(wjs_shake_script_tests PROPERTIES AUTOMOC ON)
