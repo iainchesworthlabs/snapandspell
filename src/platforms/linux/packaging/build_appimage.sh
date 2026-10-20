@@ -56,7 +56,7 @@ fi
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/../../../.." && pwd)"
-id="io.github.iainchesworthlabs.WordJewelsSolver"
+id="org.iainchesworth.wordjewelssolver"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 [ -n "$tools" ] || tools="$work/tools"

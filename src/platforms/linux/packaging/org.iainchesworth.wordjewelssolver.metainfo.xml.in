@@ -3,12 +3,12 @@
      The @VERSION@ and @DATE@ release entry is filled in by build_appimage.sh.
      Validated by that script with appstreamcli (offline). -->
 <component type="desktop-application">
-  <id>io.github.iainchesworthlabs.WordJewelsSolver</id>
+  <id>org.iainchesworth.wordjewelssolver</id>
   <name>WordJewelsSolver</name>
   <summary>Finds every word on a Boggle board</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
-  <developer id="io.github.iainchesworthlabs">
+  <developer id="org.iainchesworth">
     <name>Iain Chesworth</name>
   </developer>
   <description>
@@ -19,7 +19,7 @@
       words you missed.
     </p>
   </description>
-  <launchable type="desktop-id">io.github.iainchesworthlabs.WordJewelsSolver.desktop</launchable>
+  <launchable type="desktop-id">org.iainchesworth.wordjewelssolver.desktop</launchable>
   <provides>
     <binary>WordJewelsSolver</binary>
     <binary>wjs-cli</binary>
