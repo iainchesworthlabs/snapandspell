@@ -34,13 +34,37 @@ jobs:
       contents: read
 
     steps:
+      # A schedule runs the workflow file of the default branch (main) on main's
+      # commit; the code worth analysing every night is the integration branch's.
+      # A manual run analyses the branch it was started on.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
           persist-credentials: false
+
+      - name: Record the commit that is analysed
+        id: analysed
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       # Sets VCPKG_ROOT for the presets - see ci.yml.
       - name: Set up vcpkg
         uses: ./.github/actions/vcpkg-setup
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      # The lean build (the linux-gcc-analysis preset): the library, the platform
+      # section, the scanner and the CLI, with no tests, no Qt application, Tracy
+      # off (so vcpkg installs nothing) and the sanitizers off - CodeQL's build
+      # tracer sets its own LD_PRELOAD for the whole build step, which collides
+      # with ASan needing to be first in the preload chain, and a static analysis
+      # gets nothing from them. Configure is before the tracer: it compiles
+      # nothing of ours, and the build below is what CodeQL has to see.
+      - name: Configure (library, platform, scanner and CLI only)
+        run: cmake --preset linux-gcc-analysis
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
@@ -51,29 +75,13 @@ jobs:
           # security queries that are not in the default suite.
           queries: security-extended
 
-      - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
-        with:
-          cmakeVersion: "4.4.2"
-          ninjaVersion: "1.13.2"
-
-      # The lean build: the library, the platform section and the CLI, with no
-      # tests (so no vcpkg dependency to build: the manifest's default feature
-      # list is empty) and no Qt application. Sanitizers off: CodeQL's build
-      # tracer sets its own LD_PRELOAD for the whole build step, which
-      # collides with ASan needing to be first in the preload chain, and a
-      # static analysis gets nothing from them.
-      - name: Configure (library, platform and CLI only)
-        run: >
-          cmake --preset linux-gcc-debug
-          -DWJS_BUILD_TESTS=OFF
-          -DWJS_BUILD_APP=OFF
-          -DWJS_ENABLE_SANITIZERS=OFF
-
       - name: Build
-        run: cmake --build --preset linux-gcc-debug
+        run: cmake --build --preset linux-gcc-analysis
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           category: "/language:cpp"
+          # The workflow runs on main's ref; the code analysed is what was checked out.
+          ref: ${{ github.event_name == 'schedule' && 'refs/heads/develop' || github.ref }}
+          sha: ${{ steps.analysed.outputs.sha }}

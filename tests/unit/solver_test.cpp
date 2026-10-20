@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <string>
@@ -6,6 +7,7 @@
 #include <thread>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/solver.hpp"
@@ -13,18 +15,15 @@
 
 namespace {
 
+using wjs::test::board_of;
+using wjs::test::dictionary_of;
+
 wjs::Dictionary make_dictionary(std::initializer_list<std::string_view> words) {
-    wjs::Dictionary dictionary;
-    for (const auto word : words) {
-        dictionary.insert(word);
-    }
-    return dictionary;
+    return dictionary_of(words);
 }
 
 wjs::Board make_board(std::string_view text) {
-    auto board = wjs::Board::parse(text);
-    REQUIRE(board.has_value());
-    return *board;
+    return board_of(text);
 }
 
 std::vector<std::string> words_of(const std::vector<wjs::FoundWord>& found) {
@@ -57,6 +56,46 @@ TEST_CASE("a word is found only if its letters touch", "[solver]") {
     const std::vector<std::string> expected = {"CARE", "ARE", "CAR", "CAT", "COD",
                                                "DOG",  "ROD", "TAR", "TEA"};
     CHECK(words_of(found) == expected);
+}
+
+TEST_CASE("the words come highest score first, then the longer, then alphabetical", "[solver]") {
+    //     S T A
+    //     E R L
+    //     D N O
+    //
+    // STARED (six tiles, score 3) is traced S T A R E D; STARE scores 2; STAR,
+    // ARE, RED and TAR score 1, the four-letter one first.
+    const auto board = make_board("STA/ERL/DNO");
+    const auto dictionary = make_dictionary({"TAR", "RED", "ARE", "STAR", "STARE", "STARED"});
+
+    const auto found = wjs::solve(board, dictionary);
+
+    const std::vector<std::string> expected = {"STARED", "STARE", "STAR", "ARE", "RED", "TAR"};
+    CHECK(words_of(found) == expected);
+    REQUIRE(found.size() == 6U);
+    CHECK(found[0].score == 3);
+    CHECK(found[1].score == 2);
+    CHECK(found[2].score == 1);
+    CHECK(found[0].score > found[1].score);
+    CHECK(found[1].score > found[2].score);
+}
+
+TEST_CASE("the order holds in the other scheme too: scores never rise down the list", "[solver]") {
+    const auto board = make_board("STA/ERL/DNO");
+    const auto dictionary = make_dictionary({"TAR", "RED", "ARE", "STAR", "STARE", "STARED"});
+    wjs::SolveOptions options;
+    options.scoring = wjs::ScoringScheme::letter_rarity;
+
+    const auto found = wjs::solve(board, dictionary, options);
+
+    REQUIRE(found.size() == 6U);
+    for (std::size_t i = 1; i < found.size(); ++i) {
+        INFO(found[i - 1].word << " before " << found[i].word);
+        CHECK(found[i - 1].score >= found[i].score);
+        if (found[i - 1].score == found[i].score) {
+            CHECK(found[i - 1].word.size() >= found[i].word.size());
+        }
+    }
 }
 
 TEST_CASE("the minimum length can be lowered", "[solver]") {

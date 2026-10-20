@@ -8,6 +8,7 @@
 #include <span>
 #include <utility>
 
+#include "ascii.hpp"
 #include "draw.hpp"
 #include "wjs/profiling.hpp"
 
@@ -24,18 +25,12 @@ constexpr std::size_t max_targets = 3;
 // is the same on every machine.
 constexpr std::size_t plant_step_budget = 20000;
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
+using ascii::lower;
+using ascii::to_upper;
+using ascii::upper;
 
 [[nodiscard]] constexpr bool is_letter(char c) noexcept {
     return c >= 'A' && c <= 'Z';
-}
-
-[[nodiscard]] std::string upper(std::string_view text) {
-    std::string result(text);
-    std::ranges::transform(result, result.begin(), to_upper);
-    return result;
 }
 
 using detail::Draw;
@@ -304,6 +299,16 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
     // --- the words that can be planted -----------------------------------------
     const std::size_t cell_count = options.size * options.size;
 
+    // A focus sound is ticked by the letters of its grapheme, in lower case as
+    // Settings::normalized writes them: that is what the parent's list shows
+    // (focus_sound_choices) and what the settings hold. All the sounds a
+    // grapheme has are ticked together, as they are on the dashboard.
+    std::vector<std::string> focus_letters;
+    focus_letters.reserve(options.focus_sounds.size());
+    for (const std::string& tick : options.focus_sounds) {
+        focus_letters.push_back(lower(tick));
+    }
+
     std::vector<Candidate> candidates;
     std::size_t shortest = cell_count;
     for (const PhaseWord& word : index.words()) {
@@ -314,13 +319,9 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
         Candidate candidate;
         candidate.word = &word;
         candidate.letters = upper(word.word);
-        for (const WordGrapheme& grapheme : word.graphemes) {
-            const Grapheme* known = index.sound_of(grapheme);
-            if (known != nullptr && std::ranges::find(options.focus_sounds, known->sound) !=
-                                        options.focus_sounds.end()) {
-                candidate.focus = true;
-            }
-        }
+        candidate.focus = std::ranges::any_of(word.graphemes, [&](const WordGrapheme& grapheme) {
+            return std::ranges::find(focus_letters, grapheme.letters) != focus_letters.end();
+        });
         shortest = std::min(shortest, word.word.size());
         candidates.push_back(std::move(candidate));
     }
@@ -465,6 +466,9 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
             grid.cells[cell] = dead_letter;
             attempt.dead.push_back(Position{cell / options.size, cell % options.size});
         }
+        const auto in_row_order = [](const Position& a, const Position& b) {
+            return a.row != b.row ? a.row < b.row : a.column < b.column;
+        };
         if (options.guided_fill) {
             // Every tile starts as a dead jewel, so the count is that of the words
             // planted, and each is given, in a random order, a random letter from
@@ -482,6 +486,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                 for (const std::size_t cell : order) {
                     attempt.dead.push_back(Position{cell / options.size, cell % options.size});
                 }
+                std::ranges::sort(attempt.dead, in_row_order);
                 attempt.letters = grid.cells;
                 accepted = verify(attempt);
                 continue;
@@ -515,9 +520,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                     grid.cells[cell] = chosen_from[draw.below(chosen_from.size())];
                 }
             }
-            std::ranges::sort(attempt.dead, [](const Position& a, const Position& b) {
-                return a.row != b.row ? a.row < b.row : a.column < b.column;
-            });
+            std::ranges::sort(attempt.dead, in_row_order);
         } else {
             for (const std::size_t cell : attempt.filler) {
                 grid.cells[cell] = filler[draw.below(filler.size())];

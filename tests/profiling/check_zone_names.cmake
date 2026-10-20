@@ -185,6 +185,7 @@ set(_required_zones
     parent.edit
     path.validate
     phonics.bind
+    phonics.sound_it_out
     rules.classify
     scan.convert_working
     scan.decode_frame
@@ -195,6 +196,7 @@ set(_required_zones
     scan.read_tiles
     scan.warp_board
     scene.step
+    session.finish
     settings.normalize
     shake.detect
     solo.again
@@ -204,7 +206,6 @@ set(_required_zones
     solo.path
     solo.submit
     solo.words_with_start
-    solver.score
     solver.solve
     sound.play
     speech.say

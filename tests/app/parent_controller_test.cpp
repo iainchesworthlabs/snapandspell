@@ -161,7 +161,7 @@ TEST_CASE("opening the gate computes the dashboard as of that moment", "[app][pa
     board.tiles = "Q Q Q/P I N/T A P";
     board.viable_total = 5;
     board.finds = {{"quiz", false, friday, 5}};
-    f.store.record(board, friday);
+    REQUIRE(f.store.record(board, friday).stored);
     CHECK(map(f.controller.dashboard()).value("week").toMap() == before.value("week").toMap());
 
     open_gate(f.controller);
@@ -219,7 +219,7 @@ TEST_CASE("the week follows the calendar the controller was given", "[app][paren
     sunday.tiles = "Q Q Q/P I N/T A P";
     sunday.viable_total = 5;
     sunday.finds = {{"quiz", false, friday - 5, 5}};
-    f.store.record(sunday, friday - 5);
+    static_cast<void>(f.store.record(sunday, friday - 5));
 
     f.controller.useCalendar([] { return friday; }, 1);
     const int monday_first =
@@ -785,7 +785,7 @@ TEST_CASE("the longest word is the longest, and the first alphabetically of equa
                    {"plate", false, friday, 5},
                    {"crane", false, friday, 5},
                    {"cat", false, friday, 3}};
-    store.record(board, friday);
+    static_cast<void>(store.record(board, friday));
     controller.refresh();
 
     // plate and crane are both five: crane comes first.
@@ -804,12 +804,12 @@ TEST_CASE("the boards kept are listed newest first, with their words and tiers",
     first.viable_total = 4;
     first.finds = {
         {"sat", false, friday, 1}, {"pint", true, friday, 2}, {"paints", false, friday, 3}};
-    store.record(first, friday);
+    static_cast<void>(store.record(first, friday));
     wjs::BoardSnapshot second;
     second.size = 3;
     second.tiles = "T A P/S I N/Z Y X";
     second.viable_total = 2;
-    store.record(second, friday + 1);
+    static_cast<void>(store.record(second, friday + 1));
     controller.refresh();
 
     const QVariantList boards = controller.recentBoards();

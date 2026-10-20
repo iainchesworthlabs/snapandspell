@@ -12,8 +12,8 @@ set(WJS_PLATFORM_INSTALL_APP_DATA_DIR "WordJewelsSolver.app/Contents/MacOS")
 
 # An installed copy carries Qt inside the bundle: the install-time deploy script
 # in src/app/CMakeLists.txt writes the frameworks, plugins and QML modules there.
-# No macOS host has built the application with Qt yet (docs/ci.md), so this is
-# configured but unverified.
+# No macOS host has built the application with Qt yet (docs/ci.md): the release
+# workflow's macOS leg is the first, and packaging/verify_bundle.sh the check.
 set(WJS_PLATFORM_QT_DEPLOY_AT_INSTALL ON)
 
 set(WJS_PLATFORM_QT_SEARCH_ROOTS
@@ -38,9 +38,29 @@ set(WJS_PLATFORM_SOURCES
 set(WJS_PLATFORM_LINK_LIBRARIES "")
 set(WJS_PLATFORM_COMPILE_DEFINITIONS "")
 
-# A graphical program on macOS is an application bundle.
+# Where the bundle's Info.plist template, icon and signing entitlements are
+# (captured here: inside a function CMAKE_CURRENT_LIST_DIR is the caller's).
+set(WJS_MACOS_PACKAGING_DIR "${CMAKE_CURRENT_LIST_DIR}/packaging")
+
+# A graphical program on macOS is an application bundle, with its own Info.plist
+# (packaging/Info.plist.in: the identifier, the version, the languages and the
+# camera usage text macOS requires before it lets a program use the camera) and
+# its icon (packaging/AppIcon.icns, made from assets/icon by
+# tools/package/make_icns.py). CMake fills the template's ${MACOSX_BUNDLE_...}
+# names in from the properties below.
 function(wjs_platform_configure_app target)
-    set_target_properties(${target} PROPERTIES MACOSX_BUNDLE ON)
+    set_target_properties(${target} PROPERTIES
+        MACOSX_BUNDLE ON
+        MACOSX_BUNDLE_INFO_PLIST "${WJS_MACOS_PACKAGING_DIR}/Info.plist.in"
+        MACOSX_BUNDLE_BUNDLE_NAME "WordJewelsSolver"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "org.iainchesworth.wordjewelssolver"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_ICON_FILE "AppIcon.icns"
+        MACOSX_BUNDLE_COPYRIGHT "Copyright (C) Iain Chesworth and contributors")
+    target_sources(${target} PRIVATE "${WJS_MACOS_PACKAGING_DIR}/AppIcon.icns")
+    set_source_files_properties("${WJS_MACOS_PACKAGING_DIR}/AppIcon.icns"
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 endfunction()
 
 # Nothing to deploy yet: the application bundle gets macdeployqt with the

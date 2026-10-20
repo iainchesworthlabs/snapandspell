@@ -1,0 +1,37 @@
+# Categories for the release notes GitHub generates (gh release create
+# --generate-notes, or "Generate release notes" on the releases page). The notes
+# of a release made by release.yml are the version's CHANGELOG.md section; these
+# categories are what a prerelease without one, or a hand-made release, gets.
+# Labels are the repository's (gh label list).
+
+changelog:
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - question
+      - wontfix
+    authors:
+      - dependabot
+      - dependabot[bot]
+  categories:
+    - title: Accessibility
+      labels:
+        - accessibility
+    - title: New features
+      labels:
+        - enhancement
+    - title: Bug fixes
+      labels:
+        - bug
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Dependencies and build tooling
+      labels:
+        - dependencies
+        - github_actions
+        - submodules
+    - title: Other changes
+      labels:
+        - "*"

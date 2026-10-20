@@ -96,10 +96,10 @@ const wjs::Dictionary& english() {
     static const wjs::Dictionary dictionary = [] {
         wjs::Dictionary words;
         for (const std::string_view word : phase_words) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         for (const std::string_view word : extra_words) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         return words;
     }();
@@ -237,7 +237,7 @@ wjs::GameSession reach(SessionState state) {
         return session;
     }
     for (const wjs::FoundWord& word : wjs::solve(*session.board(), phase_a().dictionary())) {
-        session.trace(word.path, today);
+        static_cast<void>(session.trace(word.path, today));
     }
     REQUIRE(session.state() == SessionState::cleared);
     if (state == SessionState::cleared) {
@@ -384,7 +384,7 @@ TEST_CASE("a shake that deals no board answers false and stays in the box", "[ap
         "# phase: A\na  /x/  clip:a\nb  /x/  clip:b\nc  /x/  clip:c\nd  /x/  clip:d\n";
     const std::string words = "# phase: A\nabcd  a b c d\n";
     wjs::Dictionary dictionary;
-    dictionary.insert("abcd");
+    REQUIRE(dictionary.insert("abcd"));
     std::istringstream graphemes_in{graphemes};
     std::istringstream words_in{words};
     const auto built = wjs::PhaseSet::build({*wjs::parse_graphemes(graphemes_in, "g")},
@@ -1085,6 +1085,45 @@ TEST_CASE("a setting the parent changes is what the setup makes the next game fr
     // The game that was made before is the game it was.
     CHECK(before->helpAllowed());
     CHECK(before->size() == 3);
+}
+
+TEST_CASE("a sound the parent ticked is a sound the boards are dealt for", "[app][real][parent]") {
+    const TempDirectory directory;
+    write_data(directory);
+    wjs::Store store = wjs::Store::in_memory();
+
+    // What a run before this one left in the store: the phonics board over phase A,
+    // with "n" ticked. The settings keep a ticked sound as its letters, which is the
+    // string the library's seeding matches a grapheme on (the slashed sound matches
+    // nothing), so this is the whole path of a tick: store, setup, session, board.
+    // NIP, PAN and PIN are the words with "n" in this phase.
+    wjs::Settings settings = store.settings();
+    settings.board = wjs::BoardMode::phonics;
+    settings.phase = "A";
+    settings.focus_sounds = {"n"};
+    store.update_settings(settings);
+    auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
+    REQUIRE(opened.has_value());
+
+    auto game = (*opened)->make();
+    const auto* real = dynamic_cast<RealSoloGame*>(game.get());
+    REQUIRE(real != nullptr);
+    int boards_with_the_sound = 0;
+    constexpr int boards = 12;
+    for (int i = 0; i < boards; ++i) {
+        REQUIRE(game->shake());
+        game->settled();
+        const auto record = real->session().record();
+        REQUIRE(record.has_value());
+        const bool has_n = std::ranges::any_of(record->viable, [](const std::string& word) {
+            return word == "NIP" || word == "PAN" || word == "PIN";
+        });
+        boards_with_the_sound += has_n ? 1 : 0;
+        game->lidOn();
+    }
+    // Targets are dealt for the ticked sound: it is on every board, not only on
+    // those where chance put it.
+    CHECK(boards_with_the_sound == boards);
 }
 
 TEST_CASE("a change in the parent area is the box's next game, through the model",
