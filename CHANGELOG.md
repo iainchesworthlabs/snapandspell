@@ -16,6 +16,27 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **An iPhone and iPad build, installed ad hoc on the author's own devices.**
+  iOS is a platform now (`src/platforms/ios`, selected by `cmake/Platform.cmake`
+  before `APPLE`): a flat application bundle with its own `Info.plist` (the
+  bundle identifier `org.iainchesworth.wordjewelssolver`, the macOS bundle's camera
+  usage text, every orientation, a launch colour that follows the theme), an
+  icon made from `assets/icon` (`tools/package/make_ios_icon.py`), and the
+  `ios-release` preset (an Xcode project for an arm64 device with Qt 6.12's iOS
+  kit, iOS 18 as the deployment target, no tests, no `wjs-cli`, Tracy off).
+  `ios-build.yml` compiles it unsigned when a pull request touches what iOS
+  reads; the `release.yml` job `Build the iOS ad-hoc IPA` stops at once, naming
+  them, if any of the five Apple secrets is missing, checks the provisioning
+  profile against them, archives and exports an ad-hoc IPA with Xcode, checks the
+  IPA (`verify_ipa.sh`) and writes the over-the-air `manifest.plist`; the IPA and
+  the manifest then get the same checksums, GPG signatures, attestations and SBOM
+  entry as every other release file. Release notes link to `docs/install-ios.html`,
+  a page of the documentation site that makes the `itms-services` link GitHub
+  would strip. **None of it has run on a Mac, a hosted runner or a device**; the
+  first run is expected to need fixes (see [CI, "iOS"](docs/ci.md#ios) for what is
+  unverified, and [Installing on my iPhone/iPad](docs/ios-install.md) for the
+  install, adding a device and the profile's expiry on 2027-07-16). The haptics are
+  still the desktops' no-op, and Mode A reads the camera through Qt Multimedia.
 - **A release pipeline: Release packages for every desktop, an SBOM, and GPG
   signatures.** `release.yml` turns a `v*` tag into a GitHub Release. It builds
   the Release presets on Windows (the Qt Quick application and `wjs-cli`, as a ZIP
