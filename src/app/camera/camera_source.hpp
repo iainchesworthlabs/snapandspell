@@ -8,6 +8,7 @@
 #include <optional>
 
 #include "camera_backend.hpp"
+#include "camera_problem.hpp"
 #include "wjs/scan/frame.hpp"
 
 namespace wjs::app {
@@ -41,8 +42,8 @@ class CameraSource : public QObject {
     Q_PROPERTY(bool available READ available NOTIFY changed)
     // The cameras' names, for a log or a future chooser. Not shown by a screen.
     Q_PROPERTY(QStringList devices READ devices NOTIFY changed)
-    // Empty, "no_camera", "permission" or "failed". A sentence in the wording
-    // file, never a sentence here.
+    // Empty, "no_camera", "permission" or "failed" (CameraProblem). A sentence in
+    // the wording file, never a sentence here.
     Q_PROPERTY(QString problem READ problem NOTIFY changed)
     // The camera is on: the ready screen's live view, and only while it is.
     Q_PROPERTY(bool running READ running NOTIFY changed)
@@ -60,6 +61,7 @@ public:
     [[nodiscard]] bool available() const;
     [[nodiscard]] QStringList devices() const;
     [[nodiscard]] QString problem() const;
+    [[nodiscard]] CameraProblem problemKind() const;
     [[nodiscard]] bool running() const;
 
     // Starts the first camera. False with problem() set when it cannot start.

@@ -36,6 +36,12 @@ MotionSource::MotionSource(QObject* parent) : QObject(parent), impl_(std::make_u
     };
 }
 
+void MotionSource::accept(const wjs::DeviceMotion& motion) {
+    if (impl_->sink) {
+        impl_->sink(impl_->processor.push(motion));
+    }
+}
+
 MotionSource::~MotionSource() {
     impl_->backend.stop();
 }

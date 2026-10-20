@@ -25,7 +25,7 @@ public:
 
     [[nodiscard]] QStringList devices() const override { return {}; }
 
-    [[nodiscard]] QString problem() const override { return QStringLiteral("no_camera"); }
+    [[nodiscard]] CameraProblem problem() const override { return CameraProblem::no_camera; }
 
     [[nodiscard]] bool running() const override { return false; }
 
