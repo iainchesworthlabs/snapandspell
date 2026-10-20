@@ -10,6 +10,7 @@
 #include <system_error>
 #include <utility>
 
+#include "ascii.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
@@ -31,38 +32,17 @@ constexpr std::size_t key_source = 3;
     return c == ' ' || c == '\t';
 }
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
-
-[[nodiscard]] constexpr char to_lower(char c) noexcept {
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
-}
+using ascii::lower;
+using ascii::to_lower;
+using ascii::to_upper;
+using ascii::upper;
 
 [[nodiscard]] constexpr bool is_digit(char c) noexcept {
     return c >= '0' && c <= '9';
 }
 
-[[nodiscard]] std::string upper(std::string_view text) {
-    std::string result(text);
-    std::ranges::transform(result, result.begin(), to_upper);
-    return result;
-}
-
-[[nodiscard]] std::string lower(std::string_view text) {
-    std::string result(text);
-    std::ranges::transform(result, result.begin(), to_lower);
-    return result;
-}
-
 [[nodiscard]] std::string_view trim(std::string_view text) noexcept {
-    while (!text.empty() && (is_blank(text.front()) || text.front() == '\r')) {
-        text.remove_prefix(1);
-    }
-    while (!text.empty() && (is_blank(text.back()) || text.back() == '\r')) {
-        text.remove_suffix(1);
-    }
-    return text;
+    return ascii::trim(text, " \t\r");
 }
 
 [[nodiscard]] std::vector<std::string_view> fields_of(std::string_view line) {

@@ -4,6 +4,7 @@
 #include <tuple>
 #include <utility>
 
+#include "ascii.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
@@ -12,13 +13,7 @@ namespace {
 // The three places that say "three letters" are one number.
 static_assert(min_word_letters == min_phase_word_letters);
 
-[[nodiscard]] std::string upper(std::string_view text) {
-    std::string result(text);
-    std::ranges::transform(result, result.begin(), [](char c) {
-        return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-    });
-    return result;
-}
+using ascii::upper;
 
 // The squared straight-line distance from the top-left tile to this one,
 // measured in tiles. Squared so that it stays an integer and a comparison is

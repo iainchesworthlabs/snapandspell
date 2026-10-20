@@ -8,6 +8,7 @@
 #include <span>
 #include <utility>
 
+#include "ascii.hpp"
 #include "draw.hpp"
 #include "wjs/profiling.hpp"
 
@@ -24,18 +25,12 @@ constexpr std::size_t max_targets = 3;
 // is the same on every machine.
 constexpr std::size_t plant_step_budget = 20000;
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
+using ascii::lower;
+using ascii::to_upper;
+using ascii::upper;
 
 [[nodiscard]] constexpr bool is_letter(char c) noexcept {
     return c >= 'A' && c <= 'Z';
-}
-
-[[nodiscard]] std::string upper(std::string_view text) {
-    std::string result(text);
-    std::ranges::transform(result, result.begin(), to_upper);
-    return result;
 }
 
 using detail::Draw;

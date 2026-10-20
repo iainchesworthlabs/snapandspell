@@ -5,14 +5,13 @@
 #include <optional>
 #include <string>
 
+#include "ascii.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
 namespace {
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
+using ascii::to_upper;
 
 // The word upper-cased, or nothing if it is empty or holds a non-letter.
 [[nodiscard]] std::optional<std::string> normalise(std::string_view word) {
@@ -32,13 +31,7 @@ namespace {
 }
 
 [[nodiscard]] std::string_view trim(std::string_view line) noexcept {
-    constexpr std::string_view blanks = " \t\r\n";
-    const auto first = line.find_first_not_of(blanks);
-    if (first == std::string_view::npos) {
-        return {};
-    }
-    const auto last = line.find_last_not_of(blanks);
-    return line.substr(first, last - first + 1);
+    return ascii::trim(line, " \t\r\n");
 }
 
 }  // namespace

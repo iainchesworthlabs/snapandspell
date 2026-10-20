@@ -6,6 +6,7 @@
 #include <sstream>
 #include <utility>
 
+#include "ascii.hpp"
 #include "draw.hpp"
 #include "wjs/profiling.hpp"
 
@@ -14,9 +15,7 @@ namespace {
 
 constexpr std::string_view byte_order_mark = "\xEF\xBB\xBF";
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
+using ascii::to_upper;
 
 [[nodiscard]] bool is_separator(char c) noexcept {
     return c == ' ' || c == '\t' || c == ',' || c == '\r';

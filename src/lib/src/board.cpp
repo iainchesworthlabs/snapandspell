@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "ascii.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
@@ -13,17 +14,10 @@ constexpr std::string_view tile_separators = " \t,";
     return c == '\n' || c == '\r' || c == '/';
 }
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
+using ascii::to_upper;
 
 [[nodiscard]] std::string_view trim(std::string_view text) noexcept {
-    const auto first = text.find_first_not_of(tile_separators);
-    if (first == std::string_view::npos) {
-        return {};
-    }
-    const auto last = text.find_last_not_of(tile_separators);
-    return text.substr(first, last - first + 1);
+    return ascii::trim(text, tile_separators);
 }
 
 // The non-blank rows of the text.
