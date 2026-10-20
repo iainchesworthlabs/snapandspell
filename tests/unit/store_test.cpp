@@ -212,6 +212,84 @@ TEST_CASE("the same data is the same bytes", "[store]") {
     CHECK(wjs::serialize_store(data) == wjs::serialize_store(data));
 }
 
+namespace {
+
+// The data of the golden file below, written out field by field.
+wjs::StoreData golden_data() {
+    wjs::StoreData data;
+    data.settings.help = wjs::HelpLevel::off;
+    data.settings.board = wjs::BoardMode::phonics;
+    data.settings.phase = "B";
+    data.settings.focus_sounds = {"ai", "ee"};
+    data.settings.board_size = 4;
+    data.settings.colour_scheme = wjs::ColourScheme::dark;
+    data.settings.solo_clock = wjs::SoloClock::count_down;
+    data.settings.solo_clock_minutes = 15;
+    data.settings.text_size_percent = 125;
+    data.stars = 12;
+    data.next_board = 4;
+    data.best = {{3, 5}, {4, 9}};
+    data.vault = {{"pin", 20738, 20739, 3, 2}, {"sat", 20738, 20738, 1, 1}};
+    data.finds = {{"sat", 1, 3, "A", 20738, false, 2}, {"pin", 3, 3, "A", 20739, true, 2}};
+    data.days = {{20738, 0, 1}, {20739, 1, 3}};
+    data.boards = {
+        {2, 20738, 3, "A", "S,A,T/P,I,N/T,A,P", 3, {"sat", "pin", "tap"}, 2, 4, false},
+        {3, 20739, 4, "", "S,A,T,P/I,N,S,A/T,P,I,N/A,T,S,P", 40, {}, 0, 0, false}};
+    wjs::SavedSession session;
+    session.state = wjs::SavedState::playing;
+    session.size = 3;
+    session.seed = 77;
+    wjs::BoardSnapshot board;
+    board.phase = "A";
+    board.size = 3;
+    board.tiles = "S,A,T/P,I,N/T,A,P";
+    board.viable = {"sat", "pin", "tap"};
+    board.viable_total = 3;
+    board.finds = {{"sat", false, 20739, 1}};
+    session.board = board;
+    session.lit = "pin";
+    data.session = session;
+    return data;
+}
+
+// The version 2 file of golden_data(), as it is on disk: every key spelled out
+// here, so that renaming one in the writer or the reader breaks this case
+// (and a user's file with it) instead of passing a round trip. The checksum is
+// worked out by seal(), above, from the format's description.
+const std::string golden_body =
+    "wjs-store 2\n"
+    "settings help=off board=phonics phase=B focus=ai,ee size=4 sound_it_out=full "
+    "celebration=full sound=1 vibration=1 shake=1 motion=system colour=dark timer=down "
+    "timer_minutes=15 text=125 font=- language=-\n"
+    "total stars=12 next_board=4\n"
+    "best 3 5\n"
+    "best 4 9\n"
+    "word pin 20738 20739 3 2\n"
+    "word sat 20738 20738 1 1\n"
+    "find sat 1 3 A 20738 0 2\n"
+    "find pin 3 3 A 20739 1 2\n"
+    "day 20738 0 1\n"
+    "day 20739 1 3\n"
+    "board 2 20738 3 A 0 2 4 3 S,A,T/P,I,N/T,A,P sat,pin,tap\n"
+    "board 3 20739 4 - 0 0 0 40 S,A,T,P/I,N,S,A/T,P,I,N/A,T,S,P -\n"
+    "session state=playing size=3 seed=77 lit=pin\n"
+    "sboard A 3 S,A,T/P,I,N/T,A,P 3 sat,pin,tap\n"
+    "sfind sat 0 20739 1\n";
+
+}  // namespace
+
+TEST_CASE("the version 2 file of known data is these bytes", "[store][golden]") {
+    CHECK(wjs::serialize_store(golden_data()) == seal(golden_body));
+}
+
+TEST_CASE("the version 2 file of known data is read as that data", "[store][golden]") {
+    const auto parsed = wjs::parse_store(seal(golden_body));
+
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->from_version == 2);
+    CHECK(parsed->data == golden_data());
+}
+
 TEST_CASE("the file says its version on the first line and ends with a checksum", "[store]") {
     const std::string text = wjs::serialize_store(wjs::StoreData{});
 
@@ -702,6 +780,68 @@ TEST_CASE("the same tiles dealt again, with fewer finds, are a new board", "[sto
 
     CHECK(again.board != first.board);
     CHECK(store.data().boards.size() == 2);
+}
+
+TEST_CASE("the same tiles dealt again, with other finds, are a new board and lose none",
+          "[store][record]") {
+    auto store = wjs::Store::in_memory();
+    const auto first = store.record(board3({found("sat", 1), found("tap", 2)}), monday);
+    REQUIRE(first.stored);
+
+    // A small phase can deal the very same tiles again. The second game finds
+    // three other words: more finds than the first board had, but not the same
+    // ones, so it is not the first board sent again.
+    const auto second = store.record(
+        board3({found("nip", 1), found("pan", 1), found("pin", 3)}, 100), monday + 1);
+
+    REQUIRE(second.stored);
+    CHECK(second.board != first.board);
+    CHECK(second.stars_added == 5);
+    CHECK(second.new_words == std::vector<std::string>{"nip", "pan", "pin"});
+    CHECK(store.data().boards.size() == 2);
+    CHECK(store.data().finds.size() == 5);
+    CHECK(store.data().stars == 8);
+    CHECK(wjs::finds_on_board(store.data(), second.board).size() == 3);
+    CHECK(wjs::finds_on_board(store.data(), first.board).size() == 2);
+}
+
+TEST_CASE("the same word found on another day is not the same find sent again", "[store][record]") {
+    auto store = wjs::Store::in_memory();
+    const auto first = store.record(board3({found("sat", 1)}), monday);
+
+    // The same tiles and the same first word, a day later: a second game.
+    const auto second =
+        store.record(board3({found("sat", 1, false, monday + 1), found("tap", 1, false, monday + 1)}),
+                     monday + 1);
+
+    CHECK(second.board != first.board);
+    CHECK(second.stars_added == 2);
+    CHECK(store.data().finds.size() == 3);
+}
+
+TEST_CASE("a board whose oldest finds were dropped is still the same board when sent again",
+          "[store][record][bounds]") {
+    auto store = wjs::Store::in_memory();
+    // One board with more finds than the store keeps: the oldest of them go.
+    std::vector<wjs::FoundSnapshot> finds;
+    for (std::size_t i = 0; i < wjs::max_stored_finds + 5; ++i) {
+        std::string word = "aaa";
+        word[0] = static_cast<char>('a' + i % 26);
+        word[1] = static_cast<char>('a' + (i / 26) % 26);
+        word[2] = static_cast<char>('a' + (i / 676) % 26);
+        finds.push_back(found(word, 1));
+    }
+    const auto first = store.record(board3(finds, 100000), monday);
+    REQUIRE(first.stored);
+    REQUIRE(store.data().finds.size() == wjs::max_stored_finds);
+
+    // The snapshot is sent again with one find more: the same board, one star.
+    finds.push_back(found("zzz", 1));
+    const auto again = store.record(board3(finds, 100000), monday);
+
+    CHECK(again.board == first.board);
+    CHECK(again.stars_added == 1);
+    CHECK(store.data().boards.size() == 1);
 }
 
 TEST_CASE("a board of another phase or size is another board even with the same tiles",
@@ -1524,6 +1664,155 @@ TEST_CASE("a file that cannot be opened is left alone and not written", "[store]
     CHECK(fs::is_directory(file));
 }
 
+TEST_CASE("an empty file is damage: set aside, and a new store begins", "[store][file]") {
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    spit(file, "");
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::unreadable);
+    REQUIRE_FALSE(opened.kept.empty());
+    CHECK(opened.kept.filename().string() == "store.wjs.unreadable");
+    CHECK(slurp(opened.kept).empty());
+    CHECK_FALSE(fs::exists(file));
+    CHECK(opened.store.persistent());
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+}
+
+TEST_CASE("a temporary file left by a stopped save is neither read nor kept", "[store][file]") {
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    const fs::path stale = dir.path() / "store.wjs.tmp";
+    const std::string whole = wjs::serialize_store(busy_data());
+    spit(file, whole);
+    spit(stale, "half a fi");
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::loaded);
+    CHECK(opened.store.data() == busy_data());
+    CHECK(slurp(file) == whole);
+
+    // The next save writes over it and leaves no temporary file behind.
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    CHECK_FALSE(fs::exists(stale));
+}
+
+TEST_CASE("a damaged file with every name for its keeping taken is left where it is",
+          "[store][file]") {
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    spit(file, "damaged");
+    spit(dir.path() / "store.wjs.unreadable", "taken");
+    for (int i = 1; i < 100; ++i) {
+        spit(dir.path() / ("store.wjs.unreadable." + std::to_string(i)), "taken");
+    }
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::unreadable);
+    CHECK(opened.kept.empty());
+    // Nothing could be moved, so nothing may be written over it.
+    CHECK_FALSE(opened.store.persistent());
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file) == "damaged");
+    CHECK(slurp(dir.path() / "store.wjs.unreadable") == "taken");
+}
+
+TEST_CASE("an older file whose copy cannot be made is read and never replaced", "[store][file]") {
+    const std::string old = seal(
+        "wjs-store 1\n"
+        "total stars=3 next_board=1\n");
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    spit(file, old);
+    spit(dir.path() / "store.wjs.v1", "taken");
+    for (int i = 1; i < 100; ++i) {
+        spit(dir.path() / ("store.wjs.v1." + std::to_string(i)), "taken");
+    }
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::migrated);
+    CHECK(opened.kept.empty());
+    CHECK(opened.store.data().stars == 3);  // it was understood
+    CHECK_FALSE(opened.store.persistent());  // and will not be written over
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file) == old);
+}
+
+TEST_CASE("a file and its keeping are named for the file's own characters", "[store][file]") {
+    // The temporary and kept names are the file's name with a suffix; a name
+    // outside the legacy code page must stay the same name.
+    const TempDirectory dir;
+    const fs::path file = dir.path() / fs::path(u8"ストア.wjs");
+
+    auto opened = wjs::Store::open(file);
+    REQUIRE(opened.status == wjs::LoadStatus::created);
+    opened.store.update_settings(wjs::Settings{});
+    REQUIRE_FALSE(opened.store.last_save_error().has_value());
+    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    CHECK(names_in(dir.path()).size() == 1);  // no temporary file left
+
+    spit(file, "damaged");
+    const auto second = wjs::Store::open(file);
+    CHECK(second.status == wjs::LoadStatus::unreadable);
+    REQUIRE_FALSE(second.kept.empty());
+    CHECK(second.kept.filename().u8string() == fs::path(u8"ストア.wjs.unreadable").u8string());
+    CHECK(slurp(second.kept) == "damaged");
+}
+
+TEST_CASE("a save that cannot swap the file in fails, leaves nothing behind and says so",
+          "[store][file]") {
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    auto opened = wjs::Store::open(file);
+    REQUIRE(opened.store.persistent());
+    // A directory with something in it where the file goes: the rename cannot
+    // replace it.
+    fs::create_directories(file);
+    spit(file / "inside", "x");
+
+    const auto saved = opened.store.save();
+
+    REQUIRE_FALSE(saved.has_value());
+    CHECK(saved.error() == wjs::SaveError::cannot_write);
+    CHECK_FALSE(fs::exists(dir.path() / "store.wjs.tmp"));
+    CHECK(slurp(file / "inside") == "x");
+}
+
+TEST_CASE("a game in progress the disk would not take is not reported as kept", "[store][file][resume]") {
+    const TempDirectory dir;
+    const fs::path blocker = dir.path() / "blocked";
+    spit(blocker, "i am a file");
+    auto opened = wjs::Store::open(blocker / "store.wjs");
+    if (!opened.store.persistent()) {
+        SKIP("this system reports the blocked path as unreadable and never writes");
+    }
+
+    const bool kept = opened.store.save_session(playing_session());
+
+    CHECK_FALSE(kept);
+    REQUIRE(opened.store.last_save_error().has_value());
+    CHECK(*opened.store.last_save_error() == wjs::SaveError::cannot_write);
+    // In memory it is the game in progress all the same, for a retry.
+    CHECK(opened.store.session().has_value());
+}
+
+TEST_CASE("a game in progress the store refuses is reported as not kept", "[store][resume]") {
+    auto store = wjs::Store::in_memory();
+    wjs::SavedSession bad = playing_session();
+    bad.size = 4;  // the board is 3x3
+
+    CHECK_FALSE(store.save_session(bad));
+    CHECK_FALSE(store.session().has_value());
+    CHECK(store.save_session(playing_session()));
+    CHECK(store.save_session(std::nullopt));
+}
+
 TEST_CASE("a disk that refuses is noted and the game goes on", "[store][file]") {
     const TempDirectory dir;
     // The directory for the file is blocked by a plain file of the same name.
@@ -1628,6 +1917,11 @@ TEST_CASE("a store at every one of its bounds is smaller than the cap", "[store]
     const std::string text = wjs::serialize_store(worst);
 
     CHECK(text.size() < wjs::max_store_bytes);
+    // The cap leaves headroom over the worst case, so that a field added to a
+    // record does not make a legitimate store "damaged" in the same release; a
+    // change that eats the headroom has to raise the cap on purpose
+    // (max_store_bytes in store.hpp says how much is there now).
+    CHECK(text.size() + 16 * 1024 <= wjs::max_store_bytes);
     // And the worst case is a store this version reads back whole.
     const auto parsed = wjs::parse_store(text);
     REQUIRE(parsed.has_value());

@@ -31,6 +31,12 @@
 //     store; it is told which of these happened (LoadStatus).
 //   - Written whole and swapped in (a temporary file, then a rename), so that
 //     a program stopped half way through leaves the old file or the new one.
+//     The limit: the bytes are flushed to the operating system, not forced to
+//     the disk (that takes fsync or FlushFileBuffers, an operating system call
+//     this library does not make). A power cut at the wrong moment can leave a
+//     file that is not whole; the checksum finds it, it is set aside as
+//     unreadable (never read, never deleted) and the program begins with an
+//     empty store.
 //
 // What it holds, and, as important, what it does not: for each find the word,
 // the board's size, the phase, the day, whether the start tile was shown for
@@ -76,9 +82,13 @@ inline constexpr std::size_t store_min_word_letters = 3;
 inline constexpr std::size_t store_max_word_letters = 20;
 inline constexpr int max_find_stars = 20;
 
-// The most a store file can be: bigger than the bounds above can make it
-// (about 90 KB at the very worst), so a file past it is damaged, and refused
-// before it is read.
+// The most a store file can be: bigger than the bounds above can make it, so a
+// file past it is damaged, and refused before it is read. The very worst case
+// (every list full, every word and name as long as it may be, a game in
+// progress as large) is about 107 KiB of the 128; a test pins it and keeps at
+// least 16 KiB of headroom, which is there so that a field added to a record
+// does not turn a store a user legitimately has into "damaged". Raise the cap
+// with the bounds, never to let a file of unknown size through.
 inline constexpr std::size_t max_store_bytes = std::size_t{128} * 1024;
 
 // Where the program's file is, under the base directory the platform layer
@@ -346,9 +356,14 @@ public:
 
     // Records what a snapshot shows that is new, and saves. A board is the same
     // board as the one before it when its phase, size and tiles are, and the
-    // finds it has are among the ones now sent; any other is a new board. `today`
-    // is the day a board is first seen and the day it is cleared; each find has
-    // its own.
+    // finds it has are the ones now sent, in the same order and on the same days
+    // (the newest the store keeps are compared) with perhaps more after them;
+    // any other is a new board, so a small phase that deals the same tiles again
+    // loses none of the second game's finds. A second game that finds the same
+    // words in the same order on the same day cannot be told from the first sent
+    // again. `today` is the day a board is first seen and the day it is cleared;
+    // each find has its own. `stored` in the outcome is false if the snapshot
+    // was refused; whether the disk took it is last_save_error().
     RecordOutcome record(const BoardSnapshot& snapshot, Day today);
 
     // The game in progress, to be brought back after a restart, or none. Refused
@@ -356,7 +371,10 @@ public:
     // another shape than size by size, a word that is not a word, a phonics
     // board of more words than max_listed_viable_words (restoring needs every
     // one), or a standard board that says no count of its words. A standard
-    // board is kept by the count and none of its words.
+    // board is kept by the count and none of its words. False too when the
+    // store is on a file and the disk refused it (last_save_error()): the game
+    // is then held in memory (session()), not on disk, and the next change
+    // writes it again.
     bool save_session(const std::optional<SavedSession>& session);
     [[nodiscard]] const std::optional<SavedSession>& session() const noexcept {
         return data_.session;
