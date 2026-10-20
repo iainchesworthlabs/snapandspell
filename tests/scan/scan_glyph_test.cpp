@@ -179,6 +179,28 @@ TEST_CASE("a gradient of light across the die does not hide the letter", "[scan]
     CHECK(result.best[0].glyph == glyph_index("R").value());
 }
 
+TEST_CASE("every glyph of the font has strokes, and the round letters are round", "[scan][glyph]") {
+    // The curved letters are put in by their letters after the table is built; a letter that
+    // missed would have been left as the straight strokes (or none) of the table.
+    for (const StrokeGlyph& glyph : stroke_font()) {
+        INFO(glyph.letters);
+        REQUIRE_FALSE(glyph.strokes.empty());
+        REQUIRE_FALSE(glyph.strokes.front().empty());
+    }
+    for (const char* round : {"O", "Q", "C", "G", "D", "U", "J", "B", "P", "R", "QU"}) {
+        const std::size_t index = glyph_index(round).value();
+        std::size_t points = 0;
+        for (const Stroke& stroke : stroke_font()[index].strokes) {
+            points += stroke.size();
+        }
+        INFO(round);
+        CHECK(points >= 10);  // an arc is a dozen points or more; a straight letter has 2 to 7
+    }
+    // Q has O's ring and a tail; QU has Q's strokes and its own.
+    CHECK(stroke_font()[glyph_index("Q").value()].strokes.size() == 2);
+    CHECK(stroke_font()[glyph_index("QU").value()].strokes.size() > 2);
+}
+
 TEST_CASE("a flat patch has no glyph even when no contrast is asked for", "[scan][glyph]") {
     // A contrast of 0 let a patch with no ink in it through to the division by its ink
     // depth, and then to a "letter" chosen from scores that had never been compared.
