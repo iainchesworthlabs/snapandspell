@@ -46,10 +46,9 @@ if(WJS_BUILD_APP)
     # "PreviewHost"" when the two shared a scope).
     #
     # The QML under test aliases the kit and Solo Play files under qml/kit/ and
-    # qml/solo/ as plain resources, loaded by URL and never as module types, so
-    # the extra directories need no qmldir: this is the policy's previous
-    # behaviour. Set here, in the scope the directory inherits, as it is in
-    # tests/app for the preview.
+    # qml/solo/ into the module. Qt's policy QTP0004 (a qmldir for every such
+    # directory) is NEW; its previous behaviour is deprecated. Set here, in the
+    # scope the directory inherits, as it is in tests/app for the preview.
     qt_policy(SET QTP0004 NEW)
     add_subdirectory(qml)
 endif()

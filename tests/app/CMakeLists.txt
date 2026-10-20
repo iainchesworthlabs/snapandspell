@@ -225,9 +225,9 @@ set_tests_properties(parent.languages PROPERTIES
 # application executable and its 3D scene needs a display. Not part of the
 # application.
 qt_policy(SET QTP0001 NEW)
-# The preview aliases the kit and Solo Play QML under qml/kit/ and qml/solo/
-# as plain resources, loaded by URL and never as module types, so the extra
-# directories need no qmldir: this is the policy's previous behaviour.
+# The preview aliases the kit and Solo Play QML under qml/kit/ and qml/solo/;
+# the policy (a qmldir for every such directory) is NEW, its previous
+# behaviour being deprecated.
 qt_policy(SET QTP0004 NEW)
 add_executable(wjs_scan_preview
     scan_ui/preview_main.cpp)
