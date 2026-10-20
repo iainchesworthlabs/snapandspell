@@ -32,6 +32,10 @@ Text {
     // The size in pixels; set this, not font.pixelSize, to override the role's (the
     // tracking is in em of it, and reading font.pixelSize back would loop).
     property real size: spec.size
+    // Line height as a multiple of the size. Qt's proportional mode multiplies the
+    // font's own line spacing (Andika's is about 1.4 em), so the height is fixed in
+    // pixels instead: 24 px of type at 1.5 is a 36 px line.
+    property real lineRatio: spec.line
 
     readonly property var spec: specFor(root.role, root.learning)
     readonly property bool isHeading: root.role === "display" || root.role === "title" || root.role === "heading"
@@ -75,8 +79,8 @@ Text {
     font.weight: spec.weight
     font.capitalization: spec.caps
     font.letterSpacing: (root.tracking > 0 && Theme.rightToLeft) ? 0 : root.tracking * root.size
-    lineHeight: spec.line
-    lineHeightMode: Text.ProportionalHeight
+    lineHeight: root.lineRatio * root.size
+    lineHeightMode: Text.FixedHeight
 
     Accessible.ignored: root.decorative
     Accessible.role: root.isHeading ? Accessible.Heading : Accessible.StaticText

@@ -56,7 +56,7 @@ Item {
         font.family: Theme.fontFamily
         font.weight: Font.Bold
         size: root.height * Theme.letterShare * (root.letters === "QU" ? Theme.quShare : 1)
-        lineHeight: 1.0
+        lineRatio: 1.0
         color: Theme.dieInk
     }
 

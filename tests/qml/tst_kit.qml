@@ -375,7 +375,8 @@ TestCase {
             const label = createTemporaryObject(labelComponent, testCase, { role: role, text: "Aa" })
             compare(label.font.family, faces[role], role + " face")
             verify(Theme.typeScale.indexOf(label.font.pixelSize) >= 0, role + " size " + label.font.pixelSize + " is on the scale")
-            verify(label.lineHeight >= 1.0 && label.lineHeight <= 1.5, role + " has a line height")
+            verify(label.lineRatio >= 1.0 && label.lineRatio <= 1.5, role + " has a line height ratio")
+            compare(label.lineHeight, label.lineRatio * label.size, role + " line height is that ratio of its size")
             verify(label.font.pixelSize >= 12)
         }
     }

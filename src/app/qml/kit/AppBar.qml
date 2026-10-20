@@ -51,8 +51,8 @@ Item {
 
     // The first line is 72 dp or, at a large text size, whatever the wordmark and
     // the Back button need; a second line is added when the trailing group drops.
-    readonly property real lineHeight: Math.max(Theme.appBarHeight, leading.height + 2 * Theme.space2)
-    implicitHeight: stacked ? lineHeight + Theme.targetMin + Theme.space3 : lineHeight
+    readonly property real firstRowHeight: Math.max(Theme.appBarHeight, leading.height + 2 * Theme.space2)
+    implicitHeight: stacked ? firstRowHeight + Theme.targetMin + Theme.space3 : firstRowHeight
     height: implicitHeight
 
     Rectangle {
@@ -73,7 +73,7 @@ Item {
         id: leading
         anchors.left: parent.left
         anchors.leftMargin: root.margin
-        y: (root.lineHeight - height) / 2
+        y: (root.firstRowHeight - height) / 2
         spacing: Theme.space3
 
         AppButton {
@@ -117,7 +117,7 @@ Item {
         id: trailing
         anchors.right: parent.right
         anchors.rightMargin: root.margin
-        y: root.stacked ? root.lineHeight : (root.lineHeight - height) / 2
+        y: root.stacked ? root.firstRowHeight : (root.firstRowHeight - height) / 2
         spacing: Theme.space2
 
         AppButton {

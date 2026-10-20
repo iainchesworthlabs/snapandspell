@@ -32,7 +32,7 @@ Row {
             decorative: true
             text: qsTr("Word Jewels")
             size: root.compact ? Theme.headingSize : Theme.wordSize
-            lineHeight: Theme.lineHeading
+            lineRatio: Theme.lineHeading
         }
         Label {
             role: "mono"
