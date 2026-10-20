@@ -26,6 +26,11 @@ struct Tally {
     std::size_t silent = 0;
     // Right, or among the runners-up it listed.
     std::size_t offered = 0;
+    // Frames in which the board was found and read with the grid turned a quarter
+    // other than the one its corners say: the reader numbered the board from the wrong
+    // corner. Counted apart from the tiles (they are all judged against the turn the
+    // corners say, so such a frame's tiles are wrong, and show in correct and silent).
+    std::size_t rotation_errors = 0;
 
     void add(const Tally& other) {
         frames += other.frames;
@@ -35,6 +40,7 @@ struct Tally {
         flagged += other.flagged;
         silent += other.silent;
         offered += other.offered;
+        rotation_errors += other.rotation_errors;
     }
 
     [[nodiscard]] double found_rate() const { return ratio(found, frames); }
@@ -62,11 +68,28 @@ struct TileRecord {
     std::string letters{};
 };
 
-// Judges a reading against the truth. The reading may be a quarter turn of the
-// board as it lies (the reader numbers the corners from the one nearest to the top
-// left of the picture, and the check screen has a Turn control for the rest), so
-// the quarter turn of the truth that matches best is the one taken.
-[[nodiscard]] Tally judge(const std::vector<std::string>& truth, std::size_t size,
+// How many quarter turns clockwise the reader's grid of a board is from the board as
+// it lies, given the board's corners in its own order (top left, top right, bottom
+// right, bottom left, clockwise on the screen). The reader numbers a board from the
+// corner at which the first edge runs most nearly along +x, so that is the corner
+// that comes first, and the grid is the board turned until it does. Written here from
+// that rule and not by calling the reader's own geometry, so that the judge does not
+// repeat the reader's mistake.
+[[nodiscard]] std::size_t expected_quarters(const Quad& corners);
+
+// Judges a reading against the truth with the grid turned `quarters` quarter turns
+// clockwise from the board as it lies. A reading in any other turn is wrong in its
+// tiles, where the judge used to take whichever of the four turns matched best and so
+// scored a reader that numbered the board from the wrong corner as perfect. Whether a
+// different turn would have matched better is counted in `rotation_errors`.
+[[nodiscard]] Tally judge_turned(const std::vector<std::string>& truth, std::size_t size,
+                                 std::size_t quarters,
+                                 const std::expected<BoardReading, ReadError>& reading,
+                                 std::vector<TileRecord>* records = nullptr);
+
+// Judges a reading of a frame the corpus drew, against its truth in the turn its
+// corners give.
+[[nodiscard]] Tally judge(const Rendered& frame,
                           const std::expected<BoardReading, ReadError>& reading,
                           std::vector<TileRecord>* records = nullptr);
 

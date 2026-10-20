@@ -47,7 +47,7 @@ TEST_CASE("a clean frame is read to the board that was drawn", "[scan][reader]")
     REQUIRE(reading->columns == 4);
     REQUIRE(reading->tiles.size() == 16);
 
-    const Tally tally = judge(frame.letters, frame.size, reading);
+    const Tally tally = judge(frame, reading);
     CHECK(tally.found == 1);
     CHECK(tally.correct >= 14);  // of 16
 
@@ -149,7 +149,7 @@ TEST_CASE("a size given in the options is the size read", "[scan][reader]") {
     REQUIRE(reading.has_value());
     CHECK(reading->rows == 4);
     CHECK(reading->size_confidence == 1.0);
-    CHECK(judge(frame.letters, frame.size, reading).correct >= 14);
+    CHECK(judge(frame, reading).correct >= 14);
 }
 
 TEST_CASE("the doubt thresholds decide what is doubtful and nothing else", "[scan][reader]") {
@@ -187,7 +187,7 @@ TEST_CASE("a glyph height can be given instead of estimated", "[scan][reader]") 
     const auto reading = read_board(frame.image.view(), options);
     REQUIRE(reading.has_value());
     CHECK(reading->glyph_height_ratio == frame.glyph_height);
-    CHECK(judge(frame.letters, frame.size, reading).correct >= 14);
+    CHECK(judge(frame, reading).correct >= 14);
 }
 
 TEST_CASE("a frame that is not a frame is refused", "[scan][reader]") {
@@ -328,15 +328,14 @@ TEST_CASE("a frame with no board is answered with board_not_found", "[scan][read
 }
 
 TEST_CASE("a lattice of dice with no letters on them is not a board", "[scan][reader]") {
-    // A tiled floor: bright squares at a pitch, nothing on them.
-    const GrayImage tiles = render_negative(NegativeKind::tiles, 0);
-    const auto reading = read_board(tiles.view());
-    if (reading.has_value()) {
-        // If it is answered at all, none of it is trusted.
-        for (const TileReading& tile : reading->tiles) {
-            CHECK(tile.doubtful);
-        }
-    } else {
+    // A tiled floor: bright squares at a pitch, nothing on them. None of seven is
+    // answered with a board, not even one whose tiles are all doubted: this used to
+    // pass on either, and so on a reader that believed a floor and doubted every tile.
+    for (unsigned index = 0; index < 7; ++index) {
+        const GrayImage tiles = render_negative(NegativeKind::tiles, index);
+        const auto reading = read_board(tiles.view());
+        INFO("floor " << index);
+        REQUIRE_FALSE(reading.has_value());
         CHECK((reading.error() == ReadError::no_letters ||
                reading.error() == ReadError::board_not_found ||
                reading.error() == ReadError::size_not_found));
