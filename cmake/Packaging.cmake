@@ -42,6 +42,22 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "${PROJECT_HOMEPAGE_URL}")
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+
+# A prerelease (a v0.1.0-rc.1 tag, a rehearsal run) is packaged under its own
+# version, so its files are not named like the final release's. The release
+# workflow passes the part after the tag's hyphen. It is empty for a release and
+# for every development build, which keeps the plain project version.
+set(WJS_PACKAGE_PRERELEASE "" CACHE STRING
+    "Prerelease identifier appended to the package version (for example rc.1); empty for a final release")
+if(WJS_PACKAGE_PRERELEASE)
+    if(NOT WJS_PACKAGE_PRERELEASE MATCHES "^[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*$")
+        message(FATAL_ERROR
+            "WJS_PACKAGE_PRERELEASE is '${WJS_PACKAGE_PRERELEASE}'; it takes SemVer "
+            "prerelease identifiers: letters, digits and hyphens, separated by dots "
+            "(rc.1, dryrun.17).")
+    endif()
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}-${WJS_PACKAGE_PRERELEASE}")
+endif()
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "WordJewelsSolver")
 # The GPL text: the installer shows it before installing, and
 # cmake/Notices.cmake installs it as LICENSE.txt beside the programs (the
@@ -102,52 +118,80 @@ if("NSIS" IN_LIST CPACK_GENERATOR)
     if(TARGET WordJewelsSolver)
         set(CPACK_PACKAGE_EXECUTABLES "WordJewelsSolver" "WordJewelsSolver")
     endif()
+
+    # The programs are 64-bit, and the installer itself is a 32-bit NSIS program:
+    # without this, $PROGRAMFILES is "Program Files (x86)".
+    set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
+    # The installer's and the uninstaller's icon, and the one Programs and
+    # Features shows. The same mark as the executable's (packaging/app.rc.in).
+    set(CPACK_NSIS_MUI_ICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
+    if(TARGET WordJewelsSolver)
+        set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\WordJewelsSolver.exe")
+        # The last page of the installer offers to start the program.
+        set(CPACK_NSIS_MUI_FINISHPAGE_RUN "WordJewelsSolver.exe")
+        # A desktop shortcut besides the Start Menu entry, removed with the program.
+        set(CPACK_NSIS_CREATE_ICONS_EXTRA
+            "CreateShortCut '$DESKTOP\\WordJewelsSolver.lnk' '$INSTDIR\\bin\\WordJewelsSolver.exe'")
+        set(CPACK_NSIS_DELETE_ICONS_EXTRA
+            "Delete '$DESKTOP\\WordJewelsSolver.lnk'")
+    endif()
+    # Programs and Features: publisher, support and about links, and the text at
+    # the foot of the installer window.
+    set(CPACK_NSIS_CONTACT "${CPACK_PACKAGE_CONTACT}")
+    set(CPACK_NSIS_URL_INFO_ABOUT "${PROJECT_HOMEPAGE_URL}")
+    set(CPACK_NSIS_HELP_LINK "${PROJECT_HOMEPAGE_URL}/issues")
+    if(WJS_PACKAGE_PRERELEASE)
+        set(CPACK_NSIS_BRANDING_TEXT "${CPACK_PACKAGE_NAME} ${PROJECT_VERSION}-${WJS_PACKAGE_PRERELEASE}")
+    else()
+        set(CPACK_NSIS_BRANDING_TEXT "${CPACK_PACKAGE_NAME} ${PROJECT_VERSION}")
+    endif()
+    set(CPACK_NSIS_BRANDING_TEXT_TRIM_POSITION LEFT)
 endif()
 
 # ---------------------------------------------------------------------------
 # DEB, on Linux, when dpkg-deb and dpkg-shlibdeps were found. The package name
 # is lower case, as Debian requires, and the file name is dpkg's own
 # <name>_<version>_<arch>.deb form. dpkg-shlibdeps writes the shared-library
-# dependencies it can resolve; Qt's QML modules are not libraries the loader
-# sees, so a package that carries the application states them by hand - and
-# this is the one part of the Linux packaging no leg of this project has built,
-# because Qt is not installed on a Linux leg yet (docs/ci.md). The names are
-# Debian/Ubuntu's, reasoned, not measured.
+# dependencies it can resolve.
+#
+# A DEB or an RPM is made for the command-line solver only. The Linux platform
+# fragment offers them when the application is NOT built: the application needs a
+# Qt 6.12 with Quick 3D, which no distribution's Qt packages are, so a Depends:
+# line naming "libqt6core6 (>= 6.8)" would install a package that fails to start,
+# and one naming 6.12 could not be installed. The application is distributed as
+# an AppImage that carries its Qt (src/platforms/linux/packaging).
 # ---------------------------------------------------------------------------
 if("DEB" IN_LIST CPACK_GENERATOR)
     set(CPACK_DEBIAN_PACKAGE_NAME "wordjewelssolver")
+    if(WJS_PACKAGE_PRERELEASE)
+        # dpkg sorts "0.1.0~rc.1" before "0.1.0"; a hyphen would make rc.1 the revision.
+        set(CPACK_DEBIAN_PACKAGE_VERSION "${PROJECT_VERSION}~${WJS_PACKAGE_PRERELEASE}")
+    endif()
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_VENDOR}")
     set(CPACK_DEBIAN_PACKAGE_SECTION "games")
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-    if(WJS_BUILD_APP)
-        set(CPACK_DEBIAN_PACKAGE_DEPENDS
-            "libqt6core6 (>= 6.8), libqt6gui6 (>= 6.8), libqt6qml6 (>= 6.8), libqt6quick6 (>= 6.8), libqt6quickcontrols2-6 (>= 6.8), libqt6quick3d6 (>= 6.8), qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-templates, qml6-module-qtquick-window, qml6-module-qtqml-models, qml6-module-qtqml-workerscript, qml6-module-qtquick3d")
-    endif()
 endif()
 
 # ---------------------------------------------------------------------------
-# RPM, on Linux, when rpmbuild was found. The licence field names the
-# application's GPL-3.0-only when the package carries the application (Qt Quick
-# 3D is why), and the repository's GPL-3.0-or-later when it carries only
-# wjs-cli. AUTOREQPROV writes the shared-library
-# requirements it can resolve; the Qt modules the application needs are stated
-# by hand for the same reason as the DEB block above, and with the same caveat:
-# Fedora/RHEL's package names, reasoned, not measured on an RPM host.
+# RPM, on Linux, when rpmbuild was found: the command-line solver, GPL-3.0-or-later
+# (the application, GPL-3.0-only because it links Qt Quick 3D, is the AppImage's).
+# AUTOREQPROV writes the shared-library requirements it can resolve.
 # ---------------------------------------------------------------------------
 if("RPM" IN_LIST CPACK_GENERATOR)
-    if(WJS_BUILD_APP)
-        set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-only")
-    else()
-        set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")
-    endif()
+    set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-or-later")
     set(CPACK_RPM_PACKAGE_GROUP "Amusements/Games")
+    if(WJS_PACKAGE_PRERELEASE)
+        # An RPM version cannot contain a hyphen and a release sorts after it, so a
+        # prerelease is release 0.<identifier>, below the final release's 1.
+        string(REPLACE "-" "_" _wjs_rpm_pre "${WJS_PACKAGE_PRERELEASE}")
+        set(CPACK_RPM_PACKAGE_VERSION "${PROJECT_VERSION}")
+        set(CPACK_RPM_PACKAGE_RELEASE "0.${_wjs_rpm_pre}")
+        unset(_wjs_rpm_pre)
+    endif()
     set(CPACK_RPM_PACKAGE_AUTOREQPROV ON)
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
-    if(WJS_BUILD_APP)
-        set(CPACK_RPM_PACKAGE_REQUIRES
-            "qt6-qtbase >= 6.8, qt6-qtdeclarative >= 6.8, qt6-qtquick3d >= 6.8, qt6-qtquickcontrols2 >= 6.8")
-    endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -160,6 +204,15 @@ endif()
 if("DragNDrop" IN_LIST CPACK_GENERATOR)
     set(CPACK_DMG_VOLUME_NAME "${CPACK_PACKAGE_NAME} ${PROJECT_VERSION}")
 endif()
+
+# CPack refuses to package a build that has the Tracy profiler in it, unless a
+# development package is asked for by name (cmake/PackagePreflight.cmake says why).
+# The two variables reach the script through CPackConfig.cmake, which only
+# carries CPACK_ ones. A refusal writes no package, says why and makes cpack
+# (and so the package target) exit non-zero.
+set(CPACK_WJS_TRACY "${WJS_ENABLE_TRACY}")
+set(CPACK_WJS_ALLOW_DEV_PACKAGE OFF)
+set(CPACK_PRE_BUILD_SCRIPTS "${PROJECT_SOURCE_DIR}/cmake/PackagePreflight.cmake")
 
 # Remembered before include(CPack): the module ends by pointing CPACK_GENERATOR
 # at CPACK_SOURCE_GENERATOR for the source package it also configures, so after

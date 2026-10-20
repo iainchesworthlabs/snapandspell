@@ -44,6 +44,14 @@ std::expected<DiceSets, DiceError> DiceSets::load_directory(
         if (!set) {
             return std::unexpected(set.error());
         }
+        // 4x4.txt holds the dice of a board of four: files swapped between two
+        // names would otherwise pass for a complete set.
+        if (set->side() == 0) {
+            return std::unexpected(DiceError::not_square);
+        }
+        if (set->side() != side) {
+            return std::unexpected(DiceError::wrong_count);
+        }
         sets.push_back(*std::move(set));
     }
     zone.Value(sets.size());

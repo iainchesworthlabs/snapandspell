@@ -491,6 +491,8 @@ bool GameSession::back() {
 }
 
 BoardRecord GameSession::make_record() const {
+    [[maybe_unused]] auto zone = profiling::zone<"session.finish">();
+
     BoardRecord record;
     if (!board_) {
         return record;

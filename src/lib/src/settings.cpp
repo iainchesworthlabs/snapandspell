@@ -5,18 +5,23 @@
 #include <string>
 #include <string_view>
 
+#include "ascii.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
 
 namespace {
 
+using ascii::to_lower;
+using ascii::to_upper;
+
+// The overload set the callers below use with std::transform.
 [[nodiscard]] char lower(char c) noexcept {
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+    return to_lower(c);
 }
 
 [[nodiscard]] char upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
+    return to_upper(c);
 }
 
 [[nodiscard]] bool is_name_character(char c) noexcept {

@@ -29,9 +29,10 @@ set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "QT_QPA_FONTDIR=$ENV{SystemRoot}/Fonts"
 # detail/ is what no platform differs in: no native camera backend yet, the portable
 # board reader (docs/design/scanner.md), and the no-op haptics every desktop
 # answers with (src/platforms/interfaces/wjs/platform/haptics.hpp).
-# The application's executable icon comes from a Windows resource script. The
-# application names the template and icon; only this platform sets them.
-set(WJS_PLATFORM_APP_RC_TEMPLATE "${PROJECT_SOURCE_DIR}/src/app/app.rc.in")
+# The application's executable icon and version resource come from a Windows
+# resource script (packaging/app.rc.in). The application names the template and
+# icon; only this platform sets them.
+set(WJS_PLATFORM_APP_RC_TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/packaging/app.rc.in")
 set(WJS_PLATFORM_APP_ICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
 
 set(WJS_PLATFORM_SOURCES

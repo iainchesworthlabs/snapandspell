@@ -84,8 +84,11 @@ struct SeedOptions {
     // yet taught are for the caller to pass.
     std::string filler;
 
-    // Sounds, as written in the graphemes file, the parent has ticked. Targets
-    // prefer words with a grapheme that makes one.
+    // The graphemes the parent has ticked, by their letters as written in the
+    // graphemes file ("ai", "a_e"; the case does not matter): the same strings
+    // Settings::focus_sounds holds and focus_sound_choices() lists. Targets
+    // prefer words with one of these graphemes, whichever of its sounds the
+    // word uses. The slashed sound ("/ay/") is not a tick and matches nothing.
     std::vector<std::string> focus_sounds;
 
     // What a board has to hold, counted in words of the phase on it.

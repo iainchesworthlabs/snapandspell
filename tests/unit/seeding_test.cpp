@@ -8,7 +8,9 @@
 #include <utility>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
+#include "wjs/dashboard.hpp"
 #include "wjs/path.hpp"
 #include "wjs/phase_data.hpp"
 #include "wjs/seeding.hpp"
@@ -50,12 +52,8 @@ constexpr std::string_view test_words_b =
     "stain  s t ai n\n";
 
 wjs::Dictionary english() {
-    wjs::Dictionary dictionary;
-    for (const std::string_view word :
-         {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain"}) {
-        dictionary.insert(word);
-    }
-    return dictionary;
+    return wjs::test::dictionary_of(
+        {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain"});
 }
 
 // The phase set of the test data: A, then B which adds the "ai" grapheme.
@@ -81,18 +79,9 @@ wjs::PhaseSet make_set() {
     return *std::move(built);
 }
 
-// The board as text, for comparing two boards.
+// The board as text, for comparing two boards: the tiles run together.
 std::string text_of(const wjs::Board& board) {
-    std::string text;
-    for (std::size_t row = 0; row < board.rows(); ++row) {
-        if (row > 0) {
-            text += '/';
-        }
-        for (std::size_t column = 0; column < board.columns(); ++column) {
-            text += board.tile({row, column});
-        }
-    }
-    return text;
+    return wjs::test::text_of(board, "");
 }
 
 wjs::SeededBoard seed(const wjs::PhaseIndex& index, const wjs::SeedOptions& options,
@@ -334,7 +323,7 @@ TEST_CASE("targets prefer words with a focus sound", "[seeding]") {
     const auto set = make_set();
     const auto& index = *set.find("B");
     auto options = options_for(4, 6);
-    options.focus_sounds = {"/t7/"};  // the sound of "ai": four words have it
+    options.focus_sounds = {"ai"};  // the grapheme the parent ticked: four words have it
 
     for (std::uint32_t seed_value = 1; seed_value <= 50; ++seed_value) {
         const auto board = seed(index, options, seed_value);
@@ -355,7 +344,7 @@ TEST_CASE("when too few words have a focus sound the rest come from the phase", 
     const auto set = make_set();
     const auto& index = *set.find("A");  // no "ai" in phase A
     auto options = options_for(4, 6);
-    options.focus_sounds = {"/t7/"};
+    options.focus_sounds = {"ai"};
 
     const auto board = seed(index, options, 4);
 
@@ -367,13 +356,58 @@ TEST_CASE("a focus sound that enough words have is met on every board", "[seedin
     const auto set = make_set();
     const auto& index = *set.find("A");
     auto options = options_for(4, 6);
-    options.focus_sounds = {"/t1/"};  // "a", which is in pan, pat, sat and tap
+    options.focus_sounds = {"a"};  // which is in pan, pat, sat and tap
 
     for (std::uint32_t seed_value = 1; seed_value <= 30; ++seed_value) {
         const auto board = seed(index, options, seed_value);
 
         INFO("seed " << seed_value);
         CHECK_FALSE(board.focus_unmet);
+    }
+}
+
+TEST_CASE("a focus sound is ticked by its letters, in any case, and not by its slashed sound",
+          "[seeding]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+
+    // The parent ticks letters (Settings holds nothing else), so "AI" is "ai".
+    auto options = options_for(4, 6);
+    options.focus_sounds = {"AI"};
+    for (std::uint32_t seed_value = 1; seed_value <= 20; ++seed_value) {
+        INFO("seed " << seed_value);
+        CHECK_FALSE(seed(index, options, seed_value).focus_unmet);
+    }
+
+    // The slashed form is the sound as written in the data, not a thing the
+    // parent can tick: it names no grapheme, so it steers nothing.
+    options.focus_sounds = {"/t7/"};
+    CHECK(seed(index, options, 1).focus_unmet);
+}
+
+TEST_CASE("every focus sound the dashboard offers is one that seeding honours", "[seeding]") {
+    const auto set = make_set();
+    for (const char* phase : {"A", "B"}) {
+        const auto& index = *set.find(phase);
+        for (const std::string& letters : wjs::focus_sound_choices(index)) {
+            auto options = options_for(4, 4);
+            options.focus_sounds = {letters};
+            INFO("phase " << phase << ", tick " << letters);
+            // Four words are enough to land a board of four tiles of any
+            // grapheme that three or more words use.
+            std::size_t words_with = 0;
+            for (const auto& word : index.words()) {
+                words_with += std::ranges::any_of(word.graphemes,
+                                                  [&](const wjs::WordGrapheme& grapheme) {
+                                                      return grapheme.letters == letters;
+                                                  })
+                                  ? 1U
+                                  : 0U;
+            }
+            if (words_with >= 3) {
+                CHECK_FALSE(seed(index, options, 5).focus_unmet);
+            }
+        }
     }
 }
 
@@ -720,6 +754,36 @@ TEST_CASE("the phonics board options keep one letter out and let the rest in",
     CHECK(options->filler.find('Z') != std::string::npos);
 }
 
+TEST_CASE("the dead jewels are listed in row order when the planted words are already too many",
+          "[seeding][guided]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    auto options = wjs::phonics_board_options(index, 3);
+    REQUIRE(options.has_value());
+    // One word is wanted, and any word may be planted: PAINT holds PAIN, which
+    // is two words already, and a fill cannot take a word away. That planting is
+    // given up, the board is the nearest and every tile the word left is dead.
+    options->max_target_letters = 0;
+    options->min_viable = 1;
+    options->max_viable = 1;
+    options->max_tries = 1;  // the first planting is the board, as the nearest
+
+    std::size_t with_dead = 0;
+    for (std::uint32_t seed_value = 1; seed_value <= 200; ++seed_value) {
+        const auto board = seed(index, *options, seed_value);
+
+        INFO("seed " << seed_value);
+        CHECK(
+            std::ranges::is_sorted(board.dead, [](const wjs::Position& a, const wjs::Position& b) {
+                return a.row != b.row ? a.row < b.row : a.column < b.column;
+            }));
+        if (!board.dead.empty()) {
+            ++with_dead;
+        }
+    }
+    CHECK(with_dead > 0);  // the path under test was taken
+}
+
 TEST_CASE("a phonics board has the phase's letters first and no dead jewels", "[seeding][guided]") {
     const auto set = make_set();
     const auto& index = *set.find("B");
@@ -771,7 +835,7 @@ TEST_CASE("a phase that uses every letter has none to keep out", "[seeding][guid
     REQUIRE(parsed_graphemes.has_value());
     REQUIRE(parsed_words.has_value());
     wjs::Dictionary dictionary;
-    dictionary.insert("abc");
+    REQUIRE(dictionary.insert("abc"));
     const auto built = wjs::PhaseSet::build({*parsed_graphemes}, {*parsed_words}, dictionary);
     REQUIRE(built.has_value());
 

@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <fstream>
 #include <numeric>
+#include <span>
 #include <sstream>
 #include <utility>
 
+#include "ascii.hpp"
 #include "draw.hpp"
 #include "wjs/profiling.hpp"
 
@@ -14,9 +16,7 @@ namespace {
 
 constexpr std::string_view byte_order_mark = "\xEF\xBB\xBF";
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
+using ascii::to_upper;
 
 [[nodiscard]] bool is_separator(char c) noexcept {
     return c == ' ' || c == '\t' || c == ',' || c == '\r';
@@ -29,7 +29,7 @@ std::string_view to_string(DiceError error) noexcept {
         case DiceError::empty:
             return "the set has no dice";
         case DiceError::bad_die:
-            return "a die has no faces, or too many";
+            return "a die has too many faces";
         case DiceError::bad_face:
             return "a face is not one to three letters";
         case DiceError::not_square:

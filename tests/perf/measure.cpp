@@ -179,7 +179,7 @@ SessionRun run_session(const wjs::SessionData& data, const wjs::SessionOptions& 
     wjs::Stamp when = 0;
     for (std::size_t which = 0; which < words.size(); ++which) {
         if (which % 2 == 1) {
-            session.request_help();
+            static_cast<void>(session.request_help());
         }
         run.kinds.push_back(session.trace(words[which].path, ++when).kind);
         if (which == 0) {

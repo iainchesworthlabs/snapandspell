@@ -5,14 +5,13 @@
 #include <optional>
 #include <string>
 
+#include "ascii.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
 namespace {
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
+using ascii::to_upper;
 
 // The word upper-cased, or nothing if it is empty or holds a non-letter.
 [[nodiscard]] std::optional<std::string> normalise(std::string_view word) {
@@ -32,13 +31,7 @@ namespace {
 }
 
 [[nodiscard]] std::string_view trim(std::string_view line) noexcept {
-    constexpr std::string_view blanks = " \t\r\n";
-    const auto first = line.find_first_not_of(blanks);
-    if (first == std::string_view::npos) {
-        return {};
-    }
-    const auto last = line.find_last_not_of(blanks);
-    return line.substr(first, last - first + 1);
+    return ascii::trim(line, " \t\r\n");
 }
 
 }  // namespace
@@ -115,7 +108,8 @@ std::expected<Dictionary, DictionaryError> Dictionary::load(std::istream& words)
             text.remove_prefix(byte_order_mark.size());
         }
         first_line = false;
-        dictionary.insert(trim(text));
+        // A line that is not a word is refused, and skipped, as the header says.
+        static_cast<void>(dictionary.insert(trim(text)));
     }
     if (words.bad()) {
         return std::unexpected(DictionaryError::read_failed);
@@ -167,6 +161,9 @@ bool Dictionary::has_prefix(std::string_view prefix) const {
 }
 
 Dictionary::Cursor Dictionary::step(Cursor from, char letter) const noexcept {
+    if (from >= nodes_.size()) {
+        return no_node;  // no_node stepped from stays nowhere, as is_word(no_node) is false
+    }
     const auto& edges = nodes_[from].edges;
     const auto found = std::ranges::lower_bound(edges, letter, {}, &Edge::letter);
     return (found != edges.end() && found->letter == letter) ? found->target : no_node;

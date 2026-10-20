@@ -172,6 +172,12 @@ function(wjs_write_notices)
         list(APPEND fragments assets fonts)
     endif()
     list(APPEND fragments catch2)
+    # A build with the Tracy profiler in it is a development build, and its package
+    # (cmake/PackagePreflight.cmake) says so and carries Tracy's licence. A release
+    # build never has this section.
+    if(WJS_ENABLE_TRACY)
+        list(APPEND fragments tracy)
+    endif()
 
     set(out "${CMAKE_BINARY_DIR}/notices/NOTICES.txt")
     wjs_generate_notices("${out}"

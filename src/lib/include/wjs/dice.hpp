@@ -7,6 +7,7 @@
 #include <istream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "wjs/board.hpp"
@@ -31,7 +32,7 @@ namespace wjs {
 
 enum class DiceError {
     empty,        // no dice
-    bad_die,      // a line holds no faces, or more than max_faces
+    bad_die,      // a die has more than max_faces faces (a line with none is skipped)
     bad_face,     // a face is not one to three letters A-Z
     not_square,   // the number of dice is not a square, so no n by n board
     wrong_count,  // asked for a board of a size the set has not the dice for
