@@ -284,7 +284,7 @@ jobs:
       # carry the tools for.
       - name: Install what vcpkg needs for Tracy's tools (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev python3-venv
+        uses: ./.github/actions/linux-tracy-tools
 
       # The Windows leg also builds the Qt Quick application and its 3D scene
       # prototype, so the app tests, the QML lint and the scene contract run
