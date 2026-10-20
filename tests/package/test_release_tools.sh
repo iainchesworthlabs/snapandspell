@@ -179,6 +179,13 @@ jq -e '[.components[].name] | index("qtbase") == null' "$work/cli.cdx.json" >/de
 echo "check_package.ps1"
 expect_status "a Release package must not carry Tracy, an ASan runtime or a pdb" 0 pwsh -NoProfile -File "$repo/tests/package/test_check_package_forbid.ps1"
 
+# --- every shell script is executable in the repository ---------------------------------
+# A script committed from a machine without file modes (Windows) lands as 100644,
+# and a workflow that runs it by path then fails with "Permission denied".
+echo "executable bits"
+not_executable="$(git -C "$repo" ls-files -s -- '*.sh' | awk '$1 != "100755" {print $4}')"
+if [ -z "$not_executable" ]; then ok "every tracked *.sh is mode 100755"; else bad "not executable in git (git update-index --chmod=+x): $not_executable"; fi
+
 # --- the release workflow ---------------------------------------------------------
 echo "release.yml"
 workflow="$repo/.github/workflows/release.yml"
