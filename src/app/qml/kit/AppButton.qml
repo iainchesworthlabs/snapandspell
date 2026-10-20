@@ -111,7 +111,9 @@ Item {
     // The room the picture and the word take inside the button, without the
     // button's own padding.
     readonly property real contentPad: size === "min" ? (compact ? Theme.space2 : Theme.space3) : Theme.space3
-    readonly property real choiceSpace: (checkable && !isTab && size !== "child") ? Theme.iconSm + Theme.space2 : 0
+    // Room for the check mark: kept on both sides of the label, so the word stays
+    // in the middle whether or not the option is chosen and choosing it moves nothing.
+    readonly property real choiceSpace: (checkable && !isTab && size !== "child") ? 2 * (Theme.iconSm + Theme.space2) : 0
     readonly property real rowContentWidth: (hasIcon ? iconSize + (hasLabel ? Theme.space2 : 0) : 0)
                                             + (hasLabel ? labelText.implicitWidth : 0) + choiceSpace
     readonly property real rowContentHeight: Math.max(hasIcon ? iconSize : 0, hasLabel ? labelText.height : 0)
@@ -241,6 +243,12 @@ Item {
             elide: root.wrap ? Text.ElideNone : Text.ElideRight
             maximumLineCount: root.wrap ? 3 : 1
             horizontalAlignment: Text.AlignHCenter
+        }
+        // The check mark's twin on the other side, empty.
+        Item {
+            visible: root.checkable && !root.isTab && root.size !== "child"
+            width: Theme.iconSm
+            height: 1
         }
     }
 
