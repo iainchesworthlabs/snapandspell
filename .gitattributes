@@ -3,7 +3,6 @@
 * text=auto
 
 *.sh   text eol=lf
-*.bat  text eol=crlf
 *.cmake text
 CMakeLists.txt text
 *.cpp  text
@@ -27,3 +26,11 @@ CMakeLists.txt text
 
 # Git hooks are run by sh: LF only, whatever the checkout platform.
 tools/hooks/* text eol=lf
+
+# What a source archive (git archive, the release's source tarball) leaves out:
+# the repository's own automation, the design review material and the
+# performance tier. A tree cut this way builds with -DWJS_BUILD_TESTS=OFF;
+# tests/CMakeLists.txt says so when it finds tests/perf missing.
+/.github export-ignore
+/docs/design export-ignore
+/tests/perf export-ignore

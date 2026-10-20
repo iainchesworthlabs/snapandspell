@@ -9,6 +9,14 @@ include(Catch)
 # the repo checks run the scripts in the topic directories).
 set(WJS_TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
+# A source archive (git archive) leaves tests/perf out (.gitattributes), and the
+# application's tests include its budgets: that tree builds without tests.
+if(NOT EXISTS "${WJS_TESTS_DIR}/perf/CMakeLists.txt")
+    message(FATAL_ERROR
+        "tests/perf is missing, as it is in a source archive. Configure with "
+        "-DWJS_BUILD_TESTS=OFF to build the program without the test suites.")
+endif()
+
 # Unit tier: wjs_unit_tests.
 add_subdirectory(unit)
 
