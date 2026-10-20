@@ -167,7 +167,7 @@ deliberately, or `-DWJS_BUILD_APP=ON` to make a missing Qt a configure error
 (the Windows CI leg does the latter).
 
 It needs Qt 6.12 with the modules Core, Gui, Qml, Quick, Quick Controls 2,
-Quick 3D and LinguistTools (the `qttools` module: `lupdate` and `lrelease`), as
+Quick 3D and LinguistTools (`lupdate` and `lrelease`, in the base kit from 6.12; before that the `qttools` module), as
 a prebuilt install (from the Qt online installer, or with
 [aqtinstall](https://github.com/miurahr/aqtinstall)). Qt is not built by vcpkg.
 The board scene is 3D, so a build of the window links Qt Quick 3D, which Qt
@@ -291,7 +291,7 @@ cmake --build --preset windows-msvc-debug --target wjs_update_translations
 That target runs the kit's `lupdate` over the source list in
 `cmake/Translations.cmake` and rewrites every `i18n/*.ts`; the translations
 already there are kept, and a new message is written as `type="unfinished"`
-until a person fills it in. Qt Linguist (in the same `qttools` module) opens a
+until a person fills it in. Qt Linguist (in the same package as `lupdate`) opens a
 `.ts` for translating. The test `i18n.catalogues` regenerates the catalogues
 into a temporary directory and fails when the checked-in ones differ, so a
 `qsTr()` without its catalogue is caught (docs/testing.md,
