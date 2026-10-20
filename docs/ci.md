@@ -28,6 +28,8 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | --- | --- | --- |
 | `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report and the performance work budgets | yes |
 | `analysis.yml` | nightly `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
+| `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag) |
+| `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change | yes |
 | `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
 | `commit-policy.yml` | no attribution in the PR title, PR body or any commit message of the PR | yes |
 | `codeql.yml` | nightly CodeQL static analysis of the C++ | no - skipped |
@@ -270,8 +272,269 @@ are disabled with the reason beside each in the file. The gate is the rest of
 version is the one the disabled list was written for; Dependabot's bump is the
 moment to re-read it.
 
-A scheduled run is on the default branch (`main`). To analyse another branch,
-dispatch `analysis.yml` or `codeql.yml` on it from the Actions tab.
+A scheduled run is on the default branch (`main`), and so is the workflow it
+runs: GitHub reads a `schedule` and the `workflow_dispatch` listing only from
+the default branch. At the time of writing `main` is at the merge of PR #2,
+so it has the older `codeql.yml` and `scorecard.yml` (both have run green on
+their schedules) and **no `analysis.yml` at all**: the nightly clang-tidy, MSVC
+`/analyze` and Clang-sanitizer jobs, like the weekly release rehearsal, start
+only once `develop` has been merged to `main`. To analyse another branch
+before that, or after it, dispatch `analysis.yml` or `codeql.yml` on it from the
+Actions tab (once the workflow is on `main`).
+
+Every Debug preset has Tracy on, so a Debug configure on Linux has vcpkg build
+Tracy's tools for the host, which needs autotools. The composite action
+`.github/actions/linux-tracy-tools` installs them, and `ci.yml`'s Linux leg and
+the nightly `clang-tidy`, `Sanitizers (Linux, Clang)` and CodeQL jobs all use
+it before Configure; `clang-tidy` and CodeQL also restore and save the
+`x64-linux` vcpkg archives, and CodeQL configures before its tracer starts so
+none of vcpkg's or Tracy's code is analysed as ours.
+
+## Releases
+
+`release.yml` turns a `v*` tag into a GitHub Release: Release packages built on
+hosted runners, tested, listed in a software bill of materials, checksummed,
+signed with the project's GPG key and attested. Nothing in it runs on a pull
+request or the merge queue, and none of it is a required check.
+
+### What a release holds
+
+| Platform | Built on | Packages | Holds |
+| --- | --- | --- | --- |
+| Windows x64 | `windows-2025-vs2026`, MSVC, Qt 6.12.0 | `WordJewelsSolver-<v>-win64.zip`, `WordJewelsSolver-<v>-win64.exe` (NSIS installer) | the Qt Quick application and `wjs-cli`, with Qt's runtime, plugins and QML modules |
+| Linux x64 | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` | `wjs-cli` only |
+| macOS arm64 | `macos-26`, AppleClang | `.zip`, `.dmg` | `wjs-cli` only |
+
+and, for the release as a whole:
+
+| File | What it is |
+| --- | --- |
+| `SHA256SUMS` | SHA-256 of every file below, in `sha256sum` format |
+| `WordJewelsSolver-<v>.cdx.json` | the CycloneDX 1.6 SBOM ([below](#the-sbom)) |
+| `<file>.asc` | a detached GPG signature for every file above, `SHA256SUMS` included |
+| `KEYS` | the public signing key (convenient, not a root of trust: check its fingerprint, [below](#checking-a-download)) |
+
+Release builds have **Tracy off**: the Release presets turn it off
+(`tests/profiling/check_presets.cmake` holds that), the workflow never sets it,
+and every build job fails if `CMakeCache.txt` has it on or if a package that can
+be listed (ZIP, tar.gz, deb) holds a file with Tracy or a sanitizer runtime in
+its name.
+
+**What is not built, and why.**
+
+- **The application on Linux and macOS.** Qt is not installed on those legs and
+  the application has only ever been built on Windows (see "Not here yet"), so
+  their packages are the command-line solver. Putting Qt on those legs is a
+  change to the build legs first, then to the release matrix; a release job
+  that could not be tested would be a stub.
+- **iOS and Android.** There is no platform section for either
+  (`src/platforms` has `windows`, `linux`, `macos`), and building them needs
+  what this repository does not hold: Qt's mobile kits, an Android keystore, and
+  for iOS an Apple Developer Program certificate and provisioning profile held
+  as secrets. `docs/roadmap.md` (decision D1) plans them as private builds for
+  the author's own devices, taking the Android and iOS pipelines of
+  CountdownSolver; until the platform sections and those secrets exist, a job
+  here could not be run, so none is added. Releasing to a public store is
+  a separate licensing decision (D2).
+- **Authenticode and notarisation.** The Windows ZIP and installer are not
+  Authenticode-signed (that needs a code-signing certificate), and the macOS
+  disk image is not signed or notarised (an Apple identity). The GPG signature
+  and the attestation prove who built a file and that it is intact; they do not
+  stop SmartScreen or Gatekeeper warning on first run.
+- **Intel macOS and Linux arm64.** No hosted runner is in the matrix for them.
+
+### The jobs
+
+| Job | Runs on | What it does |
+| --- | --- | --- |
+| `Prepare the release` | ubuntu-24.04 | Decides the mode. For a tag: `tools/release/check_release_ref.sh` requires `vMAJOR.MINOR.PATCH[-prerelease]`, the same version in `CMakeLists.txt` and `vcpkg.json`, a `## [x.y.z]` section in `CHANGELOG.md` (the release notes) and, for a final release, that the commit is on `main`. A prerelease (`v0.1.0-rc.1`) may be cut from a branch and gets generated notes if it has no changelog section. |
+| `Build ...` (3 legs) | as the table | Configures the Release preset (`WJS_BUILD_APP=ON` on Windows, so a missing Qt is an error and not a silent command-line-only package), builds, runs **all** of ctest, then packages. Windows also runs the application's offscreen smoke, `tools/package/check_package.ps1` on the ZIP, and installs the NSIS installer silently and runs the installed `wjs-cli`. Linux and macOS run `tools/release/smoke_package.sh` over every package they made (unpack, or mount the disk image, and solve a board with the packaged dictionary). Every leg ends with `tools/release/check_release_build.ps1` (Tracy off, the expected packages present). |
+| `SBOM, checksums and signatures` | ubuntu-24.04 | Collects the packages, writes the SBOM, writes `SHA256SUMS`, signs every file, then verifies the directory the way a user would. Uploads it as the `release-dist` artifact. |
+| `Attest provenance and SBOM` | ubuntu-24.04 | Release only. `actions/attest-build-provenance` for every file, `actions/attest-sbom` tying the SBOM to the packages. This is the only job with `id-token: write` and `attestations: write`. |
+| `Publish the release` | ubuntu-24.04 | Release only. Creates a **draft** with every file attached, publishes it, downloads it again and runs `verify_release.sh --attest` against the public release; if that fails the release is returned to a draft. The only job with `contents: write`. |
+
+A tag-triggered run uses the workflow file **at the tagged commit**, so a release
+is built by the pipeline that was reviewed with it.
+
+### Rehearsals: the dry run
+
+The same workflow, started by hand or weekly, builds, tests, packages, writes the
+SBOM, signs and verifies - and publishes and attests nothing. The files are in
+the run's `release-dist` artifact for 14 days.
+
+```sh
+gh workflow run release.yml --ref main                       # ephemeral key
+gh workflow run release.yml --ref main -f signing=repository # the real secrets
+```
+
+- `signing=ephemeral` (the default, and what the weekly run uses) signs with a
+  throw-away key made inside the run, so the pipeline is tested end to end
+  without the real key and without secrets. `KEYS` in the artifact is that key's
+  public half; check the artifact with
+  `tools/release/verify_release.sh --dir <folder> --unpinned`.
+- `signing=repository` signs with `GPG_PRIVATE_KEY` and `GPG_PASSPHRASE`, and
+  checks the key against the committed fingerprint. Run it once after setting the
+  secrets up and before the first tag: it is the test of the secrets.
+
+The weekly run (Sunday 03:23 UTC) exists so that a Windows, Linux or macOS
+Release build that has quietly stopped working is found on a Sunday and not on the
+day of a release. Release builds are otherwise only exercised by this workflow
+and the `Performance` leg (Linux).
+
+**GitHub only starts a scheduled or manually dispatched workflow from the default
+branch.** The default branch is `main`, and `release.yml` is not on it until
+`develop` is merged there (the same is true of `analysis.yml`: `main` has neither
+today). A tag push is the exception: it uses the workflow file at the tagged
+commit, wherever that is.
+
+### Cutting a release
+
+1. In a release pull request (`release/<x.y.z>` into `main`): set `project(...
+   VERSION x.y.z)` in `CMakeLists.txt` and `"version"` in `vcpkg.json`; rename
+   `## [Unreleased]` in `CHANGELOG.md` to `## [x.y.z] - <date>` and put a new
+   empty `## [Unreleased]` above it.
+2. Optional, and worth doing for the first one: tag `v<x.y.z>-rc.1` on the release
+   branch. It runs the real path - the real key, the attestations, a published
+   prerelease - without making a final release. Delete the prerelease and its tag
+   when done (a tag ruleset needs an admin to do it).
+3. Merge to `main`, then tag the merge commit and push the tag:
+
+   ```sh
+   git tag -s v0.1.0 -m "WordJewelsSolver 0.1.0"   # or: git tag -a
+   git push origin v0.1.0
+   ```
+
+4. Watch the run. When it is green the release is public and has been verified
+   from the outside. A red `Publish the release` returns the release to a draft.
+
+A packaging fix after a tag is a new tag (`v0.1.1`), not a moved one: the
+`release-tags` ruleset refuses moving or deleting a `v*` tag except by an admin,
+and a moved tag would make the SBOM, signatures and attestations of the first
+one describe something that is no longer there.
+
+### What the author sets up once
+
+None of this is done by the repository, and the workflow stops, with the same
+list in its message, if any of it is missing.
+
+1. **Create the signing key** on your own machine, from a checkout:
+
+   ```sh
+   tools/release/new_signing_key.sh --email <you@example.org> --install
+   # Windows: ./tools/release/new_signing_key.ps1 -Email <you@example.org> -Install
+   ```
+
+   It makes an Ed25519 signing-only key (expires in two years) in a temporary
+   keyring that never touches yours, writes `private-key.asc`, `passphrase.txt`,
+   `KEYS`, `FINGERPRINT` and a revocation certificate into `release-key-out/`, and
+   prints the commands below. `--install` also copies `KEYS` and `FINGERPRINT` to
+   `.github/release-signing/`.
+2. **Upload the two secrets** (repository secrets, `Settings → Secrets and
+   variables → Actions`; the script prints these exact commands):
+
+   ```sh
+   gh secret set GPG_PRIVATE_KEY --repo iainchesworthlabs/wordjewelssolver < release-key-out/private-key.asc
+   gh secret set GPG_PASSPHRASE  --repo iainchesworthlabs/wordjewelssolver < release-key-out/passphrase.txt
+   ```
+
+   Then keep the private key and passphrase in a password manager, the
+   revocation certificate offline, and delete the files from disk.
+3. **Commit the public half**: `.github/release-signing/KEYS` and `FINGERPRINT`,
+   and put the fingerprint where a reader will find it independently of the
+   download: `SECURITY.md` and the README. The workflow refuses to sign with a key
+   whose fingerprint is not the committed one.
+4. **Apply the tag ruleset**: `tools/repo/apply_rulesets.ps1 -Only release-tags`
+   (a dry run), then `-Apply`. It restricts `v*` tags to the admin role.
+5. **Get the workflows onto `main`**: merge `develop` there. Until then nothing
+   scheduled or dispatched from this repository exists on the default branch
+   except `codeql.yml` and `scorecard.yml` (older copies).
+6. **Rehearse**: `gh workflow run release.yml --ref main -f signing=repository`,
+   download the `release-dist` artifact and run
+   `tools/release/verify_release.sh --dir <folder>` (it reads the committed
+   fingerprint from your checkout).
+
+Optional hardening, deliberately not required: create a `release` environment with
+required reviewers and move the two secrets into it, then add `environment: release`
+to the `sign` job, so that a tag push waits for a click before the key is used. A
+dry run would then wait too, unless the dry run is split into a job of its own.
+
+Rotating the key: run `new_signing_key.sh` again, replace the two secrets and the
+files in `.github/release-signing/`, update the fingerprint in `SECURITY.md`, and
+say so in the next release's notes. A revoked or expired key leaves the old
+releases' signatures valid as of when they were made; users who verify them later
+need the old `KEYS`, which stays in the repository history.
+
+### The SBOM
+
+`tools/release/generate_sbom.ps1` writes a CycloneDX 1.6 document from what the
+repository already records, not from a scan of the binaries:
+
+- the application (GPL-3.0-only: it links Qt Quick 3D) and `wjs-cli`
+  (GPL-3.0-or-later), with the commit and the repository;
+- Qt by module at the version in `.github/toolchain-versions.json`, each under the
+  licence it is used under - **only if a ZIP in the release actually carries
+  `Qt6Core.dll`**; likewise the Microsoft Visual C++ runtime. The command-line
+  packages claim no Qt;
+- the data that ships: the ENABLE word list and each bundled font file, with
+  SHA-256 hashes computed from the files in the tree;
+- what only built or tested it, with `scope: excluded`: vcpkg (its commit), CMake,
+  Ninja and every port vcpkg installed, read from the `vcpkg.spdx.json` files
+  vcpkg writes (Catch2 today);
+- each release file as a `distribution` reference with its SHA-256.
+
+It states that it is incomplete for third parties (`incomplete_third_party_only`):
+Qt contains third-party code of its own, which the SPDX documents of the Qt kit
+(`sbom/*.spdx.json`) describe and this document does not repeat. The output is
+deterministic for a given tag and commit. `release-tooling.yml` validates a
+generated SBOM against the CycloneDX 1.6 JSON Schema.
+
+### Checking a download
+
+```sh
+# 1. The key. Check the fingerprint against SECURITY.md in the repository,
+#    not against the KEYS file from the same place as the download:
+gpg --show-keys --with-fingerprint KEYS
+
+# 2. Everything at once (needs gpg; add --attest with the GitHub CLI):
+tools/release/verify_release.sh --dir <folder with the files> \
+  --fingerprint <the fingerprint> [--attest --repo iainchesworthlabs/wordjewelssolver]
+# Windows: ./tools/release/verify_release.ps1 -Dir <folder> -Fingerprint <...> [-Attest -Repo ...]
+
+# 3. Or by hand:
+gpg --import KEYS
+gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum -c SHA256SUMS            # or: shasum -a 256 -c SHA256SUMS
+gh attestation verify WordJewelsSolver-0.1.0-win64.zip --repo iainchesworthlabs/wordjewelssolver
+```
+
+`verify_release.sh` uses a private temporary keyring, stops at the first failure,
+refuses to run without an expected fingerprint (`--unpinned` skips that, and says
+so), and takes `--repo <owner/name> --tag <tag>` instead of `--dir` to download
+the release itself.
+
+### When a release run goes red
+
+| Message | Cause |
+| --- | --- |
+| `the tag ... is version X but CMakeLists.txt declares Y` | The release pull request did not change `project(VERSION)` / `vcpkg.json`, or the tag is on the wrong commit. Delete the tag (admin), fix, tag again. |
+| `CHANGELOG.md has no '## [x.y.z]' section` | Rename `[Unreleased]` in the release pull request. |
+| `... is not on origin/main` | A final release is tagged on `main`. For a try-out, use a `-rc` tag. |
+| `Release signing secrets missing` | Step one and two of "What the author sets up once". |
+| `The secret key's fingerprint is A but .github/release-signing/FINGERPRINT says B` | The wrong key was uploaded, or the public half was not committed. |
+| `GPG_PASSPHRASE does not unlock the key` | `passphrase.txt` is not the passphrase that key was made with. |
+| `WJS_ENABLE_TRACY is 'ON'` / `contains the profiler` | A Release configuration or package has Tracy in it. The presets decide; `tests/profiling/check_presets.cmake` should have failed first. |
+| `no package ending .rpm` (and similar) | CPack dropped a generator because its tool was missing at configure time. The packaging tools are installed before Configure; read the configure log's `Packaging:` line. |
+| `makensis.exe is not in ...` | The NSIS install failed. NSIS is pinned to 3.13.0 from Chocolatey. |
+
+### Not verified until it runs on GitHub
+
+The Windows Release build, ctest suite and ZIP package check, the SBOM (against
+the CycloneDX schema), `sign_release.sh` / `verify_release.sh` and the key script
+have been run locally. The things only a hosted run can show: the Linux and macOS
+Release builds and their native packages (`.deb`, `.rpm`, `.dmg`), the NSIS
+installer, `actions/attest-*` and `gh attestation verify`, `gh release create`,
+that GitHub accepts the tag ruleset, and the Qt install in the release matrix.
+The first dry run is expected to need a fix or two; that is what it is for.
 
 ## Required checks and their staging
 
@@ -350,6 +613,8 @@ what a local configure checks a developer's clone against.
 | CMake and Ninja (`lukka/get-cmake`) | `cmakeVersion` / `ninjaVersion`, exact, and one the pinned action's catalog lists | By hand, with the action |
 | Qt (`jurplel/install-qt-action`) | The action's commit SHA, the Qt version, `win64_msvc2022_64`, the module list and the `aqtsource` commit, in `.github/toolchain-versions.json` | By hand: run `aqt list-qt windows desktop --modules <version> <arch>` **and** a real install before bumping, as the action's README says |
 | vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together |
+| actionlint, ShellCheck, the SBOM schema validator | `==` in `.github/requirements/workflows.txt` and `sbom.txt`; the CycloneDX schema at the commit of its `1.6` tag, in `release-tooling.yml` | Dependabot (`pip`), weekly; the schema commit by hand |
+| NSIS (the Windows installer tool) | `choco install nsis --version 3.13.0`, in `release.yml`, when the image does not carry it | By hand |
 | Runner images | The label (`ubuntu-24.04`, `ubuntu-26.04`, `windows-2025-vs2026`, `macos-26`) | By hand |
 
 The clang-tidy version is in `.github/toolchain-versions.json` as well as in
@@ -448,8 +713,9 @@ suspects, in order of likelihood:
 
 ## Not here yet
 
-The Release presets on Windows and macOS (Linux's is the `Performance` leg), Qt
-on the Linux and macOS legs (the application has only been built on Windows so
+A Release build on every push (Windows and macOS Release are built by the weekly
+release rehearsal, [Releases](#releases), and Linux's by the `Performance` leg),
+Qt on the Linux and macOS legs (the application has only been built on Windows so
 far), the Android/iOS targets (and with them the real Qt Sensors and haptics
 backends; the desktops answer haptics with the shared no-op), and web. The
 Windows clang-cl coverage preset (`windows-clang-coverage`, with
@@ -464,11 +730,13 @@ compilation-database route is the one to add if a server appears: configure the
 same lean `linux-gcc-debug` database and point the scanner at
 `build/linux-gcc-debug/compile_commands.json`.
 
-Packaging is now built on the Windows leg only (above). The Linux `.deb`, `.rpm`
-and `.tgz` and the macOS `.dmg` are configured and their generators are selected
-where their tools exist, but no leg has built one: the Linux legs do not install
-Qt, so the application is not in their packages, and no macOS host has built it
-at all. A manual-dispatch Linux packaging leg would be the next step, and is
-deliberately left out rather than added untested. NSIS is configured but not
-verified in CI: the Windows leg asks for `-G ZIP`, and whether the runner has
-`makensis` is not something the result depends on.
+Packaging is built by `ci.yml` on the Windows leg only (above), as a Debug
+development build, and for real by `release.yml` on all three desktops, as
+Release builds ([Releases](#releases)): Windows ZIP and NSIS installer, Linux
+ZIP, tar.gz, deb and rpm, macOS ZIP and disk image. The Linux and macOS
+packages are the command-line solver: the Linux and macOS legs do not install
+Qt, so the application is not in them, and no Mac has built the application at
+all. The Linux and macOS packages and the NSIS installer are covered by the
+release rehearsal, not by a push; they are built and smoke-tested there, and
+have not yet run on GitHub. iOS and Android have no platform section and no
+job.

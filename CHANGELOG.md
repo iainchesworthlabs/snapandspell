@@ -16,6 +16,28 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **A release pipeline: Release packages for every desktop, an SBOM, and GPG
+  signatures.** `release.yml` turns a `v*` tag into a GitHub Release. It builds
+  the Release presets on Windows (the Qt Quick application and `wjs-cli`, as a ZIP
+  and an NSIS installer), Linux (ZIP, tar.gz, deb and rpm) and macOS (ZIP and disk
+  image; Linux and macOS are the command-line solver until Qt is on those legs),
+  runs all of ctest and a smoke test of every package, fails if Tracy or a
+  sanitizer runtime is in a build or a package, writes a CycloneDX 1.6 SBOM and
+  `SHA256SUMS`, signs every file with a detached GPG signature, attests build
+  provenance and the SBOM with `actions/attest-*`, and publishes the release as a
+  draft that is verified from the public side before it stays published. By hand
+  or weekly the same workflow is a rehearsal that signs with a throw-away key and
+  publishes nothing (`signing=repository` tests the real secrets). The key is made
+  on the author's machine by `tools/release/new_signing_key.sh` (or `.ps1`), which
+  prints the `gh secret set` commands; the workflow stops with those steps if
+  `GPG_PRIVATE_KEY` or `GPG_PASSPHRASE` is missing or if the key is not the one
+  whose fingerprint is committed in `.github/release-signing/`. Users check a
+  download with `tools/release/verify_release.sh` (or `.ps1`), or by hand with
+  `gpg`, `sha256sum` and `gh attestation verify`. A `release-tags` ruleset
+  restricts who can create `v*` tags. `release-tooling.yml` lints the workflows
+  (actionlint, ShellCheck) and self-tests the scripts. See
+  [CI, "Releases"](docs/ci.md#releases).
+
 - **The test suite as four tiers, with a coverage gate and a UI coverage
   report.** The Catch2 and CTest entries are now selected as `unit`
   (`ctest -L unit`), `integration` (`ctest -R "^integration\\."`), `system`
@@ -513,6 +535,13 @@ that release, so that its rules (branch protection, required checks) can apply.
   [docs/design/performance.md](docs/design/performance.md#the-game-rows).
 
 ### Changed
+
+- **The nightly jobs install Tracy's Linux tools and use the vcpkg cache.** Every
+  Debug preset has Tracy on, so the nightly `clang-tidy`, `Sanitizers (Linux,
+  Clang)` and CodeQL jobs, which configure Debug presets, need the autotools
+  packages vcpkg builds Tracy's host tools with. They now run the same composite
+  action as the `Linux (GCC)` leg, `clang-tidy` and CodeQL restore and save the
+  `x64-linux` archives, and CodeQL configures before its tracer starts.
 
 - **The second post-overhaul pass: the board's clock, the full-height panel, a
   resume, the About and Licences pages, and the camera's build-tree label.** The

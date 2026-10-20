@@ -418,6 +418,55 @@ Two checks cover packaging:
 
 The Windows CI leg runs the same script and uploads the ZIP ([CI](ci.md)).
 
+### Making a release package
+
+A release is the Release presets, packaged, checked and signed. `release.yml`
+does it on a `v*` tag ([CI, "Releases"](ci.md#releases)); the steps are the
+ones to run by hand to see what a release will contain:
+
+```powershell
+# Windows, from a Developer PowerShell (the application needs Qt 6.12.0:
+# QT_ROOT_DIR or CMAKE_PREFIX_PATH)
+cmake --preset windows-msvc-release -DWJS_BUILD_APP=ON
+cmake --build --preset windows-msvc-release
+ctest --preset windows-msvc-release
+./tools/package/check_package.ps1 -Build build/windows-msvc-release
+./tools/release/check_release_build.ps1 -Build build/windows-msvc-release -Expect .zip
+```
+
+```sh
+# Linux or macOS (the command-line solver)
+cmake --preset linux-gcc-release -DWJS_BUILD_APP=OFF      # macos-clang-release on a Mac
+cmake --build --preset linux-gcc-release
+ctest --preset linux-gcc-release
+cpack --preset package-linux-gcc-release                  # every generator the configure chose
+tools/release/smoke_package.sh build/linux-gcc-release/packages/*.{zip,tar.gz,deb,rpm}
+```
+
+The Release presets turn Tracy off and require reviewed phonics data
+(`WJS_REQUIRE_REVIEWED_PHONICS`; it needs `pwsh`). `check_release_build.ps1`
+fails if the profiler is in the cache or in a package, and `smoke_package.sh`
+opens each format a user would (ZIP, tar.gz, deb, rpm, a mounted disk image)
+and solves a board with the dictionary it carries. For the NSIS installer,
+install NSIS before configuring (`makensis` is found at configure time), then
+`cpack -G NSIS --config build/windows-msvc-release/CPackConfig.cmake`.
+
+The SBOM, the checksums and the signatures of a release directory:
+
+```sh
+pwsh tools/release/generate_sbom.ps1 -Tag v0.1.0 -PackagesDir dist -Output dist/WordJewelsSolver-0.1.0.cdx.json
+tools/release/sign_release.sh --dist dist --ephemeral   # a throw-away key; the real one is CI's
+tools/release/verify_release.sh --dir dist --unpinned
+```
+
+With `--ephemeral` nothing needs a secret and the signatures verify only
+against the `KEYS` that run wrote beside them. The real key, the secrets and the
+fingerprint are set up once, by the author ([CI](ci.md#what-the-author-sets-up-once));
+users check a download as in [CI](ci.md#checking-a-download). Packages are
+named after the project version (`0.1.0`), also for a `-rc` tag, so a
+prerelease's files and the final release's differ in their checksums and in
+which release they are attached to, not in their names.
+
 ### Third-party notices
 
 Every package carries `NOTICES.txt` beside the programs and the GPL text as
