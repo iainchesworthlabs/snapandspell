@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The entitlements the application is signed with under the hardened runtime,
+     which notarisation requires (sign_and_notarize.sh). -->
+<plist version="1.0">
+<dict>
+    <!-- Qt Quick's QML engine compiles JavaScript to machine code. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- The scanner's live camera view. -->
+    <key>com.apple.security.device.camera</key>
+    <true/>
+</dict>
+</plist>
