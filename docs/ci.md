@@ -147,10 +147,14 @@ import beside the binary, as the application's own deploy does for its screens.
   Qt Quick application, its 3D scene prototype, the app tests, `parent.screens`,
   `scan.screens`, `camera.screens`, `parent.languages`, `scan.languages`, the eight `quick.*`
   suites, `i18n.catalogues`, `app.scene_contract` and `app.qml_lint` all run on
-  every push. The install names the modules `qttools qtmultimedia qtsensors
+  every push. The install names the modules `qtquick3d qtshadertools qtmultimedia qtsensors
   qtspeech` (see `aqt list-qt windows desktop --modules 6.12.0
-  win64_msvc2022_64`): `qttools` carries `lupdate`, `lrelease` and Qt Linguist,
-  and the last three are the application's sound, motion and speech, so this is
+  win64_msvc2022_64`): Quick 3D and its shader tools are modules of their own
+  in the 6.12 repository, and a kit without them fails the configure on
+  `Qt6Quick3D`; the
+  base kit itself carries `lupdate`, `lrelease` and Qt Linguist (from 6.12
+  `qttools` is an archive of the base package, and naming it as a module makes
+  aqtinstall fail), and the modules are the application's sound, motion and speech, so this is
   the leg that proves the real engines rather than their silent variants. The
   action's `aqtsource` input installs aqtinstall from a git commit rather than
   from PyPI, because Qt split the Windows repository per architecture from 6.11
