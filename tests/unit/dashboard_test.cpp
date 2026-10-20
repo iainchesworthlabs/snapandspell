@@ -348,6 +348,30 @@ TEST_CASE("a ticked sound is marked, and few words use it", "[dashboard][sounds]
     CHECK_FALSE(row(d, "s")->few_words);  // only a ticked sound is said to have few
 }
 
+TEST_CASE("a ticked sound has few words below three, and three is enough", "[dashboard][focus]") {
+    // In phase A: z is in one word (zap), s in two (sat, sit), n in three (nip,
+    // pan, pin), a in five, and c, taught in the phase, in none yet.
+    auto store = wjs::Store::in_memory();
+    wjs::Settings settings;
+    settings.focus_sounds = {"a", "c", "n", "s", "z"};
+    store.update_settings(settings);
+
+    const auto d = wjs::build_dashboard(store.data(), &phase_a(), friday, 1);
+
+    REQUIRE(row(d, "z") != nullptr);
+    CHECK(row(d, "z")->words_in_phase == 1);
+    CHECK(row(d, "z")->few_words);
+    CHECK(row(d, "s")->words_in_phase == 2);
+    CHECK(row(d, "s")->few_words);
+    CHECK(row(d, "c")->words_in_phase == 0);
+    CHECK(row(d, "c")->few_words);
+    CHECK(row(d, "n")->words_in_phase == 3);
+    CHECK_FALSE(row(d, "n")->few_words);
+    CHECK(row(d, "a")->words_in_phase == 5);
+    CHECK_FALSE(row(d, "a")->few_words);
+    CHECK(wjs::few_words_threshold == 3);
+}
+
 TEST_CASE("the sounds a parent can tick are the phase's, each once", "[dashboard][focus]") {
     const auto choices = wjs::focus_sound_choices(phase_b());
 
@@ -391,6 +415,49 @@ TEST_CASE("this week is the calendar locale's week, boards and stars from the da
     CHECK(sunday_first.week.first == monday - 1);
     CHECK(sunday_first.week.boards_cleared == 3);
     CHECK(sunday_first.week.stars == 11);
+}
+
+TEST_CASE("the week runs seven days from its first, and both ends are in it", "[dashboard][week]") {
+    auto store = wjs::Store::in_memory();
+    put(store, board("", {}, {found("sat", 2)}, true), monday - 1);  // the Sunday before
+    put(store, board("", {}, {found("sit", 3)}, true), monday);      // the first day
+    put(store, board("", {}, {found("tap", 5)}, true), monday + 6);  // the seventh day
+    put(store, board("", {}, {found("pan", 7)}, true), monday + 7);  // the next Monday
+
+    const auto monday_first = wjs::build_dashboard(store.data(), nullptr, friday, 1);
+    CHECK(monday_first.week.first == monday);
+    CHECK(monday_first.week.last == monday + 6);
+    CHECK(monday_first.week.stars == 3 + 5);
+    CHECK(monday_first.week.boards_cleared == 2);
+
+    // Saturday first: the week is the Saturday before to the Friday, the 16th.
+    const auto saturday_first = wjs::build_dashboard(store.data(), nullptr, friday, 6);
+    CHECK(saturday_first.week.first == monday - 2);
+    CHECK(saturday_first.week.last == monday + 4);
+    CHECK(saturday_first.week.stars == 2 + 3);
+
+    // Sunday first: the Sunday before to the Saturday, the 17th.
+    const auto sunday_first = wjs::build_dashboard(store.data(), nullptr, friday, 7);
+    CHECK(sunday_first.week.last == monday + 5);
+    CHECK(sunday_first.week.stars == 2 + 3);
+    CHECK(sunday_first.week.boards_cleared == 2);
+}
+
+TEST_CASE("a week has been played if anything at all came of it", "[dashboard][week]") {
+    CHECK_FALSE(wjs::WeekSummary{}.played());
+
+    wjs::WeekSummary week;
+    week.boards_cleared = 1;
+    CHECK(week.played());
+    week = {};
+    week.stars = 1;
+    CHECK(week.played());
+    week = {};
+    week.new_words = 1;
+    CHECK(week.played());
+    week = {};
+    week.longest_word = "sat";
+    CHECK(week.played());
 }
 
 TEST_CASE("this week counts the words met for the first time this week", "[dashboard][week]") {

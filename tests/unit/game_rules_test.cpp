@@ -724,6 +724,25 @@ TEST_CASE("the words left of a start count the ones that begin with its tiles", 
     CHECK(wjs::words_starting_with(viable, found, std::array<Position, 1>{Position{0, 0}}) == 0);
 }
 
+TEST_CASE("a prefix longer than a word's path counts that word as no match", "[rules]") {
+    // Comparing the prefix with a shorter path would read past its end; the
+    // word is simply not one that begins with so many tiles.
+    const std::vector<wjs::FoundWord> viable = {along("SAT", 0, 0), along("SATIN", 0, 0),
+                                                wjs::FoundWord{}};
+    const wjs::FoundWords none;
+    const std::array<Position, 4> four = {Position{0, 0}, Position{0, 1}, Position{0, 2},
+                                          Position{0, 3}};
+
+    // Only SATIN has four tiles to compare; its fourth is (0, 3), as the prefix's.
+    CHECK(wjs::words_starting_with(viable, none, four) == 1);
+    const std::array<Position, 6> six = {Position{0, 0}, Position{0, 1}, Position{0, 2},
+                                         Position{0, 3}, Position{0, 4}, Position{0, 5}};
+    CHECK(wjs::words_starting_with(viable, none, six) == 0);
+    // A word with no path at all is never a match, whatever the prefix.
+    CHECK(wjs::words_starting_with(std::vector<wjs::FoundWord>{wjs::FoundWord{}}, none,
+                                   std::array<Position, 1>{Position{0, 0}}) == 0);
+}
+
 // --- 4. whether the board is cleared -----------------------------------------
 
 TEST_CASE("a board is cleared when no viable word is left unfound", "[rules]") {
