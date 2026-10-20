@@ -82,7 +82,8 @@ std::expected<BoardDraft, DraftError> BoardDraft::try_from_reading(const BoardRe
         }
         tiles.push_back(std::move(tile));
     }
-    return BoardDraft(reading.rows, reading.columns, std::move(tiles), false);
+    BoardDraft draft(reading.rows, reading.columns, std::move(tiles), false);
+    return draft;
 }
 
 BoardDraft BoardDraft::from_reading(const BoardReading& reading) {
@@ -95,7 +96,7 @@ BoardDraft BoardDraft::from_reading(const BoardReading& reading) {
     for (DraftTile& tile : tiles) {
         tile.doubtful = true;
     }
-    return BoardDraft(rows, columns, std::move(tiles), false);
+    return {rows, columns, std::move(tiles), false};
 }
 
 std::expected<BoardDraft, DraftError> BoardDraft::empty(std::size_t rows, std::size_t columns) {

@@ -33,11 +33,11 @@ std::string_view to_string(ReadError error) noexcept {
 
 bool ReadOptions::valid() const noexcept {
     const auto picture = [](int side) {
-        return side >= 16 && static_cast<std::size_t>(side) <= Frame::max_side;
+        return side >= 16 && std::cmp_less_equal(side, Frame::max_side);
     };
     const auto counts = [](std::size_t n) { return n >= 2 && n <= Board::max_dimension; };
-    // Written as comparisons that a NaN fails, so that one is refused with no
-    // separate test.
+    // A NaN or an infinity passes no comparison below on its own, so each number is
+    // tested to be finite first.
     const auto finite = [](double v) { return std::isfinite(v); };
     if (!picture(working_size) || !picture(analysis_size)) {
         return false;
@@ -51,7 +51,7 @@ bool ReadOptions::valid() const noexcept {
     if (!counts(min_size) || !counts(max_size) || min_size > max_size) {
         return false;
     }
-    if (!(glyph_height_ratio >= 0.1 && glyph_height_ratio <= 1.0)) {
+    if (!finite(glyph_height_ratio) || glyph_height_ratio < 0.1 || glyph_height_ratio > 1.0) {
         return false;
     }
     return finite(min_score) && min_score != 0.0 && finite(min_margin) && min_margin != 0.0 &&
