@@ -4,13 +4,12 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../src/app/qml/kit/AppBar.qml" line="+56"/>
-        <location line="+1"/>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+32"/>
         <source>Back</source>
         <translation>もどる</translation>
     </message>
     <message>
-        <location line="+33"/>
+        <location line="+95"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>My boards</translation>
@@ -22,7 +21,7 @@
         <translation>My jewels</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="+23"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>おとな向け</translation>
@@ -1160,6 +1159,14 @@ The button that opens the Licences page from the About page.</extracomment>
     </message>
 </context>
 <context>
+    <name>Sheet</name>
+    <message>
+        <location filename="../src/app/qml/kit/Sheet.qml" line="+24"/>
+        <source>Close</source>
+        <translation type="unfinished">とじる</translation>
+    </message>
+</context>
+<context>
     <name>SoloBox</name>
     <message>
         <location filename="../src/app/qml/solo/SoloBox.qml" line="+113"/>
@@ -1518,12 +1525,14 @@ The button that opens the Licences page from the About page.</extracomment>
 <context>
     <name>Wordmark</name>
     <message>
-        <location filename="../src/app/qml/kit/Wordmark.qml" line="+26"/>
+        <location filename="../src/app/qml/kit/Wordmark.qml" line="+16"/>
+        <location line="+17"/>
         <source>Word Jewels</source>
         <translation>Word Jewels</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="-17"/>
+        <location line="+24"/>
         <source>SOLVER</source>
         <translation>SOLVER</translation>
     </message>
