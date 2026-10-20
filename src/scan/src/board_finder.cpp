@@ -280,7 +280,10 @@ std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blur
     const std::size_t pixels =
         static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
     const std::span<std::uint8_t> mask = detail::acquire(scratch.mask, pixels);
-    detail::bright_mask_into(mask, sat, blurred, window, margin);
+    {
+        [[maybe_unused]] auto mask_zone = profiling::zone<"scan.bright_mask">();
+        detail::bright_mask_into(mask, sat, blurred, window, margin);
+    }
 
     const double side_min = static_cast<double>(short_side) / 24.0;
     const double side_max = static_cast<double>(short_side) / 3.0;
@@ -398,7 +401,10 @@ std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::s
     const std::size_t pixels =
         static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
     const std::span<std::uint32_t> across = detail::acquire(scratch.blur_across, pixels);
-    detail::box_blur_into(scratch.blurred, across, image, 1);
+    {
+        [[maybe_unused]] auto blur_zone = profiling::zone<"scan.box_blur">();
+        detail::box_blur_into(scratch.blurred, across, image, 1);
+    }
     // The summed-area table of the blurred picture, made once here: each look's
     // threshold built its own copy of the same values before, five passes and five
     // buffers where one of each will do.

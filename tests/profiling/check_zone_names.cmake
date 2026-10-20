@@ -181,6 +181,8 @@ set(_required_zones
     path.validate
     phonics.bind
     rules.classify
+    scan.box_blur
+    scan.bright_mask
     scan.convert_working
     scan.decode_frame
     scan.find_blobs
