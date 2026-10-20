@@ -159,8 +159,21 @@ function(wjs_platform_configure_app target)
     # Mode A asks for the camera (NSCameraUsageDescription, Info.plist.in). In a
     # static Qt the request is answered by this plugin, so it is named outright
     # whatever default the kit gives it.
+    set(_plugins_in "")
+    set(_plugins_out "")
     if(TARGET Qt6::QDarwinCameraPermissionPlugin)
-        qt_import_plugins(${target} INCLUDE Qt6::QDarwinCameraPermissionPlugin)
+        list(APPEND _plugins_in Qt6::QDarwinCameraPermissionPlugin)
+    endif()
+    # Qt Multimedia has two backends here and the kit links both by default. The
+    # FFmpeg one needs FFmpeg's libraries, which the kit does not carry, so linking
+    # it fails (undefined av_* symbols, seen on the first hosted build). The
+    # AVFoundation one is the platform's own, and has the camera.
+    if(TARGET Qt6::QFFmpegMediaPlugin AND TARGET Qt6::QDarwinMediaPlugin)
+        list(APPEND _plugins_out Qt6::QFFmpegMediaPlugin)
+        list(APPEND _plugins_in Qt6::QDarwinMediaPlugin)
+    endif()
+    if(_plugins_in OR _plugins_out)
+        qt_import_plugins(${target} INCLUDE ${_plugins_in} EXCLUDE ${_plugins_out})
     endif()
 endfunction()
 
