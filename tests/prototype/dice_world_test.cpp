@@ -90,7 +90,7 @@ double lowestCorner(const Die& d) {
 // simulation is not only tried on what it was tuned on.
 Reading shaking(double t, std::uint32_t seed) {
     const auto phase = [seed](int k) {
-        return kTwoPi * std::fmod(0.6180339887 * (seed * 7 + k * 13 + 1), 1.0);
+        return kTwoPi * std::fmod(0.6180339887 * (seed * 7U + static_cast<std::uint32_t>(k) * 13U + 1U), 1.0);
     };
     const double burst = t < 1.0 ? 1.0 : std::max(0.0, 1.0 - (t - 1.0) / 0.12);
     const double stroke = std::sin(kTwoPi * 3.7 * t + phase(0));
