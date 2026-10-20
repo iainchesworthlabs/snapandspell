@@ -55,7 +55,9 @@ MotionOutput MotionProcessor::push(const DeviceMotion& sample) {
     // one's end - detect_shakes would have joined them - so the end is what
     // separates the two.
     for (const Shake& shake : detect_shakes(window_, options_)) {
-        if (!last_reported_start_) {
+        // The start and the end are set together; both are asked so that the
+        // reads below are plainly of values.
+        if (!last_reported_start_ || !last_reported_end_) {
             last_reported_start_ = shake.start;
             last_reported_end_ = shake.end;
             output.shake = true;
