@@ -530,11 +530,12 @@ TestCase {
         // Tab never leaves the sheet: wherever six presses land, it is inside it.
         for (let i = 0; i < 6; ++i) {
             keyClick(Qt.Key_Tab)
-            verify(host.sheet.descendantOfSheet(host.Window.activeFocusItem), "after Tab " + (i + 1))
+            // The sheet puts the focus back on the next turn of the event loop.
+            tryVerify(() => host.sheet.descendantOfSheet(host.Window.activeFocusItem), 1000, "after Tab " + (i + 1))
         }
         for (let i = 0; i < 6; ++i) {
             keyClick(Qt.Key_Backtab)
-            verify(host.sheet.descendantOfSheet(host.Window.activeFocusItem), "after Shift+Tab " + (i + 1))
+            tryVerify(() => host.sheet.descendantOfSheet(host.Window.activeFocusItem), 1000, "after Shift+Tab " + (i + 1))
         }
         verify(!host.outside.activeFocus)
 

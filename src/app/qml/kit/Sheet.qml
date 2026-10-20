@@ -85,14 +85,12 @@ FocusScope {
         stops[back ? stops.length - 1 : 0].forceActiveFocus(back ? Qt.BacktabFocusReason : Qt.TabFocusReason);
     }
 
-    Connections {
-        target: root.Window.window
-        enabled: root.open
-
-        function onActiveFocusItemChanged() {
-            root.keepFocusInside();
-        }
-    }
+    // The window's focused item, followed (a Connections element would need the
+    // private header the kit does not ship, as in FlatBoard).
+    readonly property Item windowFocus: root.Window.activeFocusItem
+    // Put back on the next turn of the event loop: moving the focus while it is
+    // being reported would make this binding depend on itself.
+    onWindowFocusChanged: Qt.callLater(root.keepFocusInside)
 
     onOpenChanged: {
         if (root.open) {
