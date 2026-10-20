@@ -100,8 +100,25 @@ bool FoundWords::insert(std::string_view word) {
     return true;
 }
 
-bool FoundWords::contains(std::string_view word) const {
-    return seen_.contains(upper(word));
+std::size_t FoundWords::CaseBlindHash::operator()(std::string_view word) const noexcept {
+    // FNV-1a over the upper-case letters, so every case of a word hashes alike.
+    std::size_t hash = 14695981039346656037ULL;
+    for (const char c : word) {
+        hash ^= static_cast<unsigned char>(ascii::to_upper(c));
+        hash *= 1099511628211ULL;
+    }
+    return hash;
+}
+
+bool FoundWords::CaseBlindEqual::operator()(std::string_view lhs,
+                                            std::string_view rhs) const noexcept {
+    return std::ranges::equal(lhs, rhs, [](char a, char b) {
+        return ascii::to_upper(a) == ascii::to_upper(b);
+    });
+}
+
+bool FoundWords::contains(std::string_view word) const noexcept {
+    return seen_.contains(word);
 }
 
 std::optional<StartTileHelp> start_tile_help(std::span<const FoundWord> viable,

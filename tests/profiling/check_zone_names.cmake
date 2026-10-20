@@ -191,6 +191,7 @@ set(_required_zones
     scan.read_tiles
     scan.warp_board
     scene.step
+    session.finish
     settings.normalize
     shake.detect
     solo.blocks
@@ -198,7 +199,6 @@ set(_required_zones
     solo.path
     solo.submit
     solver.model
-    solver.score
     solver.solve
     store.parse
     store.serialize

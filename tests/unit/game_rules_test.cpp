@@ -502,6 +502,14 @@ TEST_CASE("a word is found once, whatever its case", "[rules]") {
     CHECK(found.contains("sat"));
     CHECK(found.contains("SIT"));
     CHECK_FALSE(found.contains("tap"));
+
+    // Any mixture of cases is the word; a part of a word, or a word with
+    // something more, is not; nothing is nothing.
+    CHECK(found.contains("sAt"));
+    CHECK(found.contains("sIT"));
+    CHECK_FALSE(found.contains("sa"));
+    CHECK_FALSE(found.contains("sats"));
+    CHECK_FALSE(found.contains(""));
 }
 
 TEST_CASE("the words found are kept in the order they were found", "[rules]") {
