@@ -417,9 +417,12 @@ one describe something that is no longer there.
 None of this is done by the repository, and the workflow stops, with the same
 list in its message, if any of it is missing.
 
-1. **Create the signing key** on your own machine, from a checkout, in your own
-   terminal (it prints no secret, and the output folder is outside the
-   repository; the script refuses a folder in any git working tree):
+1. **Create the signing key** (done for the first release: fingerprint
+   `9A0D96E8944899F94B1B37B51F1A8DA4C79B19D2`, expires 2028-10-19; the public half is `.github/release-signing/KEYS`
+   and `FINGERPRINT`, and the two secrets are set). To make another, for a
+   rotation, on your own machine from a checkout, in your own terminal (it prints
+   no secret, and the output folder is outside the repository; the script refuses
+   a folder in any git working tree):
 
    ```powershell
    ./tools/release/new_signing_key.ps1                       # -> ~/wjs-release-key
@@ -438,7 +441,7 @@ list in its message, if any of it is missing.
    also copies the public key and fingerprint to `.github/release-signing/`.
    With Git for Windows' gpg (an MSYS build) the script hands gpg its home as
    `/c/...`, which that build's agent needs.
-2. **Upload the two secrets** (repository secrets; `gh secret set` reads the
+2. **Upload the two secrets** (done; repository secrets; `gh secret set` reads the
    value from standard input, so these print nothing of it):
 
    ```powershell
@@ -448,9 +451,9 @@ list in its message, if any of it is missing.
 
    Then keep the private key and passphrase in your key store, the revocation
    certificate offline, and delete the first two from the output folder.
-3. **Commit the public half**: `.github/release-signing/KEYS` and `FINGERPRINT`,
+3. **Commit the public half** (done): `.github/release-signing/KEYS` and `FINGERPRINT`,
    and put the fingerprint where a reader will find it independently of the
-   download: `SECURITY.md` and the README. The workflow refuses to sign with a key
+   download: `SECURITY.md` and the README (both now carry it). The workflow refuses to sign with a key
    whose fingerprint is not the committed one.
 4. **Apply the tag ruleset**: `tools/repo/apply_rulesets.ps1 -Only release-tags`
    (a dry run), then `-Apply`. It restricts `v*` tags to the admin role.

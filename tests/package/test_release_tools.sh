@@ -98,7 +98,11 @@ expect_status "an ephemeral rehearsal signs and verifies" 0 "$tools/sign_release
 [ -f "$dist/SHA256SUMS.asc" ] && [ -f "$dist/KEYS" ] && ok "  SHA256SUMS.asc and KEYS are written" || bad "  SHA256SUMS.asc or KEYS missing"
 [ "$(ls "$dist"/*.asc | wc -l)" -eq 3 ] && ok "  every file and SHA256SUMS has a signature" || bad "  expected three .asc files"
 expect_status "the user's check accepts it, unpinned" 0 "$tools/verify_release.sh" --dir "$dist" --unpinned
-expect_status "the user's check refuses it without a pin" 1 "$tools/verify_release.sh" --dir "$dist"
+# Outside a checkout there is no committed fingerprint to fall back on (inside
+# this one there is), so the script is run from a copy.
+mkdir -p "$work/loose/tools/release"
+cp "$tools/verify_release.sh" "$work/loose/tools/release/"
+expect_status "the user's check refuses it without a pin" 1 "$work/loose/tools/release/verify_release.sh" --dir "$dist"
 expect_output "  and says to pass a fingerprint" 'Pass --fingerprint'
 expect_status "the user's check refuses the wrong fingerprint" 1 "$tools/verify_release.sh" --dir "$dist" --fingerprint 0000000000000000000000000000000000000000
 cp -r "$dist" "$work/dist-tampered"
