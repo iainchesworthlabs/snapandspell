@@ -35,7 +35,7 @@ constexpr wjs::Day today = wjs::day_from_civil(2026, 10, 19);
 wjs::Dictionary dictionary_with(std::initializer_list<std::string_view> words) {
     wjs::Dictionary dictionary;
     for (const std::string_view word : words) {
-        dictionary.insert(word);
+        REQUIRE(dictionary.insert(word));
     }
     return dictionary;
 }

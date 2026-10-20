@@ -4,6 +4,7 @@
 #include <string_view>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/path.hpp"
@@ -12,9 +13,7 @@
 namespace {
 
 wjs::Board make_board(std::string_view text) {
-    auto board = wjs::Board::parse(text);
-    REQUIRE(board.has_value());
-    return *board;
+    return wjs::test::board_of(text);
 }
 
 }  // namespace
@@ -164,7 +163,7 @@ TEST_CASE("every path the solver reports is a valid path spelling its word", "[p
     const auto board = make_board("CAT/ORE/DGS");
     wjs::Dictionary dictionary;
     for (const std::string_view word : {"CAT", "CAR", "CARE", "ARE", "TAR", "TEA", "DOG", "COD"}) {
-        dictionary.insert(word);
+        REQUIRE(dictionary.insert(word));
     }
 
     const auto found = wjs::solve(board, dictionary);

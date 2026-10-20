@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/deal.hpp"
 #include "wjs/dice.hpp"
@@ -27,19 +28,9 @@ constexpr std::string_view empty_board = "X X X/X X X/X X X";
 constexpr std::string_view cat_board = "C A T/X X X/X X X";
 constexpr std::string_view both_board = "C A T/D O G/X X X";
 
-wjs::Board board_of(std::string_view text) {
-    auto board = wjs::Board::parse(text);
-    REQUIRE(board.has_value());
-    return *std::move(board);
-}
-
-wjs::Dictionary dictionary_of(std::initializer_list<std::string_view> words) {
-    wjs::Dictionary dictionary;
-    for (const std::string_view word : words) {
-        REQUIRE(dictionary.insert(word));
-    }
-    return dictionary;
-}
+using wjs::test::board_of;
+using wjs::test::dictionary_of;
+using wjs::test::text_of;
 
 wjs::Dictionary small_dictionary() {
     return dictionary_of({"cat", "dog"});
@@ -259,22 +250,6 @@ TEST_CASE("each error has a name", "[deal]") {
 
 namespace {
 
-std::string text_of(const wjs::Board& board) {
-    std::string text;
-    for (std::size_t row = 0; row < board.rows(); ++row) {
-        if (row > 0) {
-            text += '/';
-        }
-        for (std::size_t column = 0; column < board.columns(); ++column) {
-            if (column > 0) {
-                text += ' ';
-            }
-            text += board.tile({row, column});
-        }
-    }
-    return text;
-}
-
 wjs::DiceSet shipped_dice(std::size_t side) {
     const auto name = std::to_string(side) + "x" + std::to_string(side) + ".txt";
     auto set = wjs::DiceSet::load_file(std::filesystem::path(data_directory) / "dice" / name);
@@ -283,13 +258,7 @@ wjs::DiceSet shipped_dice(std::size_t side) {
 }
 
 const wjs::Dictionary& english() {
-    static const wjs::Dictionary dictionary = [] {
-        auto loaded = wjs::Dictionary::load_file(std::filesystem::path(data_directory) /
-                                                 "dictionaries" / "en.txt");
-        REQUIRE(loaded.has_value());
-        return *std::move(loaded);
-    }();
-    return dictionary;
+    return wjs::test::shipped_english();
 }
 
 }  // namespace

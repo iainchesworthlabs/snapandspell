@@ -10,6 +10,7 @@
 #include <system_error>
 #include <utility>
 
+#include "ascii.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs {
@@ -31,38 +32,17 @@ constexpr std::size_t key_source = 3;
     return c == ' ' || c == '\t';
 }
 
-[[nodiscard]] constexpr char to_upper(char c) noexcept {
-    return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
-}
-
-[[nodiscard]] constexpr char to_lower(char c) noexcept {
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
-}
+using ascii::lower;
+using ascii::to_lower;
+using ascii::to_upper;
+using ascii::upper;
 
 [[nodiscard]] constexpr bool is_digit(char c) noexcept {
     return c >= '0' && c <= '9';
 }
 
-[[nodiscard]] std::string upper(std::string_view text) {
-    std::string result(text);
-    std::ranges::transform(result, result.begin(), to_upper);
-    return result;
-}
-
-[[nodiscard]] std::string lower(std::string_view text) {
-    std::string result(text);
-    std::ranges::transform(result, result.begin(), to_lower);
-    return result;
-}
-
 [[nodiscard]] std::string_view trim(std::string_view text) noexcept {
-    while (!text.empty() && (is_blank(text.front()) || text.front() == '\r')) {
-        text.remove_prefix(1);
-    }
-    while (!text.empty() && (is_blank(text.back()) || text.back() == '\r')) {
-        text.remove_suffix(1);
-    }
-    return text;
+    return ascii::trim(text, " \t\r");
 }
 
 [[nodiscard]] std::vector<std::string_view> fields_of(std::string_view line) {
@@ -617,7 +597,11 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
     // At most one file of each kind for a phase.
     std::map<std::string, const GraphemesFile*> grapheme_files;
     std::map<std::string, const WordsFile*> word_files;
-    std::set<std::string> names;
+    // Shorter names first, then alphabetical: A before B, and 2 before 10.
+    const auto by_length_then_name = [](const std::string& a, const std::string& b) {
+        return a.size() != b.size() ? a.size() < b.size() : a < b;
+    };
+    std::set<std::string, decltype(by_length_then_name)> names(by_length_then_name);
     for (const auto& file : graphemes) {
         names.insert(file.header.phase);
         if (!grapheme_files.emplace(file.header.phase, &file).second) {
@@ -721,7 +705,9 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
         }
         for (const auto& [key, entry] : known_words) {
             index.words_.push_back(entry.first);
-            index.dictionary_.insert(key);
+            // Every word of a words file was checked against the English
+            // dictionary above, and is letters only.
+            static_cast<void>(index.dictionary_.insert(key));
             for (const char c : key) {
                 letters.insert(to_upper(c));
             }

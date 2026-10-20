@@ -398,8 +398,12 @@ TEST_CASE("the gate opens exactly when two spots were held for the whole time", 
     int refused = 0;
     for (std::uint32_t seed = 1; seed <= 400; ++seed) {
         std::mt19937 random(seed);
+        // std::mt19937's output is the same on every standard library, and a
+        // remainder is arithmetic, so a seed is the same run everywhere; the
+        // std::uniform_int_distribution would not be (its algorithm is the
+        // library's own).
         const auto pick = [&random](int low, int high) {
-            return std::uniform_int_distribution<int>(low, high)(random);
+            return low + static_cast<int>(random() % static_cast<std::uint32_t>(high - low + 1));
         };
         const auto random_point = [&]() -> Point {
             switch (pick(0, 3)) {

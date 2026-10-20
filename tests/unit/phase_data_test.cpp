@@ -9,6 +9,7 @@
 #include <string_view>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/board.hpp"
 #include "wjs/dictionary.hpp"
 #include "wjs/phase_data.hpp"
@@ -60,7 +61,7 @@ wjs::Dictionary english() {
     for (const std::string_view word :
          {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain", "xyz",
           "qqq", "cake", "like", "snow", "cow"}) {
-        dictionary.insert(word);
+        REQUIRE(dictionary.insert(word));
     }
     return dictionary;
 }
@@ -446,6 +447,25 @@ TEST_CASE("a phase set is cumulative: a later phase holds the earlier phases' wo
     CHECK(built->find("C") == nullptr);
 }
 
+TEST_CASE("phases are in the order of their names: shorter first, then alphabetical", "[phase]") {
+    // Written in the wrong order on purpose; "10" is after "2" and not before.
+    std::vector<wjs::GraphemesFile> graphemes;
+    for (const std::string_view name : {"10", "B", "2", "AA", "A"}) {
+        graphemes.push_back(read_graphemes(
+            "# phase: " + std::string(name) + "\nx  /t" + std::string(name) + "/  clip:c\n",
+            std::string(name) + ".graphemes"));
+    }
+
+    const auto built = wjs::PhaseSet::build(graphemes, {}, english());
+
+    REQUIRE(built.has_value());
+    std::vector<std::string> order;
+    for (const wjs::PhaseIndex& index : built->phases()) {
+        order.push_back(index.phase());
+    }
+    CHECK(order == std::vector<std::string>{"2", "A", "B", "10", "AA"});
+}
+
 TEST_CASE("a phase's alphabet is the letters of its graphemes and words", "[phase]") {
     const auto files = phases_a_and_b();
     const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
@@ -560,7 +580,7 @@ TEST_CASE("a phase with only one of its files is a phase", "[phase]") {
     // Phase B adds words and no grapheme.
     files.words.push_back(read_words("# phase: B\ntaps  t a p s\n"));
     auto dictionary = english();
-    dictionary.insert("taps");
+    REQUIRE(dictionary.insert("taps"));
 
     const auto built = wjs::PhaseSet::build(files.graphemes, files.words, dictionary);
 
@@ -619,33 +639,7 @@ TEST_CASE("a set is reviewed only when every file is", "[phase][review]") {
 
 namespace {
 
-// A directory under the system's temporary directory, removed with the test.
-class TempDirectory {
-public:
-    TempDirectory() {
-        static int counter = 0;
-        path_ = std::filesystem::temp_directory_path() /
-                ("wjs_phase_data_test_" + std::to_string(++counter) + "_" +
-                 std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
-        std::filesystem::create_directories(path_);
-    }
-    ~TempDirectory() {
-        std::error_code ignored;
-        std::filesystem::remove_all(path_, ignored);
-    }
-    TempDirectory(const TempDirectory&) = delete;
-    TempDirectory& operator=(const TempDirectory&) = delete;
-
-    [[nodiscard]] const std::filesystem::path& path() const { return path_; }
-
-    void write(const std::string& name, std::string_view text) const {
-        std::ofstream out(path_ / name, std::ios::binary);
-        out << text;
-    }
-
-private:
-    std::filesystem::path path_;
-};
+using wjs::test::TempDirectory;
 
 }  // namespace
 

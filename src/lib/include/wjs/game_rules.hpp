@@ -163,7 +163,9 @@ public:
     // had been found already or is empty. The caller awards stars on true.
     bool insert(std::string_view word);
 
-    [[nodiscard]] bool contains(std::string_view word) const;
+    // Looks the word up as it is, in any case: no copy is made, so this is the
+    // call to make for every candidate of a board.
+    [[nodiscard]] bool contains(std::string_view word) const noexcept;
 
     [[nodiscard]] std::size_t size() const noexcept { return order_.size(); }
     [[nodiscard]] bool empty() const noexcept { return order_.empty(); }
@@ -172,8 +174,19 @@ public:
     [[nodiscard]] const std::vector<std::string>& in_order() const noexcept { return order_; }
 
 private:
+    // The set holds the words upper-case and is searched with the word in any
+    // case, so a lookup neither copies nor upper-cases the word.
+    struct CaseBlindHash {
+        using is_transparent = void;
+        [[nodiscard]] std::size_t operator()(std::string_view word) const noexcept;
+    };
+    struct CaseBlindEqual {
+        using is_transparent = void;
+        [[nodiscard]] bool operator()(std::string_view lhs, std::string_view rhs) const noexcept;
+    };
+
     std::vector<std::string> order_;
-    std::unordered_set<std::string> seen_;
+    std::unordered_set<std::string, CaseBlindHash, CaseBlindEqual> seen_;
 };
 
 // ---------------------------------------------------------------------------
