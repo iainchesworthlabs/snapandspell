@@ -385,9 +385,9 @@ std::vector<Metric> submit_metrics() {
         std::uint64_t misses_not_ignored = 0;
         std::uint64_t again_not_found_again = 0;
         for (wjs::Stamp when = 10; when < 110; ++when) {
-            misses_not_ignored += playing.submit_miss(when) == wjs::TraceKind::found ? 1 : 0;
+            misses_not_ignored += playing.submit_miss(when) == wjs::TraceKind::found ? 1U : 0U;
             again_not_found_again +=
-                playing.submit_again(when) == wjs::TraceKind::found_again ? 0 : 1;
+                playing.submit_again(when) == wjs::TraceKind::found_again ? 0U : 1U;
         }
         metrics.push_back(
             exact("submit.found_by_a_miss." + label, mode, misses_not_ignored, 0, "finds"));
