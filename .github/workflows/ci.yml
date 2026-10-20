@@ -193,7 +193,10 @@ jobs:
     # otherwise be an error rather than a skip.
     if: ${{ needs.plan.outputs.matrix != '[]' }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    # The Windows leg builds the application and its prototype with the
+    # sanitizers on and then runs about a thousand tests; on a hosted runner
+    # that is 40 minutes or more, so 45 cancelled it in its last step.
+    timeout-minutes: 75
     permissions:
       contents: read
     strategy:
