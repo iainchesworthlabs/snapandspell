@@ -55,6 +55,10 @@ class AssistModel : public QObject {
     // found. The board in play joins them when the round is left.
     Q_PROPERTY(QVariantList history READ history NOTIFY historyChanged)
 
+    // The last board left could not be kept in the history: the store refused it or
+    // its file could not be written. The grown-up is told (the screen words it).
+    Q_PROPERTY(bool saveFailed READ saveFailed NOTIFY saveFailedChanged)
+
     // The start tile lit now (-1: none), and whether the parent allows the help.
     Q_PROPERTY(int litTile READ litTile NOTIFY helpChanged)
     Q_PROPERTY(bool helpAllowed READ helpAllowed NOTIFY helpChanged)
@@ -73,12 +77,15 @@ public:
     [[nodiscard]] QVariantList found() const;
     [[nodiscard]] int stars() const;
     [[nodiscard]] QVariantList history() const;
+    [[nodiscard]] bool saveFailed() const noexcept { return save_failed_; }
     [[nodiscard]] int litTile() const noexcept { return help_tile_; }
     [[nodiscard]] bool helpAllowed() const;
 
     // "Yes, play": a board the check screen confirmed, as plain values. Replaces
-    // a round that was on (and records it first). False with no maker installed,
-    // or for a grid that is not rows * columns tiles of one to three letters.
+    // a round that was on (and records it first). False, and the round that was on
+    // untouched, with no maker installed, for a grid that is not rows * columns
+    // tiles of one to three letters (a tile holding a space or a slash would
+    // change the grid's shape), and when the game cannot be made.
     Q_INVOKABLE bool begin(int rows, int columns, const QStringList& letters);
 
     // The round is left (Back, New board, the screen going): the board is
@@ -106,6 +113,7 @@ signals:
     void pathChanged();
     void foundChanged();
     void historyChanged();
+    void saveFailedChanged();
     void helpChanged();
 
     // A path was handed in. `kind` is "word" (a viable word: `word`, `tier` and
@@ -131,6 +139,7 @@ private:
     std::unique_ptr<AssistGame> game_;
     PathTracer tracer_;
     int help_tile_ = -1;
+    bool save_failed_ = false;
     std::size_t last_path_size_ = 0;
 };
 
