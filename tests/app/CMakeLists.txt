@@ -228,7 +228,7 @@ qt_policy(SET QTP0001 NEW)
 # The preview aliases the kit and Solo Play QML under qml/kit/ and qml/solo/
 # as plain resources, loaded by URL and never as module types, so the extra
 # directories need no qmldir: this is the policy's previous behaviour.
-qt_policy(SET QTP0004 OLD)
+qt_policy(SET QTP0004 NEW)
 add_executable(wjs_scan_preview
     scan_ui/preview_main.cpp)
 set_target_properties(wjs_scan_preview PROPERTIES AUTOMOC ON WIN32_EXECUTABLE OFF)

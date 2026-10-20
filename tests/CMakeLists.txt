@@ -50,7 +50,7 @@ if(WJS_BUILD_APP)
     # the extra directories need no qmldir: this is the policy's previous
     # behaviour. Set here, in the scope the directory inherits, as it is in
     # tests/app for the preview.
-    qt_policy(SET QTP0004 OLD)
+    qt_policy(SET QTP0004 NEW)
     add_subdirectory(qml)
 endif()
 
