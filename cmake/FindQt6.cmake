@@ -98,7 +98,13 @@ function(wjs_enable_qmltc_private_headers target)
         list(APPEND _wjs_private_include_dirs
             "${_wjs_qt_prefix}/include/${_wjs_module}"
             "${_wjs_qt_prefix}/include/${_wjs_module}/${Qt6Qml_VERSION}"
-            "${_wjs_qt_prefix}/include/${_wjs_module}/${Qt6Qml_VERSION}/${_wjs_module}")
+            "${_wjs_qt_prefix}/include/${_wjs_module}/${Qt6Qml_VERSION}/${_wjs_module}"
+            # A framework kit (Qt's macOS and iOS builds) keeps the same
+            # headers inside the framework, and the type compiler's code
+            # includes them as "private/x_p.h".
+            "${_wjs_qt_prefix}/lib/${_wjs_module}.framework/Headers"
+            "${_wjs_qt_prefix}/lib/${_wjs_module}.framework/Headers/${Qt6Qml_VERSION}"
+            "${_wjs_qt_prefix}/lib/${_wjs_module}.framework/Headers/${Qt6Qml_VERSION}/${_wjs_module}")
     endforeach()
     target_include_directories("${target}" PRIVATE ${_wjs_private_include_dirs})
 endfunction()
