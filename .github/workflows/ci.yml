@@ -28,7 +28,7 @@ on:
       legs:
         description: >-
           Comma-separated legs to run, no spaces: clang-format,
-          platform-isolation, windows, linux, macos, coverage, perf - or "all".
+          platform-isolation, windows, linux, macos, coverage, perf, package - or "all".
           The dedicated profiling builds (optimised, for Tracy numbers) are
           never part of "all": name them - profiling (all three),
           profiling-windows, profiling-linux or profiling-macos. The debug
@@ -160,9 +160,9 @@ jobs:
           esac
           for leg in ${LEGS//,/ }; do
             case "$leg" in
-              all|clang-format|platform-isolation|windows|linux|macos|coverage|perf) ;;
+              all|clang-format|platform-isolation|windows|linux|macos|coverage|perf|package) ;;
               profiling|profiling-windows|profiling-linux|profiling-macos) ;;
-              *) echo "::error::unknown leg '$leg' (clang-format, platform-isolation, windows, linux, macos, coverage, perf, profiling, profiling-windows, profiling-linux, profiling-macos, all)"
+              *) echo "::error::unknown leg '$leg' (clang-format, platform-isolation, windows, linux, macos, coverage, perf, package, profiling, profiling-windows, profiling-linux, profiling-macos, all)"
                  exit 1 ;;
             esac
           done
@@ -349,7 +349,10 @@ jobs:
           QSG_RHI_BACKEND: opengl
         run: build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
 
-      # A repeatable package from the same build, and proof it is usable: the
+      # A repeatable package from the same build, and proof it is usable (as a
+      # DEVELOPMENT package: check_package.ps1 tells cpack, because this tree is
+      # Debug and has Tracy in it; the Windows Release package is the
+      # `Package (Windows, Release)` job below): the
       # script a developer runs too (tools/package/check_package.ps1) packs a
       # ZIP with CPack, checks the archive carries the two programs, Qt's DLLs,
       # plugins and QML modules (Quick 3D included), the dictionary, the dice,
@@ -373,7 +376,9 @@ jobs:
         if: matrix.leg == 'windows'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: wordjewelssolver-windows-x64
+          # A development package: Debug, with Tracy and the ASan runtime. The
+          # name says so, so that it is never taken for the release one.
+          name: wordjewelssolver-windows-x64-debug-dev
           path: |
             build/${{ matrix.preset }}/packages/*.zip
             build/${{ matrix.preset }}/packages/SHA256SUMS
@@ -450,6 +455,94 @@ jobs:
         uses: ./.github/actions/vcpkg-cache/save
         with:
           triplet: x64-linux
+          restored: ${{ steps.vcpkg-cache.outputs.listing }}
+
+  # The package that ships, on Windows: the Release preset (the Qt application on,
+  # Tracy and the sanitizers off), packaged and checked the way the release
+  # workflow will - a ZIP that carries no TracyClient, AddressSanitizer runtime or
+  # .pdb, and starts. Debug legs above package a development build; this is the
+  # one push-time proof that a Release package is clean, so a regression shows in
+  # the pull request and not on the day of a release. No tests are built (the
+  # Debug leg runs them, and release.yml runs the whole suite on the Release
+  # build). Not a required check.
+  package-windows:
+    name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - Package (Windows, Release)' || 'Package (Windows, Release)' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || contains(format(',{0},', inputs.legs), ',package,') }}
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      - name: Restore vcpkg binaries
+        id: vcpkg-cache
+        uses: ./.github/actions/vcpkg-cache/restore
+        with:
+          triplet: x64-windows
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      # The same Qt kit as the Windows leg above (see the comments there).
+      - name: Install Qt
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        with:
+          version: "6.12.0"
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          dir: ${{ runner.temp }}
+          aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+          modules: "qttools qtmultimedia qtsensors qtspeech"
+          cache: true
+
+      - name: Configure (Release)
+        shell: bash
+        env:
+          QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
+        run: cmake --preset windows-msvc-release -DWJS_BUILD_TESTS=OFF
+
+      - name: Build
+        run: cmake --build --preset windows-msvc-release
+
+      # Release tree: the script forbids TracyClient, clang_rt.asan* and *.pdb in
+      # the archive, then unpacks it and runs the packaged programs.
+      - name: Package and check the ZIP
+        shell: pwsh
+        run: ./tools/package/check_package.ps1 -Build build/windows-msvc-release
+
+      - name: Check the build and the package
+        shell: pwsh
+        run: ./tools/release/check_release_build.ps1 -Build build/windows-msvc-release -Expect .zip
+
+      - name: Upload the package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wordjewelssolver-windows-x64
+          path: |
+            build/windows-msvc-release/packages/*.zip
+            build/windows-msvc-release/packages/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+
+      # Saved even when a later step fails - see build-and-test.
+      - name: Save vcpkg binaries
+        if: ${{ always() }}
+        uses: ./.github/actions/vcpkg-cache/save
+        with:
+          triplet: x64-windows
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
   # Line and branch coverage of the unit tier (src/lib), gated at the project's
