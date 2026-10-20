@@ -106,5 +106,7 @@ function(wjs_enable_qmltc_private_headers target)
             "${_wjs_qt_prefix}/lib/${_wjs_module}.framework/Headers/${Qt6Qml_VERSION}"
             "${_wjs_qt_prefix}/lib/${_wjs_module}.framework/Headers/${Qt6Qml_VERSION}/${_wjs_module}")
     endforeach()
-    target_include_directories("${target}" PRIVATE ${_wjs_private_include_dirs})
+    # SYSTEM: these are Qt's headers, and the target's warnings are errors; a framework
+    # kit's compiler (AppleClang) would otherwise warn about them.
+    target_include_directories("${target}" SYSTEM PRIVATE ${_wjs_private_include_dirs})
 endfunction()
