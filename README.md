@@ -207,6 +207,14 @@ The documentation is built with mkdocs-material (`mkdocs.yml`) and will be
 published at <https://iainchesworthlabs.github.io/wordjewelssolver/> once the
 repository is public.
 
+## Verifying a release
+
+Release files are signed with a GPG key whose fingerprint is
+`9A0D96E8944899F94B1B37B51F1A8DA4C79B19D2` (expires 2028-10-19), and carry a `SHA256SUMS` file, a software bill of
+materials and build-provenance attestations. How to check a download:
+[SECURITY.md](SECURITY.md#verifying-a-release) and
+[docs/ci.md](docs/ci.md#checking-a-download).
+
 ## Contributing
 
 Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the branching

@@ -75,7 +75,7 @@ already has. It is the lowest-risk way to make the first release last longer.
 
 | Adds | Depends on |
 | --- | --- |
-| 5x5 and 6x6 in Mode B, where a tile fits | Dice from the project's own tool ([Board](board.md#dice-after-the-mvp)) |
+| 5x5 and 6x6 in Mode B, where a tile fits | Dice from the project's own tool ([Board](board.md#dice-the-standard-board-in-the-mvp-decided-2026-10-16)) |
 | The open dictionary as a mode ("play with any word") | A reviewed block list: the neutral cue shows no word, but an open mode would name and read words |
 | The help ladder, rungs 1 to 5, set by the parent | Nothing new: the start tile is rung 2 |
 | Stand-and-watch scanning (a board still for about a second reads itself) | Recorded frames outside the repository, and a tile-accuracy target (roadmap M4) |

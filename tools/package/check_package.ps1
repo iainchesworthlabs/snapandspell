@@ -16,7 +16,11 @@
       3. writes SHA256SUMS beside it, in sha256sum's format;
       4. unpacks it and runs the packaged wjs-cli on a board with no -d, so the
          dictionary beside the program is the one it uses;
-      5. runs the packaged WordJewelsSolver with the offscreen platform plugin,
+      5. fails if the package holds a development leftover - a TracyClient
+         library, an AddressSanitizer runtime (clang_rt.asan*) or a .pdb - which
+         a Release package must never carry (-ForbidTracy, on by default for a
+         Release build tree);
+      6. runs the packaged WordJewelsSolver with the offscreen platform plugin,
          so a Windows runner with no display proves the installed tree carries
          Qt's runtime, its QML modules and the Quick 3D plugin (skip with
          -NoSmoke).
@@ -41,6 +45,13 @@
 .PARAMETER Archive
     Check this archive instead of running cpack.
 
+.PARAMETER ForbidTracy
+    Auto (the default): fail on TracyClient*, clang_rt.asan* and *.pdb in the
+    package when the build tree is a Release one, and let cpack refuse a tree
+    that has Tracy in it. Yes: always. No: a development package (a Debug tree
+    packaged to check the packaging itself): cpack is told so with
+    -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON, and the package may carry the profiler.
+
 .PARAMETER NoSmoke
     Do not run the packaged application. For a host with no way to run it.
 
@@ -62,6 +73,9 @@ param(
     [string]$Generator = 'ZIP',
 
     [string]$Archive,
+
+    [ValidateSet('Auto', 'Yes', 'No')]
+    [string]$ForbidTracy = 'Auto',
 
     [switch]$NoSmoke,
 
@@ -87,6 +101,21 @@ if (-not (Test-Path -LiteralPath $cpackConfig)) {
 }
 $packagesDirectory = Join-Path $buildDirectory 'packages'
 
+# Release or development: a Release tree must make a clean package, so the check
+# is on for it; a Debug tree is packaged only to check the packaging, and is a
+# development package that cpack has to be told it may make.
+$buildType = ''
+$cachePath = Join-Path $buildDirectory 'CMakeCache.txt'
+if (Test-Path -LiteralPath $cachePath) {
+    $typeLine = Select-String -LiteralPath $cachePath -Pattern '^CMAKE_BUILD_TYPE:[A-Z]+=(.*)$' | Select-Object -First 1
+    if ($typeLine) { $buildType = $typeLine.Matches[0].Groups[1].Value.Trim() }
+}
+$forbid = switch ($ForbidTracy) {
+    'Yes' { $true }
+    'No' { $false }
+    default { $buildType -eq 'Release' }
+}
+
 # ---------------------------------------------------------------------------
 # 1. Package, unless an archive was named.
 # ---------------------------------------------------------------------------
@@ -103,7 +132,9 @@ if (-not $Archive) {
     Write-Step "cpack -G $Generator in $buildDirectory"
     Push-Location -LiteralPath $buildDirectory
     try {
-        & cpack -G $Generator --config $cpackConfig
+        $cpackArguments = @('-G', $Generator, '--config', $cpackConfig)
+        if (-not $forbid) { $cpackArguments += @('-D', 'CPACK_WJS_ALLOW_DEV_PACKAGE=ON') }
+        & cpack @cpackArguments
         if ($LASTEXITCODE -ne 0) {
             Fail "cpack exited $LASTEXITCODE"
         }
@@ -173,6 +204,20 @@ function Test-PackagedDirectory([string]$relative) {
         }
     }
     return $false
+}
+
+# What a Release package must not carry: the profiler's client library, an
+# AddressSanitizer runtime (a Debug build shipped by mistake) and debug symbols.
+if ($forbid) {
+    $forbiddenPattern = '(?i)(^|/)(TracyClient[^/]*|clang_rt\.asan[^/]*|[^/]*\.pdb)$'
+    $forbiddenFound = @($paths | Where-Object { $_ -match $forbiddenPattern })
+    if ($forbiddenFound.Count -gt 0) {
+        Fail "the package holds a development leftover a Release package must not: $($forbiddenFound -join ', ')"
+    }
+    Write-Host '    no TracyClient, AddressSanitizer runtime or .pdb in the package'
+}
+else {
+    Write-Host "    -ForbidTracy is off for this tree ($buildType): a development package, which may carry the profiler"
 }
 
 $executableSuffix = if ($IsWindows) { '.exe' } else { '' }

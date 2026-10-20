@@ -1,0 +1,93 @@
+name: Docs
+
+# Builds the documentation site (mkdocs.yml, docs/) as strictly as the site can
+# be built, and publishes it to GitHub Pages from main. The strictness is
+# .github/mkdocs-ci.yml: a link to a page or a heading that does not exist is a
+# red build, not a dead link on the site.
+#
+# Not a required check, and not on the merge queue: it runs only when the
+# documentation changes, and a check that a path filter keeps from running never
+# reports, which would hold every unrelated pull request.
+#
+# Publishing is off until the author turns it on (docs/ci.md, "Documentation
+# site"): Pages must be enabled with "GitHub Actions" as its source, and the
+# repository variable PUBLISH_DOCS set to true. Until then the deploy job is
+# skipped, not red, and the build still runs.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/mkdocs-ci.yml"
+      - ".github/requirements/docs.txt"
+      - ".github/workflows/docs.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - ".github/mkdocs-ci.yml"
+      - ".github/requirements/docs.txt"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  # A deployment is never cancelled half way; a superseded build is.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# No job gets more than it names below.
+permissions: {}
+
+jobs:
+  build:
+    name: Build the documentation (strict)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: false
+
+      - name: Install mkdocs (pinned)
+        run: |
+          uv venv "$RUNNER_TEMP/docs-venv"
+          uv pip install --python "$RUNNER_TEMP/docs-venv/bin/python" --requirement .github/requirements/docs.txt
+          echo "$RUNNER_TEMP/docs-venv/bin" >> "$GITHUB_PATH"
+
+      - name: mkdocs build --strict
+        run: mkdocs build --strict --config-file .github/mkdocs-ci.yml
+
+      # Only a build of main is published; the artifact is made on any push to
+      # main or manual run so that the deploy job has nothing else to do.
+      - name: Package the site for Pages
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    name: Publish to GitHub Pages
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.PUBLISH_DOCS == 'true' }}
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

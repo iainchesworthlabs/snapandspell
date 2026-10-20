@@ -5,7 +5,7 @@
 #
 #   cmake -DBUILD_DIR=<build tree> -DVERSION=<project version>
 #         -DEXPECT_CLI=ON|OFF -DEXPECT_APP=ON|OFF
-#         -DEXPECT_QT_DEPLOY=ON|OFF -DNOTICES=<NOTICES.txt>
+#         -DEXPECT_QT_DEPLOY=ON|OFF -DNOTICES=<NOTICES.txt> [-DPRERELEASE=<rc.1>] [-DEXPECT_TRACY=ON|OFF]
 #         -P tests/package/check_package.cmake
 #
 # It is deliberately cheap and runs in every ctest: CPackConfig.cmake must name
@@ -48,11 +48,42 @@ function(_expect variable value)
 endfunction()
 
 _expect(CPACK_PACKAGE_NAME "WordJewelsSolver")
-_expect(CPACK_PACKAGE_VERSION "${VERSION}")
+# The version a package carries is the project's, plus the prerelease
+# identifier when one was configured (WJS_PACKAGE_PRERELEASE).
+if(PRERELEASE)
+    _expect(CPACK_PACKAGE_VERSION "${VERSION}-${PRERELEASE}")
+else()
+    _expect(CPACK_PACKAGE_VERSION "${VERSION}")
+endif()
 _expect(CPACK_PACKAGE_VENDOR "Iain Chesworth")
 _expect(CPACK_PACKAGE_CONTACT "Iain Chesworth")
 _expect(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/iainchesworthlabs/wordjewelssolver")
 _expect(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Finds every word on a Boggle board")
+
+# CPack refuses to package a Tracy build unless a development package is asked
+# for by name (cmake/PackagePreflight.cmake): the script has to be wired in, and
+# CPack has to be told whether this build has Tracy.
+if(NOT CPACK_PRE_BUILD_SCRIPTS MATCHES "PackagePreflight\.cmake$" OR NOT EXISTS "${CPACK_PRE_BUILD_SCRIPTS}")
+    list(APPEND _failures
+        "CPack does not run cmake/PackagePreflight.cmake before packaging "
+        "(CPACK_PRE_BUILD_SCRIPTS is '${CPACK_PRE_BUILD_SCRIPTS}')")
+endif()
+if(DEFINED EXPECT_TRACY)
+    if(EXPECT_TRACY)
+        set(_tracy_on ON)
+    else()
+        set(_tracy_on OFF)
+    endif()
+    if(NOT "${CPACK_WJS_TRACY}" STREQUAL "${_tracy_on}")
+        list(APPEND _failures
+            "CPack thinks Tracy is '${CPACK_WJS_TRACY}' but the build has it ${_tracy_on}")
+    endif()
+endif()
+if(CPACK_WJS_ALLOW_DEV_PACKAGE)
+    list(APPEND _failures
+        "CPACK_WJS_ALLOW_DEV_PACKAGE is on in CPackConfig.cmake; a development "
+        "package has to be asked for on the cpack command line, not configured")
+endif()
 
 string(FIND "${CPACK_GENERATOR}" "ZIP" _zip)
 if(_zip EQUAL -1)
@@ -147,6 +178,18 @@ if(EXPECT_MULTIMEDIA)
                 "QtMultimedia hint (src/app/camera/CameraImport.qml), so an "
                 "installed camera's live view would find no qml/QtMultimedia")
         endif()
+    endif()
+endif()
+
+# A package with the profiler in it carries Tracy's licence, and one without it
+# does not claim to (notices/fragments/tracy.txt).
+if(DEFINED EXPECT_TRACY AND EXISTS "${NOTICES}")
+    file(READ "${NOTICES}" _notice_text)
+    string(FIND "${_notice_text}" "Tracy Profiler (development packages only)" _tracy_section)
+    if(EXPECT_TRACY AND _tracy_section EQUAL -1)
+        list(APPEND _failures "this build has Tracy in it but ${NOTICES} has no Tracy section")
+    elseif(NOT EXPECT_TRACY AND NOT _tracy_section EQUAL -1)
+        list(APPEND _failures "this build has no Tracy but ${NOTICES} has a Tracy section")
     endif()
 endif()
 

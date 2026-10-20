@@ -1,0 +1,23 @@
+# The documentation build CI runs: mkdocs.yml, with the checks that are only
+# information there made warnings, so that `mkdocs build --strict` turns them
+# into failures. A link to a page that does not exist, a link to a heading that
+# does not, a link the site cannot resolve and an absolute link are each a red
+# build. (Pages that exist but are not in the nav stay information: docs/ has
+# design notes that are not meant to be in the menu.)
+#
+#   mkdocs build --strict --config-file .github/mkdocs-ci.yml
+INHERIT: ../mkdocs.yml
+
+docs_dir: ../docs
+site_dir: ../site
+
+validation:
+  nav:
+    omitted_files: info
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
