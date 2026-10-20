@@ -22,6 +22,7 @@
 #include "wjs/game_rules.hpp"
 #include "wjs/game_session.hpp"
 #include "wjs/phase_data.hpp"
+#include "wjs/settings.hpp"
 #include "wjs/solver.hpp"
 
 // TEST DATA. Two phases written for these tests (the seven and four words the
@@ -1035,8 +1036,36 @@ TEST_CASE("the focus sounds the parent ticked reach the seeding", "[session]") {
     // /t3/ in this test data, and NIP, PAN and PIN are the words with it: every
     // board holds one.
     wjs::SessionOptions options;
-    options.focus_sounds = {"/t3/"};
+    options.focus_sounds = {"n"};
     for (std::uint32_t seed = 1; seed <= 100; ++seed) {
+        options.seed = seed;
+        wjs::GameSession session = make(options);
+        REQUIRE(session.shake().has_value());
+        REQUIRE(session.still());
+        REQUIRE(session.landed());
+        const std::vector<std::string> viable = session.record()->viable;
+        INFO("seed " << seed);
+        CHECK(std::ranges::any_of(viable, [](const std::string& word) {
+            return word == "NIP" || word == "PAN" || word == "PIN";
+        }));
+    }
+}
+
+TEST_CASE("a focus sound ticked in the settings is dealt, from the settings to the board",
+          "[session]") {
+    // The path the app takes: what the parent ticked goes through
+    // Settings::normalized (which writes letters in lower case) and into the
+    // session's options, and the dealt boards carry the grapheme. A target is a
+    // word of three letters at most, so the grapheme is one that NIP, PAN and
+    // PIN have.
+    wjs::Settings settings;
+    settings.focus_sounds = {"N"};
+    settings = settings.normalized();
+    REQUIRE(settings.focus_sounds == std::vector<std::string>{"n"});
+
+    wjs::SessionOptions options;
+    options.focus_sounds = settings.focus_sounds;
+    for (std::uint32_t seed = 1; seed <= 50; ++seed) {
         options.seed = seed;
         wjs::GameSession session = make(options);
         REQUIRE(session.shake().has_value());

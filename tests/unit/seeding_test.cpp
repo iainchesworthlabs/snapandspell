@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "wjs/board.hpp"
+#include "wjs/dashboard.hpp"
 #include "wjs/path.hpp"
 #include "wjs/phase_data.hpp"
 #include "wjs/seeding.hpp"
@@ -334,7 +335,7 @@ TEST_CASE("targets prefer words with a focus sound", "[seeding]") {
     const auto set = make_set();
     const auto& index = *set.find("B");
     auto options = options_for(4, 6);
-    options.focus_sounds = {"/t7/"};  // the sound of "ai": four words have it
+    options.focus_sounds = {"ai"};  // the grapheme the parent ticked: four words have it
 
     for (std::uint32_t seed_value = 1; seed_value <= 50; ++seed_value) {
         const auto board = seed(index, options, seed_value);
@@ -355,7 +356,7 @@ TEST_CASE("when too few words have a focus sound the rest come from the phase", 
     const auto set = make_set();
     const auto& index = *set.find("A");  // no "ai" in phase A
     auto options = options_for(4, 6);
-    options.focus_sounds = {"/t7/"};
+    options.focus_sounds = {"ai"};
 
     const auto board = seed(index, options, 4);
 
@@ -367,13 +368,58 @@ TEST_CASE("a focus sound that enough words have is met on every board", "[seedin
     const auto set = make_set();
     const auto& index = *set.find("A");
     auto options = options_for(4, 6);
-    options.focus_sounds = {"/t1/"};  // "a", which is in pan, pat, sat and tap
+    options.focus_sounds = {"a"};  // which is in pan, pat, sat and tap
 
     for (std::uint32_t seed_value = 1; seed_value <= 30; ++seed_value) {
         const auto board = seed(index, options, seed_value);
 
         INFO("seed " << seed_value);
         CHECK_FALSE(board.focus_unmet);
+    }
+}
+
+TEST_CASE("a focus sound is ticked by its letters, in any case, and not by its slashed sound",
+          "[seeding]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+
+    // The parent ticks letters (Settings holds nothing else), so "AI" is "ai".
+    auto options = options_for(4, 6);
+    options.focus_sounds = {"AI"};
+    for (std::uint32_t seed_value = 1; seed_value <= 20; ++seed_value) {
+        INFO("seed " << seed_value);
+        CHECK_FALSE(seed(index, options, seed_value).focus_unmet);
+    }
+
+    // The slashed form is the sound as written in the data, not a thing the
+    // parent can tick: it names no grapheme, so it steers nothing.
+    options.focus_sounds = {"/t7/"};
+    CHECK(seed(index, options, 1).focus_unmet);
+}
+
+TEST_CASE("every focus sound the dashboard offers is one that seeding honours", "[seeding]") {
+    const auto set = make_set();
+    for (const char* phase : {"A", "B"}) {
+        const auto& index = *set.find(phase);
+        for (const std::string& letters : wjs::focus_sound_choices(index)) {
+            auto options = options_for(4, 4);
+            options.focus_sounds = {letters};
+            INFO("phase " << phase << ", tick " << letters);
+            // Four words are enough to land a board of four tiles of any
+            // grapheme that three or more words use.
+            std::size_t words_with = 0;
+            for (const auto& word : index.words()) {
+                words_with += std::ranges::any_of(word.graphemes,
+                                                  [&](const wjs::WordGrapheme& grapheme) {
+                                                      return grapheme.letters == letters;
+                                                  })
+                                  ? 1U
+                                  : 0U;
+            }
+            if (words_with >= 3) {
+                CHECK_FALSE(seed(index, options, 5).focus_unmet);
+            }
+        }
     }
 }
 

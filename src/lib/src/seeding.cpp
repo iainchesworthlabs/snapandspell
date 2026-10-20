@@ -299,6 +299,16 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
     // --- the words that can be planted -----------------------------------------
     const std::size_t cell_count = options.size * options.size;
 
+    // A focus sound is ticked by the letters of its grapheme, in lower case as
+    // Settings::normalized writes them: that is what the parent's list shows
+    // (focus_sound_choices) and what the settings hold. All the sounds a
+    // grapheme has are ticked together, as they are on the dashboard.
+    std::vector<std::string> focus_letters;
+    focus_letters.reserve(options.focus_sounds.size());
+    for (const std::string& tick : options.focus_sounds) {
+        focus_letters.push_back(lower(tick));
+    }
+
     std::vector<Candidate> candidates;
     std::size_t shortest = cell_count;
     for (const PhaseWord& word : index.words()) {
@@ -309,13 +319,9 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
         Candidate candidate;
         candidate.word = &word;
         candidate.letters = upper(word.word);
-        for (const WordGrapheme& grapheme : word.graphemes) {
-            const Grapheme* known = index.sound_of(grapheme);
-            if (known != nullptr && std::ranges::find(options.focus_sounds, known->sound) !=
-                                        options.focus_sounds.end()) {
-                candidate.focus = true;
-            }
-        }
+        candidate.focus = std::ranges::any_of(word.graphemes, [&](const WordGrapheme& grapheme) {
+            return std::ranges::find(focus_letters, grapheme.letters) != focus_letters.end();
+        });
         shortest = std::min(shortest, word.word.size());
         candidates.push_back(std::move(candidate));
     }

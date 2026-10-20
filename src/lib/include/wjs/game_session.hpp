@@ -310,8 +310,9 @@ struct SessionOptions {
     // Read only when `mode` is phonics; the standard board has no range of words
     // to land, only the one it must hold.
 
-    // Sounds the parent has ticked, as the graphemes file writes them: the board
-    // prefers targets with a grapheme that makes one (SeedOptions::focus_sounds).
+    // The graphemes the parent has ticked, by their letters (what
+    // Settings::focus_sounds holds): the board prefers targets with one of them
+    // (SeedOptions::focus_sounds).
     std::vector<std::string> focus_sounds;
 
     // What a board has to hold, counted in words of the phase on it.
