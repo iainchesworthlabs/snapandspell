@@ -1163,7 +1163,7 @@ The button that opens the Licences page from the About page.</extracomment>
     <message>
         <location filename="../src/app/qml/kit/Sheet.qml" line="+24"/>
         <source>Close</source>
-        <translation type="unfinished">Close</translation>
+        <translation>Close</translation>
     </message>
 </context>
 <context>
