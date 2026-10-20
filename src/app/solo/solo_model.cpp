@@ -4,15 +4,12 @@
 #include <QVariantMap>
 #include <utility>
 
+#include "qt_text.hpp"
 #include "solo_game_factory.hpp"
 #include "wjs/profiling.hpp"
 
 namespace wjs::app {
 namespace {
-
-[[nodiscard]] QString to_qstring(const std::string& text) {
-    return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size()));
-}
 
 [[nodiscard]] QString tier_name(WordTier tier) {
     switch (tier) {
@@ -73,13 +70,16 @@ SoloModel::SoloModel(QObject* parent) : SoloModel(make_solo_game(), parent) {}
 
 SoloModel::SoloModel(std::unique_ptr<SoloGame> game, QObject* parent)
     : QObject(parent), game_(std::move(game)) {
+    save_failed_ = game_->saveFailed();
     refreshHistory();
-    // The board's clock ticks once a second while the screen says so
-    // (clockActive); the seconds are the model's, so a test can call
-    // tickClock() itself and never wait for a second of wall time.
-    clock_timer_.setInterval(1000);
+    // The board's clock counts the time that went by while the screen says it is
+    // active (clockActive). The timer only looks at the time: a quarter second
+    // keeps the display within a quarter second of the truth, and the seconds are
+    // the elapsed time's. A test calls tickClock() or advanceClock() itself and
+    // never waits for a second of wall time.
+    clock_timer_.setInterval(250);
     clock_timer_.setTimerType(Qt::CoarseTimer);
-    QObject::connect(&clock_timer_, &QTimer::timeout, this, &SoloModel::tickClock);
+    QObject::connect(&clock_timer_, &QTimer::timeout, this, &SoloModel::clockTimerFired);
     // A game that is not in the box was brought back from the run before: the board
     // is on the table already, with no shake to deal it, so what a shake sets up is
     // set up here (the touch geometry, the tile the help had lit, and the board's
@@ -122,33 +122,28 @@ int SoloModel::columns() const {
     return static_cast<int>(game_->board().columns);
 }
 
-QStringList SoloModel::tiles() const {
-    if (board_dirty_) {
-        tiles_cache_ = tile_list(game_->board());
-        faces_cache_ = faces_list(game_->board());
-        up_cache_ = up_list(game_->board());
-        board_dirty_ = false;
+void SoloModel::ensureBoardCaches() const {
+    if (!board_dirty_) {
+        return;
     }
+    tiles_cache_ = tile_list(game_->board());
+    faces_cache_ = faces_list(game_->board());
+    up_cache_ = up_list(game_->board());
+    board_dirty_ = false;
+}
+
+QStringList SoloModel::tiles() const {
+    ensureBoardCaches();
     return tiles_cache_;
 }
 
 QVariantList SoloModel::faces() const {
-    if (board_dirty_) {
-        tiles_cache_ = tile_list(game_->board());
-        faces_cache_ = faces_list(game_->board());
-        up_cache_ = up_list(game_->board());
-        board_dirty_ = false;
-    }
+    ensureBoardCaches();
     return faces_cache_;
 }
 
 QVariantList SoloModel::up() const {
-    if (board_dirty_) {
-        tiles_cache_ = tile_list(game_->board());
-        faces_cache_ = faces_list(game_->board());
-        up_cache_ = up_list(game_->board());
-        board_dirty_ = false;
-    }
+    ensureBoardCaches();
     return up_cache_;
 }
 
@@ -343,6 +338,14 @@ void SoloModel::resetTracer() {
     markPathChanged();
 }
 
+void SoloModel::refreshSaveStatus() {
+    const bool failed = game_->saveFailed();
+    if (failed != save_failed_) {
+        save_failed_ = failed;
+        emit saveFailedChanged();
+    }
+}
+
 // --- the board's clock --------------------------------------------------------
 
 QString SoloModel::clockMode() const {
@@ -368,6 +371,14 @@ QString SoloModel::clockText() const {
     return QStringLiteral("%1:%2").arg(minutes).arg(seconds, 2, 10, QLatin1Char('0'));
 }
 
+namespace {
+
+// The longest count-down the model takes from QML: a day. The product with sixty
+// below then cannot overflow, whatever the binding hands in.
+constexpr int kMaxClockMinutes = 24 * 60;
+
+}  // namespace
+
 void SoloModel::setClockMode(const QString& mode) {
     const std::string name = mode.toStdString();
     const auto parsed = wjs::solo_clock_from_string(name);
@@ -378,16 +389,19 @@ void SoloModel::setClockMode(const QString& mode) {
         return;
     }
     clock_mode_ = *parsed;
-    startClock();
+    // A board in play keeps the time it has already had: a clock that is turned
+    // on mid-round starts from the beginning only because nothing was counted
+    // while it was off.
+    showClock();
     emit clockChanged();
 }
 
 void SoloModel::setClockMinutes(int minutes) {
-    if (minutes <= 0 || minutes == clock_minutes_) {
+    if (minutes <= 0 || minutes > kMaxClockMinutes || minutes == clock_minutes_) {
         return;
     }
     clock_minutes_ = minutes;
-    startClock();
+    showClock();
     emit clockChanged();
 }
 
@@ -395,8 +409,13 @@ void SoloModel::setClockActive(bool active) {
     if (active == clock_active_) {
         return;
     }
+    if (!active && clock_timer_.isActive()) {
+        // Time that went by since the timer last looked is the board's.
+        advanceClock(clock_since_.elapsed());
+    }
     clock_active_ = active;
     if (clock_active_ && clock_mode_ != SoloClock::off && !clock_expired_) {
+        clock_since_.restart();
         clock_timer_.start();
     } else {
         clock_timer_.stop();
@@ -408,31 +427,53 @@ void SoloModel::setClockActive(bool active) {
 // whole count-down still ahead), and an ended count-down can end again.
 void SoloModel::startClock() {
     clock_expired_ = false;
-    clock_seconds_ = clock_mode_ == SoloClock::count_down ? clock_minutes_ * 60 : 0;
+    clock_elapsed_ms_ = 0;
     if (clock_active_ && clock_mode_ != SoloClock::off) {
+        clock_since_.restart();
         clock_timer_.start();
     } else {
         clock_timer_.stop();
     }
-    emit clockSecondsChanged();
+    showClock();
 }
 
-void SoloModel::tickClock() {
-    if (!clock_active_ || clock_mode_ == SoloClock::off || clock_expired_) {
-        return;
-    }
+// What the clock shows for the time played: the whole seconds played, or the
+// seconds left rounded up (so that it reads zero only when the time is out).
+void SoloModel::showClock() {
+    int seconds = 0;
     if (clock_mode_ == SoloClock::count_up) {
-        ++clock_seconds_;
-    } else {
-        --clock_seconds_;
+        seconds = static_cast<int>(clock_elapsed_ms_ / 1000);
+    } else if (clock_mode_ == SoloClock::count_down) {
+        const qint64 total = static_cast<qint64>(clock_minutes_) * 60 * 1000;
+        const qint64 left = total > clock_elapsed_ms_ ? total - clock_elapsed_ms_ : 0;
+        seconds = static_cast<int>((left + 999) / 1000);
     }
-    emit clockSecondsChanged();
-    if (clock_mode_ == SoloClock::count_down && clock_seconds_ <= 0) {
-        clock_seconds_ = 0;
+    const bool changed = seconds != clock_seconds_;
+    clock_seconds_ = seconds;
+    if (changed) {
+        emit clockSecondsChanged();
+    }
+    if (clock_mode_ == SoloClock::count_down && clock_seconds_ <= 0 && !clock_expired_) {
         clock_expired_ = true;
         clock_timer_.stop();
         emit clockExpired();
     }
+}
+
+void SoloModel::advanceClock(qint64 milliseconds) {
+    if (!clock_active_ || clock_mode_ == SoloClock::off || clock_expired_ || milliseconds <= 0) {
+        return;
+    }
+    clock_elapsed_ms_ += milliseconds;
+    showClock();
+}
+
+void SoloModel::clockTimerFired() {
+    advanceClock(clock_since_.restart());
+}
+
+void SoloModel::tickClock() {
+    advanceClock(1000);
 }
 
 // --- the box ----------------------------------------------------------------
@@ -446,6 +487,7 @@ void SoloModel::chooseSize(int size) {
     if (game_->size() != before) {
         emit sizeChanged();
     }
+    refreshSaveStatus();
 }
 
 void SoloModel::shake() {
@@ -469,6 +511,7 @@ void SoloModel::shake() {
     emit litPathChanged();
     emit stateChanged();
     emit cue(QStringLiteral("rattle"), {});
+    refreshSaveStatus();
 }
 
 void SoloModel::sceneSettled() {
@@ -477,6 +520,7 @@ void SoloModel::sceneSettled() {
     }
     game_->settled();
     emit stateChanged();
+    refreshSaveStatus();
 }
 
 // --- making a word ------------------------------------------------------------
@@ -519,6 +563,7 @@ void SoloModel::submitPath() {
     markPathChanged();
 
     const auto outcome = game_->submit(path);
+    refreshSaveStatus();
     switch (outcome.kind) {
         case WordKind::viable: {
             presenting_ = true;
@@ -654,6 +699,7 @@ void SoloModel::celebrated() {
     game_->celebrated();
     refreshHistory();
     emit stateChanged();
+    refreshSaveStatus();
 }
 
 // --- help, and the ways out ----------------------------------------------------
@@ -674,6 +720,7 @@ void SoloModel::askHelp() {
         // back and the one below covers both.
         hint_hidden_ = false;
         const auto tile = game_->startTile();
+        refreshSaveStatus();
         {
             const QSignalBlocker blocker(this);
             refreshHelp();
@@ -727,6 +774,7 @@ void SoloModel::lidOn() {
     tracer_.clear();
     game_->lidOn();
     refreshHistory();
+    refreshSaveStatus();
     // The board is over: its clock is put away with it.
     clock_timer_.stop();
     clock_seconds_ = 0;
@@ -754,6 +802,7 @@ void SoloModel::again() {
     hint_hidden_ = false;
     game_->again();
     refreshHistory();
+    refreshSaveStatus();
     emit helpChanged();
     emit stateChanged();
     renewGameIfDue();
@@ -776,6 +825,8 @@ void SoloModel::renewGameIfDue() {
     // has chosen and the history the store keeps. One that is not in the box was
     // brought back, as at the start (the constructor): its board is on the table.
     game_ = make_solo_game();
+    save_failed_ = game_->saveFailed();
+    emit saveFailedChanged();
     presenting_ = false;
     help_tile_ = -1;
     hint_level_ = 0;

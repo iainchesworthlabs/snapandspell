@@ -68,8 +68,15 @@ std::expected<std::unique_ptr<SoloGameSetup>, std::string> SoloGameSetup::open(
             return std::unexpected(std::move(message));
         }
 
-        const std::string name = options.phase.empty() ? store.settings().phase : options.phase;
+        // The phase asked for, else the one the settings name. A settings phase this
+        // directory does not hold (the files changed since the parent chose it) is
+        // not a reason to stay out of the game: the first phase is played.
+        std::string name = options.phase.empty() ? store.settings().phase : options.phase;
         const wjs::PhaseIndex* index = loaded->find(name);
+        if (index == nullptr && options.phase.empty() && !loaded->phases().empty()) {
+            index = &loaded->phases().front();
+            name = index->phase();
+        }
         if (index == nullptr) {
             std::string message = "There is no phase " + name + " in " +
                                   text_of(options.phase_directory) + "; it has:";
@@ -145,9 +152,14 @@ std::unique_ptr<SoloGame> SoloGameSetup::make() {
     }
 
     // open() loaded everything the mode needs, and the options above stay within
-    // what the mode is played at, so a session cannot fail to be made.
-    return std::make_unique<RealSoloGame>(
-        RealSoloGame::create(data, store_, options, today_).value());
+    // what the mode is played at, so a session is made. If one ever is not (a mode
+    // gains a requirement open() does not check), that is no exception out of an
+    // object QML makes: there is no game, and the factory plays none.
+    auto created = RealSoloGame::create(data, store_, options, today_);
+    if (!created) {
+        return nullptr;
+    }
+    return std::make_unique<RealSoloGame>(*std::move(created));
 }
 
 }  // namespace wjs::app

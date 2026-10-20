@@ -10,6 +10,7 @@
 #include "fake_solo_game.hpp"
 #include "solo_game_factory.hpp"
 #include "solo_model.hpp"
+#include "test_support.hpp"
 
 namespace {
 
@@ -689,13 +690,94 @@ TEST_CASE("a clock set while a board is in play starts from the board's beginnin
     CHECK(f.model.clockSeconds() == 1);
 }
 
-TEST_CASE("a model made with no game plays the one the application plays", "[app][solo]") {
+TEST_CASE("the clock's own timer counts the time that really went by", "[app][solo][clock]") {
+    wjs::app::test::CoreApplication application;
+    Fixture f;
+    f.model.setClockMode("up");
+    f.play();
+    int changes = 0;
+    QObject::connect(&f.model, &SoloModel::clockSecondsChanged, [&changes] { ++changes; });
+
+    // Not active: the timer is not running and the clock does not move.
+    CHECK_FALSE(wjs::app::test::spin_until([&f] { return f.model.clockSeconds() > 0; }, 1300));
+    CHECK(changes == 0);
+
+    // Active: the model's own timer counts seconds of wall time, with no call to
+    // tickClock. One real second and a margin is the cost of proving it.
+    f.model.setClockActive(true);
+    REQUIRE(wjs::app::test::spin_until([&f] { return f.model.clockSeconds() >= 1; }, 3000));
+    CHECK(f.model.clockSeconds() == 1);
+    CHECK(changes == 1);
+    CHECK(f.model.clockText() == "0:01");
+
+    // Inactive again: it stops, and the seconds stay.
+    f.model.setClockActive(false);
+    const int held = f.model.clockSeconds();
+    CHECK_FALSE(
+        wjs::app::test::spin_until([&f, held] { return f.model.clockSeconds() != held; }, 1300));
+}
+
+TEST_CASE("a stalled interface does not lose the clock's time", "[app][solo][clock]") {
+    Fixture f;
+    f.model.setClockMode("up");
+    f.play();
+    f.model.setClockActive(true);
+
+    // The timer fires late, once, after three and a half seconds: the clock reads
+    // what went by and not the one tick it was told of.
+    f.model.advanceClock(3500);
+    CHECK(f.model.clockSeconds() == 3);
+    f.model.advanceClock(600);
+    CHECK(f.model.clockSeconds() == 4);
+
+    // A count-down reads the time left rounded up, and ends when none is.
+    Fixture g;
+    int expired = 0;
+    QObject::connect(&g.model, &SoloModel::clockExpired, [&expired] { ++expired; });
+    g.model.setClockMode("down");
+    g.model.setClockMinutes(1);
+    g.play();
+    g.model.setClockActive(true);
+    g.model.advanceClock(500);
+    CHECK(g.model.clockSeconds() == 60);
+    g.model.advanceClock(1500);
+    CHECK(g.model.clockSeconds() == 58);
+    g.model.advanceClock(1000000);
+    CHECK(g.model.clockSeconds() == 0);
+    CHECK(expired == 1);
+}
+
+TEST_CASE("changing the clock mid-round keeps the time already played", "[app][solo][clock]") {
+    Fixture f;
+    f.model.setClockMode("up");
+    f.play();
+    f.model.setClockActive(true);
+    f.model.advanceClock(30000);
+    REQUIRE(f.model.clockSeconds() == 30);
+
+    // The parent's count-down takes over the same board: 30 of its 60 seconds are
+    // gone, and the clock does not start again from the full minute.
+    f.model.setClockMode("down");
+    f.model.setClockMinutes(1);
+    CHECK(f.model.clockSeconds() == 30);
+
+    // A length that cannot be a day of seconds is refused rather than overflowing.
+    f.model.setClockMinutes(2147483647);
+    CHECK(f.model.clockMinutes() == 1);
+    f.model.setClockMinutes(-5);
+    CHECK(f.model.clockMinutes() == 1);
+}
+
+TEST_CASE("a model made with no game is a box that cannot be shaken", "[app][solo]") {
     SoloModel model;
 
     CHECK(model.state() == "box");
-    CHECK(model.sizes() == indices({3, 4}));
+    CHECK(model.sizes() == indices({3}));
     model.shake();
-    CHECK(model.state() == "shaking");
+    CHECK(model.state() == "box");
+    CHECK(model.rows() == 0);
+    CHECK_FALSE(model.helpAllowed());
+    CHECK_FALSE(model.saveFailed());
 }
 
 // --- what the parent changes -------------------------------------------------------

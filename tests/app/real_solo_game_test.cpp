@@ -749,8 +749,20 @@ TEST_CASE("the blocks of a path are the binder's, over the phase's graphemes", "
 
 // --- the program's choice of game --------------------------------------------
 
-TEST_CASE("the application plays the stand-in until it is told what to play", "[app][real]") {
-    CHECK(dynamic_cast<wjs::app::FakeSoloGame*>(wjs::app::make_solo_game().get()) != nullptr);
+TEST_CASE("the application plays no game until it is told what to play", "[app][real]") {
+    {
+        // Not the tests' stand-in, which no program plays: a box that cannot be
+        // shaken, so a model made without a game never pretends to play one.
+        const auto none = wjs::app::make_solo_game();
+        REQUIRE(none != nullptr);
+        CHECK(dynamic_cast<wjs::app::FakeSoloGame*>(none.get()) == nullptr);
+        CHECK(none->state() == SoloState::box);
+        CHECK_FALSE(none->shake());
+        CHECK(none->state() == SoloState::box);
+        CHECK(none->board().empty());
+        CHECK_FALSE(none->helpAllowed());
+        CHECK(none->history().empty());
+    }
 
     wjs::Store store = wjs::Store::in_memory();
     {
@@ -762,7 +774,9 @@ TEST_CASE("the application plays the stand-in until it is told what to play", "[
         CHECK(dynamic_cast<RealSoloGame*>(game.get()) != nullptr);
         CHECK(game->state() == SoloState::playing);
     }
-    CHECK(dynamic_cast<wjs::app::FakeSoloGame*>(wjs::app::make_solo_game().get()) != nullptr);
+    const auto after = wjs::app::make_solo_game();
+    CHECK(dynamic_cast<RealSoloGame*>(after.get()) == nullptr);
+    CHECK(after->state() == SoloState::box);
 }
 
 // --- loading what the game needs -----------------------------------------------
@@ -923,6 +937,27 @@ TEST_CASE("a game made by the setup writes its finds to the store's file", "[app
     const auto history = game->history();
     REQUIRE(history.size() == 1);
     CHECK(history[0].found.size() == 1);
+}
+
+TEST_CASE("a phase the settings name that the directory lacks falls back to the first",
+          "[app][real]") {
+    const TempDirectory directory;
+    write_data(directory);
+    wjs::Store store = wjs::Store::in_memory();
+    wjs::Settings settings = store.settings();
+    settings.phase = "Z";  // chosen once, from files that have since changed
+    store.update_settings(settings);
+
+    auto options = options_in(directory);
+    options.phase.clear();  // nothing asked on the command line
+    const auto opened = wjs::app::SoloGameSetup::open(options, store);
+
+    // The program starts, on the first phase it has, and does not stay out of the
+    // game for a stale setting; a phase asked for by name that is not there is
+    // still an error (below).
+    REQUIRE(opened.has_value());
+    REQUIRE(!(*opened)->phases().phases().empty());
+    CHECK((*opened)->phase() == &(*opened)->phases().phases().front());
 }
 
 TEST_CASE("the setup says why it cannot load", "[app][real]") {

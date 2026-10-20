@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cctype>
+#include <tuple>
 #include <utility>
 
 #include "wjs/board.hpp"
 #include "wjs/game_rules.hpp"
+#include "wjs/profiling.hpp"
 #include "wjs/scoring.hpp"
 #include "wjs/seeding.hpp"
 #include "wjs/session_store.hpp"
@@ -197,6 +199,9 @@ void RealSoloGame::celebrated() {
 }
 
 std::optional<Position> RealSoloGame::startTile() {
+    // The help press: the session's choice of a word, and the write of the game
+    // in progress that follows it.
+    const auto zone = wjs::profiling::zone<"solo.help">();
     const auto tile = session_.request_help();
     save_session();
     return tile;
@@ -211,6 +216,8 @@ std::vector<Position> RealSoloGame::helpPath() const {
 }
 
 std::size_t RealSoloGame::wordsWithStart(std::span<const Position> prefix) const {
+    // Once per find made from a hint's start: a count over the board's words.
+    const auto zone = wjs::profiling::zone<"solo.words_with_start">();
     return session_.words_with_start(prefix);
 }
 
@@ -229,6 +236,8 @@ void RealSoloGame::lidOn() {
 }
 
 void RealSoloGame::again() {
+    // The next board's dealing waits behind this press: a new box, and a write.
+    const auto zone = wjs::profiling::zone<"solo.again">();
     session_.again();
     save_session();
 }
@@ -313,6 +322,10 @@ void RealSoloGame::refresh_found() {
     }
 }
 
+void RealSoloGame::note_write(bool accepted) {
+    save_failed_ = !accepted || store_->last_save_error().has_value();
+}
+
 wjs::RecordOutcome RealSoloGame::record_board() {
     const auto record = session_.record();
     if (!record) {
@@ -320,9 +333,13 @@ wjs::RecordOutcome RealSoloGame::record_board() {
     }
     const auto snapshot = wjs::snapshot_of(*record);
     if (!snapshot) {
+        // A board the store has no form for: not a failure of the store, and
+        // nothing to keep.
         return {};
     }
-    return store_->record(*snapshot, today_());
+    wjs::RecordOutcome outcome = store_->record(*snapshot, today_());
+    note_write(outcome.stored);
+    return outcome;
 }
 
 void RealSoloGame::save_session() {
@@ -338,9 +355,15 @@ void RealSoloGame::save_session() {
     }
     // A board the store cannot keep whole is refused and nothing changes, which
     // would leave the game before it to be brought back in this one's place.
-    if (!store_->save_session(saved)) {
-        store_->save_session(std::nullopt);
+    if (store_->save_session(saved)) {
+        note_write(true);
+        return;
     }
+    // Refused: the game before this one must not come back in its place, so what
+    // the store held is cleared (clearing is never refused: there is nothing to
+    // keep). The game cannot be resumed, and that is told.
+    std::ignore = store_->save_session(std::nullopt);
+    note_write(false);
 }
 
 void RealSoloGame::remember_size(wjs::BoardSize size) {
@@ -349,6 +372,7 @@ void RealSoloGame::remember_size(wjs::BoardSize size) {
     if (settings.board_size != side) {
         settings.board_size = side;
         store_->update_settings(settings);
+        note_write(true);
     }
 }
 
