@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import WordJewelsSolver
 
 // The licences, on their own page (docs/design/dashboard.md, "Settings"): what
 // this build includes and the licence of each part, with the full third-party
@@ -11,40 +12,40 @@ Flickable {
     required property var controller
 
     // The parent area's direction, from the shell.
-    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.enabled: Theme.rightToLeft
     LayoutMirroring.childrenInherit: true
 
     contentWidth: width
-    contentHeight: column.implicitHeight + 2 * ParentTheme.space6
+    contentHeight: column.implicitHeight + 2 * Theme.space6
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.VerticalFlick
 
     component Paragraph: Text {
         Layout.fillWidth: true
-        font.family: ParentTheme.uiFont
-        font.pixelSize: ParentTheme.sizeBody
-        color: ParentTheme.ink
+        font.family: Theme.uiFont
+        font.pixelSize: Theme.bodySize
+        color: Theme.ink
         wrapMode: Text.WordWrap
     }
 
     ColumnLayout {
         id: column
-        x: Math.max(ParentTheme.space4, (root.width - width) / 2)
-        y: ParentTheme.space6
-        width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
-        spacing: ParentTheme.space8
+        x: Math.max(Theme.space4, (root.width - width) / 2)
+        y: Theme.space6
+        width: Math.min(root.width - 2 * Theme.space4, Theme.contentWidth)
+        spacing: Theme.space8
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: ParentTheme.space1
+            spacing: Theme.space1
             Text {
                 Layout.fillWidth: true
                 text: ParentWording.licencesHeading
-                font.family: ParentTheme.uiFont
-                font.pixelSize: ParentTheme.sizeTitle
+                font.family: Theme.uiFont
+                font.pixelSize: Theme.titleSize
                 font.weight: Font.ExtraBold
-                color: ParentTheme.ink
+                color: Theme.ink
             }
         }
 
@@ -68,16 +69,16 @@ Flickable {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 480
-                color: ParentTheme.card
-                border.width: ParentTheme.hair
-                border.color: ParentTheme.outline
-                radius: ParentTheme.radius
+                color: Theme.card
+                border.width: Theme.hair
+                border.color: Theme.outline
+                radius: Theme.radius
 
                 Flickable {
                     id: notices
                     objectName: "licencesView"
                     anchors.fill: parent
-                    anchors.margins: ParentTheme.space3
+                    anchors.margins: Theme.space3
                     contentWidth: width
                     contentHeight: noticeText.implicitHeight
                     clip: true
@@ -92,8 +93,8 @@ Flickable {
                         objectName: "licenceNotices"
                         width: notices.width
                         text: root.controller.licenceNotices
-                        font.pixelSize: ParentTheme.sizeSmall
-                        color: ParentTheme.ink
+                        font.pixelSize: Theme.smallSize
+                        color: Theme.ink
                         wrapMode: Text.WordWrap
                     }
                 }

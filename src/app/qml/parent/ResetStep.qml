@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import WordJewelsSolver
 
 // One of the parent area's two resets (docs/design/dashboard.md, "Reset"): a
 // button that names what it clears, and, once pressed, says what it will do and
@@ -15,11 +16,13 @@ ColumnLayout {
 
     property bool asking: false
 
-    spacing: ParentTheme.space2
+    spacing: Theme.space2
 
-    PButton {
+    AppButton {
+        size: "min"
+        quiet: true
         visible: !root.asking
-        text: root.label
+        label: root.label
         onClicked: {
             root.done = false;
             root.asking = true;
@@ -29,38 +32,42 @@ ColumnLayout {
     Rectangle {
         Layout.fillWidth: true
         visible: root.asking
-        implicitHeight: asked.implicitHeight + 2 * ParentTheme.space3
-        radius: ParentTheme.radius
-        color: ParentTheme.note
-        border.width: ParentTheme.hair * 2
-        border.color: ParentTheme.outline
+        implicitHeight: asked.implicitHeight + 2 * Theme.space3
+        radius: Theme.radius
+        color: Theme.hintCard
+        border.width: Theme.hair * 2
+        border.color: Theme.outline
 
         ColumnLayout {
             id: asked
             anchors.fill: parent
-            anchors.margins: ParentTheme.space3
-            spacing: ParentTheme.space3
+            anchors.margins: Theme.space3
+            spacing: Theme.space3
 
             Text {
                 Layout.fillWidth: true
                 text: root.says
-                font.pixelSize: ParentTheme.sizeBody
-                color: ParentTheme.noteInk
+                font.pixelSize: Theme.bodySize
+                color: Theme.hintCardInk
                 wrapMode: Text.WordWrap
                 Accessible.role: Accessible.StaticText
                 Accessible.name: text
             }
             Flow {
                 Layout.fillWidth: true
-                spacing: ParentTheme.space2
+                spacing: Theme.space2
 
-                PButton {
-                    text: ParentWording.resetKeep
+                AppButton {
+                    size: "min"
+                    quiet: true
+                    label: ParentWording.resetKeep
                     onClicked: root.asking = false
                 }
-                PButton {
-                    text: ParentWording.resetConfirm
-                    primary: true
+                AppButton {
+                    size: "min"
+                    quiet: true
+                    label: ParentWording.resetConfirm
+                    variant: "primary"
                     Accessible.name: root.label
                     onClicked: {
                         root.asking = false;
@@ -75,7 +82,7 @@ ColumnLayout {
     Text {
         visible: root.done && !root.asking
         text: ParentWording.resetDone
-        font.pixelSize: ParentTheme.sizeSmall
-        color: ParentTheme.inkSecondary
+        font.pixelSize: Theme.smallSize
+        color: Theme.inkSecondary
     }
 }
