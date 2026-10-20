@@ -597,7 +597,11 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
     // At most one file of each kind for a phase.
     std::map<std::string, const GraphemesFile*> grapheme_files;
     std::map<std::string, const WordsFile*> word_files;
-    std::set<std::string> names;
+    // Shorter names first, then alphabetical: A before B, and 2 before 10.
+    const auto by_length_then_name = [](const std::string& a, const std::string& b) {
+        return a.size() != b.size() ? a.size() < b.size() : a < b;
+    };
+    std::set<std::string, decltype(by_length_then_name)> names(by_length_then_name);
     for (const auto& file : graphemes) {
         names.insert(file.header.phase);
         if (!grapheme_files.emplace(file.header.phase, &file).second) {

@@ -446,6 +446,25 @@ TEST_CASE("a phase set is cumulative: a later phase holds the earlier phases' wo
     CHECK(built->find("C") == nullptr);
 }
 
+TEST_CASE("phases are in the order of their names: shorter first, then alphabetical", "[phase]") {
+    // Written in the wrong order on purpose; "10" is after "2" and not before.
+    std::vector<wjs::GraphemesFile> graphemes;
+    for (const std::string_view name : {"10", "B", "2", "AA", "A"}) {
+        graphemes.push_back(read_graphemes(
+            "# phase: " + std::string(name) + "\nx  /t" + std::string(name) + "/  clip:c\n",
+            std::string(name) + ".graphemes"));
+    }
+
+    const auto built = wjs::PhaseSet::build(graphemes, {}, english());
+
+    REQUIRE(built.has_value());
+    std::vector<std::string> order;
+    for (const wjs::PhaseIndex& index : built->phases()) {
+        order.push_back(index.phase());
+    }
+    CHECK(order == std::vector<std::string>{"2", "A", "B", "10", "AA"});
+}
+
 TEST_CASE("a phase's alphabet is the letters of its graphemes and words", "[phase]") {
     const auto files = phases_a_and_b();
     const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());

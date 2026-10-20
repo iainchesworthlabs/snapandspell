@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <fstream>
 #include <numeric>
+#include <span>
 #include <sstream>
 #include <utility>
 
@@ -28,7 +29,7 @@ std::string_view to_string(DiceError error) noexcept {
         case DiceError::empty:
             return "the set has no dice";
         case DiceError::bad_die:
-            return "a die has no faces, or too many";
+            return "a die has too many faces";
         case DiceError::bad_face:
             return "a face is not one to three letters";
         case DiceError::not_square:

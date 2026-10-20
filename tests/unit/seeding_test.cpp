@@ -766,6 +766,35 @@ TEST_CASE("the phonics board options keep one letter out and let the rest in",
     CHECK(options->filler.find('Z') != std::string::npos);
 }
 
+TEST_CASE("the dead jewels are listed in row order when the planted words are already too many",
+          "[seeding][guided]") {
+    const auto set = make_set();
+    const auto& index = *set.find("B");
+    auto options = wjs::phonics_board_options(index, 3);
+    REQUIRE(options.has_value());
+    // One word is wanted, and any word may be planted: PAINT holds PAIN, which
+    // is two words already, and a fill cannot take a word away. That planting is
+    // given up, the board is the nearest and every tile the word left is dead.
+    options->max_target_letters = 0;
+    options->min_viable = 1;
+    options->max_viable = 1;
+    options->max_tries = 1;  // the first planting is the board, as the nearest
+
+    std::size_t with_dead = 0;
+    for (std::uint32_t seed_value = 1; seed_value <= 200; ++seed_value) {
+        const auto board = seed(index, *options, seed_value);
+
+        INFO("seed " << seed_value);
+        CHECK(std::ranges::is_sorted(board.dead, [](const wjs::Position& a, const wjs::Position& b) {
+            return a.row != b.row ? a.row < b.row : a.column < b.column;
+        }));
+        if (!board.dead.empty()) {
+            ++with_dead;
+        }
+    }
+    CHECK(with_dead > 0);  // the path under test was taken
+}
+
 TEST_CASE("a phonics board has the phase's letters first and no dead jewels", "[seeding][guided]") {
     const auto set = make_set();
     const auto& index = *set.find("B");

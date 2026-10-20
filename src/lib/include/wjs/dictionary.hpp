@@ -47,7 +47,8 @@ public:
     [[nodiscard]] bool contains(std::string_view word) const;
     [[nodiscard]] bool has_prefix(std::string_view prefix) const;
 
-    // The node reached from `from` by `letter` (upper-case), or no_node.
+    // The node reached from `from` by `letter` (upper-case), or no_node. A step
+    // from no_node (or from any cursor this dictionary did not give) is no_node.
     [[nodiscard]] Cursor step(Cursor from, char letter) const noexcept;
 
     // Whether the letters stepped to reach `at` spell a word.

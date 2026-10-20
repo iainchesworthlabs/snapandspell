@@ -82,6 +82,17 @@ TEST_CASE("a cursor follows a word one letter at a time", "[dictionary]") {
     CHECK_FALSE(dictionary.is_word(wjs::Dictionary::no_node));
 }
 
+TEST_CASE("a step from no node is no node, and a cursor from elsewhere is nowhere",
+          "[dictionary]") {
+    wjs::Dictionary dictionary;
+    dictionary.insert("to");
+
+    CHECK(dictionary.step(wjs::Dictionary::no_node, 'T') == wjs::Dictionary::no_node);
+    CHECK(dictionary.step(wjs::Dictionary::no_node, 'O') == wjs::Dictionary::no_node);
+    CHECK(dictionary.step(12345U, 'T') == wjs::Dictionary::no_node);
+    CHECK_FALSE(dictionary.is_word(wjs::Dictionary::no_node));
+}
+
 TEST_CASE("loading skips blanks and lines that are not words", "[dictionary]") {
     std::istringstream words("cat\r\n\r\ndog\n  bird  \ndon't\nco-op\nCAT\n");
 

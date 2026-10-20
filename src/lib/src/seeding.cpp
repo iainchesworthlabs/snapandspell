@@ -466,6 +466,9 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
             grid.cells[cell] = dead_letter;
             attempt.dead.push_back(Position{cell / options.size, cell % options.size});
         }
+        const auto in_row_order = [](const Position& a, const Position& b) {
+            return a.row != b.row ? a.row < b.row : a.column < b.column;
+        };
         if (options.guided_fill) {
             // Every tile starts as a dead jewel, so the count is that of the words
             // planted, and each is given, in a random order, a random letter from
@@ -483,6 +486,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                 for (const std::size_t cell : order) {
                     attempt.dead.push_back(Position{cell / options.size, cell % options.size});
                 }
+                std::ranges::sort(attempt.dead, in_row_order);
                 attempt.letters = grid.cells;
                 accepted = verify(attempt);
                 continue;
@@ -516,9 +520,7 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
                     grid.cells[cell] = chosen_from[draw.below(chosen_from.size())];
                 }
             }
-            std::ranges::sort(attempt.dead, [](const Position& a, const Position& b) {
-                return a.row != b.row ? a.row < b.row : a.column < b.column;
-            });
+            std::ranges::sort(attempt.dead, in_row_order);
         } else {
             for (const std::size_t cell : attempt.filler) {
                 grid.cells[cell] = filler[draw.below(filler.size())];

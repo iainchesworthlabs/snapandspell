@@ -160,6 +160,9 @@ bool Dictionary::has_prefix(std::string_view prefix) const {
 }
 
 Dictionary::Cursor Dictionary::step(Cursor from, char letter) const noexcept {
+    if (from >= nodes_.size()) {
+        return no_node;  // no_node stepped from stays nowhere, as is_word(no_node) is false
+    }
     const auto& edges = nodes_[from].edges;
     const auto found = std::ranges::lower_bound(edges, letter, {}, &Edge::letter);
     return (found != edges.end() && found->letter == letter) ? found->target : no_node;

@@ -179,8 +179,8 @@ private:
 // across phases.
 class PhaseSet {
 public:
-    // Phases are ordered by name (A before B), and a phase may have either file
-    // or both. `english` is the dictionary the solver accepts.
+    // Phases are ordered by name, a shorter name first and then alphabetically
+    // (A before B, 2 before 10), and a phase may have either file or both. `english` is the dictionary the solver accepts.
     [[nodiscard]] static std::expected<PhaseSet, DataProblems> build(
         const std::vector<GraphemesFile>& graphemes, const std::vector<WordsFile>& words,
         const Dictionary& english);
