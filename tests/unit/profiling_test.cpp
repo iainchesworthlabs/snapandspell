@@ -1,5 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <type_traits>
 
 #include "wjs/profiling.hpp"
@@ -57,4 +60,33 @@ TEST_CASE("one zone name used twice is one source location", "[profiling]") {
         zone.Value(static_cast<std::uint64_t>(pass));
     }
     SUCCEED();
+}
+
+TEST_CASE("a run-time named scope opens and closes, and can be held open across calls",
+          "[profiling]") {
+    // The QML seam's shape: the scope is made where QML says begin(), kept, and
+    // destroyed where it says end(). A name used twice is the same cached
+    // location, and the cache copies the name it is given.
+    {
+        std::optional<wjs::profiling::RuntimeScope> open;
+        open.emplace(std::string_view{"test.runtime"});
+        open->Value(3);
+        open.reset();
+        open.emplace(std::string_view{"test.runtime"});
+        open.reset();
+    }
+    {
+        const std::string name = "test.temporary";
+        wjs::profiling::RuntimeScope scope{name};
+        scope.Value(1);
+    }
+    SUCCEED();
+}
+
+TEST_CASE("whether a profiler is connected can be asked", "[profiling]") {
+    // Tracy's on-demand connection state in the enabled variant; always false in
+    // the disabled one. Nothing is asserted about the answer: a profiler may or
+    // may not be attached to a test run.
+    const bool attached = wjs::profiling::connected();
+    CHECK((attached || !attached));
 }

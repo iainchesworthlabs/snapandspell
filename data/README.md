@@ -55,16 +55,22 @@ them yet; the [roadmap](../docs/roadmap.md) (M2) says how they are to be used.
 | | |
 | --- | --- |
 | What | The dice of a standard board: `3x3.txt`, `4x4.txt`, `5x5.txt` and `6x6.txt`, one die a line, six faces a die |
-| Made by | `tools/data/make_dice.ps1`, from the letter counts of `dictionaries/en.txt` (the method is in each file's header) |
-| Source | `dictionaries/en.txt`, SHA-256 `3F16130220645692ED49C7134E24A18504C2CA55B3C012F7290E3E77C63B1A89`, recorded in each file |
+| Made by | `tools/data/make_dice.ps1`, from a fixed Scrabble-style English tile-frequency table (the method is in each file's header) |
+| Source | The published 100-tile English Scrabble counts, 98 letter tiles (the two blanks are not faces): A9 B2 C2 D4 E12 F2 G3 H2 I9 J1 K1 L4 M2 N6 O8 P2 Q1 R6 S4 T6 U4 V2 W2 X1 Y2 Z1. Not a printed die set |
 | Seed | Recorded in each file; each size has its own |
-| Terms | The project's own work, from a list recorded above as public domain. They are not any product's distribution of letters |
+| Terms | The project's own work, from a published letter-frequency table. They are not any product's distribution of letters and are not a copied printed die set |
+
+The method is the project's own: six different letters to a die, drawn without
+replacement in proportion to that table, with one to three vowels and at most one
+of J K Q V X Z on a die; Q is the tile QU; a set is dealt again unless 30% to 40%
+of its faces are vowels and S is at most 8% of them. The faces of a die are in
+letter order. Each size has its own seed, recorded in the file.
 
 The tool can be run again and `tools/data/make_dice.ps1 -Check` (the `data.dice`
-test) says whether a file is what it makes from the dictionary as it is now, so
-a changed dictionary shows as stale dice. The faces of a set the family owns are
-not here: in the scanner mode they are read from the table, and the app does not
-mix letters there.
+test) says whether a file is what it makes, so a hand edit or a changed generator
+shows as stale dice. The dictionary is not an input, so changing it does not
+change the dice. The faces of a set the family owns are not here: in the scanner
+mode they are read from the table, and the app does not mix letters there.
 
 ## `phonics/`: phase data (none yet)
 

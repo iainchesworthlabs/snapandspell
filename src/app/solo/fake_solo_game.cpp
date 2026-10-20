@@ -7,6 +7,7 @@
 
 #include "wjs/path.hpp"
 #include "wjs/phase_data.hpp"
+#include "wjs/scoring.hpp"
 
 namespace wjs::app {
 namespace {
@@ -158,6 +159,7 @@ TraceOutcome FakeSoloGame::submit(std::span<const Position> path) {
         outcome.found.word = lower(word);
         outcome.found.tier = tier_of(word.size());
         outcome.found.stars = stars_of(outcome.found.tier);
+        outcome.found.points = wjs::word_points(word);
         const bool again = std::ranges::any_of(
             found_, [&](const SoloFound& entry) { return entry.word == outcome.found.word; });
         outcome.alreadyFound = again;
@@ -238,6 +240,45 @@ std::optional<Position> FakeSoloGame::litTile() const {
         return std::nullopt;
     }
     return viable->path.front();
+}
+
+std::vector<Position> FakeSoloGame::helpPath() const {
+    if (lit_word_.empty() || state_ != SoloState::playing) {
+        return {};
+    }
+    const auto viable = std::ranges::find(viable_, lit_word_, &wjs::FoundWord::word);
+    const bool done = std::ranges::any_of(
+        found_, [&](const SoloFound& entry) { return entry.word == lower(lit_word_); });
+    if (viable == viable_.end() || done) {
+        return {};
+    }
+    return viable->path;
+}
+
+std::size_t FakeSoloGame::wordsWithStart(std::span<const Position> prefix) const {
+    std::size_t count = 0;
+    for (const wjs::FoundWord& viable : viable_) {
+        const bool done = std::ranges::any_of(
+            found_, [&](const SoloFound& entry) { return entry.word == lower(viable.word); });
+        if (done || viable.path.size() < prefix.size()) {
+            continue;
+        }
+        bool begins = true;
+        for (std::size_t i = 0; i < prefix.size(); ++i) {
+            if (viable.path[i] != prefix[i]) {
+                begins = false;
+                break;
+            }
+        }
+        if (begins) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void FakeSoloGame::dismissHelp() {
+    lit_word_.clear();
 }
 
 void FakeSoloGame::save() {

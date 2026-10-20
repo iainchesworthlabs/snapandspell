@@ -12,36 +12,50 @@ type the board in and it finds the words. A reader that finds a board in a
 camera frame and reads its letters now exists (`src/scan`), tested on drawn
 frames only: no camera is connected to it and it has not seen a real board.
 
-> **Status: pre-release, nothing released yet.** The solver is real and
-> tested. The camera and installers do not exist yet, and letter recognition is
-> built and tested on synthetic frames only. CI
-> builds and tests it on Windows (MSVC), Linux (GCC) and macOS (AppleClang).
-> [CHANGELOG.md](CHANGELOG.md) says what is in and what is not proven, and
+> **Status: pre-release, nothing released yet.** The solver, the game and the
+> window are real and tested. The camera backends do not exist yet, and letter
+> recognition is built and tested on synthetic frames only. A Windows build now
+> also installs and packages: CI checks a ZIP's contents, runs the packaged
+> solver and the packaged window headless, and uploads it as an artifact. An
+> NSIS installer is configured for a machine that has NSIS; the Linux and macOS
+> packages are configured but not yet built. CI builds and tests it on Windows
+> (MSVC), Linux (GCC) and macOS (AppleClang), and the Windows leg builds the
+> application too. [CHANGELOG.md](CHANGELOG.md) says
+> what is in and what is not proven, [docs/audit-0.1.md](docs/audit-0.1.md) orders
+> the whole codebase against the requirements, and
 > [docs/roadmap.md](docs/roadmap.md) says what comes next.
 
 ## What there is today
 
 | Part | Where | State |
 | --- | --- | --- |
-| The library: board parsing, a trie dictionary, scoring, a depth-first solver. No GUI, no operating system code | `src/lib` | Unit tested |
+| The library: board parsing, a trie dictionary, scoring, a depth-first solver, dice and deals, the game session, the store, the parent gate and dashboard. No GUI, no operating system code | `src/lib` | Unit tested |
 | `wjs-cli`, a command-line front end | `src/cli` | Works; not covered by a test of its own |
 | Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Built and tested by CI on Windows, Linux and macOS |
-| The Solo Play screens in Qt Quick: home, the box, play (the board and the panel) and the resting screen, over a fake of the game until the library's session is wired | `src/app` | Opt-in (`-DWJS_BUILD_APP=ON`, needs Qt 6.12); model, layout, touch and fake tests and a lint of the QML, run on a Windows desktop only; not packaged |
+| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the resting screen and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `src/app`, `src/lib` | Built when a prebuilt Qt 6.12 is found (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI; installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
 | A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces | `src/scan`, `src/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; no camera backend; never tried on a real board ([design](docs/design/scanner.md)) |
-| Catch2 unit tests, a platform-contract test and the platform-isolation check | `tests`, `tools/checks` | Pass on Windows |
+| Catch2 unit tests, the app tests, a platform-contract test and the platform-isolation check | `tests`, `tools/checks` | Pass on Windows |
+
+The sound cues are placeholder WAVs owned by the project
+(`assets/sounds`, written by `tools/sounds/make_sounds.ps1`); the phoneme clips
+and recorded cheers are the reviewer's recording job, and the sound-it-out
+sequence is wired but silent. Haptics is a no-op on the desktops and its
+Android/iOS backends wait for those targets. Nothing captures audio.
 
 Not built yet: a camera (the interface exists, with no backend), recognising
-letters in a real picture (the reader is tested on drawn frames only), installers and
-packages, and a phone, tablet or browser target. The English word list is ENABLE,
-which is in `data/dictionaries/`: see [data/README.md](data/README.md).
+letters in a real picture (the reader is tested on drawn frames only), a phone,
+tablet or browser target, the tablet's sensor and haptic backends, and a release
+that publishes a package. The English word list is ENABLE, which is in
+`data/dictionaries/`: see [data/README.md](data/README.md).
 
 ## Build and run the command-line solver
 
 You need CMake 4.0 or newer, Ninja, Git, and a C++23 compiler. MSVC from
 Visual Studio 2022 17.x or Visual Studio 2026, GCC 14 or newer and AppleClang
 16 or newer are the intent; MSVC 19.51 (Visual Studio 2026) is the only one
-verified so far. PowerShell 7 (`pwsh`) is needed only for the platform-isolation
-check, which is skipped by the tests if it is not installed.
+verified so far. PowerShell 7 (`pwsh`) is needed for the repository checks
+(platform isolation, the word lists and dice, the phonics data and the feedback
+sounds); those are skipped by the tests if it is not installed.
 
 ```sh
 git clone https://github.com/iainchesworthlabs/wordjewelssolver
@@ -53,13 +67,24 @@ cmake --build --preset windows-msvc-debug
 ctest --preset windows-msvc-debug
 ```
 
-The presets are `windows-msvc-{debug,release}`, `linux-gcc-{debug,release,coverage}`
-and `macos-clang-{debug,release}`; each builds into `build/<preset>/` and puts
-its programs in `build/<preset>/bin/`. The first configure bootstraps the
-vendored vcpkg and builds Catch2, which needs network access. On Windows, run
-the commands from a shell where the MSVC toolchain is on the path (a Developer
-PowerShell for Visual Studio). [docs/building.md](docs/building.md) has the
-details, the options, and a known problem with very long paths on Windows.
+The window is built too when a prebuilt Qt 6.12 kit is found: `WJS_BUILD_APP` defaults to `AUTO`, and the labs' shared kit at `C:\Repos\common\qt` is searched automatically (set `QT_ROOT_DIR` or `CMAKE_PREFIX_PATH` for a kit somewhere else). Pass `-DWJS_BUILD_APP=OFF` for a solver-only build, `ON` to require Qt, and `-DWJS_BUILD_SHAKE_PROTOTYPE=ON` for the scene harness (see [docs/building.md](docs/building.md#the-qt-quick-window)).
+
+The presets are `windows-msvc-{debug,release}`,
+`windows-clang-coverage`, `linux-gcc-{debug,release,coverage}` and
+`macos-clang-{debug,release}`; each builds into `build/<preset>/` and puts
+its programs in `build/<preset>/bin/`. The two coverage presets hold the unit
+tier to 90% line and 80% branch coverage (`coverage-unit`); see
+[docs/testing.md](docs/testing.md#coverage). To install and package a build, add
+`cpack --preset package-<os>-<compiler>-release` after the build: the ZIP (and
+the platform's own installer where its tool is installed), with the Qt runtime,
+the word list, the dice and the third-party notices, lands in
+`build/<preset>/packages/`. `tools/package/check_package.ps1` checks a package
+and runs the packaged programs. The first configure bootstraps the
+vendored vcpkg and builds Catch2, which needs network access; packaging needs
+none. On Windows, run the commands from a shell where the MSVC toolchain is on
+the path (a Developer PowerShell for Visual Studio).
+[docs/building.md](docs/building.md) has the details, the options, the packaging
+commands and a known problem with very long paths on Windows.
 
 ### A worked example
 
@@ -134,17 +159,23 @@ scheme), the exit codes and the board format are in
 src/
   lib/            wjs:: the game logic: board, dictionary, scoring, solver
   cli/            wjs-cli
-  app/            the Qt Quick window (built only with WJS_BUILD_APP)
+  app/            the Qt Quick window (WordJewelsSolver; WJS_BUILD_APP=AUTO)
   platforms/      everything that differs between operating systems
     interfaces/     one header per OS service (wjs/platform/*.hpp)
     windows/ linux/ macos/ posix/
                     implementations, and each platform's platform.cmake
 cmake/            Platform.cmake (the one place the OS is chosen), warnings,
-                  sanitizers, coverage, Qt discovery
-tests/            unit/ (library), app/ (the window's model), platform/
+                  sanitizers, coverage, Qt discovery, installation and CPack
+                  (Packaging.cmake), the third-party notices (Notices.cmake)
+notices/
+  fragments/      one plain-text section each of NOTICES.txt
+  licences/       the licence texts those sections reproduce
+tests/            unit/ (library), app/ (the window's model), platform/,
+                  notices/ and package/ (the packaging checks)
 tools/
   checks/         check_platform_isolation.ps1
   hooks/          git hooks (commit-msg, pre-push); see CONTRIBUTING.md
+  package/        check_package.ps1, the packaged programs' check
   policy/         check_text_policy.ps1, the rule for commit and PR text
 .github/          CI workflows
 docs/             this documentation (mkdocs-material)
@@ -159,7 +190,7 @@ check enforces it. See [docs/platform-isolation.md](docs/platform-isolation.md).
 | | |
 | --- | --- |
 | [docs/index.md](docs/index.md) | What it is, and how to use `wjs-cli` |
-| [docs/building.md](docs/building.md) | Presets, options, vcpkg, Qt, platform notes |
+| [docs/building.md](docs/building.md) | Presets, options, vcpkg, Qt, packaging, platform notes |
 | [docs/testing.md](docs/testing.md) | The test suites, the checks, coverage, the performance tests |
 | [docs/profiling.md](docs/profiling.md) | Profiling with Tracy: building, capturing, reading a trace |
 | [docs/architecture.md](docs/architecture.md) | The library, the platform layer, how they fit |
@@ -167,7 +198,9 @@ check enforces it. See [docs/platform-isolation.md](docs/platform-isolation.md).
 | [docs/licensing.md](docs/licensing.md) | The licence, the dependencies, the word-list question |
 | [docs/ci.md](docs/ci.md), [docs/branch-protection.md](docs/branch-protection.md) | What CI runs, and how the branches are protected |
 | [docs/roadmap.md](docs/roadmap.md) | What is planned |
+| [docs/audit-0.1.md](docs/audit-0.1.md) | The codebase ordered against the requirements, and the work plan |
 | [docs/product-requirements.md](docs/product-requirements.md) | The product brief the roadmap is built from |
+| [docs/design/ux-audit-2026-10/index.md](docs/design/ux-audit-2026-10/index.md) | The human-factors audit and design overhaul direction (October 2026); [visual brief](docs/design/ux-audit-2026-10/visual-brief.html) and [PDF](docs/design/ux-audit-2026-10/visual-brief.pdf); the [follow-up pass](docs/design/ux-audit-2026-10/follow-up-2026-10-19.md) records the screen-by-screen corrections, points, collection and help rules |
 | [docs/faq.md](docs/faq.md) | Short answers |
 
 The documentation is built with mkdocs-material (`mkdocs.yml`) and will be
@@ -184,9 +217,12 @@ reported privately, as the [security policy](SECURITY.md) says.
 
 ## Licence
 
-GPL-3.0-or-later. See [LICENSE](LICENSE) and
+GPL-3.0-or-later. A build of the window is GPL-3.0 only, because it links Qt
+Quick 3D; each package states that plainly in its `NOTICES.txt`, which the
+About screen also shows. See [LICENSE](LICENSE) and
 [docs/licensing.md](docs/licensing.md), which also says what is not covered:
 the English word list is ENABLE, a separate work that its originators released
 into the public domain (provenance in [data/README.md](data/README.md)).
 
 WordJewelsSolver is a project of Iain Chesworth Labs.
+

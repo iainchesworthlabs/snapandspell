@@ -10,7 +10,21 @@ Flickable {
 
     required property var controller
 
+    // The parent area's direction, from the shell: Hebrew and Yiddish mirror the
+    // rows and every choice.
+    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.childrenInherit: true
+
     readonly property var s: controller.settings
+
+    component GroupTitle: Text {
+        Layout.fillWidth: true
+        topPadding: ParentTheme.space4
+        font.family: ParentTheme.monoFont
+        font.pixelSize: 11
+        font.letterSpacing: 1.2
+        color: ParentTheme.accent
+    }
 
     function onOff() {
         return [{value: true, label: ParentWording.valueOn}, {value: false, label: ParentWording.valueOff}];
@@ -29,9 +43,30 @@ Flickable {
         width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
         spacing: ParentTheme.space8
 
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: ParentTheme.space1
+            Text {
+                Layout.fillWidth: true
+                text: ParentWording.tabSettings
+                font.family: ParentTheme.uiFont
+                font.pixelSize: ParentTheme.sizeTitle
+                font.weight: Font.ExtraBold
+                color: ParentTheme.ink
+            }
+            Text {
+                Layout.fillWidth: true
+                text: ParentWording.settingsSubtitle
+                font.family: ParentTheme.uiFont
+                font.pixelSize: ParentTheme.sizeBody
+                color: ParentTheme.inkSecondary
+            }
+        }
+
         Section {
             Layout.fillWidth: true
-            title: ParentWording.tabSettings
+
+            GroupTitle { text: ParentWording.groupPlay }
 
             SettingRow {
                 Layout.fillWidth: true
@@ -39,7 +74,11 @@ Flickable {
                 hint: ParentWording.settingsHelpHint
                 PChoice {
                     title: ParentWording.settingsHelp
-                    options: root.onOff()
+                    options: [
+                        {value: "off", label: ParentWording.valueOff},
+                        {value: "start", label: ParentWording.valueHelpStart},
+                        {value: "two", label: ParentWording.valueHelpTwo}
+                    ]
                     current: root.s.help
                     onChosen: value => root.controller.setSetting("help", value)
                 }
@@ -57,6 +96,15 @@ Flickable {
                     ]
                     current: root.s.board
                     onChosen: value => root.controller.setSetting("board", value)
+                }
+                Text {
+                    Layout.fillWidth: true
+                    visible: !root.controller.phonicsAvailable
+                    text: ParentWording.settingsBoardNoPhonics
+                    font.family: ParentTheme.uiFont
+                    font.pixelSize: ParentTheme.sizeSmall
+                    color: ParentTheme.inkSecondary
+                    wrapMode: Text.WordWrap
                 }
             }
 
@@ -137,11 +185,44 @@ Flickable {
                 hint: ParentWording.settingsBoardSizeHint
                 PChoice {
                     title: ParentWording.settingsBoardSize
-                    options: [{value: 3, label: "3x3"}, {value: 4, label: "4x4"}]
+                    options: root.s.board === "standard"
+                        ? [{value: 3, label: "3x3"}, {value: 4, label: "4x4"},
+                           {value: 5, label: "5x5"}, {value: 6, label: "6x6"}]
+                        : [{value: 3, label: "3x3"}, {value: 4, label: "4x4"}]
                     current: root.s.boardSize
                     onChosen: value => root.controller.setSetting("boardSize", value)
                 }
             }
+
+            SettingRow {
+                Layout.fillWidth: true
+                title: ParentWording.settingsTimer
+                hint: ParentWording.settingsTimerHint
+                PChoice {
+                    title: ParentWording.settingsTimer
+                    options: [
+                        {value: "off", label: ParentWording.valueOff},
+                        {value: "up", label: ParentWording.valueCountUp},
+                        {value: "down", label: ParentWording.valueCountDown}
+                    ]
+                    current: root.s.timer
+                    onChosen: value => root.controller.setSetting("timer", value)
+                }
+            }
+
+            SettingRow {
+                Layout.fillWidth: true
+                visible: root.s.timer === "down"
+                title: ParentWording.settingsTimerLength
+                PChoice {
+                    title: ParentWording.settingsTimerLength
+                    options: root.controller.timerLengthChoices.map(choice => ({value: choice, label: choice + " min"}))
+                    current: root.s.timerLength
+                    onChosen: value => root.controller.setSetting("timerLength", value)
+                }
+            }
+
+            GroupTitle { text: ParentWording.groupSoundTouch }
 
             SettingRow {
                 Layout.fillWidth: true
@@ -206,6 +287,8 @@ Flickable {
                 }
             }
 
+            GroupTitle { text: ParentWording.groupAppearance }
+
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsMotion
@@ -218,6 +301,22 @@ Flickable {
                     ]
                     current: root.s.motion
                     onChosen: value => root.controller.setSetting("motion", value)
+                }
+            }
+
+            SettingRow {
+                Layout.fillWidth: true
+                title: ParentWording.settingsColour
+                hint: ParentWording.settingsColourHint
+                PChoice {
+                    title: ParentWording.settingsColour
+                    options: [
+                        {value: "system", label: ParentWording.valueSystem},
+                        {value: "light", label: ParentWording.valueLight},
+                        {value: "dark", label: ParentWording.valueDark}
+                    ]
+                    current: root.s.colourScheme
+                    onChosen: value => root.controller.setSetting("colourScheme", value)
                 }
             }
 
@@ -245,7 +344,27 @@ Flickable {
                     onChosen: value => root.controller.setSetting("schoolFont", value)
                 }
             }
+
+            GroupTitle { text: ParentWording.groupLanguage }
+
+            // The interface's language. The board and the words on it are the
+            // same English board in every language; the screens around it change,
+            // and Hebrew and Yiddish turn the layout around.
+            SettingRow {
+                Layout.fillWidth: true
+                title: ParentWording.settingsLanguage
+                hint: ParentWording.settingsLanguageHint
+                PChoice {
+                    title: ParentWording.settingsLanguage
+                    options: [{value: "", label: ParentWording.valueSystem}].concat(
+                        ParentWording.languageChoices)
+                    current: root.s.language
+                    onChosen: value => root.controller.setSetting("language", value)
+                }
+            }
         }
+
+        GroupTitle { Layout.fillWidth: true; text: ParentWording.groupData }
 
         Section {
             Layout.fillWidth: true

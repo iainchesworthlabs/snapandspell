@@ -2,11 +2,13 @@
 
 namespace wjs::platform::camera {
 
-// A platform with no camera backend. Named by the platform.cmake of every
-// platform that has none (today the three desktops): a webcam needs a capture
-// API for each (Media Foundation, V4L2, AVFoundation, or Qt Multimedia, which the
-// shared Qt tree does not have), and Mode A is an iPad feature of the MVP. The
-// answer is always "unavailable", and the screen offers a typed-in board.
+// A platform with no native camera backend. Named by the platform.cmake of every
+// platform that has none (today the three desktops): a platform's own capture API
+// (AVFoundation on the iPad) is what this interface is for. Mode A's desktop
+// camera is the application's CameraSource over Qt Multimedia
+// (src/app/camera), not this interface, so a desktop with a webcam has a live
+// view through the application and a desktop without one still gets the typed
+// board from here. The answer is always "unavailable".
 
 std::expected<std::vector<DeviceInfo>, CameraError> enumerate_devices() {
     return std::unexpected(CameraError::unavailable);

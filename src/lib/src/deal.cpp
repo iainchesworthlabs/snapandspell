@@ -3,6 +3,8 @@
 #include <random>
 #include <utility>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 
 std::string_view to_string(DealError error) noexcept {
@@ -25,6 +27,8 @@ std::uint32_t next_deal_seed(std::uint32_t seed) {
 std::expected<DealtBoard, DealError> deal_playable(const WordSets& words,
                                                    const BoardMaker& make_board, std::uint32_t seed,
                                                    const DealOptions& options) {
+    auto zone = profiling::zone<"board.deal_playable">();
+
     if (options.min_viable == 0 || options.max_rolls == 0 || !make_board) {
         return std::unexpected(DealError::bad_options);
     }
@@ -36,6 +40,7 @@ std::expected<DealtBoard, DealError> deal_playable(const WordSets& words,
         }
         auto viable = viable_words(*board, words);
         if (viable.size() >= options.min_viable) {
+            zone.Value(roll_number);
             return DealtBoard{.board = *std::move(board),
                               .viable = std::move(viable),
                               .rolls = roll_number,
@@ -43,6 +48,7 @@ std::expected<DealtBoard, DealError> deal_playable(const WordSets& words,
         }
         seed = next_deal_seed(seed);
     }
+    zone.Value(options.max_rolls);
     return std::unexpected(DealError::no_board);
 }
 

@@ -5,6 +5,8 @@
 #include <string>
 #include <string_view>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 
 namespace {
@@ -78,6 +80,42 @@ std::string_view to_string(MotionSetting value) noexcept {
     return "system";
 }
 
+std::string_view to_string(ColourScheme value) noexcept {
+    switch (value) {
+        case ColourScheme::system:
+            return "system";
+        case ColourScheme::light:
+            return "light";
+        case ColourScheme::dark:
+            return "dark";
+    }
+    return "system";
+}
+
+std::string_view to_string(SoloClock value) noexcept {
+    switch (value) {
+        case SoloClock::off:
+            return "off";
+        case SoloClock::count_up:
+            return "up";
+        case SoloClock::count_down:
+            return "down";
+    }
+    return "off";
+}
+
+std::string_view to_string(HelpLevel value) noexcept {
+    switch (value) {
+        case HelpLevel::off:
+            return "off";
+        case HelpLevel::start:
+            return "start";
+        case HelpLevel::two_letters:
+            return "two";
+    }
+    return "two";
+}
+
 std::optional<BoardMode> board_mode_from_string(std::string_view name) noexcept {
     if (name == "standard") {
         return BoardMode::standard;
@@ -124,6 +162,49 @@ std::optional<MotionSetting> motion_from_string(std::string_view name) noexcept 
     return std::nullopt;
 }
 
+std::optional<ColourScheme> colour_scheme_from_string(std::string_view name) noexcept {
+    if (name == "system") {
+        return ColourScheme::system;
+    }
+    if (name == "light") {
+        return ColourScheme::light;
+    }
+    if (name == "dark") {
+        return ColourScheme::dark;
+    }
+    return std::nullopt;
+}
+
+std::optional<SoloClock> solo_clock_from_string(std::string_view name) noexcept {
+    if (name == "off") {
+        return SoloClock::off;
+    }
+    if (name == "up") {
+        return SoloClock::count_up;
+    }
+    if (name == "down") {
+        return SoloClock::count_down;
+    }
+    return std::nullopt;
+}
+
+std::optional<HelpLevel> help_level_from_string(std::string_view name) noexcept {
+    if (name == "off") {
+        return HelpLevel::off;
+    }
+    if (name == "start") {
+        return HelpLevel::start;
+    }
+    if (name == "two") {
+        return HelpLevel::two_letters;
+    }
+    return std::nullopt;
+}
+
+bool is_valid_language(std::string_view code) noexcept {
+    return std::find(std::begin(languages), std::end(languages), code) != std::end(languages);
+}
+
 bool is_valid_name(std::string_view name) noexcept {
     return !name.empty() && name.size() <= max_name_length &&
            std::all_of(name.begin(), name.end(), is_name_character);
@@ -135,21 +216,35 @@ bool is_valid_font_name(std::string_view name) noexcept {
 }
 
 Settings Settings::normalized() const {
+    auto zone = profiling::zone<"settings.normalize">();
+
     Settings result = *this;
 
     result.board = or_default(result.board, BoardMode::standard, BoardMode::phonics);
+    result.help = or_default(result.help, HelpLevel::two_letters, HelpLevel::two_letters);
     result.sound_it_out = or_default(result.sound_it_out, SoundItOut::full, SoundItOut::off);
     result.celebration_sounds =
         or_default(result.celebration_sounds, CelebrationSounds::full, CelebrationSounds::off);
     result.motion = or_default(result.motion, MotionSetting::system, MotionSetting::reduced);
+    result.colour_scheme =
+        or_default(result.colour_scheme, ColourScheme::system, ColourScheme::dark);
+    result.solo_clock = or_default(result.solo_clock, SoloClock::off, SoloClock::count_down);
+    if (std::find(std::begin(solo_clock_minutes_choices), std::end(solo_clock_minutes_choices),
+                  result.solo_clock_minutes) == std::end(solo_clock_minutes_choices)) {
+        result.solo_clock_minutes = default_solo_clock_minutes;
+    }
 
     std::transform(result.phase.begin(), result.phase.end(), result.phase.begin(), upper);
     if (!is_valid_name(result.phase)) {
         result.phase = "A";
     }
 
-    if (result.board_size < smallest_default_board_size ||
-        result.board_size > largest_default_board_size) {
+    // The board size the box offers first is one the mode's board is played at:
+    // 3x3 to 6x6 on the standard board, the two sizes the phonics board is
+    // designed for on the other.
+    const int largest = result.board == BoardMode::standard ? largest_standard_board_size
+                                                            : largest_default_board_size;
+    if (result.board_size < smallest_default_board_size || result.board_size > largest) {
         result.board_size = smallest_default_board_size;
     }
 
@@ -160,6 +255,13 @@ Settings Settings::normalized() const {
 
     if (!is_valid_font_name(result.school_font)) {
         result.school_font.clear();
+    }
+
+    // The language is one of the eight codes in lower case, or empty for the
+    // system's. The device's own language is chosen by the manager, not here.
+    std::transform(result.language.begin(), result.language.end(), result.language.begin(), lower);
+    if (!is_valid_language(result.language)) {
+        result.language.clear();
     }
 
     for (std::string& tick : result.focus_sounds) {

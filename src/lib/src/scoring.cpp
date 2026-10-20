@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 namespace {
 
@@ -77,9 +79,36 @@ constexpr std::array<double, 26> letter_frequency_percent = {
     return static_cast<int>(total / static_cast<double>(word.size()));
 }
 
+// The English Scrabble tile values, indexed A..Z. They are a public table and
+// a simple, explainable proxy for how rare a letter is.
+constexpr std::array<int, 26> letter_value = {
+    1, 3, 3, 2, 1, 4, 2, 4, 1, 8, 5, 1, 3, 1, 1, 3, 10, 1, 1, 1, 1, 4, 4, 8, 4, 10,
+};
+
+[[nodiscard]] int points_for_length(std::size_t length) noexcept {
+    switch (length) {
+        case 3:
+            return 10;
+        case 4:
+            return 20;
+        case 5:
+            return 35;
+        case 6:
+            return 55;
+        case 7:
+            return 80;
+        case 8:
+            return 110;
+        default:
+            return 110 + static_cast<int>(length - 8) * 20;
+    }
+}
+
 }  // namespace
 
 int score_word(std::string_view word, ScoringScheme scheme) noexcept {
+    auto zone = profiling::zone<"solver.score">();
+
     switch (scheme) {
         case ScoringScheme::standard_boggle:
             return standard_boggle_score(word.size());
@@ -87,6 +116,26 @@ int score_word(std::string_view word, ScoringScheme scheme) noexcept {
             return letter_rarity_score(word);
     }
     return 0;
+}
+
+int word_points(std::string_view word) noexcept {
+    auto zone = profiling::zone<"rules.points">();
+
+    if (word.size() < 3) {
+        return 0;
+    }
+    int total = points_for_length(word.size());
+    for (const char c : word) {
+        if (c >= 'A' && c <= 'Z') {
+            total += letter_value[static_cast<std::size_t>(c - 'A')];
+        } else if (c >= 'a' && c <= 'z') {
+            total += letter_value[static_cast<std::size_t>(c - 'a')];
+        }
+    }
+    if (word.size() > 5) {
+        total += static_cast<int>(word.size() - 5) * 10;
+    }
+    return total;
 }
 
 }  // namespace wjs

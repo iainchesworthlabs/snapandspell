@@ -13,7 +13,7 @@ namespace wjs::scan {
 struct GrayImage {
     int width = 0;
     int height = 0;
-    std::vector<std::uint8_t> pixels{};
+    std::vector<std::uint8_t> pixels;
 
     GrayImage() = default;
     GrayImage(int width, int height, std::uint8_t fill = 0);

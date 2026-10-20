@@ -58,11 +58,14 @@ other CMake file reads what the fragment declared:
 | System libraries `wjs_platform` links | `WJS_PLATFORM_LINK_LIBRARIES` | `src/platforms/CMakeLists.txt` |
 | Compile definitions, for `wjs_platform` only (Windows: `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE`) | `WJS_PLATFORM_COMPILE_DEFINITIONS` | `src/platforms/CMakeLists.txt` |
 | The name in the version block (`Windows`, `Linux`, `macOS`) | `WJS_PLATFORM_DISPLAY_NAME` | `src/lib` (generated `version.hpp`), the configure summary |
-| Whether this is a desktop (installers, the Qt application and notices exist) | `WJS_PLATFORM_DESKTOP` | Checked by the contract; nothing reads it yet |
+| Whether this is a desktop (installers, the Qt application and notices exist) | `WJS_PLATFORM_DESKTOP` | `cmake/Packaging.cmake` (no CPack configuration where it is `OFF`) |
 | Where an installed Qt lives | `WJS_PLATFORM_QT_SEARCH_ROOTS`, `WJS_PLATFORM_QT_ARCH_DIRS` | `cmake/FindQt6.cmake` |
 | `NAME=value` entries a Qt Quick test needs to run without a display, besides `QT_QPA_PLATFORM=offscreen` (`""` for none) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` | `tests/CMakeLists.txt` |
+| Where the application's dictionary and dice go, relative to the install prefix (the bindir, or `Contents/MacOS` in a bundle) | `WJS_PLATFORM_INSTALL_APP_DATA_DIR` | `src/app/CMakeLists.txt`, `cmake/Notices.cmake` |
+| Whether an installed application carries Qt's runtime (Windows and macOS) or loads the system's (Linux) | `WJS_PLATFORM_QT_DEPLOY_AT_INSTALL` | `src/app/CMakeLists.txt` |
 | What makes the Qt application a program of this desktop (no console window on Windows, a bundle on macOS) | `wjs_platform_configure_app(<target>)` | `src/app/CMakeLists.txt` |
 | Qt's runtime beside a program, including the QML modules in `<qml_dir>` (`windeployqt` on Windows) | `wjs_platform_deploy_qt_runtime(<target> <qml_dir>)` | `src/app/CMakeLists.txt`, `tests/CMakeLists.txt` |
+| This platform's CPack generators, added to `CPACK_GENERATOR` when their tools are found | `wjs_platform_configure_packaging()` | `cmake/Packaging.cmake` |
 
 The full contract is the header comment of `cmake/Platform.cmake`. A fragment
 that forgets part of it fails the configure by name, not three files away. A
@@ -192,7 +195,10 @@ The CMake side has its own check, the `platform.fragments` test
 `platform.cmake` of the platform it targets, so the others would otherwise be
 exercised only on their own machines. The test includes every fragment it
 finds, each in a process of its own, and holds it to the contract: every
-variable and hook defined, every file it compiles present, and a branch in the
-selector for it (and the other way: a branch with no fragment behind it). It
-runs wherever the tests run, so a typo in the macOS fragment fails a Windows
-build in seconds rather than a macOS one later.
+variable and hook defined, every file it compiles present, every interface
+header under `src/platforms/interfaces/wjs/platform/` included by one of those
+files (so the haptics interface, for one, cannot be declared and left
+unimplemented), and a branch in the selector for it (and the other way: a
+branch with no fragment behind it). It runs wherever the tests run, so a typo
+in the macOS fragment fails a Windows build in seconds rather than a macOS one
+later.

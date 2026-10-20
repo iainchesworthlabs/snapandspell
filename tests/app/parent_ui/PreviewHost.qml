@@ -11,10 +11,17 @@ Window {
     id: host
 
     required property var controller
+    // The interface's language: the real shell makes it required too, and the
+    // mirroring below is bound to it from the first binding evaluation.
+    required property var languageManager
 
     // The parent area's page, for a check to set; and whether it is showing.
     property alias page: area.page
     readonly property bool parentOpen: area.visible
+    // What the language check reads: the window's mirroring reaches the screen,
+    // and the bar's way back is on the leading edge.
+    readonly property bool mirrored: area.mirrored
+    readonly property real backButtonX: area.backButtonX
 
     width: 1024
     height: 700
@@ -25,6 +32,17 @@ Window {
     function openParent() {
         area.visible = true;
         area.forceActiveFocus();
+    }
+
+    // As the real shell (Main.qml) does: a language chosen in the settings is
+    // applied at once, and the engine retranslates (the C++ side connects the
+    // manager's languageChanged to QQmlEngine::retranslate).
+    Connections {
+        target: host.controller
+
+        function onSettingsChanged() {
+            host.languageManager.apply(host.controller.language);
+        }
     }
 
     Text {
@@ -64,5 +82,7 @@ Window {
         visible: false
         controller: host.controller
         onClosed: visible = false
+        // As the real shell does: Hebrew and Yiddish mirror the parent area.
+        rightToLeft: host.languageManager.rightToLeft
     }
 }

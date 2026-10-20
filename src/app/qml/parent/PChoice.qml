@@ -17,6 +17,8 @@ Flow {
 
     Layout.fillWidth: true
     spacing: ParentTheme.space2
+    // The options are read from the leading side: left in a left-to-right
+    // language, right in a right-to-left one.
 
     Accessible.role: Accessible.RadioButton
     Accessible.name: root.title

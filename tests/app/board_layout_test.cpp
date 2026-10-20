@@ -62,6 +62,38 @@ TEST_CASE("the board area is two thirds of the window on its long side", "[app][
     }
 }
 
+TEST_CASE("the split mirrors for a right-to-left language, the board does not",
+          "[app][layout][rtl]") {
+    const auto ltr = solo_layout(1280, 800, 4);
+    const auto rtl = solo_layout(1280, 800, 4, true);
+
+    // The panel takes the leading side: the left in RTL, the right in LTR.
+    CHECK(ltr.panel_area.x == Approx(1280.0 * 2 / 3));
+    CHECK(rtl.panel_area.x == 0);
+    CHECK(rtl.panel_area.width == Approx(ltr.panel_area.width));
+    CHECK(rtl.board_area.x == Approx(rtl.panel_area.width));
+    CHECK(rtl.board_area.x + rtl.board_area.width == Approx(1280));
+    // The board is the same board: same area size, same side, drawn from its own
+    // top left. Its tiles do not mirror.
+    CHECK(rtl.board_area.width == Approx(ltr.board_area.width));
+    CHECK(rtl.board_rect.width == Approx(ltr.board_rect.width));
+    CHECK(rtl.board_rect.x - rtl.board_area.x == Approx(ltr.board_rect.x - ltr.board_area.x));
+
+    // Tall windows are split top and bottom, which has no direction.
+    CHECK(solo_layout(800, 1280, 4, true).board_area == solo_layout(800, 1280, 4).board_area);
+
+    // The object the screens bind to carries the flag and recomputes.
+    wjs::app::SoloLayout rule;
+    rule.setWidth(1280);
+    rule.setHeight(800);
+    rule.setRightToLeft(true);
+    CHECK(rule.rightToLeft());
+    CHECK(rule.panelArea().x() == 0);
+    CHECK(rule.panelArea().width() == Approx(1280.0 / 3));
+    CHECK(rule.boardArea().x() == Approx(1280.0 / 3));
+    CHECK(rule.boardArea().width() == Approx(1280.0 * 2 / 3));
+}
+
 TEST_CASE("the tile of each size in each reference window is the page's", "[app][layout]") {
     for (const auto& window : reference_windows()) {
         for (std::size_t i = 0; i < 4; ++i) {

@@ -21,21 +21,25 @@
 // no rule of its own. It turns the session's names into the port's, and it is the
 // one place that hands the session's records to the store.
 //
-// The mapping:
+// It plays whichever board the session was made for (SessionOptions::mode): the
+// standard board, the default, a roll of the dice at 3x3 to 6x6 with no phase
+// and no grapheme blocks; or the phonics board over a phase, at 3x3 and 4x4,
+// whose graphemes the port binds into blocks. The mapping:
 //
 //   port                     session                      and the store
 //   shake()                  shake(); an error stays in the box and answers false
 //   settled()                still(), then landed()
 //   submit(path)             trace(path, today)           record() after a find
-//   blocks(path)             GraphemeBinder over the phase
+//   blocks(path)             GraphemeBinder over the phase's graphemes; none on
+//                            the standard board, which has no phase
 //   chooseSize(side)         choose_size()                the size is the settings' board_size
 //   celebrated()             rest()
 //   lidOn()                  back()                       record() of the board left
 //   again()                  again()
 //   startTile(), litTile()   request_help(), lit_tile()
 //   helpAllowed()            the parent's switch, as it was given to the session
-//   board()                  board() and dead_tiles() ("" is a dead jewel), and the
-//                            seed of last_deal()
+//   board()                  board() and dead_tiles() ("" is a dead jewel; a
+//                            standard board has none), and the seed of last_deal()
 //   history()                the store's boards, newest first, and their finds
 //
 // What a trace answers: found is viable; found_again is viable and already found;
@@ -62,14 +66,15 @@
 // store holds; making a new one clears what was left. The session is saved before the
 // board it earned is recorded, so a store that stops between the two is never ahead
 // of the game, and the board left with the lid is recorded before the session is
-// cleared, so it is never behind.
+// cleared, so it is never behind. The store keeps a standard board by the count of
+// its words (no list), as it does a phonics board's list.
 //
 // The size the child chooses on the box is written to the settings
 // (Settings::board_size, "3x3, then the last used") as it is chosen, so the next run's
 // box offers it. Nothing else of the settings is touched.
 //
-// Single-threaded. The phase and the store are held by reference and must outlive
-// the game, as the session's phase and dictionary must.
+// Single-threaded. The phase (if there is one), the dice and the dictionary are held
+// by reference, through the session, and the store too; all must outlive the game.
 
 namespace wjs::app {
 
@@ -77,21 +82,26 @@ class RealSoloGame final : public SoloGame {
 public:
     // A game over a session already made (a restored one, or one a test dealt
     // by hand). `help_allowed` is what the session was given in
-    // SessionOptions::help, which the session does not give back. `today` is the
-    // device's calendar day, asked when a find is made and when a board is left.
-    // The store's game in progress is brought to the session's (see above).
-    RealSoloGame(wjs::GameSession session, bool help_allowed, const wjs::PhaseIndex& phase,
+    // SessionOptions::help, which the session does not give back. `phase` is
+    // the phase the session was made over, or null on the standard board.
+    // `today` is the device's calendar day, asked when a find is made and when
+    // a board is left. The store's game in progress is brought to the session's
+    // (see above).
+    RealSoloGame(wjs::GameSession session, bool help_allowed, const wjs::PhaseIndex* phase,
                  wjs::Store& store, std::function<wjs::Day()> today);
 
-    // A new session in the box with `options`, over `phase` and the English
-    // `dictionary`.
+    // A new session in the box with `options`, over `data` (the English
+    // dictionary always; the dice for the standard board, the phase for the
+    // phonics board).
     [[nodiscard]] static std::expected<RealSoloGame, wjs::SessionError> create(
-        const wjs::PhaseIndex& phase, const wjs::Dictionary& dictionary, wjs::Store& store,
-        const wjs::SessionOptions& options, std::function<wjs::Day()> today);
+        const wjs::SessionData& data, wjs::Store& store, const wjs::SessionOptions& options,
+        std::function<wjs::Day()> today);
 
     [[nodiscard]] SoloState state() const override;
 
-    [[nodiscard]] std::span<const std::size_t> sizes() const override { return sizes_; }
+    [[nodiscard]] std::span<const std::size_t> sizes() const override {
+        return {sizes_.data(), sizes_count_};
+    }
     [[nodiscard]] std::size_t size() const override;
     void chooseSize(std::size_t size) override;
 
@@ -108,6 +118,9 @@ public:
     [[nodiscard]] bool helpAllowed() const override { return help_allowed_; }
     std::optional<Position> startTile() override;
     [[nodiscard]] std::optional<Position> litTile() const override;
+    [[nodiscard]] std::vector<Position> helpPath() const override;
+    [[nodiscard]] std::size_t wordsWithStart(std::span<const Position> prefix) const override;
+    void dismissHelp() override;
 
     [[nodiscard]] const std::vector<SoloFound>& found() const override { return found_; }
 
@@ -133,16 +146,23 @@ private:
 
     wjs::GameSession session_;
     bool help_allowed_;
+    // The phase the session plays (null on the standard board), held for the
+    // grapheme binder, the dead letter of its boards and the history's.
     const wjs::PhaseIndex* phase_;
     wjs::Store* store_;
     std::function<wjs::Day()> today_;
 
-    wjs::GraphemeBinder binder_;
+    // The phase's grapheme blocks; none on the standard board, which has no
+    // phase to bind with.
+    std::optional<wjs::GraphemeBinder> binder_;
     // The letter the phase leaves out, which the session writes on a dead jewel
-    // in its records; "" if the phase cannot make a board.
+    // in its records; "" on the standard board, which has no dead jewels.
     std::string dead_letter_;
 
-    std::array<std::size_t, 2> sizes_{3, 4};
+    // The sizes the box offers: every size on the standard board, 3x3 and 4x4
+    // on the phonics board (the session's choose_size holds to the same).
+    std::array<std::size_t, 4> sizes_{3, 4, 5, 6};
+    std::size_t sizes_count_ = 2;
     // As the fake keeps it: dealt by the shake, and kept after the lid goes on
     // again until the next shake, so the screens never read a board that is gone.
     SoloBoard board_;

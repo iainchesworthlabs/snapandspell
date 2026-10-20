@@ -828,11 +828,12 @@ two **board modes**:
 
 - The standard board is the game. The phonics board is for a child learning
   phonics, towards the end of Prep and into Year 1, and a parent turns it on.
-- **The dice are the project's own**: made from the dictionary's letter counts,
-  with the source, hash and seed recorded, and not copied from a product's
-  distribution. The faces of a set the family owns are for Mode A, where a
-  physical board is on the table: the app does not mix letters there, it reads
-  the mixed board with OCR so that everyone plays on the real one.
+- **The dice are the project's own**: made from a fixed Scrabble-style English
+  tile-frequency table, with the table, method and seed recorded, and not copied
+  from a product's distribution. The faces of a set the family owns are for
+  Mode A, where a physical board is on the table: the app does not mix letters
+  there, it reads the mixed board with OCR so that everyone plays on the real
+  one.
 - **No block list in the MVP.** A standard board accepts every dictionary word of
   three or more letters and shows and says the words a child finds, and the
   dictionary has entries no child should meet (12.1). The author has put block

@@ -108,8 +108,8 @@ it, and collect a jewel.
   host and module with `aqt list-qt` and a real install before bumping).
 - Dice model, shake detection, `validate_path`, with unit tests. All three are
   done: the dice model reads a set of dice and rolls a board (`wjs::roll`), and
-  the project's own dice for 3x3 to 6x6 are in `data/dice`, made from the
-  dictionary's letter counts.
+  the project's own dice for 3x3 to 6x6 are in `data/dice`, made from a fixed
+  Scrabble-style English tile-frequency table.
 - Touch tracing with generous tolerance, tested on a real tablet with small
   fingers (the one thing no unit test can settle).
 - Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.
@@ -178,12 +178,15 @@ Artefacts: source, desktop builds, a signed Android APK on GitHub Releases
 
 **Built so far (first slice), on synthetic frames only** ([Scanner design](design/scanner.md)):
 the library (steps 2 to 4 above, in `src/scan`, with no third-party dependency), the `camera`
-and `board_reader` interfaces (no camera on the desktops; the portable reader), the
-confirm-and-correct model (`BoardDraft`), a numeric target written first (item 5) and a
+and `board_reader` interfaces (the platform camera has no native desktop backend; the portable
+reader), the confirm-and-correct model (`BoardDraft`), a numeric target written first (item 5) and a
 synthetic corpus that holds the reader to it, work budgets in the performance tier, and the
-privacy scan. **Not done:** anything on a real camera or real dice; the iOS camera and Vision
+privacy scan. **The desktop camera is built too** (2026-10-19): Mode A's ready screen shows a live
+picture and Capture reads one frame through the application's `CameraSource` over Qt Multimedia,
+with a `camera-none` variant for a kit without the module. **Not done:** anything on a real
+camera or real dice — no camera is attached to the machine it was built on; the iOS camera and Vision
 reader (they need a Mac and an iPad); recorded frames and a measurement on them; the dice's own
-typeface; a desktop webcam; stand-and-watch scanning. The target is met on the synthetic
+typeface; stand-and-watch scanning. The target is met on the synthetic
 corpus and says nothing about real dice.
 
 ### M5: store distribution
@@ -209,18 +212,20 @@ The same application on the other targets named in the brief.
   Solo Play is the natural whole of it there (question 15). Threads need
   cross-origin isolation headers from the host.
 - **Desktop application** for macOS, Linux and Windows: the platform fragments
-  exist and the command-line solver is built and tested there; the installers
-  (CPack, notices installed with the program) and the Qt window in CI are
-  what remain.
+  exist and the command-line solver is built and tested there. Packaging now
+  exists on Windows (CPack, with the notices installed with the program and the
+  Qt runtime inside the package); what remains is the packaged application on
+  Linux and macOS, and the Qt window in CI on those two legs.
 
 ### Cross-cutting
 
-Fuzz the board parser and dictionary loader; clang-tidy job; a coverage gate
-once a baseline exists; Tracy through the opt-in vcpkg feature (its macro API
-conflicts with the no-`#define` rule: Cubeulator resolves it with macro-only
-variant headers chosen by CMake; a macro-free route through Tracy's runtime
-source-location API is **unverified**); a performance budget for dictionary
-load and solve on a low-end tablet. Measured so far, on Windows, Release build:
+Fuzz the board parser and dictionary loader; raise the coverage gate beyond its
+90% line / 80% branch baseline (the gate itself is in place: `coverage-unit`,
+the CI job and `coverage-ui`); a macro-free route through Tracy's runtime
+source-location API is **unverified** (the integration uses CMake-selected
+variant headers, so the macro API never reaches a call site); a performance
+budget for dictionary load and solve on a low-end tablet. Measured so far, on
+Windows, Release build:
 the whole `wjs-cli` process (load 172,823 words, solve, print) takes about 76 ms
 on 3x3, 4x4 and 5x5 boards, with load dominating and solving below the noise
 (a Debug build with AddressSanitizer takes several seconds, which is why

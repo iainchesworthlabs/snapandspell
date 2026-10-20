@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstddef>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 
 bool Spot::contains(Point p) const noexcept {
@@ -44,6 +46,8 @@ bool Gate::both_spots_held() const noexcept {
 }
 
 void Gate::refresh(Time now) noexcept {
+    auto zone = profiling::zone<"gate.refresh">();
+
     if (open_) {
         return;
     }

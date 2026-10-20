@@ -11,6 +11,7 @@ Item {
     id: root
 
     property string iconName: "again"
+    property string label: ""
     property string accessibleName: ""
     property int holdMs: Theme.holdToPlay
 
@@ -31,17 +32,31 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: root.holding ? Theme.pressWash : "transparent"
-        border.width: Theme.rule
+        radius: Theme.radius
+        color: root.holding ? Theme.pressWash : Theme.card
+        border.width: 1
         border.color: Theme.outline
     }
 
-    Icon {
-        name: root.iconName
-        width: 28
-        height: 28
+    Row {
         anchors.centerIn: parent
-        color: Theme.ink
+        spacing: Theme.space2
+        Icon {
+            name: root.iconName
+            width: 26
+            height: 26
+            anchors.verticalCenter: parent.verticalCenter
+            color: Theme.ink
+        }
+        Text {
+            visible: root.label.length > 0
+            text: root.label
+            anchors.verticalCenter: parent.verticalCenter
+            font.family: Theme.uiFont
+            font.pixelSize: Theme.labelSize
+            font.weight: Font.DemiBold
+            color: Theme.ink
+        }
     }
 
     // The ring that fills, around the edge of the button.

@@ -82,6 +82,15 @@ constexpr std::array<ScanFrame, 4> kScanFrames = {{
     {scan::synth::Condition::glare, 4, 3},
 }};
 
+// The exact pins of the optimised reader's work live in budgets.hpp with the
+// other thresholds (kScanBuffersAllocated, kScanCellsReadExact,
+// kScanComparisonsExact, kScanBufferReuses): the scratch pool
+// (src/scan/src/scratch.hpp) is warmed by the read before the counted ones, and
+// the four frames are all the same size, so no counted read allocates a pixel
+// buffer, the height search reads its sample cells once at the winning height,
+// and the pool's hand-outs are bounded. The numbers were measured with
+// wjs_perf_tests "[.perf-report]" and moved only with that run's figures.
+
 [[nodiscard]] scan::synth::Rendered draw_scan_frame(const ScanFrame& which) {
     scan::synth::Spec spec;
     spec.condition = which.condition;
@@ -172,6 +181,7 @@ std::vector<Metric> scan_metrics() {
         total.cells_read += work.cells_read;
         total.comparisons += work.comparisons;
         total.buffers += work.buffers;
+        total.buffer_reuses += work.buffer_reuses;
         total.largest_buffers = std::max(total.largest_buffers, work.largest_buffers);
     }
     // Reading a frame seeds and solves nothing, so it does the same work whichever board
@@ -196,6 +206,17 @@ std::vector<Metric> scan_metrics() {
                 "buffers"),
         at_most("scan.buffers.max", BoardMode::standard, total.largest_buffers,
                 budget::kScanBuffersMax, "buffers"),
+        // The scratch pool's exact promises: a warm read allocates nothing, the
+        // height search reads its sample cells once at the winning height, and
+        // the reuses are bounded (budgets.hpp holds the pins).
+        exact("scan.buffers.allocated", BoardMode::standard, total.buffers,
+              budget::kScanBuffersAllocated, "buffers"),
+        exact("scan.cells_read.exact", BoardMode::standard, total.cells_read,
+              budget::kScanCellsReadExact, "cells"),
+        exact("scan.comparisons.exact", BoardMode::standard, total.comparisons,
+              budget::kScanComparisonsExact, "comparisons"),
+        at_most("scan.buffer.reuses", BoardMode::standard, total.buffer_reuses,
+                budget::kScanBufferReuses, "reuses"),
     };
 }
 

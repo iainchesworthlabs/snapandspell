@@ -49,7 +49,7 @@ struct BoardReading {
     std::size_t rows = 0;
     std::size_t columns = 0;
     // Row-major, rows * columns of them.
-    std::vector<TileReading> tiles{};
+    std::vector<TileReading> tiles;
     // The board's outline in the frame, in its pixels, clockwise on the screen
     // from the corner nearest to the top left.
     Quad corners{};
@@ -89,7 +89,7 @@ struct ReadOptions {
     int analysis_size = 960;
     // The board's side in cells, if known; otherwise counted from the picture,
     // between min_size and max_size.
-    std::optional<std::size_t> size{};
+    std::optional<std::size_t> size;
     std::size_t min_size = 3;
     std::size_t max_size = 8;
     // The board is drawn at this many pixels a side before it is cut into cells.

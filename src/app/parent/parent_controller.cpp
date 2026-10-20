@@ -1,9 +1,11 @@
 #include "parent_controller.hpp"
 
 #include <QDate>
+#include <QFile>
 #include <QLocale>
 #include <QMetaType>
 #include <algorithm>
+#include <cctype>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -12,6 +14,7 @@
 
 #include "wjs/dashboard.hpp"
 #include "wjs/platform/paths.hpp"
+#include "wjs/scoring.hpp"
 #include "wjs/settings.hpp"
 #include "wjs/version.hpp"
 
@@ -114,7 +117,7 @@ using std::chrono::milliseconds;
 
 [[nodiscard]] QVariantMap settings_map(const wjs::Settings& s) {
     QVariantMap map;
-    map.insert(QStringLiteral("help"), s.help);
+    map.insert(QStringLiteral("help"), text(to_string(s.help)));
     map.insert(QStringLiteral("board"), text(to_string(s.board)));
     map.insert(QStringLiteral("phase"), text(s.phase));
     map.insert(QStringLiteral("focusSounds"), list(s.focus_sounds));
@@ -125,8 +128,12 @@ using std::chrono::milliseconds;
     map.insert(QStringLiteral("vibration"), s.vibration);
     map.insert(QStringLiteral("shake"), s.shake);
     map.insert(QStringLiteral("motion"), text(to_string(s.motion)));
+    map.insert(QStringLiteral("colourScheme"), text(to_string(s.colour_scheme)));
+    map.insert(QStringLiteral("timer"), text(to_string(s.solo_clock)));
+    map.insert(QStringLiteral("timerLength"), s.solo_clock_minutes);
     map.insert(QStringLiteral("textSizePercent"), s.text_size_percent);
     map.insert(QStringLiteral("schoolFont"), text(s.school_font));
+    map.insert(QStringLiteral("language"), text(s.language));
     return map;
 }
 
@@ -288,6 +295,12 @@ QStringList ParentController::phases() const {
     return names;
 }
 
+bool ParentController::retrySave() {
+    const auto saved = store_->save();
+    updateNote();
+    return saved.has_value();
+}
+
 void ParentController::refresh() {
     // The device's own calendar: Qt's Julian day of 1970-01-01 is 2440588.
     const wjs::Day today =
@@ -332,8 +345,114 @@ QString ParentController::storeNote() const {
     return note_;
 }
 
+int ParentController::lifetimeStars() const {
+    return static_cast<int>(store_->data().stars);
+}
+
+int ParentController::lifetimePoints() const {
+    int total = 0;
+    for (const wjs::VaultWord& word : store_->data().vault) {
+        total += wjs::word_points(word.word) * static_cast<int>(word.found);
+    }
+    return total;
+}
+
+int ParentController::lifetimeWords() const {
+    return static_cast<int>(store_->data().vault.size());
+}
+
+QString ParentController::longestWord() const {
+    std::string longest;
+    for (const wjs::VaultWord& word : store_->data().vault) {
+        if (word.word.size() > longest.size() ||
+            (word.word.size() == longest.size() && word.word < longest)) {
+            longest = word.word;
+        }
+    }
+    return text(longest);
+}
+
+int ParentController::boardsKept() const {
+    return static_cast<int>(store_->data().boards.size());
+}
+
+QVariantList ParentController::recentBoards() const {
+    QVariantList list;
+    const wjs::StoreData& data = store_->data();
+    for (auto board = data.boards.rbegin(); board != data.boards.rend(); ++board) {
+        QVariantMap map;
+        map.insert(QStringLiteral("rows"), board->size);
+        map.insert(QStringLiteral("columns"), board->size);
+        map.insert(QStringLiteral("stars"), board->stars);
+        map.insert(QStringLiteral("found"), board->found);
+        map.insert(QStringLiteral("cleared"), board->cleared);
+        map.insert(QStringLiteral("day"), static_cast<qint64>(board->day));
+
+        // The tiles are kept "A,B/C,D"; BoardThumb wants them row-major.
+        QStringList tiles;
+        const QString packed = text(board->tiles);
+        const QStringList rows = packed.split(QLatin1Char('/'), Qt::SkipEmptyParts);
+        for (const QString& row : rows) {
+            const QStringList faces = row.split(QLatin1Char(','), Qt::SkipEmptyParts);
+            for (const QString& face : faces) {
+                tiles.append(face);
+            }
+        }
+        map.insert(QStringLiteral("tiles"), tiles);
+
+        QVariantList words;
+        for (const wjs::FindRecord& find : data.finds) {
+            if (find.board != board->serial) {
+                continue;
+            }
+            QVariantMap word;
+            word.insert(QStringLiteral("word"), text(find.word));
+            word.insert(QStringLiteral("stars"), find.stars);
+            word.insert(QStringLiteral("points"), wjs::word_points(find.word));
+            word.insert(QStringLiteral("assisted"), find.start_tile_used);
+            const std::size_t letters = find.word.size();
+            word.insert(QStringLiteral("tier"),
+                        letters <= 3
+                            ? QStringLiteral("spark")
+                            : (letters == 4 ? QStringLiteral("power") : QStringLiteral("mega")));
+            words.append(word);
+        }
+        map.insert(QStringLiteral("words"), words);
+        list.append(map);
+    }
+    return list;
+}
+
 QString ParentController::motion() const {
     return text(to_string(store_->settings().motion));
+}
+
+QString ParentController::colourScheme() const {
+    return text(to_string(store_->settings().colour_scheme));
+}
+
+QString ParentController::language() const {
+    return text(store_->settings().language);
+}
+
+QString ParentController::helpLevel() const {
+    return text(to_string(store_->settings().help));
+}
+
+QString ParentController::soloClock() const {
+    return text(to_string(store_->settings().solo_clock));
+}
+
+int ParentController::soloClockMinutes() const {
+    return store_->settings().solo_clock_minutes;
+}
+
+QVariantList ParentController::timerLengthChoices() const {
+    QVariantList list;
+    for (const int minutes : wjs::solo_clock_minutes_choices) {
+        list.append(minutes);
+    }
+    return list;
 }
 
 bool ParentController::reducedMotion() const {
@@ -346,6 +465,24 @@ double ParentController::textScale() const {
 
 QString ParentController::version() const {
     return text(wjs::project_version);
+}
+
+QString ParentController::versionDetails() const {
+    return text(wjs::version_details());
+}
+
+// The notice is not one of the parent area's sentences: it is a legal text, in
+// English, the same in every language, and it comes from the file rather than
+// from ParentWording.qml. A build without the resource - the app tests compile
+// this controller without the application's resources - says where the file is
+// instead of showing nothing.
+QString ParentController::licenceNotices() const {
+    QFile file(QStringLiteral(":/notices/NOTICES.txt"));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QStringLiteral(
+            "The licence notices are installed as NOTICES.txt beside this program.");
+    }
+    return QString::fromUtf8(file.readAll());
 }
 
 void ParentController::applySettings(wjs::Settings settings) {
@@ -366,8 +503,12 @@ void ParentController::applySettings(wjs::Settings settings) {
 bool ParentController::setSetting(const QString& key, const QVariant& value) {
     wjs::Settings s = store_->settings();
 
-    if (key == QLatin1String("help") && is_bool(value)) {
-        s.help = value.toBool();
+    if (key == QLatin1String("help") && is_string(value)) {
+        const auto level = wjs::help_level_from_string(utf8(value.toString()));
+        if (!level) {
+            return false;
+        }
+        s.help = *level;
     } else if (key == QLatin1String("board") && is_string(value)) {
         const auto mode = wjs::board_mode_from_string(utf8(value.toString()));
         // The Phonics board needs a phase's words.
@@ -382,8 +523,10 @@ bool ParentController::setSetting(const QString& key, const QVariant& value) {
         s.phase = utf8(value.toString());
     } else if (key == QLatin1String("boardSize")) {
         const auto size = whole_number(value);
-        if (!size || *size < wjs::smallest_default_board_size ||
-            *size > wjs::largest_default_board_size) {
+        // The standard board plays 3x3 to 6x6; the phonics board 3x3 and 4x4.
+        const int largest = s.board == wjs::BoardMode::standard ? wjs::largest_standard_board_size
+                                                                : wjs::largest_default_board_size;
+        if (!size || *size < wjs::smallest_default_board_size || *size > largest) {
             return false;
         }
         s.board_size = *size;
@@ -411,6 +554,26 @@ bool ParentController::setSetting(const QString& key, const QVariant& value) {
             return false;
         }
         s.motion = *parsed;
+    } else if (key == QLatin1String("colourScheme") && is_string(value)) {
+        const auto parsed = wjs::colour_scheme_from_string(utf8(value.toString()));
+        if (!parsed) {
+            return false;
+        }
+        s.colour_scheme = *parsed;
+    } else if (key == QLatin1String("timer") && is_string(value)) {
+        const auto parsed = wjs::solo_clock_from_string(utf8(value.toString()));
+        if (!parsed) {
+            return false;
+        }
+        s.solo_clock = *parsed;
+    } else if (key == QLatin1String("timerLength")) {
+        const auto minutes = whole_number(value);
+        if (!minutes || std::find(std::begin(wjs::solo_clock_minutes_choices),
+                                  std::end(wjs::solo_clock_minutes_choices),
+                                  *minutes) == std::end(wjs::solo_clock_minutes_choices)) {
+            return false;
+        }
+        s.solo_clock_minutes = *minutes;
     } else if (key == QLatin1String("textSizePercent")) {
         const auto percent = whole_number(value);
         if (!percent ||
@@ -425,6 +588,15 @@ bool ParentController::setSetting(const QString& key, const QVariant& value) {
             return false;
         }
         s.school_font = utf8(value.toString());
+    } else if (key == QLatin1String("language") && is_string(value)) {
+        // One of the eight, lower case, or empty for the device's own.
+        std::string code = utf8(value.toString());
+        std::transform(code.begin(), code.end(), code.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (!code.empty() && !wjs::is_valid_language(code)) {
+            return false;
+        }
+        s.language = code;
     } else {
         return false;
     }

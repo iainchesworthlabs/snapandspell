@@ -12,22 +12,18 @@ Rectangle {
 
     readonly property bool narrow: width < 560
 
-    implicitHeight: layout.implicitHeight + 2 * ParentTheme.space3
-    color: "transparent"
-
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: ParentTheme.hair
-        color: ParentTheme.hoverWash
-    }
+    implicitHeight: layout.implicitHeight + 2 * ParentTheme.space4
+    radius: ParentTheme.radius
+    color: ParentTheme.surface
+    border.width: 1
+    border.color: ParentTheme.line
 
     GridLayout {
         id: layout
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
+        anchors.margins: ParentTheme.space4
         columns: root.narrow ? 1 : 2
         columnSpacing: ParentTheme.space6
         rowSpacing: ParentTheme.space2
@@ -39,8 +35,9 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: root.title
+                font.family: ParentTheme.uiFont
                 font.pixelSize: ParentTheme.sizeBody
-                font.bold: true
+                font.weight: Font.DemiBold
                 color: ParentTheme.ink
                 wrapMode: Text.WordWrap
             }
@@ -48,6 +45,7 @@ Rectangle {
                 Layout.fillWidth: true
                 visible: root.hint.length > 0
                 text: root.hint
+                font.family: ParentTheme.uiFont
                 font.pixelSize: ParentTheme.sizeSmall
                 color: ParentTheme.inkSecondary
                 wrapMode: Text.WordWrap

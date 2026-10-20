@@ -1,40 +1,45 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 
-// The parent area (docs/design/application.md, screens `parent.gate` and
-// `parent.*`): the gate, and behind it the dashboard, the settings and the
-// about page. It is one screen of the application's navigation; it knows
-// nothing of the others. Whoever shows it gives it a controller and listens for
-// `closed()`, which is Back and Esc: it shuts the gate again, so that the next
-// time a person comes the gate is there.
-//
-//   ParentArea {
-//       controller: theController
-//       onClosed: Navigation.back()
-//   }
-//
-// Back goes where the person came from: out of the parent area, whichever page
-// of it they are on. The tabs are pages of one place, not steps, so switching
-// between them is not "back".
+// The parent area: the gate, then the dashboard, settings and about. The adult
+// workflows live here, behind the gate. The dashboard's "Play with a real
+// board" leaves this screen for the scanner while keeping the gate open, so a
+// parent does not have to pass it again on the way back.
 FocusScope {
     id: root
 
     required property var controller
+    property var scanModel: null
+    property var assistModel: null
 
-    // dashboard, settings or about; the first behind the gate.
     property string page: "dashboard"
+    property bool rightToLeft: false
+    property bool stayUnlockedOnClose: false
 
     signal closed
+    signal scanRequested
 
-    // The Text size setting applies to these screens as it does everywhere.
+    readonly property real backButtonX: root.rightToLeft
+                                          ? root.width - ParentTheme.space4 - barBack.width / 2
+                                          : ParentTheme.space4 + barBack.width / 2
+    readonly property bool mirrored: LayoutMirroring.enabled
+
+    LayoutMirroring.enabled: root.rightToLeft
+    LayoutMirroring.childrenInherit: true
+
+    Binding {
+        target: ParentTheme
+        property: "rightToLeft"
+        value: root.rightToLeft
+    }
     Binding {
         target: ParentTheme
         property: "textScale"
         value: root.controller.textScale
     }
 
-    // What Esc and the system's back do: the same as the visible Back.
     function back() {
+        root.stayUnlockedOnClose = false;
         root.controller.lock();
         root.page = "dashboard";
         root.closed();
@@ -47,57 +52,79 @@ FocusScope {
         color: ParentTheme.page
     }
 
-    // --- the bar: the way back, the title, and (past the gate) the pages --------
+    // --- the bar ---------------------------------------------------------------
     Rectangle {
         id: bar
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        implicitHeight: barLayout.implicitHeight + 2 * ParentTheme.space2
-        height: implicitHeight
-        color: ParentTheme.card
+        height: 72
+        color: ParentTheme.surface
 
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: ParentTheme.hair
-            color: ParentTheme.outline
+            height: 1
+            color: ParentTheme.line
         }
 
-        Flow {
-            id: barLayout
+        Row {
             anchors.left: parent.left
-            anchors.right: parent.right
+            anchors.leftMargin: ParentTheme.space4
             anchors.verticalCenter: parent.verticalCenter
-            anchors.margins: ParentTheme.space2
-            spacing: ParentTheme.space2
+            spacing: ParentTheme.space3
 
             PButton {
+                id: barBack
                 text: ParentWording.back
                 onClicked: root.back()
             }
 
+            Rectangle {
+                width: 22
+                height: 22
+                color: ParentTheme.gold
+                rotation: 45
+                radius: 3
+                anchors.verticalCenter: parent.verticalCenter
+            }
             Text {
-                height: ParentTheme.targetMin
+                height: 48
                 verticalAlignment: Text.AlignVCenter
-                text: ParentWording.parentArea
-                font.pixelSize: ParentTheme.sizeLead
-                font.bold: true
+                text: ParentWording.wordmarkTitle
+                font.family: ParentTheme.uiFont
+                font.pixelSize: 18
+                font.weight: Font.ExtraBold
                 color: ParentTheme.ink
                 Accessible.role: Accessible.Heading
                 Accessible.name: text
-                leftPadding: ParentTheme.space2
-                rightPadding: ParentTheme.space4
             }
+            Text {
+                height: 48
+                verticalAlignment: Text.AlignVCenter
+                text: ParentWording.parentArea
+                font.family: ParentTheme.uiFont
+                font.pixelSize: ParentTheme.sizeLead
+                color: ParentTheme.inkSecondary
+                leftPadding: ParentTheme.space2
+            }
+        }
+
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: ParentTheme.space4
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: ParentTheme.space2
+            visible: root.controller.unlocked
 
             Repeater {
                 model: root.controller.unlocked
                     ? [{id: "dashboard", label: ParentWording.tabDashboard},
                        {id: "settings", label: ParentWording.tabSettings},
-                       {id: "about", label: ParentWording.tabAbout}]
+                       {id: "about", label: ParentWording.tabAbout},
+                       {id: "licences", label: ParentWording.tabLicences}]
                     : []
-
                 PButton {
                     required property var modelData
                     text: modelData.label
@@ -106,7 +133,6 @@ FocusScope {
                     onClicked: {
                         root.page = modelData.id;
                         if (modelData.id === "dashboard") {
-                            // Worked out when it is opened, as of now.
                             root.controller.refresh();
                         }
                     }
@@ -115,7 +141,6 @@ FocusScope {
         }
     }
 
-    // --- the screen ---------------------------------------------------------------------
     Loader {
         id: screen
         anchors.top: bar.bottom
@@ -133,6 +158,8 @@ FocusScope {
                 return settings;
             case "about":
                 return about;
+            case "licences":
+                return licences;
             default:
                 return dashboard;
             }
@@ -151,6 +178,11 @@ FocusScope {
         id: dashboard
         DashboardScreen {
             controller: root.controller
+            onScanRequested: {
+                root.stayUnlockedOnClose = true;
+                root.scanRequested();
+            }
+            onPlayRequested: root.back()
         }
     }
     Component {
@@ -163,6 +195,13 @@ FocusScope {
         id: about
         AboutScreen {
             controller: root.controller
+            onLicencesRequested: root.page = "licences"
+        }
+    }
+    Component {
+        id: licences
+        LicencesScreen {
+            controller: root.controller
         }
     }
 
@@ -171,15 +210,13 @@ FocusScope {
         event.accepted = true;
     }
 
-    // Leaving by any route shuts the gate again, so that the next visit meets
-    // it: the screen is hidden by its host, or taken away.
     onVisibleChanged: {
-        if (!root.visible && root.controller) {
+        if (!root.visible && root.controller && !root.stayUnlockedOnClose) {
             root.controller.lock();
         }
     }
     Component.onDestruction: {
-        if (root.controller) {
+        if (root.controller && !root.stayUnlockedOnClose) {
             root.controller.lock();
         }
     }

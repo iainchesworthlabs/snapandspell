@@ -35,6 +35,14 @@ struct Heard {
     std::vector<Traced> traced;
     std::vector<Cue> cues;
     int state_changes = 0;
+    // The QML-visible updates, counted exactly: one pathChanged is one rebuild
+    // of the path's display, so the pointer's jank is these numbers growing
+    // (docs/design/performance.md, "The window's frames").
+    int path_changes = 0;
+    int pointer_changes = 0;
+    int found_changes = 0;
+    int lit_changes = 0;
+    int board_changes = 0;
 };
 
 // A model over the fake game, with the touch geometry set: tiles of 100 and a gap
@@ -56,6 +64,12 @@ struct Fixture {
                              heard.cues.push_back({kind, detail});
                          });
         QObject::connect(&model, &SoloModel::stateChanged, [this] { ++heard.state_changes; });
+        QObject::connect(&model, &SoloModel::pathChanged, [this] { ++heard.path_changes; });
+        QObject::connect(&model, &SoloModel::pointerDownChanged,
+                         [this] { ++heard.pointer_changes; });
+        QObject::connect(&model, &SoloModel::foundChanged, [this] { ++heard.found_changes; });
+        QObject::connect(&model, &SoloModel::litPathChanged, [this] { ++heard.lit_changes; });
+        QObject::connect(&model, &SoloModel::boardChanged, [this] { ++heard.board_changes; });
     }
 
     // Into the box's shake and out of it, as the scene does.
@@ -106,6 +120,8 @@ TEST_CASE("the model starts in the box with nothing on the table", "[app][solo]"
     CHECK(f.model.boardSize() == 3);
     CHECK(f.model.sizes() == indices({3, 4}));
     CHECK(f.model.tiles().isEmpty());
+    CHECK(f.model.faces().isEmpty());
+    CHECK(f.model.up().isEmpty());
     CHECK(f.model.rows() == 0);
     CHECK(f.model.found().isEmpty());
     CHECK(f.model.history().isEmpty());
@@ -142,6 +158,10 @@ TEST_CASE("a shake deals the board and the scene's end of it starts play", "[app
     CHECK(f.model.rows() == 3);
     CHECK(f.model.columns() == 3);
     CHECK(f.model.tiles() == QStringList{"E", "N", "S", "O", "A", "I", "M", "P", "T"});
+    // The fake's board has no dice: the scene draws the letters on the face that
+    // is up.
+    CHECK(f.model.faces().isEmpty());
+    CHECK(f.model.up().isEmpty());
     CHECK(f.model.boardVersion() == 1);
     CHECK(dealt == 1);
     REQUIRE(f.heard.cues.size() == 1);
@@ -331,6 +351,151 @@ TEST_CASE("the parent's switch takes the start tile away", "[app][solo]") {
     CHECK(model.helpTile() == -1);
 }
 
+TEST_CASE("the parent's level starts at the two rungs", "[app][solo]") {
+    Fixture f;
+    CHECK(f.model.helpLevel() == "two");
+    CHECK(f.model.helpAllowed());
+}
+
+TEST_CASE("the start-tile level stops at the first rung, and the next press hides", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.setHelpLevel("start");
+    CHECK(f.model.helpLevel() == "start");
+
+    f.model.askHelp();
+    CHECK(f.model.hintLevel() == 1);
+    CHECK(f.model.helpTile() == 1);
+
+    // No second rung at this level: the next press puts it away.
+    f.model.askHelp();
+    CHECK(f.model.hintLevel() == 0);
+    CHECK(f.model.helpTile() == -1);
+}
+
+TEST_CASE("the level off takes the help away, rings and all", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.askHelp();
+    CHECK(f.model.helpTile() == 1);
+
+    f.model.setHelpLevel("off");
+    CHECK_FALSE(f.model.helpAllowed());
+    CHECK(f.model.helpTile() == -1);
+    CHECK(f.model.hintLevel() == 0);
+
+    f.model.askHelp();
+    CHECK(f.model.helpTile() == -1);
+
+    // Back on: the help works again.
+    f.model.setHelpLevel("two");
+    CHECK(f.model.helpAllowed());
+    f.model.askHelp();
+    CHECK(f.model.helpTile() == 1);
+}
+
+TEST_CASE("a hidden help stays hidden until the next press", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.askHelp();  // rung one
+    f.model.askHelp();  // rung two
+    f.model.askHelp();  // hides: the rings go out, all of them
+    CHECK(f.model.hintLevel() == 0);
+    CHECK(f.model.helpTile() == -1);
+
+    // A find away from the lit start does not bring the ring back.
+    f.sit();
+    f.shown();
+    CHECK(f.model.helpTile() == -1);
+
+    // The next press lights a word again.
+    f.model.askHelp();
+    CHECK(f.model.helpTile() == 1);
+}
+
+TEST_CASE("a level the table does not have changes nothing", "[app][solo]") {
+    Fixture f;
+    f.model.setHelpLevel("everything");
+    CHECK(f.model.helpLevel() == "two");
+}
+
+TEST_CASE("a find made from the lit start answers the help and says what is left", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.askHelp();
+    CHECK(f.model.helpTile() == 1);  // N, row 0 column 1: NIP
+    CHECK_FALSE(f.model.hintResolved());
+
+    // NIP is the lit word: the rings go out, and nothing else of the board's
+    // begins with that tile, which the panel is told.
+    f.nip();
+    CHECK(f.model.state() == "word-found");
+    CHECK(f.model.hintResolved());
+    CHECK(f.model.hintRemaining() == 0);
+    CHECK(f.model.helpTile() == -1);
+    CHECK(f.model.hintLevel() == 0);
+}
+
+TEST_CASE("a different word from the lit start answers the help too", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.nip();  // found without the help
+    f.shown();
+    f.model.askHelp();
+    CHECK(f.model.helpTile() == 2);  // S, row 0 column 2: SAT
+    CHECK(f.model.hintLevel() == 1);
+
+    // SIT, another word that begins at the lit tile: the help is answered,
+    // and SAT is still to find there.
+    f.sit();
+    CHECK(f.model.state() == "word-found");
+    CHECK(f.model.hintResolved());
+    CHECK(f.model.hintRemaining() == 1);
+    CHECK(f.model.helpTile() == -1);
+}
+
+TEST_CASE("a find away from the lit start leaves the help where it was", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.askHelp();  // NIP, at tile 1
+    f.sit();            // SIT begins at tile 2: not the help's start
+    CHECK_FALSE(f.model.hintResolved());
+    CHECK(f.model.helpTile() == 1);
+    CHECK(f.model.hintLevel() == 1);
+    f.shown();
+}
+
+TEST_CASE("the second rung resolves with the two tiles it lit", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.askHelp();  // rung one: tile 1
+    f.model.askHelp();  // rung two: NIP's first two tiles
+    CHECK(f.model.hintLevel() == 2);
+
+    f.nip();
+    CHECK(f.model.state() == "word-found");
+    CHECK(f.model.hintResolved());
+    CHECK(f.model.hintRemaining() == 0);
+    CHECK(f.model.helpTiles().isEmpty());
+    CHECK(f.model.helpTile() == -1);
+}
+
+TEST_CASE("the next press starts a fresh question", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.askHelp();
+    f.nip();
+    CHECK(f.model.hintResolved());
+
+    // NIP is gone; the next question is a new word, and the old answer is
+    // put away.
+    f.shown();
+    f.model.askHelp();
+    CHECK(f.model.helpTile() == 2);  // S: SAT
+    CHECK_FALSE(f.model.hintResolved());
+    CHECK(f.model.hintRemaining() == -1);
+}
+
 TEST_CASE("tiles that make one sound are one block as the path grows", "[app][solo]") {
     Fixture f;
     f.play();
@@ -434,6 +599,94 @@ TEST_CASE("the lid can go back on mid-shake, and nothing is saved", "[app][solo]
 
     CHECK(f.model.state() == "box");
     CHECK(f.model.history().isEmpty());
+}
+
+// --- the board's clock ---------------------------------------------------------------
+
+TEST_CASE("the board's clock is off until the parent sets one, and ticks only while active",
+          "[app][solo][clock]") {
+    Fixture f;
+    CHECK(f.model.clockMode() == "off");
+    CHECK(f.model.clockMinutes() == wjs::default_solo_clock_minutes);
+    CHECK(f.model.clockText() == "0:00");
+
+    f.model.setClockMode("up");
+    CHECK(f.model.clockMode() == "up");
+    f.play();
+    // Not active: a tick the screen never sent changes nothing.
+    f.model.tickClock();
+    CHECK(f.model.clockSeconds() == 0);
+
+    f.model.setClockActive(true);
+    f.model.tickClock();
+    f.model.tickClock();
+    CHECK(f.model.clockSeconds() == 2);
+    CHECK(f.model.clockText() == "0:02");
+
+    // Inactive again: the seconds hold, and no more tick.
+    f.model.setClockActive(false);
+    f.model.tickClock();
+    CHECK(f.model.clockSeconds() == 2);
+}
+
+TEST_CASE("a count-down board starts with its minutes and ends the round at zero",
+          "[app][solo][clock]") {
+    Fixture f;
+    int expired = 0;
+    QObject::connect(&f.model, &SoloModel::clockExpired, [&] { ++expired; });
+
+    f.model.setClockMode("down");
+    f.model.setClockMinutes(1);
+    f.play();
+    CHECK(f.model.clockSeconds() == 60);
+    CHECK(f.model.clockText() == "1:00");
+
+    f.model.setClockActive(true);
+    for (int i = 0; i < 59; ++i) {
+        f.model.tickClock();
+    }
+    CHECK(f.model.clockSeconds() == 1);
+    CHECK(expired == 0);
+
+    f.model.tickClock();
+    CHECK(f.model.clockSeconds() == 0);
+    CHECK(expired == 1);
+
+    // Ended once, it does not end again.
+    f.model.tickClock();
+    CHECK(expired == 1);
+}
+
+TEST_CASE("each new board starts its clock again", "[app][solo][clock]") {
+    Fixture f;
+    f.model.setClockMode("up");
+    f.play();
+    f.model.setClockActive(true);
+    f.model.tickClock();
+    CHECK(f.model.clockSeconds() == 1);
+
+    // The lid puts the board, and its clock, away.
+    f.model.lidOn();
+    CHECK(f.model.clockSeconds() == 0);
+
+    f.model.shake();
+    f.model.sceneSettled();
+    f.model.tickClock();
+    CHECK(f.model.clockSeconds() == 1);
+}
+
+TEST_CASE("a clock set while a board is in play starts from the board's beginning",
+          "[app][solo][clock]") {
+    Fixture f;
+    f.play();
+    f.model.setClockActive(true);
+    f.model.tickClock();
+    CHECK(f.model.clockSeconds() == 0);  // off: nothing to count
+
+    f.model.setClockMode("up");
+    CHECK(f.model.clockSeconds() == 0);
+    f.model.tickClock();
+    CHECK(f.model.clockSeconds() == 1);
 }
 
 TEST_CASE("a model made with no game plays the one the application plays", "[app][solo]") {
@@ -566,4 +819,112 @@ TEST_CASE("a new game that was brought back is shown as the constructor shows on
     CHECK(f.model.rows() == 3);
     CHECK(f.model.tiles().size() == 9);
     CHECK(f.model.boardVersion() == version + 1);
+}
+
+// --- the shape of the updates (what the screens rebuild) ---------------------------
+// One pathChanged is one rebuild of the path's display: the path lines, each
+// tile's lit test and the action bar's word. The pointer's jank is these
+// numbers growing, so they are held exactly (docs/design/performance.md).
+
+TEST_CASE("a trace tells the path once per change and once at the hand-in", "[app][solo]") {
+    Fixture f;
+    f.play();
+    const int path = f.heard.path_changes;
+    const int pointer = f.heard.pointer_changes;
+    const int found = f.heard.found_changes;
+
+    f.sit();  // press on S, two moves, lift: tiles 2, 5, 8.
+
+    // One a tile (3), one for the tracer's clear at the hand-in (1); a press
+    // told the path once and the finger's down and up told the pointer only.
+    CHECK(f.heard.path_changes - path == 4);
+    CHECK(f.heard.pointer_changes - pointer == 2);
+    // A find is one tray update, one lit path, one state, one trace.
+    CHECK(f.heard.found_changes - found == 1);
+    REQUIRE(f.heard.traced.size() == 1);
+    CHECK(f.heard.traced[0].word == "sit");
+}
+
+TEST_CASE("a press on nothing starts no trace and rebuilds nothing", "[app][solo]") {
+    Fixture f;
+    f.play();
+    const int path = f.heard.path_changes;
+    const int pointer = f.heard.pointer_changes;
+
+    // Far outside every tile: the tracer ignores the press, so the finger is
+    // never down and neither the path's display nor the pointer's is rebuilt.
+    f.model.pressAt(-500, -500);
+    CHECK(f.heard.path_changes - path == 0);
+    CHECK(f.heard.pointer_changes - pointer == 0);
+
+    f.model.releaseAt(-500, -500, false);
+    CHECK(f.heard.path_changes - path == 0);
+    CHECK(f.heard.pointer_changes - pointer == 0);
+    CHECK(f.model.path().isEmpty());
+}
+
+TEST_CASE("a move that changes nothing rebuilds nothing", "[app][solo]") {
+    Fixture f;
+    f.play();
+    const int path = f.heard.path_changes;
+    const int pointer = f.heard.pointer_changes;
+
+    f.model.pressAt(Fixture::x(0), Fixture::y(0));  // tile 0
+    const int after_press = f.heard.path_changes;
+    CHECK(after_press - path == 1);  // one tile, told once
+
+    // A wobble inside the tile's stay circle: no new tile, no signal.
+    f.model.moveTo(Fixture::x(0) + 3, Fixture::y(0));
+    CHECK(f.heard.path_changes - after_press == 0);
+    CHECK(f.heard.pointer_changes - pointer == 1);
+
+    // A tile that does not touch the last is ignored, as a non-change.
+    f.model.moveTo(Fixture::x(1), Fixture::y(1));
+    CHECK(f.heard.path_changes - after_press == 1);  // the diagonal tile joins
+}
+
+TEST_CASE("a tapped word is told once a tile, and the tray once at Done", "[app][solo]") {
+    Fixture f;
+    f.play();
+    const int path = f.heard.path_changes;
+    const int pointer = f.heard.pointer_changes;
+    const int found = f.heard.found_changes;
+
+    f.model.tapTile(2);
+    f.model.tapTile(5);
+    f.model.tapTile(8);
+    CHECK(f.heard.path_changes - path == 3);
+    CHECK(f.heard.pointer_changes - pointer == 0);
+
+    f.model.done();
+    CHECK(f.heard.path_changes - path == 4);  // the tracer's clear
+    CHECK(f.heard.found_changes - found == 1);
+    CHECK(f.model.state() == "word-found");
+}
+
+TEST_CASE("the path, the tiles and the tray are built once and read many times", "[app][solo]") {
+    Fixture f;
+    f.play();
+    f.model.tapTile(2);
+    f.model.tapTile(5);
+
+    // Two reads give the same stored list, not two rebuilds: the screens read
+    // the path once a tile and once a path line per move, and a rebuild a read
+    // is the pointer's jank.
+    const QVariantList first_path = f.model.path();
+    const QVariantList second_path = f.model.path();
+    CHECK(first_path.constData() == second_path.constData());
+
+    const QStringList first_tiles = f.model.tiles();
+    const QStringList second_tiles = f.model.tiles();
+    CHECK(first_tiles.constData() == second_tiles.constData());
+
+    const QVariantList first_found = f.model.found();
+    const QVariantList second_found = f.model.found();
+    CHECK(first_found.constData() == second_found.constData());
+
+    // And the cached path is the path: content is not sacrificed for the cache.
+    CHECK(f.model.path() == indices({2, 5}));
+    f.model.tapTile(8);
+    CHECK(f.model.path() == indices({2, 5, 8}));
 }

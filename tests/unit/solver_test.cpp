@@ -179,3 +179,41 @@ TEST_CASE("the solver's tally belongs to the thread that solved", "[solver]") {
     CHECK(solved_there == 1U);
     CHECK(wjs::solve_work().solves == 0U);
 }
+
+TEST_CASE("a tile of three letters spends all three on one visit", "[solver]") {
+    // "QUI" is one tile, so QUIT is four letters over two tiles: one step
+    // through the trie per tile, one visit per tile, and a path of two.
+    const auto board = make_board("QUI T");
+    const auto dictionary = make_dictionary({"QUIT", "QIT"});
+
+    wjs::reset_solve_work();
+    const auto found = wjs::solve(board, dictionary);
+
+    REQUIRE(found.size() == 1U);
+    CHECK(found.front().word == "QUIT");
+    CHECK(found.front().path == std::vector<wjs::Position>{{0, 0}, {0, 1}});
+    CHECK(found.front().score == 1);
+    CHECK(wjs::solve_work().visits == 2U);
+}
+
+TEST_CASE("a word may use every tile of the board", "[solver]") {
+    // The word traces the whole 4x4 snake: the walk has one choice at every
+    // tile, so a visit per tile, and the path reported is the whole board. The
+    // first path found is pinned tile for tile, which is what the performance
+    // tier's digests pin over its whole corpus.
+    const auto board = make_board("ABCD/HGFE/IJKL/PONM");
+    const auto dictionary = make_dictionary({"ABCDEFGHIJKLMNOP"});
+
+    wjs::reset_solve_work();
+    const auto found = wjs::solve(board, dictionary);
+
+    REQUIRE(found.size() == 1U);
+    CHECK(found.front().word == "ABCDEFGHIJKLMNOP");
+    const std::vector<wjs::Position> expected = {
+        {0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 3}, {1, 2}, {1, 1}, {1, 0},
+        {2, 0}, {2, 1}, {2, 2}, {2, 3}, {3, 3}, {3, 2}, {3, 1}, {3, 0},
+    };
+    CHECK(found.front().path == expected);
+    CHECK(found.front().score == 11);
+    CHECK(wjs::solve_work().visits == 16U);
+}

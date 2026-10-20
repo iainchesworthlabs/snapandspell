@@ -29,7 +29,7 @@ enum class TileOrigin : std::uint8_t {
 struct DraftTile {
     // "A" to "Z" and up to three letters in all, upper-case; empty while the tile
     // has none.
-    std::string letters{};
+    std::string letters;
     TileOrigin origin = TileOrigin::empty;
     // The reader's confidence from 0 to 1; 1 for a tile a person settled.
     double confidence = 0.0;

@@ -91,7 +91,7 @@ with a check is what makes it safe to defer them.
 | --- | --- |
 | Android tablet and phone | An Android platform fragment; Qt's Android kit is in the shared tree; the extra Qt modules for it |
 | Phone layouts, portrait and landscape | The layout rule already covers them ([Board](board.md#layouts-and-sizes)) |
-| Desktop: macOS, Linux, Windows | The fragments exist; installers and the Qt window in CI (roadmap M6) |
+| Desktop: macOS, Linux, Windows | The fragments exist; packaging is built and checked on Windows, and the Qt window in CI and the packaged window on macOS and Linux remain (roadmap M6) |
 | Web (WebAssembly) | An Emscripten fragment; threads need cross-origin isolation headers; no shake sensor assumed; speech unverified |
 
 **Why fourth.** Each is a platform fragment under `src/platforms` and a CI

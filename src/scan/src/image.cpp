@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "scratch.hpp"
 #include "wjs/scan/work.hpp"
 
 namespace wjs::scan {
@@ -12,10 +13,10 @@ GrayImage::GrayImage(int w, int h, std::uint8_t fill)
     detail::note_buffer();
 }
 
-GrayImage luma_from_frame(const Frame& frame) {
+void detail::luma_into(GrayImage& out, const Frame& frame) {
     const int width = static_cast<int>(frame.width);
     const int height = static_cast<int>(frame.height);
-    GrayImage out(width, height);
+    detail::acquire_image(out, width, height);
 
     const std::size_t step = bytes_per_pixel(frame.format);
     const std::size_t row_bytes = frame.row_bytes();
@@ -52,6 +53,11 @@ GrayImage luma_from_frame(const Frame& frame) {
             dest[x] = static_cast<std::uint8_t>(luma >> 8U);
         }
     }
+}
+
+GrayImage luma_from_frame(const Frame& frame) {
+    GrayImage out;
+    detail::luma_into(out, frame);
     return out;
 }
 
@@ -86,6 +92,39 @@ GrayImage shrink(const GrayImage& image, int max_long_side, int& factor) {
         }
     }
     return out;
+}
+
+void detail::shrink_into(GrayImage& out, const GrayImage& image, int max_long_side, int& factor) {
+    const int long_side = std::max(image.width, image.height);
+    factor = 1;
+    if (max_long_side > 0 && long_side > max_long_side) {
+        factor = (long_side + max_long_side - 1) / max_long_side;
+    }
+    if (factor == 1) {
+        // The source already fits: the reader uses it as it is, no copy.
+        return;
+    }
+
+    const int width = std::max(1, image.width / factor);
+    const int height = std::max(1, image.height / factor);
+    detail::acquire_image(out, width, height);
+    for (int y = 0; y < height; ++y) {
+        // A block is whole except where the picture is smaller than a block.
+        const int rows = std::min(factor, image.height - y * factor);
+        for (int x = 0; x < width; ++x) {
+            const int columns = std::min(factor, image.width - x * factor);
+            unsigned sum = 0;
+            for (int dy = 0; dy < rows; ++dy) {
+                const std::uint8_t* row =
+                    image.pixels.data() + image.index(x * factor, y * factor + dy);
+                for (int dx = 0; dx < columns; ++dx) {
+                    sum += row[dx];
+                }
+            }
+            const unsigned block = static_cast<unsigned>(rows) * static_cast<unsigned>(columns);
+            out.at(x, y) = static_cast<std::uint8_t>((sum + block / 2U) / block);
+        }
+    }
 }
 
 double sample(const GrayImage& image, double x, double y) noexcept {

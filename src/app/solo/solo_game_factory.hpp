@@ -25,10 +25,9 @@ public:
 };
 
 // The game the application plays: the installed maker's, which is the library's
-// session over a phase (RealSoloGame, set up by SoloGameSetup) when the program
-// was given a phase to play; otherwise FakeSoloGame. The repository has no phase
-// to give it (the literacy review has not happened), so without one the fake is
-// what is played. This is the one place that decides. See solo_game.hpp.
+// session (RealSoloGame, set up by SoloGameSetup); the program installs its
+// maker before the engine loads (main.cpp). With none installed, the tests'
+// FakeSoloGame. This is the one place that decides. See solo_game.hpp.
 [[nodiscard]] std::unique_ptr<SoloGame> make_solo_game();
 
 }  // namespace wjs::app

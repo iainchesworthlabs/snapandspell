@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <initializer_list>
@@ -685,6 +686,30 @@ TEST_CASE("help points at a tile the word can be traced from", "[rules]") {
 
     CHECK(helps == viable.size());
     CHECK(wjs::is_cleared(viable, found));
+}
+
+TEST_CASE("the words left of a start count the ones that begin with its tiles", "[rules]") {
+    // SAT and SIT begin on the same tile; PAT begins on the next tile of the
+    // same row; NAP is on a path of its own.
+    const std::vector<wjs::FoundWord> viable = {along("SAT", 0, 0), along("SIT", 0, 0),
+                                                along("PAT", 0, 1), along("NAP", 0, 2)};
+    const wjs::FoundWords none;
+    CHECK(wjs::words_starting_with(viable, none, {}) == 0);
+    CHECK(wjs::words_starting_with(viable, none, std::array<Position, 1>{Position{0, 0}}) == 2);
+    CHECK(wjs::words_starting_with(viable, none, std::array<Position, 1>{Position{0, 1}}) == 1);
+    CHECK(wjs::words_starting_with(viable, none, std::array<Position, 1>{Position{3, 3}}) == 0);
+    // The first two tiles narrow the count to the words that share them.
+    CHECK(wjs::words_starting_with(viable, none,
+                                   std::array<Position, 2>{Position{0, 0}, Position{0, 1}}) == 2);
+    CHECK(wjs::words_starting_with(viable, none,
+                                   std::array<Position, 2>{Position{0, 1}, Position{0, 2}}) == 1);
+
+    // A word found is not counted among the ones left; nothing else changes.
+    wjs::FoundWords found;
+    found.insert("SAT");
+    CHECK(wjs::words_starting_with(viable, found, std::array<Position, 1>{Position{0, 0}}) == 1);
+    found.insert("SIT");
+    CHECK(wjs::words_starting_with(viable, found, std::array<Position, 1>{Position{0, 0}}) == 0);
 }
 
 // --- 4. whether the board is cleared -----------------------------------------

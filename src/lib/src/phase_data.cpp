@@ -2,12 +2,15 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <fstream>
 #include <map>
 #include <optional>
 #include <set>
 #include <system_error>
 #include <utility>
+
+#include "wjs/profiling.hpp"
 
 namespace wjs {
 namespace {
@@ -98,7 +101,7 @@ constexpr std::size_t key_source = 3;
 // What one token of a word line after the word is: a grapheme, the first half
 // of a split digraph or its second half, with the sound it picks if it says.
 struct Piece {
-    enum class Kind { whole, open, close };
+    enum class Kind : std::uint8_t { whole, open, close };
 
     Kind kind = Kind::whole;
     std::string letters;  // without the underscore or the number
@@ -156,7 +159,7 @@ struct Piece {
 // `/.../`: slashes round at least one character, none inside.
 [[nodiscard]] bool is_sound(std::string_view text) noexcept {
     return text.size() >= 3 && text.front() == '/' && text.back() == '/' &&
-           text.substr(1, text.size() - 2).find('/') == std::string_view::npos;
+           !text.substr(1, text.size() - 2).contains('/');
 }
 
 // YYYY-MM-DD, and a day that the month has.
@@ -293,7 +296,7 @@ void check_header(const PhaseHeader& header, const HeaderSeen& seen, const Repor
 // Windows editor taken off. `#` lines go to the header; the rest, trimmed and
 // not blank, go to `visit(line_number, text)`.
 template <typename Visit>
-void read_file(std::istream& in, PhaseHeader& header, const Report& report, Visit&& visit) {
+void read_file(std::istream& in, PhaseHeader& header, const Report& report, Visit visit) {
     HeaderSeen seen;
     std::string raw;
     std::size_t number = 0;
@@ -586,6 +589,9 @@ const Grapheme* PhaseIndex::find_grapheme(std::string_view letters) const {
 std::span<const Grapheme> PhaseIndex::sounds_of(std::string_view letters) const {
     const std::string key = lower(letters);
     const auto range = std::ranges::equal_range(graphemes_, key, {}, &Grapheme::letters);
+    // The iterators point into graphemes_, a member of this object, so the span
+    // is valid for as long as the PhaseIndex is.
+    // NOLINTNEXTLINE(bugprone-dangling-handle)
     return {range.begin(), range.end()};
 }
 
@@ -745,6 +751,8 @@ std::expected<PhaseSet, DataProblems> PhaseSet::build(const std::vector<Grapheme
 
 std::expected<PhaseSet, DataProblems> PhaseSet::load_directory(
     const std::filesystem::path& directory, const Dictionary& english) {
+    auto zone = profiling::zone<"data.load_phase">();
+
     DataProblems problems;
     const auto fail = [&](const std::string& file, std::string message) {
         problems.push_back({file, 0, std::move(message)});
@@ -812,7 +820,17 @@ std::expected<PhaseSet, DataProblems> PhaseSet::load_directory(
     if (!problems.empty()) {
         return std::unexpected(std::move(problems));
     }
-    return build(grapheme_files, word_files, english);
+    auto phases = build(grapheme_files, word_files, english);
+    if (phases) {
+        // The words the phases hold, every one of them: the figure a trace
+        // reads next to the time the directory took.
+        std::uint64_t words = 0;
+        for (const PhaseIndex& phase : phases->phases()) {
+            words += static_cast<std::uint64_t>(phase.words().size());
+        }
+        zone.Value(words);
+    }
+    return phases;
 }
 
 }  // namespace wjs

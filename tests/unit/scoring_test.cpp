@@ -17,6 +17,21 @@ TEST_CASE("standard Boggle scoring follows the printed rules", "[scoring]") {
     CHECK(wjs::score_word(std::string(12, 'A'), scheme) == 11);
 }
 
+TEST_CASE("child-facing word points reward length and rare letters", "[scoring]") {
+    // 3 letters: 10 + C3 A1 T1.
+    CHECK(wjs::word_points("CAT") == 15);
+    // 4 letters: 20 + R1 A1 T1 E1.
+    CHECK(wjs::word_points("RATE") == 24);
+    // 6 letters: 55 + S1 P3 L1 A1 S1 H4 + 10 for the sixth letter.
+    CHECK(wjs::word_points("SPLASH") == 76);
+    // 6 letters: 55 + Q10 U1 A1 R1 T1 Z10 + 10 for the sixth letter.
+    CHECK(wjs::word_points("QUARTZ") == 89);
+    // 8 letters: 110 + 10 + 30 for the letters past five.
+    CHECK(wjs::word_points("CARESSES") == 150);
+    CHECK(wjs::word_points("at") == 0);
+    CHECK(wjs::word_points("") == 0);
+}
+
 TEST_CASE("letter-rarity scoring rewards rare letters", "[scoring]") {
     using wjs::ScoringScheme;
     const auto scheme = ScoringScheme::letter_rarity;

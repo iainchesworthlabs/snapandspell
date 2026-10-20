@@ -1,9 +1,11 @@
 #include "solo_model.hpp"
 
+#include <QSignalBlocker>
 #include <QVariantMap>
 #include <utility>
 
 #include "solo_game_factory.hpp"
+#include "wjs/profiling.hpp"
 
 namespace wjs::app {
 namespace {
@@ -29,6 +31,7 @@ namespace {
     map.insert(QStringLiteral("word"), to_qstring(found.word));
     map.insert(QStringLiteral("tier"), tier_name(found.tier));
     map.insert(QStringLiteral("stars"), found.stars);
+    map.insert(QStringLiteral("points"), found.points);
     return map;
 }
 
@@ -41,6 +44,29 @@ namespace {
     return tiles;
 }
 
+[[nodiscard]] QVariantList faces_list(const SoloBoard& board) {
+    QVariantList list;
+    list.reserve(static_cast<qsizetype>(board.faces.size()));
+    for (const auto& die : board.faces) {
+        QStringList sides;
+        sides.reserve(static_cast<qsizetype>(die.size()));
+        for (const std::string& face : die) {
+            sides.append(to_qstring(face));
+        }
+        list.append(sides);
+    }
+    return list;
+}
+
+[[nodiscard]] QVariantList up_list(const SoloBoard& board) {
+    QVariantList list;
+    list.reserve(static_cast<qsizetype>(board.up.size()));
+    for (const int face : board.up) {
+        list.append(face);
+    }
+    return list;
+}
+
 }  // namespace
 
 SoloModel::SoloModel(QObject* parent) : SoloModel(make_solo_game(), parent) {}
@@ -48,13 +74,21 @@ SoloModel::SoloModel(QObject* parent) : SoloModel(make_solo_game(), parent) {}
 SoloModel::SoloModel(std::unique_ptr<SoloGame> game, QObject* parent)
     : QObject(parent), game_(std::move(game)) {
     refreshHistory();
+    // The board's clock ticks once a second while the screen says so
+    // (clockActive); the seconds are the model's, so a test can call
+    // tickClock() itself and never wait for a second of wall time.
+    clock_timer_.setInterval(1000);
+    clock_timer_.setTimerType(Qt::CoarseTimer);
+    QObject::connect(&clock_timer_, &QTimer::timeout, this, &SoloModel::tickClock);
     // A game that is not in the box was brought back from the run before: the board
     // is on the table already, with no shake to deal it, so what a shake sets up is
-    // set up here (the touch geometry, and the tile the help had lit).
+    // set up here (the touch geometry, the tile the help had lit, and the board's
+    // clock).
     if (game_->state() != SoloState::box) {
         ++board_version_;
         resetTracer();
         refreshHelp();
+        startClock();
     }
 }
 
@@ -89,7 +123,33 @@ int SoloModel::columns() const {
 }
 
 QStringList SoloModel::tiles() const {
-    return tile_list(game_->board());
+    if (board_dirty_) {
+        tiles_cache_ = tile_list(game_->board());
+        faces_cache_ = faces_list(game_->board());
+        up_cache_ = up_list(game_->board());
+        board_dirty_ = false;
+    }
+    return tiles_cache_;
+}
+
+QVariantList SoloModel::faces() const {
+    if (board_dirty_) {
+        tiles_cache_ = tile_list(game_->board());
+        faces_cache_ = faces_list(game_->board());
+        up_cache_ = up_list(game_->board());
+        board_dirty_ = false;
+    }
+    return faces_cache_;
+}
+
+QVariantList SoloModel::up() const {
+    if (board_dirty_) {
+        tiles_cache_ = tile_list(game_->board());
+        faces_cache_ = faces_list(game_->board());
+        up_cache_ = up_list(game_->board());
+        board_dirty_ = false;
+    }
+    return up_cache_;
 }
 
 uint SoloModel::seed() const {
@@ -113,35 +173,109 @@ QString SoloModel::lettersAt(Position position) const {
     return to_qstring(board.tile(position));
 }
 
+// The signal, and the cache flag that goes with it: the getter rebuilds the
+// list on the first read after this, and unchanged reads are free.
+void SoloModel::markPathChanged() {
+    path_dirty_ = true;
+    blocks_dirty_ = true;
+    emit pathChanged();
+}
+
+void SoloModel::markBoardChanged() {
+    board_dirty_ = true;
+    emit boardChanged();
+}
+
+void SoloModel::markFoundChanged() {
+    found_dirty_ = true;
+    emit foundChanged();
+}
+
 QVariantList SoloModel::path() const {
-    return indices(tracer_.path());
+    // Built once per change, read many times: the screens read `path` once a
+    // tile and once a path line, and a rebuild per read is the pointer's jank.
+    // The zone is the one build, which nests inside the QML seam's `ui.trace`.
+    if (path_dirty_) {
+        const auto zone = wjs::profiling::zone<"solo.path">();
+        path_cache_ = indices(tracer_.path());
+        path_dirty_ = false;
+    }
+    return path_cache_;
 }
 
 QVariantList SoloModel::blocks() const {
-    QVariantList list;
-    if (tracer_.path().empty()) {
-        return list;
+    if (blocks_dirty_) {
+        const auto zone = wjs::profiling::zone<"solo.blocks">();
+        QVariantList list;
+        if (!tracer_.path().empty()) {
+            for (const auto& block : game_->blocks(tracer_.path())) {
+                QVariantMap map;
+                map.insert(QStringLiteral("first"), static_cast<int>(block.first));
+                map.insert(QStringLiteral("tiles"), static_cast<int>(block.tiles));
+                map.insert(QStringLiteral("grapheme"), to_qstring(block.grapheme));
+                list.append(map);
+            }
+        }
+        blocks_cache_ = std::move(list);
+        blocks_dirty_ = false;
     }
-    for (const auto& block : game_->blocks(tracer_.path())) {
-        QVariantMap map;
-        map.insert(QStringLiteral("first"), static_cast<int>(block.first));
-        map.insert(QStringLiteral("tiles"), static_cast<int>(block.tiles));
-        map.insert(QStringLiteral("grapheme"), to_qstring(block.grapheme));
-        list.append(map);
-    }
-    return list;
+    return blocks_cache_;
 }
 
 QVariantList SoloModel::found() const {
-    QVariantList list;
-    for (const auto& entry : game_->found()) {
-        list.append(found_map(entry));
+    if (found_dirty_) {
+        QVariantList list;
+        for (const auto& entry : game_->found()) {
+            list.append(found_map(entry));
+        }
+        found_cache_ = std::move(list);
+        found_dirty_ = false;
     }
-    return list;
+    return found_cache_;
+}
+
+int SoloModel::boardPoints() const {
+    int total = 0;
+    for (const auto& entry : game_->found()) {
+        total += entry.points;
+    }
+    return total;
+}
+
+int SoloModel::boardStars() const {
+    int total = 0;
+    for (const auto& entry : game_->found()) {
+        total += entry.stars;
+    }
+    return total;
 }
 
 bool SoloModel::helpAllowed() const {
-    return game_->helpAllowed();
+    return game_->helpAllowed() && help_level_ != HelpLevel::off;
+}
+
+QString SoloModel::helpLevel() const {
+    const std::string_view name = to_string(help_level_);
+    return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
+}
+
+void SoloModel::setHelpLevel(const QString& level) {
+    const std::string name = level.toStdString();
+    const auto parsed = wjs::help_level_from_string(name);
+    if (!parsed || *parsed == help_level_) {
+        return;
+    }
+    help_level_ = *parsed;
+    if (help_level_ == HelpLevel::off) {
+        // The parent took the help away: the rings and the card go with it.
+        help_tile_ = -1;
+        hint_level_ = 0;
+        hint_tiles_.clear();
+        hint_resolved_ = false;
+        hint_remaining_ = -1;
+        hint_hidden_ = false;
+    }
+    emit helpChanged();
 }
 
 int SoloModel::helpTile() const {
@@ -149,6 +283,9 @@ int SoloModel::helpTile() const {
 }
 
 void SoloModel::refreshHistory() {
+    // Every stored board is parsed here, on the GUI thread, so the sheet's
+    // open is not a stall; the zone is the whole rebuild.
+    const auto zone = wjs::profiling::zone<"solo.history">();
     QVariantList list;
     for (const auto& entry : game_->history()) {
         QVariantMap map;
@@ -168,11 +305,28 @@ void SoloModel::refreshHistory() {
 
 void SoloModel::refreshHelp() {
     int tile = -1;
-    if (const auto lit = game_->litTile()) {
-        tile = static_cast<int>(lit->row * game_->board().columns + lit->column);
+    // A hidden help stays hidden: the session still lights its word (for the
+    // assisted-find record), but the screens show no ring until the next
+    // press lights one again.
+    if (!hint_hidden_) {
+        if (const auto lit = game_->litTile()) {
+            tile = static_cast<int>(lit->row * game_->board().columns + lit->column);
+        }
     }
+    bool changed = false;
     if (tile != help_tile_) {
         help_tile_ = tile;
+        changed = true;
+    }
+    // A find clears the word the help was for. Take the hint away with it, so
+    // the next press starts at the first rung on a new word rather than leaving
+    // two rings on the board with nothing to explain them.
+    if (tile < 0 && (hint_level_ != 0 || !hint_tiles_.isEmpty())) {
+        hint_level_ = 0;
+        hint_tiles_.clear();
+        changed = true;
+    }
+    if (changed) {
         emit helpChanged();
     }
 }
@@ -186,7 +340,99 @@ void SoloModel::resetTracer() {
     }
     tracer_.setBoard(board.rows, board.columns, std::move(usable));
     last_path_size_ = 0;
-    emit pathChanged();
+    markPathChanged();
+}
+
+// --- the board's clock --------------------------------------------------------
+
+QString SoloModel::clockMode() const {
+    const std::string_view name = to_string(clock_mode_);
+    return QString::fromUtf8(name.data(), static_cast<qsizetype>(name.size()));
+}
+
+int SoloModel::clockMinutes() const {
+    return clock_minutes_;
+}
+
+bool SoloModel::clockActive() const {
+    return clock_active_;
+}
+
+int SoloModel::clockSeconds() const {
+    return clock_seconds_;
+}
+
+QString SoloModel::clockText() const {
+    const int minutes = clock_seconds_ / 60;
+    const int seconds = clock_seconds_ % 60;
+    return QStringLiteral("%1:%2").arg(minutes).arg(seconds, 2, 10, QLatin1Char('0'));
+}
+
+void SoloModel::setClockMode(const QString& mode) {
+    const std::string name = mode.toStdString();
+    const auto parsed = wjs::solo_clock_from_string(name);
+    if (!parsed) {
+        return;
+    }
+    if (*parsed == clock_mode_) {
+        return;
+    }
+    clock_mode_ = *parsed;
+    startClock();
+    emit clockChanged();
+}
+
+void SoloModel::setClockMinutes(int minutes) {
+    if (minutes <= 0 || minutes == clock_minutes_) {
+        return;
+    }
+    clock_minutes_ = minutes;
+    startClock();
+    emit clockChanged();
+}
+
+void SoloModel::setClockActive(bool active) {
+    if (active == clock_active_) {
+        return;
+    }
+    clock_active_ = active;
+    if (clock_active_ && clock_mode_ != SoloClock::off && !clock_expired_) {
+        clock_timer_.start();
+    } else {
+        clock_timer_.stop();
+    }
+    emit clockChanged();
+}
+
+// A new board: the clock reads the start of the round (nothing played, or the
+// whole count-down still ahead), and an ended count-down can end again.
+void SoloModel::startClock() {
+    clock_expired_ = false;
+    clock_seconds_ = clock_mode_ == SoloClock::count_down ? clock_minutes_ * 60 : 0;
+    if (clock_active_ && clock_mode_ != SoloClock::off) {
+        clock_timer_.start();
+    } else {
+        clock_timer_.stop();
+    }
+    emit clockSecondsChanged();
+}
+
+void SoloModel::tickClock() {
+    if (!clock_active_ || clock_mode_ == SoloClock::off || clock_expired_) {
+        return;
+    }
+    if (clock_mode_ == SoloClock::count_up) {
+        ++clock_seconds_;
+    } else {
+        --clock_seconds_;
+    }
+    emit clockSecondsChanged();
+    if (clock_mode_ == SoloClock::count_down && clock_seconds_ <= 0) {
+        clock_seconds_ = 0;
+        clock_expired_ = true;
+        clock_timer_.stop();
+        emit clockExpired();
+    }
 }
 
 // --- the box ----------------------------------------------------------------
@@ -209,10 +455,16 @@ void SoloModel::shake() {
     presenting_ = false;
     lit_path_.clear();
     help_tile_ = -1;
+    hint_level_ = 0;
+    hint_tiles_.clear();
+    hint_resolved_ = false;
+    hint_remaining_ = -1;
+    hint_hidden_ = false;
     ++board_version_;
     resetTracer();
-    emit boardChanged();
-    emit foundChanged();
+    startClock();
+    markBoardChanged();
+    markFoundChanged();
     emit helpChanged();
     emit litPathChanged();
     emit stateChanged();
@@ -245,7 +497,7 @@ void SoloModel::applyEvent(PathTracer::Event event) {
                 emit cue(QStringLiteral("tile"), lettersAt(tracer_.path()[i]));
             }
             last_path_size_ = size;
-            emit pathChanged();
+            markPathChanged();
             return;
         }
         case PathTracer::Event::submit:
@@ -255,11 +507,16 @@ void SoloModel::applyEvent(PathTracer::Event event) {
 }
 
 void SoloModel::submitPath() {
+    // The whole synchronous moment of a word handed in: the tracer, the game's
+    // answer and (in the real game) the store's writes, which the profile of
+    // this zone shows. The value is the path's tiles.
+    auto zone = wjs::profiling::zone<"solo.submit">();
     const std::vector<Position> path = tracer_.path();
     const QVariantList traced_path = indices(path);
+    zone.Value(static_cast<std::uint64_t>(traced_path.size()));
     tracer_.clear();
     last_path_size_ = 0;
-    emit pathChanged();
+    markPathChanged();
 
     const auto outcome = game_->submit(path);
     switch (outcome.kind) {
@@ -267,7 +524,30 @@ void SoloModel::submitPath() {
             presenting_ = true;
             lit_path_ = traced_path;
             emit litPathChanged();
-            emit foundChanged();
+            markFoundChanged();
+            // The help: a find made from its start answers it - the rings are
+            // put away, and the panel says whether the start still leads to
+            // more of the board's words (a count, never a word).
+            const bool from_hint_start = hint_level_ >= 1 && help_tile_ >= 0 &&
+                                         !traced_path.isEmpty() &&
+                                         traced_path.constFirst().toInt() == help_tile_;
+            if (from_hint_start) {
+                std::vector<Position> prefix;
+                const std::size_t columns = game_->board().columns;
+                const auto position_of = [columns](const QVariant& tile) {
+                    const int index = tile.toInt();
+                    return Position{static_cast<std::size_t>(index) / columns,
+                                    static_cast<std::size_t>(index) % columns};
+                };
+                prefix.push_back(position_of(help_tile_));
+                if (hint_level_ >= 2 && hint_tiles_.size() >= 2) {
+                    prefix.push_back(position_of(hint_tiles_.at(1)));
+                }
+                hint_remaining_ = static_cast<int>(game_->wordsWithStart(prefix));
+                hint_resolved_ = true;
+                hint_hidden_ = false;
+                game_->dismissHelp();
+            }
             refreshHelp();
             emit stateChanged();
             emit traced(QStringLiteral("word"), traced_path, to_qstring(outcome.found.word),
@@ -294,8 +574,14 @@ void SoloModel::pressAt(qreal x, qreal y) {
     if (game_->state() != SoloState::playing || presenting_) {
         return;
     }
+    // The finger going down is pointerDownChanged, not pathChanged: a press
+    // that adds a tile is told once by applyEvent, and a press that adds
+    // nothing does not rebuild the path's display at all.
+    const bool was_down = tracer_.pointerDown();
     applyEvent(tracer_.press({x, y}));
-    emit pathChanged();
+    if (tracer_.pointerDown() != was_down) {
+        emit pointerDownChanged();
+    }
 }
 
 void SoloModel::moveTo(qreal x, qreal y) {
@@ -306,13 +592,16 @@ void SoloModel::moveTo(qreal x, qreal y) {
 }
 
 void SoloModel::releaseAt(qreal x, qreal y, bool inside) {
+    const bool was_down = tracer_.pointerDown();
     if (game_->state() != SoloState::playing || presenting_) {
         // A finger lifted over a word being shown still lets go of the tracer.
         applyEvent(tracer_.release({x, y}, false));
-        return;
+    } else {
+        applyEvent(tracer_.release({x, y}, inside));
     }
-    applyEvent(tracer_.release({x, y}, inside));
-    emit pathChanged();
+    if (tracer_.pointerDown() != was_down) {
+        emit pointerDownChanged();
+    }
 }
 
 void SoloModel::tapTile(int index) {
@@ -336,7 +625,11 @@ void SoloModel::removeLast() {
 }
 
 void SoloModel::clearPath() {
+    const bool was_down = tracer_.pointerDown();
     applyEvent(tracer_.clear());
+    if (tracer_.pointerDown() != was_down) {
+        emit pointerDownChanged();
+    }
 }
 
 // --- the moments the screens time ----------------------------------------------
@@ -366,11 +659,55 @@ void SoloModel::celebrated() {
 // --- help, and the ways out ----------------------------------------------------
 
 void SoloModel::askHelp() {
-    if (game_->state() != SoloState::playing || presenting_ || !game_->helpAllowed()) {
+    if (game_->state() != SoloState::playing || presenting_ || !helpAllowed()) {
         return;
     }
-    game_->startTile();
-    refreshHelp();
+
+    // A new press starts a new question: the answer of the last one is put away.
+    hint_resolved_ = false;
+    hint_remaining_ = -1;
+
+    if (hint_level_ == 0) {
+        // Rung one: the start tile. The library chooses the word; the model
+        // only says how much of it is lit. The tile and the rung are one
+        // change to the screen, so the refresh's own notification is held
+        // back and the one below covers both.
+        hint_hidden_ = false;
+        const auto tile = game_->startTile();
+        {
+            const QSignalBlocker blocker(this);
+            refreshHelp();
+        }
+        if (tile) {
+            hint_level_ = 1;
+            hint_tiles_.clear();
+            hint_tiles_.append(static_cast<int>(tile->row * game_->board().columns + tile->column));
+        }
+        emit helpChanged();
+        return;
+    }
+
+    if (hint_level_ == 1 && help_level_ == HelpLevel::two_letters) {
+        // Rung two: the first two tiles of the same word. This is deliberately
+        // not the word: the child still has to see the rest and trace it.
+        const std::vector<Position> path = game_->helpPath();
+        if (path.size() >= 2) {
+            hint_level_ = 2;
+            hint_tiles_ = indices(path).mid(0, 2);
+            emit helpChanged();
+        }
+        return;
+    }
+
+    // Put it away: the child asked for help, looked, and wants the board quiet
+    // again - or the parent's level stops at the start tile, so the next press
+    // hides it. The session's lit word stays for the assisted-find record, but
+    // the rings and the card go, and stay gone until the next press.
+    hint_hidden_ = true;
+    hint_level_ = 0;
+    hint_tiles_.clear();
+    help_tile_ = -1;
+    emit helpChanged();
 }
 
 void SoloModel::lidOn() {
@@ -381,10 +718,23 @@ void SoloModel::lidOn() {
     presenting_ = false;
     lit_path_.clear();
     help_tile_ = -1;
+    hint_level_ = 0;
+    hint_tiles_.clear();
+    hint_resolved_ = false;
+    hint_remaining_ = -1;
+    hint_hidden_ = false;
+    const bool was_down = tracer_.pointerDown();
     tracer_.clear();
     game_->lidOn();
     refreshHistory();
-    emit pathChanged();
+    // The board is over: its clock is put away with it.
+    clock_timer_.stop();
+    clock_seconds_ = 0;
+    emit clockSecondsChanged();
+    markPathChanged();
+    if (tracer_.pointerDown() != was_down) {
+        emit pointerDownChanged();
+    }
     emit litPathChanged();
     emit helpChanged();
     emit stateChanged();
@@ -397,6 +747,11 @@ void SoloModel::again() {
     }
     presenting_ = false;
     help_tile_ = -1;
+    hint_level_ = 0;
+    hint_tiles_.clear();
+    hint_resolved_ = false;
+    hint_remaining_ = -1;
+    hint_hidden_ = false;
     game_->again();
     refreshHistory();
     emit helpChanged();
@@ -423,16 +778,22 @@ void SoloModel::renewGameIfDue() {
     game_ = make_solo_game();
     presenting_ = false;
     help_tile_ = -1;
+    hint_level_ = 0;
+    hint_tiles_.clear();
+    hint_resolved_ = false;
+    hint_remaining_ = -1;
+    hint_hidden_ = false;
     lit_path_.clear();
     if (game_->state() != SoloState::box) {
         ++board_version_;
+        startClock();
     }
     resetTracer();
     refreshHelp();
     refreshHistory();
     emit sizeChanged();
-    emit boardChanged();
-    emit foundChanged();
+    markBoardChanged();
+    markFoundChanged();
     emit helpChanged();
     emit litPathChanged();
     emit stateChanged();

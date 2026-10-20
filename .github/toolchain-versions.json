@@ -1,0 +1,16 @@
+{
+  "$comment": "The toolchain the CI build legs and the nightly analysis jobs are pinned to, in one place. tests/toolchain/check_versions.cmake fails if .github/workflows/ci.yml, .github/workflows/analysis.yml, .github/requirements/analysis.txt or the vcpkg pin drifts from this file (docs/ci.md). qt.action is the install-qt-action pin; qt.aqtsource is the aqtinstall commit it installs from git instead of PyPI, because Qt split the Windows repository per architecture from 6.11 and the last PyPI release (3.3.0) cannot read it (docs/ci.md, 'Qt on the Windows leg').",
+  "cmake": "4.4.2",
+  "ninja": "1.13.2",
+  "clang-tidy": "22.1.8",
+  "qt": {
+    "version": "6.12.0",
+    "kit": "win64_msvc2022_64",
+    "modules": "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech",
+    "action": "jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125",
+    "aqtsource": "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+  },
+  "vcpkg": {
+    "pin_file": "cmake/vcpkg-commit.txt"
+  }
+}

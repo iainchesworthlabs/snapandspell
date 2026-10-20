@@ -67,18 +67,20 @@ the app reads it with OCR and does not mix letters.
 | --- | --- | --- |
 | The printed faces of a set the author owns | Facts read off an object | Whether a set's letters, as a selection, can belong to someone is a legal question and is **not answered here** ([L]) |
 | A list found online | Unknown origin | Not usable. `data/README.md` says "Do not add a list whose origin you cannot state" |
-| Made by this project from letter counts | The project's own work, from the list the repository already records as public domain | Clean |
+| Made by this project from a fixed English letter-frequency table | The project's own work, from published Scrabble-style tile counts | Clean |
 
-The third is the recommendation. A tool in `tools/data` would count the
-letters of `data/dictionaries/en.txt`, deal 6 faces to each die in proportion
-to the counts (no die repeating a letter, a vowel on each), check the dice by
-rolling them 1,000 times (seeded) against the solver, and write
-`data/dice/<n>x<n>.txt` with the source, its SHA-256 and the seed in the header,
-as `data/README.md` requires. Nothing here gives a distribution of letters, and
-the numbers inside that tool are outputs of its tuning, not inputs. In the
-scanner the real dice are read from the table, so no product's distribution is
-needed at all. Boggle is another company's name: public text should say "a
-word-finding game" ([L]).
+The third is the recommendation and is what is built. `tools/data/make_dice.ps1`
+deals six different faces to each die in proportion to the fixed table
+(A9 B2 C2 D4 E12 ... Z1, the 100-tile English counts with the two blanks not
+counted), with one to three vowels and at most one of J K Q V X Z on a die. Q is
+the tile QU. A set is dealt again unless 30% to 40% of its faces are vowels and S
+is at most 8% of them, so a small board has letters that make words rather than
+a heap of plurals. It writes `data/dice/<n>x<n>.txt` with the table, the method
+and the seed in the header, as `data/README.md` requires. Nothing here copies a
+product's distribution of letters: the table is published frequency data, not a
+printed die set. In the scanner the real dice are read from the table, so no
+product's distribution is needed at all. Boggle is another company's name:
+public text should say "a word-finding game" ([L]).
 
 **Fact, measured, so the open dictionary can be designed later.** Share of
 boards a floor of K known words would reject, on the test corpus:
@@ -245,12 +247,22 @@ choice (the dice-and-faces design page, on its own branch at the time of
 writing); the scene takes whatever six it is given.
 
 The faces of a board are drawn into one texture, which the frame in which the
-board arrives would otherwise make and draw. The scene therefore also takes an
-optional `scene.prepare(board)`, with the board about to be played, a frame or
-more before `play` or `show` of it: it draws the texture ahead and changes
-nothing on screen. A board that was not prepared is drawn when it arrives, so
-the meaning of `play` and `show` is the same with or without it. What it saves
-is in [Shake prototype](shake-prototype.md#the-real-faces).
+board arrives would otherwise make and draw. The scene therefore also takes
+`scene.prepare(board)`, with the board about to be played, a frame or more before
+`play` or `show` of it: it draws the texture ahead and changes nothing on screen.
+A board that was not prepared is drawn when it arrives, so the meaning of `play`
+and `show` is the same with or without it. What it saves is in
+[Shake prototype](shake-prototype.md#the-real-faces). The application gives the
+dealt board to `prepare` and starts the play on the next frame.
+
+**Built.** `SoloBoard` (`src/app/solo/solo_game.hpp`) carries `faces` and `up`
+beside the tiles. `RealSoloGame::board()` takes them from
+`wjs::roll_with_placements` with the dealt board's seed on the standard board;
+the phonics board and the fake game carry none, and a game brought back from the
+store carries none (its board's roll seed was not kept). The scene is the QML
+module `WordJewelsSolver.Scene` (`src/app/scene`, QML in
+`src/app/qml/scene/`), and the 2D implementation of the same interface is kept
+at `src/app/qml/scene/fallback/` for D2 and is not built.
 
 ### Rendered 3D, or drawn in 2D
 
@@ -285,17 +297,20 @@ what Cubeulator has. The cost comes only at a store submission, so:
    seed, play the shake and the drop, and report when the dice are settled*.
    Nothing else in the application touches the scene; the game rules stay in the
    library.
-2. The scene is written in Qt Quick 3D first. A 2D implementation of the same
-   interface is the fallback if D2 goes the other way, and the tile, the path and
-   the panel are 2D in both.
+2. The scene is written in Qt Quick 3D first. **Built:** it is the QML module
+   `WordJewelsSolver.Scene`, used by Solo Play. A 2D implementation of the same
+   interface is kept for the fallback if D2 goes the other way
+   (`src/app/qml/scene/fallback/`, not built), and the tile, the path and the
+   panel are 2D in both.
 3. Before any store submission D2 is decided with the interface in hand, and the
    cost of B is a rewrite of one component, not of the game.
 
-What this commits the MVP to: Qt Quick 3D and Shader Tools are linked, so the MVP
-binary is GPL-3.0 only, which a private build does not mind and a store
+What this commits the MVP to: the application links Qt Quick 3D and Shader Tools,
+so a build of it is GPL-3.0 only, which a private build does not mind and a store
 submission would. It does not decide D2: that is taken before any store, with
-the seam in hand. Two more modules the product needs are not in the shared tree
-at all; see [Application design](application.md#qt-modules).
+the seam in hand. The feedback engines' modules (Multimedia, Sensors and
+TextToSpeech) are now in the shared kit and found optionally; see
+[Application design](application.md#qt-modules).
 
 ### How it is drawn
 

@@ -760,6 +760,12 @@ TEST_CASE("the help lights the start tile of the shortest word nearest the top l
     REQUIRE(tile.has_value());
     CHECK(*tile == Position{0, 0});
     CHECK(session.lit_tile() == tile);
+
+    // The path is the word's own, from the same first tile: the second rung of
+    // the help reads its first two tiles without being given the word.
+    const std::vector<Position> path = session.lit_path();
+    REQUIRE(path.size() >= 3);
+    CHECK(path.front() == *tile);
 }
 
 TEST_CASE("the same press gives the same tile until its word is found", "[session]") {
@@ -802,6 +808,34 @@ TEST_CASE("the help answers with a tile and never a word", "[session]") {
     const auto snapshot = session.snapshot();
     REQUIRE(snapshot.lit.has_value());
     CHECK(*snapshot.lit == "PAN");
+}
+
+TEST_CASE("the words left of a start count the ones that begin with it", "[session]") {
+    wjs::GameSession session = hand_session();
+    REQUIRE(session.request_help().has_value());  // PAN, from (0,0)
+
+    // PAN, PAT and PIN all begin at (0,0); NIP begins at (1,2). Nothing is
+    // found yet, so the count is all of them.
+    CHECK(session.words_with_start(std::array<Position, 1>{Position{0, 0}}) == 3);
+    CHECK(session.words_with_start(std::array<Position, 1>{Position{1, 2}}) == 1);
+    CHECK(session.words_with_start({}) == 0);
+
+    // The first two tiles narrow the count to the words that share them: PAN
+    // and PAT both run P-A, while PIN runs P-I.
+    const std::vector<Position> path = session.lit_path();
+    REQUIRE(path.size() >= 2);
+    const std::array<Position, 2> two{path[0], path[1]};
+    CHECK(session.words_with_start(two) == 2);
+
+    // A find is not among the ones left.
+    REQUIRE(session.trace(pan, 0).kind == TraceKind::found);
+    CHECK(session.words_with_start(std::array<Position, 1>{Position{0, 0}}) == 2);
+
+    // The help put away by hand: the light goes out, and nothing else changes.
+    REQUIRE(session.request_help().has_value());  // PAT
+    session.dismiss_help();
+    CHECK_FALSE(session.lit_tile().has_value());
+    CHECK(session.words_with_start(std::array<Position, 1>{Position{0, 0}}) == 2);
 }
 
 TEST_CASE("with the parent's switch off the help gives nothing", "[session]") {
@@ -2459,23 +2493,23 @@ TEST_CASE("the project's dice deal a board that holds a word at every size",
 
 TEST_CASE("the session deals the standard boards the library's deal does, pinned for two seeds",
           "[session][standard][data]") {
-    // Seeds 12345 and 43 of the 3x3 dice, as the deal's own tests pin them
+    // Seeds 12345 and 190 of the 3x3 dice, as the deal's own tests pin them
     // (deal_test.cpp): the first roll holds words; the second seed's first roll
-    // (D L M/P C S/G S S) holds none and is rolled again from the seed after it.
+    // (P N T/C N K/D N D) holds none and is rolled again from the seed after it.
     wjs::SessionOptions options;
     options.seed = 12345;
     wjs::GameSession plain = make_shipped(options);
     REQUIRE(plain.shake().has_value());
-    CHECK(text_of(*plain.board()) == "N J L/E H S/S U E");
+    CHECK(text_of(*plain.board()) == "O L R/D O U/W L B");
     CHECK(plain.last_deal()->rolls == 1U);
     CHECK(plain.last_deal()->seed == 12345U);
 
-    options.seed = 43;
+    options.seed = 190;
     wjs::GameSession again = make_shipped(options);
     REQUIRE(again.shake().has_value());
-    CHECK(text_of(*again.board()) == "S U G/D L S/M G I");
+    CHECK(text_of(*again.board()) == "T E R/F S Y/G T D");
     CHECK(again.last_deal()->rolls == 2U);
-    CHECK(again.last_deal()->seed == wjs::next_deal_seed(43));
+    CHECK(again.last_deal()->seed == wjs::next_deal_seed(190));
     CHECK(again.last_deal()->solves == 2U);
 }
 

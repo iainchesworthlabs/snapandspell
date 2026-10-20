@@ -1,0 +1,9 @@
+Word Jewels Solver {{VERSION}} - notices for the {{PLATFORM}} build
+=====================================================================
+
+This file is installed beside the programs as {{LOCATION}}. It is also embedded
+in the application as :/notices/NOTICES.txt, so the About screen shows the same
+text without a file to find.
+
+It covers the programs and data this build packages. Where a part is used only
+to build or test the project, and is not in a package, this file says so.

@@ -25,13 +25,22 @@ BoardMetrics board_metrics(double width, double height, std::size_t n) noexcept 
     return metrics;
 }
 
-SoloLayoutResult solo_layout(double width, double height, std::size_t n) noexcept {
+SoloLayoutResult solo_layout(double width, double height, std::size_t n,
+                             bool right_to_left) noexcept {
     SoloLayoutResult result;
     result.wide = width >= height;
     if (result.wide) {
         const double board_width = width * 2 / 3;
-        result.board_area = {0, 0, board_width, height};
-        result.panel_area = {board_width, 0, width - board_width, height};
+        if (right_to_left) {
+            // The panel takes the leading (left) side and the board the trailing
+            // (right) one. Only the areas swap: the board is drawn from its own
+            // top left in either direction.
+            result.panel_area = {0, 0, width - board_width, height};
+            result.board_area = {width - board_width, 0, board_width, height};
+        } else {
+            result.board_area = {0, 0, board_width, height};
+            result.panel_area = {board_width, 0, width - board_width, height};
+        }
     } else {
         const double board_height = height * 2 / 3;
         result.board_area = {0, 0, width, board_height};

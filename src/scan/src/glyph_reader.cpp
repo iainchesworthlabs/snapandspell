@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <span>
 
 #include "wjs/scan/stroke_font.hpp"
 #include "wjs/scan/work.hpp"
@@ -26,7 +27,9 @@ constexpr double kInkPercentile = 0.96;
 using PatchMap = std::array<float, kPatchPixels>;
 
 // The pixels of the patch inside its inscribed circle, and where they are, with
-// the patch's half-side as the unit.
+// the patch's half-side as the unit. There are at most kPatchPixels of them, so
+// the per-cell work below can keep its values in fixed arrays instead of
+// allocating a handful of vectors a cell.
 struct Circle {
     std::vector<std::size_t> pixel;
     std::vector<double> u;
@@ -55,6 +58,25 @@ const Circle& circle() {
     return c;
 }
 
+// The cosine and sine of each turn, computed once: the same values the reader
+// used to compute for every angle of every cell (96 trigonometic calls a cell).
+struct Trig {
+    double cos = 0.0;
+    double sin = 0.0;
+};
+
+const std::array<Trig, kAngles>& turns() {
+    static const std::array<Trig, kAngles> table = [] {
+        std::array<Trig, kAngles> t{};
+        for (int k = 0; k < kAngles; ++k) {
+            const double radians = k * kAngleStep * std::numbers::pi / 180.0;
+            t[static_cast<std::size_t>(k)] = {std::cos(radians), std::sin(radians)};
+        }
+        return t;
+    }();
+    return table;
+}
+
 // A 3 x 3 box blur of a patch map, its edge repeated.
 void blur3(PatchMap& map) {
     PatchMap out{};
@@ -76,7 +98,7 @@ void blur3(PatchMap& map) {
 
 // Takes the mean out of the values and scales them to a length of 1. False if
 // they have no variation to speak of.
-bool normalise(std::vector<float>& values) {
+bool normalise(std::span<float> values) {
     double sum = 0.0;
     for (const float x : values) {
         sum += static_cast<double>(x);
@@ -98,7 +120,7 @@ bool normalise(std::vector<float>& values) {
     return true;
 }
 
-float dot(const std::vector<float>& a, const std::vector<float>& b) {
+float dot(std::span<const float> a, std::span<const float> b) {
     float s0 = 0.0F;
     float s1 = 0.0F;
     float s2 = 0.0F;
@@ -141,7 +163,7 @@ std::vector<float> render_template(const StrokeGlyph& glyph) {
     for (std::size_t m = 0; m < values.size(); ++m) {
         values[m] = ink[c.pixel[m]];
     }
-    normalise(values);
+    normalise(std::span<float>(values));
     return values;
 }
 
@@ -154,9 +176,8 @@ struct Plane {
     [[nodiscard]] double at(double u, double v) const noexcept { return a + b * u + c * v; }
 };
 
-Plane fit_plane(const std::vector<double>& u, const std::vector<double>& v,
-                const std::vector<double>& z) {
-    double n = 0.0;
+Plane fit_plane(const double* u, const double* v, const double* z, std::size_t n) {
+    double count = 0.0;
     double su = 0.0;
     double sv = 0.0;
     double suu = 0.0;
@@ -165,8 +186,8 @@ Plane fit_plane(const std::vector<double>& u, const std::vector<double>& v,
     double sz = 0.0;
     double suz = 0.0;
     double svz = 0.0;
-    for (std::size_t k = 0; k < z.size(); ++k) {
-        n += 1.0;
+    for (std::size_t k = 0; k < n; ++k) {
+        count += 1.0;
         su += u[k];
         sv += v[k];
         suu += u[k] * u[k];
@@ -176,21 +197,21 @@ Plane fit_plane(const std::vector<double>& u, const std::vector<double>& v,
         suz += u[k] * z[k];
         svz += v[k] * z[k];
     }
-    if (n < 3.0) {
-        return {n > 0.0 ? sz / n : 0.0, 0.0, 0.0};
+    if (count < 3.0) {
+        return {count > 0.0 ? sz / count : 0.0, 0.0, 0.0};
     }
     const double det =
-        n * (suu * svv - suv * suv) - su * (su * svv - suv * sv) + sv * (su * suv - suu * sv);
+        count * (suu * svv - suv * suv) - su * (su * svv - suv * sv) + sv * (su * suv - suu * sv);
     if (std::abs(det) < 1e-9) {
-        return {sz / n, 0.0, 0.0};
+        return {sz / count, 0.0, 0.0};
     }
     // Cramer's rule on [[n su sv] [su suu suv] [sv suv svv]] (a b c) = (sz suz svz).
     const double da =
         sz * (suu * svv - suv * suv) - su * (suz * svv - suv * svz) + sv * (suz * suv - suu * svz);
     const double db =
-        n * (suz * svv - suv * svz) - sz * (su * svv - suv * sv) + sv * (su * svz - suz * sv);
+        count * (suz * svv - suv * svz) - sz * (su * svv - suv * sv) + sv * (su * svz - suz * sv);
     const double dc =
-        n * (suu * svz - suz * suv) - su * (su * svz - suz * sv) + sz * (su * suv - suu * sv);
+        count * (suu * svz - suz * suv) - su * (su * svz - suz * sv) + sz * (su * suv - suu * sv);
     return {da / det, db / det, dc / det};
 }
 
@@ -252,34 +273,42 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
     }
 
     // The die's own light: a plane through the brighter half of the circle. The
-    // glyph is well under half of it, so that half is die.
-    std::vector<double> values(count);
+    // glyph is well under half of it, so that half is die. The values live in
+    // fixed arrays: the circle holds at most kPatchPixels, so nothing is
+    // allocated for one cell.
+    std::array<double, kPatchPixels> values{};
     for (std::size_t m = 0; m < count; ++m) {
         values[m] = static_cast<double>(grey[c.pixel[m]]);
     }
-    std::vector<double> sorted = values;
-    std::ranges::nth_element(sorted, sorted.begin() + static_cast<std::ptrdiff_t>(count / 2));
+    std::array<double, kPatchPixels> sorted{};
+    std::copy_n(values.begin(), static_cast<std::ptrdiff_t>(count), sorted.begin());
+    std::ranges::nth_element(sorted.begin(),
+                             sorted.begin() + static_cast<std::ptrdiff_t>(count / 2),
+                             sorted.begin() + static_cast<std::ptrdiff_t>(count));
     const double median = sorted[count / 2];
-    std::vector<double> pu;
-    std::vector<double> pv;
-    std::vector<double> pz;
+    std::array<double, kPatchPixels> pu{};
+    std::array<double, kPatchPixels> pv{};
+    std::array<double, kPatchPixels> pz{};
+    std::size_t bright = 0;
     for (std::size_t m = 0; m < count; ++m) {
         if (values[m] >= median) {
-            pu.push_back(c.u[m]);
-            pv.push_back(c.v[m]);
-            pz.push_back(values[m]);
+            pu[bright] = c.u[m];
+            pv[bright] = c.v[m];
+            pz[bright] = values[m];
+            ++bright;
         }
     }
-    const Plane light = fit_plane(pu, pv, pz);
+    const Plane light = fit_plane(pu.data(), pv.data(), pz.data(), bright);
 
     // How deep each pixel is below that light, and how deep the ink is.
-    std::vector<double> depth(count);
+    std::array<double, kPatchPixels> depth{};
     for (std::size_t m = 0; m < count; ++m) {
         depth[m] = light.at(c.u[m], c.v[m]) - values[m];
     }
-    sorted = depth;
+    std::copy_n(depth.begin(), static_cast<std::ptrdiff_t>(count), sorted.begin());
     const auto rank = static_cast<std::size_t>(kInkPercentile * static_cast<double>(count - 1));
-    std::ranges::nth_element(sorted, sorted.begin() + static_cast<std::ptrdiff_t>(rank));
+    std::ranges::nth_element(sorted.begin(), sorted.begin() + static_cast<std::ptrdiff_t>(rank),
+                             sorted.begin() + static_cast<std::ptrdiff_t>(count));
     const double ink_depth = sorted[rank];
     result.contrast = std::max(ink_depth, 0.0);
     if (result.contrast < min_contrast) {
@@ -300,11 +329,11 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
         int angle = 0;
     };
     std::array<Best, kGlyphCount> best{};
-    std::vector<float> turned(count);
+    std::array<float, kPatchPixels> turned{};
+    const std::array<Trig, kAngles>& table = turns();
     for (int k = 0; k < kAngles; ++k) {
-        const double radians = k * kAngleStep * std::numbers::pi / 180.0;
-        const double cos_a = std::cos(radians);
-        const double sin_a = std::sin(radians);
+        const double cos_a = table[static_cast<std::size_t>(k)].cos;
+        const double sin_a = table[static_cast<std::size_t>(k)].sin;
         for (std::size_t m = 0; m < count; ++m) {
             // The template at p is the observed ink at the point p turned by the angle.
             const double qu = c.u[m] * cos_a - c.v[m] * sin_a;
@@ -312,11 +341,13 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
             turned[m] =
                 bilinear(ink, (qu + 1.0) * kPatch / 2.0 - 0.5, (qv + 1.0) * kPatch / 2.0 - 0.5);
         }
-        if (!normalise(turned)) {
+        const std::span<float> span(turned.data(), count);
+        if (!normalise(span)) {
             continue;
         }
         for (std::size_t g = 0; g < kGlyphCount; ++g) {
-            const float score = dot(turned, templates_[g]);
+            const float score =
+                dot(span, std::span<const float>(templates_[g].data(), templates_[g].size()));
             if (score > best[g].score) {
                 best[g] = {score, k};
             }

@@ -10,6 +10,7 @@
 // a build nobody was looking at. These types make that a compile error
 // instead, so that no rule needs remembering.
 
+#include <array>
 #include <cstddef>
 
 namespace wjs::profiling {
@@ -25,7 +26,7 @@ namespace wjs::profiling {
 // program.
 template <std::size_t N>
 struct StaticName {
-    char text[N];
+    std::array<char, N> text{};
 
     constexpr StaticName(const char (&literal)[N]) noexcept {  // NOLINT: implicit on purpose
         for (std::size_t i = 0; i < N; ++i) {

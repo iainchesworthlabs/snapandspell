@@ -207,6 +207,15 @@ struct StartTileHelp {
 [[nodiscard]] std::optional<StartTileHelp> start_tile_help(std::span<const FoundWord> viable,
                                                            const FoundWords& found);
 
+// How many of the board's words are still to find and begin with `prefix`
+// (the tile the help lit, or its first two tiles): what the child is told
+// after a find made from the lit start - whether the start still leads
+// anywhere. A count, never a word (the design never hands the word itself to
+// the screen). An empty prefix counts nothing.
+[[nodiscard]] std::size_t words_starting_with(std::span<const FoundWord> viable,
+                                              const FoundWords& found,
+                                              std::span<const Position> prefix) noexcept;
+
 // ---------------------------------------------------------------------------
 // 4. Whether the board is cleared
 

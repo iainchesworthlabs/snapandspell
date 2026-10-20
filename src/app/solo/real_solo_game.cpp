@@ -6,6 +6,7 @@
 
 #include "wjs/board.hpp"
 #include "wjs/game_rules.hpp"
+#include "wjs/scoring.hpp"
 #include "wjs/seeding.hpp"
 #include "wjs/session_store.hpp"
 
@@ -36,6 +37,7 @@ namespace {
     found.word = lower(std::string(word));
     found.tier = tier_of(wjs::tier_for_letters(word.size()).value_or(wjs::Tier::spark));
     found.stars = stars;
+    found.points = wjs::word_points(word);
     return found;
 }
 
@@ -75,33 +77,32 @@ namespace {
 }  // namespace
 
 RealSoloGame::RealSoloGame(wjs::GameSession session, bool help_allowed,
-                           const wjs::PhaseIndex& phase, wjs::Store& store,
+                           const wjs::PhaseIndex* phase, wjs::Store& store,
                            std::function<wjs::Day()> today)
     : session_(std::move(session)),
       help_allowed_(help_allowed),
-      phase_(&phase),
+      phase_(phase),
       store_(&store),
       today_(std::move(today)),
-      binder_(phase),
-      dead_letter_(dead_letter_of(phase)),
+      binder_(phase != nullptr ? std::optional<wjs::GraphemeBinder>{*phase} : std::nullopt),
+      dead_letter_(phase != nullptr ? dead_letter_of(*phase) : std::string{}),
+      sizes_count_(session_.mode() == wjs::BoardMode::standard ? sizes_.size() : 2),
       board_(scene_board()) {
     refresh_found();
     save_session();
 }
 
 std::expected<RealSoloGame, wjs::SessionError> RealSoloGame::create(
-    const wjs::PhaseIndex& phase, const wjs::Dictionary& dictionary, wjs::Store& store,
-    const wjs::SessionOptions& options, std::function<wjs::Day()> today) {
-    // This game is made over a phase and binds its blocks with the phase's
-    // graphemes, so it plays the phonics board whatever mode the options name. The
-    // standard board needs the dice and no phase, and is not wired here yet.
-    wjs::SessionOptions phonics = options;
-    phonics.mode = wjs::BoardMode::phonics;
-    auto session = wjs::GameSession::create({.dictionary = dictionary, .phase = &phase}, phonics);
+    const wjs::SessionData& data, wjs::Store& store, const wjs::SessionOptions& options,
+    std::function<wjs::Day()> today) {
+    // The game plays whichever board the options name; the session itself
+    // refuses a mode whose data is missing (no dice on the standard board, no
+    // phase on the phonics board).
+    auto session = wjs::GameSession::create(data, options);
     if (!session) {
         return std::unexpected(session.error());
     }
-    return RealSoloGame(*std::move(session), options.help, phase, store, std::move(today));
+    return RealSoloGame(*std::move(session), options.help, data.phase, store, std::move(today));
 }
 
 SoloState RealSoloGame::state() const {
@@ -177,12 +178,17 @@ TraceOutcome RealSoloGame::submit(std::span<const Position> path) {
 }
 
 std::vector<GraphemeBinder::Block> RealSoloGame::blocks(std::span<const Position> path) const {
+    // The standard board has no phase, so no graphemes to bind: every tile is a
+    // block of its own and there are no shared bars to draw.
+    if (!binder_) {
+        return {};
+    }
     const wjs::Board* board = session_.board();
     if (board == nullptr ||
         !std::ranges::all_of(path, [&](Position position) { return board->contains(position); })) {
         return {};
     }
-    return binder_.bind(*board, path);
+    return binder_->bind(*board, path);
 }
 
 void RealSoloGame::celebrated() {
@@ -198,6 +204,19 @@ std::optional<Position> RealSoloGame::startTile() {
 
 std::optional<Position> RealSoloGame::litTile() const {
     return session_.lit_tile();
+}
+
+std::vector<Position> RealSoloGame::helpPath() const {
+    return session_.lit_path();
+}
+
+std::size_t RealSoloGame::wordsWithStart(std::span<const Position> prefix) const {
+    return session_.words_with_start(prefix);
+}
+
+void RealSoloGame::dismissHelp() {
+    session_.dismiss_help();
+    save_session();
 }
 
 void RealSoloGame::lidOn() {
@@ -262,6 +281,27 @@ SoloBoard RealSoloGame::scene_board() const {
     }
     if (const auto& deal = session_.last_deal()) {
         scene.seed = deal->seed;
+        // A dealt standard board is the roll of its seed (docs/architecture.md,
+        // "Dice"), so the dice that made it are the library's: the six faces of
+        // the die on each tile and the face that is up, from
+        // wjs::roll_with_placements. The phonics board has no dice, and a board
+        // the store brought back keeps no roll seed: both are left without
+        // faces, and the scene draws the tile's letter on the face that is up.
+        if (session_.mode() == wjs::BoardMode::standard) {
+            const wjs::DiceSets* sets = session_.dice();
+            const wjs::DiceSet* dice = sets != nullptr ? sets->find(scene.rows) : nullptr;
+            if (dice != nullptr) {
+                const auto rolled = wjs::roll_with_placements(*dice, scene.seed);
+                if (rolled && rolled->placements.size() == scene.tiles.size()) {
+                    scene.faces.reserve(scene.tiles.size());
+                    scene.up.reserve(scene.tiles.size());
+                    for (const wjs::Placement& placement : rolled->placements) {
+                        scene.faces.push_back(dice->die(placement.die));
+                        scene.up.push_back(static_cast<int>(placement.face));
+                    }
+                }
+            }
+        }
     }
     return scene;
 }

@@ -77,3 +77,28 @@ if(NOT Qt6_FOUND)
     unset(_qt6_candidates)
     unset(_qt6_version_dirs)
 endif()
+
+# ---------------------------------------------------------------------------
+# The type compiler's (qmltc, ENABLE_TYPE_COMPILER) generated C++ includes Qt's
+# private headers, in both their forms ("QtCore/private/x.h" and "private/x.h"),
+# and links the qmltc runtime. An aqtinstall-style kit ships the headers and the
+# runtime on disk but only as private modules, so a module that asked for the
+# type compiler is given them by hand (Qt's own developer builds load them for
+# themselves).
+# ---------------------------------------------------------------------------
+function(wjs_enable_qmltc_private_headers target)
+    find_package(Qt6QmltcPrivate 6.12 CONFIG QUIET)
+    if(TARGET Qt6::QmltcPrivate)
+        target_link_libraries("${target}" PRIVATE Qt6::QmltcPrivate)
+    endif()
+
+    get_filename_component(_wjs_qt_prefix "${Qt6Qml_DIR}/../../.." ABSOLUTE)
+    set(_wjs_private_include_dirs "")
+    foreach(_wjs_module IN ITEMS QtQml QtCore QtQuick QtGui QtQuickLayouts QtQmlModels QtQuickShapes)
+        list(APPEND _wjs_private_include_dirs
+            "${_wjs_qt_prefix}/include/${_wjs_module}"
+            "${_wjs_qt_prefix}/include/${_wjs_module}/${Qt6Qml_VERSION}"
+            "${_wjs_qt_prefix}/include/${_wjs_module}/${Qt6Qml_VERSION}/${_wjs_module}")
+    endforeach()
+    target_include_directories("${target}" PRIVATE ${_wjs_private_include_dirs})
+endfunction()

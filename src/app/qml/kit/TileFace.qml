@@ -1,40 +1,61 @@
 import QtQuick
 import WordJewelsSolver
 
-// The face of a tile (docs/design/board.md, "The tile"): a square with square
-// corners, flat, no shadow and no gradient. At rest a cream face with a dark
-// letter and a dark edge; lit, on the path, the face turns amber, the edge thickens
-// to 4 dp and the tile scales to 106%. Lit is a shape as well as a colour: a lit
-// die is not told from a resting one by colour alone (their contrast is 1.33:1).
+// The face of a die: a cream tile with an Andika letter, a soft bevel and a dark
+// edge. On the path it keeps its face and letter; a gold rim, a slight lift and
+// a small order badge show that it is selected. Lit is a shape as well as a
+// colour, and the path never crosses the letter.
 Item {
     id: root
 
     property string letters: ""
     property bool lit: false
+    // Kept for callers that still pass it, but the numbered badge is gone: the
+    // path itself shows the order, and a number on a five-year-old's die was
+    // harder to read than the line it replaced.
+    property int order: 0
 
-    // "QU" is the Qu face: one tile of two letters, drawn smaller so it fits.
     readonly property string shown: letters === "QU" ? "Qu" : letters
 
-    scale: lit ? Theme.litScale : 1
-    Behavior on scale {
-        NumberAnimation {
-            duration: Theme.quick
-        }
+    Rectangle {
+        objectName: "face"
+        anchors.fill: parent
+        radius: Theme.radiusSmall
+        color: Theme.die
+        border.width: root.lit ? Theme.litEdge : Theme.rule
+        border.color: root.lit ? Theme.gold : Theme.dieEdge
     }
 
+    // The top of the die catches the light; the foot sits in its shadow.
     Rectangle {
-        anchors.fill: parent
-        color: root.lit ? Theme.dieLit : Theme.die
-        border.width: root.lit ? Theme.litEdge : Theme.rule
-        border.color: Theme.dieEdge
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: 2
+        height: 2
+        radius: 1
+        color: "#FFFFFF"
+        opacity: 0.55
+    }
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 2
+        height: 3
+        radius: 1
+        color: "#000000"
+        opacity: 0.12
     }
 
     Text {
+        objectName: "letter"
         anchors.centerIn: parent
         text: root.shown
         font.family: Theme.fontFamily
-        font.bold: true
+        font.weight: Font.Bold
         font.pixelSize: root.height * Theme.letterShare * (root.letters === "QU" ? Theme.quShare : 1)
-        color: root.lit ? Theme.dieLitInk : Theme.dieInk
+        color: Theme.dieInk
     }
+
 }

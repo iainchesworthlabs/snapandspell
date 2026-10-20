@@ -27,9 +27,14 @@
 //     starts it for the capture screen and stops it when it leaves. Nothing here
 //     keeps it running.
 //
-// On a platform with no camera backend yet (today the three desktops), every
-// function answers `unavailable` or "nothing", and Mode A offers "Type in your
-// board" instead (docs/design/game.md, "No camera").
+// On a platform with no native camera backend (today the three desktops), every
+// function answers `unavailable` or "nothing". The desktops' camera is not this
+// interface: Mode A's live view and one capture are the application's
+// CameraSource over Qt Multimedia (src/app/camera), selected by CMake with the
+// optional-module variant pattern. This interface stays for a platform whose own
+// camera API must be used (the iPad's AVCaptureSession), and ScanModel falls
+// back to it when no CameraSource is supplied. With neither, Mode A offers
+// "Type in your board" instead (docs/design/game.md, "No camera").
 
 namespace wjs::platform::camera {
 

@@ -318,14 +318,14 @@ TEST_CASE("the standard deal is pinned to two seeds", "[deal][data]") {
     const auto plain = wjs::deal_standard_board(dice, words, 12345);
     REQUIRE(plain.has_value());
     CHECK(plain->rolls == 1);
-    CHECK(text_of(plain->board) == "N J L/E H S/S U E");
+    CHECK(text_of(plain->board) == "O L R/D O U/W L B");
 
-    // Seed 43 rolls D L M/P C S/G S S, which holds no word of three letters.
-    CHECK(text_of(*wjs::roll(dice, 43)) == "D L M/P C S/G S S");
-    const auto again = wjs::deal_standard_board(dice, words, 43);
+    // Seed 190 rolls P N T/C N K/D N D, which holds no word of three letters.
+    CHECK(text_of(*wjs::roll(dice, 190)) == "P N T/C N K/D N D");
+    const auto again = wjs::deal_standard_board(dice, words, 190);
     REQUIRE(again.has_value());
     CHECK(again->rolls == 2);
-    CHECK(text_of(again->board) == "S U G/D L S/M G I");
+    CHECK(text_of(again->board) == "T E R/F S Y/G T D");
 }
 
 TEST_CASE("the standard deal refuses dice that make no board", "[deal]") {

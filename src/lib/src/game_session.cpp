@@ -305,6 +305,26 @@ std::optional<Position> GameSession::lit_tile() const {
     return std::nullopt;
 }
 
+std::vector<Position> GameSession::lit_path() const {
+    if (!lit_) {
+        return {};
+    }
+    for (const FoundWord& word : viable_) {
+        if (word.word == *lit_) {
+            return word.path;
+        }
+    }
+    return {};
+}
+
+std::size_t GameSession::words_with_start(std::span<const Position> prefix) const {
+    return words_starting_with(viable_, found_, prefix);
+}
+
+void GameSession::dismiss_help() {
+    lit_.reset();
+}
+
 bool GameSession::choose_size(BoardSize size) {
     if (state_ != SessionState::box || !is_played_at(options_.mode, size)) {
         return false;
@@ -377,6 +397,11 @@ TraceOutcome GameSession::trace(std::span<const Position> path, Stamp when) {
     // A touch on one tile is to hear its letter, and a trace cancelled by lifting
     // outside the board is nothing: neither is a word attempt.
     if (state_ != SessionState::playing || path.size() < 2) {
+        return {};
+    }
+    if (!board_) {
+        // A playing session always has a board; the guard says so to the
+        // analyzer, which cannot see it through the state.
         return {};
     }
     auto zone = profiling::zone<"input.submit">();
@@ -467,6 +492,9 @@ bool GameSession::back() {
 
 BoardRecord GameSession::make_record() const {
     BoardRecord record;
+    if (!board_) {
+        return record;
+    }
     record.mode = options_.mode;
     record.size = size_;
     record.tiles = tiles_text(*board_);
@@ -519,7 +547,7 @@ SessionSnapshot GameSession::snapshot() const {
 std::expected<GameSession, SessionError> GameSession::restore(const SessionSnapshot& snapshot,
                                                               const SessionData& data,
                                                               const SessionOptions& options) {
-    auto zone = profiling::zone<"board.restore">();
+    [[maybe_unused]] auto zone = profiling::zone<"board.restore">();
 
     auto created = create(data, options);
     if (!created) {

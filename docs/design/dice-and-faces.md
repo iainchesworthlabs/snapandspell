@@ -20,7 +20,7 @@ board.
 | The library's dice | `DiceSet` holds dice of up to 12 faces each (`wjs/dice.hpp`). `roll(dice, seed)` puts the dice in a random order, a die to a tile, and each shows one face: a pure function of the set and the seed. The project's sets have six different letters to a die and a vowel on each |
 | What `roll` returns | A `Board`. Which die is on which tile, and which of its faces is up, are not returned |
 | The scene | `BoardScene.qml` takes a finished board (one string a tile). `Die.qml` is one cube that "carries its tile's face on every side", and `FaceAtlas.qml` is one cell a tile. So the six faces of every die show the same letter, and nothing in the scene knows a die has other faces |
-| The frequency | `tools/data/make_dice.ps1` deals faces in proportion to the dictionary's letter counts. The sets are data (`data/dice/<n>x<n>.txt`) and the `data.dice` test re-makes them and compares |
+| The frequency | `tools/data/make_dice.ps1` deals faces in proportion to a fixed Scrabble-style English tile-count table (A9 B2 C2 D4 E12 ... Z1, the 100-tile counts with blanks not counted): six different letters to a die, one to three vowels and at most one of J K Q V X Z on each, 30% to 40% vowels and at most 8% S in a set, Q as `QU`. The sets are data (`data/dice/<n>x<n>.txt`) and the `data.dice` test re-makes them and compares |
 
 The first and the last rows are as the author expected. The two in the middle
 are a gap in the design: `board.md` gave the scene "a finished board and a
@@ -62,12 +62,13 @@ change**, not a finding about the prototype's code beyond what is in the table.
 
 ## Where the frequency is encoded
 
-### What is in the shipped sets
+### What was in the shipped sets before 2026-10-19
 
-**Fact, measured from `data/dice/*.txt` on the branch of pull request 10, with
-letters counted over the whole dictionary as the tool counts them.** The share
-the dictionary's counts would give a set is what largest-remainder dealing
-aims at.
+**Historical, kept as the reason for the change. Fact, measured from
+`data/dice/*.txt` on the branch of pull request 10, with letters counted over
+the whole dictionary as the tool then counted them.** The share the dictionary's
+counts would give a set is what largest-remainder dealing aimed at. The shipped
+sets now come from the Scrabble-style table above.
 
 | Set | Dice | Faces | Distinct letters | E faces (share would give) | S faces (would give) | Qu | J, X, Z |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -94,13 +95,16 @@ What this shows:
 - **20 to 23 different letters** of 26. W is missing from the three smaller sets.
 
 None of this is wrong for a first set. It is what the rule produced, and the
-rule is not written down anywhere the author can see.
+rule was not written down anywhere the author could see. The sets were replaced
+on 2026-10-19 by dice dealt from the Scrabble-style table: every shipped size
+now has QU tiles, 30% to 40% of its faces are vowels, S is at most 8%, and no die
+holds more than one of J K Q V X Z.
 
 ### Proposal: the target is data, and the dice are checked against it
 
 1. **A weights file**, `data/dice/weights.txt`: for each letter its weight and
-   where the weight came from. Today the weights are the dictionary's counts,
-   computed inside the tool and visible nowhere.
+   where the weight came from. The weights are now the fixed table in the tool
+   and in each file's header; there is no separate file.
 2. **Overrides** beside it, each with a reason: at least one `Qu` face on the
    4x4 and larger, none on the 3x3 (the first board; see
    [Board](board.md#sizes)); a letter's most faces per set, if S is to be capped.
@@ -114,20 +118,20 @@ rule is not written down anywhere the author can see.
 
 The dictionary's letter counts are **type frequency** (how many words a letter
 is in). The real game's dice follow something nearer how often letters turn up
-in English text. There is no text frequency table in this repository, and none
-is to be invented here; any table needs a source and a licence recorded, as
-`data/README.md` requires. Choices for the standard board:
+in English text. The shipped sets use the published Scrabble tile counts, a
+frequency table with a stated source in `data/README.md`, and the table is in the
+tool and in each file's header. Choices that were weighed for the standard board:
 
 | Weights from | Gives | Source and terms |
 | --- | --- | --- |
-| The dictionary's counts (today) | Boards of letters that make many dictionary words | ENABLE, public domain as published; already in the repository |
+| The Scrabble-style tile counts (used from 2026-10-19) | Boards of letters that make English words, with few S and rare letters | Published English tile counts; in `data/README.md` |
+| The dictionary's counts | Boards of letters that make many dictionary words | ENABLE, public domain as published; already in the repository |
 | The child-facing lists (`data/lexicon`, 689 words) | Boards that make words a child knows | Written for the project |
 | A text-frequency table | Dice nearer the real game | Not in the repository; needs a source |
-| A mix: dictionary counts with a floor (a `Qu`, one of each rare letter on the larger sets) | The real game's range of letters | As the first |
+| A mix: dictionary counts with a floor (a `Qu`, one of each rare letter on the larger sets) | The real game's range of letters | As the dictionary's counts |
 
-Recommended: the dictionary's counts with the overrides above. It needs nothing
-new and keeps the origin clean; the weights file makes the choice visible and
-changeable.
+Decided 2026-10-19: the Scrabble-style tile counts, with the quality rules in
+the tool (vowels, rare letters, S) rather than a per-set letter table.
 
 ## The phonics board
 

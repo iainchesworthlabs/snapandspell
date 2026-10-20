@@ -10,6 +10,12 @@ namespace wjs::app {
 // A wrapper on QStyleHints::colorSchemeChanged and not a QML binding on
 // Qt.styleHints.colorScheme, whose change notification QML does not get (the
 // lesson of Cubeulator's SystemTheme).
+//
+// The value the hint reported is kept, and darkChanged is emitted only when the
+// answer changes from light to dark or back: a scheme change between two light
+// schemes is no change here. Keeping it is also what lets a test drive the
+// wrapper: the platform's hint cannot be set from outside, so its signal is the
+// only way to say "the scheme is now dark".
 class SystemColourScheme : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -24,6 +30,9 @@ public:
 
 signals:
     void darkChanged();
+
+private:
+    bool dark_ = false;
 };
 
 }  // namespace wjs::app

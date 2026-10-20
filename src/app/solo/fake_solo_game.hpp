@@ -13,8 +13,7 @@
 #include "wjs/grapheme_binder.hpp"
 #include "wjs/solver.hpp"
 
-// A stand-in for the library's game session, so the Solo Play screens run and
-// are tested before it is wired (and whenever a test wants a game that never
+// A stand-in for the library's game session, for the tests (a game that never
 // surprises). It follows the flow of docs/design/game.md and nothing else.
 //
 // Its words are TEST DATA, not a phase and not a proposal: today's are the five
@@ -48,6 +47,9 @@ public:
     [[nodiscard]] bool helpAllowed() const override { return help_allowed_; }
     std::optional<Position> startTile() override;
     [[nodiscard]] std::optional<Position> litTile() const override;
+    [[nodiscard]] std::vector<Position> helpPath() const override;
+    [[nodiscard]] std::size_t wordsWithStart(std::span<const Position> prefix) const override;
+    void dismissHelp() override;
 
     [[nodiscard]] const std::vector<SoloFound>& found() const override { return found_; }
 

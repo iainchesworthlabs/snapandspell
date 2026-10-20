@@ -1,0 +1,9 @@
+Catch2
+------
+
+The project's tests use Catch2, under the Boost Software License 1.0.
+
+Catch2 is not in a package: no test program is installed, and the two programs
+do not link it. It is fetched by the build (the vcpkg "tests" feature) and used
+only while the tree is built and tested. Its licence text travels with its
+source and with the vcpkg port's installed copyright file.

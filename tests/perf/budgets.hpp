@@ -97,7 +97,7 @@ inline constexpr std::array<std::uint64_t, 4> kDiceMaxVisitsPerSize = {
 // A digest of every solution over those boards, in the order solve() returns
 // them. Exact, as kCorpusDigest is, and it moves with the dice files (which
 // move with the dictionary: data/README.md) or the roll, by a person's decision.
-inline constexpr std::uint64_t kDiceDigest = 9710656603150208005ULL;
+inline constexpr std::uint64_t kDiceDigest = 8038812626269854397ULL;
 
 // ---------------------------------------------------------------------------
 // PHONICS BOARD (a parent's switch): seeding and binding
@@ -253,20 +253,20 @@ struct StandardSessionBudget {
 // worst deal of a 5x5 and of a 6x6 is the very board that is worst there, and the
 // restore of a board that landed first time is the same solve again.
 inline constexpr std::array<StandardSessionBudget, 4> kStandardSessionBudgets = {{
-    // 3x3: 108 / 3 / 18,755 / 446 / 3,432 / 18,567
-    {135, 4, 23'500, 558, 3'432, 23'300},
-    // 4x4: 100 / 1 / 57,089 / 1,109 / 10,897 / 57,089
-    {125, 2, 71'400, 1'390, 10'897, 71'400},
-    // 5x5: 100 / 1 / 161,035 / 3,748 / 26,311 / 161,035
-    {125, 2, 202'000, 4'690, 26'311, 202'000},
-    // 6x6: 100 / 1 / 298,302 / 6,457 / 48,121 / 298,302
-    {125, 2, 373'000, 8'080, 48'121, 373'000},
+    // 3x3: measured visits unchanged in the budget; 3,273 words over the rolls
+    {135, 4, 23'500, 558, 3'273, 23'300},
+    // 4x4: 9,948 words
+    {125, 2, 71'400, 1'390, 9'948, 71'400},
+    // 5x5: 19,165 words
+    {125, 2, 202'000, 4'690, 19'165, 202'000},
+    // 6x6: 31,396 words
+    {125, 2, 373'000, 8'080, 31'396, 373'000},
 }};
 
 // A digest of every board a standard session dealt and played: the deal, the kind
 // of every trace, and the snapshots after the first find and at rest. Exact; it
 // moves with the session, the roll, the dice or the dictionary, deliberately.
-inline constexpr std::uint64_t kStandardSessionDigest = 8917212598945270856ULL;
+inline constexpr std::uint64_t kStandardSessionDigest = 6788242915648402942ULL;
 
 // ---------------------------------------------------------------------------
 // Time, as a multiple of the calibration workload (perf/measure.hpp)
@@ -326,6 +326,40 @@ inline constexpr int kDealsPerRun = 5;
 inline constexpr int kDealRuns = 9;
 
 // ---------------------------------------------------------------------------
+// The board scene, counted (tests/app/shake_script_test.cpp)
+// ---------------------------------------------------------------------------
+
+// The scene's frame work, where it is countable without a window: the
+// simulation and the atlas. A play is one 4x4 weighted play at 60 Hz with the
+// stand-in's shake, from ShakeScript.create() to the last die home.
+
+// The whole simulation steps of that play (wjs::dice::World::steps(): a
+// Tuning::substep each, 1/1200 s). A count, so the same on every machine and
+// compiler; the budget is a quarter above what it measured. It is the cost
+// docs/design/shake-prototype.md measured as "62 us a step", counted.
+inline constexpr std::uint64_t kSceneSteps4x4 = 3'200;  // measured 2,560
+
+// The cells of a 4x4 board's atlas: six a die, exact. The letters are the glyph
+// cells (`Text`, one each) and the jewels the cells that show the jewel's
+// texture. `prepare` builds one atlas for a board, so this is the work of its
+// frame (docs/design/shake-prototype.md, "The real faces").
+inline constexpr std::uint64_t kSceneAtlasCells = 96;
+inline constexpr std::uint64_t kSceneAtlasLetters = 48;
+inline constexpr std::uint64_t kSceneAtlasJewels = 48;
+
+// The window's frame, during a smoke run's shake cycle (docs/profiling.md,
+// "The smoke mode"). The design's budget is one frame's 16.7 ms at 60 Hz and no
+// frame over 33 ms during the shake, drop and confetti (docs/design/
+// performance.md, "Budgets"). The median gets 0.3 ms of room for the display's
+// own period (16.68 ms measured on the desktop) and a timer's granularity; the
+// maximum gets none, because a missed refresh is what it is there to catch.
+// Measured by tests/app/frame_timing_test.cpp, which runs the window: a debug, a
+// Tracy or a coverage build cannot take a clock reading and skips it, and it is
+// opt-in (WJS_PERF_FRAME_TIMING=1), so a shared runner never runs it.
+inline constexpr double kFrameP50Ms = 17.0;
+inline constexpr double kFrameMaxMs = 33.0;
+
+// ---------------------------------------------------------------------------
 // The scanner, counted (wjs/scan/work.hpp)
 // ---------------------------------------------------------------------------
 
@@ -346,10 +380,23 @@ inline constexpr std::uint64_t kScanWorkingPixels = 4ULL * 480 * 360;
 inline constexpr std::uint64_t kScanWarpPixels = 2'600'000;  // measured 2,073,600
 inline constexpr std::uint64_t kScanBlobs = 3'240;           // measured 2,589
 inline constexpr std::uint64_t kScanDiceCandidates = 619;    // measured 495
-inline constexpr std::uint64_t kScanCellsRead = 323;         // measured 258
-inline constexpr std::uint64_t kScanComparisons = 418'000;   // measured 334,368
-inline constexpr std::uint64_t kScanBuffers = 125;           // measured 100
-inline constexpr std::uint64_t kScanBuffersMax = 32;         // measured 25
+inline constexpr std::uint64_t kScanCellsRead =
+    282;  // measured 225 (a winning trial's sample cells are read once and reused)
+inline constexpr std::uint64_t kScanComparisons =
+    364'500;  // measured 291,600 (225 cells x 48 templates x 27)
+// A warm read allocates no pixel buffers at all: the whole pipeline runs on the
+// reader's thread-local scratch pool (src/scan/src/scratch.hpp); a cold first
+// read on a fresh thread allocates about ten, once. The pool's hand-outs over
+// the corpus are counted too, so a return to per-read allocation is caught both
+// ways.
+inline constexpr std::uint64_t kScanBuffers = 0;         // measured 0
+inline constexpr std::uint64_t kScanBuffersMax = 0;      // measured 0
+inline constexpr std::uint64_t kScanBufferReuses = 105;  // measured 84
+// Exact pins of what the optimised reader does, so a change that adds a read
+// or a comparison is a failure with a name on it, not a quiet drift.
+inline constexpr std::uint64_t kScanBuffersAllocated = 0;
+inline constexpr std::uint64_t kScanCellsReadExact = 225;
+inline constexpr std::uint64_t kScanComparisonsExact = 291'600;
 
 // One read of a 4x4 and of a 6x6 frame, against the heavy calibration (a read walks
 // several pictures, none of which stays in cache). Measured 0.36 to 0.44 (45 to 50 ms)

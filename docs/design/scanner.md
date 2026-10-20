@@ -11,24 +11,31 @@ Proposals unless marked **Fact**; the marks are the ones on the
 [overview](index.md#how-to-read-these-pages).
 
 **Status.** The first working slice is built and tested **on synthetic frames
-only**: a Qt-free library, the two platform interfaces (with no camera on the
-desktops and the portable reader), the confirm-and-correct model, a corpus, a
-numeric target and the tests that hold it. The accuracy target and the corpus
-plan were written (commit `0ff6dc0`) before any recognition code; the numbers
-that came out are in [What was measured](#what-was-measured). **Nothing here has
-been run on a tablet, on an iPad, on a photograph of real dice or in real
-light.**
+only**: a Qt-free library, the platform interfaces and the confirm-and-correct
+model, a corpus, a numeric target and the tests that hold it. **The desktop
+camera is now built too** (2026-10-19): Mode A's ready screen shows a live
+picture through Qt Multimedia and its Capture reads one frame on the device, as
+a variant of the application's camera source rather than of the platform
+interface ([below](#the-qt-multimedia-desktop-backend)). That path has not been
+run on a real board: **this machine has no camera**, so what is verified is the
+build, the no-camera/refused/broken states, the picture conversion from a made
+frame, and the whole model and screen flow with a fake source and a synthetic
+frame. The reader itself is still measured on synthetic frames only. **Nothing
+here has been run on a tablet, on an iPad, on a photograph of real dice or in
+real light.**
 
 ## What this slice is
 
 A frame in, a board and a doubt per tile out, and the data flow that makes a
-grown-up confirm it before the solver sees it. Not the screen (the Solo Play UI
-owns `src/app`), and not the iOS reader (it needs a Mac and an iPad: see
-[What is left](#what-is-left-for-a-mac-and-an-ipad)).
+grown-up confirm it before the solver sees it. Not the screen when this page was
+written (the Solo Play UI owned `src/app`); Mode A's screens are now built in
+`src/app/qml/scan` and bind to `wjs::scan::BoardDraft` through `ScanModel`
+(docs/architecture.md, "The Qt Quick window"). And not the iOS reader (it needs a
+Mac and an iPad: see [What is left](#what-is-left-for-a-real-camera-a-mac-and-an-ipad)).
 
 ```text
- camera (platform)        wjs::scan (portable, Qt-free)                    UI binds to
- ─────────────────        ─────────────────────────────                    ───────────
+ camera (CameraSource / platform)   wjs::scan (portable, Qt-free)            UI binds to
+ ───────────────────────────────    ─────────────────────────────            ───────────
  OwnedFrame ──▶ read_board(frame, options)                        BoardDraft
                   1. luma, a working picture of 480 px
                   2. find the board: dice → lattice → convex quad
@@ -306,7 +313,7 @@ fragments:
 
 | Interface | What it is | Windows, Linux, macOS (today) |
 | --- | --- | --- |
-| `camera.hpp` | `enumerate_devices`, `start`, `stop`, `is_capturing`, `try_pop_latest_frame`, `open_permission_settings`: Cubeulator's `camera.hpp` without OpenCV types (an `OwnedFrame` for its `cv::Mat`) and without its photometry lock, which is about colour sampling and not about letters | **No camera**: every function answers `unavailable`, or nothing. A desktop webcam needs a per-OS capture (Media Foundation, V4L2, AVFoundation, or Qt Multimedia, which is not in the shared tree), and Mode A is an iPad feature of the MVP. *Type in your board* is the answer there ([Game](game.md#no-camera)) |
+| `camera.hpp` | `enumerate_devices`, `start`, `stop`, `is_capturing`, `try_pop_latest_frame`, `open_permission_settings`: Cubeulator's `camera.hpp` without OpenCV types (an `OwnedFrame` for its `cv::Mat`) and without its photometry lock, which is about colour sampling and not about letters | **Still no native desktop backend**: every function answers `unavailable`, or nothing. Mode A's desktop camera is not this interface: it is the application's `CameraSource` over Qt Multimedia ([below](#the-qt-multimedia-desktop-backend)), which is the optional-module variant pattern. This interface stays for a platform whose own camera API must be used (the iPad's AVFoundation), so the model can use either. *Type in your board* is the answer on a desktop with no camera ([Game](game.md#no-camera)) |
 | `board_reader.hpp` | `read(frame, options)`: a `BoardReading` or a `ReadError`; `kind()` and `name()` say whether the reader is the portable one or a native one | **The portable reader**: the three desktops forward to `wjs::scan::read_board`, from one file all of them name |
 
 Both are implemented in `src/platforms/detail/`, the directory for what no
@@ -322,13 +329,65 @@ contract without naming a platform, so the iOS ones are held to the same.
 headers use), so the layering is `wjs_lib` ← `wjs_scan` ← `wjs_platform` ← the
 front ends; `wjs_scan` does not include a platform header.
 
-### What is left for a Mac and an iPad
+### The Qt Multimedia desktop backend
+
+The camera the desktop actually uses is the application's, not the platform
+interface's, and it is selected the way the feedback engines are: an optional Qt
+module, one directory per variant, and no `#if` in a source.
+
+| Piece | Where | What it is |
+| --- | --- | --- |
+| `CameraSource` | `src/app/camera/camera_source.*` | The QObject and `QML_ELEMENT` Mode A binds to: `available`, `devices`, `problem`, `running`, `start()`, `stop()`, `capture()` and the frame in hand. It is in the QML module `WordJewelsSolver.Scan`, so `Main.qml` makes one and hands it to `ScanModel::cameraSource` |
+| The backend seam | `src/app/camera/camera_backend.hpp` | An interface that names no Qt Multimedia type: a `Changed` callback, the device list and state, `start`/`stop`, `capture()` returning a `wjs::scan::OwnedFrame`, and a preview hand-over by `QObject*`. The none backend is the same interface answering `no_camera` |
+| The multimedia backend | `src/app/variants/camera-multimedia/wjs/app/camera_backend.cpp` | `QCamera` → `QMediaCaptureSession` → `QVideoSink`. The sink keeps the newest `QVideoFrame` only; capture converts it with `QVideoFrame::toImage()` and copies it into an owned RGB24 frame (`frame_from_image`, `src/app/camera/frame_conversion.*`: `QImage::Format_RGB888`, bytes R, G, B, rows packed, `stride = width * 3`). No `ImageCapture`, no `QMediaRecorder`, no file |
+| The none backend | `src/app/variants/camera-none/wjs/app/camera_backend.cpp` | A kit without Qt Multimedia: no device, no preview, no frame. It is the variant CMake compiles there; the rest of the application is unchanged |
+| The preview | `CameraPreview.qml` in each variant | A `VideoOutput` (multimedia) or an empty `Item` (none). The source sets the item's `videoSink`; the QML names no camera type of its own, so the shared screen builds either way |
+
+**The lifecycle.** `ScanModel::open()` starts the camera only in `scan.ready`.
+`capture()` waits for the newest frame with the existing patience (100 ms polls,
+40 of them, so a camera that never delivers returns to `ready` with `no_frame`).
+As soon as a frame is in hand the camera is stopped, before the frame is read;
+the `wjs::scan::OwnedFrame` is read through `board_reader::read` and dropped, and
+only the `BoardReading`'s letters and doubts remain. Leaving the screen, the
+check screen opening, or the model being destroyed stops the camera too.
+
+**What a failure says.** The source reports one code: `no_camera` (no device or
+no backend), `permission` (the person refused, or the platform reports it), or
+`failed` (the platform's camera failed). `ScanWording.cameraProblem` turns it
+into a sentence and the typed-board button stays beside it; a frame is never
+faked. A source supplied to `ScanModel` is used when it can start; without one
+(every stub shell and every test) the model keeps the platform interface's path,
+which is still `unavailable` on the three desktops.
+
+**What is verified, and what is not.** Built and tested on Windows 11 with the
+shared Qt 6.12 kit (MSVC, Debug and the Release package). `camera.screens`
+drives the real `ScanScreen`, the real `CameraSource` and a real `VideoOutput`
+headless, with a **fake backend** and one **synthetic** board frame: the preview
+is shown, Capture opens the check screen, and the camera stops. `wjs_app_tests`
+holds the conversion, the availability/refusal/failure states, the frame that
+never arrives and the model's use of a supplied source. **No camera is attached
+to this machine**, so no device was opened, the live picture path and the
+platform's permission prompt were not exercised, and nothing here says the
+reader reads a real board; that is still the iPad's measurement. The multimedia
+module is shipped with the application: `windeployqt` and Qt's install-time
+deploy copy `Qt6Multimedia.dll`, `plugins/multimedia/*` and `qml/QtMultimedia`,
+and `tools/package/check_package.ps1` requires them when the window links the
+module.
+
+**The camera, on a kit without Multimedia.** CMake chooses `camera-none`: the
+QML module compiles the same `CameraSource`, `ScanModel` and `ScanScreen`, and
+the ready screen says there is no camera with the typed board beside it. That
+build is configured and built here (the kit's Multimedia disabled), and it is
+the same no-camera path every desktop had before this backend.
+
+### What is left for a real camera, a Mac and an iPad
 
 Written down so it is not taken as done. **None of this exists or has been
 built, run or tested:**
 
 | Piece | What it is | Needs |
 | --- | --- | --- |
+| A real camera on a desktop | The Qt Multimedia camera is built ([above](#the-qt-multimedia-desktop-backend)), but no webcam is attached to the machine it was built on. Opening a device, the picture the preview shows, the platform's permission prompt and the browser of resolutions the camera offers are all unexercised | A desktop with a camera, and a board photographed through it |
 | iOS platform fragment | `src/platforms/ios/platform.cmake`, one branch in `cmake/Platform.cmake` (which today stops with an error for `IOS`), iOS presets and a CI leg | The Qt iOS kit (not in the shared tree), a Mac runner |
 | `camera_ios.mm` | Objective-C++ over `AVCaptureSession` with a video-only input (no audio input is ever created: the privacy rule), `AVCaptureVideoDataOutput` delivering `CVPixelBuffer`s, the Y plane of a bi-planar 4:2:0 buffer wrapped as a `gray8` `Frame`, copied into the mailbox. Camera permission through Qt's `QCameraPermission` as Cubeulator does, and `open_permission_settings` for a refusal | An iPad, an ad-hoc profile, the Info.plist usage string (and **no** microphone string) |
 | `board_reader_ios.mm` | Option 1: the portable pipeline finds, warps and centres the cells; `VNRecognizeTextRequest` (or a Core ML classifier trained on renders of the dice font) classifies each cell's image at four quarter turns; the results fill `TileReading`. Option 2: Vision's rectangle detector finds the board. **Whether Vision reads a single rotated capital on a glossy die better than the template matcher is unknown, and is what the iPad decides** | An iPad and recorded frames |
@@ -350,8 +409,8 @@ child's room.
 
 | Rule | In the build | Checked by |
 | --- | --- | --- |
-| Frames are processed on the device and **not kept** | `Frame` is a view; an `OwnedFrame` is a buffer in memory with no save. Nothing under `src/scan` or in the camera and `board_reader` files includes a file or stream header or calls a file API | `scan.privacy` (`tests/scan/check_privacy.cmake`), run in every `ctest`: fails on a file-output facility in those files |
-| No audio input | The camera interface has no audio and `start` takes a video device; the iOS notes above forbid an audio input | The same scan fails on an audio-capture class or a microphone usage string, which would also cover `camera_ios.mm` when it is written |
+| Frames are processed on the device and **not kept** | `Frame` is a view; an `OwnedFrame` is a buffer in memory with no save. Nothing under `src/scan`, in the camera and `board_reader` files, or in Mode A's `CameraSource`/backend includes a file or stream header or calls a file API; the multimedia backend has no `ImageCapture`, no recorder and no writer | `scan.privacy` (`tests/scan/check_privacy.cmake`), run in every `ctest`: fails on a file-output facility in those files, which now includes `src/app/camera` and both `src/app/variants/camera-*` |
+| No audio input | The camera interface has no audio and `start` takes a video device; the Qt Multimedia backend creates only a video `QCamera`/`QMediaCaptureSession`; the iOS notes above forbid an audio input | The same scan fails on an audio-capture class or a microphone usage string, which would also cover `camera_ios.mm` when it is written |
 | No network | The library includes no network header | The same scan fails on a network class or socket header |
 | No export | No share, print or save | The file scan above |
 | No profiler in what ships | Two zones, `scan.find_board` and `scan.read_tiles`, through `wjs/profiling.hpp` (empty in a normal build) | `profiling.shipped_presets` and `profiling.zone_names` (existing) |
@@ -390,7 +449,8 @@ legs and the Linux Release `Performance` leg, which holds the whole accuracy tar
 work budgets, all passed. (The macOS leg first failed on one implicit float-to-double
 conversion that clang's `-Wdouble-promotion` refuses and MSVC and GCC did not; it is fixed,
 and the sources are now also checked with clang 21 on libc++.) **Not measured:** a tablet,
-an iPad, a camera, real dice, real light.
+an iPad, a real camera (the desktop's Qt Multimedia path is built, but this
+machine has no camera), real dice, real light.
 
 **The target, on the test split** (a fresh draw, [above](#splits-and-size)): every
 limit of every condition held, with the upright limits relaxed as described under
@@ -473,6 +533,11 @@ renders) is built on first use, a few milliseconds.
   ceiling light in the dice. Cubeulator's measured work on camera automatics
   (exposure that drifts 14 to 18 L points inside a scan) is a warning that the
   synthetic noise understates it.
+- **The desktop camera on a device.** Its code, conversion and screen flow are
+  tested, but no camera is attached to the machine they were built on: a live
+  device, the preview's actual picture, auto-exposure and the platform's
+  permission prompt have not been seen. Linux and macOS have the same Qt
+  Multimedia variant and build it, but no leg has run it there.
 - **A child in the frame**: hands, a lid, the shake.
 - **Devices.** Every time on this page is a desktop; the iPad's is unmeasured.
 - **The 5x5 and 6x6 real boards**: the MVP scanner is 4x4 ([Board](board.md#sizes));

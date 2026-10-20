@@ -1,7 +1,8 @@
 # Application design
 
 The screens and how they connect, the sizes of things a child touches, type,
-colour, accessibility, sound and touch feedback, how the privacy rules of the
+the interface's languages and right-to-left layouts, colour, accessibility,
+sound and touch feedback, how the privacy rules of the
 MVP are built in and checked, and what the application needs from Qt and the
 operating system. Written from the
 [product requirements](../product-requirements.md) sections 2, 7, 10 and 12.
@@ -36,25 +37,28 @@ author's own devices; the platform list of section 2 is the product's scope.
 
 ### Qt modules
 
-**Fact, checked in the shared Qt 6.12.0 tree:** the Windows, Android and
-WebAssembly kits have Quick, Controls, QuickShapes, QuickParticles, Quick3D,
-ShaderTools, Svg and no more. **Qt Multimedia, Qt Sensors and Qt
-TextToSpeech are not there**, and there is no iOS kit. The product needs all
-three, so M1 begins by installing them (through `aqtinstall`, whose module
-names and 6.12 availability for each host are **unverified**; the roadmap
-already says to check with `aqt list-qt`).
+**As built, checked in the shared Qt 6.12.0 tree:** the Windows kit has Core,
+Gui, Qml, Quick, QuickControls2, Quick3D, ShaderTools, Svg, **Multimedia,
+Sensors and TextToSpeech** for the feedback engines; the module archives for the
+last three were fetched from the Qt repository and merged into the kit
+(docs/building.md, "The Qt Quick window"). There is still no iOS kit. The
+application finds the three **optionally**: a contributor's kit without them
+builds the silent variants of the sound, speech and motion backends
+(`src/app/feedback`), and the game is complete, only quieter.
 
 | Module | For | In the tree | Offered under |
 | --- | --- | --- | --- |
 | Quick, Controls 2 | The UI | Yes | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 (**checked**, SBOM) |
 | QuickShapes, QuickParticles | Paths, confetti | Yes | The same (**checked**) |
 | Quick3D, ShaderTools | The 3D board | Yes | Quick3D: Commercial or GPL-3.0-only (**checked**) |
-| Multimedia | Short sound clips; the camera on some targets | **No** | Not confirmed; check the SBOM after installing |
-| Sensors | The accelerometer | **No** | The headers carry a commercial, LGPL-3.0 and GPL option (**read**, from a search of the 6.x sources) |
-| TextToSpeech | Whole words, on the platform's engine | **No** | Commercial, LGPL-3.0 or GPL-2.0 (**read**, Qt 6.5 and 6.9 documentation) |
+| Multimedia | The short feedback assets; the camera on some targets | **Yes**, optional | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 (**checked**, the kit's `sbom/qtmultimedia-6.12.0.spdx`) |
+| Sensors | The accelerometer and gyroscope | **Yes**, optional | The same (**checked**, `qtsensors`) |
+| TextToSpeech | Whole words and sentences, on the platform's engine | **Yes**, optional | The same (**checked**, `qtspeech`) |
 
 The rule in [Licensing](../licensing.md#qt) holds: check how Qt offers a module
-before adding it.
+before adding it. All three are offered under the LGPL-3.0 as well as the GPL
+and commercial options, so none changes the application binary's licence; it is
+GPL-3.0-only because of Quick 3D, as before.
 
 ## Screens and navigation
 
@@ -191,6 +195,67 @@ books), no sentences in capitals.
 - **Which requirement wins (40).** Clarity. A school face is offered only where
   it passes the same glyph check as above for the places it applies.
 
+## Languages, right-to-left and fonts
+
+**As built:** the window is offered in **English, French, Spanish, German,
+Yiddish, Hebrew, Chinese and Japanese** (`en`, `fr`, `es`, `de`, `yi`, `he`,
+`zh`, `ja`). The Language row in the parent area offers those eight and
+**System**, which is the device's own language when it is one of them and
+English otherwise. The setting is kept in the store with the others, so it
+survives a restart, and the language is in force before the window is built:
+`LanguageManager` (`src/app/language_manager.*`) installs the catalogue and sets
+`QGuiApplication::setLayoutDirection` before the engine loads. A change in the
+parent area installs the new catalogue, turns the layout and calls
+`QQmlEngine::retranslate()`, so every `qsTr()` sentence on screen changes at
+once without a restart.
+
+**The catalogues.** One Qt Linguist `.ts` file per language is in `i18n/`,
+generated from the QML sources with the kit's `lupdate`
+(`cmake --build <build> --target wjs_update_translations`), and `lrelease`
+compiles them at build time into `:/i18n/wjs_<code>.qm`, embedded in the
+application (docs/building.md, "The interface's languages"). English is the
+source language and has a catalogue too, so the eight are checked alike. Every
+user-facing string is `qsTr()`; the sentences of an area live in that area's
+wording file (`ParentWording.qml`, `ScanWording.qml`, `SoloWording.qml`,
+`HomeWording.qml`), and only the shell's window title is inline. `qWarning()`
+and error text a developer reads stay English.
+
+**What is translated.** The chrome: every label, sentence, accessible name and
+message. **Not** the board: the dice letters, the words in the tray, the ENABLE
+word list and the phonics content are English, because the game is an English
+word game (audit-0.1.md, "Languages, RTL and i18n"). The translations are
+**mechanical and unreviewed**; they are listed with the phonics content for the
+literacy/reviewer pass, which decides the wording a child and a parent see.
+
+**Right to left.** Hebrew and Yiddish read right to left. The window sets
+`LayoutMirroring.enabled` with `childrenInherit` from the language, and the
+screens that need the direction for something other than anchors read
+`Theme.rightToLeft`/`ParentTheme.rightToLeft`: the navigation bars put the way
+back on the leading edge, the parent area's rows and choices order from it, the
+gate's words and two symmetric spots follow it, and the two-thirds/one-third
+split puts the panel on the trailing side (the left) and the board on the
+leading side (the right). The **board never mirrors**: the dice, the tiles, the
+trace path and the 2D and 3D scenes keep their reading order and their
+coordinates in every language (`LayoutMirroring.enabled: false` on the board
+containers). Numbers and dates use the locale.
+
+**Fonts.** Andika (SIL OFL) is bundled and is the face for beginning readers,
+the dice and the reading text; Archivo carries the interface's headings, buttons
+and labels, and IBM Plex Mono the small uppercase labels. All three are
+compiled into the application's resources. Hebrew, Yiddish and CJK still fall
+back per glyph through the platform's fonts: Segoe UI/Arial and Microsoft YaHei
+and Yu Gothic on Windows, PingFang and Hiragino on the iPad. CJK faces are
+**not bundled** (about 16 MB); the system fallback is documented and accepted,
+and no CJK text is ever drawn into a picture. If a device's chain turned out to
+lack a Hebrew or Yiddish glyph, Noto Sans Hebrew (OFL, also not bundled) would
+be added to the asset directory, the resource and the font family list, and
+recorded in [Licensing](../licensing.md). A test lays out a sample
+sentence in each of the eight languages with the app's font chain and skips
+itself, with a message, on a platform whose fonts lack the script; it is a
+Windows check today (docs/testing.md). **Recorded:** run on Windows on
+2026-10-19, the chain carried every glyph of all eight samples (Latin with
+accents, Hebrew, Yiddish, Chinese and Japanese).
+
 ## Colour and contrast
 
 The brief gives no palette. These are **placeholders** chosen to be measured,
@@ -198,7 +263,10 @@ not designs; the numbers are WCAG 2.x contrast ratios computed from the
 values, and are the gate a final palette has to meet. Cubeulator holds its
 tokens to the same gate with a script (`docs/design/tools/check_tokens.py`).
 The board is dark in both themes, so the dice read the same; the chrome around
-it follows the system's light or dark setting.
+it follows the **Colour scheme** setting: System (the default) follows the
+operating system's light or dark setting, and Light or Dark is the parent's
+choice for the whole program (the house standard of the sibling projects,
+decided 2026-10-18).
 
 | Pair | Values | Ratio | Target |
 | --- | --- | --- | --- |
@@ -230,7 +298,9 @@ core seen against the dice. And:
   page, 4.49 on a card, 5.16 on the panel), the button `#7DB4EE` under `#0E1620`
   (8.35, and 8.33 on the page). The board is the same in both, so its edge, which
   the dark tray would otherwise lose against a dark page, is `#8C98A8` (5.66 on
-  the board area). Nothing here has been looked at on a device.
+  the board area). The parent area's tokens (`ParentTheme.qml`) are the same
+  pairs under its own names, so the ratios carry over. Nothing here has been
+  looked at on a device.
 
 ## Motion
 
@@ -252,6 +322,25 @@ brief's strong effects are limited, because they are strong for a young child
 **Who sets it.** The system's reduced-motion setting is the default and the
 parent area can override it (Motion: System, Reduced). It is a parent's
 decision, not a child's, and it is not behind the game.
+
+**Motion as input, as built.** `MotionSource` (`src/app/feedback`, over Qt
+Sensors) reads the accelerometer and the gyroscope at the highest rate the
+platform lists, feeds the samples to the scene's `pushMotion(ax, ay, az, wx,
+wy, wz)` and to the pure `wjs::MotionProcessor`, and reports a real shake once
+per shake; the box then rolls as the Shake button does. It runs only while Solo
+Play's box or the falling dice are on screen, only while Shake is on, and stops
+when the screen is left. On the three desktops there is no accelerometer: the
+source stays unavailable and the drag that stands in for one remains
+(`SoloScreen.qml`). The processing is tested on synthetic traces
+(docs/testing.md), not on hardware: the detector's starting values still have
+to be tuned on a tablet.
+
+**The shake and the drop are the 3D board scene**
+([Board](board.md#the-shake-and-the-drop)). With reduced motion the scene keeps
+the box still, cross-fades the lid and fades the dice in on the faces the roll
+left up; nothing tumbles, and the board appears and plays as it does otherwise.
+The scene draws no particles of its own; the single slow glow when the board
+clears is the 2D layer's and is switched off with reduced motion too.
 
 ## Accessibility
 
@@ -293,20 +382,58 @@ All sound is **output**. Nothing is captured from the child (section 12.2).
 An error is never scolded (Cubeulator: "An error is not scolded"). Sounds are
 under 300 ms except the sequence and the rattle. No music.
 
-- **Sound** and **vibration** are separate switches in the parent area and obey
-  the device's volume and silent switch (on iOS the ring switch silences
-  sound, as Cubeulator notes).
-- **The assets.** The phoneme clips and the cheers are pre-rendered and are
-  recorded **after** the literacy review; the effects (rattle, click, chimes)
-  are made for the app and licensed with it. Whole words may use the platform's
-  own speech. The roadmap's D5 says who records is open.
-- **Touch feedback on an iPad.** The brief asks for haptics on the shake. An
-  iPad has no haptic engine to my knowledge (iPhones do); that is **from
-  general knowledge, not checked**, and the first device test settles it. The
-  design does not depend on it: every haptic above is paired with a sound and
-  a picture. A platform interface `haptics.hpp` under `src/platforms/interfaces`
-  has an implementation per platform and a no-op where there is nothing, as the
-  roadmap's section 5 plans.
+**As built.** The seam is still `Feedback.cue(kind, detail)` in the QML
+(`src/app/qml/kit/Feedback.qml`); Main.qml installs one `FeedbackEngine` on it
+(`src/app/feedback`), and the engine asks the pure policy
+`wjs::plan_cue` (`src/lib/include/wjs/feedback.hpp`) what the cue and the
+parent's settings come to. The policy is tested without a speaker: a cue, a
+settings value and a detail in, and the asset, its volume, whether the word is
+spoken and which tap of the hand is asked for.
+
+| Cue | Asset (`assets/sounds`) | Spoken | Haptic |
+| --- | --- | --- | --- |
+| `rattle` | `rattle` | - | light |
+| `tile` | `letter` | - | light |
+| `tile-landed` | `land` | - | none |
+| `word` | `cheer` (Celebration sounds) | the word (Sound it out) | medium |
+| `tick` | `tick` | - | none |
+| `chime` | `chime` (Celebration sounds) | - | medium |
+| `cleared` | `cleared` (Celebration sounds) | - | double tap |
+| `speak` | - | the name or word | none |
+| `tap` | `tap` | - | none |
+
+The rules are the parent's: **Sound** off silences every asset and every spoken
+word; **Celebration sounds** off drops the cheer, the chime and the cleared
+notes (the word is still spoken if Sound it out says so) and **quiet** plays
+them at half volume; **Sound it out** full and word both say the word, and off
+does not; **Vibration** off drops every haptic and changes no sound. Nothing is
+played for "not a word".
+
+- **The sound engine** is Qt Multimedia's `QSoundEffect` over the eight
+  placeholder WAVs, one effect per asset. A device with no audio output, or its
+  silent switch on, plays nothing and the game carries on; the engine counts
+  requests, not sounds heard. The scene's `tile-landed` cue carries a pitch for
+  its click; the placeholders are one soft click and ignore it until the
+  recorded set exists.
+- **The voice** is the device's own Qt TextToSpeech engine, whole words and
+  sentences only. It is output only: there is no audio input in the engine or
+  anywhere else in the application (section 12.2). `say_letter_sequence()` is
+  the seam for the sound-it-out sequence and is deliberately silent: the
+  isolated phonemes are the reviewer's recording job, and the platform's voice
+  must not substitute letter names for them.
+- **The assets** are placeholders made by `tools/sounds/make_sounds.ps1` and
+  owned by the project (`assets/sounds/README.md`, notices). The real phoneme
+  clips and recorded cheers replace them after the literacy review; the file
+  names are the seam. The three Qt modules are optional at build time: their
+  silent variants are chosen by CMake, so a kit without them still builds.
+- **Touch feedback.** `src/platforms/interfaces/wjs/platform/haptics.hpp` is the
+  platform interface (`light`, `medium`, `double_tap`). All three desktops
+  answer false through `detail/haptics_none.cpp`, and the game is unchanged:
+  every haptic is paired with a sound and a picture. The Android
+  (`Vibrator`/`VibratorManager` through JNI) and iOS (`UIImpactFeedbackGenerator`)
+  implementations wait for those targets. Whether an iPad has a haptic engine
+  is still **from general knowledge, not checked**; the first device test
+  settles it.
 
 ## Privacy, built in and checked
 
@@ -315,7 +442,7 @@ checked on each target.
 
 | Rule | In the build | Checked by |
 | --- | --- | --- |
-| **No audio recording** | No microphone usage string in the iOS property list; no audio input in the camera session, which is video only; no `QAudioSource` or audio capture in first-party code | A scan of first-party code for the audio-capture classes, in the style of `check_platform_isolation.ps1` (**built for the scanner and its camera files:** `scan.privacy`, [Scanner](scanner.md#privacy-built-in-and-checked), which also scans them for network classes and for any file output, so a frame is never written); a check on the built property list |
+| **No audio recording** | No microphone usage string in the iOS property list; no audio input in the camera session, which is video only; no `QAudioSource` or audio capture in first-party code; the sound and speech engines only play and say | A scan of first-party code for the audio-capture classes, in the style of `check_platform_isolation.ps1` (**built for the scanner and its camera files:** `scan.privacy`, [Scanner](scanner.md#privacy-built-in-and-checked), which also scans them for network classes and for any file output, so a frame is never written); a check on the built property list |
 | **No network capability** | Android: no `INTERNET` permission in the merged manifest. All targets: first-party code does not use the network classes; the QML engine is given a network manager that refuses everything but local and resource URLs. Web: the page makes no request beyond its own files (a content-security policy of `connect-src 'self'`) | On Android, a dump of the built package's permissions (it must not list `INTERNET`; whether Qt's Android build adds it for a module is **unverified**, which is why it is checked on the built package); a scan for the network classes; a test that loads a remote URL in QML and fails; on the web, a header check. **Qt Network cannot be left unlinked**: Cubeulator's licensing paper notes that Qml and Quick depend on it, so the rule is "no capability and no use", not "no module" |
 | **Zero export** | No share sheet, print, file-save or mail code; no URL scheme handler | A scan for the share, print and file-dialog classes. **Backups are an open question**: an iOS app's data is included in a device backup by default (**general knowledge, not checked**), which is data leaving the app under the user's own account; whether to exclude it is the author's decision (question 50) |
 | **Local store** | A small versioned file, written atomically, in the app's private directory, with only what the dashboard needs (below). SQLite through Qt SQL is possible but the data is a few kilobytes and has no query that needs it | A test that round-trips and migrates a version |
@@ -342,5 +469,18 @@ Android package, an iOS property list and a web page wait for those targets.
 - Whether the 3D board runs well on the author's iPad, and which iPad it is.
 - Whether VoiceOver reads the 2D tile layer over a 3D scene well.
 - Whether an iPad can give any haptic feedback (see above).
+- Whether the tablet's Qt Sensors backend reports an accelerometer and
+  gyroscope the way the scene expects, and the detector's starting values on
+  it: nothing here has been run on a tablet, and the desktops have no sensors.
 - The size of Andika and its glyphs at these sizes.
-- The licences of the Qt modules not in the tree and of the school fonts.
+- The licences of the school fonts (the three Qt modules are checked).
+- **The recordings**: the phoneme clips and the sound-it-out wording are the
+  reviewer's, and the placeholder tones are not them.
+- **The translations**: all eight catalogues are mechanical and unreviewed. The
+  reviewer's decisions are the wording a child and a parent read, what each
+  language calls the sounds and the tiers, and whether a translated UI over an
+  English board is enough for a family whose language is not English.
+- **The fonts on a device**: the glyph check is a Windows check today. Whether
+  the iPad's fallback covers every Hebrew and Yiddish sentence, and whether the
+  Chinese and Japanese sentences read well at the sizes in use, is looked at on
+  a device, not here.

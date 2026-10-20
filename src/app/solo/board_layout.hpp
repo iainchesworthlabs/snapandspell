@@ -8,7 +8,9 @@
 // share one copy.
 //
 //   Wide (width at least height): the board area is the leading two thirds of
-//   the width, the panel the trailing third, both full height.
+//   the width, the panel the trailing third, both full height. Leading is the
+//   left in a left-to-right language and the right in a right-to-left one
+//   (`right_to_left`): the split mirrors, the board's own tiles do not.
 //   Tall: the board area is the top two thirds of the height, the panel the
 //   bottom third, both full width.
 //
@@ -59,6 +61,7 @@ struct SoloLayoutResult {
     BoardMetrics metrics;   // of board_area
 };
 
-[[nodiscard]] SoloLayoutResult solo_layout(double width, double height, std::size_t n) noexcept;
+[[nodiscard]] SoloLayoutResult solo_layout(double width, double height, std::size_t n,
+                                           bool right_to_left = false) noexcept;
 
 }  // namespace wjs::app

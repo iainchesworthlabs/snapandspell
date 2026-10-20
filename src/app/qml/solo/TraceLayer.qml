@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
 import WordJewelsSolver
+import WordJewelsSolver.Scene
 
 // The 2D layer over the board scene: where the child traces and taps, and what
 // the tiles and the path look like while they do. It sits exactly on the scene's
@@ -37,8 +38,13 @@ Item {
     property bool keyboardUsed: false
 
     activeFocusOnTab: true
+    // The board is not mirrored: its coordinates are the board's own, and the
+    // tiles keep their reading order in every language. The window's mirroring
+    // stops here (and at the scene).
+    LayoutMirroring.enabled: false
+    LayoutMirroring.childrenInherit: true
     Accessible.role: Accessible.Table
-    Accessible.name: qsTr("Board")
+    Accessible.name: SoloWording.board
 
     function tileX(index) {
         return boardRect.x + (index % columns) * pitch;
@@ -59,8 +65,19 @@ Item {
     property real flashMs: 0
     readonly property int flashLength: solo.litPath.length * Theme.tileFlashStep + Theme.tileFlashLength + Theme.wordHold
 
+    // The path being made, copied from the model once per change. The tiles'
+    // lit tests and the path's points read this one JS array, instead of asking
+    // the model for a fresh list per read (the model builds its list per read,
+    // and a 6x6 board reads it once a tile and once a path line per move: the
+    // pointer's jank is those rebuilds).
+    property var pathList: []
+    // The path's points, computed once per change for both stroked lines.
+    readonly property var pathPoints: root.points(root.pathList)
+    // The fading path's points, computed once per fade for both lines.
+    readonly property var ghostPoints: root.points(root.ghostPath)
+
     function isLit(index) {
-        if (solo.path.indexOf(index) >= 0) {
+        if (root.pathList.indexOf(index) >= 0) {
             return true;
         }
         const place = solo.litPath.indexOf(index);
@@ -88,6 +105,10 @@ Item {
                 root.ghostKind = kind;
                 ghostFade.restart();
             }
+        }
+        function onPathChanged() {
+            // One copy per change: the tiles and the path lines read this.
+            root.pathList = root.solo.path;
         }
         function onStateChanged() {
             if (root.solo.state === "word-found") {
@@ -166,9 +187,10 @@ Item {
             // "A, row 2, column 3": named by its letter and its place.
             Accessible.role: cell.dead ? Accessible.Graphic : Accessible.Button
             Accessible.name: cell.dead
-                ? qsTr("Jewel, row %1, column %2").arg(Math.floor(cell.index / root.columns) + 1).arg(cell.index % root.columns + 1)
-                : qsTr("%1, row %2, column %3").arg(cell.modelData === "QU" ? "Qu" : cell.modelData)
-                      .arg(Math.floor(cell.index / root.columns) + 1).arg(cell.index % root.columns + 1)
+                ? SoloWording.jewelName(Math.floor(cell.index / root.columns) + 1, cell.index % root.columns + 1)
+                : SoloWording.tileName(cell.modelData === "QU" ? "Qu" : cell.modelData,
+                                       Math.floor(cell.index / root.columns) + 1,
+                                       cell.index % root.columns + 1)
             Accessible.checked: cell.lit
             Accessible.onPressAction: root.solo.tapTile(cell.index)
         }
@@ -186,7 +208,7 @@ Item {
         border.width: Theme.litEdge
         border.color: Theme.pathCasing
         Accessible.role: Accessible.Graphic
-        Accessible.name: qsTr("Start here")
+        Accessible.name: SoloWording.startHere
 
         Rectangle {
             anchors.fill: parent
@@ -214,8 +236,8 @@ Item {
         Rectangle {
             id: bar
             required property var modelData
-            readonly property var first: root.solo.path[modelData.first]
-            readonly property var last: root.solo.path[modelData.first + modelData.tiles - 1]
+            readonly property var first: root.pathList[modelData.first]
+            readonly property var last: root.pathList[modelData.first + modelData.tiles - 1]
             readonly property bool valid: modelData.tiles > 1 && first !== undefined && last !== undefined
             readonly property point from: valid ? root.centre(first) : Qt.point(0, 0)
             readonly property point to: valid ? root.centre(last) : Qt.point(0, 0)
@@ -244,7 +266,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.solo.path) }
+            PathPolyline { path: root.pathPoints }
         }
         ShapePath {
             strokeColor: Theme.pathCore
@@ -252,7 +274,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.solo.path) }
+            PathPolyline { path: root.pathPoints }
         }
     }
 
@@ -269,7 +291,7 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.ghostPath) }
+            PathPolyline { path: root.ghostPoints }
         }
         ShapePath {
             strokeColor: Theme.pathCore
@@ -277,19 +299,28 @@ Item {
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
-            PathPolyline { path: root.points(root.ghostPath) }
+            PathPolyline { path: root.ghostPoints }
         }
     }
 
     // --- the pointer ------------------------------------------------------------------------------------------
     // Only the first touch draws: a MouseArea is given the mouse events synthesised
     // from the first touch point, so a second finger or a resting palm is ignored.
+    // The forgiving band (a little beyond the board's edges) stays inside this
+    // item's bounds, so it never reaches over the app bar above or the panel
+    // beside.
+    readonly property real pointerLeft: Math.max(0, root.boardRect.x - root.slack)
+    readonly property real pointerTop: Math.max(0, root.boardRect.y - root.slack)
+    readonly property real pointerRight: Math.min(root.width,
+                                                  root.boardRect.x + root.boardRect.width + root.slack)
+    readonly property real pointerBottom: Math.min(root.height,
+                                                   root.boardRect.y + root.boardRect.height + root.slack)
     MouseArea {
         id: pointer
-        x: root.boardRect.x - root.slack
-        y: root.boardRect.y - root.slack
-        width: root.boardRect.width + 2 * root.slack
-        height: root.boardRect.height + 2 * root.slack
+        x: root.pointerLeft
+        y: root.pointerTop
+        width: Math.max(0, root.pointerRight - root.pointerLeft)
+        height: Math.max(0, root.pointerBottom - root.pointerTop)
         enabled: root.accepting
         preventStealing: true
 
@@ -306,17 +337,29 @@ Item {
             root.keyboardUsed = false;
             root.forceActiveFocus();
             const p = local(mouse.x, mouse.y);
+            // The path work of a touch: the model's hit test, the path it
+            // changes and every binding that follows it, until the frame.
+            Profiler.begin("ui.trace");
             root.solo.pressAt(p.x, p.y);
+            Profiler.end();
         }
         onPositionChanged: mouse => {
             const p = local(mouse.x, mouse.y);
+            Profiler.begin("ui.trace");
             root.solo.moveTo(p.x, p.y);
+            Profiler.end();
         }
         onReleased: mouse => {
             const p = local(mouse.x, mouse.y);
+            Profiler.begin("ui.trace");
             root.solo.releaseAt(p.x, p.y, over(mouse.x, mouse.y));
+            Profiler.end();
         }
-        onCanceled: root.solo.clearPath()
+        onCanceled: {
+            Profiler.begin("ui.trace");
+            root.solo.clearPath();
+            Profiler.end();
+        }
     }
 
     // --- the keyboard and the switch ------------------------------------------------------------------------------------
@@ -329,38 +372,46 @@ Item {
         root.keyboardUsed = true;
         const row = Math.floor(root.focusIndex / root.columns);
         const column = root.focusIndex % root.columns;
+        Profiler.begin("ui.trace");
         switch (event.key) {
         case Qt.Key_Left:
             root.focusIndex = row * root.columns + Math.max(0, column - 1);
+            event.accepted = true;
             break;
         case Qt.Key_Right:
             root.focusIndex = row * root.columns + Math.min(root.columns - 1, column + 1);
+            event.accepted = true;
             break;
         case Qt.Key_Up:
             root.focusIndex = Math.max(0, row - 1) * root.columns + column;
+            event.accepted = true;
             break;
         case Qt.Key_Down:
             root.focusIndex = Math.min(root.rows - 1, row + 1) * root.columns + column;
+            event.accepted = true;
             break;
         case Qt.Key_Space:
             root.solo.tapTile(root.focusIndex);
+            event.accepted = true;
             break;
         case Qt.Key_Return:
         case Qt.Key_Enter:
             root.solo.done();
+            event.accepted = true;
             break;
         case Qt.Key_Backspace:
             root.solo.removeLast();
+            event.accepted = true;
             break;
         case Qt.Key_Escape:
-            if (root.solo.path.length === 0) {
-                return;
+            if (root.solo.path.length > 0) {
+                root.solo.clearPath();
+                event.accepted = true;
             }
-            root.solo.clearPath();
             break;
         default:
-            return;
+            break;
         }
-        event.accepted = true;
+        Profiler.end();
     }
 }

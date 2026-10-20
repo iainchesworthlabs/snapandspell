@@ -1,9 +1,11 @@
 #include "wjs/scan/board_finder.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <numeric>
 
+#include "scratch.hpp"
 #include "wjs/profiling.hpp"
 #include "wjs/scan/segment.hpp"
 #include "wjs/scan/work.hpp"
@@ -164,26 +166,6 @@ std::vector<double> normalised(std::vector<double> profile) {
     return smooth;
 }
 
-struct Profiles {
-    std::vector<double> columns;
-    std::vector<double> rows;
-};
-
-// The mean grey of each column and each row of the warped board, smoothed and
-// stretched to run from 0 to 1.
-Profiles profiles_of(const GrayImage& warped) {
-    std::vector<double> columns(static_cast<std::size_t>(warped.width), 0.0);
-    std::vector<double> rows(static_cast<std::size_t>(warped.height), 0.0);
-    for (int y = 0; y < warped.height; ++y) {
-        for (int x = 0; x < warped.width; ++x) {
-            const double v = warped.at(x, y);
-            columns[static_cast<std::size_t>(x)] += v / warped.height;
-            rows[static_cast<std::size_t>(y)] += v / warped.width;
-        }
-    }
-    return {normalised(std::move(columns)), normalised(std::move(rows))};
-}
-
 // The middles of the dice along one axis, from the gaps between them. `profile` is
 // the normalised mean grey along the axis, with `cells` dice on it.
 std::vector<double> axis_centres(const std::vector<double>& profile, std::size_t cells) {
@@ -231,9 +213,9 @@ std::vector<double> axis_centres(const std::vector<double>& profile, std::size_t
                     moment += below * (static_cast<double>(i) + 0.5);
                 }
             }
-            // A dip with no depth to it is no gap: keep the even split.
+            // A dip with no depth to it is no gap: keep the even split, which
+            // gap[k] already holds.
             if (weight <= 0.05) {
-                centre = expected;
                 break;
             }
             centre = moment / weight;
@@ -266,29 +248,32 @@ std::vector<double> axis_centres(const std::vector<double>& profile, std::size_t
     return centres;
 }
 
-}  // namespace
-
-namespace {
-
 // One look for the board: the bright pixels by a local threshold of the given
 // window (as a share of the short side) and margin, the die-shaped blobs among
 // them, the lattice they make, and its outline held to the comb. `pass_fit` is how
-// well the outline combs, for the caller to compare looks by.
+// well the outline combs, for the caller to compare looks by. `sat` is the blurred
+// picture's summed-area table, made once for all the looks, and the mask, the blob
+// labels and the trial warps are the scratch's, reused across looks and reads.
 std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blurred,
-                                   std::size_t min_dice, double window_fraction, int margin,
-                                   double& pass_fit) {
+                                   std::span<const std::uint32_t> sat, std::size_t min_dice,
+                                   double window_fraction, int margin, double& pass_fit,
+                                   detail::Scratch& scratch) {
     pass_fit = -1e300;
     const int short_side = std::min(image.width, image.height);
     // A window a bit over a die and its neighbours across, so the gaps between
     // dice are in it and the dice stand out from its mean.
     const int window = std::max(15, static_cast<int>(short_side * window_fraction)) | 1;
-    const std::vector<std::uint8_t> mask = bright_mask(blurred, window, margin);
+    const std::size_t pixels =
+        static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
+    const std::span<std::uint8_t> mask = detail::acquire(scratch.mask, pixels);
+    detail::bright_mask_into(mask, sat, blurred, window, margin);
 
     const double side_min = static_cast<double>(short_side) / 24.0;
     const double side_max = static_cast<double>(short_side) / 3.0;
-    const std::vector<Blob> blobs = find_blobs(mask, image.width, image.height,
-                                               static_cast<std::int64_t>(0.5 * side_min * side_min),
-                                               static_cast<std::int64_t>(side_max * side_max));
+    const std::span<std::int32_t> labels = detail::acquire(scratch.labels, pixels);
+    const std::vector<Blob> blobs = detail::find_blobs(
+        mask, image.width, image.height, static_cast<std::int64_t>(0.5 * side_min * side_min),
+        static_cast<std::int64_t>(side_max * side_max), labels);
 
     const std::vector<Die> dice = die_shaped(blobs);
     detail::scan_tally().dice_candidates += dice.size();
@@ -328,8 +313,10 @@ std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blur
         if (!outline) {
             break;
         }
-        const GrayImage drawn = warp_to_square(image, *outline, 240);
-        const std::vector<double> fits = comb_scores(drawn, 3, 8);
+        // The trial warp reuses the scratch's 240-pixel square: the comb score is
+        // read before the next attempt draws over it, so one buffer serves them all.
+        detail::warp_into(scratch.look, image, *outline, 240);
+        const std::vector<double> fits = comb_scores(scratch.look, 3, 8);
         const double fit = fits.empty() ? -1.0 : *std::ranges::max_element(fits);
         if (fit > best_fit) {
             best_fit = fit;
@@ -364,6 +351,7 @@ std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blur
     pass_fit = best_fit;
 
     std::vector<double> sides;
+    sides.reserve(lattice.size());
     for (const Die* die : lattice) {
         sides.push_back(die->side);
     }
@@ -388,12 +376,23 @@ std::optional<BoardFind> find_pass(const GrayImage& image, const GrayImage& blur
 
 }  // namespace
 
-std::optional<BoardFind> find_board(const GrayImage& image, std::size_t min_dice) {
-    auto zone = profiling::zone<"scan.find_board">();
+std::optional<BoardFind> detail::find_board_using(const GrayImage& image, std::size_t min_dice,
+                                                  Scratch& scratch) {
+    [[maybe_unused]] auto zone = profiling::zone<"scan.find_board">();
     if (image.width < 16 || image.height < 16) {
         return std::nullopt;
     }
-    const GrayImage blurred = box_blur(image, 1);
+    const std::size_t pixels =
+        static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
+    const std::span<std::uint32_t> across = detail::acquire(scratch.blur_across, pixels);
+    detail::box_blur_into(scratch.blurred, across, image, 1);
+    // The summed-area table of the blurred picture, made once here: each look's
+    // threshold built its own copy of the same values before, five passes and five
+    // buffers where one of each will do.
+    const std::size_t stride = static_cast<std::size_t>(image.width) + 1;
+    const std::span<std::uint32_t> sat =
+        detail::acquire(scratch.sat, stride * (static_cast<std::size_t>(image.height) + 1));
+    detail::summed_area(sat, scratch.blurred);
 
     // Light that is uneven across the board (a highlight on some dice and a shadow
     // on others) can hide dice from a look that is right for even light, and then
@@ -404,22 +403,30 @@ std::optional<BoardFind> find_board(const GrayImage& image, std::size_t min_dice
         double window_fraction;
         int margin;
     };
-    constexpr Look kLooks[] = {{0.30, 8}, {0.20, 4}, {0.42, 5}, {0.30, 2}, {0.30, -4}};
+    constexpr std::array<Look, 5> kLooks{{{0.30, 8}, {0.20, 4}, {0.42, 5}, {0.30, 2}, {0.30, -4}}};
     constexpr double kGoodFit = 0.35;
     std::optional<BoardFind> best;
     double best_fit = -1e300;
     bool best_is_good = false;
     for (const Look& look : kLooks) {
         double fit = 0.0;
-        const std::optional<BoardFind> found =
-            find_pass(image, blurred, min_dice, look.window_fraction, look.margin, fit);
+        const std::optional<BoardFind> found = find_pass(
+            image, scratch.blurred, sat, min_dice, look.window_fraction, look.margin, fit, scratch);
         if (!found) {
             continue;
         }
         const bool good = fit >= kGoodFit;
-        const bool better =
-            best_is_good == good ? (good ? found->dice > best->dice : fit > best_fit) : good;
-        if (!best || better) {
+        bool better = true;
+        if (best) {
+            if (best_is_good != good) {
+                better = good;
+            } else if (good) {
+                better = found->dice > best->dice;
+            } else {
+                better = fit > best_fit;
+            }
+        }
+        if (better) {
             best = found;
             best_fit = fit;
             best_is_good = good;
@@ -428,13 +435,24 @@ std::optional<BoardFind> find_board(const GrayImage& image, std::size_t min_dice
     return best;
 }
 
-GrayImage warp_to_square(const GrayImage& source, const Quad& corners, int side) {
-    GrayImage out(side, side);
+std::optional<BoardFind> find_board(const GrayImage& image, std::size_t min_dice) {
+    detail::Scratch scratch;
+    return detail::find_board_using(image, min_dice, scratch);
+}
+
+void detail::warp_into(GrayImage& out, const GrayImage& source, const Quad& corners, int side) {
+    detail::acquire_image(out, side, side);
     const auto s = static_cast<double>(side);
     const Quad square{{{0.0, 0.0}, {s, 0.0}, {s, s}, {0.0, s}}};
     const std::optional<Homography> map = homography(square, corners);
     if (!map) {
-        return out;
+        // A freshly made image would be all zeros; the reused one is cleared to the
+        // same so the caller sees the one answer either way.
+        std::ranges::fill(out.pixels.begin(),
+                          out.pixels.begin() +
+                              static_cast<std::ptrdiff_t>(side) * static_cast<std::ptrdiff_t>(side),
+                          std::uint8_t{0});
+        return;
     }
     detail::scan_tally().warp_pixels +=
         static_cast<std::uint64_t>(side) * static_cast<std::uint64_t>(side);
@@ -445,24 +463,87 @@ GrayImage warp_to_square(const GrayImage& source, const Quad& corners, int side)
                 static_cast<std::uint8_t>(std::clamp(sample(source, p.x, p.y) + 0.5, 0.0, 255.0));
         }
     }
+}
+
+GrayImage warp_to_square(const GrayImage& source, const Quad& corners, int side) {
+    GrayImage out;
+    detail::warp_into(out, source, corners, side);
     return out;
 }
 
-std::vector<double> comb_scores(const GrayImage& warped, std::size_t min_size,
-                                std::size_t max_size) {
-    std::vector<double> scores;
-    if (warped.empty()) {
-        return scores;
+BoardProfiles profiles_of(const GrayImage& warped) {
+    // The mean grey of each column and each row of the warped board, smoothed
+    // and stretched to run from 0 to 1. Two full passes over the picture, so the
+    // reader computes it once and shares it between the cell count and the cell
+    // centres (the overloads of count_cells and locate_cells below take one).
+    std::vector<double> columns(static_cast<std::size_t>(warped.width), 0.0);
+    std::vector<double> rows(static_cast<std::size_t>(warped.height), 0.0);
+    for (int y = 0; y < warped.height; ++y) {
+        for (int x = 0; x < warped.width; ++x) {
+            const double v = warped.at(x, y);
+            columns[static_cast<std::size_t>(x)] += v / warped.height;
+            rows[static_cast<std::size_t>(y)] += v / warped.width;
+        }
     }
-    const Profiles profiles = profiles_of(warped);
+    return {normalised(std::move(columns)), normalised(std::move(rows))};
+}
+
+namespace {
+
+// The comb scores from profiles that were already computed.
+std::vector<double> comb_scores_of(const BoardProfiles& profiles, std::size_t min_size,
+                                   std::size_t max_size) {
+    std::vector<double> scores;
     for (std::size_t n = min_size; n <= max_size; ++n) {
         scores.push_back(0.5 * (axis_score(profiles.columns, n) + axis_score(profiles.rows, n)));
     }
     return scores;
 }
 
+// The count the scores chose, which count_cells uses in both its forms.
+std::optional<CellCount> pick_count(const std::vector<double>& scores, std::size_t min_size) {
+    double best = -1e300;
+    double runner_up = -1e300;
+    std::size_t best_size = 0;
+    for (std::size_t k = 0; k < scores.size(); ++k) {
+        if (scores[k] > best) {
+            runner_up = best;
+            best = scores[k];
+            best_size = min_size + k;
+        } else if (scores[k] > runner_up) {
+            runner_up = scores[k];
+        }
+    }
+    if (best < 0.2) {
+        return std::nullopt;
+    }
+    CellCount count;
+    count.size = best_size;
+    count.confidence = std::clamp((best - runner_up) / 0.25, 0.0, 1.0);
+    return count;
+}
+
+}  // namespace
+
+std::vector<double> comb_scores(const GrayImage& warped, std::size_t min_size,
+                                std::size_t max_size) {
+    if (warped.empty()) {
+        return {};
+    }
+    return comb_scores_of(profiles_of(warped), min_size, max_size);
+}
+
 std::optional<CellCount> count_cells(const GrayImage& warped, std::size_t min_size,
                                      std::size_t max_size, std::size_t dice, double estimate) {
+    if (warped.empty()) {
+        return std::nullopt;
+    }
+    return count_cells(warped, profiles_of(warped), min_size, max_size, dice, estimate);
+}
+
+std::optional<CellCount> count_cells(const GrayImage& warped, const BoardProfiles& profiles,
+                                     std::size_t min_size, std::size_t max_size, std::size_t dice,
+                                     double estimate) {
     if (warped.empty() || min_size < 2 || max_size < min_size) {
         return std::nullopt;
     }
@@ -487,30 +568,18 @@ std::optional<CellCount> count_cells(const GrayImage& warped, std::size_t min_si
             --max_size;
         }
     }
-    const std::vector<double> scores = comb_scores(warped, min_size, max_size);
-
-    double best = -1e300;
-    double runner_up = -1e300;
-    std::size_t best_size = 0;
-    for (std::size_t k = 0; k < scores.size(); ++k) {
-        if (scores[k] > best) {
-            runner_up = best;
-            best = scores[k];
-            best_size = min_size + k;
-        } else if (scores[k] > runner_up) {
-            runner_up = scores[k];
-        }
-    }
-    if (best < 0.2) {
-        return std::nullopt;
-    }
-    CellCount count;
-    count.size = best_size;
-    count.confidence = std::clamp((best - runner_up) / 0.25, 0.0, 1.0);
-    return count;
+    return pick_count(comb_scores_of(profiles, min_size, max_size), min_size);
 }
 
 CellCentres locate_cells(const GrayImage& warped, std::size_t size) {
+    CellCentres centres;
+    if (warped.empty() || size == 0) {
+        return centres;
+    }
+    return locate_cells(warped, profiles_of(warped), size);
+}
+
+CellCentres locate_cells(const GrayImage& warped, const BoardProfiles& profiles, std::size_t size) {
     CellCentres centres;
     if (warped.empty() || size == 0) {
         return centres;
@@ -524,7 +593,6 @@ CellCentres locate_cells(const GrayImage& warped, std::size_t size) {
         }
         return centres;
     }
-    const Profiles profiles = profiles_of(warped);
     centres.x = axis_centres(profiles.columns, size);
     centres.y = axis_centres(profiles.rows, size);
     return centres;

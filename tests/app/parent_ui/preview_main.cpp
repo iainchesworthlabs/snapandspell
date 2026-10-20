@@ -16,13 +16,16 @@
 #include <QCoreApplication>
 #include <QDate>
 #include <QDir>
+#include <QFile>
 #include <QGuiApplication>
 #include <QImage>
 #include <QMetaObject>
 #include <QQmlApplicationEngine>
+#include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QThread>
@@ -30,6 +33,7 @@
 #include <cstdio>
 
 #include "demo_data.hpp"
+#include "language_manager.hpp"
 #include "parent_controller.hpp"
 #include "wjs/calendar.hpp"
 
@@ -65,9 +69,15 @@ void pump(int rounds = 8) {
     }
 }
 
-// Every text a visible item shows, tags and all.
-void collect_texts(QQuickItem* item, QStringList& texts) {
+// Every text a visible item shows, tags and all. A subtree named
+// `skipObjectName` is left out: the About page's licence notice is quoted legal
+// text, and the wording rules below are about what a parent is told, not about
+// the GPL's own words.
+void collect_texts(QQuickItem* item, QStringList& texts, const QString& skipObjectName) {
     if (item == nullptr || !item->isVisible()) {
+        return;
+    }
+    if (!skipObjectName.isEmpty() && item->objectName() == skipObjectName) {
         return;
     }
     const QVariant text = item->property("text");
@@ -79,13 +89,13 @@ void collect_texts(QQuickItem* item, QStringList& texts) {
         texts.append(text.toString());  // a button's own label
     }
     for (QQuickItem* child : item->childItems()) {
-        collect_texts(child, texts);
+        collect_texts(child, texts, skipObjectName);
     }
 }
 
-QStringList visible_texts(QQuickWindow* window) {
+QStringList visible_texts(QQuickWindow* window, const QString& skipObjectName = QString()) {
     QStringList texts;
-    collect_texts(window->contentItem(), texts);
+    collect_texts(window->contentItem(), texts, skipObjectName);
     return texts;
 }
 
@@ -132,13 +142,21 @@ int run_check(const QString& out) {
     wjs::Store store = wjs::app::demo::busy_store(today);
 
     wjs::app::ParentController controller;
-    controller.useCalendar([today] { return today; }, 1);
+    controller.useCalendar([] { return today; }, 1);
     controller.useClock([] { return g_now; });
     controller.useStore(&store);
     controller.usePhases(&phases);
 
+    wjs::app::LanguageManager language;
+    language.apply(QStringLiteral("en"));
+
     QQmlApplicationEngine engine;
-    engine.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
+    QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+                     &QQmlEngine::retranslate);
+    engine.setInitialProperties({
+        {QStringLiteral("controller"), QVariant::fromValue(&controller)},
+        {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
+    });
     engine.loadFromModule("ParentPreview", "PreviewHost");
     if (engine.rootObjects().isEmpty()) {
         std::fprintf(stderr, "The stub shell did not load.\n");
@@ -159,8 +177,11 @@ int run_check(const QString& out) {
     check(window->property("parentOpen").toBool(), "the parent area opens");
 
     QStringList texts = visible_texts(window);
-    check(any_contains(texts, "For parents"), "the gate has its title");
-    check(any_contains(texts, "Hold both circles"), "the gate says what to do");
+    check(any_contains(texts, QCoreApplication::translate("ParentWording", "For grown-ups")),
+          "the gate has its title");
+    check(any_contains(texts, QCoreApplication::translate("ParentWording",
+                                                          "Press and hold for two seconds.")),
+          "the gate says what to do");
     check(!any_contains(texts, "This week"), "nothing of the data is shown at the gate");
     check(!any_contains(texts, "Sounds"), "no sound is shown at the gate");
     check_no_forbidden_words(texts, "the gate");
@@ -197,6 +218,8 @@ int run_check(const QString& out) {
     // --- the dashboard --------------------------------------------------------------
     texts = visible_texts(window);
     check(any_contains(texts, "This week"), "the dashboard has this week");
+    check(any_contains(texts, "How the play is going"),
+          "the records have a heading of their own, below the action");
     check(any_contains(texts, "Sounds"), "the dashboard has the sounds");
     check(any_contains(texts, "The vault"), "the dashboard has the vault");
     check(any_contains(texts, "Best"), "the dashboard has the best");
@@ -222,12 +245,16 @@ int run_check(const QString& out) {
     pump();
     texts = visible_texts(window);
     for (const char* label :
-         {"Help", "Board", "Phase", "Focus sounds", "Board size", "Sound it out",
+         {"Help", "Board", "Phase", "Focus sounds", "Board size", "Timer", "Sound it out",
           "Celebration sounds", "Sound", "Vibration", "Shake the device", "Motion", "Text size",
           "Reset", "Clear boards and finds", "Clear stars and stickers"}) {
         check(any_contains(texts, label), QString("the settings have: ") + label);
     }
     check(!any_contains(texts, "School font"), "no school font is offered: none can be bundled");
+    check(any_contains(texts, "A start tile") && any_contains(texts, "Two letters"),
+          "the help is one of off, the start tile, or two letters");
+    check(any_contains(texts, "Count up") && any_contains(texts, "Count down"),
+          "the board's clock is one of off, up or down");
     check_no_forbidden_words(texts, "the settings");
     save(window, out, "settings");
 
@@ -237,10 +264,18 @@ int run_check(const QString& out) {
     window->resize(1024, 700);
 
     // A setting changes what is shown, and what is kept.
-    check(controller.setSetting("help", false), "help can be switched off");
-    check(store.settings().help == false, "and the store keeps it");
+    check(controller.setSetting("help", "start"), "the help can be its middle level");
+    check(store.settings().help == wjs::HelpLevel::start, "and the store keeps it");
     pump();
     check(controller.toggleFocusSound("s"), "a sound of the phase can be ticked");
+    pump();
+    // The board's clock: a count-down of the length the parent chose.
+    check(controller.setSetting("timer", "down"), "the board's clock can count down");
+    check(controller.setSetting("timerLength", 10), "and its length can be chosen");
+    check(store.settings().solo_clock == wjs::SoloClock::count_down &&
+              store.settings().solo_clock_minutes == 10,
+          "and the store keeps both");
+    check(!controller.setSetting("timer", "sideways"), "a clock that is not offered is refused");
     pump();
     save(window, out, "settings-ticked");
 
@@ -249,10 +284,43 @@ int run_check(const QString& out) {
     pump();
     texts = visible_texts(window);
     check(any_contains(texts, "version"), "the about page says the version");
-    check(any_contains(texts, "GNU General Public License"), "and the licence");
+    check(any_contains(texts, "commit"), "and the commit the build was made from");
+    check(any_contains(texts, "branch"), "and its branch");
     check(any_contains(texts, "does not use the network"), "and what is never done");
+    // One privacy section, not two: the summary card is gone, and the page says
+    // the privacy line once.
+    {
+        int summary = 0;
+        for (const QString& text : texts) {
+            if (text.contains("Kept on this device. No recording, no network.")) {
+                ++summary;
+            }
+        }
+        check(summary == 1, "the about page has one privacy section, not two");
+    }
     check_no_forbidden_words(texts, "the about page");
     save(window, out, "about");
+
+    // --- the licences page -------------------------------------------------------------------
+    window->setProperty("page", "licences");
+    pump();
+    texts = visible_texts(window);
+    check(any_contains(texts, "GNU General Public License"), "the licences page has the licence");
+    // The full third-party notices: embedded, and shown in the page's own
+    // scroll box. The resource is the one a package's application carries
+    // (cmake/Notices.cmake, wjs_add_notices_resource).
+    check(QFile::exists(QStringLiteral(":/notices/NOTICES.txt")),
+          "the third-party notices are embedded as :/notices/NOTICES.txt");
+    check(any_contains(texts, "GPL-3.0-only"),
+          "the notices say the application binary is GPL-3.0 only");
+    check(any_contains(texts, "Qt Quick 3D"), "and carry the Qt Quick 3D section");
+    check(any_contains(texts, "ENABLE"), "and the word list's");
+    check(any_contains(texts, "Catch2"), "and what is used only to test it");
+    check(!any_contains(texts, "does not use the network"),
+          "the licences page is the licences, not the privacy");
+    check_no_forbidden_words(visible_texts(window, QStringLiteral("licenceNotices")),
+                             "the licences page");
+    save(window, out, "licences");
 
     // --- back shuts the gate -----------------------------------------------------------------
     window->setProperty("page", "dashboard");
@@ -275,8 +343,16 @@ int run_empty_check(const QString& out) {
     wjs::Store store = wjs::app::demo::empty_store();
     controller.useStore(&store);
 
+    wjs::app::LanguageManager language;
+    language.apply(QStringLiteral("en"));
+
     QQmlApplicationEngine engine;
-    engine.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
+    QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+                     &QQmlEngine::retranslate);
+    engine.setInitialProperties({
+        {QStringLiteral("controller"), QVariant::fromValue(&controller)},
+        {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
+    });
     engine.loadFromModule("ParentPreview", "PreviewHost");
     if (engine.rootObjects().isEmpty()) {
         return 1;
@@ -308,7 +384,146 @@ int run_empty_check(const QString& out) {
     check(!any_contains(settings, "Phase"), "and no phase to choose");
     check(!controller.setSetting("board", "phonics"),
           "the phonics board cannot be chosen without its words");
+    check(any_contains(settings, "Phonics needs the phonics data"),
+          "and the settings say why Phonics is not offered");
+    check(controller.setSetting("timer", "up"), "the board's clock does not need phase data");
     save(window, out, "settings-no-phases");
+    return (g_failures == 0 && g_warnings == 0) ? 0 : 1;
+}
+
+// Every language, each applied before the screen is loaded: the screens draw,
+// QML warns of nothing, the catalogue is really in force (the gate's title is
+// the translated one, and for the seven it is not the English), and Hebrew and
+// Yiddish turn the layout around while the other six leave it as it was.
+int run_language_check(const QString& out) {
+    const wjs::Day today = wjs::day_from_civil(2026, 10, 16);
+    QSet<QString> english;
+
+    for (const QString& code : wjs::app::LanguageManager::languages()) {
+        const int warnings_before = g_warnings;
+        const int failures_before = g_failures;
+
+        wjs::app::LanguageManager language;
+        language.apply(code);
+        const bool right_to_left = language.rightToLeft();
+        check(language.code() == code, "the language in force is " + code);
+        check(right_to_left == (code == "he" || code == "yi"),
+              "Hebrew and Yiddish are right to left, the rest left to right: " + code);
+        check(QGuiApplication::layoutDirection() ==
+                  (right_to_left ? Qt::RightToLeft : Qt::LeftToRight),
+              "the application's layout direction follows the language: " + code);
+
+        wjs::PhaseSet phases = wjs::app::demo::phases();
+        wjs::Store store = wjs::app::demo::busy_store(today);
+        wjs::app::ParentController controller;
+        controller.useCalendar([] { return today; }, 1);
+        controller.useClock([] { return g_now; });
+        controller.useStore(&store);
+        controller.usePhases(&phases);
+
+        QQmlApplicationEngine engine;
+        QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+                         &QQmlEngine::retranslate);
+        engine.setInitialProperties({
+            {QStringLiteral("controller"), QVariant::fromValue(&controller)},
+            {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
+        });
+        engine.loadFromModule("ParentPreview", "PreviewHost");
+        if (engine.rootObjects().isEmpty()) {
+            check(false, "the stub shell loads in " + code);
+            continue;
+        }
+        auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+        if (window == nullptr) {
+            check(false, "the stub shell is a window in " + code);
+            continue;
+        }
+        window->resize(1024, 700);
+        pump();
+        QMetaObject::invokeMethod(window, "openParent");
+        pump();
+
+        // The gate: its title comes from the catalogue that is installed.
+        const QString gate_title = QCoreApplication::translate("ParentWording", "For grown-ups");
+        check(any_contains(visible_texts(window), gate_title),
+              "the gate's title is the catalogue's for " + code);
+        if (code != QLatin1String("en")) {
+            check(gate_title != QLatin1String("For grown-ups"),
+                  "a catalogue is really installed for " + code);
+        }
+        check(window->property("mirrored").toBool() == right_to_left,
+              "QML's mirroring follows the language: " + code);
+        const double back_x = window->property("backButtonX").toDouble();
+        const double width = window->width();
+        check(right_to_left ? back_x > width / 2 : back_x < width / 2,
+              "the bar's way back is on the leading edge: " + code);
+
+        QStringList texts = visible_texts(window);
+        controller.unlockForAssistiveTechnology();
+        pump();
+        texts += visible_texts(window);
+
+        // The settings, where the language is chosen: the names in their own
+        // scripts are there whatever the screens are in.
+        window->setProperty("page", "settings");
+        pump();
+        const QStringList settings_texts = visible_texts(window);
+        for (const char* label : {"Help", "Board", "Focus sounds", "Board size", "Text size",
+                                  "Language", "Clear boards and finds"}) {
+            check(any_contains(settings_texts, QCoreApplication::translate("ParentWording", label)),
+                  QString("the settings have the catalogue's ") + label + " in " + code);
+        }
+        check(any_contains(settings_texts, QStringLiteral("Français")),
+              "a language names itself in its own script: " + code);
+        check(any_contains(settings_texts, QStringLiteral("中文")), "and so does Chinese: " + code);
+        texts += settings_texts;
+
+        window->setProperty("page", "about");
+        pump();
+        texts += visible_texts(window);
+        save(window, out, "languages-" + code);
+
+        if (code == QLatin1String("en")) {
+            english = QSet<QString>(texts.begin(), texts.end());
+
+            // A language chosen while the screens are open is applied at once: the
+            // catalogue is swapped, the engine retranslates and the layout turns.
+            // This is the path Main.qml takes when the parent changes the setting.
+            check(controller.setSetting("language", QStringLiteral("de")),
+                  "a language can be chosen while the screens are open");
+            pump();
+            const QString german_back = QCoreApplication::translate("ParentWording", "Back");
+            check(german_back == QStringLiteral("Zurück"),
+                  "the German catalogue is in force at once");
+            check(any_contains(visible_texts(window), german_back),
+                  "the open screen retranslated at once");
+            check(controller.setSetting("language", QStringLiteral("he")),
+                  "and changed again to Hebrew");
+            pump();
+            check(window->property("mirrored").toBool(), "the layout turns at once");
+            check(window->property("backButtonX").toDouble() > width / 2,
+                  "and the bar's way back moves to the right");
+            check(controller.setSetting("language", QStringLiteral("en")), "and back to English");
+            pump();
+            check(any_contains(visible_texts(window), QStringLiteral("Back")),
+                  "and back to English at once");
+        } else {
+            int different = 0;
+            for (const QString& text : texts) {
+                if (!english.contains(text)) {
+                    ++different;
+                }
+            }
+            check(different > 0, "at least one string differs from English: " + code);
+        }
+
+        check(g_warnings == warnings_before, "QML warned of nothing in " + code);
+        check(g_failures == failures_before, "everything held in " + code);
+        if (g_warnings != warnings_before || g_failures != failures_before) {
+            std::fprintf(stderr, "the parent screens failed in %s\n",
+                         code.toLocal8Bit().constData());
+        }
+    }
     return (g_failures == 0 && g_warnings == 0) ? 0 : 1;
 }
 
@@ -320,13 +535,14 @@ int main(int argc, char* argv[]) {
         arguments.append(QString::fromLocal8Bit(argv[i]));
     }
     const bool is_check = arguments.contains(QStringLiteral("--check"));
+    const bool is_languages = arguments.contains(QStringLiteral("--languages"));
     QString out;
     const qsizetype flag = arguments.indexOf(QStringLiteral("--out"));
     if (flag >= 0 && flag + 1 < arguments.size()) {
         out = arguments.at(flag + 1);
     }
 
-    if (is_check) {
+    if (is_check || is_languages) {
         // No display and no GPU: the software renderer draws into memory.
         QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
         qInstallMessageHandler(message_handler);
@@ -340,6 +556,11 @@ int main(int argc, char* argv[]) {
                                                        : "parent screens: FAILED\n");
         return first != 0 || second != 0 ? 1 : 0;
     }
+    if (is_languages) {
+        const int result = run_language_check(out);
+        std::fprintf(stderr, result == 0 ? "parent languages: ok\n" : "parent languages: FAILED\n");
+        return result;
+    }
 
     // Interactive: made-up play, as of today, in a stub shell.
     wjs::PhaseSet phases = wjs::app::demo::phases();
@@ -349,8 +570,16 @@ int main(int argc, char* argv[]) {
     controller.useStore(&store);
     controller.usePhases(&phases);
 
+    wjs::app::LanguageManager language;
+    language.apply(QString());
+
     QQmlApplicationEngine engine;
-    engine.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
+    QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+                     &QQmlEngine::retranslate);
+    engine.setInitialProperties({
+        {QStringLiteral("controller"), QVariant::fromValue(&controller)},
+        {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
+    });
     engine.loadFromModule("ParentPreview", "PreviewHost");
     if (engine.rootObjects().isEmpty()) {
         return 1;

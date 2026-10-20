@@ -35,6 +35,19 @@
 #                                 set themselves ("" if there are none): on
 #                                 Windows the offscreen platform has no fonts
 #                                 until it is told where the system's are.
+#   WJS_PLATFORM_INSTALL_APP_DATA_DIR
+#                                 Where the Qt application's data (the English
+#                                 dictionary and the dice) is installed relative
+#                                 to the install prefix: beside the program's
+#                                 own executable, which is where it looks for
+#                                 them. The bindir, except on a platform whose
+#                                 application is a bundle.
+#   WJS_PLATFORM_QT_DEPLOY_AT_INSTALL
+#                                 ON where an installed copy of the application
+#                                 carries Qt's runtime beside it, deployed by
+#                                 Qt's own install-time script. OFF where the
+#                                 system's Qt is loaded instead, and writing
+#                                 that script's qt.conf would misdirect it.
 #
 # Build inputs (paths are relative to src/platforms):
 #   WJS_PLATFORM_SOURCES          Compiled into wjs_platform: one
@@ -50,12 +63,29 @@
 #                                 program of this desktop: a GUI-subsystem
 #                                 executable on Windows, an application bundle
 #                                 on macOS.
-#   wjs_platform_deploy_qt_runtime(<target> <qml_dir>)
+#   wjs_platform_deploy_qt_runtime(<target> <qml_dir> [<more_qml_dirs>...])
 #                                 Puts Qt's runtime next to the built program,
 #                                 including the QML modules imported by the
 #                                 QML sources in <qml_dir> ("" if it has none).
+#                                 More directories may be named when a program's
+#                                 screens also use QML that lives elsewhere (Mode
+#                                 A's live view is a file of the camera variant);
+#                                 a platform that does not read them ignores them.
+#   wjs_platform_configure_packaging()
+#                                 Adds this platform's CPack generators to
+#                                 CPACK_GENERATOR, whose first entry is always
+#                                 ZIP, and says which were found. A generator
+#                                 whose tool is missing (makensis, dpkg-deb,
+#                                 rpmbuild) is left out rather than turning
+#                                 into a failed configure; cmake/Packaging.cmake
+#                                 calls this once.
 # ---------------------------------------------------------------------------
 include_guard(GLOBAL)
+
+# A platform fragment says where the application's data is installed beside its
+# executable, which is a bindir path, so GNUInstallDirs is included before the
+# fragment is read.
+include(GNUInstallDirs)
 
 # Phones and the browser are not targets yet (docs/roadmap.md). Saying so here
 # is clearer than a missing-fragment error further down.
@@ -80,6 +110,11 @@ endif()
 
 set(WJS_PLATFORM_DIR "${PROJECT_SOURCE_DIR}/src/platforms/${WJS_PLATFORM}")
 include("${WJS_PLATFORM_DIR}/platform.cmake")
+
+# What the version block says this binary was built for and with (the target's
+# own name, word size and compiler). Named here, in the one file that tests the
+# OS, so src/lib/CMakeLists.txt reads a plain variable.
+set(WJS_VERSION_TARGET "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}, ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 
 # A fragment that forgets part of the contract should fail here, by name, not
 # as an empty source list or a missing-command error three files away.

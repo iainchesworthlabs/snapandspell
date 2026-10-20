@@ -63,10 +63,19 @@ The parent area is routed from the Solo Play window, on one store.
   store's copy, but the game on the screen goes only with its lid, and its next change
   saves it again). Opening the dashboard is a read and not an edit. The phase is read once, at the start of the run: a change of
   the Phase setting is seen by the next run.
-- **The tokens.** `Main.qml` binds `Theme.reducedMotion` to the Motion setting and
-  `Theme.textScale` to the Text size (`controller.textScale`), so every screen that
-  draws from `Theme` follows them without being touched. The parent screens bind
-  their own `ParentTheme.textScale` as before.
+- **The tokens.** `Main.qml` binds `Theme.reducedMotion` to the Motion setting,
+  `Theme.textScale` to the Text size (`controller.textScale`) and `Theme.colourScheme`
+  to the Colour scheme setting, so every screen that draws from `Theme` follows them
+  without being touched. The parent screens bind their own `ParentTheme.textScale`
+  and `ParentTheme.dark` as before: `ParentTheme.dark` follows `Theme.dark`, so the
+  parent area is in the same light or dark chrome as the rest.
+- **Colour scheme: System, Light or Dark.** System (the default) follows the
+  operating system's light or dark setting through `SystemColourScheme` (over
+  `QStyleHints::colorScheme`, with a `dark` property that notifies); Light and Dark
+  are the parent's choice for every screen's chrome. `Theme.dark` is
+  `colourScheme === "dark" || (colourScheme !== "light" && SystemColourScheme.dark)`,
+  and the board itself is the same in every scheme (application.md, "Colour and
+  contrast"). A change reaches the screens as the setting changes.
 - **Motion: System follows the system.** Reduced forces reduced motion on
   (`controller.reducedMotion`: the parent chose it). System is not a choice for or
   against, so it comes to whatever the operating system asks for: `SystemMotion`
@@ -150,8 +159,11 @@ is read. A store of a busy few months (100 phonics boards) is under 32 KiB (a te
 ### Versioned, migrated, safe against damage
 
 The first line is `wjs-store <version>`; the last is `end <checksum>` (FNV-1a over
-the lines before it). The version is **1**; there is no earlier one, so the
-migration list is empty and a test holds the mechanism to a pretend older format
+the lines before it). The version is **2**. Version 2 lets the saved game in
+progress be a standard board: its saved board carries the count of its words and
+no list of them. A version 1 file could not hold one, so the step from version 1
+rewrites nothing, and the file as it was is still kept as `store.wjs.v1` beside
+the new one. A test holds the mechanism to a pretend older format
 (`wjs::MigrationStep`: a step rewrites a version `n` file as `n + 1`, on the lines
 as words, so the code that read the old layout is not kept).
 
@@ -188,13 +200,14 @@ session never stores them) and its stamp as a day (a stamp outside 32 bits canno
 stored, so the conversion answers nothing); the store brings words and tiles to its own
 form (lower case, `S,A,T/P,I,N/T,A,P`). Coming back it turns the tiles into the session's
 own text (`S A T/P I N/T A P`, a space between tiles) and the viable words into **upper
-case in alphabetical order**, or `restore()` answers `board_changed`. A board the store
-kept no list of (more words than it lists), a size of other than 3 or 4, and a state the
-session does not save (shaking, dropping, cleared; it saves those as the box and resting)
-are refused. A board with no phase is a standard board; the session deals the phonics
-board only so far, and when it gains a board mode this is where it maps to the phase
-(an empty one for standard). The test `[session-store]` takes a real session through the
-store's file and back, including one the session dealt itself, and `restore()` accepts it.
+case in alphabetical order**, or `restore()` answers `board_changed`. A phonics board the
+store kept no list of (more words than it lists) cannot come back; a standard board's
+saved game carries no list, only how many words it held, which `restore()` checks the
+board against. A size of other than 3 to 6, and a state the session does not save
+(shaking, dropping, cleared; it saves those as the box and resting) are refused. A board
+with no phase is a standard board, the session's default. The test `[session-store]`
+takes a real session of each board mode through the store's file and back, including one
+the session dealt itself, and `restore()` accepts it.
 
 ## The gate
 
@@ -281,6 +294,12 @@ controller refuses any other (a test tries a long list). Two rows are conditiona
 - **School font** is not offered: no font whose licence permits bundling exists
   (dashboard.md, roadmap). The setting is stored and validated and the screen has the
   row for when one does.
+- **Language** is one of the eight codes or System (the device's own when it is one
+  of the eight, English otherwise). It is applied at once by `LanguageManager`
+  (`src/app/language_manager.*`), which installs the catalogue, calls
+  `QQmlEngine::retranslate()` and turns the layout around for Hebrew and Yiddish;
+  the board and its letters stay as they are (application.md, "Languages,
+  right-to-left and fonts").
 
 **Reset** is two separate confirmed steps, each saying what it clears: the boards and
 finds (with the day tallies and any game in progress), and the stars, the best and the

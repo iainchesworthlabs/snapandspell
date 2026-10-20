@@ -376,6 +376,13 @@ public:
     // The board mode this session plays (SessionOptions::mode).
     [[nodiscard]] BoardMode mode() const noexcept { return options_.mode; }
 
+    // The dice this session rolls (SessionData::dice): null when none was given.
+    // An application that plays both boards hands them over whichever mode is on,
+    // so this may be non-null on the phonics board, which does not use it. A
+    // caller that draws the dice of a standard board's roll (an application's
+    // scene) asks for the set of the board's size here.
+    [[nodiscard]] const DiceSets* dice() const noexcept { return dice_; }
+
     // The size chosen on the box, and the size of the board in play.
     [[nodiscard]] BoardSize size() const noexcept { return size_; }
 
@@ -398,6 +405,22 @@ public:
     // The tile lit by the start-tile help: set by request_help, cleared when its
     // word is found. Null otherwise.
     [[nodiscard]] std::optional<Position> lit_tile() const;
+
+    // The path of the word the start-tile help is for, from its first tile to
+    // its last: empty when no word is lit. The screens use only its first two
+    // tiles, for the second rung of the help; the library still never hands the
+    // word itself out.
+    [[nodiscard]] std::vector<Position> lit_path() const;
+
+    // How many of the board's words are still to find and begin with `prefix`
+    // (the tile the help lit, or its first two tiles): a count, never a word
+    // (wjs/game_rules.hpp).
+    [[nodiscard]] std::size_t words_with_start(std::span<const Position> prefix) const;
+
+    // The help is put away without its word being found: the child made a word
+    // from the lit start, and the start is now their own. The lit word is
+    // cleared; nothing else changes.
+    void dismiss_help();
 
     // --- events ---------------------------------------------------------------
     // Each returns whether it applied. One that does not leaves everything as it

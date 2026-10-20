@@ -30,6 +30,10 @@ set(PROJECT_SOURCE_DIR "${REPO_ROOT}")
 set(_app_dir "${REPO_ROOT}/src/platforms")
 list(APPEND CMAKE_MODULE_PATH "${REPO_ROOT}/cmake")
 include(PlatformContract)
+# A fragment derives its application data directory from CMAKE_INSTALL_BINDIR,
+# which cmake/Platform.cmake includes GNUInstallDirs for. The same here, or the
+# fragment would be checked with that variable empty.
+include(GNUInstallDirs)
 
 # ---- child mode: check one fragment, in this (fresh) process ----------------
 if(FRAGMENT)

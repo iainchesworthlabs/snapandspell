@@ -38,6 +38,7 @@ not removed.
 | [Scanner](scanner.md) | Mode A's board reader: the library, the confirm-and-correct model, the camera and reader interfaces, the accuracy target and the synthetic corpus, what was measured, and what the iPad still has to do |
 | [Performance](performance.md) | Budgets, the Tracy zones, the macro-free route, the performance tier |
 | [Path](path.md) | The route from the MVP to the full product across several releases, and what the MVP must leave open |
+| [Human factors audit (October 2026)](ux-audit-2026-10/index.md) | The running app reviewed against human factors, CountdownSolver, ICL Forge and WCAG, with the design overhaul direction, roadmap and validation plan. The [visual brief](ux-audit-2026-10/visual-brief.html) and [PDF](ux-audit-2026-10/visual-brief.pdf) are the shorter, designed version; the [follow-up pass](ux-audit-2026-10/follow-up-2026-10-19.md) records the first play-through corrections and the points, collection and help rules |
 | [Layouts](layouts.svg) | The two-thirds / one-third arrangement at four window shapes, to scale |
 
 ## The design in one page
@@ -144,7 +145,7 @@ the session notes outside the repository.
 - Qt Multimedia, Qt Sensors and Qt TextToSpeech, and the iOS kit: not in the
   shared tree. Their licence expressions come from documentation and headers
   read, not from SBOMs.
-- Tracy's headers were read from source at v0.13.1 and not compiled.
+- Tracy's headers were read from source at v0.14.1 and not compiled.
 - Whether an iPad has any haptic feedback; whether the stores accept a
   two-spot gate.
 - The school fonts' licences; the dice owned by the author.

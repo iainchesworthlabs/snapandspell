@@ -4,6 +4,8 @@
 #include <tuple>
 #include <utility>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs {
 namespace {
 
@@ -67,6 +69,8 @@ std::string_view to_string(Tier tier) noexcept {
 
 Classification classify_path(const Board& board, std::span<const Position> path,
                              const WordSets& words) {
+    auto zone = profiling::zone<"rules.classify">();
+
     auto spelled = validate_path(board, path);
     if (!spelled) {
         return {.state = WordState::not_a_word, .word = {}, .fault = spelled.error()};
@@ -125,6 +129,26 @@ std::optional<StartTileHelp> start_tile_help(std::span<const FoundWord> viable,
 bool is_cleared(std::span<const FoundWord> viable, const FoundWords& found) {
     return std::ranges::all_of(
         viable, [&found](const FoundWord& word) { return found.contains(word.word); });
+}
+
+std::size_t words_starting_with(std::span<const FoundWord> viable, const FoundWords& found,
+                                std::span<const Position> prefix) noexcept {
+    if (prefix.empty()) {
+        return 0;
+    }
+    std::size_t count = 0;
+    for (const FoundWord& word : viable) {
+        if (found.contains(word.word) || word.path.size() < prefix.size()) {
+            continue;
+        }
+        const bool begins = std::equal(
+            prefix.begin(), prefix.end(), word.path.begin(),
+            [](Position a, Position b) { return a.row == b.row && a.column == b.column; });
+        if (begins) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 }  // namespace wjs

@@ -54,6 +54,17 @@ struct CellCount {
     double confidence = 0.0;
 };
 
+// The mean grey of each column and each row of a warped board, smoothed over
+// three samples and stretched to run from 0 to 1. Two full passes over the
+// picture, so a caller that wants both the cell count and the cell centres
+// (the reader) computes it once and passes it to both.
+struct BoardProfiles {
+    std::vector<double> columns;
+    std::vector<double> rows;
+};
+
+[[nodiscard]] BoardProfiles profiles_of(const GrayImage& warped);
+
 // Counts the cells of a warped square board by their gaps: the dice are bright and
 // the gaps between them dark, so the row and column profiles are a comb, whose
 // teeth are the dice. The count is the one whose comb fits best. Nothing if no
@@ -68,6 +79,11 @@ struct CellCount {
 [[nodiscard]] std::optional<CellCount> count_cells(const GrayImage& warped, std::size_t min_size,
                                                    std::size_t max_size, std::size_t dice = 0,
                                                    double estimate = 0.0);
+// The same, from the profiles the caller computed once for this board.
+[[nodiscard]] std::optional<CellCount> count_cells(const GrayImage& warped,
+                                                   const BoardProfiles& profiles,
+                                                   std::size_t min_size, std::size_t max_size,
+                                                   std::size_t dice = 0, double estimate = 0.0);
 
 // How well the comb of each count from min_size to max_size fits the warped board:
 // the brightness at the middles of the cells less the brightness at the seams, as
@@ -89,5 +105,8 @@ struct CellCentres {
 };
 
 [[nodiscard]] CellCentres locate_cells(const GrayImage& warped, std::size_t size);
+// The same, from the profiles the caller computed once for this board.
+[[nodiscard]] CellCentres locate_cells(const GrayImage& warped, const BoardProfiles& profiles,
+                                       std::size_t size);
 
 }  // namespace wjs::scan

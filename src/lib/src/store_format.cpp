@@ -3,6 +3,7 @@
 // touches the disk (store.cpp does), so all of it is held to tests on strings.
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
@@ -10,9 +11,11 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include "wjs/board.hpp"
+#include "wjs/profiling.hpp"
 #include "wjs/store.hpp"
 
 namespace wjs {
@@ -130,7 +133,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         out += '=';
         out += value;
     };
-    put("help", flag(s.help));
+    put("help", to_string(s.help));
     put("board", to_string(s.board));
     put("phase", s.phase);
     put("focus", s.focus_sounds.empty() ? std::string{"-"} : join(s.focus_sounds, ','));
@@ -141,8 +144,12 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
     put("vibration", flag(s.vibration));
     put("shake", flag(s.shake));
     put("motion", to_string(s.motion));
+    put("colour", to_string(s.colour_scheme));
+    put("timer", to_string(s.solo_clock));
+    put("timer_minutes", std::to_string(s.solo_clock_minutes));
     put("text", std::to_string(s.text_size_percent));
     put("font", field(s.school_font));
+    put("language", field(s.language));
     out += '\n';
     return out;
 }
@@ -162,7 +169,15 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         const std::string_view key = std::string_view{word}.substr(0, equals);
         const std::string_view value = std::string_view{word}.substr(equals + 1);
         if (key == "help") {
-            s.help = to_flag(value).value_or(s.help);
+            // A file from before the levels: 1 is the full (two-rung) help,
+            // 0 is none.
+            if (value == "0") {
+                s.help = HelpLevel::off;
+            } else if (value == "1") {
+                s.help = HelpLevel::two_letters;
+            } else {
+                s.help = help_level_from_string(value).value_or(s.help);
+            }
         } else if (key == "board") {
             s.board = board_mode_from_string(value).value_or(s.board);
         } else if (key == "phase") {
@@ -184,10 +199,18 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
             s.shake = to_flag(value).value_or(s.shake);
         } else if (key == "motion") {
             s.motion = motion_from_string(value).value_or(s.motion);
+        } else if (key == "colour") {
+            s.colour_scheme = colour_scheme_from_string(value).value_or(s.colour_scheme);
+        } else if (key == "timer") {
+            s.solo_clock = solo_clock_from_string(value).value_or(s.solo_clock);
+        } else if (key == "timer_minutes") {
+            s.solo_clock_minutes = to_integer<int>(value).value_or(s.solo_clock_minutes);
         } else if (key == "text") {
             s.text_size_percent = to_integer<int>(value).value_or(s.text_size_percent);
         } else if (key == "font") {
             s.school_font = unfield(value);
+        } else if (key == "language") {
+            s.language = unfield(value);
         }
     }
     return s.normalized();
@@ -241,7 +264,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         }
         const auto size = to_integer<int>(f[0]);
         const auto stars = to_integer<int>(f[1]);
-        if (!size || !stars || *size < 1 || *size > static_cast<int>(Board::max_dimension) ||
+        if (!size || !stars || *size < 1 || std::cmp_greater(*size, Board::max_dimension) ||
             *stars < 0 || *stars > 1'000'000) {
             return false;
         }
@@ -277,7 +300,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         const auto board = to_integer<std::uint32_t>(f[6]);
         if (!stars || !size || !day || !used || !board || !read_phase(f[3], find.phase) ||
             *stars < 0 || *stars > max_find_stars || *size < 1 ||
-            *size > static_cast<int>(Board::max_dimension)) {
+            std::cmp_greater(*size, Board::max_dimension)) {
             return false;
         }
         find.stars = *stars;
@@ -317,7 +340,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         const auto viable = to_integer<int>(f[7]);
         if (!serial || *serial == 0 || !day || !size || !cleared || !found || !stars || !viable ||
             !read_phase(f[3], board.phase) || *size < 1 ||
-            *size > static_cast<int>(Board::max_dimension) || *found < 0 || *found > 100'000 ||
+            std::cmp_greater(*size, Board::max_dimension) || *found < 0 || *found > 100'000 ||
             *stars < 0 || *stars > 1'000'000 || *viable < 0 || *viable > 100'000) {
             return false;
         }
@@ -377,7 +400,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         }
         const auto side = to_integer<int>(*size);
         const auto seed_value = to_integer<std::uint32_t>(*seed);
-        if (!side || !seed_value || *side < 1 || *side > static_cast<int>(Board::max_dimension) ||
+        if (!side || !seed_value || *side < 1 || std::cmp_greater(*side, Board::max_dimension) ||
             (*lit != "-" && !is_stored_word(*lit))) {
             return false;
         }
@@ -398,8 +421,7 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         const auto size = to_integer<int>(f[1]);
         const auto total = to_integer<int>(f[3]);
         if (!size || !total || !read_phase(f[0], board.phase) || *size < 1 ||
-            *size > static_cast<int>(Board::max_dimension) || *total < 1 || *total > 100'000 ||
-            f[4] == "-") {
+            std::cmp_greater(*size, Board::max_dimension) || *total < 1 || *total > 100'000) {
             return false;
         }
         const auto parsed = Board::parse(f[2]);
@@ -410,10 +432,14 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
         board.size = *size;
         board.tiles = f[2];
         board.viable_total = *total;
-        board.viable = split(f[4], ',');
-        if (board.viable.size() > max_listed_viable_words ||
-            !std::all_of(board.viable.begin(), board.viable.end(), is_stored_word)) {
-            return false;
+        // A standard board (no phase) lists none of its words; a phonics board
+        // lists every one, which data_is_consistent holds to the total.
+        if (f[4] != "-") {
+            board.viable = split(f[4], ',');
+            if (board.viable.size() > max_listed_viable_words ||
+                !std::all_of(board.viable.begin(), board.viable.end(), is_stored_word)) {
+                return false;
+            }
         }
         data.session->board = std::move(board);
         return true;
@@ -450,15 +476,24 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
                 return false;
             }
         } else {
-            if (!session.board || session.board->size != session.size ||
-                session.board->viable.size() !=
-                    static_cast<std::size_t>(session.board->viable_total)) {
+            if (!session.board || session.board->size != session.size) {
                 return false;
             }
-            if (session.lit &&
-                (session.state != SavedState::playing ||
-                 std::find(session.board->viable.begin(), session.board->viable.end(),
-                           *session.lit) == session.board->viable.end())) {
+            const BoardSnapshot& board = *session.board;
+            // A standard board (no phase) lists none of its words and says how
+            // many there were; a phonics board lists every one of them.
+            const bool standard = board.phase.empty();
+            if (standard ? (!board.viable.empty() || board.viable_total < 1)
+                         : (board.viable.empty() ||
+                            board.viable.size() != static_cast<std::size_t>(board.viable_total))) {
+                return false;
+            }
+            // A lit word is one of the board's, which a phonics board's list
+            // says and a standard board's count cannot; the session checks the
+            // word against its own solve when it restores.
+            if (session.lit && (session.state != SavedState::playing ||
+                                (!standard && std::find(board.viable.begin(), board.viable.end(),
+                                                        *session.lit) == board.viable.end()))) {
                 return false;
             }
         }
@@ -516,10 +551,19 @@ std::string_view to_string(StoreError error) noexcept {
 }
 
 std::span<const MigrationStep> builtin_migrations() noexcept {
-    // Version 1 is the first. A later version adds its step here, as
-    // { 1, [](RawStore& old) { ... return true; } }, together with a test
-    // that writes a version 1 file and reads it with this list.
-    return {};
+    // Version 2 lets the game in progress be a standard board: its sboard line
+    // carries the count of the board's words and no list of them ("-"). A
+    // version 1 file could not hold one (the sboard's list could not be "-", and
+    // a board whose list was not the whole of it was refused as damage), so
+    // every line a version 1 writer made is already a line version 2 reads: the
+    // step rewrites nothing. It is still a step, so that a version 1 file is
+    // kept beside the new one (store.cpp), and a program before this change
+    // refuses a file after it as newer_version instead of misreading a standard
+    // board. A test writes a version 1 file and reads it with this list.
+    static const std::array<MigrationStep, 1> steps = {
+        MigrationStep{1, [](RawStore&) { return true; }},
+    };
+    return steps;
 }
 
 std::filesystem::path default_store_path(const std::filesystem::path& base) {
@@ -527,6 +571,8 @@ std::filesystem::path default_store_path(const std::filesystem::path& base) {
 }
 
 std::string serialize_store(const StoreData& data, int version) {
+    auto zone = profiling::zone<"store.serialize">();
+
     std::string out;
     out.reserve(4096);
     out += header_tag;
@@ -590,12 +636,16 @@ std::string serialize_store(const StoreData& data, int version) {
     out += ' ';
     out += hex16(checksum(out.substr(0, out.size() - end_tag.size() - 1)));
     out += '\n';
+    zone.Value(out.size());
     return out;
 }
 
 std::expected<ParsedStore, StoreError> parse_store(std::string_view text,
                                                    std::span<const MigrationStep> steps,
                                                    int target_version) {
+    auto zone = profiling::zone<"store.parse">();
+    zone.Value(text.size());
+
     if (text.size() > max_store_bytes) {
         return std::unexpected(StoreError::too_large);
     }

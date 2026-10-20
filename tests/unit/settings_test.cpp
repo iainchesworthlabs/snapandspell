@@ -7,7 +7,7 @@
 TEST_CASE("the defaults are the table's", "[settings]") {
     const wjs::Settings s;
 
-    CHECK(s.help);
+    CHECK(s.help == wjs::HelpLevel::two_letters);
     CHECK(s.board == wjs::BoardMode::standard);
     CHECK(s.phase == "A");
     CHECK(s.focus_sounds.empty());
@@ -18,8 +18,12 @@ TEST_CASE("the defaults are the table's", "[settings]") {
     CHECK(s.vibration);
     CHECK(s.shake);
     CHECK(s.motion == wjs::MotionSetting::system);
+    CHECK(s.colour_scheme == wjs::ColourScheme::system);
+    CHECK(s.solo_clock == wjs::SoloClock::off);
+    CHECK(s.solo_clock_minutes == wjs::default_solo_clock_minutes);
     CHECK(s.text_size_percent == 100);
     CHECK(s.school_font.empty());
+    CHECK(s.language.empty());
 }
 
 TEST_CASE("the defaults are already normal", "[settings]") {
@@ -29,7 +33,7 @@ TEST_CASE("the defaults are already normal", "[settings]") {
 
 TEST_CASE("every value the screens offer survives normalisation", "[settings]") {
     wjs::Settings s;
-    s.help = false;
+    s.help = wjs::HelpLevel::start;
     s.board = wjs::BoardMode::phonics;
     s.phase = "B";
     s.focus_sounds = {"ai", "ee"};
@@ -40,8 +44,12 @@ TEST_CASE("every value the screens offer survives normalisation", "[settings]") 
     s.vibration = false;
     s.shake = false;
     s.motion = wjs::MotionSetting::reduced;
+    s.colour_scheme = wjs::ColourScheme::dark;
+    s.solo_clock = wjs::SoloClock::count_down;
+    s.solo_clock_minutes = 20;
     s.text_size_percent = 150;
     s.school_font = "Some-Font.1";
+    s.language = "he";
 
     CHECK(s.normalized() == s);
 }
@@ -53,9 +61,14 @@ TEST_CASE("a value outside the table becomes the default for it", "[settings]") 
     s.phase = "not valid!";
     s.school_font = "-";
     s.board = static_cast<wjs::BoardMode>(7);
+    s.help = static_cast<wjs::HelpLevel>(9);
     s.sound_it_out = static_cast<wjs::SoundItOut>(-1);
     s.celebration_sounds = static_cast<wjs::CelebrationSounds>(99);
     s.motion = static_cast<wjs::MotionSetting>(5);
+    s.colour_scheme = static_cast<wjs::ColourScheme>(5);
+    s.solo_clock = static_cast<wjs::SoloClock>(9);
+    s.solo_clock_minutes = 7;
+    s.language = "tlh";
 
     const wjs::Settings n = s.normalized();
 
@@ -63,18 +76,31 @@ TEST_CASE("a value outside the table becomes the default for it", "[settings]") 
     CHECK(n.text_size_percent == 100);
     CHECK(n.phase == "A");
     CHECK(n.school_font.empty());
+    CHECK(n.language.empty());
     CHECK(n.board == wjs::BoardMode::standard);
+    CHECK(n.help == wjs::HelpLevel::two_letters);
     CHECK(n.sound_it_out == wjs::SoundItOut::full);
     CHECK(n.celebration_sounds == wjs::CelebrationSounds::full);
     CHECK(n.motion == wjs::MotionSetting::system);
+    CHECK(n.colour_scheme == wjs::ColourScheme::system);
+    CHECK(n.solo_clock == wjs::SoloClock::off);
+    CHECK(n.solo_clock_minutes == wjs::default_solo_clock_minutes);
 }
 
-TEST_CASE("a board size is 3 or 4 and nothing else", "[settings]") {
+TEST_CASE("a board size is the mode's sizes and nothing else", "[settings]") {
     for (int size = -2; size <= 8; ++size) {
-        wjs::Settings s;
-        s.board_size = size;
-        const int got = s.normalized().board_size;
-        CHECK(((size == 3 || size == 4) ? got == size : got == 3));
+        // The standard board plays 3x3 to 6x6.
+        wjs::Settings standard;
+        standard.board_size = size;
+        const bool standard_size = size >= 3 && size <= 6;
+        CHECK(standard.normalized().board_size == (standard_size ? size : 3));
+
+        // The phonics board plays 3x3 and 4x4.
+        wjs::Settings phonics;
+        phonics.board = wjs::BoardMode::phonics;
+        phonics.board_size = size;
+        const bool phonics_size = size == 3 || size == 4;
+        CHECK(phonics.normalized().board_size == (phonics_size ? size : 3));
     }
 }
 
@@ -99,6 +125,30 @@ TEST_CASE("a phase is upper cased and must be a name", "[settings]") {
     CHECK(s.normalized().phase == std::string(wjs::max_name_length, 'A'));
     s.phase = "A B";
     CHECK(s.normalized().phase == "A");
+}
+
+TEST_CASE("a language is one of the eight codes, lower case, or the system's",
+          "[settings][language]") {
+    for (const std::string_view code : wjs::languages) {
+        wjs::Settings s;
+        s.language = std::string{code};
+        CHECK(s.normalized().language == code);
+        CHECK(wjs::is_valid_language(code));
+    }
+    // An upper-case code is the same language.
+    wjs::Settings upper;
+    upper.language = "HE";
+    CHECK(upper.normalized().language == "he");
+    // Anything else is the system's: empty.
+    for (const std::string_view code : {"", "xx", "en_US", "e"}) {
+        wjs::Settings s;
+        s.language = std::string{code};
+        CHECK(s.normalized().language.empty());
+        CHECK_FALSE(wjs::is_valid_language(code));
+    }
+    // Empty is the one value that is not a language but is allowed.
+    wjs::Settings system;
+    CHECK(system.normalized().language.empty());
 }
 
 TEST_CASE("focus sounds are lower case, valid, sorted and each once", "[settings]") {
@@ -145,6 +195,57 @@ TEST_CASE("each enum is written by one name and read back by it", "[settings]") 
     for (const auto v : {wjs::MotionSetting::system, wjs::MotionSetting::reduced}) {
         CHECK(wjs::motion_from_string(wjs::to_string(v)) == v);
     }
+    for (const auto v :
+         {wjs::ColourScheme::system, wjs::ColourScheme::light, wjs::ColourScheme::dark}) {
+        CHECK(wjs::colour_scheme_from_string(wjs::to_string(v)) == v);
+    }
+    for (const auto v :
+         {wjs::SoloClock::off, wjs::SoloClock::count_up, wjs::SoloClock::count_down}) {
+        CHECK(wjs::solo_clock_from_string(wjs::to_string(v)) == v);
+    }
+    for (const auto v : {wjs::HelpLevel::off, wjs::HelpLevel::start, wjs::HelpLevel::two_letters}) {
+        CHECK(wjs::help_level_from_string(wjs::to_string(v)) == v);
+    }
     CHECK_FALSE(wjs::board_mode_from_string("Standard").has_value());
     CHECK_FALSE(wjs::motion_from_string("").has_value());
+    CHECK_FALSE(wjs::colour_scheme_from_string("Dark").has_value());
+    CHECK_FALSE(wjs::solo_clock_from_string("countdown").has_value());
+    CHECK_FALSE(wjs::help_level_from_string("everything").has_value());
+}
+
+TEST_CASE("a colour scheme is the system's or the person's choice and nothing else", "[settings]") {
+    for (const auto v :
+         {wjs::ColourScheme::system, wjs::ColourScheme::light, wjs::ColourScheme::dark}) {
+        wjs::Settings s;
+        s.colour_scheme = v;
+        CHECK(s.normalized().colour_scheme == v);
+    }
+}
+
+TEST_CASE("a board's clock is off, up or down, and its minutes are one of the choices",
+          "[settings]") {
+    for (const auto v :
+         {wjs::SoloClock::off, wjs::SoloClock::count_up, wjs::SoloClock::count_down}) {
+        wjs::Settings s;
+        s.solo_clock = v;
+        CHECK(s.normalized().solo_clock == v);
+    }
+    for (const int minutes : wjs::solo_clock_minutes_choices) {
+        wjs::Settings s;
+        s.solo_clock_minutes = minutes;
+        CHECK(s.normalized().solo_clock_minutes == minutes);
+    }
+    for (const int minutes : {0, 4, 7, 60, 100}) {
+        wjs::Settings s;
+        s.solo_clock_minutes = minutes;
+        CHECK(s.normalized().solo_clock_minutes == wjs::default_solo_clock_minutes);
+    }
+}
+
+TEST_CASE("the help is off, the start tile, or the start and two letters", "[settings]") {
+    for (const auto v : {wjs::HelpLevel::off, wjs::HelpLevel::start, wjs::HelpLevel::two_letters}) {
+        wjs::Settings s;
+        s.help = v;
+        CHECK(s.normalized().help == v);
+    }
 }

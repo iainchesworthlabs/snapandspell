@@ -64,6 +64,10 @@ TEST_CASE("the board is dealt by the shake, before anything moves", "[app][fake]
     CHECK(game.board().columns == 3);
     CHECK(game.board().tiles[0] == "E");
     CHECK(game.board().tile({0, 2}) == "S");
+    // The fake has no dice: the scene draws the tile's letter on the face that is
+    // up rather than tumble a die it was not given.
+    CHECK(game.board().faces.empty());
+    CHECK(game.board().up.empty());
 
     // The shake only applies in the box.
     CHECK_FALSE(game.shake());

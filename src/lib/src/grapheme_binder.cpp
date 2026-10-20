@@ -44,12 +44,16 @@ std::vector<GraphemeBinder::Block> GraphemeBinder::bind(std::span<const std::str
     auto zone = profiling::zone<"phonics.bind">();
 
     // The letters of the whole path, and where each tile's letters start in it.
+    // The lower-case letters are appended straight into `text`: lower() made a
+    // string for every tile of every call, and bind() runs as the finger moves.
     std::string text;
     std::vector<std::size_t> starts;
     starts.reserve(tiles.size() + 1);
     for (const std::string& tile : tiles) {
         starts.push_back(text.size());
-        text += lower(tile);
+        for (const char letter : tile) {
+            text.push_back(to_lower(letter));
+        }
     }
     starts.push_back(text.size());
 
