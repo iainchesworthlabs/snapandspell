@@ -103,6 +103,35 @@ if("NSIS" IN_LIST CPACK_GENERATOR)
     if(TARGET WordJewelsSolver)
         set(CPACK_PACKAGE_EXECUTABLES "WordJewelsSolver" "WordJewelsSolver")
     endif()
+
+    # The programs are 64-bit, and the installer itself is a 32-bit NSIS program:
+    # without this, $PROGRAMFILES is "Program Files (x86)".
+    set(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64")
+    # The installer's and the uninstaller's icon, and the one Programs and
+    # Features shows. The same mark as the executable's (packaging/app.rc.in).
+    set(CPACK_NSIS_MUI_ICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
+    if(TARGET WordJewelsSolver)
+        set(CPACK_NSIS_INSTALLED_ICON_NAME "bin\\WordJewelsSolver.exe")
+        # The last page of the installer offers to start the program.
+        set(CPACK_NSIS_MUI_FINISHPAGE_RUN "WordJewelsSolver.exe")
+        # A desktop shortcut besides the Start Menu entry, removed with the program.
+        set(CPACK_NSIS_CREATE_ICONS_EXTRA
+            "CreateShortCut '$DESKTOP\\WordJewelsSolver.lnk' '$INSTDIR\\bin\\WordJewelsSolver.exe'")
+        set(CPACK_NSIS_DELETE_ICONS_EXTRA
+            "Delete '$DESKTOP\\WordJewelsSolver.lnk'")
+    endif()
+    # Programs and Features: publisher, support and about links, and the text at
+    # the foot of the installer window.
+    set(CPACK_NSIS_CONTACT "${CPACK_PACKAGE_CONTACT}")
+    set(CPACK_NSIS_URL_INFO_ABOUT "${PROJECT_HOMEPAGE_URL}")
+    set(CPACK_NSIS_HELP_LINK "${PROJECT_HOMEPAGE_URL}/issues")
+    if(WJS_PACKAGE_PRERELEASE)
+        set(CPACK_NSIS_BRANDING_TEXT "${CPACK_PACKAGE_NAME} ${PROJECT_VERSION}-${WJS_PACKAGE_PRERELEASE}")
+    else()
+        set(CPACK_NSIS_BRANDING_TEXT "${CPACK_PACKAGE_NAME} ${PROJECT_VERSION}")
+    endif()
+    set(CPACK_NSIS_BRANDING_TEXT_TRIM_POSITION LEFT)
 endif()
 
 # ---------------------------------------------------------------------------

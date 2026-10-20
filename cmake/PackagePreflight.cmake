@@ -23,8 +23,8 @@ if(CPACK_WJS_TRACY AND NOT CPACK_WJS_ALLOW_DEV_PACKAGE)
     message(FATAL_ERROR
         "Refusing to package this build: it was configured with the Tracy profiler "
         "(WJS_ENABLE_TRACY=ON), which listens on the network. A package is made "
-        "from a Release preset (windows-msvc-release, linux-gcc-release, "
-        "macos-clang-release), where it is off.\n"
+        "from a Release preset (the *-release ones in CMakePresets.json), "
+        "where it is off.\n"
         "To make a DEVELOPMENT package on purpose (for example to check the "
         "packaging itself), run: cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON")
 endif()

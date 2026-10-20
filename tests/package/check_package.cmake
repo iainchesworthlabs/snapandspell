@@ -181,6 +181,18 @@ if(EXPECT_MULTIMEDIA)
     endif()
 endif()
 
+# A package with the profiler in it carries Tracy's licence, and one without it
+# does not claim to (notices/fragments/tracy.txt).
+if(DEFINED EXPECT_TRACY AND EXISTS "${NOTICES}")
+    file(READ "${NOTICES}" _notice_text)
+    string(FIND "${_notice_text}" "Tracy Profiler (development packages only)" _tracy_section)
+    if(EXPECT_TRACY AND _tracy_section EQUAL -1)
+        list(APPEND _failures "this build has Tracy in it but ${NOTICES} has no Tracy section")
+    elseif(NOT EXPECT_TRACY AND NOT _tracy_section EQUAL -1)
+        list(APPEND _failures "this build has no Tracy but ${NOTICES} has a Tracy section")
+    endif()
+endif()
+
 # The notice the package installs is the one this build wrote, not a stale one.
 string(FIND "${_install_text}" "${NOTICES}" _notices_path)
 if(_notices_path EQUAL -1)
