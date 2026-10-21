@@ -2,12 +2,16 @@
 
 The board design, the game design and the application design for
 WordJewelsSolver, worked from the [product requirements](../product-requirements.md)
-including its MVP scope (section 12). Written 2026-10-16.
+including its MVP scope (section 12). Written from 2026-10-16; the code now
+exists, and the pages were brought into line with the 0.1 build on 2026-10-21.
 
-These pages are **proposals** for the author to accept or change. Nothing here
-is decided. Each says what is proposed, why, what it rests on, and what would
-change it. No production code was written; the only programs were throw-away
-measurements, which are not committed.
+A page is a **proposal** unless it says otherwise: it says what is proposed, why,
+what it rests on, and what would change it. Where it says **As built**, it
+describes what the code does; where it says **Not built**, the design wants
+something the code does not do. Decisions the author has taken are dated and
+collected in the [roadmap](../roadmap.md#4-decisions-that-gate-the-plan); what
+each requirement is, and which test shows it, is in
+[Requirements and traceability](../requirements.md).
 
 ## How to read these pages
 
@@ -27,18 +31,17 @@ not removed.
 
 | Page | What it settles |
 | --- | --- |
-| [Answers](answers.md) | All 69 questions of section 11, with a recommendation and who confirms |
-| [Game](game.md) | Mode B (Solo Play) and Mode A (the scanner): flow, words, stars, help, the resting screen, the check screen |
+| [Game](game.md) | Mode B (Solo Play) and Mode A (the scanner): flow, words, stars, help, the end of a board, the check screen |
 | [Phonics](phonics.md) | The mechanism: phase data, seeding, grapheme blocks, "sound it out", the review gate. **No word list** |
 | [Board](board.md) | Sizes, where letters come from, layout and scaling, the tile, the shake, the licence cost of Qt Quick 3D |
 | [Shake prototype](shake-prototype.md) | The board scene built in Qt Quick 3D behind its seam, what it cost on one desktop, and what a 2D swap-in must keep |
-| [Application](application.md) | Screens, touch targets, type and school fonts, colour, motion, accessibility, sound, privacy built in and checked, Qt modules |
+| [Application](application.md) | Screens, touch targets, type and school fonts, languages and right-to-left, the Jewel Box design system, colour, motion, accessibility, sound, privacy built in and checked, the user-study plan, Qt modules |
 | [Dashboard](dashboard.md) | The parent area: the gate, what is shown and how it is worded, settings, what is deferred |
 | [The parent area as built](parent-area.md) | The store, the gate, the dashboard's numbers, the screens and the privacy checks as built: the choices made, what each test holds, what is for the reviewer, what is not verified |
 | [Scanner](scanner.md) | Mode A's board reader: the library, the confirm-and-correct model, the camera and reader interfaces, the accuracy target and the synthetic corpus, what was measured, and what the iPad still has to do |
 | [Performance](performance.md) | Budgets, the Tracy zones, the macro-free route, the performance tier |
 | [Path](path.md) | The route from the MVP to the full product across several releases, and what the MVP must leave open |
-| [Human factors audit (October 2026)](ux-audit-2026-10/index.md) | The running app reviewed against human factors, CountdownSolver, ICL Forge and WCAG, with the design overhaul direction, roadmap and validation plan. The [visual brief](ux-audit-2026-10/visual-brief.html) and [PDF](ux-audit-2026-10/visual-brief.pdf) are the shorter, designed version; the [follow-up pass](ux-audit-2026-10/follow-up-2026-10-19.md) records the first play-through corrections and the points, collection and help rules |
+| [MVP library](mvp-library.md) | What the first release's word library is, what was built and the accepted risk of the full dictionary with no block list |
 | [Layouts](layouts.svg) | The two-thirds / one-third arrangement at four window shapes, to scale |
 
 ## The design in one page
@@ -48,10 +51,11 @@ not removed.
    share the board, the solver, the tray and the help. Separately, there are two
    **board modes** (decided 2026-10-16): the **standard** board, letters on dice,
    is the default; the **phonics** board is a parent's switch.
-2. **The MVP is small on purpose.** An iPad, 3x3 and 4x4, a standard board with
-   the phonics board as the parent's switch, one help (the start tile), stars by
-   tier, and a calm resting screen when the board is cleared. Nothing pulls the
-   child back. (The brief's 12.4 reads as the phonics board alone; the author
+2. **The MVP is small on purpose.** The desktops and an ad-hoc iOS build,
+   3x3 to 6x6, a standard board with the phonics board as the parent's switch,
+   a start-tile help (the parent chooses how far it goes), stars by tier, and a
+   summary card when a board ends. Nothing pulls the child back, and a
+   grown-up can add a board clock. (The brief's 12.4 reads as the phonics board alone; the author
    chose the standard board as the default.)
 3. **A phonics board is made, not shaken.** The library **seeds** it: plants words
    of the active phase (three letters at most), fills the rest with a
@@ -60,12 +64,15 @@ not removed.
    land there about one time in four at best; the guided fill and short targets
    land 90% or more on a 4x4 and larger. A standard board is dice, not seeded.
 4. **A traced word is one of three things**: viable (counts), real but not
-   today's (a soft tick, no word shown), or not a word (the path fades). A real
-   word is never called "not a word", and no unsuitable dictionary word is ever
-   read or printed.
-5. **Phonics is data.** Phases, graphemes and words are reviewed files the
-   build refuses to ship unreviewed. The code binds a trace into blocks and
-   sounds a word out; it knows no letter or sound.
+   today's (a soft tick, no word shown; the phonics board only), or not a word
+   (the path fades). A real word is never called "not a word". On the phonics
+   board no unsuitable dictionary word is ever read or printed; on the **standard
+   board there is no block list in 0.1**, so any ENABLE word can be shown and
+   spoken (the accepted risk, [MVP library](mvp-library.md)).
+5. **Phonics is data.** Phases, graphemes and words are reviewed files; a
+   release build refuses a phase file that lacks its review header. The code
+   binds a trace into blocks and sounds a word out; it knows no letter or sound.
+   No phase file exists yet, so the shipped app plays the standard board.
 6. **The shake's outcome is decided, not simulated**: the dice move by a small
    simulation of our own, and a guide takes each to its cell. The scene is one
    component with a narrow interface. 3D (Qt Quick 3D) for the MVP's private build,
@@ -100,7 +107,7 @@ uses so nothing waits.
 | 3 | **Are worlds, the mascot, the vault's art and school fonts in the MVP?** Section 12.5 does not say | Not in the MVP; R2 ([Path](path.md)) |
 | 4 | **Should the app's data be excluded from device backups?** "Air-gapped" says yes; a lost iPad would then lose the progress | Undecided |
 | 5 | **Which English?** Spelling, the voice's accent and the phonics set (the brief asks about Australian English) | The reviewer's |
-| 6 | **How should the history on `feature/product-design` be handled** for the programme names (question 66)? A fresh branch from `develop` holding the final tree needs no force-push | A fresh branch |
+| 6 | ~~How should the history on `feature/product-design` be handled for the programme names (question 66)?~~ **Done:** the repository was created from a rewritten history (roadmap G1) | Closed |
 | 7 | **Is a scoreboard against other players out for good** (question 5)? | Out |
 | 8 | **Is the order of releases right** ([Path](path.md))? | As written |
 
@@ -135,18 +142,16 @@ the session notes outside the repository.
 | The 249 SATPIN words: lengths, plurals, words per random board, the share of boards holding three to five with 0 to 12 dead cells, for three index sizes | [Phonics](phonics.md#why-verification-is-the-method) |
 | Words of the same indexes on real-looking 4x4 boards (the scanner's yield) | [Game](game.md#playing) |
 | The macro-free zone, compiled with stand-ins for Tracy's two types | [Performance](performance.md#a-macro-free-route) |
-| Contrast ratios for twelve colour pairs | [Application](application.md#colour-and-contrast) |
 
 ## What was not checked
 
 - Anything on a tablet or a phone, and on the author's iPad. Nothing was run on
   a device.
-- The glyphs of Andika and OpenDyslexic at the sizes used (neither is installed).
-- Qt Multimedia, Qt Sensors and Qt TextToSpeech, and the iOS kit: not in the
-  shared tree. Their licence expressions come from documentation and headers
-  read, not from SBOMs.
-- Tracy's headers were read from source at v0.14.1 and not compiled.
+- The glyphs of Andika at the sizes used, with a child (it is bundled; the
+  check has not been done), and OpenDyslexic (not bundled).
+- The iOS build, the signing and the install: written, never run on a device.
 - Whether an iPad has any haptic feedback; whether the stores accept a
-  two-spot gate.
-- The school fonts' licences; the dice owned by the author.
-- Any word list or sound. None was written, by design.
+  one-hold gate.
+- The school fonts' licences.
+- The reviewed phase list, the phoneme clips and the cheers. None exists, by
+  design (gate G7).

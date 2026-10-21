@@ -3,22 +3,29 @@
 **Does it solve a Boggle board today?**
 Yes, from a board you type in: give `wjs-cli` the rows of the board and a word
 list, and it prints every word that can be traced on the board with its score
-and the tiles that spell it. There is also a small Qt Quick window that does
-the same from a grid, built only on request. See the
+and the tiles that spell it. The Qt Quick application does the same for a board
+you type or scan, and also plays Solo Play with a child. See the
 [home page](index.md#using-the-command-line-solver).
 
 **Does it use a camera?**
-No. Holding a board up to a webcam, or a phone or tablet camera, is the goal, and it is not
-built: there is no camera input. A library that reads a board from a frame exists, tested on
-drawn frames only; nothing connects it to a camera and it has not seen a real board
-([scanner design](design/scanner.md)). The
+Yes, in the application on the desktops, and it has never read a real board. Mode A
+shows a live picture from the camera (Qt Multimedia) and **Capture** reads one frame
+with a reader that finds the board and its letters; the person then confirms or
+corrects the letters, or types the board in instead. The reader is tested on drawn
+frames only, and the camera backend has not been used in a test or on a real board
+([scanner design](design/scanner.md)). A picture is read in memory and never saved
+or sent anywhere. `wjs-cli` has no camera. The
 [architecture](architecture.md#not-built-yet) says what is missing, and the
 [roadmap](roadmap.md) says what is planned.
 
 **Is it ready for a five-year-old?**
-No. It is meant, in the end, as a learning aid for children of five and six
-playing with an adult, and nothing here has been designed or tried with a child
-yet. Today it is a solver for an adult who can type a board in.
+Not tested. It is meant as a learning aid for children of five and six playing
+with an adult. Solo Play is built for that age (large targets, no reading needed to
+play, nothing that can be lost), but it has not been tried with a child, and the
+literacy content (the phonics phases and sounds) does not exist because it needs a
+reviewer. The standard board also has no block list, so it can show any word in the
+ENABLE list. The plan for trying it is in
+[Application design](design/application.md#user-study-plan-open).
 
 **Where is the word list? `wjs-cli` says the dictionary file could not be opened.**
 Without `-d`, the program looks for `dictionaries/en.txt` beside the
@@ -50,9 +57,12 @@ error.
 
 **Which platforms does it run on?**
 The code is written for Windows, Linux and macOS, with the differences between
-them kept in `src/platforms`. CI builds and tests it on Windows (MSVC), Linux
-(GCC) and macOS (AppleClang); the Qt window is built on Windows only so far.
-See [Building](building.md).
+them kept in `src/platforms`. CI builds and tests the library and `wjs-cli` on
+Windows (MSVC), Linux (GCC) and macOS (AppleClang); the Qt application is built and
+tested in CI on Windows, and built for Linux and macOS by the release workflow,
+which has never run. An ad-hoc iOS build for the author's own devices is written
+and has never run on a device. Android is being worked on separately and is not
+built; there is no web build. See [Building](building.md).
 
 **Is this the 2013 program?**
 It is the same project, rebuilt. The original was a Windows-only program using
@@ -73,10 +83,13 @@ Found during testing and not fixed. Put the word list at a shorter path.
 
 **Is anything uploaded?**
 The project's own code does not open a network connection: the command-line
-program reads the files you name and writes to the console, and the window does
-the same. There is no camera input yet, so there are no pictures to handle; the scanning
-library only reads a frame it is given, and a build check (`scan.privacy`) fails if its code
-opens a file, captures audio or uses the network.
+program reads the files you name and writes to the console, and the application
+keeps its progress in one small file on the device (the store) and sends nothing
+anywhere. The camera's picture is read in memory and never saved; no audio is
+captured. Build checks (`privacy.sources`, `scan.privacy`) fail if the first-party
+code opens a network connection, captures audio, exports data or writes a frame to
+disk. The one exception is a *profiling* build, which listens on a local TCP port
+and is never released ([Security](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/SECURITY.md)).
 
 **Can I use the library in my own program?**
 There is no install step or exported package yet, so it can only be built as

@@ -7,13 +7,26 @@ letter frequencies are encoded, what the scene has to be given, and what the
 phonics board does about dice. Proposals unless marked **Fact**; the open
 choices are put to the author at the end.
 
+> **Status, 2026-10-22: built.** The gap this page found is closed. `roll_with_placements`
+> (`wjs/dice.hpp`) returns each tile's die and the face that is up, and `roll` gives the
+> same board; the application hands the scene each tile's six faces and which is up
+> (on the standard board; the phonics board and a restored game give none, and the
+> scene then draws the tile's letter on all six sides); the scene draws one atlas for
+> all the dice and lands each die on the rolled face. The dice are the project's own,
+> made from a fixed Scrabble-style table by `tools/data/make_dice.ps1`, so the
+> "weights file" proposal below was superseded and the 3x3 carries one `QU`. **Not
+> built:** the decoy faces of the phonics board (option B, still open). The tables
+> below are what the code did on 2026-10-16, kept as the reason for the change;
+> [Requirements and traceability](../requirements/board.md) has the current status
+> and the tests.
+
 It was prompted by the author's observation, on seeing the 3D shake prototype,
 that every die shows the same letter on all six sides, that in the real game each
 side is a different letter, and that the frequency of letters across the dice
 has to be designed (more E than Q) for the standard board and for the phonics
 board.
 
-## What the code does today
+## What the code did on 2026-10-16
 
 | | **Fact**, checked in the code |
 | --- | --- |

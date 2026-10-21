@@ -11,7 +11,7 @@ namespace wjs::app {
 
 // The interface's language, in one place: the catalogue installed on the
 // application, the layout direction and the code the screens read
-// (docs/audit-0.1.md, "Languages, RTL and i18n"; docs/design/application.md).
+// (docs/design/application.md, "Languages").
 //
 // The parent's Language setting is "" for the device's own language, or one of
 // the eight codes (`languages`). The device's language is used when it is one of

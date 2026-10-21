@@ -23,14 +23,30 @@ will reply there to arrange a private channel.
 
 ### What counts
 
-Today the programs read the files and arguments you give them and write to the
-console or a window; the project's own code opens no network connections. So
-what counts, at present, is a crash, hang or memory-safety fault that a crafted
-board, word list or command line can cause, and a flaw in the build and
-workflow files in this repository.
+The programs read the files and arguments you give them, a camera picture and
+the application's own store file, and write to the console, a window and that
+store; the project's own code opens no network connections. So what counts is:
 
-Camera input and reading letters from a picture are not built yet. When they
-are, a picture will be untrusted input too, and this section will say so.
+- a crash, hang or memory-safety fault that a crafted board, word list, command
+  line or **store file** can cause;
+- the same from a **camera frame**. A frame is untrusted input: Mode A hands the
+  camera's picture to the board reader (`src/scan`), which validates its size and
+  format before it reads a pixel (a hostile frame size cannot wrap the checking
+  arithmetic, and an invalid frame reads as an empty picture). The reader has been
+  tested on drawn frames and on malformed ones, and has never been fuzzed or seen
+  a hostile real frame; a frame is processed in memory and never written to disk
+  or sent anywhere, and a report that it is would count too;
+- a flaw in the build and workflow files in this repository.
+
+**What does not count, and is not a fault.** A *profiling* build is not a
+release. The Debug and profiling presets build the Tracy profiler into the
+programs, and a Tracy client **opens a TCP listener on port 8086 on every
+interface** and answers discovery broadcasts for as long as the program runs
+([docs/profiling.md](docs/profiling.md#the-profiler-listens-on-the-network)).
+The release presets build without it, `cpack` refuses to package a Tracy build,
+and `tools/package/check_package.ps1` rejects a package that carries a Tracy
+client; but the CI artefact of a Debug build, and your own Debug build, have
+the port. Do not run one on an untrusted network.
 
 ### What to expect
 
@@ -67,5 +83,6 @@ this section changes in the same commit that changes `KEYS`.
 
 ## Supported versions
 
-There has been no release yet. When there is one, this section will say which
-versions receive fixes. The first release will be signed as above.
+There has been no release yet (0.1.0 is being prepared). When there is one, this
+section will say which versions receive fixes. The first release will be signed
+as above, and until a release exists, `develop` is the only supported line.

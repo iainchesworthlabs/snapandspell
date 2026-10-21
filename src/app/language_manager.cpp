@@ -59,7 +59,7 @@ bool LanguageManager::is_known(const QString& code) {
 }
 
 bool LanguageManager::is_right_to_left(const QString& code) {
-    // Hebrew and Yiddish, and nothing else (docs/audit-0.1.md, "RTL").
+    // Hebrew and Yiddish, and nothing else (docs/design/application.md, "Languages").
     return code == QLatin1String("he") || code == QLatin1String("yi");
 }
 

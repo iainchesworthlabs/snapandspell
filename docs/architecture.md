@@ -11,22 +11,23 @@ end and in the [roadmap](roadmap.md).
 src/
   lib/                 wjs:: the game logic. GUI-free and OS-free
     include/wjs/         board.hpp  dice.hpp  dice_sets.hpp  dictionary.hpp  scoring.hpp  solver.hpp
-                         path.hpp  phase_data.hpp  seeding.hpp
+                         path.hpp  phase_data.hpp  seeding.hpp  deal.hpp
                          grapheme_binder.hpp  shake.hpp  game_rules.hpp
-                         game_session.hpp
+                         game_session.hpp  sound_it_out.hpp
                          calendar.hpp  settings.hpp  store.hpp  session_store.hpp
                          parent_gate.hpp  dashboard.hpp
                          feedback.hpp  motion.hpp
                          solver_work.hpp  binder_work.hpp  profiling_types.hpp
                          version.hpp.in (configured into a generated header)
-    src/                 board.cpp  dice.cpp  dice_sets.cpp  draw.hpp (internal)  dictionary.cpp
+    src/                 board.cpp  dice.cpp  dice_sets.cpp  dictionary.cpp
                          scoring.cpp  solver.cpp
-                         path.cpp  phase_data.cpp  seeding.cpp
+                         path.cpp  phase_data.cpp  seeding.cpp  deal.cpp
                          grapheme_binder.cpp  shake.cpp  game_rules.cpp
-                         game_session.cpp
+                         game_session.cpp  sound_it_out.cpp
                          settings.cpp  store.cpp  store_format.cpp  session_store.cpp
                          parent_gate.cpp  dashboard.cpp
-                         feedback.cpp  motion.cpp
+                         feedback.cpp  motion.cpp  version.cpp
+                         ascii.hpp  draw.hpp (internal)
     variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
                          profiling-disabled/wjs/profiling.hpp  (empty)
   scan/                wjs::scan: finds a board in a camera frame and reads its
@@ -34,31 +35,45 @@ src/
     include/wjs/scan/    frame.hpp  image.hpp  geometry.hpp  segment.hpp
                          board_finder.hpp  stroke_font.hpp  glyph_reader.hpp
                          reading.hpp  reader.hpp  confirmation.hpp  work.hpp
-    src/                 one .cpp for each
+    src/                 board_finder.cpp  confirmation.cpp  geometry.cpp
+                         glyph_reader.cpp  image.cpp  reader.cpp  segment.cpp
+                         stroke_font.cpp  scratch.hpp (internal)
   cli/                 main.cpp: wjs-cli
   app/                 the Qt Quick application (WordJewelsSolver; WJS_BUILD_APP=AUTO)
+    main.cpp             the program: options, the one store, the game's setup, the
+                         window; startup_failure.* says why it could not start
     qml/Main.qml         the window: a shell that shows the screen Navigation names
-    qml/Home.qml         home
-    qml/kit/             Theme (the tokens), Navigation, Feedback, AppButton, HoldButton,
-                         Icon, Jewel, TileFace
+    qml/Home.qml         home (HomeWording.qml: its sentences)
+    qml/kit/             Theme (the tokens), Navigation, Feedback, and the parts the
+                         screens are built from: Label, Card, Sheet, AppBar, ActionBar,
+                         AppButton, HoldButton, SegmentedChoice, ModeCard, Icon, Jewel,
+                         JewelBox, TileFace, BoardTray, TabletArt, Wordmark, Eyebrow,
+                         FocusRing
     qml/scene/           BoardScene (the 3D scene, in the module WordJewelsSolver.Scene),
                          Die, FaceAtlas, ShakeScript.js, lightprobe/sky.ktx; fallback/
                          holds the 2D implementation of the same interface for D2, not built
-    qml/solo/            SoloScreen (solo.box, solo.playing and the end-of-board Sheet),
-                         FlatBoard, PlayingPanel, SoloBox, HistorySheet, BoardThumb,
-                         ScrollCue
+    qml/solo/            SoloScreen (solo.box, solo.playing and the end-of-board summary
+                         Sheet), SoloBox, FlatBoard, PlayingPanel, HistorySheet,
+                         BoardThumb, ScrollCue, JewelsScreen (My jewels), and the
+                         wording files SoloWording and JewelsWording
     qml/scan/            ScanScreen (scan.ready, scan.reading, scan.check), CheckScreen,
-                         AssistScreen (assist.playing), AssistBoard, ScanWording
+                         AssistScreen (assist.playing), AssistBoard, AssistHistory,
+                         ScanWording
+    qml/parent/          ParentArea, GateScreen, DashboardScreen, SettingsScreen,
+                         AboutScreen, LicencesScreen, ResetStep, Section, SettingRow,
+                         and ParentWording (every sentence a parent reads)
     camera/              CameraSource (QML element: the live view and one frame),
                          CameraBackend (its variant seam), frame_conversion.*
     scene/               the scene's C++ objects for QML: DiceSim (dice_sim.*), DieGeometry
-                         (die_geometry.*), and sim/ (the wjs_dice_world library)
+                         (die_geometry.*), the Profiler singleton (profiler.*), and sim/
+                         (the wjs_dice_world library)
     solo/                solo_game.hpp (the port), real_solo_game.* (over the library's
                          session), solo_game_setup.* (what it is made from),
                          solo_game_factory.*, fake_solo_game.*, solo_model.*,
                          path_tracer.*, board_layout.*, solo_layout.*
     feedback/            FeedbackEngine (the one cue seam's engine), SoundEngine,
-                         Speech and MotionSource, over the backends below
+                         Speech, MotionSource and SoundSequencePlayer (with its
+                         ClipPlayer), over the backends below
     variants/            one directory per optional Qt module: sound-multimedia or
                          sound-silent, speech-texttospeech or speech-silent,
                          motion-sensors or motion-silent, camera-multimedia or
@@ -67,35 +82,49 @@ src/
     scan/                assist_game.* (the Qt-free Mode A port and its maker),
                          assist_model.* and scan_model.* (the QML models), CMake
                          for the WordJewelsSolver.Scan module
+    parent/              the parent area's controller and its QML module (CMake)
     prototype/shake/     ShakePrototype, the harness around the same scene for timing,
                          stills and measurement (WJS_BUILD_SHAKE_PROTOTYPE)
-    solver_model.*       the solver's model (no screen uses it now; it keeps its tests)
+    language_manager.*   the interface's language and layout direction (wjs_i18n)
     system_colour_scheme.*  whether the system is in dark mode
     system_motion.*      whether the system asks for reduced motion
-    parent/              the parent area's controller and its QML module (CMake)
-    qml/parent/          the parent area's screens and their wording
+    frame_profiler.*     the window's frame mark and plots
   platforms/           everything that differs between operating systems
     interfaces/wjs/platform/
                          console.hpp  paths.hpp  camera.hpp  board_reader.hpp  haptics.hpp
+                         fatal_error.hpp  window_chrome.hpp
     detail/              what no platform differs in: camera_unavailable.cpp,
-                         board_reader_portable.cpp, haptics_none.cpp
-    windows/             console_windows.cpp  paths_windows.cpp  platform.cmake
-    linux/               paths_linux.cpp  platform.cmake
-    macos/               paths_macos.cpp  platform.cmake
-    ios/                 paths_ios.cpp  platform.cmake  packaging/ (Info.plist.in, Assets.xcassets)
+                         board_reader_portable.cpp, haptics_none.cpp,
+                         fatal_error_stderr.cpp, window_chrome_none.cpp
+    windows/             console_windows.cpp  paths_windows.cpp  fatal_error_windows.cpp
+                         window_chrome_win.cpp  platform.cmake  packaging/
+    linux/               paths_linux.cpp  platform.cmake  packaging/ (AppImage recipe)
+    macos/               paths_macos.cpp  platform.cmake  packaging/ (bundle, signing)
+    ios/                 paths_ios.cpp  platform.cmake  packaging/ (Info.plist.in,
+                         Assets.xcassets, verify_ipa.sh): written, never run on a device
     posix/               console_posix.cpp (shared by Linux, macOS and iOS)
-assets/sounds/          the project's eight placeholder feedback WAVs
+assets/                fonts/ (Archivo, IBM Plex Mono, Andika: compiled into the program),
+                       icon/, and sounds/ (the project's eight placeholder feedback WAVs)
+data/                  dice/ (3x3 to 6x6), dictionaries/en.txt (ENABLE), lexicon/
+i18n/                  wjs_<code>.ts, the eight languages' catalogues
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
-                       Tracy.cmake, FindQt6.cmake
-tests/                 unit/  app/  app/parent_ui/  app/scan_ui/  platform/  perf/
-                       profiling/  scan/  privacy/  parent/
+                       Tracy.cmake, FindQt6.cmake, Vcpkg.cmake, Translations.cmake,
+                       Packaging.cmake, PackagePreflight.cmake, Notices.cmake,
+                       GitProvenance.cmake
+tests/                 unit/  app/ (parent_ui/, scan_ui/)  qml/  scan/  perf/  platform/
+                       profiling/  privacy/  parent/  prototype/  checks/  system/
+                       i18n/  notices/  package/  requirements/  toolchain/  analysis/
 tools/checks/          check_platform_isolation.ps1
 tools/scan/            render_corpus.cpp: wjs_scan_render, writes the synthetic corpus
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
                        make_dice.ps1
 tools/sounds/          make_sounds.ps1: writes assets/sounds/*.wav, checked by data.sounds
-tools/hooks/, policy/  git hooks and the commit and PR text rule
+tools/release/, package/  the release scripts (signing, SBOM, smoke tests) and the
+                       package check
+tools/coverage/, lightprobe/, policy/, repo/, hooks/
+                       coverage runs, the baked light probe, the commit and PR text
+                       rule, repository rulesets, git hooks
 ```
 
 ## How the pieces depend on each other
@@ -115,8 +144,12 @@ tools/hooks/, policy/  git hooks and the commit and PR text rule
 ```
 
 - **`wjs::lib`** (target `wjs_lib`, a static library) includes no operating
-  system header and no Qt. It links nothing but the warning, sanitizer and
-  coverage settings. Everything that decides what a board scores lives here.
+  system header and no Qt. It links `wjs::profiling` PUBLIC, which carries
+  Tracy's client in a Debug or profiling build (`WJS_ENABLE_TRACY`, on by default
+  for Debug only) and nothing but an empty header otherwise, and the warning,
+  sanitizer and coverage settings PRIVATE: in a Release build that is the
+  warnings and nothing else. Everything that decides what a board scores lives
+  here.
 - **`wjs::platform`** (target `wjs_platform`, a static library) is the only
   target that includes OS headers. Its public interface is the headers in
   `src/platforms/interfaces/`; its sources are whichever files the selected
@@ -211,8 +244,9 @@ measured.
 `RuntimeScope`, as functions and not macros. There are two files of that name
 under `src/lib/variants/`, one with Tracy behind it and one empty, and CMake puts
 exactly one on the include path through `wjs::profiling` (which `wjs::lib`
-carries publicly), so no source asks which it got. A normal build has the empty
-one.
+carries publicly), so no source asks which it got. A Release build has the empty
+one: `WJS_ENABLE_TRACY` defaults to on for Debug and off otherwise, and no preset
+a package is built from turns it on (`profiling.shipped_presets`).
 
 The application is instrumented as well: `src/app/frame_profiler.cpp` sends the
 window's frame mark (`UI`), the plots `ui.frame_ms`, `ui.first_frame_ms`,
@@ -406,7 +440,13 @@ The questions are put to a **word set**, `WordSets{dictionary, active}`, because
 the first release has two board modes and the rules do not know which they are
 on (decided by the author, 2026-10-16; see [MVP library](design/mvp-library.md)).
 On the **standard board**, a roll of dice, `active` is the full dictionary
-itself (`WordSets::standard`). On the **phonics board**, the parent's switch,
+itself (`WordSets::standard`): the dictionary is ENABLE and **the standard board
+has no block list**, so any ENABLE word can be shown to the child and said aloud
+(the accepted risk of the MVP, [MVP library](design/mvp-library.md#accepted-risk-the-full-dictionary-and-what-a-child-is-shown),
+pinned by a test in `tests/unit/game_rules_test.cpp`; D7 in the
+[roadmap](roadmap.md#4-decisions-that-gate-the-plan)). "No unsuitable word is
+ever shown or read" is therefore true of the phonics board only. On the
+**phonics board**, the parent's switch,
 `active` is the words of the active `PhaseIndex` (`WordSets::phonics`). Both are
 held by reference and must outlive the `WordSets`.
 
@@ -471,7 +511,7 @@ always holds its planted targets, so `seed_board` already keeps to that (a case
 pins it); the standard board's deal does it with `deal_playable`, below, and
 `deal_standard_board`, which is that over `wjs::roll`.
 
-**The deal.** `deal_playable(words, make_board, seed, options)` calls
+**The deal** (`wjs/deal.hpp`). `deal_playable(words, make_board, seed, options)` calls
 `make_board(seed)`, solves what it made with `viable_words`, and keeps the first
 board that holds `options.min_viable` words (default 1); otherwise it asks
 `make_board` again with `next_deal_seed`, the first output of `std::mt19937`
@@ -508,8 +548,8 @@ for both; the deal and the words that count are what differ. It holds no Qt, pla
 no sound, draws nothing and **reads no clock**: what varies is handed in, which is
 the seed of the deal (`SessionOptions::seed`), the moment of a find (`Stamp`, an
 `int64` the caller gives to `trace` and gets back, never read or ordered) and the
-pace of the presentation, which is the screens' (they tell it when the shake, the
-drop and the celebration are over). The same options and the same events do the same
+pace of the presentation, which is the screens' (they tell it when the shake and the
+drop are over, and when the end-of-board summary has been dismissed). The same options and the same events do the same
 on every compiler. It persists nothing: it hands the store plain values (below) and
 takes one back. It is single-threaded and holds the dictionary, the dice and the
 phase data by reference, which must outlive it.
@@ -552,12 +592,17 @@ leaves everything as it was, so a screen may send it late or twice.
 | `landed()` | `dropping` | `playing` |
 | `trace(path, stamp)` | `playing` | `playing`, or `cleared` after the last viable word |
 | `request_help()` | `playing` | `playing` |
-| `rest()` | `cleared` | `resting` (about 3 s after the last jewel, the screens' timer) |
+| `rest()` | `cleared` | `resting` (the screens call it when the end-of-board summary is dismissed; there is no timer) |
 | `again()` | `resting` | `box` |
 | `back()` | `shaking`, `dropping`, `playing` | `box` (the lid goes back on) |
 
 From `cleared` and `resting` the screens leave Solo Play without the session
 (`Back` there is `home`, not the box), so `back()` is refused.
+
+There is **no resting screen**. The screens show a board that is cleared, or that
+the child or the board clock ended, under one summary Sheet over the settled
+board; `resting` is the state a dismissed summary passes through and the one a
+cleared game is saved and brought back in (below).
 
 **What a trace is.** `trace` answers with a `TraceOutcome`:
 
@@ -608,7 +653,14 @@ that word is found. It returns a position, not the word (the child does the
 finding). The tile stays lit (`lit_tile()`) until its word is found, and a word
 found while its tile is lit is an **assisted** find (`Find::assisted`), which is
 what the dashboard counts as not unassisted. `SessionOptions::help` is the
-parent's switch; off, it returns nothing.
+parent's switch; off, it returns nothing. The parent's own setting, `Settings::help`,
+is a `HelpLevel` of three steps (off; the start tile; the start tile then its first
+two letters; the default is the last) and the second step is the screens': the
+session lights the tile and gives `lit_path()` (the screens use its first two tiles)
+and `words_with_start()` (a count, never a word), and `dismiss_help()` puts a lit
+start away when the child has made a word from it. That three-step setting is
+recorded from the build and awaits the author's confirmation
+([D12](roadmap.md#4-decisions-that-gate-the-plan)).
 
 **Cleared.** The last viable word moves the session to `cleared`. On the phonics
 board that is three to five words. On the standard board it is **every word of the
@@ -708,7 +760,13 @@ overwritten, and a newer file is left alone and not saved over. A save is writte
 whole and renamed into place. The game session hands it plain values
 (`BoardSnapshot`, `SavedSession`), and a find's moment is a `Day` from
 `wjs/calendar.hpp` (days since 1970-01-01, the device's calendar, with the week by
-the locale's first day). Where the file goes is `wjs::platform::user_data_directory()`.
+the locale's first day). Where the file goes: the program asks Qt for its per-user application-data
+directory (`QStandardPaths::AppLocalDataLocation`, which follows the app's
+organisation name on every platform) and keeps `wjs::default_store_path` of it,
+falling back to `wjs::platform::user_data_directory()` only if Qt gives none, to a
+store that is never written if there is no place at all, and to the file
+`--store <file>` names when the person gives one (`open_store` in
+`src/app/main.cpp`).
 `session_store.hpp` is the copy between the game session's `BoardRecord` and
 `SessionSnapshot` and the store's values, and does what the session's `restore()` needs on
 the way back (upper-case words in alphabetical order, the session's own tile text).
@@ -719,8 +777,15 @@ See [The parent area as built](design/parent-area.md#the-store).
 `Gate` (`wjs/parent_gate.hpp`) is the rule of the parental gate as logic: two touches,
 one in each of two circles a diagonal apart, held two seconds; any other touch, a lift
 or a slide out starts the hold over. It has no clock of its own: it is told the time
-with each touch. An accessibility action opens it with no hold. It keeps a child out
-of the settings by accident and is not security.
+with each touch. An accessibility action opens it with no hold.
+
+**The screen asks for one press-and-hold**, not two fingers (decided 2026-10-21,
+[D9](roadmap.md#4-decisions-that-gate-the-plan)). `GateScreen.qml` is one large
+button which, while it is pressed (or Space or Enter is held), puts the gate's two
+touches down in its two spots, so a parent needs one finger and the library's rule
+is as it was. It keeps a child out of the settings, the dashboard and the scanner
+by accident. It is a brake against accidents and not security: a determined child
+passes it with one finger ([Parent area](design/parent-area.md#the-gate)).
 
 ### The dashboard
 
@@ -738,12 +803,19 @@ finds the board in a camera frame (the largest convex quadrilateral of a lattice
 dice), draws it square, counts and centres the cells, and reads each cell's one
 rotated glyph by template matching against the project's own stroke font, answering a
 `BoardReading`: letters, a confidence and runners-up for each tile, and which tiles
-the reader doubts. A reading is not a `Board`; the one way to a `Board` is
-`BoardDraft::confirm()`, the confirm-and-correct model the check screen binds to, so
-the solver sees only a board a person has looked at. It is a pure function of the
-frame, writes nothing, and is held to a numeric accuracy target on a synthetic
-corpus. [Scanner design](design/scanner.md) is the page for all of it, including
-what is **not** known (real dice, real light, the iPad).
+the reader doubts. Or a `ReadError`, of which there are five: `invalid_frame`,
+`board_not_found`, `size_not_found`, `no_letters` and `invalid_options`. A frame whose
+sizes could wrap an index (`Frame::valid()` caps a side at 65536 and checks the buffer
+by division) and options out of range are refused before anything is read. A reading
+is not a `Board`: `BoardDraft::try_from_reading` (an `std::expected`; `from_reading` is
+kept as a safe shim for older callers) makes the draft the check screen binds to, and
+the one way to a `Board` is `BoardDraft::confirm()`, so the solver sees only a board a
+person has looked at. It is a pure function of the frame, writes nothing, and its
+accuracy is held, on a synthetic corpus only, to bounds derived from tuning counts and
+held against a split nothing steers on. In the window the read runs on a worker thread
+named `scan` (`ScanModel` owns a `QThreadPool` of one). [Scanner design](design/scanner.md)
+is the page for all of it, including what is **not** known: no photograph of real dice
+has ever been read, and the real-dice accuracy is not demonstrated.
 
 ### Errors
 
@@ -766,15 +838,24 @@ An OS service the program needs is declared in a header under
 | Interface | What it does | Windows | Linux | macOS |
 | --- | --- | --- | --- | --- |
 | `paths.hpp`: `executable_path()` | The absolute path of the running program, so data beside it can be found | `GetModuleFileNameW` | `/proc/self/exe` | `_NSGetExecutablePath` |
-| `paths.hpp`: `user_data_directory()` | The per-user, per-device directory a program keeps its own data in | `%LOCALAPPDATA%` | `$XDG_DATA_HOME`, else `~/.local/share` | `~/Library/Application Support` |
+| `paths.hpp`: `user_data_directory()` | The per-user, per-device directory a program keeps its own data in. The window asks Qt for its application-data directory first and uses this only if Qt gives none ([The store](#the-store)) | `%LOCALAPPDATA%` | `$XDG_DATA_HOME`, else `~/.local/share` | `~/Library/Application Support` |
 | `console.hpp`: `use_utf8_console()` | Make the console read and write UTF-8 | `SetConsoleCP`, `SetConsoleOutputCP` | nothing to do (`posix/`) | nothing to do (`posix/`) |
 | `camera.hpp`: `enumerate_devices`, `start`, `stop`, `try_pop_latest_frame`, ... | Capture frames for Mode A, for a native backend | no camera backend yet (`detail/`): `unavailable` | the same | the same |
 | `board_reader.hpp`: `read(frame, options)` | Read a board from a frame | the portable reader (`detail/`) | the same | the same |
+| `haptics.hpp`: `vibrate(pattern)` | A pattern of taps of the hand | answers `false` (`detail/haptics_none.cpp`) | the same | the same |
+| `fatal_error.hpp`: `show_fatal_error(...)` | Say that the program cannot start | a dialog as well as standard error (`fatal_error_windows.cpp`) | standard error (`detail/`) | standard error (`detail/`) |
+| `window_chrome.hpp`: `set_window_chrome(...)` | Paint the native title bar to match the page | `window_chrome_win.cpp` | nothing (`detail/`) | nothing (`detail/`) |
 
-Linux and macOS share `posix/console_posix.cpp`, named by both
-`platform.cmake` files; all three name the two files in `detail/`, which are what no
-platform differs in yet. An iOS camera and a Vision-based reader are Objective-C++ under
-`src/platforms/ios`, which does not exist ([Scanner design](design/scanner.md#what-is-left-for-a-real-camera-a-mac-and-an-ipad)).
+Linux, macOS and iOS share `posix/console_posix.cpp`, named by their
+`platform.cmake` files; each platform names the files in `detail/` that it does not
+replace. `src/platforms/ios` is the fragment for the ad-hoc build for the author's own
+devices (`paths_ios.cpp`, `platform.cmake`, the Info.plist and asset catalogue): it
+uses the same `detail/` camera stub, portable board reader and no-op haptics as the
+desktops, and Mode A's camera is the Qt Multimedia one below. **It has never run on a
+device.** An iOS camera (AVFoundation) and a Vision-based reader, which would be
+Objective-C++ in that directory, are **not written**
+([Scanner design](design/scanner.md#what-is-left-for-a-real-camera-a-mac-and-an-ipad)).
+There is no Android fragment: Android is in progress and not built.
 
 **The desktop camera is not behind that interface.** Mode A's live view and its
 one capture are the application's `CameraSource` (`src/app/camera`), over Qt
@@ -791,14 +872,28 @@ is the page for the lifecycle, the RGB24 conversion and what was verified.
 when a prebuilt Qt 6.12 is found, left out when there is none, and `ON`/`OFF`
 force that choice. It plays both modes of
 [Application design](design/application.md) and [Game design](design/game.md).
-Mode B is `home`, and `solo.box`, `solo.playing` and `solo.resting` with the
-moments between them (shaking, dropping, word-found, cleared) on one screen,
-because the board scene is one component that stays while the lid lifts and the
-dice fall. Mode A is `home`'s family picture, then `scan.ready`, `scan.reading`
-and `scan.check` on one screen, then `assist.playing` on another: the family's
-own board, confirmed by a grown-up, with the start-tile hint and the same tray as
-Solo Play. The library knows nothing of any of it, and no game rule is in the
-QML. It links Qt Quick 3D for the scene, so a build of the application is
+Mode B is `home`, and `solo.box` and `solo.playing` with the moments between
+them (shaking, dropping, word-found, cleared) on one screen, because the board
+scene is one component that stays while the lid lifts and the dice fall. A board
+that is cleared, or that the child or the clock ended, waits on one summary Sheet
+over the settled board: **there is no separate resting screen** (the `resting`
+state of the session and the port remains, as the state a cleared game is saved
+in). Mode A is `scan.ready`, `scan.reading` and `scan.check` on one screen, then
+`assist.playing` on another: the family's own board, confirmed by a grown-up,
+with the start-tile hint and the same tray as Solo Play. It is reached through the
+parental gate and the dashboard, not from `home` directly (below). Beside them are
+the ungated *My jewels* screen (`JewelsScreen`: the best board for each size, the
+points, the words and the week; [D10](roadmap.md#4-decisions-that-gate-the-plan))
+and the parent area.
+
+The parent can set a **board clock**: off (the default), a count-up, or a
+count-down of 1 to 30 minutes that ends the board and keeps what was found
+([D8](roadmap.md#4-decisions-that-gate-the-plan)). `SoloModel` keeps the seconds,
+the playing panel shows them, and the store keeps the setting and no duration. It
+amends the MVP's earlier "no timers or limits", and the weakness is stated: a
+clock a child can see is a pull and a count-down is a limit, so both are the
+parent's, behind the gate, and the app never starts one. The library knows
+nothing of any of it, and no game rule is in the QML. It links Qt Quick 3D for the scene, so a build of the application is
 **GPL-3.0 only** (the author's decision of 2026-10-16; D2 in the
 [roadmap](roadmap.md) decides what a store build does).
 
@@ -816,13 +911,13 @@ start-up and keeps it, so the `View3D` is not created on the Shake press.
 | The real game | `solo/real_solo_game.*` | `RealSoloGame`, the port over `wjs::GameSession`: it turns the session's names into the port's and is the one place that hands the session's records to the store. It plays either board: the standard board (dice, no phase, no blocks) by default, or the phonics board. It decides nothing. See *Wiring the library's session* below |
 | The setup | `solo/solo_game_setup.*` | `SoloGameSetup`: loads the word list always and the dice of the standard board, and the phases of a data directory when one is given, owns them for the run, holds the program's store by reference, and makes a `RealSoloGame` from the parent's settings. Qt-free |
 | The fake | `solo/fake_solo_game.*` | A stand-in for the library's session, for the tests. Its words are test data: today's are the five early-reader words the design names, a few more are real, and the boards are two fixed grids turned by the seed. It publishes no phonics list |
-| The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue`. When the parent changes the store (`storeEdited()`), it takes its next game from the program's maker |
+| The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile and the help's steps, the board clock, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue`. When the parent changes the store (`storeEdited()`), it takes its next game from the program's maker |
 | The touch logic | `solo/path_tracer.*` | Trace and tap in order, both always on. A hit circle smaller than the tile and a larger one it must leave, so a diagonal slide takes the diagonal tile and a wobble near an edge does nothing; a fast move is walked in small steps so no tile is jumped; sliding back takes the last tile off; lifting outside the board cancels; a tapped path ends with the last tile tapped again or the Done jewel; a trace may carry on from a tapped path; a dead jewel is never in a path. The radii are starting values for a small finger and are the one thing the tests cannot settle |
 | The layout rule | `solo/board_layout.*`, `solo/solo_layout.*` | [Board design](design/board.md#layouts-and-sizes) as a pure function, tested on the page's reference windows, and one copy for the screens and the scene. A size is offered only if its tile is 48 dp or more |
 | The board scene | `qml/scene/BoardScene.qml`, the module `WordJewelsSolver.Scene` (`scene/`) | One component: given a finished board (its tiles, its dice's six faces and the one that is up) and a seed, play the shake, the lid and the drop and say when the dice are settled. Qt Quick 3D, built once behind home and kept; the dice are simulated from first principles in `scene/sim` (plain C++, no Qt). `prepare(board)` draws a board's faces a frame ahead of `play`/`show`. The 2D implementation of the same interface is kept at `qml/scene/fallback/` for D2 and is not built. `app.scene_contract` holds both files to the list, and `app.qml_lint` lints both modules |
-| The Mode A port | `scan/assist_game.*` | `AssistGame`, Qt-free: a board a grown-up confirmed, the English dictionary (and, when there is a phase index, the words that count), and the store. `wjs::classify_path` answers viable, real-but-not-today's or not-a-word (the last two carry no word); `FoundWords` keeps the tray; `wjs::start_tile_help` answers the one help with a tile, never the word; `leave()` records the board in the store's standard-board form (`viable_total`, no phase) with each find's day and whether the start tile was shown |
-| The Mode A models | `scan/scan_model.*`, `scan/assist_model.*` | `ScanModel` owns the `BoardDraft` the check screen corrects, the doubtful tiles and the reader's alternatives, the board size, and the camera's little lifecycle: it starts the camera only on `scan.ready`, takes one frame (from the application's `CameraSource` when it is supplied, otherwise from the platform interface), stops the camera as soon as the frame is in hand, reads it through `board_reader`, and only a grown-up's `confirm()` makes a `Board`. `AssistModel` is the assistant's board as Qt Quick wants it: tiles, the traced path (`PathTracer`, the same touch logic as Solo Play), the tray, the start tile and the cues. It is made by QML and asks `make_assist_game()` for its round, which `main.cpp` installs over the program's one dictionary and store |
-| The Mode A screens | `qml/scan/`, the module `WordJewelsSolver.Scan` (`scan/`) | `ScanScreen` (`scan.ready`, `scan.reading`, `scan.check` on one screen, the check in `CheckScreen.qml`), `AssistScreen`, `AssistBoard` and `AssistHistory` (`assist.playing`, the two-thirds/one-third split of `SoloLayout`, the tray, the start tile, earlier boards, New board), and `ScanWording` (every sentence and accessible name, for the later i18n pass). The camera is on only while `scan.ready` is on screen; every frame is read on the device and none is kept (docs/design/scanner.md, "Privacy, built in and checked"). On a device with a camera its live picture is shown in the frame; with none (a desktop without a webcam, or a kit without Qt Multimedia) the absence is said in words and "Type in your board" opens the check screen with an empty 4x4 |
+| The Mode A port | `scan/assist_game.*` | `AssistGame`, Qt-free: a board a grown-up confirmed, the English dictionary as both the words that count and the words that tell a real word from a string of letters (the standard board's word set, with no block list, so every real word counts and `real_not_todays` never arises; a second constructor takes a phase index's words and nothing in the program calls it), and the store. `wjs::classify_path` answers viable, real-but-not-today's or not-a-word (the last two carry no word); `FoundWords` keeps the tray; `wjs::start_tile_help` answers the one help with a tile, never the word; `leave()` records the board in the store's standard-board form (`viable_total`, no phase) with each find's day and whether the start tile was shown |
+| The Mode A models | `scan/scan_model.*`, `scan/assist_model.*` | `ScanModel` owns the `BoardDraft` the check screen corrects, the doubtful tiles and the reader's alternatives, the board size, and the camera's little lifecycle: it starts the camera only on `scan.ready`, takes one frame (from the application's `CameraSource` when it is supplied, otherwise from the platform interface), stops the camera as soon as the frame is in hand, reads it through `board_reader` on a worker thread named `scan` (a `QThreadPool` of one), and only a grown-up's `confirm()` makes a `Board`. `AssistModel` is the assistant's board as Qt Quick wants it: tiles, the traced path (`PathTracer`, the same touch logic as Solo Play), the tray, the start tile and the cues. It is made by QML and asks `make_assist_game()` for its round, which `main.cpp` installs over the program's one dictionary and store |
+| The Mode A screens | `qml/scan/`, the module `WordJewelsSolver.Scan` (`scan/`) | `ScanScreen` (`scan.ready`, `scan.reading`, `scan.check` on one screen, the check in `CheckScreen.qml`), `AssistScreen`, `AssistBoard` and `AssistHistory` (`assist.playing`, the two-thirds/one-third split of `SoloLayout`, the tray, the start tile, earlier boards, New board), and `ScanWording` (every sentence and accessible name, in all eight languages). The camera is on only while `scan.ready` is on screen; every frame is read on the device and none is kept (docs/design/scanner.md, "Privacy, built in and checked"). On a device with a camera its live picture is shown in the frame; with none (a desktop without a webcam, or a kit without Qt Multimedia) the absence is said in words and "Type in your board" opens the check screen with an empty 4x4 |
 | The camera | `camera/`, the module `WordJewelsSolver.Scan` (`scan/`) | `CameraSource`, a QML element over a `CameraBackend` chosen by CMake: Qt Multimedia's `QCamera`/`QMediaCaptureSession`/`QVideoSink`, or a backend that answers `no_camera`. It owns the preview and the one captured frame (RGB24, in memory), never a file. `Main.qml` makes one and hands it to `ScanModel`; a stub shell or a test supplies a fake backend instead, or none and the platform interface is used |
 | The kit | `qml/kit/` | `Theme` has every colour, size, time and type size a screen uses (light and dark, reduced motion, text scale); a screen writes none of its own, so a school font or a world is a token swap. `AppButton` has the three targets (48, 64 and 96 dp), acts on release inside it and takes the keyboard. Nothing drawn has text in it |
 
@@ -833,8 +928,12 @@ a 1280 x 800 window is 164 dp and not 182). Back goes where the person came from
 with the design's exceptions, and Esc and the system back do what the visible
 control does.
 
-**Mode A's flow.** `home`'s family picture is shown (`Navigation.scanAvailable`)
-and opens `scan`. `ScanScreen` starts the camera only while its state is
+**Mode A's flow.** `home`'s *Play with a real board* card asks for the parent area
+(`parentRequested`): Mode A is an adult workflow. The parent area shows the gate, and
+once it is open the dashboard's *Set up a board* button emits `scanRequested`, which
+`Main.qml` handles with `onScanRequested: Navigation.go("scan")`. The parent area
+keeps the gate open while the scanner is shown, so Back from the scanner returns to
+the dashboard and not to the gate. `ScanScreen` starts the camera only while its state is
 `scan.ready`: `open()` starts the application's `CameraSource` when one is set
 (Main.qml makes it), and otherwise enumerates the platform's devices and starts
 the first rear one. `close()` stops it when the screen goes, when the check
@@ -847,18 +946,24 @@ that the wording file turns into a sentence, and the typed board stays beside
 it; no frame is faked. "Type in your board" is the same draft with
 `BoardDraft::empty(4, 4)`. The check screen rings the reader's doubtful tiles,
 offers its runners-up first in the letter picker, turns the replica and changes
-the size; `Yes, play` calls `ScanModel::confirm()` (the only way to a `wjs::Board`)
+the size; *Start playing* calls `ScanModel::confirm()` (the only way to a `wjs::Board`)
 and hands the same plain grid to `AssistModel::begin()`, which makes the round
 through `make_assist_game()`. That is the program's maker over its one store and
 dictionary (`ScopedAssistGameMaker`, installed in `main.cpp`, like Solo Play's).
 `Main.qml` shows `AssistScreen`; Back returns to the check screen it came from
 (the board is recorded by `AssistGame::leave()`), and New board records it, puts
-the scan screen back to `ready` and enters it as if from home
-(`Navigation.restart`), so Back from a new round goes home. The store keeps the
-board in the standard board's form (no phase, `viable_total`), because the
-repository has no phase index for Mode A's MVP set; a board played with a phase
-index later will record its list instead. The words found count toward the same
-stars and history as Solo Play's.
+the scan screen back to `ready` (`ScanModel::readAgain()`) and enters it with
+`Navigation.go("scan")`, so Back from a new round returns to the assistant and not
+home. The store keeps the board in the standard board's form (no phase,
+`viable_total`), because Mode A plays the standard board's word set; only a
+3x3 to 6x6 square is recorded (a 7x7 or 8x8 read plays and is not). A save that
+failed is held in `AssistModel.saveFailed`, which no screen shows. The words found
+count toward the same stars and history as Solo Play's. Mode A reads the parent's
+help as on or off (*Show me a start*); the two-letter step is Solo Play's. Which
+board sizes the scanner is for is **open**: the reader counts 3 to 8, the check
+screen offers 3 to 6, a typed board starts at 4x4 and the PRD says 4x4. Mode A
+as built, what it lacks and what is untested are on
+[Scanner design](design/scanner.md#mode-a-as-built).
 
 **Feedback and motion.** Every moment is a `Feedback.cue`; `Main.qml` installs
 one `FeedbackEngine` (`src/app/feedback`) on the seam, and the engine carries
@@ -870,14 +975,20 @@ cue. A build without the three Qt modules selects silent backends by CMake (the
 variant pattern), so the application still configures and builds. `MotionSource`
 over Qt Sensors feeds the scene's `pushMotion` and the pure
 `wjs::MotionProcessor`; a real shake rolls the box, and on the desktops the
-source stays unavailable and the drag stands in. The phoneme clips and recorded
-cheers are still the literacy reviewer's, so `say_letter_sequence()` is the seam
-and is silent. No device shake on a desktop: Shake is a button and Space there,
+source stays unavailable and the drag stands in. The sound-it-out sequence of a
+word found on the phonics board is the library's `wjs::sound_it_out_sequence` (a pure
+list of steps from the phase, the word and the parent's setting), walked by the
+application's `SoundSequencePlayer` through a `ClipPlayer`. **No clip exists**: the
+phoneme clips and recorded cheers are the literacy reviewer's, so the program has only
+the player that answers "no such clip", a step with no clip takes no time, the cheer
+is skipped, and the word is said by the voice at once; the standard board has no
+sequence and its word is said whole. No device shake on a desktop: Shake is a button and Space there,
 with the drag on the box standing in for the accelerometer. The button and Space
-are always there. No bundled
-type: Andika is named in `Theme` and Qt falls back to the platform's face until
-its licence is read and the glyph check is done. The family game's picture on
-`home` is shown and opens Mode A; the desktop camera is the application's
+are always there. The type is
+bundled: Archivo, IBM Plex Mono and Andika (each with its licence beside it in
+`assets/fonts`) are compiled into the program and loaded in `main.cpp`, and `Theme`
+names them. The family game's picture on `home` asks for the parent area, and
+Mode A is entered from the dashboard (above); the desktop camera is the application's
 `CameraSource` over Qt Multimedia ([above](#the-platform-layer)), so a machine
 with a webcam shows its live view, and one without says so and keeps the typed
 board. The parent's button, on `home` and in the corner of the box, is shown
@@ -914,7 +1025,7 @@ blocks, or the **phonics board** over the phase the program was given, which
 **Where a run begins.** After every call that can change the game, `RealSoloGame`
 brings the store's game in progress (`Store::save_session`) to what
 `GameSession::snapshot()` says: a board on the table with its finds and the lit
-tile (`playing`), or the resting screen, which is also how a board that has just
+tile (`playing`), or `resting`, which is also how a board that has just
 cleared is kept. A game in the box is **not** saved: the store holds none and what
 it held is cleared. There is nothing on the table to bring back; the size the box
 offers is the settings' (the child's last choice, written as it is made, so a
@@ -1017,6 +1128,9 @@ display. See [The parent area as built](design/parent-area.md).
 | `WordJewelsSolver` | executable `WordJewelsSolver` | `WJS_BUILD_APP=AUTO` when Qt 6.12 is found, `ON` to require it, `OFF` to skip; links Qt Quick 3D, so GPL-3.0 only |
 | `wjs_scene` | static QML module (`WordJewelsSolver.Scene`) | The 3D board scene, its dice objects and the `wjs_dice_world` simulation. Linked by `WordJewelsSolver` and the prototype; GPL-3.0 only |
 | `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording, models and the camera source. Linked by `WordJewelsSolver` as `wjs_scan_uiplugin` |
+| `wjs_parent` | static QML module (`WordJewelsSolver.Parent`) | The parent area: the controller and the screens (the gate, the dashboard, the settings, the about page) |
+| `wjs_feedback` | static library | The sound, speech and motion engines and the sound-it-out player, over the variant backends |
+| `wjs_i18n` | static library | The interface language, the layout direction and the eight catalogues compiled from `i18n/` |
 | `wjs_trace` | static library | `PathTracer`, the touch half of making a word, shared by Solo Play's model and the assistant's |
 | `ShakePrototype` | executable `ShakePrototype` | `WJS_BUILD_SHAKE_PROTOTYPE`, with the application built; the harness around `wjs_scene` |
 | `wjs_unit_tests` | executable | Catch2 |
@@ -1027,6 +1141,7 @@ display. See [The parent area as built](design/parent-area.md).
 | `wjs_scan_preview` | executable | Mode A's screens in a stub shell; with `--check` the offscreen `scan.screens`, with `--camera` the camera's live view and capture `camera.screens` (a fake source and a synthetic frame). Test tool; not part of the application |
 | `wjs::tracy` | interface library | Tracy's client when `WJS_ENABLE_TRACY` is on, otherwise nothing |
 | `wjs_app_tests` | executable | Catch2, with `WJS_BUILD_APP` |
+| `wjs_quick_tests` | executable | Qt Quick Test: the QML suites in `tests/qml`, with `WJS_BUILD_APP` |
 | `wjs::warnings`, `wjs::sanitizers`, `wjs::coverage` | interface libraries | Flags, linked into every first-party target |
 
 ## Limits of what exists
@@ -1035,7 +1150,12 @@ display. See [The parent area as built](design/parent-area.md).
   letters or other scripts, and a word list line with one is skipped.
 - One word list is loaded for a run; there is no per-language handling.
 - The board is at most 16 by 16 and a tile holds at most three letters.
-- The only front ends are the CLI and the small window.
+- The front ends are the CLI and the Qt Quick window, for Windows, Linux and macOS
+  (0.1 is those three desktops and an ad-hoc iOS build for the author's own devices,
+  [D11](roadmap.md#4-decisions-that-gate-the-plan)). The iOS build is written
+  (`src/platforms/ios`, `ios-build.yml`) and has never run on a device. Android is in
+  progress and not built; there is no web build and no phone layout. In CI the window
+  is built for Windows, and for iOS as a compile check ([CI](ci.md#not-here-yet)).
 
 ## Not built yet
 
@@ -1045,7 +1165,8 @@ These do not exist, and nothing in the tree stands in for them:
   (`src/app/camera`) over Qt Multimedia, with a `camera-none` variant for a kit
   without the module, a live `VideoOutput` preview and one-frame capture through
   the reader. **No camera is attached to the machine it was built on**, so no
-  device has been opened and no real picture has been read; the iPad's
+  device has been opened and no real picture has been read (the ad-hoc iOS build,
+  which carries the same Qt Multimedia camera, has not run on a device either); the iPad's
   `AVCaptureSession` backend and the platform interface's implementations are
   still not written. Mode A's screens and its **typed-board fallback are built**
   (`qml/scan`, the module `WordJewelsSolver.Scan`), so a desktop without a
@@ -1053,20 +1174,29 @@ These do not exist, and nothing in the tree stands in for them:
 - **Reading letters from a real picture.** The reader exists and is measured on
   synthetic frames only ([Scanner design](design/scanner.md#what-was-measured)).
   The iOS reader (Vision), recorded frames of real dice, the dice's own typeface and
-  the tuning that follows are not done, and need an iPad.
+  the tuning that follows are not done, and need an iPad. The recorded-frames harness
+  (`[.recorded]`) is tested on made frames and has never read a photograph.
 - **Phonics phase data.** The reader, the checks, the seeding, the binder, the
-  shake detector, the game rules and the game session exist and are tested, and
-  no front end uses them yet. No phase
-  file exists, and none is written here: the content has to be written and
-  reviewed by someone qualified to do it before a child uses it. The audio
-  clips and the sound-it-out sequence are not built. The parent dashboard is built
-  and shows nothing of the sounds until a phase exists.
+  shake detector, the game rules and the game session exist and are tested, and **the
+  window uses them**: `SoloGameSetup` (`src/app/solo/solo_game_setup.cpp`) loads the
+  word list, the dice and, given `--phase-directory`, the phases, and `RealSoloGame`
+  (`real_solo_game.cpp`) plays them through `wjs::GameSession`, which calls the deal,
+  the seeding, the rules and the binder. The standard board is played by default; the
+  phonics board only with phase files. **No phase file exists** in the repository, and
+  none is written here: the content has to be written and reviewed by someone qualified
+  before a child uses it, and a file without a review header is test data and says
+  so. The sound-it-out sequence is built (the library's steps and the app's player),
+  but **no audio clip exists**. The parent dashboard is built and shows nothing of the
+  sounds until a phase exists.
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
   early-reader tier lists (animals, colours, shapes, and so on); nothing reads
   them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.
-- **Linux and macOS packages, and phone and browser targets.** Packaging
-  itself is built: the Windows leg installs, packages and checks a ZIP
-  ([Building](building.md#packaging)); the other two platforms' generators are
-  configured but no leg has run them.
+- **A run on a device, Android, the web and phones.** iOS is written and has never run
+  on a device; Android is in progress and not built; web and phone layouts come after
+  0.1. Packaging is written for all three desktops: the Windows leg installs, packages
+  and checks a ZIP ([Building](building.md#packaging)) and `release.yml` is written to
+  make the installer, an AppImage, command-line packages and a macOS disk image, but it
+  has never run, and the application has only been built on Windows in CI
+  ([CI](ci.md#not-verified-until-it-runs-on-github)).
 
 The [roadmap](roadmap.md) has the plan and its order.

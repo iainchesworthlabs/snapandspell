@@ -58,10 +58,18 @@ nav:
   - Project:
       - Product requirements: product-requirements.md
       - Roadmap: roadmap.md
+      - Requirements and traceability:
+          - Overview: requirements.md
+          - Board, dice and shake: requirements/board.md
+          - Game, tracing and progress: requirements/game.md
+          - Phonics and the word library: requirements/phonics.md
+          - Scanner and Mode A: requirements/scanner.md
+          - Parent area, dashboard and privacy: requirements/parent.md
+          - Application, audio, languages and platforms: requirements/application.md
+          - Performance, constraints and licensing: requirements/performance.md
       - Licensing: licensing.md
   - Design:
       - Overview: design/index.md
-      - Answers to the open questions: design/answers.md
       - Game: design/game.md
       - Phonics: design/phonics.md
       - Board: design/board.md
@@ -73,4 +81,3 @@ nav:
       - Scanner: design/scanner.md
       - Performance: design/performance.md
       - From the MVP to the full product: design/path.md
-      - Human factors audit (October 2026): design/ux-audit-2026-10/index.md

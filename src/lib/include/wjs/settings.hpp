@@ -88,7 +88,7 @@ enum class HelpLevel {
 
 // The languages the interface is offered in, as the codes the store and the
 // screens use: English, French, Spanish, German, Yiddish, Hebrew, Chinese and
-// Japanese (docs/audit-0.1.md, "Languages, RTL and i18n"). The board's letters,
+// Japanese (docs/design/application.md, "Languages"). The board's letters,
 // the word list and the phonics data are not translated; the chrome is.
 inline constexpr std::array<std::string_view, 8> languages = {"en", "fr", "es", "de",
                                                               "yi", "he", "zh", "ja"};
