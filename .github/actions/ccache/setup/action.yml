@@ -48,7 +48,6 @@ runs:
           # Debug objects with ASan and /Z7 are big; ccache keeps its own
           # least-recently-used ones within this, so the entry stays one size.
           echo "CCACHE_MAXSIZE=600M"
-          echo "CCACHE_STATSLOG=$RUNNER_TEMP/ccache-stats.log"
         } >> "$GITHUB_ENV"
 
     # `key` is never an exact hit: the save step names an entry after its run,

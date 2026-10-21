@@ -324,6 +324,15 @@ jobs:
           CMAKE_PRESET: ${{ env.WJS_PRESET }}
         run: cmake --build --preset "$CMAKE_PRESET"
 
+      # Offered as soon as the objects exist, not in the last step: the test run
+      # that follows is long, and a push to develop is where pull requests get
+      # their cache from. Nothing is stored unless enough was compiled.
+      - name: Save ccache (Windows)
+        if: ${{ always() && matrix.leg == 'windows' }}
+        uses: ./.github/actions/ccache/save
+        with:
+          preset: ${{ env.WJS_PRESET }}
+
       # The test preset errors out when no test is found, so an empty suite
       # cannot pass. The offscreen platform lets the Qt Quick screens run on a
       # runner with no display (tests/app).
@@ -417,12 +426,6 @@ jobs:
         with:
           triplet: ${{ env.WJS_TRIPLET }}
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
-
-      - name: Save ccache (Windows)
-        if: ${{ always() && matrix.leg == 'windows' }}
-        uses: ./.github/actions/ccache/save
-        with:
-          preset: ${{ env.WJS_PRESET }}
 
   # The performance tier's work budgets (tests/perf; docs/testing.md,
   # "Performance tests"), which the Debug legs above skip: they are counts, the
@@ -553,6 +556,12 @@ jobs:
       - name: Build
         run: cmake --build --preset windows-msvc-release
 
+      - name: Save ccache
+        if: ${{ always() }}
+        uses: ./.github/actions/ccache/save
+        with:
+          preset: windows-msvc-release
+
       # Release tree: the script forbids TracyClient, clang_rt.asan* and *.pdb in
       # the archive, then unpacks it and runs the packaged programs.
       - name: Package and check the ZIP
@@ -580,12 +589,6 @@ jobs:
         with:
           triplet: x64-windows
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
-
-      - name: Save ccache
-        if: ${{ always() }}
-        uses: ./.github/actions/ccache/save
-        with:
-          preset: windows-msvc-release
 
   # Line and branch coverage of the unit tier (src/lib), gated at the project's
   # minimum standard: 90% of lines and 80% of branches. The same gate is the
