@@ -1,9 +1,11 @@
 # Roadmap
 
 Written 2026-10-15, at the end of the restructure, from the
-[product requirements](product-requirements.md). It says what exists, what each
-requirement needs, the decisions that gate the plan, and the order of work.
-Claims that were not verified are marked **unverified**.
+[product requirements](product-requirements.md); section 2 and the decision
+table were brought up to the 0.1 build on 2026-10-22. It says what exists, what
+each requirement needs, the decisions that gate the plan, and the order of work.
+Claims that were not verified are marked **unverified**. What each requirement is
+and which test shows it is in [Requirements and traceability](requirements.md).
 
 ## 1. What is being built
 
@@ -27,17 +29,20 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | Solver library (board, trie dictionary, scoring, depth-first search) | Done | Catch2 cases; the 3x3 reference board checked by hand |
 | `wjs-cli` | Done | Run end to end on Windows |
 | Platform isolation (`src/platforms`, one CMake selector, enforcing check) | Done | `platform.isolation` and `platform.fragments` ctests |
-| Qt Quick shell (type a board, Solve, scored list) | Works, **not seen rendered** | Built with Qt 6.12.0; launched offscreen, QML loads; 3 model tests |
-| Windows build (MSVC 19.51, Qt 6.12.0, `/W4 /WX`, ASan) | Verified | Locally and in CI; 31 ctests locally (with the window), 28 in CI |
-| Linux (GCC 15.2) and macOS (Apple clang 21) builds | Verified | CI, Debug, warnings as errors, sanitizers: 28/28 tests on each. The Qt window is not built on either |
-| Android and iOS builds of this app | iOS: platform section, preset, unsigned compile check and signed ad-hoc release job written, **never run** ([CI](ci.md#ios)). Android: not started | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad (its CHANGELOG records it; `docs/building.md` there is out of date on this) |
-| CI, repository rules, documentation | Running; rulesets applied and enforced | First CI run green (12 checks); branch-name rule verified by a rejected push. The `main` and `develop` protections are applied but not exercised |
-| Touch UI, dice, shake, tracing, audio, rewards | Not started | |
-| Path validation and shake detection (the library parts of M1) | Done, **on synthetic data**: `validate_path`, `detect_shakes` | Catch2 cases. The detector's thresholds are starting values that have to be tuned on a device |
+| Solo Play in Qt Quick: home, the box, the 3D shake and drop, play (tracing and tapping), the summary card, My jewels, earlier boards | Built on the Windows desktop, on the design kit; **never run on a tablet** | Quick Test suites over a stub scene and a fake game, the size matrix, the offscreen `--smoke` run in CI; driven by hand on a desktop with a GPU. Confetti, sparkle and the Mega burst are **not built** |
+| The parent area: gate, dashboard, settings, About and licences, eight languages with right-to-left | Built | Library and app tests, the wording and privacy checks, the screens run in all eight languages. The gate is one press-and-hold ([D9](#4-decisions-that-gate-the-plan)); the translations are mechanical and unreviewed |
+| Windows build (MSVC 19.51, Qt 6.12.0, `/W4 /WX`, ASan) | Verified | CI, Debug: the whole ctest, the application's smoke, a Release package job that checks the ZIP |
+| Linux (GCC 15.2) and macOS (Apple clang 21) builds | The library, `wjs-cli` and their tests verified in CI | Debug, warnings as errors, sanitizers. The Qt application is built on neither in `ci.yml`; `release.yml` builds it (an AppImage and a macOS bundle) and has **never run** |
+| iOS and Android builds of this app | iOS: platform section, preset, unsigned compile check and signed ad-hoc release job written, **never run** ([CI](ci.md#ios)). Android: **in progress** on a separate branch; `cmake/Platform.cmake` still refuses it | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad |
+| Releases | `release.yml` written: Release packages, SBOM, GPG signatures, attestations, a draft release verified from the public side | **Has never run on GitHub**: `main` is behind `develop`, so scheduled and manually dispatched workflows cannot start yet ([CI](ci.md#releases)) |
+| CI, repository rules, documentation | Running; rulesets applied and enforced | Required checks on every pull request; the docs build strictly (`docs.yml`); the nightly analysis jobs are written and wait for `develop` to reach `main` |
+| Touch tracing, dice, shake, audio, stars and points | Built | The path tracer, the dice sets and deal, the staged 3D shake script, the feedback engines (placeholder sounds, the device's voice, Qt Sensors motion) behind the parent's settings. Haptics are a no-op on the desktops |
+| Path validation and shake detection | Done, **on synthetic data**: `validate_path`, `detect_shakes` | Catch2 cases. The detector's thresholds are starting values that have to be tuned on a device |
 | Dice for the standard board: a set model, a roll, the project's own dice for 3x3 to 6x6 | Done | Catch2 cases, `data.dice`, boards of 300 rolls a size solved against the dictionary |
 | Phonics machinery: phase-file reader and checker, review gate, seeding, grapheme binder | Done, **on test data**. No phase file exists, and none may be added without a reviewer (G7) | Catch2 cases, `data.phonics` and `data.phonics.checker`, the gate exercised on a release build. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
-| Child-appropriate lexicon and hints | Not started | |
-| Camera scan | Not started | |
+| Hints | The start-tile help is built (one, two letters or off, the parent's choice); a count of words that begin with the lit tiles follows a find | Catch2 cases and Quick tests. The nudge by category ("a 3-letter animal") is **not built** |
+| Child-appropriate lexicon | Data only: `data/lexicon/` is checked against ENABLE and **nothing in `src/` reads it** | `data.wordlists` |
+| Camera scan (Mode A) | The reader, the confirm-and-correct model, the screens and a desktop camera over Qt Multimedia are built; **no real board has been read** | Synthetic frames only; the camera backend is never constructed in a test. See [Scanner design](design/scanner.md) |
 | An English word list | ENABLE in `data/dictionaries/`; category and tier lists in `data/lexicon/` | `tools/data/check_wordlists.ps1`. The authored lists are **unreviewed** by a teacher or parent |
 
 ## 3. The PRD, requirement by requirement
@@ -46,16 +51,16 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | --- | --- | --- | --- |
 | Migrate the solver to the tablet | Library is portable C++23, Qt-free | Android and iOS builds of the existing app | M1 |
 | Filter by syllables, difficulty, themes | Nothing | A word list with metadata: length, frequency band, syllables, phonics pattern, categories (animal, colour, shape) | M2 |
-| 3x3 or 4x4 board | `Board` accepts 1x1 to 16x16 | A dice model (real Boggle dice sets, random rotation, Qu face) in the library | M1 |
-| Shake, with the accelerometer | Detection over samples is written and tested on synthetic traces (`detect_shakes`); nothing reads a sensor | Sensor access through Qt Sensors or a platform interface; the thresholds tuned on a device; a desktop fallback (key or drag) | M1 |
-| Haptic feedback | Nothing | A `haptics` interface with Android and iOS implementations under `src/platforms`, nothing on desktop | M1 |
-| Drop animation, glowing path, jewels, confetti | Nothing | 2D Qt Quick: Canvas/Shapes/Particles. Not Qt Quick 3D (see D2) | M1 |
-| Trace a path with loose tolerance | `validate_path` is written and tested; no touch handler | A touch handler that snaps to the nearest tile within a radius | M1 |
-| Letters speak their *phonetic sounds* | Nothing | Recorded phoneme audio. Speech synthesis says letter *names* ("see"), not sounds ("k"), so this is a recording job (D5) | M1 |
-| Read the found word aloud, name its category | Nothing | Speech synthesis or recordings, plus category tags from M2 | M1, M2 |
-| Legible early-reader typeface | Nothing | Andika or OpenDyslexic, both open fonts (licences to verify). Comic Sans is proprietary and cannot be bundled | M1 |
-| Hide advanced words, give hints not lists | Solver returns everything | A hint engine over solver output and lexicon metadata: "a 3-letter animal starting with C" | M2 |
-| Camera scan of a physical board | Nothing | Board finder, tile reader, confirm-and-correct screen; Vision on iPad, OpenCV elsewhere | M4 |
+| 3x3 or 4x4 board | `Board` accepts 1x1 to 16x16; the standard board is dice, 3x3 to 6x6 | **Built:** the project's own dice (`data/dice`) and a roll that re-rolls to a board with a word | M1 |
+| Shake, with the accelerometer | **Built:** `detect_shakes` and a motion processor, and Qt Sensors feeding them while the box is on screen; the desktops have no accelerometer, so the Shake button, Space or a drag stand in | The thresholds still have to be tuned on a device | M1 |
+| Haptic feedback | The `haptics` interface and the desktops' no-op are built | Android and iOS implementations under `src/platforms` | M1 |
+| Drop animation, glowing path, jewels, confetti | The 3D drop (Qt Quick 3D, behind one seam), the path ribbon and the jewels are built. **Confetti, sparkle and the Mega burst are not** | The GPL-3.0-only consequence of Quick 3D is accepted (D2, [Licensing](licensing.md)) | M1 |
+| Trace a path with loose tolerance | **Built:** `validate_path` and a pointer tracer with a snap radius and a hysteresis band | A test with small fingers on a tablet | M1 |
+| Letters speak their *phonetic sounds* | The sound-it-out sequence and its player are built; **no clip exists**, so only the word is spoken | Recorded phoneme audio. Speech synthesis says letter *names* ("see"), not sounds ("k"), so this is a recording job (D5) | M1 |
+| Read the found word aloud, name its category | The word is read by the device's voice; the category is not named | Category tags from M2 | M1, M2 |
+| Legible early-reader typeface | **Built:** Andika (with Archivo and IBM Plex Mono) is bundled | A glyph check with a child | M1 |
+| Hide advanced words, give hints not lists | The standard board counts every ENABLE word of three letters or more (no block list); the hint is the start tile, never the word | A hint engine over lexicon metadata: "a 3-letter animal starting with C" | M2 |
+| Camera scan of a physical board | The reader and the desktop camera are built (Qt Multimedia, not OpenCV); no real board has been read | Recorded photographs and a measurement; the iPad's camera and Vision reader | M4 |
 
 ## 4. Decisions that gate the plan
 
@@ -67,7 +72,12 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | D4 | Source of word metadata | Candidates: a pronouncing dictionary (syllables, phonemes), a lexical database with hypernyms (categories), published sight-word lists. | **Licence of each must be checked before use**; none is assumed. Metadata is data, kept out of the code. |
 | D5 | Audio | Record phoneme sounds and the words yourself or with a family voice; use speech synthesis only for words and sentences. | Recordings you make carry no third-party licence. A child hears a phoneme, not a letter name. |
 | D6 | Name | **Decided 2026-10-16: WordJewelsSolver**, as the repository, CMake project and CLI already have it. The brief's working name, WordJuels, is retired. | Settled before any public release. |
-| D7 | Engine word list | **Done:** ENABLE, unmodified. The child-facing layer is an allow-list (categories and a core tier), not a filter over it, so nothing unsuitable can appear by omission. | See G2. |
+| D7 | Engine word list | **Done:** ENABLE, unmodified. The child-facing layer is an allow-list (categories and a core tier), not a filter over it, so nothing unsuitable can appear by omission. **Amended 2026-10-21:** the MVP standard board plays the full ENABLE list with no block list (accepted risk, decided 2026-10-16 and pinned by a test), so on it any ENABLE word can be shown and spoken; the allow-list is the phonics board's and the lexicon's, and nothing reads the lexicon yet. | See G2 and [MVP library](design/mvp-library.md). |
+| D8 | A board clock | **Decided 2026-10-21: the parent-set clock stays.** Settings: Time on the board = off (default), count up, or count down for 1 to 30 minutes, which ends the board and keeps everything found. No duration is stored. Amends PRD 12.3 "no timers or limits" | The clock was built in the October 2026 play-through passes and tested, and the author kept it. *Weakness:* a clock a child can see is a pull, and a count-down is a limit; both are the parent's behind the gate, and the app never starts one. Pages amended: PRD 10, 12.3, 12.5; [Game](design/game.md), [Application](design/application.md), [Parent area](design/parent-area.md), [Dashboard](design/dashboard.md). |
+| D9 | The parental gate | **Decided 2026-10-21: one press-and-hold.** A single large button, held two seconds (Space or Enter by keyboard), puts both of the gate's virtual touches down. Amends "two fingers on two spots" | The two-spot gate asked a parent to discover that two touches, or a mouse on one circle and Space on the keyboard, had to coincide. *Weakness:* a determined child passes it with one finger; [the Dashboard page](design/dashboard.md#the-gate) rated a plain long press "too weak alone". It guards the settings, the dashboard and the scanner, none of which is a purchase, a network or an export, so it is a brake against accidents and not security. Reconsider before a store listing (G6). |
+| D10 | "My jewels" | **Decided 2026-10-21: the ungated collection screen stays**, showing the best board for each size, the points, the words and the week. Amends "the best is shown to the parent only" | *Weakness:* it is a number a child can try to beat. It is the device's own record with no name and no other child's score, and nothing is lost by a poor board. The first thing to revisit if testing with children shows a pull. |
+| D11 | What 0.1 is | **Decided 2026-10-21: the three desktops (Windows, Linux, macOS) and an ad-hoc iOS build for the author's own devices.** Android is in progress in a separate stream and is not built; web and phone layouts come after 0.1 | Amends D1 and M3, which had Android first. iOS is written and has **never run on a device**; a desktop build is the one that has been run. |
+| D12 | Recorded from the build, **awaiting the author's confirmation** | Help is the parent's three-step setting (off; the start tile; the start tile then its first two letters; default the last), not one level (PRD 12.5). The resting screen is not built: a cleared board waits on a summary card ([Game](design/game.md#the-end-of-a-board)). Back from play leaves the round in progress. A child's size pick becomes the next default | Each is built and tested and differs from the text it replaces. Say if any should be reversed. |
 
 ## 5. Where the new code goes
 
@@ -87,11 +97,13 @@ The rule stays: no `#if`, no `#define`, no OS code outside `src/platforms`.
 **The MVP.** The author's categorisation of the first release is PRD section 12,
 as amended by section 12.7. It is narrower than M1 to M2b below in what it ships
 (a standard dice board, 3x3 to 6x6, against the full dictionary, with a
-hand-filtered SATPIN phonics board as a parent's switch; one help level, no
-voice recording, no export, no network capability, no timers, no block list) and
-wider in one respect: it includes the camera-to-board scanner (Mode A), which
-this roadmap had after Solo Play. The MVP is iPad first. Where a milestone below disagrees with section 12,
-section 12 wins; the milestones are the full product's order.
+hand-filtered SATPIN phonics board as a parent's switch; a start-tile help, no
+voice recording, no export, no network capability, no timer unless the parent
+sets one (D8), no block list) and wider in one respect: it includes the
+camera-to-board scanner (Mode A), which this roadmap had after Solo Play. The MVP
+was iPad first; **0.1 is the desktops plus an ad-hoc iOS build** (D11). Where a
+milestone below disagrees with section 12, section 12 wins; the milestones are the
+full product's order.
 
 ### M1: Solo Play on iPad and Android tablet (private builds)
 
@@ -100,7 +112,8 @@ your Android tablet and a child can shake, see the dice drop, trace a word, hear
 it, and collect a jewel.
 
 - Android arm64 build and signed APK, following CountdownSolver (Qt Android kit
-  via `QT_ANDROID_ROOT`/`QT_HOST_PATH`, `android-arm64-v8a-*` presets).
+  via `QT_ANDROID_ROOT`/`QT_HOST_PATH`, `android-arm64-v8a-*` presets). **In
+  progress in a separate stream; not built, and nothing here claims it works.**
 - iOS ad-hoc IPA from a macOS CI runner, following CountdownSolver's
   `ios-release` job and install page, with this app's own bundle identifier,
   certificate and profile. Written, and **not yet run** ([CI](ci.md#ios),
@@ -108,12 +121,15 @@ it, and collect a jewel.
   listed by the pinned `aqt list-qt mac ios`, but no real install or build has been
   tried.
 - Dice model, shake detection, `validate_path`, with unit tests. All three are
-  done: the dice model reads a set of dice and rolls a board (`wjs::roll`), and
+  done (the Qt Quick game and the 3D scene on top of them are built too): the dice
+  model reads a set of dice and rolls a board (`wjs::roll`), and
   the project's own dice for 3x3 to 6x6 are in `data/dice`, made from a fixed
   Scrabble-style English tile-frequency table.
 - Touch tracing with generous tolerance, tested on a real tablet with small
   fingers (the one thing no unit test can settle).
-- Phoneme and word audio; haptics; the typeface; confetti and the jewel bank.
+- Phoneme and word audio (the words are spoken by the device's voice, the phonemes
+  wait for recordings); haptics (the interface; no device backend); the typeface
+  (done); confetti (not built) and the jewel bank (done as My jewels).
   The state school-font setting (PRD 7.1) needs each font's redistribution terms
   checked first, and is **not** part of the exit above until they are.
 - Boards from 3x3 to 6x6: the MVP's standard board (PRD 12.7).
@@ -152,15 +168,19 @@ is what each part depends on.
   Where each phonic sound sits is for the literacy review (G7).
 - **Built on test data, with the content still blocked on G7**: the reader and
   checker for the phase files, the review header and the release build's
-  refusal of a file without it, the seeding of a board, and the binding of a
-  trace into grapheme blocks. No phase file exists. The sound-it-out sequence,
-  the audio and the dashboard are not built.
+  refusal of a file without it, the seeding of a board (the parent's ticked
+  sounds steer it), the binding of a trace into grapheme blocks, the sound-it-out
+  sequence and its player, the local store and the parent's dashboard. No phase
+  file exists and no phoneme clip, so the shipped game plays the standard board
+  and the sound-it-out sequence says only the word.
 
 ### M3: 0.1, the first release
 
 Everything a stranger needs to build and use it, plus the gates below.
-Artefacts: source, desktop builds, a signed Android APK on GitHub Releases
-(allowed under GPL; a store is a separate decision, D2).
+Artefacts: source, the three desktop builds, an SBOM and signatures, and an
+ad-hoc iOS build for the author's own devices (D11); a signed Android APK joins
+them when the Android stream lands (allowed under GPL; a store is a separate
+decision, D2).
 
 ### M4: Family Companion
 
@@ -213,10 +233,11 @@ The same application on the other targets named in the brief.
   Solo Play is the natural whole of it there (question 15). Threads need
   cross-origin isolation headers from the host.
 - **Desktop application** for macOS, Linux and Windows: the platform fragments
-  exist and the command-line solver is built and tested there. Packaging now
-  exists on Windows (CPack, with the notices installed with the program and the
-  Qt runtime inside the package); what remains is the packaged application on
-  Linux and macOS, and the Qt window in CI on those two legs.
+  exist and the command-line solver is built and tested there. Packaging exists
+  on all three (CPack: ZIP and NSIS on Windows, an AppImage and tar.gz on Linux,
+  a bundle and disk image on macOS, with the notices and the Qt runtime), written
+  by `release.yml`; the Linux and macOS applications have never been built in CI
+  or released, and the Qt window is tested in CI on Windows only.
 
 ### Cross-cutting
 
@@ -250,9 +271,10 @@ release, and between a release and a store.
   entries such as `chooseing`, `circleed`, `lyeer`, and missing `the`, `house`,
   `happy`). A list built by attaching suffixes to stems produces words that do
   not exist; start from a real list.
-- **G3 Linux and macOS compile and pass. Done.** The first CI run was green on
-  GCC 15.2 and Apple clang 21. Still open: the Qt window is built in CI on no
-  platform, so installing Qt 6.12 there is the next piece.
+- **G3 Linux and macOS compile and pass. Done** for the library and the
+  command-line solver: green on GCC 15.2 and Apple clang 21. Still open: the Qt
+  window is built and tested in `ci.yml` on Windows only; Linux and macOS build it
+  in `release.yml`, which has never run.
 - **G4 Rulesets applied.** Branch protection, the merge queue and the rule that
   rejects any branch not named in the gitflow scheme are in `.github/rulesets`
   and applied with `tools/repo/apply_rulesets.ps1`; they were unavailable while
@@ -278,9 +300,11 @@ Constraints to decide before a camera ships, not a policy:
   Design Code, GDPR Article 8). Apple's Kids Category and Google Play's Families
   policy each add requirements, such as a parental gate for anything outside the
   game. Get these reviewed before M4 reaches a store.
-- Hints and rewards should not nag or push the child to continue. The MVP has
-  no timers or limits and ends a cleared board on a calm resting screen (PRD
-  12.3). A parent-set limit was in the earlier brief and is deferred.
+- Hints and rewards should not nag or push the child to continue. The MVP
+  starts no timer of its own and ends a board on a summary card the child
+  dismisses (PRD 12.3 asked for a calm resting screen, which is not built, D12). A
+  parent-set board clock exists and is off by default (D8); a screen-time limit
+  or a locked session was in the earlier brief and is deferred.
 - A child's progress stays on the device, with no cloud tracking, no network
   capability, no voice capture and no export, as the author has stated for the
   MVP (PRD 12.2). A recording of a child's voice and an emailed PDF summary were
@@ -299,3 +323,26 @@ Constraints to decide before a camera ships, not a policy:
 4. Who reads `data/lexicon/` before a child sees it, and is the category set
    (animals, colours, shapes, food, body, family, nature, home, clothes,
    transport) the one you want for the hints?
+5. D12: should the three-step help, the missing resting screen, Back leaving the
+   round open and the child's size pick stay as built?
+
+### Open items from the design questions
+
+The numbered questions of PRD section 11 were answered on the design pages as
+proposals; the answers live there. These are the ones that still need the author
+or the reviewer (gate G7), kept here when the page that listed them was removed.
+
+| Q | Open item | Who |
+| --- | --- | --- |
+| 5 | Is a scoreboard against other players out for good? Proposed: out | Author |
+| 14 | Which is the lowest device the budgets are written for? | Author |
+| 18 | Which typeface meets the clarity requirement? Andika is bundled; the side-by-side with a child has not been done | Reviewer, Author |
+| 21, 23, 28 | The art for stickers and the vault, the star thresholds if worlds return, the mascot | Author |
+| 26, 37 | Who records the phonemes and words, in what accent, and whose voice | Author, Reviewer |
+| 32, 33, 34, 58, 60 | Segmentation and tricky words, what Phase A and B contain, how each phase's word list is made (the 249-word filter is an input, never the list), the size of the Phase A list, whether RAIN and Phase B are in the MVP | Reviewer |
+| 38 | Which school font belongs to which state and which licences allow bundling (none is bundled) | Author |
+| 42, 44 | Definitions and wording of the dashboard's findings ("found", "often found", "met") | Reviewer |
+| 49 | The gate: the age assumed unable to pass it and each store's rules for it (now one hold, D9) | Author |
+| 50 | Whether the app's data is excluded from device backups ("air-gapped" against a lost iPad) | Author |
+| 69 | Who the literacy reviewer is. Needed before any audio is recorded and before a child uses the content | Author |
+| PRD 12.4 step 3 | Does Mode A solve against the curated index (the PRD) or the full dictionary (as built)? And the board sizes Mode A offers (the PRD says 4x4; the reader reads 3 to 8 and the picker offers 3 to 6) | Author |

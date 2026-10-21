@@ -10,8 +10,9 @@ page, and what is for the reviewer.
 
 **Scope.** The MVP's dashboard is **on the device and nowhere else**
 (section 12.2): no export, no printable summary, no e-mail, no voice clip, no
-time played and no limit. Those stay in the brief and are deferred, not removed
-(question 62). This page designs the part that is in the MVP and records the
+time played and no limit on play. Those stay in the brief and are deferred, not
+removed (question 62). (A board clock the parent can set is built and is not
+the limit this sentence defers: [D8](../roadmap.md#4-decisions-that-gate-the-plan).) This page designs the part that is in the MVP and records the
 constraints the deferred parts have to meet when they return.
 
 Everything shown is a statement about a child's learning. It needs the literacy
@@ -31,7 +32,20 @@ accident; it is not security.
 | Both | | | More friction than the data needs |
 
 **Recommendation:** the two-spot hold. A screen-reader user is given the same
-screen through an accessible action, since a hold cannot be done blind. The
+screen through an accessible action, since a hold cannot be done blind.
+
+> **As built, decided 2026-10-21 (D9): one press-and-hold.** The gate screen is a
+> single large button; holding it for two seconds (a finger, a mouse, or Space or
+> Enter) presses both of the library's hidden spots for the person, so the
+> library's rules are unchanged (the hold, the release that starts it over, the
+> accessible action) and only the way in changed. This is the "long press" the
+> table above calls *too weak alone*: a determined child passes it with one
+> finger. The author kept it knowing that. It guards the settings, the
+> dashboard and the scanner, and the MVP has no purchase, link or network for it
+> to protect, so it is a brake against accidents and not security. Reconsider it
+> before a store listing (roadmap G6).
+
+The
 **age assumed unable to pass it** is not established by anything in this
 repository; the gate is to be tried with children. **Unverified:** what Apple's
 and Google's children's-app policies accept as a gate. The roadmap already
@@ -45,7 +59,7 @@ purchases, so the gate guards settings and data only.
 | **Sounds** | For each grapheme of the active phase: how often a word with it has been on a board, how often one was found, and how often unassisted | The store, below |
 | **This week** | Boards cleared, stars, words met for the first time, the longest word | The store |
 | **The vault** | The stickers, as the child sees them | The store |
-| **Best** | The best board for each size (the only place it is shown) | The store |
+| **Best** | The best board for each size | The store. **Also shown to the child, ungated, on My jewels** ([D10](../roadmap.md#4-decisions-that-gate-the-plan)); the design had this the only place |
 
 It does not show: time on screen, a streak, a comparison with other children,
 a score out of anything, a grade.
@@ -107,7 +121,8 @@ use this sound yet".
 
 | Setting | Values | Default |
 | --- | --- | --- |
-| Help | On (the start tile) or Off. After the MVP, a dial of five stops | On |
+| Help | **As built:** Off, a start tile (the first press lights it, the next hides it), or two letters (the start tile, then the word's first two tiles); default two letters ([D12](../roadmap.md#4-decisions-that-gate-the-plan), to confirm). The design: On or Off, and after the MVP a dial of five stops | Two letters |
+| Time on the board | Off, count up, or count down for 1, 2, 3, 5, 10, 15, 20 or 30 minutes (default 5 when counting down); a count-down ends the board and keeps what was found. Not in the original design ([D8](../roadmap.md#4-decisions-that-gate-the-plan)) | Off |
 | Board | Standard (dice) or Phonics (a phase's words, grapheme blocks, sounding out) | Standard |
 | Phase | A or B (generic names; contents are the reviewer's). Used by the Phonics board | A |
 | Focus sounds | A subset of the phase's graphemes | None |
@@ -142,7 +157,7 @@ use this sound yet".
 | --- | --- | --- |
 | "Read aloud" voice recording | 41 | Have its privacy review first; the microphone permission, its retention and deletion, and each store's children's-app policy |
 | Time played | 52 | Define "played" as active play (a touch within the last 30 s, say) and a day's end; not stored in the MVP, so nothing past can be reconstructed |
-| A parent-set limit | 53, 54 | Sit beside the system's own screen-time controls (iPadOS has them; a browser has none); never end play abruptly; and square with "nothing pushes the child to continue" |
+| A parent-set limit on play (a daily or weekly allowance, a locked session) | 53, 54 | Sit beside the system's own screen-time controls (iPadOS has them; a browser has none); never end play abruptly; and square with "nothing pushes the child to continue". The board clock above is not this: it ends one board, on the parent's setting, and nothing is stored |
 | The printable summary and its e-mail | 55 to 57 | Be a parent's action with a preview, behind the gate, handed to the system's share and print facilities with no stored address; the first route by which a child's data leaves |
 
 The weekly report's **read-aloud shared moment** and **time played** are
