@@ -16,6 +16,7 @@
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QDir>
+#include <QFontDatabase>
 #include <QGuiApplication>
 #include <QImage>
 #include <QMetaObject>
@@ -44,6 +45,7 @@
 #include "wjs/board.hpp"
 #include "wjs/calendar.hpp"
 #include "wjs/dictionary.hpp"
+#include "wjs/scan/reading.hpp"
 #include "wjs/store.hpp"
 
 namespace {
@@ -491,6 +493,197 @@ int run_language_check(const QString& out) {
     return (g_failures == 0 && g_warnings == 0) ? 0 : 1;
 }
 
+// The first item under `root` that has every one of these properties: how the
+// capture mode reaches a screen's inner state (the check screen's `picked`, the
+// history sheet's `open`) without the screens exposing anything for it.
+QQuickItem* find_with(QQuickItem* root, const QStringList& properties) {
+    if (root == nullptr) {
+        return nullptr;
+    }
+    bool all = true;
+    for (const QString& name : properties) {
+        if (root->metaObject()->indexOfProperty(name.toLatin1().constData()) < 0) {
+            all = false;
+            break;
+        }
+    }
+    if (all) {
+        return root;
+    }
+    for (QQuickItem* child : root->childItems()) {
+        if (QQuickItem* found = find_with(child, properties)) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+// What the picture is of: a window size, a colour scheme and a text scale.
+struct ShotSetup {
+    const char* tag;
+    int width;
+    int height;
+    const char* scheme;
+    double scale;
+};
+
+// Every Mode A screen, in each setup, as software-rendered PNGs named
+// "<setup>-<screen>": the images the design pass is judged by, before and after.
+// TEST DATA: a made-up board and words; nothing here is content for a child.
+int run_shots(const QString& out) {
+    const wjs::Day today = wjs::day_from_civil(2026, 10, 19);
+    const ShotSetup setups[] = {
+        {"d1100x700-light", 1100, 700, "light", 1.0},
+        {"d1100x700-dark", 1100, 700, "dark", 1.0},
+        {"s900x620-light", 900, 620, "light", 1.0},
+        {"s900x620-dark", 900, 620, "dark", 1.0},
+        {"s900x620-150-light", 900, 620, "light", 1.5},
+        {"s900x1200-light", 900, 1200, "light", 1.0},
+        {"s1024x768-light", 1024, 768, "light", 1.0},
+        {"s2400x1200-light", 2400, 1200, "light", 1.0},
+    };
+
+    for (const ShotSetup& setup : setups) {
+        wjs::Dictionary dictionary;
+        for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
+            static_cast<void>(dictionary.insert(word));
+        }
+        wjs::Store store = wjs::Store::in_memory();
+        wjs::app::LanguageManager language;
+        language.apply(QStringLiteral("en"));
+
+        // A camera that is there, for the ready screen's live view; the no-camera
+        // screen is the same models with no source (the second pass below).
+        for (const bool with_camera : {false, true}) {
+            auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+            backend->setAvailable(true);
+            backend->setProblem(QString());
+            wjs::app::CameraSource camera(std::move(backend));
+
+            wjs::app::ScanModel scan;
+            if (with_camera) {
+                scan.setCameraSource(&camera);
+            }
+            wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
+                return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
+                                                              [] { return today; });
+            });
+            QQmlApplicationEngine engine;
+            engine.setInitialProperties({
+                {QStringLiteral("scan"), QVariant::fromValue(&scan)},
+                {QStringLiteral("assist"), QVariant::fromValue(&assist)},
+                {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
+                {QStringLiteral("scheme"), QString::fromLatin1(setup.scheme)},
+                {QStringLiteral("textScale"), setup.scale},
+            });
+            engine.loadFromModule("WordJewelsSolver", "PreviewHost");
+            if (engine.rootObjects().isEmpty()) {
+                check(false, "the stub shell loads");
+                continue;
+            }
+            auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+            if (window == nullptr) {
+                check(false, "the stub shell is a window");
+                continue;
+            }
+            window->resize(setup.width, setup.height);
+            pump(12);
+            const QString prefix = QString::fromLatin1(setup.tag) + "-";
+
+            if (with_camera) {
+                for (int i = 0; i < 40 && !window->property("previewShown").toBool(); ++i) {
+                    pump(1);
+                }
+                save(window, out, prefix + "ready-camera");
+                continue;
+            }
+
+            save(window, out, prefix + "ready-nocamera");
+
+            scan.typeBoard();
+            pump(12);
+            save(window, out, prefix + "check-empty");
+
+            // A reading with doubts: the ringed tiles and the hint under the board.
+            wjs::scan::BoardReading reading;
+            reading.rows = 3;
+            reading.columns = 3;
+            reading.tiles.resize(9);
+            const char* seen[] = {"C", "A", "T", "S", "E", "R", "P", "I", "N"};
+            for (int i = 0; i < 9; ++i) {
+                reading.tiles[static_cast<std::size_t>(i)].letters = seen[i];
+                reading.tiles[static_cast<std::size_t>(i)].confidence = 0.9;
+                reading.tiles[static_cast<std::size_t>(i)].doubtful = false;
+            }
+            reading.tiles[1].doubtful = true;
+            reading.tiles[1].confidence = 0.4;
+            reading.tiles[1].alternatives[0].letters = "O";
+            reading.tiles[1].alternatives[0].score = 0.4;
+            reading.tiles[4].doubtful = true;
+            reading.tiles[4].confidence = 0.45;
+            if (scan.useReading(reading)) {
+                pump(12);
+                save(window, out, prefix + "check-doubtful");
+                QQuickItem* check_screen =
+                    find_with(window->contentItem(), {"picked", "boardRows"});
+                if (check_screen != nullptr) {
+                    check_screen->setProperty("picked", 1);
+                    pump(12);
+                    save(window, out, prefix + "picker");
+                    check_screen->setProperty("picked", -1);
+                    pump(4);
+                }
+            } else {
+                check(false, "the doubtful reading was accepted");
+            }
+
+            scan.typeBoard();
+            const QStringList letters = {"S", "A", "T", "X", "P", "I", "N", "X",
+                                         "X", "X", "X", "X", "X", "X", "X", "X"};
+            for (int index = 0; index < letters.size(); ++index) {
+                static_cast<void>(scan.setTile(index, letters.at(index)));
+            }
+            pump(12);
+            save(window, out, prefix + "check-filled");
+
+            QVariant played;
+            QMetaObject::invokeMethod(window, "play", Q_RETURN_ARG(QVariant, played));
+            pump(12);
+            save(window, out, prefix + "assist");
+            assist.askHelp();
+            pump(8);
+            save(window, out, prefix + "assist-help");
+            assist.tapTile(0);
+            assist.tapTile(1);
+            pump(8);
+            save(window, out, prefix + "assist-tracing");
+            assist.tapTile(2);
+            assist.done();
+            pump(12);
+            save(window, out, prefix + "assist-found");
+
+            // New board records the round; a second round then has a history.
+            QMetaObject::invokeMethod(window, "newBoard");
+            pump(8);
+            scan.typeBoard();
+            for (int index = 0; index < letters.size(); ++index) {
+                static_cast<void>(scan.setTile(index, letters.at(index)));
+            }
+            QMetaObject::invokeMethod(window, "play", Q_RETURN_ARG(QVariant, played));
+            pump(12);
+            QQuickItem* history = find_with(window->contentItem(), {"open", "assist"});
+            if (history != nullptr) {
+                history->setProperty("open", true);
+                pump(12);
+                save(window, out, prefix + "assist-history");
+                history->setProperty("open", false);
+                pump(4);
+            }
+        }
+    }
+    return (g_failures == 0 && g_warnings == 0) ? 0 : 1;
+}
+
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -501,13 +694,14 @@ int main(int argc, char* argv[]) {
     const bool is_check = arguments.contains(QStringLiteral("--check"));
     const bool is_languages = arguments.contains(QStringLiteral("--languages"));
     const bool is_camera = arguments.contains(QStringLiteral("--camera"));
+    const bool is_shots = arguments.contains(QStringLiteral("--shots"));
     QString out;
     const qsizetype flag = arguments.indexOf(QStringLiteral("--out"));
     if (flag >= 0 && flag + 1 < arguments.size()) {
         out = arguments.at(flag + 1);
     }
 
-    if (is_check || is_languages || is_camera) {
+    if (is_check || is_languages || is_camera || is_shots) {
         // No display and no GPU: the software renderer draws into memory.
         QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
         qInstallMessageHandler(message_handler);
@@ -517,6 +711,21 @@ int main(int argc, char* argv[]) {
     if (is_check) {
         const int result = run_check(out);
         std::fprintf(stderr, result == 0 ? "scan screens: ok\n" : "scan screens: FAILED\n");
+        return result;
+    }
+    if (is_shots) {
+        // The house faces, from a directory of .ttf files (assets/fonts): the
+        // headless stub shell does not load the application's resource, and the
+        // fallback face would change every line's width in the pictures.
+        const qsizetype fonts_flag = arguments.indexOf(QStringLiteral("--fonts"));
+        if (fonts_flag >= 0 && fonts_flag + 1 < arguments.size()) {
+            const QDir fonts(arguments.at(fonts_flag + 1));
+            for (const QString& file : fonts.entryList({QStringLiteral("*.ttf")}, QDir::Files)) {
+                QFontDatabase::addApplicationFont(fonts.filePath(file));
+            }
+        }
+        const int result = run_shots(out);
+        std::fprintf(stderr, result == 0 ? "scan shots: ok\n" : "scan shots: FAILED\n");
         return result;
     }
     if (is_camera) {
