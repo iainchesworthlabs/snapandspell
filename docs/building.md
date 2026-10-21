@@ -116,6 +116,7 @@ A preset configures into `build/<preset>/` and is named
 | `linux-clang-debug` | Linux | `x64-linux` | Debug, with Clang's AddressSanitizer and UBSan; uses `clang++`. The nightly Clang sanitizer leg |
 | `macos-clang-debug` | macOS | `arm64-osx` | Debug, with AddressSanitizer and UBSan |
 | `macos-clang-release` | macOS | `arm64-osx` | Release |
+| `ios-release` | macOS | `arm64-ios` | An Xcode project for an iPhone or iPad: Release, no tests, no `wjs-cli`, unsigned unless given a team and a profile. Needs Qt's iOS kit; see [iOS](#ios) |
 | `windows-msvc-profiling` | Windows | `x64-windows` | RelWithDebInfo with Tracy, sanitizers off. A development build, never shipped: see [Profiling](profiling.md) |
 | `linux-gcc-profiling` | Linux | `x64-linux` | As above, with `g++` |
 | `macos-clang-profiling` | macOS | `arm64-osx` | As above |
@@ -299,6 +300,52 @@ docs/ci.md#the-jobs-in-ciyml).
 
 The translations are **mechanical and unreviewed** for now; a later pass with
 the literacy reviewer replaces them (docs/audit-0.1.md, section 8).
+
+## iOS
+
+An iPhone or iPad build is a device build for the author's own devices, ad hoc
+signed; [Installing on my iPhone/iPad](ios-install.md) is the install, and
+[CI](ci.md#ios) is how the release workflow makes it. It needs a Mac with Xcode 16
+or later (the iOS 18 SDK), because Xcode is what compiles, signs and archives it.
+Nothing about it has been run yet ([what is unverified](ci.md#what-ios-has-and-has-not-shown)).
+
+Qt comes as two kits of the same version: its iOS kit (static Qt), and a macOS Qt
+for the host tools a cross build runs. aqtinstall installs both with
+`--autodesktop`:
+
+```sh
+aqt install-qt mac ios 6.12.0 ios --autodesktop --outputdir ~/Qt \
+    -m qtquick3d qtshadertools qtmultimedia qtsensors qtspeech
+export QT_ROOT_DIR=~/Qt/6.12.0/ios
+export QT_HOST_PATH=~/Qt/6.12.0/macos
+export VCPKG_ROOT=...            # as for any preset
+
+cmake --preset ios-release       # an Xcode project in build/ios-release/
+cmake --build --preset ios-release   # unsigned: compiles for a device
+src/platforms/ios/packaging/verify_ipa.sh "$(find build/ios-release -name WordJewelsSolver.app -type d | head -n 1)"
+```
+
+(`aqt` is the pinned one: `.github/toolchain-versions.json`, `qt.aqtsource`.) The
+preset turns the tests and `wjs-cli` off, Tracy and the sanitizers off, builds for
+`arm64` with an iOS 18.0 deployment target, and signs nothing. The vcpkg toolchain is
+still the CMake toolchain file, chaining to Qt's; the manifest has no dependency
+without the tests or Tracy, so vcpkg installs nothing.
+
+A signed build gives the application target a team and a provisioning profile name
+(the profile's name in the Apple portal), with the distribution certificate in a
+keychain and the profile in `~/Library/MobileDevice/Provisioning Profiles`:
+
+```sh
+cmake --preset ios-release -DWJS_IOS_SIGNING_TEAM=<team id> "-DWJS_IOS_SIGNING_PROFILE=<profile name>"
+xcodebuild archive -project build/ios-release/WordJewelsSolver.xcodeproj -scheme WordJewelsSolver \
+    -configuration Release -destination "generic/platform=iOS" -archivePath build/ios-release/WordJewelsSolver.xcarchive
+xcodebuild -exportArchive -archivePath build/ios-release/WordJewelsSolver.xcarchive \
+    -exportPath build/ios-release/export -exportOptionsPlist ExportOptions.plist
+```
+
+`ExportOptions.plist` is the one `release.yml` writes (method `ad-hoc`, the team, manual
+signing, `Apple Distribution`, the profile by name); read it there. The built `.app`
+is where Xcode puts it, so the check above looks for it.
 
 ## Packaging
 
@@ -635,6 +682,11 @@ needs `/proc` mounted, as on any normal system.
 
 **macOS.** The executable's own path comes from `_NSGetExecutablePath`, with
 symlinks resolved. Neither this nor the Linux code has been built or run yet.
+
+**iOS.** The same call finds the executable, which is the root of the flat bundle,
+and the dictionary and dice are beside it; the data directory is
+`Library/Application Support` in the application's own container. Not built or run
+yet either ([iOS](#ios)).
 
 A build can be installed and packaged ([Packaging](#packaging)); without that
 step the programs run from `build/<preset>/bin/`, with the dictionary and dice

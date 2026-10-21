@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Window
+import WordJewelsSolver
 import WordJewelsSolver.Parent
 
 // A stub for the application's screen shell, so that the parent area's screens
@@ -28,6 +29,24 @@ Window {
     visible: true
     title: "Parent area (stub shell)"
     color: "#FBF8F1"
+
+    // What the real shell (Main.qml) binds from the parent's settings and the
+    // language, for the kit's tokens every parent screen reads.
+    Binding {
+        target: Theme
+        property: "textScale"
+        value: host.controller.textScale
+    }
+    Binding {
+        target: Theme
+        property: "colourScheme"
+        value: host.controller.colourScheme
+    }
+    Binding {
+        target: Theme
+        property: "rightToLeft"
+        value: host.languageManager.rightToLeft
+    }
 
     function openParent() {
         area.visible = true;

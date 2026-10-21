@@ -269,6 +269,43 @@
         "macos-clang-base",
         "profiling"
       ]
+    },
+    {
+      "name": "ios-base",
+      "hidden": true,
+      "description": "An iPhone or iPad (arm64), built by Xcode from a Mac with Qt's iOS kit (QT_ROOT_DIR) and a desktop Qt of the same version for its host tools (QT_HOST_PATH). vcpkg's toolchain is the CMAKE_TOOLCHAIN_FILE like everywhere else and chains to Qt's; the manifest has no dependency without the tests or Tracy, so vcpkg installs nothing. Unsigned unless WJS_IOS_SIGNING_TEAM and WJS_IOS_SIGNING_PROFILE are given (docs/building.md, iOS).",
+      "inherits": [
+        "base"
+      ],
+      "generator": "Xcode",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "OFF",
+        "VCPKG_TARGET_TRIPLET": "arm64-ios",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{QT_ROOT_DIR}/lib/cmake/Qt6/qt.toolchain.cmake",
+        "QT_HOST_PATH": "$env{QT_HOST_PATH}",
+        "CMAKE_OSX_SYSROOT": "iphoneos",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "18.0",
+        "CMAKE_XCODE_GENERATE_SCHEME": "ON",
+        "WJS_BUILD_CLI": "OFF",
+        "WJS_BUILD_TESTS": "OFF",
+        "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED": "NO",
+        "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED": "NO",
+        "CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY": ""
+      }
+    },
+    {
+      "name": "ios-release",
+      "displayName": "iOS (device, Release)",
+      "inherits": [
+        "ios-base",
+        "release"
+      ]
     }
   ],
   "buildPresets": [
@@ -285,7 +322,8 @@
     { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling" },
     { "name": "windows-msvc-analysis", "configurePreset": "windows-msvc-analysis" },
     { "name": "linux-gcc-analysis", "configurePreset": "linux-gcc-analysis" },
-    { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" }
+    { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" },
+    { "name": "ios-release", "configurePreset": "ios-release", "configuration": "Release", "targets": ["WordJewelsSolver"] }
   ],
   "testPresets": [
     {

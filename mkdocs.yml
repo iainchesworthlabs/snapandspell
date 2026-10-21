@@ -51,6 +51,7 @@ nav:
       - Profiling: profiling.md
       - CI: ci.md
       - Branch protection: branch-protection.md
+      - Installing on my iPhone/iPad: ios-install.md
   - How it works:
       - Architecture: architecture.md
       - Platform isolation: platform-isolation.md

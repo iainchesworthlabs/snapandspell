@@ -369,6 +369,8 @@ int main(int argc, char* argv[]) {
     // Multimedia, Sensors or TextToSpeech has their silent variants behind
     // these same objects.
     wjs::app::FeedbackEngine feedback;
+    // The phase the phonics board is played in, for sounding a found word out.
+    feedback.usePhase(setup.solo_setup->phase());
     if (smoke > 0) {
         // A smoke run measures frames, and plays nothing: a sound is noise in the
         // numbers, and on Windows Qt Multimedia's audio-device thread sends an event

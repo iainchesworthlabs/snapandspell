@@ -51,13 +51,6 @@ bool Speech::say_word(const QString& word, double volume) {
     return say(word, volume);
 }
 
-void Speech::say_letter_sequence(const QString&) {
-    // The phoneme clips are the reviewer's recording job (docs/design/
-    // phonics.md): there is no clip in the tree and the platform's voice must
-    // not stand in for one, because letter names are not the sounds a child is
-    // learning. When the clips exist this is where they play, before the word.
-}
-
 bool Speech::say_text(const QString& text, double volume) {
     return say(text, volume);
 }

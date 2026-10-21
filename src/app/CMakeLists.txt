@@ -131,6 +131,14 @@ set_source_files_properties(
     qml/solo/SoloWording.qml
     PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
 
+# The kit's files are listed once, in qml/kit/kit_files.cmake: the previews and
+# the Qt Quick Test module embed the same set.
+include("${CMAKE_CURRENT_SOURCE_DIR}/qml/kit/kit_files.cmake")
+set(WJS_APP_KIT_SOURCES "")
+foreach(_wjs_kit_file IN LISTS WJS_KIT_QML_FILES)
+    list(APPEND WJS_APP_KIT_SOURCES "qml/kit/${_wjs_kit_file}")
+endforeach()
+
 qt_add_qml_module(WordJewelsSolver
     URI WordJewelsSolver
     VERSION 1.0
@@ -142,18 +150,7 @@ qt_add_qml_module(WordJewelsSolver
         qml/Home.qml
         qml/HomeWording.qml
         qml/Main.qml
-        qml/kit/AppBar.qml
-        qml/kit/AppButton.qml
-        qml/kit/Feedback.qml
-        qml/kit/HoldButton.qml
-        qml/kit/Icon.qml
-        qml/kit/Jewel.qml
-        qml/kit/JewelBox.qml
-        qml/kit/ModeCard.qml
-        qml/kit/Navigation.qml
-        qml/kit/Theme.qml
-        qml/kit/TileFace.qml
-        qml/kit/Wordmark.qml
+        ${WJS_APP_KIT_SOURCES}
         qml/solo/BoardThumb.qml
         qml/solo/FlatBoard.qml
         qml/solo/HistorySheet.qml

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import WordJewelsSolver
 
 // A titled block of a parent screen. The title is a heading for assistive
 // technology.
@@ -9,12 +10,12 @@ ColumnLayout {
     property string title
     default property alias content: body.data
 
-    spacing: ParentTheme.space3
+    spacing: Theme.space3
 
     Rectangle {
         Layout.fillWidth: true
         height: 1
-        color: ParentTheme.line
+        color: Theme.line
         visible: root.title.length > 0
     }
 
@@ -22,10 +23,10 @@ ColumnLayout {
         Layout.fillWidth: true
         visible: root.title.length > 0
         text: root.title
-        font.family: ParentTheme.uiFont
-        font.pixelSize: ParentTheme.sizeLead
+        font.family: Theme.uiFont
+        font.pixelSize: Theme.headingSize
         font.weight: Font.ExtraBold
-        color: ParentTheme.ink
+        color: Theme.ink
         wrapMode: Text.WordWrap
         Accessible.role: Accessible.Heading
         Accessible.name: root.title
@@ -34,6 +35,6 @@ ColumnLayout {
     ColumnLayout {
         id: body
         Layout.fillWidth: true
-        spacing: ParentTheme.space2
+        spacing: Theme.space2
     }
 }

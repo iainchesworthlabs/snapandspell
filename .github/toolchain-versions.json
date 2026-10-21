@@ -9,7 +9,8 @@
     "kits": {
       "windows": { "host": "windows", "arch": "win64_msvc2022_64", "dir": "msvc2022_64" },
       "linux": { "host": "linux", "arch": "linux_gcc_64", "dir": "gcc_64" },
-      "macos": { "host": "mac", "arch": "clang_64", "dir": "macos" }
+      "macos": { "host": "mac", "arch": "clang_64", "dir": "macos" },
+      "ios": { "host": "mac", "arch": "ios", "dir": "ios", "hostdir": "macos" }
     },
     "modules": "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech",
     "action": "jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125",

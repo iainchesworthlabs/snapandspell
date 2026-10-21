@@ -1,9 +1,17 @@
 #include <QString>
 #include <QVariantMap>
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
+#include "demo_data.hpp"
+#include "fake_clips.hpp"
 #include "feedback_engine.hpp"
 
 // The wiring behind Feedback.cue: the parent's settings map in, and the sound,
@@ -293,4 +301,150 @@ TEST_CASE("a damaged or missing value falls back to the library's default", "[ap
     CHECK(heard.sounds[0].second == 1.0);
     CHECK(heard.speech.size() == 1);
     CHECK(engine.hapticsRequested() == 1);
+}
+
+// --- sounding a found word out ---------------------------------------------------
+
+namespace {
+
+// The engine over the demo phases' phase B ("ai" is its grapheme; PAIN is a word of
+// it), told it is on the phonics board, with the sequence's waits in the test's hands.
+struct SoundItOutRig {
+    explicit SoundItOutRig(const QString& sound_it_out = QStringLiteral("full"),
+                           const QString& board = QStringLiteral("phonics"))
+        : phases(wjs::app::demo::phases()) {
+        engine.usePhase(phases.find("B"));
+        listen(engine, heard);
+        QVariantMap settings = parent_settings(true, false, QStringLiteral("full"), sound_it_out);
+        settings.insert(QStringLiteral("board"), board);
+        engine.setSettings(settings);
+        engine.soundSequence().setScheduler(
+            [this](std::chrono::milliseconds, std::function<void()> then) {
+                waits.push_back(std::move(then));
+            });
+        QObject::connect(&engine.soundSequence(), &wjs::app::SoundSequencePlayer::stepStarted,
+                         &engine, [this](const QString& kind, int block) {
+                             steps.push_back(kind + QStringLiteral(":") + QString::number(block));
+                         });
+    }
+
+    wjs::PhaseSet phases;
+    FeedbackEngine engine;
+    Heard heard;
+    QStringList steps;
+    std::vector<std::function<void()>> waits;
+    std::vector<std::string> log;
+};
+
+}  // namespace
+
+TEST_CASE("a found word of the phonics board is sounded out, then said",
+          "[app][feedback][sequence]") {
+    SoundItOutRig rig;
+
+    rig.engine.cue(QStringLiteral("word"), QStringLiteral("pain"));
+
+    // p, ai, n; the blend; the word; and the cheer that names "ai".
+    CHECK(rig.steps == QStringList{"sound:0", "sound:1", "sound:2", "blend:0", "say:0", "cheer:0"});
+    // No clip is recorded, so the sounds take no time and the word follows at once.
+    REQUIRE(rig.heard.speech.size() == 1);
+    CHECK(rig.heard.speech[0].first == QStringLiteral("pain"));
+    CHECK(rig.engine.utterances() == 1);
+    CHECK(rig.heard.requests == 1);
+    CHECK(rig.waits.empty());
+}
+
+TEST_CASE("Sound it out set to the word only says the word and sounds nothing out",
+          "[app][feedback][sequence]") {
+    SoundItOutRig rig(QStringLiteral("word"));
+
+    rig.engine.cue(QStringLiteral("word"), QStringLiteral("pain"));
+
+    CHECK(rig.steps == QStringList{"say:0"});
+    CHECK(rig.heard.speech.size() == 1);
+}
+
+TEST_CASE("a word the phase does not hold, the standard board and no phase say the word whole",
+          "[app][feedback][sequence]") {
+    {
+        SoundItOutRig rig;
+        rig.engine.cue(QStringLiteral("word"), QStringLiteral("cat"));  // not in phase B
+        CHECK(rig.steps.isEmpty());
+        CHECK(rig.heard.speech.size() == 1);
+    }
+    {
+        SoundItOutRig rig(QStringLiteral("full"), QStringLiteral("standard"));
+        rig.engine.cue(QStringLiteral("word"), QStringLiteral("pain"));
+        CHECK(rig.steps.isEmpty());
+        CHECK(rig.heard.speech.size() == 1);
+    }
+    {
+        SoundItOutRig rig;
+        rig.engine.usePhase(nullptr);
+        rig.engine.cue(QStringLiteral("word"), QStringLiteral("pain"));
+        CHECK(rig.steps.isEmpty());
+        CHECK(rig.heard.speech.size() == 1);
+    }
+}
+
+TEST_CASE("Sound it out off says and sounds nothing out", "[app][feedback][sequence]") {
+    SoundItOutRig rig(QStringLiteral("off"));
+
+    rig.engine.cue(QStringLiteral("word"), QStringLiteral("pain"));
+
+    CHECK(rig.steps.isEmpty());
+    CHECK(rig.heard.speech.empty());
+    CHECK(rig.engine.utterances() == 0);
+}
+
+TEST_CASE("with clips the word waits for the sounds, and the next word stops them",
+          "[app][feedback][sequence]") {
+    SoundItOutRig rig;
+    auto clips = std::make_unique<wjs::app::test::FakeClips>(
+        std::set<std::string>{"t3", "t4", "t5", "t6", "t7"}, rig.log);
+    wjs::app::test::FakeClips* fake = clips.get();
+    rig.engine.soundSequence().setClipPlayer(std::move(clips));
+
+    rig.engine.cue(QStringLiteral("word"), QStringLiteral("pain"));
+
+    // The cue is accepted and the first sound is playing; the word is not said yet.
+    CHECK(rig.heard.requests == 1);
+    CHECK(fake->playing());
+    CHECK(rig.heard.speech.empty());
+    CHECK(rig.engine.utterances() == 0);
+
+    // Every sound and the blend play, then the word.
+    while (rig.engine.soundSequence().running()) {
+        if (fake->playing()) {
+            fake->end();
+        } else {
+            REQUIRE_FALSE(rig.waits.empty());
+            auto next = std::move(rig.waits.front());
+            rig.waits.erase(rig.waits.begin());
+            next();
+        }
+    }
+    REQUIRE(rig.heard.speech.size() == 1);
+    CHECK(rig.heard.speech[0].first == QStringLiteral("pain"));
+
+    // A second word found while the first's sounds are playing stops them, and the
+    // first word is never said.
+    rig.heard.speech.clear();
+    rig.engine.cue(QStringLiteral("word"), QStringLiteral("saint"));
+    REQUIRE(fake->playing());
+    rig.engine.cue(QStringLiteral("word"), QStringLiteral("stain"));
+    CHECK(std::ranges::count(rig.log, std::string{"stop"}) >= 1);
+    while (rig.engine.soundSequence().running()) {
+        if (fake->playing()) {
+            fake->end();
+        } else if (!rig.waits.empty()) {
+            auto next = std::move(rig.waits.front());
+            rig.waits.erase(rig.waits.begin());
+            next();
+        } else {
+            break;
+        }
+    }
+    REQUIRE(rig.heard.speech.size() == 1);
+    CHECK(rig.heard.speech[0].first == QStringLiteral("stain"));
 }
