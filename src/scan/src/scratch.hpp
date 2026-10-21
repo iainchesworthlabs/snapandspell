@@ -39,7 +39,7 @@ struct Scratch {
     // the 240-pixel square each outline attempt is drawn into.
     GrayImage blurred;
     std::vector<std::uint32_t> blur_across;
-    std::vector<std::uint32_t> sat;
+    std::vector<std::uint64_t> sat;
     std::vector<std::uint8_t> mask;
     std::vector<std::int32_t> labels;
     GrayImage look;
@@ -74,6 +74,13 @@ template <typename T>
 // The caller writes every pixel, and uses the image through the reference it
 // passed in, so the return value is nothing to keep.
 inline GrayImage& acquire_image(GrayImage& slot, int width, int height) {
+    if (width <= 0 || height <= 0) {
+        // Nothing to hold: an empty picture, its buffer kept for the next use.
+        slot.width = 0;
+        slot.height = 0;
+        slot.pixels.clear();
+        return slot;
+    }
     const std::size_t n = static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
     if (slot.pixels.capacity() < n) {
         slot.pixels.reserve(n);
@@ -99,8 +106,8 @@ void shrink_into(GrayImage& out, const GrayImage& image, int max_long_side, int&
 // table that the five looks share.
 void box_blur_into(GrayImage& out, std::span<std::uint32_t> across, const GrayImage& image,
                    int radius);
-void summed_area(std::span<std::uint32_t> table, const GrayImage& image);
-void bright_mask_into(std::span<std::uint8_t> mask, std::span<const std::uint32_t> table,
+void summed_area(std::span<std::uint64_t> table, const GrayImage& image);
+void bright_mask_into(std::span<std::uint8_t> mask, std::span<const std::uint64_t> table,
                       const GrayImage& image, int window, int margin);
 std::vector<Blob> find_blobs(std::span<const std::uint8_t> mask, int width, int height,
                              std::int64_t min_area, std::int64_t max_area,

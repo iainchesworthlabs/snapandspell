@@ -1,6 +1,7 @@
 #include "evaluate.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "wjs/scan/reader.hpp"
 
@@ -24,34 +25,55 @@ std::vector<std::string> turned(const std::vector<std::string>& grid, std::size_
     return out;
 }
 
+std::size_t matches_of(const std::vector<std::string>& grid, const BoardReading& reading) {
+    std::size_t matches = 0;
+    for (std::size_t i = 0; i < grid.size() && i < reading.tiles.size(); ++i) {
+        if (reading.tiles[i].letters == grid[i]) {
+            ++matches;
+        }
+    }
+    return matches;
+}
+
 }  // namespace
 
-Tally judge(const std::vector<std::string>& truth, std::size_t size,
-            const std::expected<BoardReading, ReadError>& reading,
-            std::vector<TileRecord>* records) {
+std::size_t expected_quarters(const Quad& corners) {
+    // The corner whose first edge is nearest to horizontal.
+    std::size_t first = 0;
+    double flattest = 1e300;
+    for (std::size_t k = 0; k < 4; ++k) {
+        const Point edge = corners[(k + 1) % 4] - corners[k];
+        const double slope = std::abs(std::atan2(edge.y, edge.x));
+        if (slope < flattest) {
+            flattest = slope;
+            first = k;
+        }
+    }
+    // With board corner `first` at the top left, the board has been turned
+    // clockwise (4 - first) quarters.
+    return (4 - first) % 4;
+}
+
+Tally judge_turned(const std::vector<std::string>& truth, std::size_t size, std::size_t quarters,
+                   const std::expected<BoardReading, ReadError>& reading,
+                   std::vector<TileRecord>* records) {
     Tally tally;
     tally.frames = 1;
-    if (!reading || reading->rows != size || reading->columns != size) {
+    if (!reading || reading->rows != size || reading->columns != size ||
+        reading->tiles.size() != size * size) {
         return tally;
     }
     tally.found = 1;
 
-    std::size_t best_quarters = 0;
-    std::size_t best_matches = 0;
+    const std::vector<std::string> grid = turned(truth, size, quarters % 4);
+    // Would another turn of the truth have matched better? Then the board was
+    // numbered from another corner than it should have been.
+    const std::size_t own = matches_of(grid, *reading);
     for (std::size_t q = 0; q < 4; ++q) {
-        const std::vector<std::string> grid = turned(truth, size, q);
-        std::size_t matches = 0;
-        for (std::size_t i = 0; i < grid.size(); ++i) {
-            if (reading->tiles[i].letters == grid[i]) {
-                ++matches;
-            }
-        }
-        if (matches > best_matches) {
-            best_matches = matches;
-            best_quarters = q;
+        if (q != quarters % 4 && matches_of(turned(truth, size, q), *reading) > own) {
+            tally.rotation_errors = 1;
         }
     }
-    const std::vector<std::string> grid = turned(truth, size, best_quarters);
 
     for (std::size_t i = 0; i < grid.size(); ++i) {
         const TileReading& tile = reading->tiles[i];
@@ -71,6 +93,12 @@ Tally judge(const std::vector<std::string>& truth, std::size_t size,
     return tally;
 }
 
+Tally judge(const Rendered& frame, const std::expected<BoardReading, ReadError>& reading,
+            std::vector<TileRecord>* records) {
+    return judge_turned(frame.letters, frame.size, expected_quarters(frame.corners), reading,
+                        records);
+}
+
 Tally evaluate(Condition condition, Split split, const ReadOptions& options,
                std::vector<TileRecord>* records) {
     Tally total;
@@ -80,7 +108,7 @@ Tally evaluate(Condition condition, Split split, const ReadOptions& options,
         }
         const Rendered frame = render(spec);
         const auto reading = read_board(frame.image.view(), options);
-        total.add(judge(frame.letters, frame.size, reading, records));
+        total.add(judge(frame, reading, records));
     }
     return total;
 }

@@ -34,7 +34,7 @@ struct GrayImage {
 };
 
 // The luma of a frame, BT.601 in integers: (77 R + 150 G + 29 B + 128) / 256. A
-// grey frame is copied. The frame must be valid().
+// grey frame is copied. A frame that is not valid() gives an empty picture.
 [[nodiscard]] GrayImage luma_from_frame(const Frame& frame);
 
 // The image averaged down in whole blocks until its long side is at most

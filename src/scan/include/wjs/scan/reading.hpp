@@ -77,6 +77,9 @@ enum class ReadError {
     size_not_found,
     // A board and a size, and not a letter in it that could be seen.
     no_letters,
+    // The options are out of range (ReadOptions::valid). The frame was not looked
+    // at: this is the caller's mistake, never a camera's.
+    invalid_options,
 };
 
 [[nodiscard]] std::string_view to_string(ReadError error) noexcept;
@@ -108,9 +111,20 @@ struct ReadOptions {
     // `min_score` or beats the next letter by less than `min_margin`, or has less
     // than `min_contrast` grey levels of ink. Starting values, chosen on the tuning
     // split of the synthetic corpus and nothing else (docs/design/scanner.md).
+    //
+    // A negative threshold switches that doubt off (the tuning tools do); zero is
+    // refused, since the confidence divides by it.
     double min_score = 0.55;
     double min_margin = 0.06;
     double min_contrast = 24.0;
+
+    // Whether read_board can use these. The sizes are held to what the pictures and
+    // the board can be (a working or analysis picture of 16 to 65536 pixels on its
+    // long side, a board drawn at 32 to 4096, a count between 2 and
+    // Board::max_dimension), the glyph height to a tenth to the whole of a die, and
+    // the doubt thresholds to finite numbers, the score and margin not zero and the
+    // contrast not negative. The defaults are valid.
+    [[nodiscard]] bool valid() const noexcept;
 };
 
 }  // namespace wjs::scan

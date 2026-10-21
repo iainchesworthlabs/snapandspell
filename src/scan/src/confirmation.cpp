@@ -1,7 +1,7 @@
 #include "wjs/scan/confirmation.hpp"
 
 #include <algorithm>
-#include <cctype>
+#include <utility>
 
 namespace wjs::scan {
 
@@ -17,6 +17,8 @@ std::string_view to_string(DraftError error) noexcept {
             return "the position is not on the grid";
         case DraftError::incomplete:
             return "a tile has no letters";
+        case DraftError::inconsistent_reading:
+            return "the reading does not have a tile for each cell of its grid";
     }
     return "unknown draft error";
 }
@@ -30,7 +32,9 @@ std::expected<std::string, DraftError> normalised(std::string_view letters) {
     }
     std::string out;
     for (const char c : letters) {
-        const auto upper = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+        // ASCII only: std::toupper follows the locale, and a letter outside A to Z
+        // is refused either way.
+        const char upper = c >= 'a' && c <= 'z' ? static_cast<char>(c - 'a' + 'A') : c;
         if (upper < 'A' || upper > 'Z') {
             return std::unexpected(DraftError::bad_letters);
         }
@@ -55,7 +59,13 @@ BoardDraft::BoardDraft(std::size_t rows, std::size_t columns, std::vector<DraftT
                        bool typed)
     : rows_(rows), columns_(columns), tiles_(std::move(tiles)), typed_(typed) {}
 
-BoardDraft BoardDraft::from_reading(const BoardReading& reading) {
+std::expected<BoardDraft, DraftError> BoardDraft::try_from_reading(const BoardReading& reading) {
+    if (const auto ok = check_size(reading.rows, reading.columns); !ok) {
+        return std::unexpected(ok.error());
+    }
+    if (reading.tiles.size() != reading.rows * reading.columns) {
+        return std::unexpected(DraftError::inconsistent_reading);
+    }
     std::vector<DraftTile> tiles;
     tiles.reserve(reading.tiles.size());
     for (const TileReading& read : reading.tiles) {
@@ -72,7 +82,21 @@ BoardDraft BoardDraft::from_reading(const BoardReading& reading) {
         }
         tiles.push_back(std::move(tile));
     }
-    return {reading.rows, reading.columns, std::move(tiles), false};
+    BoardDraft draft(reading.rows, reading.columns, std::move(tiles), false);
+    return draft;
+}
+
+BoardDraft BoardDraft::from_reading(const BoardReading& reading) {
+    if (auto draft = try_from_reading(reading)) {
+        return std::move(*draft);
+    }
+    const std::size_t rows = std::clamp<std::size_t>(reading.rows, 1, Board::max_dimension);
+    const std::size_t columns = std::clamp<std::size_t>(reading.columns, 1, Board::max_dimension);
+    std::vector<DraftTile> tiles(rows * columns);
+    for (DraftTile& tile : tiles) {
+        tile.doubtful = true;
+    }
+    return {rows, columns, std::move(tiles), false};
 }
 
 std::expected<BoardDraft, DraftError> BoardDraft::empty(std::size_t rows, std::size_t columns) {

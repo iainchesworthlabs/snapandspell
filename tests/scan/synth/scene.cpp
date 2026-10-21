@@ -540,7 +540,17 @@ unsigned seed_of(const Spec& spec) noexcept {
     // The test split was drawn afresh (it was 2,000,000 while the reader was being
     // written, and those seeds were looked at; they are retired), so that the
     // numbers on it were not steered by.
-    const unsigned base = spec.split == Split::test ? 4'000'000U : 1'000'000U;
+    unsigned base = 1'000'000U;
+    switch (spec.split) {
+        case Split::tuning:
+            break;
+        case Split::test:
+            base = 4'000'000U;
+            break;
+        case Split::heldout:
+            base = 6'000'000U;
+            break;
+    }
     return base + static_cast<unsigned>(spec.condition) * 100'000U +
            static_cast<unsigned>(spec.size) * 1'000U + spec.index * 7U + 13U;
 }
@@ -548,6 +558,14 @@ unsigned seed_of(const Spec& spec) noexcept {
 Rendered render(const Spec& spec) {
     Rng rng(seed_of(spec));
     Rendered out = draw(rng, look_for(spec.condition), spec.size, true, true,
+                        1 + static_cast<int>(rng.below(2)));
+    out.seed = seed_of(spec);
+    return out;
+}
+
+Rendered render_blank(const Spec& spec) {
+    Rng rng(seed_of(spec) + 3U);
+    Rendered out = draw(rng, look_for(spec.condition), spec.size, true, false,
                         1 + static_cast<int>(rng.below(2)));
     out.seed = seed_of(spec);
     return out;
