@@ -72,6 +72,24 @@ Item {
         lastMotionMs = Date.now();
     }
 
+    // ---- The seam: colours -------------------------------------------------
+    // The Jewel Box's tokens (Theme.tray, gold, die, dieEdge, dieInk, jewelDead,
+    // lid), which the screen passes in: this module cannot import the
+    // application's Theme, and the tray, rim and dice of the 3D scene have to be
+    // the flat board's own colours or the cross-fade between them changes colour.
+    // The defaults are the same values, for the prototype harness.
+    property color trayColor: "#1B3A44"
+    property color rimColor: "#BF8019"
+    property color dieColor: "#FFF7E3"
+    property color dieEdgeColor: "#20323A"
+    property color dieInkColor: "#1F2A30"
+    property color jewelColor: "#7A8DA6"
+    property color lidColor: "#F7E8C6"
+    // How far the settled board's tray stands off the tiles: the flat board's
+    // own outset (Theme.trayOutset with the area's inset), so the two trays are
+    // one. Alone it is the token's wish, capped to the inset.
+    property real trayInset: Math.max(0, Math.min(Math.max(10, tile * 0.08), inset - 6))
+
     // ---- The seam: out -----------------------------------------------------
     // The dice have stopped. Emitted once, at the end of the settle.
     signal settled()
@@ -258,6 +276,10 @@ Item {
     readonly property real boxY: spanY + 2 * slack
     readonly property real boxDepth: tile * 0.34
     readonly property real lidHeight: tile * lidTiles
+    // How much smaller the lid is made than the box so that it projects to the
+    // same size: the camera's distance to the lid over its distance to the rim.
+    readonly property real lidFit: Math.min(1, Math.max(0.5, (cameraRig.position.z - lidHeight)
+                                                        / Math.max(1, cameraRig.position.z)))
 
     // ---- The play in progress ---------------------------------------------
     property string stage: "idle"
@@ -551,10 +573,20 @@ Item {
     property Item atlasOne: FaceAtlas {
         parent: root
         x: -100000
+        faceColor: root.dieColor
+        edgeColor: root.dieEdgeColor
+        inkColor: root.dieInkColor
+        jewelColor: root.jewelColor
+        goldColor: root.rimColor
     }
     property Item atlasTwo: FaceAtlas {
         parent: root
         x: -100000
+        faceColor: root.dieColor
+        edgeColor: root.dieEdgeColor
+        inkColor: root.dieInkColor
+        jewelColor: root.jewelColor
+        goldColor: root.rimColor
     }
 
     // The atlases become layers after this component has completed. Turning the
@@ -614,16 +646,16 @@ Item {
     Rectangle {
         id: settleTray
 
-        readonly property real inset: Math.max(10, root.tile * 0.08)
+        readonly property real inset: root.trayInset
 
         x: root.boardRect.x - inset
         y: root.boardRect.y - inset
         width: root.boardRect.width + 2 * inset
         height: root.boardRect.height + 2 * inset
         radius: 20
-        color: "#17323A"
+        color: root.trayColor
         border.width: 2
-        border.color: "#C98A1E"
+        border.color: root.rimColor
         visible: opacity > 0.001
         opacity: root.stage === "idle" && !root.boxClosed ? 1 : 0
         Behavior on opacity {
@@ -724,7 +756,7 @@ Item {
                 id: rimMaterial
 
                 // Theme.gold.
-                diffuseColor: "#C98A1E"
+                diffuseColor: root.rimColor
                 lighting: DefaultMaterial.NoLighting
             }
 
@@ -757,7 +789,7 @@ Item {
                     receivesShadows: false
                     materials: DefaultMaterial {
                         // Theme.tray; the same deep tray the flat board sits in.
-                        diffuseColor: "#17323A"
+                        diffuseColor: root.trayColor
                         lighting: DefaultMaterial.NoLighting
                     }
                 }
@@ -827,15 +859,18 @@ Item {
 
                     source: "#Cube"
                     position: Qt.vector3d(0, -(root.boxY / 2 + root.rimWidth), 0)
-                    scale: Qt.vector3d((root.boxX + 2 * root.rimWidth) / 100,
-                                       (root.boxY + 2 * root.rimWidth) / 100,
+                    // The lid is nearer the camera than the box, so in perspective it
+                    // would stand out past the box's rim on every side, a pale
+                    // band on the paper; it is made the size that projects onto the
+                    // rim.
+                    scale: Qt.vector3d(root.lidFit * (root.boxX + 2 * root.rimWidth) / 100,
+                                       root.lidFit * (root.boxY + 2 * root.rimWidth) / 100,
                                        root.tile * 0.06 / 100)
                     castsShadows: false
                     receivesShadows: false
                     materials: PrincipledMaterial {
-                        // Theme.lid (#F7E8C6) at the same translucency as
-                        // before.
-                        baseColor: Qt.rgba(0.969, 0.910, 0.776, 0.24)
+                        // Theme.lid at the same translucency as before.
+                        baseColor: Qt.rgba(root.lidColor.r, root.lidColor.g, root.lidColor.b, 0.24)
                         alphaMode: PrincipledMaterial.Blend
                         roughness: 0.22
                     }
