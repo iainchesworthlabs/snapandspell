@@ -4,24 +4,24 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../src/app/qml/kit/AppBar.qml" line="+32"/>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+34"/>
         <source>Back</source>
         <translation>Atrás</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+99"/>
         <location line="+1"/>
         <source>My boards</source>
-        <translation>My boards</translation>
+        <translation>Mis tableros</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+10"/>
         <location line="+1"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>Mis joyas</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+24"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>Para adultos</translation>
@@ -46,69 +46,47 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../src/app/qml/Home.qml" line="+95"/>
-        <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
-        <translation>UN JUEGO DE ENCUENTRO DE PALABRAS PARA LECTORES JÓVENES</translation>
-    </message>
-    <message>
-        <location line="+8"/>
+        <location filename="../src/app/qml/Home.qml" line="+113"/>
         <source>Shake. Find. Collect.</source>
         <translation>Agita. Encuentra. Recoge.</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
         <translation>Un tranquilo juego de palabras para pequeños lectores. Agita el joyero, encuentra palabras y recoge las joyas.</translation>
     </message>
     <message>
-        <location line="+18"/>
-        <location line="+115"/>
-        <source>Play on my own</source>
-        <translation>Jugar solo</translation>
-    </message>
-    <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+25"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>Agite la caja. Encuentra palabras. Colecciona joyas.</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+1"/>
         <source>Play</source>
         <translation>Jugar</translation>
     </message>
     <message>
-        <location line="-98"/>
-        <location line="+115"/>
-        <source>FOR GROWN-UPS</source>
-        <translation>PARA MAYORES</translation>
+        <location line="-45"/>
+        <source>A word-finding game for young readers</source>
+        <translation>Un juego de encontrar palabras para lectores jóvenes</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
-        <source>Play with a real board</source>
-        <translation>Juega con un tablero real</translation>
+        <location line="+65"/>
+        <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
+        <translation>Use la cámara o escriba el tablero. Un adulto lo&#xa0;prepara.</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
-        <source>Use the camera, or type the board. A grown-up sets this up.</source>
-        <translation>Usa la cámara o escribe el tablero. Un adulto lo prepara.</translation>
-    </message>
-    <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+1"/>
         <source>Continue</source>
         <translation>Continuar</translation>
     </message>
     <message>
-        <location line="+81"/>
+        <location line="+23"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+10"/>
         <source>Everything stays on this device.</source>
         <translation>Todo queda en este dispositivo.</translation>
     </message>
@@ -116,14 +94,19 @@
 <context>
     <name>HomeWording</name>
     <message>
-        <location filename="../src/app/qml/HomeWording.qml" line="+8"/>
+        <location filename="../src/app/qml/HomeWording.qml" line="+9"/>
         <source>Play on my own</source>
         <translation>Jugar solo</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Play with the family</source>
-        <translation>Jugar en familia</translation>
+        <source>For children</source>
+        <translation>Para niños</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play with a real board</source>
+        <translation>Jugar con un tablero real</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -136,130 +119,128 @@
     <message>
         <location filename="../src/app/qml/solo/JewelsWording.qml" line="+9"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>Mis joyas</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Back</source>
-        <translation>Back</translation>
+        <translation>Atrás</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 jewel collected</source>
-        <translation>1 jewel collected</translation>
+        <translation>1 joya recogida</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 jewels collected</source>
-        <translation>%1 jewels collected</translation>
+        <translation>%1 joyas recogidas</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 point</source>
-        <translation>1 point</translation>
+        <translation>1 punto</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1 puntos</translation>
     </message>
     <message>
         <location line="+3"/>
-        <location line="+6"/>
-        <location line="+20"/>
+        <location line="+28"/>
         <source>1 word</source>
-        <translation>1 word</translation>
+        <translation>1 palabra</translation>
     </message>
     <message>
-        <location line="-26"/>
-        <location line="+6"/>
-        <location line="+20"/>
+        <location line="-28"/>
+        <location line="+28"/>
         <source>%1 words</source>
-        <translation>%1 words</translation>
+        <translation>%1 palabras</translation>
     </message>
     <message>
         <location line="-16"/>
         <source>This week</source>
-        <translation>This week</translation>
+        <translation>Esta semana</translation>
     </message>
     <message>
-        <location line="-5"/>
-        <location line="+7"/>
+        <location line="-3"/>
+        <location line="+5"/>
         <location line="+13"/>
         <source>1 star</source>
-        <translation>1 star</translation>
+        <translation>1 estrella</translation>
     </message>
     <message>
-        <location line="-22"/>
+        <location line="-24"/>
         <source>My best boards</source>
-        <translation>My best boards</translation>
+        <translation>Mis mejores tableros</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <location line="+7"/>
+        <location line="+6"/>
+        <location line="+5"/>
         <location line="+13"/>
         <source>%1 stars</source>
-        <translation>%1 stars</translation>
+        <translation>%1 estrellas</translation>
     </message>
     <message>
-        <location line="-18"/>
+        <location line="-21"/>
         <source>%1 × %2</source>
         <translation>%1 × %2</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+9"/>
         <source>1 new word</source>
-        <translation>1 new word</translation>
+        <translation>1 palabra nueva</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 new words</source>
-        <translation>%1 new words</translation>
+        <translation>%1 palabras nuevas</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Longest word: %1</source>
-        <translation>Longest word: %1</translation>
+        <translation>Palabra más larga: %1</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>My words</source>
-        <translation>My words</translation>
+        <translation>Mis palabras</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Words you find will land here.</source>
-        <translation>Words you find will land here.</translation>
+        <translation>Las palabras que encuentres aparecerán aquí.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards I played</source>
-        <translation>Boards I played</translation>
+        <translation>Tableros que jugué</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards you finish will appear here.</source>
-        <translation>Boards you finish will appear here.</translation>
+        <translation>Los tableros que termines aparecerán aquí.</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Your jewel box is waiting</source>
-        <translation>Your jewel box is waiting</translation>
+        <translation>Tu joyero te espera</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play a board and the words you find will fill this shelf.</source>
-        <translation>Play a board and the words you find will fill this shelf.</translation>
+        <translation>Juega un tablero y las palabras que encuentres llenarán este estante.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play on my own</source>
-        <translation>Play on my own</translation>
+        <translation>Jugar solo</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hear the word</source>
-        <translation>Hear the word</translation>
+        <translation>Escuchar la palabra</translation>
     </message>
 </context>
 <context>
@@ -309,19 +290,18 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+92"/>
+        <location line="+107"/>
         <source>Settings</source>
         <translation>Ajustes</translation>
     </message>
     <message>
-        <location line="-90"/>
-        <location line="+180"/>
+        <location line="-105"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Acerca de</translation>
     </message>
     <message>
-        <location line="-177"/>
+        <location line="+3"/>
         <source>Nothing to show yet.</source>
         <translation>Todavía no hay nada que mostrar.</translation>
     </message>
@@ -338,22 +318,22 @@
     <message>
         <location line="+1"/>
         <source>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</source>
-        <translation>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</translation>
+        <translation>No se pudo guardar el progreso en este dispositivo. Compruebe que la aplicación puede escribir en su carpeta de usuario y elija Reintentar.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Retry</source>
-        <translation>Retry</translation>
+        <translation>Reintentar</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Saved on this device.</source>
-        <translation>Saved on this device.</translation>
+        <translation>Guardado en este dispositivo.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Still not saved. The board can still be played; progress may not last after the app closes.</source>
-        <translation>Still not saved. The board can still be played; progress may not last after the app closes.</translation>
+        <translation>Sigue sin guardarse. Aún se puede jugar el tablero; puede que el progreso no se conserve al cerrar la aplicación.</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -363,53 +343,53 @@
     <message>
         <location line="+1"/>
         <source>Press and hold for two seconds.</source>
-        <translation>Press and hold for two seconds.</translation>
+        <translation>Mantenga pulsado durante dos segundos.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>This keeps little fingers out of the settings and the progress.</source>
-        <translation>This keeps little fingers out of the settings and the progress.</translation>
+        <translation>Así los dedos pequeños se mantienen lejos de los ajustes y del progreso.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>With a keyboard, hold Space or Enter for two seconds.</source>
-        <translation>With a keyboard, hold Space or Enter for two seconds.</translation>
+        <translation>Con un teclado, mantenga pulsada la barra espaciadora o Intro durante dos segundos.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hold to enter</source>
-        <translation>Hold to enter</translation>
+        <translation>Mantener para entrar</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Keep holding until the bar is full</source>
-        <translation>Keep holding until the bar is full</translation>
+        <translation>Siga manteniendo hasta que la barra se llene</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Open the parent area</source>
-        <translation>Open the parent area</translation>
+        <translation>Abrir el área para padres</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Play with a real board</source>
         <extracomment>The graphemes of the phonics phase, and how often each has come up.</extracomment>
-        <translation>Juega con un tablero real</translation>
+        <translation>Jugar con un tablero real</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Set the tablet beside the board. A grown-up checks the letters before the child plays.</source>
-        <translation>Coloca la tableta junto al tablero. Un adulto comprueba las letras antes de que el niño juegue.</translation>
+        <translation>Coloque la tableta junto al tablero. Un adulto comprueba las letras antes de que el niño juegue.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Set up a real board</source>
-        <translation>Prepara un tablero real</translation>
+        <translation>Prepare un tablero real</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Back to play</source>
-        <translation>volver a jugar</translation>
+        <translation>Volver a jugar</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -431,7 +411,7 @@
         <location line="+3"/>
         <source>How the play is going</source>
         <extracomment>The heading over the dashboard&apos;s records (the week, the sounds, the vault, the best), marking them off from the action above them.</extracomment>
-        <translation>How the play is going</translation>
+        <translation>Cómo va el juego</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -524,42 +504,12 @@
         <translation>La palabra más larga: %1.</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>%1x%1: %2</source>
-        <translation>%1x%1: %2</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+25"/>
         <source>How the game behaves for your child.</source>
-        <translation>Cómo se comporta el juego para tu hijo.</translation>
+        <translation>Cómo se comporta el juego para su hijo.</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>PLAY</source>
-        <translation>JUGAR</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>SOUND &amp; TOUCH</source>
-        <translation>SONIDO Y TACTO</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>APPEARANCE</source>
-        <translation>APARIENCIA</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>LANGUAGE</source>
-        <translation>IDIOMA</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>DATA</source>
-        <translation>DATOS</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+6"/>
         <source>Help</source>
         <translation>Ayuda</translation>
     </message>
@@ -595,7 +545,7 @@
         <location line="+2"/>
         <source>Phonics needs the phonics data, which is not in this build.</source>
         <extracomment>The phonics board&apos;s words, only where the build carries them.</extracomment>
-        <translation>Phonics needs the phonics data, which is not in this build.</translation>
+        <translation>Fónica necesita los datos de fónica, que no están en esta versión.</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -610,18 +560,18 @@
     <message>
         <location line="+1"/>
         <source>Timer</source>
-        <translation>Timer</translation>
+        <translation>Temporizador</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</source>
-        <translation>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</translation>
+        <translation>«Cuenta ascendente» muestra cuánto tiempo lleva abierto un tablero. «Cuenta atrás» termina el tablero al llegar a cero.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Time on the board</source>
         <extracomment>How long a count-down board has, chosen in whole minutes.</extracomment>
-        <translation>Time on the board</translation>
+        <translation>Tiempo en el tablero</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -680,18 +630,55 @@
         <translation>Fuente escolar</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="-34"/>
+        <location line="+36"/>
         <source>Language</source>
         <extracomment>The interface&apos;s language; the board and its letters stay English.</extracomment>
         <translation>Idioma</translation>
     </message>
     <message>
+        <location line="-61"/>
+        <source>%1 x %1</source>
+        <translation>%1 x %1</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1 min</source>
+        <translation>%1 min</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1%</source>
+        <translation>%1&#xa0;%</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Play</source>
+        <extracomment>The settings&apos; groups: headings, written in the language&apos;s own case.</extracomment>
+        <translation>Jugar</translation>
+    </message>
+    <message>
         <location line="+1"/>
+        <source>Sound and touch</source>
+        <translation>Sonido y tacto</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Appearance</source>
+        <translation>Apariencia</translation>
+    </message>
+    <message>
+        <location line="+38"/>
         <source>The words on the screens. The board and its letters stay English.</source>
         <translation>Las palabras de las pantallas. El tablero y sus letras siguen en inglés.</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>On</source>
         <translation>Activado</translation>
     </message>
@@ -751,12 +738,12 @@
     <message>
         <location line="+1"/>
         <source>Count up</source>
-        <translation>Count up</translation>
+        <translation>Cuenta ascendente</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count down</source>
-        <translation>Count down</translation>
+        <translation>Cuenta atrás</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -801,31 +788,28 @@
         <translation>Borrado.</translation>
     </message>
     <message>
-        <location line="-175"/>
-        <location line="+179"/>
-        <location line="+9"/>
+        <location line="-191"/>
+        <location line="+194"/>
         <source>Licences</source>
-        <extracomment>The Licences tab of the parent area, and the heading of the page it shows.
-----------
-The button that opens the Licences page from the About page.</extracomment>
+        <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Licencias</translation>
     </message>
     <message>
-        <location line="-92"/>
+        <location line="-83"/>
         <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
-        <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
+        <translation>La ficha de inicio brilla para mostrar dónde empieza una palabra. El juego nunca muestra más de dos letras.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>A start tile</source>
         <extracomment>The help&apos;s middle level: one tile glows, and a second press hides it.</extracomment>
-        <translation>A start tile</translation>
+        <translation>Una ficha de inicio</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Two letters</source>
         <extracomment>The help&apos;s fullest level: the start tile, then its first two letters.</extracomment>
-        <translation>Two letters</translation>
+        <translation>Dos letras</translation>
     </message>
     <message>
         <location line="+80"/>
@@ -843,12 +827,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Word Jewels Solver, versión %1</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>The licence of everything this build includes, each with its full text.</source>
-        <translation>The licence of everything this build includes, each with its full text.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+3"/>
         <source>This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.</source>
         <translation>Este programa es software libre. Puede redistribuirlo y modificarlo bajo los términos de la Licencia Pública General de GNU, versión 3, o (a su elección) cualquier versión posterior.</translation>
     </message>
@@ -882,17 +861,12 @@ The button that opens the Licences page from the About page.</extracomment>
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+48"/>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+59"/>
         <source>Tap the last die again, or press Done</source>
         <translation>Toca otra vez el último dado o pulsa «Listo».</translation>
     </message>
     <message>
-        <location line="+55"/>
-        <source>Words I found</source>
-        <translation>Palabras que encontré</translation>
-    </message>
-    <message>
-        <location line="+12"/>
+        <location line="+107"/>
         <source>1 word</source>
         <translation>1 palabra</translation>
     </message>
@@ -902,38 +876,27 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>%1 palabras</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+5"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1 puntos</translation>
     </message>
     <message>
-        <location line="+101"/>
+        <location line="+102"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+42"/>
         <source>Your words will land here.</source>
         <translation>Tus palabras aparecerán aquí.</translation>
     </message>
     <message>
-        <location line="+25"/>
-        <source>Need a start?</source>
-        <translation>¿Necesitas un comienzo?</translation>
-    </message>
-    <message>
-        <location line="+108"/>
+        <location line="+112"/>
         <source>Clear</source>
         <translation>Borrar</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Clear the word</source>
-        <translation>Borrar la palabra</translation>
-    </message>
-    <message>
-        <location line="+12"/>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Done</source>
         <translation>Listo</translation>
     </message>
@@ -1267,69 +1230,25 @@ The button that opens the Licences page from the About page.</extracomment>
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloBox.qml" line="+113"/>
-        <source>Choose a board</source>
-        <translation>Elige un tablero</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
-        <translation>3 × 3 es un buen comienzo. Los tableros más grandes contienen más palabras.</translation>
-    </message>
-    <message>
-        <location line="+47"/>
-        <source>How it works</source>
-        <translation>como funciona</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>1   Shake the box.</source>
-        <translation>1 Agite la caja.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>2   Find a word.</source>
-        <translation>2 Encuentra una palabra.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>3   Collect the jewels.</source>
-        <translation>3 Recoge las joyas.</translation>
-    </message>
-</context>
-<context>
-    <name>SoloResting</name>
-    <message>
-        <location filename="../src/app/qml/solo/SoloResting.qml" line="+46"/>
-        <source>Time for a rest.</source>
-        <translation>Hora de descansar.</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>You did it. The words are safe in your collection.</source>
-        <translation>Lo has conseguido. Las palabras están a salvo en tu colección.</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <location line="+1"/>
-        <source>Play again</source>
-        <translation>Jugar otra vez</translation>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+124"/>
+        <source>%1. %2</source>
+        <translation>%1. %2</translation>
     </message>
 </context>
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+238"/>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+250"/>
         <source>Solo Play</source>
         <translation>Juego en solitario</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Board finished</source>
-        <translation>Board finished</translation>
+        <translation>Tablero terminado</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>All words found</source>
         <translation>Todas las palabras encontradas</translation>
     </message>
@@ -1339,71 +1258,54 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>encontrar una palabra</translation>
     </message>
     <message>
-        <location line="+82"/>
-        <source>Shaking the box…</source>
-        <translation>Sacudiendo la caja…</translation>
-    </message>
-    <message>
-        <location line="+194"/>
+        <location line="+236"/>
         <source>You found all %1 words!</source>
         <translation>¡Encontraste todas las %1 palabras!</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+50"/>
         <source>Look at the jewels you collected.</source>
         <translation>Mira las joyas que has recogido.</translation>
     </message>
     <message>
-        <location line="+151"/>
-        <location line="+1"/>
-        <source>Home</source>
-        <translation>Inicio</translation>
-    </message>
-    <message>
-        <location line="-26"/>
-        <location line="+1"/>
-        <source>Play again</source>
-        <translation>Jugar otra vez</translation>
-    </message>
-    <message>
-        <location line="-174"/>
+        <location line="-51"/>
         <source>You found the word!</source>
-        <translation>You found the word!</translation>
+        <translation>¡Has encontrado la palabra!</translation>
     </message>
     <message>
-        <location line="+140"/>
+        <location line="+137"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+168"/>
+        <location line="+122"/>
         <source>You found this one already.</source>
-        <translation>You found this one already.</translation>
+        <translation>Ya encontraste esta.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>You found a word. +%1 points</source>
-        <translation>You found a word. +%1 points</translation>
+        <translation>Has encontrado una palabra. +%1 puntos</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>That&apos;s a real word.</source>
-        <translation>That&apos;s a real word.</translation>
+        <translation>Es una palabra de verdad.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>It is not on this board.</source>
-        <translation>It is not on this board.</translation>
+        <translation>No está en este tablero.</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>Not this time.</source>
-        <translation>Not this time.</translation>
+        <translation>Esta vez no.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Try another word.</source>
-        <translation>Try another word.</translation>
+        <translation>Prueba otra palabra.</translation>
     </message>
 </context>
 <context>
@@ -1433,7 +1335,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <location line="+2"/>
         <source>Shake the box to start</source>
         <extracomment>The line under the closed box, before the first roll.</extracomment>
-        <translation>Shake the box to start</translation>
+        <translation>Agita la caja para empezar</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -1443,6 +1345,44 @@ The button that opens the Licences page from the About page.</extracomment>
     </message>
     <message>
         <location line="+4"/>
+        <source>Choose a board</source>
+        <extracomment>The box panel&apos;s title over the row of board sizes.</extracomment>
+        <translation>Elige un tablero</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
+        <translation>3 × 3 es un buen comienzo. Los tableros más grandes contienen más palabras.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>How it works</source>
+        <extracomment>The box panel&apos;s card of three steps.</extracomment>
+        <translation>como funciona</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shake the box.</source>
+        <translation>Sacude la caja.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Find a word.</source>
+        <translation>Encuentra una palabra.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Collect the jewels.</source>
+        <translation>Reúne las joyas.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Shaking the box…</source>
+        <extracomment>The line under the box while it shakes.</extracomment>
+        <translation>Sacudiendo la caja…</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Words I found</source>
         <translation>Palabras que encontré</translation>
     </message>
@@ -1469,9 +1409,36 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Cerrar</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+2"/>
+        <source>No boards yet</source>
+        <extracomment>The history sheet&apos;s empty state: nothing has been played yet.</extracomment>
+        <translation>Aún no hay tableros</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Boards you play will be kept here.</source>
+        <translation>Los tableros que juegues se guardarán aquí.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 × %1, 1 word</source>
+        <extracomment>A board in the history sheet: its size and how many words were found.</extracomment>
+        <translation>%1 × %1, 1 palabra</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 × %1, %2 words</source>
+        <translation>%1 × %1, %2 palabras</translation>
+    </message>
+    <message>
+        <location line="+4"/>
         <source>Play again</source>
         <translation>Jugar otra vez</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Home</source>
+        <translation>Inicio</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -1488,126 +1455,126 @@ The button that opens the Licences page from the About page.</extracomment>
         <location line="+2"/>
         <source>The next letter</source>
         <extracomment>The screen-reader name of the second ring, when the child asks for more.</extracomment>
-        <translation>The next letter</translation>
+        <translation>La siguiente letra</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Show me two letters</source>
         <extracomment>The second rung of the help: two tiles are lit.</extracomment>
-        <translation>Show me two letters</translation>
+        <translation>Muéstrame dos letras</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Hide the hint</source>
         <extracomment>Put the help away and quiet the board again.</extracomment>
-        <translation>Hide the hint</translation>
+        <translation>Ocultar la pista</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Finish board</source>
         <extracomment>End this board early: the words are saved, and the child sees what was found.</extracomment>
-        <translation>Finish board</translation>
+        <translation>Terminar el tablero</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Board finished!</source>
-        <translation>Board finished!</translation>
+        <translation>¡Tablero terminado!</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Your words are safe in your collection.</source>
-        <translation>Your words are safe in your collection.</translation>
+        <translation>Tus palabras están a salvo en tu colección.</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Time left: %1</source>
         <extracomment>The board&apos;s clock for a screen reader: what it is, then what it shows.</extracomment>
-        <translation>Time left: %1</translation>
+        <translation>Tiempo restante: %1</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Time on this board: %1</source>
-        <translation>Time on this board: %1</translation>
+        <translation>Tiempo en este tablero: %1</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>You played for %1.</source>
         <extracomment>On the finish summary, after a count-up board.</extracomment>
-        <translation>You played for %1.</translation>
+        <translation>Has jugado %1.</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>1 star</source>
         <extracomment>The finish summary&apos;s reward line: how many stars the board earned.</extracomment>
-        <translation>1 star</translation>
+        <translation>1 estrella</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 stars</source>
-        <translation>%1 stars</translation>
+        <translation>%1 estrellas</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>1 point</source>
         <extracomment>The finish summary&apos;s reward line: the board&apos;s points.</extracomment>
-        <translation>1 point</translation>
+        <translation>1 punto</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1 puntos</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Your word</source>
         <extracomment>The finish summary&apos;s list of the words found, with their count: how many words it holds, so a finished board says its total without a count in the title.</extracomment>
-        <translation>Your word</translation>
+        <translation>Tu palabra</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>Your words (%1)</source>
-        <translation>Your words (%1)</translation>
+        <translation>Tus palabras (%1)</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>The time ran out. Everything you found is kept.</source>
         <extracomment>The finish summary of a count-down board whose time ran out.</extracomment>
-        <translation>The time ran out. Everything you found is kept.</translation>
+        <translation>Se acabó el tiempo. Todo lo que encontraste se guarda.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>No words this time. Every board is a new chance.</source>
         <extracomment>The finish summary&apos;s words card when no word was found.</extracomment>
-        <translation>No words this time. Every board is a new chance.</translation>
+        <translation>Esta vez no hay palabras. Cada tablero es una nueva oportunidad.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>The first letter is lit. Trace a word from it.</source>
         <extracomment>Shown under the button at the first rung.</extracomment>
-        <translation>The first letter is lit. Trace a word from it.</translation>
+        <translation>La primera letra está iluminada. Traza una palabra desde ella.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Two letters are lit. Find the rest of the word.</source>
         <extracomment>Shown under the button at the second rung.</extracomment>
-        <translation>Two letters are lit. Find the rest of the word.</translation>
+        <translation>Dos letras están iluminadas. Encuentra el resto de la palabra.</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>1 more word starts with these letters.</source>
         <extracomment>After a find made from the hint&apos;s start: more words begin with those tiles.</extracomment>
-        <translation>1 more word starts with these letters.</translation>
+        <translation>Otra palabra empieza con estas letras.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 more words start with these letters.</source>
-        <translation>%1 more words start with these letters.</translation>
+        <translation>Otras %1 palabras empiezan con estas letras.</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>No more words start with these letters.</source>
         <extracomment>After a find made from the hint&apos;s start: nothing else begins with those tiles.</extracomment>
-        <translation>No more words start with these letters.</translation>
+        <translation>No hay más palabras que empiecen con estas letras.</translation>
     </message>
     <message>
         <location line="+3"/>

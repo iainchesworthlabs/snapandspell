@@ -13,36 +13,16 @@
 #         -DREPORT=<out.txt> -P tests/qml/check_qml_literals.cmake
 
 set(WJS_ALLOW_PIXEL_SIZE
-    "parent/DashboardScreen.qml=1"
-    "parent/SettingsScreen.qml=1"
 )
 
 set(WJS_ALLOW_LETTER_SPACING
-    "Home.qml=2"
-    "parent/DashboardScreen.qml=1"
-    "parent/SettingsScreen.qml=1"
 )
 
 set(WJS_ALLOW_HEX_COLOUR
-    "solo/FlatBoard.qml=1"
 )
 
 set(WJS_ALLOW_BARE_TEXT
-    "Home.qml=5"
-    "parent/AboutScreen.qml=5"
-    "parent/DashboardScreen.qml=16"
-    "parent/GateScreen.qml=6"
-    "parent/LicencesScreen.qml=3"
-    "parent/ResetStep.qml=2"
-    "parent/Section.qml=1"
-    "parent/SettingRow.qml=2"
-    "parent/SettingsScreen.qml=6"
     "solo/FlatBoard.qml=1"
-    "solo/JewelsScreen.qml=16"
-    "solo/PlayingPanel.qml=12"
-    "solo/SoloBox.qml=7"
-    "solo/SoloResting.qml=2"
-    "solo/SoloScreen.qml=12"
 )
 
 set(WJS_ALLOW_DISABLED_OPACITY

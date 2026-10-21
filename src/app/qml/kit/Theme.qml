@@ -120,6 +120,14 @@ QtObject {
     readonly property color bevelShade: "#000000"
     readonly property color pathCasing: gold
     readonly property color pathCore: "#17323A"
+    // Solo Play's path is a ribbon under the letters: a gold edge round a pale
+    // core, so a dark letter stays dark on pale (14:1) where the line runs through
+    // its middle, with a thin dark line outside the gold, so the ribbon holds 3:1
+    // on a cream die and on a lit one (gold alone is 3.1 and 2.7) and the gold
+    // holds 4:1 on the tray.
+    readonly property color ribbonEdge: gold
+    readonly property color ribbonCore: dieLit
+    readonly property color ribbonLine: dieEdge
     // A jewel not yet found: 3.3:1 on a card (was #8FA1B8: 2.6).
     readonly property color jewelDead: "#7A8DA6"
 
@@ -200,6 +208,24 @@ QtObject {
     // and casing are never thinner than the two widths above.
     readonly property real pathCoreShare: 0.07
     readonly property real pathCasingShare: 0.11
+    // The ribbon: 14 and 22 px on the 200 px die of a roomy 3 x 3, scaled with the
+    // die and never thinner than these on a small one (a 6 x 6 on a small window).
+    readonly property real ribbonCoreMin: 8
+    readonly property real ribbonEdgeMin: 14
+    function ribbonCoreWidth(tile) {
+        return Math.max(ribbonCoreMin, tile * pathCoreShare);
+    }
+    function ribbonEdgeWidth(tile) {
+        return Math.max(ribbonEdgeMin, tile * pathCasingShare);
+    }
+    function ribbonLineWidth(tile) {
+        return ribbonEdgeWidth(tile) + 2 * heavy;
+    }
+    // The hint's ring round a die: a gold band with a thin dark line on its outer
+    // edge, so it holds 3:1 on a cream die as well as on the tray, and two rings
+    // side by side stay two.
+    readonly property real ringWidth: 4
+    readonly property real ringWidthSecond: 3
 
     readonly property real radiusXs: 4
     readonly property real radiusSmall: 8
@@ -219,6 +245,16 @@ QtObject {
     readonly property real sheetMaxHeight: 560
     readonly property real modalMax: 560
     readonly property real contentWidth: 860
+    // Home's column and the design's window (a screen larger than this is
+    // zoomed to 1.5 at most and centred), the widest comfortable line of a
+    // sentence, and a home card's picture: what it is given, the least it may
+    // be given, and the tallest the card gets.
+    readonly property real pageWidth: 1180
+    readonly property real pageHeight: 740
+    readonly property real measure: 720
+    readonly property real cardArt: 240
+    readonly property real cardArtMin: 160
+    readonly property real cardMax: 420
     readonly property real hintDisplay: 96
     readonly property real doneWidth: 160
     readonly property real startRing: 8

@@ -60,6 +60,11 @@ vcpkg_cmake_configure(
         # another then dies with SIGILL in tracy-capture. The tools and the client are for any
         # machine of the architecture, so no ISA extension beyond the triplet's baseline.
         -DNO_ISA_EXTENSIONS=ON
+        # Without this the release variant compiles with /GL (-flto elsewhere), which moves the
+        # code generation of the tools' server sources into each link: seven tools linked at
+        # once took 13 minutes on a hosted Windows runner. Compiled once, as a shared object
+        # library, they take under 5.
+        -DNO_LTO=ON
         -DLEGACY=ON
         -DCMAKE_FIND_PACKAGE_TARGETS_GLOBAL=ON
         -DCMAKE_DISABLE_FIND_PACKAGE_Git=ON # embeds a git hash in the binaries; see build-tools.patch

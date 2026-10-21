@@ -5,7 +5,12 @@ import WordJewelsSolver
 // One of the parent area's two resets (docs/design/dashboard.md, "Reset"): a
 // button that names what it clears, and, once pressed, says what it will do and
 // asks for a second, deliberate press. Nothing is cleared by the first.
-ColumnLayout {
+//
+// A step is a card, so it is a thing on the page and not a lone button at the
+// margin, and it is in the danger colour throughout: the first button is the
+// danger outline, the confirming one the filled danger button, and the question
+// between them has the danger edge.
+Rectangle {
     id: root
 
     property string label
@@ -16,73 +21,67 @@ ColumnLayout {
 
     property bool asking: false
 
-    spacing: Theme.space2
+    implicitHeight: column.implicitHeight + 2 * Theme.space4
+    radius: Theme.radius
+    color: Theme.card
+    border.width: root.asking ? Theme.heavy : Theme.hair
+    border.color: root.asking ? Theme.danger : Theme.line
 
-    AppButton {
-        size: "min"
-        quiet: true
-        visible: !root.asking
-        label: root.label
-        onClicked: {
-            root.done = false;
-            root.asking = true;
-        }
-    }
+    ColumnLayout {
+        id: column
+        anchors.fill: parent
+        anchors.margins: Theme.space4
+        spacing: Theme.space3
 
-    Rectangle {
-        Layout.fillWidth: true
-        visible: root.asking
-        implicitHeight: asked.implicitHeight + 2 * Theme.space3
-        radius: Theme.radius
-        color: Theme.hintCard
-        border.width: Theme.hair * 2
-        border.color: Theme.outline
-
-        ColumnLayout {
-            id: asked
-            anchors.fill: parent
-            anchors.margins: Theme.space3
-            spacing: Theme.space3
-
-            Text {
-                Layout.fillWidth: true
-                text: root.says
-                font.pixelSize: Theme.bodySize
-                color: Theme.hintCardInk
-                wrapMode: Text.WordWrap
-                Accessible.role: Accessible.StaticText
-                Accessible.name: text
+        AppButton {
+            size: "min"
+            quiet: true
+            variant: "dangerQuiet"
+            visible: !root.asking
+            label: root.label
+            onClicked: {
+                root.done = false;
+                root.asking = true;
             }
-            Flow {
-                Layout.fillWidth: true
-                spacing: Theme.space2
+        }
 
-                AppButton {
-                    size: "min"
-                    quiet: true
-                    label: ParentWording.resetKeep
-                    onClicked: root.asking = false
-                }
-                AppButton {
-                    size: "min"
-                    quiet: true
-                    label: ParentWording.resetConfirm
-                    variant: "primary"
-                    Accessible.name: root.label
-                    onClicked: {
-                        root.asking = false;
-                        root.done = true;
-                        root.confirmed();
-                    }
+        Label {
+            Layout.fillWidth: true
+            visible: root.asking
+            role: "body"
+            text: root.says
+            wrapMode: Text.WordWrap
+        }
+        Flow {
+            Layout.fillWidth: true
+            visible: root.asking
+            spacing: Theme.space2
+
+            AppButton {
+                size: "min"
+                quiet: true
+                label: ParentWording.resetKeep
+                onClicked: root.asking = false
+            }
+            AppButton {
+                size: "min"
+                quiet: true
+                label: ParentWording.resetConfirm
+                variant: "danger"
+                Accessible.name: root.label
+                onClicked: {
+                    root.asking = false;
+                    root.done = true;
+                    root.confirmed();
                 }
             }
         }
-    }
 
-    Text {
-        visible: root.done && !root.asking
-        text: ParentWording.resetDone
-        font.pixelSize: Theme.smallSize
-        color: Theme.inkSecondary
+        Label {
+            Layout.fillWidth: true
+            visible: root.done && !root.asking
+            role: "caption"
+            text: ParentWording.resetDone
+        }
     }
 }

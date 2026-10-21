@@ -81,8 +81,8 @@ that release, so that its rules (branch protection, required checks) can apply.
   The Debug leg's artifact is now `wordjewelssolver-windows-x64-debug-dev`.
 - **A documentation site.** `docs.yml` builds the site with
   `mkdocs build --strict` and a configuration that makes broken links to pages and
-  headings failures, and publishes it to GitHub Pages from `main` once Pages is
-  enabled and `PUBLISH_DOCS` is set. `.github/release.yml` gives GitHub's generated
+  headings failures, and publishes it to GitHub Pages on every push to `main` that
+  changes the docs (the repository's Pages source must be GitHub Actions, once). `.github/release.yml` gives GitHub's generated
   release notes their categories.
 
 - **The test suite as four tiers, with a coverage gate and a UI coverage

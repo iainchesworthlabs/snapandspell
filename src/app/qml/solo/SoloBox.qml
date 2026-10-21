@@ -1,196 +1,175 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Layouts
 import WordJewelsSolver
 
-// The box's panel: choose a board, shake it, and see how the game works. The
-// sizes are words and pictures together, not four near-identical grids.
+// The box's panel: choose a board, see how the game works, and shake. The sizes
+// are one segmented row of 64 dp targets (every size in a line, none wrapping
+// alone onto the next), Shake is the one action and sits at the foot of the
+// column, where Done sits once the board is out.
 //
-// The panel is a viewport, not a slab: at the minimum window height the cards
-// and the Shake button still fit, and if a larger text size ever makes them
-// taller than the room the panel scrolls instead of hiding the action under
-// the window edge.
+// The panel is a viewport over the choice and the steps, with Shake fixed at its
+// foot: at the minimum window height all of it fits, and if a larger text size
+// makes the steps taller than the room they scroll while Shake stays in reach.
 Item {
     id: root
 
     required property var solo
     required property var layoutRule
     required property bool wide
+    // The box is shaking: the panel stays, quiet, and says so on its button.
+    property bool busy: false
 
     signal shakeRequested
 
     readonly property var offered: solo.sizes.filter(size => size <= layoutRule.largestOffered)
     readonly property bool mirrored: Theme.rightToLeft
     readonly property bool small: height < 640
-    readonly property real margin: Theme.space6
+    readonly property real margin: Theme.space4
     readonly property real gap: small ? Theme.space3 : Theme.space4
-    readonly property real sizeCard: small ? 72 : 88
-
-    component SizeCard: Rectangle {
-        id: choice
-        required property int boardSize
-        property bool checkable: true
-        property bool checked: root.solo.boardSize === boardSize
-        width: root.sizeCard
-        height: root.sizeCard
-        radius: Theme.radius
-        color: choice.checked ? Theme.accentSoft : Theme.card
-        border.width: choice.checked ? 3 : 1
-        border.color: choice.checked ? Theme.accent : Theme.line
-        activeFocusOnTab: true
-
-        Accessible.role: Accessible.RadioButton
-        Accessible.name: SoloWording.sizeBoard(choice.boardSize)
-        Accessible.checkable: true
-        Accessible.checked: choice.checked
-        Accessible.onPressAction: root.solo.chooseSize(choice.boardSize)
-
-        Keys.onSpacePressed: root.solo.chooseSize(choice.boardSize)
-        Keys.onReturnPressed: root.solo.chooseSize(choice.boardSize)
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                Feedback.cue("speak", SoloWording.sizeBoard(choice.boardSize));
-                root.solo.chooseSize(choice.boardSize);
-            }
-        }
-
-        Column {
-            anchors.centerIn: parent
-            spacing: 4
-            Grid {
-                anchors.horizontalCenter: parent.horizontalCenter
-                columns: choice.boardSize
-                spacing: 2
-                Repeater {
-                    model: choice.boardSize * choice.boardSize
-                    Rectangle {
-                        width: Math.max(2, (choice.width * 0.38 - (choice.boardSize - 1) * 2) / choice.boardSize)
-                        height: width
-                        radius: 1
-                        color: Theme.die
-                        border.width: 1
-                        border.color: Theme.dieEdge
-                    }
-                }
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: choice.boardSize + " × " + choice.boardSize
-                font.family: Theme.uiFont
-                font.pixelSize: Theme.labelSize
-                font.weight: Font.DemiBold
-                color: Theme.ink
-            }
-        }
-    }
+    // One option per size offered: the numeral is the button ("3 × 3" would need
+    // 80 dp, and four of those do not fit a third of 900 dp), the box picture on
+    // the left shows the compartments, and a reader hears "3 by 3 board". The row
+    // is a segmented control, so its options sit a hair apart: four 64 dp targets
+    // and three gaps are 268 dp, exactly the panel at 900 dp.
+    readonly property var sizeOptions: root.offered.map(size => ({
+        value: size,
+        label: String(size),
+        name: SoloWording.sizeBoard(size)
+    }))
+    readonly property var steps: [SoloWording.howShake, SoloWording.howFind, SoloWording.howCollect]
 
     Rectangle {
         anchors.fill: parent
         color: Theme.surface
-        radius: 0
     }
 
     Flickable {
         id: viewport
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: shake.top
+        anchors.bottomMargin: root.gap
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         contentWidth: width
-        contentHeight: Math.max(content.implicitHeight + 2 * root.margin, height)
+        contentHeight: content.implicitHeight + root.margin
 
-        Column {
+        ColumnLayout {
             id: content
-            width: viewport.width - 2 * root.margin
             x: root.margin
-            y: Math.max(root.margin, (viewport.height - content.implicitHeight) / 2)
+            y: root.margin
+            width: viewport.width - 2 * root.margin
             spacing: root.gap
 
-            Column {
-                width: parent.width
-                spacing: 2
-                Text {
-                    text: qsTr("Choose a board")
-                    font.family: Theme.uiFont
-                    font.pixelSize: Theme.headingSize
-                    font.weight: Font.ExtraBold
-                    color: Theme.ink
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: Theme.space1
+
+                Label {
+                    Layout.fillWidth: true
+                    role: "heading"
+                    text: SoloWording.chooseBoard
+                    wrapMode: Text.WordWrap
                 }
-                Text {
-                    width: parent.width
-                    text: qsTr("3 × 3 is a good start. Bigger boards hold more words.")
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.bodySize
-                    color: Theme.inkSecondary
+                Label {
+                    Layout.fillWidth: true
+                    role: "caption"
+                    learning: true
+                    text: SoloWording.chooseBoardHint
                     wrapMode: Text.WordWrap
                 }
             }
 
-            Flow {
-                width: parent.width
-                spacing: Theme.space2
-                Repeater {
-                    model: root.offered
-                    SizeCard {
-                        required property int modelData
-                        boardSize: modelData
-                    }
+            SegmentedChoice {
+                Layout.fillWidth: true
+                title: SoloWording.chooseBoard
+                size: "child"
+                enabled: !root.busy
+                spacing: Theme.space1
+                optionMinimumWidth: Theme.choiceMin
+                options: root.sizeOptions
+                current: root.solo.boardSize
+                onChosen: value => {
+                    Feedback.cue("speak", SoloWording.sizeBoard(value));
+                    root.solo.chooseSize(value);
                 }
             }
 
-            AppButton {
-                width: parent.width
-                height: Theme.targetPrimary
-                variant: "primary"
-                size: "primary"
-                iconName: "shake"
-                label: SoloWording.shake
-                accessibleName: SoloWording.shake
-                speaks: SoloWording.shake
-                onClicked: root.shakeRequested()
-            }
+            Card {
+                Layout.fillWidth: true
+                title: SoloWording.howItWorks
+                padding: root.small ? Theme.space3 : Theme.space4
 
-            Rectangle {
-                width: parent.width
-                radius: Theme.radius
-                color: Theme.card
-                border.width: 1
-                border.color: Theme.line
-                implicitHeight: howTo.implicitHeight + 2 * (root.small ? Theme.space3 : Theme.space4)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
+                    objectName: "howList"
+                    Accessible.role: Accessible.List
+                    Accessible.name: SoloWording.howItWorks
 
-                Column {
-                    id: howTo
-                    anchors.fill: parent
-                    anchors.margins: root.small ? Theme.space3 : Theme.space4
-                    spacing: root.small ? Theme.space1 : Theme.space2
+                    Repeater {
+                        model: root.steps
 
-                    Text {
-                        text: qsTr("How it works")
-                        font.family: Theme.uiFont
-                        font.pixelSize: Theme.labelSize
-                        font.weight: Font.DemiBold
-                        color: Theme.ink
-                    }
-                    Text {
-                        text: qsTr("1   Shake the box.")
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
-                    }
-                    Text {
-                        text: qsTr("2   Find a word.")
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
-                    }
-                    Text {
-                        text: qsTr("3   Collect the jewels.")
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
+                        RowLayout {
+                            id: step
+                            objectName: "howItem"
+                            required property int index
+                            required property string modelData
+                            Layout.fillWidth: true
+                            spacing: Theme.space3
+
+                            Accessible.role: Accessible.ListItem
+                            Accessible.name: qsTr("%1. %2").arg(step.index + 1).arg(step.modelData)
+
+                            // The step's number, a small stone of its own: real
+                            // items, not spaces typed into a sentence.
+                            Rectangle {
+                                Layout.preferredWidth: Theme.iconMd
+                                Layout.preferredHeight: Theme.iconMd
+                                Layout.alignment: Qt.AlignVCenter
+                                radius: width / 2
+                                color: Theme.selectedFill
+                                border.width: Theme.hair
+                                border.color: Theme.selectedEdge
+
+                                Label {
+                                    anchors.centerIn: parent
+                                    role: "caption"
+                                    decorative: true
+                                    text: String(step.index + 1)
+                                    color: Theme.ink
+                                    font.weight: Font.Bold
+                                }
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                role: "body"
+                                learning: true
+                                decorative: true
+                                text: step.modelData
+                                wrapMode: Text.WordWrap
+                                color: Theme.inkSecondary
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    ActionBar {
+        id: shake
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: root.margin
+        tier: "child"
+        primaryLabel: root.busy ? SoloWording.shaking : SoloWording.shake
+        primaryIcon: "shake"
+        primaryEnabled: !root.busy
+        primarySpeaks: SoloWording.shake
+        onPrimaryClicked: root.shakeRequested()
     }
 }

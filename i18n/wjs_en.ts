@@ -4,24 +4,24 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../src/app/qml/kit/AppBar.qml" line="+32"/>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+34"/>
         <source>Back</source>
         <translation>Back</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+99"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>My boards</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+10"/>
         <location line="+1"/>
         <source>My jewels</source>
         <translation>My jewels</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+24"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>For grown-ups</translation>
@@ -46,69 +46,47 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../src/app/qml/Home.qml" line="+95"/>
-        <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
-        <translation>A WORD-FINDING GAME FOR YOUNG READERS</translation>
-    </message>
-    <message>
-        <location line="+8"/>
+        <location filename="../src/app/qml/Home.qml" line="+113"/>
         <source>Shake. Find. Collect.</source>
         <translation>Shake. Find. Collect.</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
         <translation>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</translation>
     </message>
     <message>
-        <location line="+18"/>
-        <location line="+115"/>
-        <source>Play on my own</source>
-        <translation>Play on my own</translation>
-    </message>
-    <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+25"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>Shake the box. Find words. Collect jewels.</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+1"/>
         <source>Play</source>
         <translation>Play</translation>
     </message>
     <message>
-        <location line="-98"/>
-        <location line="+115"/>
-        <source>FOR GROWN-UPS</source>
-        <translation>FOR GROWN-UPS</translation>
+        <location line="-45"/>
+        <source>A word-finding game for young readers</source>
+        <translation>A word-finding game for young readers</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
-        <source>Play with a real board</source>
-        <translation>Play with a real board</translation>
+        <location line="+65"/>
+        <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
+        <translation>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
-        <source>Use the camera, or type the board. A grown-up sets this up.</source>
-        <translation>Use the camera, or type the board. A grown-up sets this up.</translation>
-    </message>
-    <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+1"/>
         <source>Continue</source>
         <translation>Continue</translation>
     </message>
     <message>
-        <location line="+81"/>
+        <location line="+23"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+10"/>
         <source>Everything stays on this device.</source>
         <translation>Everything stays on this device.</translation>
     </message>
@@ -116,14 +94,19 @@
 <context>
     <name>HomeWording</name>
     <message>
-        <location filename="../src/app/qml/HomeWording.qml" line="+8"/>
+        <location filename="../src/app/qml/HomeWording.qml" line="+9"/>
         <source>Play on my own</source>
         <translation>Play on my own</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Play with the family</source>
-        <translation>Play with the family</translation>
+        <source>For children</source>
+        <translation>For children</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play with a real board</source>
+        <translation>Play with a real board</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -165,15 +148,13 @@
     </message>
     <message>
         <location line="+3"/>
-        <location line="+6"/>
-        <location line="+20"/>
+        <location line="+28"/>
         <source>1 word</source>
         <translation>1 word</translation>
     </message>
     <message>
-        <location line="-26"/>
-        <location line="+6"/>
-        <location line="+20"/>
+        <location line="-28"/>
+        <location line="+28"/>
         <source>%1 words</source>
         <translation>%1 words</translation>
     </message>
@@ -183,31 +164,31 @@
         <translation>This week</translation>
     </message>
     <message>
-        <location line="-5"/>
-        <location line="+7"/>
+        <location line="-3"/>
+        <location line="+5"/>
         <location line="+13"/>
         <source>1 star</source>
         <translation>1 star</translation>
     </message>
     <message>
-        <location line="-22"/>
+        <location line="-24"/>
         <source>My best boards</source>
         <translation>My best boards</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <location line="+7"/>
+        <location line="+6"/>
+        <location line="+5"/>
         <location line="+13"/>
         <source>%1 stars</source>
         <translation>%1 stars</translation>
     </message>
     <message>
-        <location line="-18"/>
+        <location line="-21"/>
         <source>%1 × %2</source>
         <translation>%1 × %2</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+9"/>
         <source>1 new word</source>
         <translation>1 new word</translation>
     </message>
@@ -309,19 +290,18 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+92"/>
+        <location line="+107"/>
         <source>Settings</source>
         <translation>Settings</translation>
     </message>
     <message>
-        <location line="-90"/>
-        <location line="+180"/>
+        <location line="-105"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>About</translation>
     </message>
     <message>
-        <location line="-177"/>
+        <location line="+3"/>
         <source>Nothing to show yet.</source>
         <translation>Nothing to show yet.</translation>
     </message>
@@ -524,42 +504,12 @@
         <translation>The longest word: %1.</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>%1x%1: %2</source>
-        <translation>%1x%1: %2</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+25"/>
         <source>How the game behaves for your child.</source>
         <translation>How the game behaves for your child.</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>PLAY</source>
-        <translation>PLAY</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>SOUND &amp; TOUCH</source>
-        <translation>SOUND &amp; TOUCH</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>APPEARANCE</source>
-        <translation>APPEARANCE</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>LANGUAGE</source>
-        <translation>LANGUAGE</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>DATA</source>
-        <translation>DATA</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+6"/>
         <source>Help</source>
         <translation>Help</translation>
     </message>
@@ -680,18 +630,55 @@
         <translation>School font</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="-34"/>
+        <location line="+36"/>
         <source>Language</source>
         <extracomment>The interface&apos;s language; the board and its letters stay English.</extracomment>
         <translation>Language</translation>
     </message>
     <message>
+        <location line="-61"/>
+        <source>%1 x %1</source>
+        <translation>%1 x %1</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1 min</source>
+        <translation>%1 min</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Play</source>
+        <extracomment>The settings&apos; groups: headings, written in the language&apos;s own case.</extracomment>
+        <translation>Play</translation>
+    </message>
+    <message>
         <location line="+1"/>
+        <source>Sound and touch</source>
+        <translation>Sound and touch</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Appearance</source>
+        <translation>Appearance</translation>
+    </message>
+    <message>
+        <location line="+38"/>
         <source>The words on the screens. The board and its letters stay English.</source>
         <translation>The words on the screens. The board and its letters stay English.</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>On</source>
         <translation>On</translation>
     </message>
@@ -801,17 +788,14 @@
         <translation>Cleared.</translation>
     </message>
     <message>
-        <location line="-175"/>
-        <location line="+179"/>
-        <location line="+9"/>
+        <location line="-191"/>
+        <location line="+194"/>
         <source>Licences</source>
-        <extracomment>The Licences tab of the parent area, and the heading of the page it shows.
-----------
-The button that opens the Licences page from the About page.</extracomment>
+        <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Licences</translation>
     </message>
     <message>
-        <location line="-92"/>
+        <location line="-83"/>
         <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
         <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
     </message>
@@ -843,12 +827,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Word Jewels Solver, version %1</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>The licence of everything this build includes, each with its full text.</source>
-        <translation>The licence of everything this build includes, each with its full text.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+3"/>
         <source>This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.</source>
         <translation>This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.</translation>
     </message>
@@ -882,17 +861,12 @@ The button that opens the Licences page from the About page.</extracomment>
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+48"/>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+59"/>
         <source>Tap the last die again, or press Done</source>
         <translation>Tap the last die again, or press Done</translation>
     </message>
     <message>
-        <location line="+55"/>
-        <source>Words I found</source>
-        <translation>Words I found</translation>
-    </message>
-    <message>
-        <location line="+12"/>
+        <location line="+107"/>
         <source>1 word</source>
         <translation>1 word</translation>
     </message>
@@ -902,38 +876,27 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>%1 words</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+5"/>
         <source>%1 points</source>
         <translation>%1 points</translation>
     </message>
     <message>
-        <location line="+101"/>
+        <location line="+102"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+42"/>
         <source>Your words will land here.</source>
         <translation>Your words will land here.</translation>
     </message>
     <message>
-        <location line="+25"/>
-        <source>Need a start?</source>
-        <translation>Need a start?</translation>
-    </message>
-    <message>
-        <location line="+108"/>
+        <location line="+112"/>
         <source>Clear</source>
         <translation>Clear</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Clear the word</source>
-        <translation>Clear the word</translation>
-    </message>
-    <message>
-        <location line="+12"/>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Done</source>
         <translation>Done</translation>
     </message>
@@ -1267,59 +1230,15 @@ The button that opens the Licences page from the About page.</extracomment>
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloBox.qml" line="+113"/>
-        <source>Choose a board</source>
-        <translation>Choose a board</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
-        <translation>3 × 3 is a good start. Bigger boards hold more words.</translation>
-    </message>
-    <message>
-        <location line="+47"/>
-        <source>How it works</source>
-        <translation>How it works</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>1   Shake the box.</source>
-        <translation>1   Shake the box.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>2   Find a word.</source>
-        <translation>2   Find a word.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>3   Collect the jewels.</source>
-        <translation>3   Collect the jewels.</translation>
-    </message>
-</context>
-<context>
-    <name>SoloResting</name>
-    <message>
-        <location filename="../src/app/qml/solo/SoloResting.qml" line="+46"/>
-        <source>Time for a rest.</source>
-        <translation>Time for a rest.</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>You did it. The words are safe in your collection.</source>
-        <translation>You did it. The words are safe in your collection.</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <location line="+1"/>
-        <source>Play again</source>
-        <translation>Play again</translation>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+124"/>
+        <source>%1. %2</source>
+        <translation>%1. %2</translation>
     </message>
 </context>
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+238"/>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+250"/>
         <source>Solo Play</source>
         <translation>Solo Play</translation>
     </message>
@@ -1329,7 +1248,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Board finished</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>All words found</source>
         <translation>All words found</translation>
     </message>
@@ -1339,44 +1258,27 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Find a word</translation>
     </message>
     <message>
-        <location line="+82"/>
-        <source>Shaking the box…</source>
-        <translation>Shaking the box…</translation>
-    </message>
-    <message>
-        <location line="+194"/>
+        <location line="+236"/>
         <source>You found all %1 words!</source>
         <translation>You found all %1 words!</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+50"/>
         <source>Look at the jewels you collected.</source>
         <translation>Look at the jewels you collected.</translation>
     </message>
     <message>
-        <location line="+151"/>
-        <location line="+1"/>
-        <source>Home</source>
-        <translation>Home</translation>
-    </message>
-    <message>
-        <location line="-26"/>
-        <location line="+1"/>
-        <source>Play again</source>
-        <translation>Play again</translation>
-    </message>
-    <message>
-        <location line="-174"/>
+        <location line="-51"/>
         <source>You found the word!</source>
         <translation>You found the word!</translation>
     </message>
     <message>
-        <location line="+140"/>
+        <location line="+137"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+168"/>
+        <location line="+122"/>
         <source>You found this one already.</source>
         <translation>You found this one already.</translation>
     </message>
@@ -1443,6 +1345,44 @@ The button that opens the Licences page from the About page.</extracomment>
     </message>
     <message>
         <location line="+4"/>
+        <source>Choose a board</source>
+        <extracomment>The box panel&apos;s title over the row of board sizes.</extracomment>
+        <translation>Choose a board</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
+        <translation>3 × 3 is a good start. Bigger boards hold more words.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>How it works</source>
+        <extracomment>The box panel&apos;s card of three steps.</extracomment>
+        <translation>How it works</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shake the box.</source>
+        <translation>Shake the box.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Find a word.</source>
+        <translation>Find a word.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Collect the jewels.</source>
+        <translation>Collect the jewels.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Shaking the box…</source>
+        <extracomment>The line under the box while it shakes.</extracomment>
+        <translation>Shaking the box…</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Words I found</source>
         <translation>Words I found</translation>
     </message>
@@ -1469,9 +1409,36 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Close</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+2"/>
+        <source>No boards yet</source>
+        <extracomment>The history sheet&apos;s empty state: nothing has been played yet.</extracomment>
+        <translation>No boards yet</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Boards you play will be kept here.</source>
+        <translation>Boards you play will be kept here.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 × %1, 1 word</source>
+        <extracomment>A board in the history sheet: its size and how many words were found.</extracomment>
+        <translation>%1 × %1, 1 word</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 × %1, %2 words</source>
+        <translation>%1 × %1, %2 words</translation>
+    </message>
+    <message>
+        <location line="+4"/>
         <source>Play again</source>
         <translation>Play again</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Home</source>
+        <translation>Home</translation>
     </message>
     <message>
         <location line="+3"/>

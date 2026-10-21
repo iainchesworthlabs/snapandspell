@@ -30,7 +30,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | `analysis.yml` | nightly `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
 | `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS and the ad-hoc iOS IPA, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets) |
 | `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
-| `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages from `main` once the author has enabled that ([Documentation site](#documentation-site)); only when the docs change | yes (the build; the publication needs Pages) |
+| `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages on every push to `main` that changes the docs ([Documentation site](#documentation-site)) | yes (the build; the publication needs Pages) |
 | `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change | yes |
 | `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
 | `commit-policy.yml` | no attribution in the PR title, PR body or any commit message of the PR | yes |
@@ -69,8 +69,8 @@ with the rulesets.
 | --- | --- | --- |
 | `clang-format` | ubuntu-24.04 | Every `.cpp`/`.hpp` (and sibling extensions) under `src/` and `tests/` is exactly what the repository's `.clang-format` produces, with one pinned clang-format release (`.github/requirements/lint.txt`). Any difference fails; the log names file and line. |
 | `platform-isolation` | ubuntu-24.04 | `tools/checks/check_platform_isolation.ps1`: no preprocessor conditional, no OS header or OS-querying API outside `src/platforms/`, no OS test in CMake outside the selector, no `#define`, every platform source wired. Fast, and deliberately not behind the build legs. |
-| `Plan build legs` | ubuntu-24.04 | The build matrix was computed. It is a required check only so that a failure here cannot turn the three build legs into "skipped" (which counts as a pass). |
-| `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes. The leg also builds the Qt application, runs its offscreen smoke, and packages a ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64` artifact). |
+| `Plan build legs` | ubuntu-24.04 | The legs a manual dispatch named exist (an unknown name fails here, with the list). The three build legs do **not** wait for this job - they pick themselves from the same input - so it gates nothing; it stays a required check because the rulesets name it. |
+| `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes (one test per core on every leg; the cases that need the machine alone are `RUN_SERIAL`). Its objects come from a compiler cache ([below](#the-compiler-cache-windows)). The leg also builds the Qt application, runs its offscreen smoke, and packages a ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64` artifact). |
 | `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. |
 | `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit tier, and gcovr over `src/lib` **fails the job below the project's minimum standard: 90% of lines and 80% of branches**. The HTML, `summary.json` and the table in the job summary are the `coverage-report` artifact. The same gate is `coverage-unit` locally ([Testing](testing.md#coverage)). |
@@ -181,6 +181,8 @@ import beside the binary, as the application's own deploy does for its screens.
   purpose, so the package check can expect `Qt6Multimedia.dll`,
   `Qt6Sensors.dll` and `Qt6TextToSpeech.dll` beside the window, and the camera's
   `plugins/multimedia` and `qml/QtMultimedia` in its package.
+- **A compiler cache on the two Windows MSVC jobs** ([The compiler
+  cache](#the-compiler-cache-windows)).
 - **CMake 4.4.2 and Ninja 1.13.2** from `lukka/get-cmake`; the same pins the
   sibling projects use.
 - **One place for the pins.** `.github/toolchain-versions.json` lists CMake,
@@ -210,7 +212,8 @@ gh workflow run ci.yml --ref <branch> -f legs=clang-format,linux
 ```
 
 `legs` is comma-separated with no spaces: `clang-format`, `platform-isolation`,
-`windows`, `linux`, `macos`, `coverage`, `perf`, or `all` (the default).
+`windows`, `linux`, `macos`, `coverage`, `perf`, `package` (the Windows Release
+package job), or `all` (the default).
 Three more legs exist only for a dispatch and are **not** part of `all`: the
 profiling builds (`windows-msvc-profiling`, `linux-gcc-profiling`,
 `macos-clang-profiling`: RelWithDebInfo with Tracy, [Profiling](profiling.md)),
@@ -229,6 +232,118 @@ under a required check's name on the branch's head commit.
 
 A branch other than `main` and `develop` gets no CI from a push; open a pull
 request, or dispatch the workflow on it.
+
+A dispatch on a branch is **cold**: an Actions cache is readable from its own
+ref, a pull request's base branch and the default branch (`main`), and a
+dispatched run is none of the last two, so its first run installs Qt from the
+network, builds Tracy's tools and compiles every object. Its second run on the
+same branch restores what the first one saved, so to time a change, dispatch
+twice and read the second (the numbers in "Where the time goes" are such pairs).
+A merge-queue entry is cold in the same way (below).
+
+### Where the time goes
+
+Measured from the Actions API on the runs of 2026-10-20 and 21 (every job's and
+every step's start and end), and again on this change's own runs. Minutes.
+
+**A pull request run** is its longest leg plus the wait for runners. The legs,
+before the speed-up (serial ctest, no compiler cache; the Windows numbers
+include the vcpkg cache and Qt cache hits):
+
+| Job | Run time | Where it went |
+| --- | --- | --- |
+| `Windows (MSVC)` | 31 to 59 | Qt 0.7, Configure 0.6-1.3 (warm; 14-19 cold), **Build 6.7-16**, **Test 21-37** (serial), smoke and package 1-2 |
+| `Package (Windows, Release)` | 6.5 to 14 | Qt 0.6-1.6, **Build 4.6-10.5** |
+| `macOS (AppleClang)` | 11 to 13 | Build 1, **Test 9-11** (serial) |
+| `Linux (GCC)` | 10 to 13 | Build 1-1.6, **Test 8-11** (serial) |
+| `Coverage`, `Performance` | 2 to 4 | unit tier 1.5, Test 1.2 |
+| `clang-format`, `platform-isolation`, `Plan build legs` | under 0.3 | |
+
+and after (the second dispatch of the branch, `legs=all`, so with the caches a
+pull request restores from develop; all 1129 tests of the Windows leg and all
+767 of the Linux and macOS legs pass):
+
+| Job | Run time | Build | Test |
+| --- | --- | --- | --- |
+| `Windows (MSVC)` | 24.2, on the slower of the two hosted CPUs below | 2.1 (was 6.7-16) | 17.2 there, 8.9 on the faster CPU (was 21-37 serial; the `-j` is the previous change's) |
+| `Package (Windows, Release)` | 3.7 (was 6.5-14) | 1.0 (was 4.6-10.5) | none built |
+| `Linux (GCC)` | 5.1 (was 10-13) | 1.1 | 3.4 (was 8-11) |
+| `macOS (AppleClang)` | 4.8 (was 11-13) | 0.6 | 3.5 (was 9-11) |
+| `Coverage (Linux, GCC)` | 2.1 | 1.2 | unit tier 0.3 (was 1.5) |
+| `Performance (Linux, GCC)` | 3.4 | 1.1 | 0.9 (was 1.2) |
+
+The Windows leg on the faster CPU, with every cache cold, was 27.7 minutes
+(Configure 5.5, Build 10.1, Test 8.9); with the Configure and the Build of the
+warm run it would be about 15.
+
+**Hosted runners are not uniform.** The same Windows step took half as long on
+one run as on the next: two runner image builds (with two MSVC builds) and two
+CPU models (an EPYC 9V45 and an EPYC 7763) were handed out at the same time. The
+1129 tests took 532 s on the first and 1030 s on the other, and a cold build 10.1
+and 17.8 minutes. Compare runs by their `Total Test time` and by the CPU the job
+printed, not by the job's total. A cache made under one compiler is not a hit
+under the other (vcpkg's ABI hash and ccache both include the compiler), so a
+change of image costs one cold run on it.
+
+**The wait for a runner is the largest number there is.** In a busy hour a job
+waited a median of 10 minutes (90th percentile 41-57) before it began, for a
+three-second job as much as for a build, and the longest waits were 36 to 120
+minutes. The build legs used to need the `plan` job's output, so they queued
+twice: on the pull request run that raised this the Windows leg started 29
+minutes after the run, behind a three-second job on `ubuntu-24.04`, and the
+release package job, which has no dependency, started after 1.4. They now start
+at once. The pool is the account's: this workflow's own parallelism (nine jobs
+and a dozen steps for a run) competes with every other run in flight.
+
+**What a push to `develop` repeats.** Its runs queue behind each other
+(`cancel-in-progress` is off, a pending run is replaced by a newer one): one
+waited 122 minutes behind another that itself took 59, and two in that window
+were cancelled while pending. Each is the tree the merge queue (or the pull
+request) already built, plus it stores the caches pull requests restore from;
+that last part now happens in the first minutes (the vcpkg archives after
+Configure, ccache after Build), so the rest of the run is verification. It is
+kept, because a merge made with the administrators' bypass has no queue entry
+and this is then the only run of the merged commit.
+
+**A merge-queue entry is cold.** It reads none of develop's caches ("The vcpkg
+binary cache"), so it installs Qt from the network (about 2 minutes), builds
+Tracy's tools (4 minutes) and compiles every object (10 to 18 minutes). The Windows
+job of a cold run was 27.7 minutes on the faster CPU and 47 on the slower one.
+
+What changed, and what each was worth:
+
+| Change | Measured |
+| --- | --- |
+| ctest runs one test per core on every leg (the Windows leg's was the previous change) | Linux Test 535-640 s to 201-249; macOS 602-680 to 212-274; coverage unit tier 88 to 19; performance 71 to 56 |
+| ccache on the two Windows MSVC jobs | Windows Build 567-960 s to 115-126 (448 of 480 objects hit); Release package Build 599 s (a cold ccache run: 379-391) to 58 (212 of 232 hit) |
+| Tracy's tools built without link-time optimisation | cold Tracy build 13 min (3.9 min now) on the hosted Windows runner, 13 to 4.4 on a 32-core machine locally; the cold Windows Configure from 14-19 min to 5.5 |
+| The build legs no longer wait for `plan` | their start moves from after the `plan` job's wait to the run's own start: 25-30 minutes in the runs that raised it, nothing on a quiet hour |
+
+What was looked at and not done:
+
+- **A larger runner.** The organisation is on the free plan and the API answers
+  "GitHub hosted runners are not supported for this organization" (public
+  repositories are free on standard runners, which are 4 vCPU and 16 GB for
+  Windows and Linux; larger ones need a paid plan and are billed per minute).
+  The organisation's self-hosted runner groups are not used: on a public
+  repository they would run code from pull requests.
+- **Splitting the Windows suite across two runners.** Each shard would need
+  Qt, the vcpkg archives, a configure and a build of its own (about 5 minutes
+  warm) before it could run half of an 9-17 minute test step, and a build tree
+  is too big to hand over as an artifact; there is nothing to gain, and two
+  more jobs queue for a runner.
+- **Precompiled headers and unity builds.** ccache cannot cache a compile that
+  uses a precompiled header, and a unity build hides a warning's file and
+  line; the 480 objects that miss on a change are, with ccache, the changed
+  ones.
+- **Skipping the push-to-`develop` run, or cancelling a running one.** Both
+  would remove a check of the merged commit; see above.
+- **Qt's archives, a blobless vcpkg clone, `apt`.** The Qt restore is 40 to 114
+  seconds of the Windows job and a subset of the kit would save less than 30;
+  the vcpkg clone is 11-19 seconds; `apt` is 11. None is on the critical path.
+- **Defender.** Real-time protection is already off on the hosted Windows
+  image, and `C:\` and `D:\` are excluded.
+- **Merging the three small Ubuntu jobs.** Their names are required checks.
 
 ## Nightly analysis
 
@@ -623,8 +738,9 @@ scheme), so `docs/install-ios.html` builds it in the browser from `?tag=` (or fi
 newest release with a `manifest.plist`). MkDocs copies a non-Markdown file in `docs/`
 into the site unchanged, so the page needs no nav entry and passes `mkdocs build
 --strict`; it is deployed with the docs, so it exists only once
-[the site is published](#documentation-site): the Pages and `PUBLISH_DOCS` steps there
-are now also what makes the install link work. The release workflow does not wait for it.
+[the site is published](#documentation-site): a merge to `main` publishes it, so the
+merge that precedes the first release makes the install link work. The release
+workflow does not wait for it.
 
 #### What iOS has and has not shown
 
@@ -766,21 +882,22 @@ and the Material theme are pinned in `.github/requirements/docs.txt`, MkDocs bel
 2.0. The job runs only when something under `docs/` or the docs tooling changes,
 so it is not a required check.
 
-Publishing is off until the author turns it on, once:
-
-```sh
-gh api -X POST repos/iainchesworthlabs/wordjewelssolver/pages -f build_type=workflow   # Pages from GitHub Actions
-gh variable set PUBLISH_DOCS --body true --repo iainchesworthlabs/wordjewelssolver
-```
+Publishing needs one setting, once, that a workflow cannot make for itself: the
+repository's Pages source is "GitHub Actions" (Settings, Pages; or
+`gh api -X POST repos/iainchesworthlabs/wordjewelssolver/pages -f build_type=workflow`).
+Nothing else is switched on or off: the deploy job runs on every push to `main`.
 
 `docs/install-ios.html` is not a page: it is the iOS install link's page
 ([iOS](#ios)), a static file that MkDocs copies into the site as it is, so it is
 deployed with the docs and the iOS install link works only once the site is published.
 
-After that a push to `main` that changes the docs deploys the site to
+A push to `main` that changes the docs deploys the site to
 `https://iainchesworthlabs.github.io/wordjewelssolver/` (`site_url` in
-`mkdocs.yml`). Until then `Publish to GitHub Pages` is skipped, not red. A build
-of a pull request is never deployed.
+`mkdocs.yml`), so the merge of `develop` into `main` that precedes the first release
+is what makes the site, and the install page, exist: by the time a tag is cut they
+are there. (Until the Pages source is set, `Publish to GitHub Pages` is red with
+GitHub's message that Pages is not enabled.) A build of a pull request is never
+deployed.
 
 ## Required checks and their staging
 
@@ -828,29 +945,56 @@ nothing: that is why `analysis.yml` and `codeql.yml` do not have it.
 
 ## The vcpkg binary cache
 
-Dependencies come from vcpkg (the labs' fork, manifest mode; the
-only one today is Catch2, behind the `tests` feature). Every job that runs
+Dependencies come from vcpkg (the labs' fork, manifest mode): Catch2 behind
+the `tests` feature, and Tracy (the repository's own overlay port in
+`cmake/vcpkg-ports/tracy`, with its command-line capture tools built for the
+host) behind `profiling`, which a Debug build turns on. Every job that runs
 vcpkg uses the same two composite actions,
 `.github/actions/vcpkg-cache/restore` and `/save`, which wrap vcpkg's `files`
 binary-cache provider around `actions/cache`:
 
 | Step | What it does |
 | --- | --- |
-| restore | Points `VCPKG_BINARY_SOURCES` at `$RUNNER_TEMP/vcpkg-cache` and fills it from the newest entry whose key starts `vcpkg-binary-cache-<triplet>-`. |
+| restore | Points `VCPKG_BINARY_SOURCES` at `$RUNNER_TEMP/vcpkg-cache` and fills it from the newest entry whose key starts `vcpkg-binary-cache-<triplet>-<ports hash>-` (made for these ports), else the newest that starts `vcpkg-binary-cache-<triplet>-`. |
 | *(build)* | vcpkg restores every archive whose ABI hash matches and builds only the rest. |
-| save | Runs with `if: always()`, so a red leg keeps what it built. Stores the directory under `vcpkg-binary-cache-<triplet>-<hash of its file listing>`, only if an archive was added since the restore and the key is not already readable from this ref. |
+| save | Runs twice in a build leg: right after Configure, which is when vcpkg has built whatever was missing, and with `if: always()` as the last step, so a red or timed-out leg keeps what it built. Stores the directory under `vcpkg-binary-cache-<triplet>-<ports hash>-<hash of its file listing>`, only if an archive was added since the restore and the key is not already readable from this ref. |
 
-The key carries the **triplet and nothing else** (`x64-windows`, `x64-linux`,
-`arm64-osx`): vcpkg's ABI hash already covers what changes the binaries, and
-every archive holds both the debug and the release variant. `Linux (GCC)` and
-`Coverage (Linux, GCC)` share `x64-linux`.
+The key carries the **triplet** (`x64-windows`, `x64-linux`, `arm64-osx`) and a
+**hash of `vcpkg.json`, `cmake/vcpkg-commit.txt` and `cmake/vcpkg-ports/**`**.
+vcpkg's ABI hash already covers what changes the binaries, and every archive
+holds both the debug and the release variant, so the hash is not what decides
+whether an archive is reused (the second restore key takes the newest entry of
+the triplet whatever its hash, and vcpkg reuses every archive that still
+matches). It decides which entry is tried first: one made for these ports, from
+develop, before an older one a pull request saved into its own scope before a
+port changed. `Linux (GCC)` and `Coverage (Linux, GCC)` share `x64-linux`.
 
 An Actions cache entry is readable from its own ref, the base branch of a pull
 request and the default branch, nothing else. So `develop` is where the cache
 every pull request starts from is made: a push to `develop` (or `main`) is
-never cancelled by the next push (`cancel-in-progress` is off for them), and
-the first run on a new branch is cold. With Catch2 as the only port a cold
-run costs minutes, not hours; the cache earns its keep mostly on macOS.
+never cancelled by the next push once it is running (`cancel-in-progress` is
+off for them; a run still waiting is replaced by a newer one), and the first
+run on a new branch is cold. A cold Windows run builds Tracy's capture tools
+from source, which took 13 to 18 minutes of a 75-minute job (the overlay port
+now builds them without link-time optimisation: with `/GL` each of the seven
+tools' links did the code generation of the same server sources on its own,
+side by side; compiled once they take under 4 minutes, 3.9 measured on a hosted
+runner), so a pull request that
+changes a port, or starts before develop has stored the new archives, pays for
+it once; develop's runs run one after the other, so an entry made by a leg that
+saved only at its end reached the pull requests an hour or more after the
+merge, and that is why the save also runs right after Configure. An entry a
+pull request saves is readable only from that pull request, so a pull request
+cannot warm develop for the next one.
+
+Two kinds of run never see that cache, because they are neither on `develop`,
+nor a pull request into it, nor on `main`: a **merge-queue entry** (its ref is
+`gh-readonly-queue/develop/pr-N-<sha>`; an entry's `Cache not found` was seen on
+the first queue run after the Windows application was added) and a **manual
+dispatch** on a feature branch. Both start with no vcpkg archives, no Qt kit and
+no ccache directory, whatever develop holds. Making `develop` the default
+branch, or a job on `main` that builds and saves the caches (a scheduled run
+always runs on `main`), would fix the queue; neither is done here.
 
 vcpkg is not a submodule: the vcpkg-using jobs run the composite action
 `.github/actions/vcpkg-setup`, which clones the fork into `$RUNNER_TEMP/vcpkg`
@@ -858,6 +1002,38 @@ at the commit in `cmake/vcpkg-commit.txt` and exports `VCPKG_ROOT`, which the
 presets read. The clone is full, not depth 1: with a `builtin-baseline`, vcpkg
 reads historical port versions out of its own git history. The same file is
 what a local configure checks a developer's clone against.
+
+## The compiler cache (Windows)
+
+The Windows leg compiles about 480 translation units with AddressSanitizer on
+four cores (the library, the Qt Quick application, its qmltc output, the 3D
+prototype and every test), 7 to 16 minutes whenever anything was touched. The
+`Windows (MSVC)` leg and the `Package (Windows, Release)` job therefore build
+through [ccache](https://ccache.dev), with two composite actions that wrap it
+the way `vcpkg-cache` wraps vcpkg's provider: `.github/actions/ccache/setup`
+(install, point at a directory, restore) and `.github/actions/ccache/save`
+(report, save).
+
+| Piece | How |
+| --- | --- |
+| Install | The pinned release zip (`4.14.1`), checked against its SHA-256 before it goes on `PATH`. |
+| Use | `-DCMAKE_CXX_COMPILER_LAUNCHER=ccache` on the CI configure only; a developer's build is unchanged. |
+| Debug information | The Debug leg also passes `-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded` (`/Z7`): ccache cannot cache a compile that writes a shared `.pdb` (`/Zi`, the Debug default), only objects that carry their own debug information. The Release job's objects already do (vcpkg's flags). Nothing reads a `.pdb` from the Debug build (the package script forbids them in a Release one). |
+| Key | `ccache-<os>-<preset>-<run id>-<attempt>`; the restore takes the newest entry with the `<os>-<preset>` prefix. The cache directory is limited to 600 MB by ccache itself (the Debug directory is about 260 MB, the Release one about 50). |
+| Who saves | A **push** or a **manual run** only, right after the Build step (so a superseded run still offers it), and only when the run compiled at least 100 objects: a build always misses the thirty-odd objects that include the version block, which carries the commit. A pull request and a queue entry restore and never save. |
+| Who reads | A pull request reads develop's entry (its base branch); a dispatch reads its own branch's. A merge-queue entry reads **none** (below). |
+| The compiler | `CCACHE_COMPILERCHECK` is the banner `cl` prints (`Version 19.51.36260`), not cl.exe's modification time, which is the default and differs between builds of the runner image: two images, with two MSVC builds, were in use at the same time, and the release job missed all 232 objects when it landed on the other one. |
+| Paths | `CCACHE_BASEDIR` is the checkout, so the workspace path is not in the hash; the generated sources (moc, rcc, qmltc) hash like any other. |
+
+On a hit the Windows build step went from 567-960 s to 115 s (448 of 480 objects
+hit; the 32 misses are the objects that include the version block, which names
+the commit) and the compiler output is the same objects, so the warning gate
+(`/W4 /WX`) is unchanged: a hit replays the stored diagnostics, and nothing
+that compiled with a warning was ever stored (a compile that fails is not
+cached).
+
+The job summary of every run has a line with the hits, the misses and whether
+an entry was saved.
 
 ## What CI pins
 
@@ -870,6 +1046,7 @@ what a local configure checks a developer's clone against.
 | vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together |
 | actionlint, ShellCheck, the SBOM schema validator | `==` in `.github/requirements/workflows.txt` and `sbom.txt`; the CycloneDX schema at the commit of its `1.6` tag, in `release-tooling.yml` | Dependabot (`pip`), weekly; the schema commit by hand |
 | NSIS (the Windows installer tool) | `choco install nsis --version 3.13.0`, in `release.yml`, when the image does not carry it | By hand |
+| ccache (the Windows compiler cache) | The release zip's version and SHA-256, in `.github/actions/ccache/setup/action.yml` (the digest GitHub lists for the asset) | By hand |
 | Runner images | The label (`ubuntu-24.04`, `ubuntu-26.04`, `windows-2025-vs2026`, `macos-26`) | By hand |
 
 The clang-tidy version is in `.github/toolchain-versions.json` as well as in

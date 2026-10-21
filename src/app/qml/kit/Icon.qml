@@ -38,6 +38,9 @@ Item {
         case "history":
             // Four small boards.
             return "M4 4 h7 v7 h-7 z M13 4 h7 v7 h-7 z M4 13 h7 v7 h-7 z M13 13 h7 v7 h-7 z";
+        case "jewel":
+            // A cut stone from the side: the crown, the table and the point.
+            return "M7.5 4.5 h9 l4 5 l-8.5 10.5 l-8.5 -10.5 z M3.5 9.5 h17 M9.5 9.5 l2.5 10.5 M14.5 9.5 l-2.5 10.5";
         case "hint":
             // A ring with a dot in it: the start tile's pulsing ring.
             return "M12 4 a8 8 0 1 1 0 16 a8 8 0 1 1 0 -16 M12 10 a2 2 0 1 1 0 4 a2 2 0 1 1 0 -4";

@@ -8,10 +8,15 @@ import WordJewelsSolver
 // progress — lives behind the gate there. The wordmark, the hero and the two
 // cards say what the app is without asking a child to read a menu.
 //
-// The page is sized from the window it is given: at the 900 x 620 minimum the
+// The page is sized from the window it is given. At the 900 x 620 minimum the
 // hero loses its lede and the cards lose height rather than sliding under the
-// bottom edge. A short window therefore still shows both ways in and the
-// privacy line; it never hides the primary action.
+// bottom edge; below 900 the two cards stack and the page scrolls. In a window
+// far larger than the design the column grows (to 1.5 times) and, when it is
+// still shorter than the window, sits in the middle of it: the bar spans the
+// width, so the content is never left top-left over an empty lower half. The
+// two cards are one pair of components laid out by a grid, and each card gets
+// its height from its own words (kit/ModeCard.qml), so a larger text size makes
+// the card taller instead of drawing the words over its picture.
 FocusScope {
     id: root
 
@@ -27,18 +32,21 @@ FocusScope {
     // for the shell's checks and for a future first-run layout.
     readonly property int pictures: 2
 
-    // The space below the app bar. Everything on the page is laid out in it.
-    readonly property real room: Math.max(0, height - Theme.appBarHeight)
+    // The space the page has under the bar (which grows at a large text size).
+    readonly property real room: Math.max(0, page.height)
     readonly property bool small: room < 650
     readonly property real margin: small ? Theme.space4 : Theme.space8
     readonly property real gutter: small ? Theme.space4 : Theme.space6
-    // The cards take what the hero and footer leave, rather than a fixed 420
-    // that pushes the footer past the window at the minimum height.
-    readonly property real cardHeight: Math.max(300, Math.min(420, room
-                                                              - 2 * margin
-                                                              - hero.implicitHeight
-                                                              - 2 * gutter
-                                                              - footer.implicitHeight - Theme.space2))
+    // How much bigger than the design the window is, to 1.5: the column and the
+    // cards grow with it, the type does not (it follows the Text size setting).
+    readonly property real zoom: Math.max(1, Math.min(page.width / Theme.pageWidth,
+                                                      page.height / Theme.pageHeight, 1.5))
+    // The cards take what the hero and the footer leave, up to their largest,
+    // and never less than their own words and picture need.
+    readonly property real cardHeight: Math.max(
+        primaryCard.minimumHeight, familyCard.minimumHeight,
+        Math.min(Theme.cardMax * root.zoom,
+                 room - 2 * margin - hero.implicitHeight - footer.implicitHeight - 2 * gutter - Theme.hair))
 
     LayoutMirroring.enabled: Theme.rightToLeft
     LayoutMirroring.childrenInherit: true
@@ -79,295 +87,125 @@ FocusScope {
         boundsBehavior: Flickable.StopAtBounds
         flickableDirection: Flickable.VerticalFlick
 
-        Column {
+        ColumnLayout {
             id: content
-            width: Math.min(page.width - 2 * root.margin, 1180)
+            width: Math.min(page.width - 2 * root.margin, Theme.pageWidth * root.zoom)
             x: (page.width - width) / 2
-            y: root.margin
+            // In the middle of a window taller than the column, otherwise below
+            // the margin.
+            y: Math.max(root.margin, (page.height - implicitHeight) / 2)
             spacing: root.gutter
 
-            Column {
+            ColumnLayout {
                 id: hero
-                width: parent.width
+                Layout.fillWidth: true
                 spacing: Theme.space2
 
-                Text {
-                    text: qsTr("A WORD-FINDING GAME FOR YOUNG READERS")
-                    font.family: Theme.monoFont
-                    font.pixelSize: Theme.monoSize
-                    font.letterSpacing: 1.4
-                    color: Theme.accent
-                }
-                Text {
-                    width: parent.width
-                    text: qsTr("Shake. Find. Collect.")
-                    font.family: Theme.uiFont
-                    font.pixelSize: root.small ? Theme.titleSize : Theme.displaySize
-                    font.weight: Font.ExtraBold
-                    font.letterSpacing: -1.8
-                    color: Theme.ink
+                Eyebrow {
+                    Layout.fillWidth: true
+                    text: qsTr("A word-finding game for young readers")
+                    accented: true
                     wrapMode: Text.WordWrap
                 }
-                Text {
+                Label {
+                    Layout.fillWidth: true
+                    role: root.small ? "title" : "display"
+                    text: qsTr("Shake. Find. Collect.")
+                    wrapMode: Text.WordWrap
+                }
+                Label {
                     // At the minimum height the two ways in matter more than a
                     // second sentence; it comes back as soon as there is room.
                     visible: !root.small
-                    width: Math.min(parent.width, 720)
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: Theme.measure
+                    role: "body"
+                    learning: true
+                    size: Theme.headingSize
                     text: qsTr("A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.")
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.headingSize
                     color: Theme.inkSecondary
                     wrapMode: Text.WordWrap
                 }
             }
 
-            Row {
-                width: parent.width
-                spacing: root.gutter
-                visible: root.wide
+            // Side by side from 900 up; below that one above the other, and the
+            // page scrolls rather than squeezing a card until its label is cut.
+            GridLayout {
+                id: cards
+                Layout.fillWidth: true
+                columns: root.wide ? 2 : 1
+                columnSpacing: root.gutter
+                rowSpacing: root.gutter
 
                 ModeCard {
-                    width: (parent.width - root.gutter) * 0.56
-                    height: root.cardHeight
+                    id: primaryCard
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 56
+                    Layout.preferredHeight: root.wide ? root.cardHeight : implicitHeight
+                    Layout.minimumHeight: minimumHeight
                     primary: true
-                    accessibleName: HomeWording.soloPicture
-                    title: qsTr("Play on my own")
+                    eyebrow: HomeWording.soloEyebrow
+                    title: HomeWording.soloPicture
                     subtitle: qsTr("Shake the box. Find words. Collect jewels.")
                     actionLabel: qsTr("Play")
                     onClicked: root.soloRequested()
 
                     JewelBox {
-                        anchors.centerIn: parent
-                        width: Math.min(parent.width * 0.9, 460)
-                        height: Math.max(120, parent.height)
+                        anchors.fill: parent
                         closed: false
                         tiles: ["S", "O", "S", "S", "A", "N", "N", "S", "L"]
                     }
                 }
 
                 ModeCard {
-                    width: parent.width - (parent.width - root.gutter) * 0.56 - root.gutter
-                    height: root.cardHeight
+                    id: familyCard
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 44
+                    Layout.preferredHeight: root.wide ? root.cardHeight : implicitHeight
+                    Layout.minimumHeight: minimumHeight
                     grownUp: true
-                    accessibleName: HomeWording.familyPicture
-                    eyebrow: qsTr("FOR GROWN-UPS")
-                    title: qsTr("Play with a real board")
-                    subtitle: qsTr("Use the camera, or type the board. A grown-up sets this up.")
+                    eyebrow: HomeWording.forGrownUps
+                    title: HomeWording.familyPicture
+                    subtitle: qsTr("Use the camera, or type the board. A grown-up sets\u00a0this\u00a0up.")
                     actionLabel: qsTr("Continue")
                     onClicked: root.parentRequested()
 
-                    Item {
-                        anchors.centerIn: parent
-                        width: Math.min(parent.width * 0.70, 310)
-                        height: Math.min(parent.height * 0.92, 250)
-
-                        // The stand.
-                        Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom
-                            width: parent.width * 0.46
-                            height: 8
-                            radius: 4
-                            color: Theme.ink
-                        }
-                        Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 6
-                            width: 10
-                            height: parent.height * 0.18
-                            color: Theme.ink
-                        }
-
-                        // The tablet.
-                        Rectangle {
-                            id: tablet
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.top: parent.top
-                            width: parent.width * 0.78
-                            height: width * 0.66
-                            radius: 12
-                            color: Theme.ink
-                            border.width: 2
-                            border.color: Theme.line
-
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                radius: 8
-                                color: Theme.boardArea
-                                border.width: 1
-                                border.color: Theme.dieEdge
-
-                                Grid {
-                                    anchors.centerIn: parent
-                                    columns: 4
-                                    spacing: 3
-                                    Repeater {
-                                        model: 16
-                                        Rectangle {
-                                            width: (tablet.width * 0.44 - 9) / 4
-                                            height: width
-                                            radius: 2
-                                            color: Theme.die
-                                            border.width: 1
-                                            border.color: Theme.dieEdge
-                                        }
-                                    }
-                                }
-
-                                // The camera looking at the board.
-                                Rectangle {
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    anchors.top: parent.top
-                                    anchors.topMargin: 8
-                                    width: 13
-                                    height: 13
-                                    radius: 7
-                                    color: Theme.accent
-                                    border.width: 3
-                                    border.color: Theme.ink
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Below 900 the two ways in stack; the page scrolls rather than
-            // squeezing a card until its label is cut.
-            Column {
-                width: parent.width
-                spacing: root.gutter
-                visible: !root.wide
-
-                ModeCard {
-                    width: parent.width
-                    height: 360
-                    primary: true
-                    accessibleName: HomeWording.soloPicture
-                    title: qsTr("Play on my own")
-                    subtitle: qsTr("Shake the box. Find words. Collect jewels.")
-                    actionLabel: qsTr("Play")
-                    onClicked: root.soloRequested()
-
-                    JewelBox {
-                        anchors.centerIn: parent
-                        width: Math.min(parent.width * 0.9, 460)
-                        height: Math.max(120, parent.height)
-                        closed: false
-                        tiles: ["S", "O", "S", "S", "A", "N", "N", "S", "L"]
-                    }
-                }
-
-                ModeCard {
-                    width: parent.width
-                    height: 320
-                    grownUp: true
-                    accessibleName: HomeWording.familyPicture
-                    eyebrow: qsTr("FOR GROWN-UPS")
-                    title: qsTr("Play with a real board")
-                    subtitle: qsTr("Use the camera, or type the board. A grown-up sets this up.")
-                    actionLabel: qsTr("Continue")
-                    onClicked: root.parentRequested()
-
-                    Item {
-                        anchors.centerIn: parent
-                        width: Math.min(parent.width * 0.55, 250)
-                        height: Math.min(parent.height * 0.86, 210)
-
-                        Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom
-                            width: parent.width * 0.46
-                            height: 8
-                            radius: 4
-                            color: Theme.ink
-                        }
-                        Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom
-                            anchors.bottomMargin: 6
-                            width: 10
-                            height: parent.height * 0.18
-                            color: Theme.ink
-                        }
-                        Rectangle {
-                            id: smallTablet
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.top: parent.top
-                            width: parent.width * 0.78
-                            height: width * 0.66
-                            radius: 12
-                            color: Theme.ink
-                            border.width: 2
-                            border.color: Theme.line
-
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                radius: 8
-                                color: Theme.boardArea
-                                border.width: 1
-                                border.color: Theme.dieEdge
-
-                                Grid {
-                                    anchors.centerIn: parent
-                                    columns: 4
-                                    spacing: 3
-                                    Repeater {
-                                        model: 16
-                                        Rectangle {
-                                            width: (smallTablet.width * 0.44 - 9) / 4
-                                            height: width
-                                            radius: 2
-                                            color: Theme.die
-                                            border.width: 1
-                                            border.color: Theme.dieEdge
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    TabletArt {
+                        anchors.fill: parent
                     }
                 }
             }
 
             Rectangle {
-                width: parent.width
-                height: Theme.hair
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.hair
                 color: Theme.line
             }
 
-            // The footer used a fixed 320 px spacer, which pushed the privacy
-            // line past the right edge on anything narrower than 1180. The
-            // layout now keeps the two labels on their own edges and elides
-            // only if the window is truly too narrow for both.
+            // The two labels keep their own edges and elide only if the window is
+            // truly too narrow for both.
             RowLayout {
                 id: footer
-                width: parent.width
+                Layout.fillWidth: true
                 spacing: Theme.space4
 
-                Text {
+                Eyebrow {
                     text: qsTr("Word Jewels Solver")
-                    font.family: Theme.monoFont
-                    font.pixelSize: Theme.smallSize
-                    color: Theme.inkSecondary
                     elide: Text.ElideRight
-                    Layout.maximumWidth: parent.width * 0.42
+                    Layout.maximumWidth: content.width * 0.42
                 }
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 1
+                    Layout.preferredHeight: Theme.hair
                 }
-                Text {
+                Label {
+                    role: "caption"
                     text: qsTr("Everything stays on this device.")
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.smallSize
-                    color: Theme.inkSecondary
                     horizontalAlignment: Text.AlignRight
                     elide: Text.ElideRight
-                    Layout.maximumWidth: parent.width * 0.55
+                    Layout.maximumWidth: content.width * 0.55
                 }
             }
         }

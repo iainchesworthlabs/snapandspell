@@ -3,8 +3,8 @@ import QtQuick
 
 // Every sentence and every screen-reader name of Solo Play's chrome, in one
 // file: the bar's way back and corner buttons, the box's size choice and Shake,
-// the tray, the hint, the history and the resting screen. A screen says nothing
-// of its own.
+// the tray, the hint, the history and the summary. A screen says nothing of its
+// own.
 //
 // The game itself is English: the dice letters, the words in the tray and the
 // word list are not translated (docs/audit-0.1.md, "Languages, RTL and i18n").
@@ -28,6 +28,17 @@ QtObject {
         return qsTr("%1 by %1 board").arg(side);
     }
 
+    //: The box panel's title over the row of board sizes.
+    readonly property string chooseBoard: qsTr("Choose a board")
+    readonly property string chooseBoardHint: qsTr("3 × 3 is a good start. Bigger boards hold more words.")
+    //: The box panel's card of three steps.
+    readonly property string howItWorks: qsTr("How it works")
+    readonly property string howShake: qsTr("Shake the box.")
+    readonly property string howFind: qsTr("Find a word.")
+    readonly property string howCollect: qsTr("Collect the jewels.")
+    //: The line under the box while it shakes.
+    readonly property string shaking: qsTr("Shaking the box…")
+
     // --- the panel -----------------------------------------------------------
     readonly property string wordsFound: qsTr("Words I found")
     //: Light the first tile of a word that has not been found yet.
@@ -41,9 +52,19 @@ QtObject {
 
     // --- the history sheet -----------------------------------------------------
     readonly property string close: qsTr("Close")
+    //: The history sheet's empty state: nothing has been played yet.
+    readonly property string noBoardsTitle: qsTr("No boards yet")
+    readonly property string noBoardsText: qsTr("Boards you play will be kept here.")
 
-    // --- the resting screen -----------------------------------------------------
+    //: A board in the history sheet: its size and how many words were found.
+    function boardCaption(side, words) {
+        return words === 1 ? qsTr("%1 × %1, 1 word").arg(side)
+                           : qsTr("%1 × %1, %2 words").arg(side).arg(words);
+    }
+
+    // --- the summary ------------------------------------------------------------
     readonly property string playAgain: qsTr("Play again")
+    readonly property string home: qsTr("Home")
 
     // --- the board's names for a screen reader -----------------------------------
     readonly property string board: qsTr("Board")

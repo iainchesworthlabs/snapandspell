@@ -128,12 +128,13 @@ set(WJS_QUICK_TEST_SOLO_FILES
     BoardThumb.qml
     FlatBoard.qml
     HistorySheet.qml
+    JewelsScreen.qml
+    JewelsWording.qml
     PlayingPanel.qml
+    ScrollCue.qml
     SoloBox.qml
-    SoloResting.qml
     SoloScreen.qml
-    SoloWording.qml
-    TraceLayer.qml)
+    SoloWording.qml)
 foreach(_file IN LISTS WJS_QUICK_TEST_SOLO_FILES)
     set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/solo/${_file}"
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")
@@ -154,6 +155,7 @@ foreach(_file IN LISTS WJS_KIT_QML_SINGLETONS)
 endforeach()
 set_source_files_properties(
     "${WJS_QUICK_TEST_QML_DIR}/solo/SoloWording.qml"
+    "${WJS_QUICK_TEST_QML_DIR}/solo/JewelsWording.qml"
     "${WJS_QUICK_TEST_QML_DIR}/HomeWording.qml"
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
