@@ -1147,7 +1147,7 @@
     <message>
         <location line="+1"/>
         <source>Board finished</source>
-        <translation>Board finished</translation>
+        <translation>Plateau terminé</translation>
     </message>
     <message>
         <location line="+2"/>
@@ -1172,7 +1172,7 @@
     <message>
         <location line="-51"/>
         <source>You found the word!</source>
-        <translation>You found the word!</translation>
+        <translation>Tu as trouvé le mot !</translation>
     </message>
     <message>
         <location line="+137"/>
@@ -1182,32 +1182,32 @@
     <message>
         <location line="+122"/>
         <source>You found this one already.</source>
-        <translation>You found this one already.</translation>
+        <translation>Tu as déjà trouvé celui-ci.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>You found a word. +%1 points</source>
-        <translation>You found a word. +%1 points</translation>
+        <translation>Tu as trouvé un mot. +%1 points</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>That&apos;s a real word.</source>
-        <translation>That&apos;s a real word.</translation>
+        <translation>C’est un vrai mot.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>It is not on this board.</source>
-        <translation>It is not on this board.</translation>
+        <translation>Il n’est pas sur ce plateau.</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>Not this time.</source>
-        <translation>Not this time.</translation>
+        <translation>Pas cette fois.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Try another word.</source>
-        <translation>Try another word.</translation>
+        <translation>Essaie un autre mot.</translation>
     </message>
 </context>
 <context>
@@ -1237,7 +1237,7 @@
         <location line="+2"/>
         <source>Shake the box to start</source>
         <extracomment>The line under the closed box, before the first roll.</extracomment>
-        <translation>Shake the box to start</translation>
+        <translation>Secoue la boîte pour commencer</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -1357,63 +1357,63 @@
         <location line="+2"/>
         <source>The next letter</source>
         <extracomment>The screen-reader name of the second ring, when the child asks for more.</extracomment>
-        <translation>The next letter</translation>
+        <translation>La lettre suivante</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Show me two letters</source>
         <extracomment>The second rung of the help: two tiles are lit.</extracomment>
-        <translation>Show me two letters</translation>
+        <translation>Montre-moi deux lettres</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Hide the hint</source>
         <extracomment>Put the help away and quiet the board again.</extracomment>
-        <translation>Hide the hint</translation>
+        <translation>Cacher l’indice</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Finish board</source>
         <extracomment>End this board early: the words are saved, and the child sees what was found.</extracomment>
-        <translation>Finish board</translation>
+        <translation>Terminer le plateau</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Board finished!</source>
-        <translation>Board finished!</translation>
+        <translation>Plateau terminé !</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Your words are safe in your collection.</source>
-        <translation>Your words are safe in your collection.</translation>
+        <translation>Tes mots sont en sécurité dans ta collection.</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Time left: %1</source>
         <extracomment>The board&apos;s clock for a screen reader: what it is, then what it shows.</extracomment>
-        <translation>Time left: %1</translation>
+        <translation>Temps restant : %1</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Time on this board: %1</source>
-        <translation>Time on this board: %1</translation>
+        <translation>Temps sur ce plateau : %1</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>You played for %1.</source>
         <extracomment>On the finish summary, after a count-up board.</extracomment>
-        <translation>You played for %1.</translation>
+        <translation>Tu as joué %1.</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>1 star</source>
         <extracomment>The finish summary&apos;s reward line: how many stars the board earned.</extracomment>
-        <translation>1 star</translation>
+        <translation>1 étoile</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 stars</source>
-        <translation>%1 stars</translation>
+        <translation>%1 étoiles</translation>
     </message>
     <message>
         <location line="+5"/>
@@ -1430,53 +1430,53 @@
         <location line="+7"/>
         <source>Your word</source>
         <extracomment>The finish summary&apos;s list of the words found, with their count: how many words it holds, so a finished board says its total without a count in the title.</extracomment>
-        <translation>Your word</translation>
+        <translation>Ton mot</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>Your words (%1)</source>
-        <translation>Your words (%1)</translation>
+        <translation>Tes mots (%1)</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>The time ran out. Everything you found is kept.</source>
         <extracomment>The finish summary of a count-down board whose time ran out.</extracomment>
-        <translation>The time ran out. Everything you found is kept.</translation>
+        <translation>Le temps est écoulé. Tout ce que tu as trouvé est conservé.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>No words this time. Every board is a new chance.</source>
         <extracomment>The finish summary&apos;s words card when no word was found.</extracomment>
-        <translation>No words this time. Every board is a new chance.</translation>
+        <translation>Pas de mots cette fois. Chaque plateau est une nouvelle chance.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>The first letter is lit. Trace a word from it.</source>
         <extracomment>Shown under the button at the first rung.</extracomment>
-        <translation>The first letter is lit. Trace a word from it.</translation>
+        <translation>La première lettre est allumée. Trace un mot à partir d’elle.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Two letters are lit. Find the rest of the word.</source>
         <extracomment>Shown under the button at the second rung.</extracomment>
-        <translation>Two letters are lit. Find the rest of the word.</translation>
+        <translation>Deux lettres sont allumées. Trouve la suite du mot.</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>1 more word starts with these letters.</source>
         <extracomment>After a find made from the hint&apos;s start: more words begin with those tiles.</extracomment>
-        <translation>1 more word starts with these letters.</translation>
+        <translation>Encore 1 mot commence par ces lettres.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 more words start with these letters.</source>
-        <translation>%1 more words start with these letters.</translation>
+        <translation>Encore %1 mots commencent par ces lettres.</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>No more words start with these letters.</source>
         <extracomment>After a find made from the hint&apos;s start: nothing else begins with those tiles.</extracomment>
-        <translation>No more words start with these letters.</translation>
+        <translation>Plus aucun mot ne commence par ces lettres.</translation>
     </message>
     <message>
         <location line="+3"/>

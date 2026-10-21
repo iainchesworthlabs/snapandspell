@@ -878,7 +878,7 @@
     <message>
         <location line="+5"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1てん</translation>
     </message>
     <message>
         <location line="+102"/>
@@ -1147,7 +1147,7 @@
     <message>
         <location line="+1"/>
         <source>Board finished</source>
-        <translation>Board finished</translation>
+        <translation>ボードがおわりました</translation>
     </message>
     <message>
         <location line="+2"/>
@@ -1172,7 +1172,7 @@
     <message>
         <location line="-51"/>
         <source>You found the word!</source>
-        <translation>You found the word!</translation>
+        <translation>ことばをみつけたね！</translation>
     </message>
     <message>
         <location line="+137"/>
@@ -1182,32 +1182,32 @@
     <message>
         <location line="+122"/>
         <source>You found this one already.</source>
-        <translation>You found this one already.</translation>
+        <translation>これはもうみつけているよ。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>You found a word. +%1 points</source>
-        <translation>You found a word. +%1 points</translation>
+        <translation>ことばをみつけたね。+%1てん</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>That&apos;s a real word.</source>
-        <translation>That&apos;s a real word.</translation>
+        <translation>ほんとうにあることばだよ。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>It is not on this board.</source>
-        <translation>It is not on this board.</translation>
+        <translation>このボードにはないよ。</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>Not this time.</source>
-        <translation>Not this time.</translation>
+        <translation>こんかいはちがうよ。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Try another word.</source>
-        <translation>Try another word.</translation>
+        <translation>ほかのことばをためしてみよう。</translation>
     </message>
 </context>
 <context>
@@ -1237,7 +1237,7 @@
         <location line="+2"/>
         <source>Shake the box to start</source>
         <extracomment>The line under the closed box, before the first roll.</extracomment>
-        <translation>Shake the box to start</translation>
+        <translation>箱をふってはじめよう</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -1357,126 +1357,126 @@
         <location line="+2"/>
         <source>The next letter</source>
         <extracomment>The screen-reader name of the second ring, when the child asks for more.</extracomment>
-        <translation>The next letter</translation>
+        <translation>つぎのもじ</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Show me two letters</source>
         <extracomment>The second rung of the help: two tiles are lit.</extracomment>
-        <translation>Show me two letters</translation>
+        <translation>2もじをみせて</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Hide the hint</source>
         <extracomment>Put the help away and quiet the board again.</extracomment>
-        <translation>Hide the hint</translation>
+        <translation>ヒントをかくす</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Finish board</source>
         <extracomment>End this board early: the words are saved, and the child sees what was found.</extracomment>
-        <translation>Finish board</translation>
+        <translation>ボードをおわる</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Board finished!</source>
-        <translation>Board finished!</translation>
+        <translation>ボードがおわったよ！</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Your words are safe in your collection.</source>
-        <translation>Your words are safe in your collection.</translation>
+        <translation>みつけたことばは、あつめたものの中にだいじにしまってあるよ。</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Time left: %1</source>
         <extracomment>The board&apos;s clock for a screen reader: what it is, then what it shows.</extracomment>
-        <translation>Time left: %1</translation>
+        <translation>のこりじかん: %1</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Time on this board: %1</source>
-        <translation>Time on this board: %1</translation>
+        <translation>このボードのじかん: %1</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>You played for %1.</source>
         <extracomment>On the finish summary, after a count-up board.</extracomment>
-        <translation>You played for %1.</translation>
+        <translation>%1あそびました。</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>1 star</source>
         <extracomment>The finish summary&apos;s reward line: how many stars the board earned.</extracomment>
-        <translation>1 star</translation>
+        <translation>1つのほし</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 stars</source>
-        <translation>%1 stars</translation>
+        <translation>%1このほし</translation>
     </message>
     <message>
         <location line="+5"/>
         <source>1 point</source>
         <extracomment>The finish summary&apos;s reward line: the board&apos;s points.</extracomment>
-        <translation>1 point</translation>
+        <translation>1てん</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1てん</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Your word</source>
         <extracomment>The finish summary&apos;s list of the words found, with their count: how many words it holds, so a finished board says its total without a count in the title.</extracomment>
-        <translation>Your word</translation>
+        <translation>あなたのことば</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>Your words (%1)</source>
-        <translation>Your words (%1)</translation>
+        <translation>あなたのことば (%1)</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>The time ran out. Everything you found is kept.</source>
         <extracomment>The finish summary of a count-down board whose time ran out.</extracomment>
-        <translation>The time ran out. Everything you found is kept.</translation>
+        <translation>じかんぎれです。みつけたものはぜんぶのこっています。</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>No words this time. Every board is a new chance.</source>
         <extracomment>The finish summary&apos;s words card when no word was found.</extracomment>
-        <translation>No words this time. Every board is a new chance.</translation>
+        <translation>こんかいはことばがありません。ボードはいつもあたらしいチャンスです。</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>The first letter is lit. Trace a word from it.</source>
         <extracomment>Shown under the button at the first rung.</extracomment>
-        <translation>The first letter is lit. Trace a word from it.</translation>
+        <translation>さいしょのもじがひかっているよ。そこからことばをなぞろう。</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Two letters are lit. Find the rest of the word.</source>
         <extracomment>Shown under the button at the second rung.</extracomment>
-        <translation>Two letters are lit. Find the rest of the word.</translation>
+        <translation>2もじがひかっているよ。ことばのつづきをみつけよう。</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>1 more word starts with these letters.</source>
         <extracomment>After a find made from the hint&apos;s start: more words begin with those tiles.</extracomment>
-        <translation>1 more word starts with these letters.</translation>
+        <translation>このもじではじまることばが、あと1つあるよ。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>%1 more words start with these letters.</source>
-        <translation>%1 more words start with these letters.</translation>
+        <translation>このもじではじまることばが、あと%1つあるよ。</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>No more words start with these letters.</source>
         <extracomment>After a find made from the hint&apos;s start: nothing else begins with those tiles.</extracomment>
-        <translation>No more words start with these letters.</translation>
+        <translation>このもじではじまることばは、もうないよ。</translation>
     </message>
     <message>
         <location line="+3"/>
