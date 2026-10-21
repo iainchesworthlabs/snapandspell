@@ -151,6 +151,8 @@ jobs:
           ninja --version
           java -version
           cat "$ANDROID_NDK_ROOT/source.properties"
+          # Two Qt kits, Gradle's caches and the build are several gigabytes of a runner's disk.
+          df -h "$RUNNER_TEMP" .
           for kit in "$QT_ANDROID_DIR/lib/cmake/Qt6/qt.toolchain.cmake" "$QT_HOST_PATH/lib/cmake/Qt6/Qt6Config.cmake" "$QT_HOST_PATH/bin/androiddeployqt"; do
             [ -e "$kit" ] || { echo "::error::$kit is not there: the Qt install put its kits somewhere else (look at the install step's log)"; exit 1; }
           done
