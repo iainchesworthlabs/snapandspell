@@ -1,0 +1,32 @@
+# https://editorconfig.org. What the repository already is: LF in the tree
+# (.gitattributes normalises on commit), UTF-8 without a byte-order mark, four
+# spaces, no tabs, a final newline and no trailing blanks.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Workflows, the clang tooling and the JSON manifests use two spaces.
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[{.clang-format,.clang-tidy}]
+indent_size = 2
+
+# Two trailing spaces are a line break in Markdown; lists nest by two.
+[*.md]
+indent_size = 2
+trim_trailing_whitespace = false
+
+# The shipped licence text and the generated translation catalogues are not
+# re-flowed by an editor: lupdate writes the catalogues, and the licence is the
+# FSF's text.
+[{LICENSE,*.ts}]
+trim_trailing_whitespace = false
+insert_final_newline = unset
+indent_size = unset

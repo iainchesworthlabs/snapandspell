@@ -2,55 +2,11 @@
 cmake_minimum_required(VERSION 3.28...4.4)
 
 # ---------------------------------------------------------------------------
-# Shared vcpkg checkout, found through the VCPKG_ROOT environment variable.
-#
-# One vcpkg clone serves every project on the machine. The CMakePresets point
-# CMAKE_TOOLCHAIN_FILE at $env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake.
-# cmake/vcpkg-commit.txt is the vcpkg commit this project was verified with:
-# the checkout must contain it (be at it, or ahead of it), so a stale clone
-# that predates the baseline fails here rather than deep inside a port build.
+# The shared vcpkg checkout, verified before project() (cmake/Vcpkg.cmake): the
+# toolchain file is found through the presets' CMAKE_TOOLCHAIN_FILE, and the
+# checkout must contain the commit in cmake/vcpkg-commit.txt.
 # ---------------------------------------------------------------------------
-if(NOT CMAKE_TOOLCHAIN_FILE OR NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
-    message(FATAL_ERROR
-        "The vcpkg toolchain file was not found.\n"
-        "Set VCPKG_ROOT to a clone of https://github.com/iainchesworthlabs/vcpkg "
-        "(or pass -DCMAKE_TOOLCHAIN_FILE=<root>/scripts/buildsystems/vcpkg.cmake) "
-        "and reconfigure. See docs/building.md.")
-endif()
-
-get_filename_component(WJS_VCPKG_ROOT "${CMAKE_TOOLCHAIN_FILE}/../../.." ABSOLUTE)
-file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vcpkg-commit.txt" WJS_VCPKG_PIN
-    LIMIT_COUNT 1)
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/vcpkg-commit.txt")
-
-find_package(Git QUIET)
-if(GIT_FOUND AND EXISTS "${WJS_VCPKG_ROOT}/.git")
-    execute_process(
-        COMMAND "${GIT_EXECUTABLE}" -C "${WJS_VCPKG_ROOT}"
-                merge-base --is-ancestor "${WJS_VCPKG_PIN}" HEAD
-        RESULT_VARIABLE WJS_VCPKG_PIN_RESULT
-        ERROR_QUIET)
-    if(WJS_VCPKG_PIN_RESULT EQUAL 1)
-        message(FATAL_ERROR
-            "The vcpkg checkout at ${WJS_VCPKG_ROOT} does not contain the pinned "
-            "commit ${WJS_VCPKG_PIN} (cmake/vcpkg-commit.txt).\n"
-            "Update it:\n"
-            "  git -C \"${WJS_VCPKG_ROOT}\" pull")
-    elseif(NOT WJS_VCPKG_PIN_RESULT EQUAL 0)
-        message(FATAL_ERROR
-            "The vcpkg checkout at ${WJS_VCPKG_ROOT} does not have the pinned "
-            "commit ${WJS_VCPKG_PIN} (cmake/vcpkg-commit.txt) in its history; "
-            "it may be a shallow clone or from a different remote.\n"
-            "Fetch it:\n"
-            "  git -C \"${WJS_VCPKG_ROOT}\" fetch origin")
-    endif()
-else()
-    message(WARNING
-        "${WJS_VCPKG_ROOT} is not a git checkout, so the pinned vcpkg commit "
-        "${WJS_VCPKG_PIN} cannot be verified.")
-endif()
-message(STATUS "vcpkg: ${WJS_VCPKG_ROOT} (pin ${WJS_VCPKG_PIN})")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Vcpkg.cmake")
 
 # ---------------------------------------------------------------------------
 # Select vcpkg manifest features BEFORE project() (the vcpkg toolchain reads
@@ -94,55 +50,8 @@ project(WordJewelsSolver
     HOMEPAGE_URL "https://github.com/iainchesworthlabs/wordjewelssolver"
     LANGUAGES CXX)
 
-# ---------------------------------------------------------------------------
-# Git provenance for the version block (src/lib/include/wjs/version.hpp.in):
-# what the build was built from, read once at configure time. A tree git
-# cannot be asked (a source tarball) keeps the "unknown" defaults.
-# ---------------------------------------------------------------------------
-set(WJS_GIT_COMMIT "unknown")
-set(WJS_GIT_DESCRIBE "v${PROJECT_VERSION}")
-set(WJS_GIT_BRANCH "unknown")
-set(WJS_GIT_DIRTY false)
-if(GIT_FOUND)
-    execute_process(
-        COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}" rev-parse --short=12 HEAD
-        OUTPUT_VARIABLE WJS_GIT_COMMIT_RAW
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-        RESULT_VARIABLE WJS_GIT_COMMIT_RESULT)
-    if(WJS_GIT_COMMIT_RESULT EQUAL 0)
-        set(WJS_GIT_COMMIT "${WJS_GIT_COMMIT_RAW}")
-
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}" describe --tags --always
-            OUTPUT_VARIABLE WJS_GIT_DESCRIBE_RAW
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET
-            RESULT_VARIABLE WJS_GIT_DESCRIBE_RESULT)
-        if(WJS_GIT_DESCRIBE_RESULT EQUAL 0)
-            set(WJS_GIT_DESCRIBE "${WJS_GIT_DESCRIBE_RAW}")
-        else()
-            set(WJS_GIT_DESCRIBE "${WJS_GIT_COMMIT}")
-        endif()
-
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}" rev-parse --abbrev-ref HEAD
-            OUTPUT_VARIABLE WJS_GIT_BRANCH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET)
-
-        # Ignore untracked files, so a populated build tree does not read "dirty".
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}"
-                    status --porcelain --untracked-files=no
-            OUTPUT_VARIABLE WJS_GIT_STATUS
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_QUIET)
-        if(NOT WJS_GIT_STATUS STREQUAL "")
-            set(WJS_GIT_DIRTY true)
-        endif()
-    endif()
-endif()
+# What the build was built from, for the version block (cmake/GitProvenance.cmake).
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GitProvenance.cmake")
 
 # ---------------------------------------------------------------------------
 # Global language settings: C++23 only, no compiler extensions.
@@ -207,7 +116,7 @@ option(WJS_BUILD_SHAKE_PROTOTYPE "Build the 3D board-scene prototype harness (ne
 # The review gate. Phonics data (data/phonics) is written and reviewed by a
 # person qualified to do it, and a file says so in its header (reviewed-by and
 # reviewed-on). A file without them is test data. With this on, the build runs
-# tools/data/check_phonics.ps1 -RequireReviewed before the library is built and
+# tools/data/check_phonics_review.cmake before the library is built and
 # stops if any file is test data, so a release cannot carry unreviewed content.
 # On by default for the release build types, and for any multi-config generator
 # (which has no build type at configure time, so it is the developer who says
@@ -307,6 +216,9 @@ if(WJS_BUILD_APP)
     if(TARGET Qt6::TextToSpeech)
         set(WJS_QT_HAS_TEXTTOSPEECH ON)
     endif()
+    # clang-cl under the Visual Studio generator (the coverage preset) does not
+    # treat Qt's headers as system headers by itself (cmake/CompilerWarnings.cmake).
+    wjs_treat_qt_headers_as_system()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -336,22 +248,17 @@ add_subdirectory(src/lib)
 # dependency of its own to fetch.
 add_subdirectory(src/scan)
 
-find_program(WJS_PWSH NAMES pwsh)
 if(WJS_REQUIRE_REVIEWED_PHONICS)
-    if(NOT WJS_PWSH)
-        message(FATAL_ERROR
-            "WJS_REQUIRE_REVIEWED_PHONICS is ON, and it is checked by "
-            "tools/data/check_phonics.ps1, which needs PowerShell 7 (pwsh). "
-            "Install it, or configure with -DWJS_REQUIRE_REVIEWED_PHONICS=OFF "
-            "for a build that is not to be released.")
-    endif()
+    # A CMake script, so that a release build needs nothing but CMake: it holds
+    # the review headers (tools/data/check_phonics_review.cmake); the lines of the
+    # data are the `data.phonics` ctest case's (tools/data/check_phonics.ps1).
     # Always out of date, so every build looks at the data as it is now, not as
     # it was when CMake last ran. The library depends on it, so building any
     # target that links the library is gated.
     add_custom_target(wjs_phonics_review_gate ALL
-        COMMAND "${WJS_PWSH}" -NoProfile -File
-            "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/check_phonics.ps1"
-            -Root "${CMAKE_CURRENT_SOURCE_DIR}" -RequireReviewed
+        COMMAND "${CMAKE_COMMAND}"
+            "-DROOT=${CMAKE_CURRENT_SOURCE_DIR}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/check_phonics_review.cmake"
         COMMENT "Checking that the phonics data has been reviewed"
         VERBATIM)
     add_dependencies(wjs_lib wjs_phonics_review_gate)
