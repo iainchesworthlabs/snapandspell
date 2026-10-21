@@ -18,13 +18,13 @@ constexpr double kImpactSpeed = 3.0;
 
 using Axes = std::array<Vec3, 3>;
 
-double radiusAlong(const Axes& e, Vec3 axis) {
+double radiusAlong(const Axes& e, const Vec3& axis) {
     return 0.5 *
            (std::abs(dot(e[0], axis)) + std::abs(dot(e[1], axis)) + std::abs(dot(e[2], axis)));
 }
 
 // The rotation vector that takes q to target.
-Vec3 rotationError(Quat target, Quat q) {
+Vec3 rotationError(const Quat& target, const Quat& q) {
     return rotationVector(target * conjugate(q));
 }
 
@@ -34,7 +34,7 @@ struct Point {
 };
 
 // Keeps the points with dot(normal, p) <= offset, cutting the polygon at the plane.
-int clipPolygon(const Vec3* in, int n, Vec3 normal, double offset, Vec3* out) {
+int clipPolygon(const Vec3* in, int n, const Vec3& normal, double offset, Vec3* out) {
     int m = 0;
     for (int i = 0; i < n; ++i) {
         const Vec3 cur = in[i];
@@ -87,15 +87,37 @@ int reducePoints(const Point* in, int n, Point* out) {
     return m;
 }
 
-Vec3 toLocal(const Die& d, Vec3 p) {
+Vec3 toLocal(const Die& d, const Vec3& p) {
     return rotate(conjugate(d.q), p - d.x);
+}
+
+// The velocity of the point of a die at r from its centre: v + w x r.
+Vec3 pointVelocityOf(const Die& d, const Vec3& r) {
+    return {d.v.x + (d.w.y * r.z - d.w.z * r.y), d.v.y + (d.w.z * r.x - d.w.x * r.z),
+            d.v.z + (d.w.x * r.y - d.w.y * r.x)};
+}
+
+// An impulse at r from the centre of a die that is not home yet changes its velocity
+// and its spin (its mass is 1 and its inverse moment of inertia 6). Written out by
+// component, as the solver does it for every contact on every pass, and in a
+// sanitised build every copy of a vector is a call.
+void kick(Die& d, const Vec3& impulse, const Vec3& r) {
+    if (d.done) {
+        return;
+    }
+    d.v.x += impulse.x;
+    d.v.y += impulse.y;
+    d.v.z += impulse.z;
+    d.w.x += (r.y * impulse.z - r.z * impulse.y) * 6.0;
+    d.w.y += (r.z * impulse.x - r.x * impulse.z) * 6.0;
+    d.w.z += (r.x * impulse.y - r.y * impulse.x) * 6.0;
 }
 
 }  // namespace
 
 // ---- Faces and orientations ----------------------------------------------------------
 
-Upright uprightOf(Quat q) {
+Upright uprightOf(const Quat& q) {
     // The face's own "up" is taken inside the loop, at the index the loop is
     // on, and not after it by the index that was kept: MSVC's analyzer cannot
     // carry "less than six" through the comparison and reports C28020 at an
@@ -122,7 +144,7 @@ Upright uprightOf(Quat q) {
     return {static_cast<int>(face), turns};
 }
 
-Quat squareTo(Quat q, int face) {
+Quat squareTo(const Quat& q, int face) {
     const Axes e = axesOf(q);
     int k = 0;
     if (face >= 0 && face < kFaceCount) {
@@ -408,17 +430,16 @@ double World::inverseInertia(int i) const {
     return (i < 0 || dice_[static_cast<std::size_t>(i)].done) ? 0.0 : 6.0;
 }
 
-Vec3 World::pointOf(int i, Vec3 local) const {
+Vec3 World::pointOf(int i, const Vec3& local) const {
     const Die& d = dice_[static_cast<std::size_t>(i)];
     return d.x + rotate(d.q, local);
 }
 
-Vec3 World::pointVelocity(int i, Vec3 r) const {
-    const Die& d = dice_[static_cast<std::size_t>(i)];
-    return d.v + cross(d.w, r);
+Vec3 World::pointVelocity(int i, const Vec3& r) const {
+    return pointVelocityOf(dice_[static_cast<std::size_t>(i)], r);
 }
 
-void World::push(int i, Vec3 impulseValue, Vec3 r) {
+void World::push(int i, const Vec3& impulseValue, const Vec3& r) {
     if (i < 0) {
         return;
     }
@@ -426,20 +447,19 @@ void World::push(int i, Vec3 impulseValue, Vec3 r) {
     if (d.done) {
         return;
     }
-    d.x += impulseValue * inverseMass(i);
-    d.q = turned(d.q, cross(r, impulseValue) * inverseInertia(i));
+    d.x.x += impulseValue.x;
+    d.x.y += impulseValue.y;
+    d.x.z += impulseValue.z;
+    d.q = turned(d.q, Vec3{(r.y * impulseValue.z - r.z * impulseValue.y) * 6.0,
+                           (r.z * impulseValue.x - r.x * impulseValue.z) * 6.0,
+                           (r.x * impulseValue.y - r.y * impulseValue.x) * 6.0});
 }
 
-void World::impulse(int i, Vec3 impulseValue, Vec3 r) {
+void World::impulse(int i, const Vec3& impulseValue, const Vec3& r) {
     if (i < 0) {
         return;
     }
-    Die& d = dice_[static_cast<std::size_t>(i)];
-    if (d.done) {
-        return;
-    }
-    d.v += impulseValue * inverseMass(i);
-    d.w += cross(r, impulseValue) * inverseInertia(i);
+    kick(dice_[static_cast<std::size_t>(i)], impulseValue, r);
 }
 
 // ---- A step --------------------------------------------------------------------------
@@ -790,7 +810,7 @@ void World::collidePair(int ia, int ib) {
     }
 }
 
-double World::effectiveMass(const Contact& c, Vec3 direction) const {
+double World::effectiveMass(const Contact& c, const Vec3& direction) const {
     const Vec3 ra = cross(c.rA, direction);
     const Vec3 rb = cross(c.rB, direction);
     const double k = inverseMass(c.a) + inverseInertia(c.a) * dot(ra, ra) + inverseMass(c.b) +
@@ -884,27 +904,42 @@ void World::solveContacts() {
     for (int iteration = 0; iteration < tuning_.velocityIterations; ++iteration) {
         for (int k = 0; k < n; ++k) {
             Contact& c = contacts_[static_cast<std::size_t>((iteration & 1) != 0 ? n - 1 - k : k)];
+            // The two bodies, looked up once for the contact's three constraints.
+            Die& bodyA = dice_[static_cast<std::size_t>(c.a)];
+            Die* bodyB = c.b >= 0 ? &dice_[static_cast<std::size_t>(c.b)] : nullptr;
+            const auto closingOf = [&](const Vec3& direction) {
+                const Vec3 u = pointVelocityOf(bodyA, c.rA);
+                if (bodyB == nullptr) {
+                    return dot(u, direction);
+                }
+                const Vec3 other = pointVelocityOf(*bodyB, c.rB);
+                return dot(Vec3{u.x - other.x, u.y - other.y, u.z - other.z}, direction);
+            };
+            const auto applyTo = [&](const Vec3& j) {
+                kick(bodyA, Vec3{-j.x, -j.y, -j.z}, c.rA);
+                if (bodyB != nullptr) {
+                    kick(*bodyB, j, c.rB);
+                }
+            };
 
             // Along the surface, up to the cone of the normal impulse.
             const double limit = c.friction * c.jn;
-            const auto slide = [&](Vec3 t, double mass, double& accumulated) {
-                const double change = dot(relativeVelocity(c), t) * mass;
+            const auto slide = [&](const Vec3& t, double mass, double& accumulated) {
+                const double change = closingOf(t) * mass;
                 const double next = std::clamp(accumulated + change, -limit, limit);
-                const Vec3 j = t * (next - accumulated);
+                const double delta = next - accumulated;
                 accumulated = next;
-                impulse(c.a, -j, c.rA);
-                impulse(c.b, j, c.rB);
+                applyTo(Vec3{t.x * delta, t.y * delta, t.z * delta});
             };
             slide(c.t1, c.massT1, c.jt1);
             slide(c.t2, c.massT2, c.jt2);
 
             // Along the normal: a contact only pushes.
-            const double closing = dot(relativeVelocity(c), c.n);
+            const double closing = closingOf(c.n);
             const double next = std::max(c.jn + (closing - c.target) * c.massN, 0.0);
-            const Vec3 j = c.n * (next - c.jn);
+            const double delta = next - c.jn;
             c.jn = next;
-            impulse(c.a, -j, c.rA);
-            impulse(c.b, j, c.rB);
+            applyTo(Vec3{c.n.x * delta, c.n.y * delta, c.n.z * delta});
         }
     }
 }
@@ -913,27 +948,34 @@ void World::solveContacts() {
 void World::correctPositions() {
     for (int pass = 0; pass < tuning_.positionPasses; ++pass) {
         for (const Contact& c : contacts_) {
-            const Vec3 rA = rotate(dice_[static_cast<std::size_t>(c.a)].q, c.la);
-            const Vec3 pA = dice_[static_cast<std::size_t>(c.a)].x + rA;
+            // The two bodies, looked up once for the contact.
+            Die& bodyA = dice_[static_cast<std::size_t>(c.a)];
+            Die* bodyB = c.b >= 0 ? &dice_[static_cast<std::size_t>(c.b)] : nullptr;
+            const Vec3 rA = rotate(bodyA.q, c.la);
+            const Vec3 pA{bodyA.x.x + rA.x, bodyA.x.y + rA.y, bodyA.x.z + rA.z};
             Vec3 rB;
             Vec3 pB = c.lb;
-            if (c.b >= 0) {
-                rB = rotate(dice_[static_cast<std::size_t>(c.b)].q, c.lb);
-                pB = dice_[static_cast<std::size_t>(c.b)].x + rB;
+            if (bodyB != nullptr) {
+                rB = rotate(bodyB->q, c.lb);
+                pB = Vec3{bodyB->x.x + rB.x, bodyB->x.y + rB.y, bodyB->x.z + rB.z};
             }
-            const double over = -dot(pB - pA, c.n) - tuning_.slop;
+            const double over =
+                -dot(Vec3{pB.x - pA.x, pB.y - pA.y, pB.z - pA.z}, c.n) - tuning_.slop;
             if (over <= 0.0) {
                 continue;
             }
             const Vec3 rAn = cross(rA, c.n);
             const Vec3 rBn = cross(rB, c.n);
-            const double w = inverseMass(c.a) + inverseInertia(c.a) * dot(rAn, rAn) +
-                             inverseMass(c.b) + inverseInertia(c.b) * dot(rBn, rBn);
+            // A die that is home does not move (it weighs infinitely much); a surface neither.
+            const double w = (bodyA.done ? 0.0 : 1.0) + (bodyA.done ? 0.0 : 6.0) * dot(rAn, rAn) +
+                             (bodyB == nullptr || bodyB->done ? 0.0 : 1.0) +
+                             (bodyB == nullptr || bodyB->done ? 0.0 : 6.0) * dot(rBn, rBn);
             if (w <= 0.0) {
                 continue;
             }
-            const Vec3 p = c.n * (over / w);
-            push(c.a, -p, rA);
+            const double along = over / w;
+            const Vec3 p{c.n.x * along, c.n.y * along, c.n.z * along};
+            push(c.a, Vec3{-p.x, -p.y, -p.z}, rA);
             push(c.b, p, rB);
         }
     }

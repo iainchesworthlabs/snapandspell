@@ -918,6 +918,12 @@ ASAN_OPTIONS=malloc_context_size=30 ctest --preset windows-msvc-debug -R "the na
 applies.) `detect_stack_use_after_return`, the quarantine size, the red zone and
 `fast_unwind_on_malloc` made no difference to the time.
 
+The other cost under ASan is by value copies: with the sanitizer a copy of a
+24-byte vector is a call into the runtime (`__asan_memcpy`), so the dice
+simulation (`src/app/scene/sim`) passes its vectors and quaternions by reference
+and writes the arithmetic of its inner loop out by component. The digests of its
+plays, which the tests compare, are the same as before.
+
 ## Static analysis
 
 clang-tidy and MSVC's `/analyze` are not ctest entries: they are the nightly
