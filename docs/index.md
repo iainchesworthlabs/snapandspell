@@ -4,20 +4,23 @@ WordJewelsSolver finds every word on a Boggle board.
 
 The goal is to hold a real Boggle board up to a webcam, or a phone or tablet
 camera, and have it solve the board, as a learning aid for young children (five
-and six year olds) playing with an adult. That goal is not met yet. Today you
-type the board in, and the program finds and scores the words.
+and six year olds) playing with an adult. It is also a game: Solo Play, where a
+child shakes a box of dice and finds words. You can type a board into `wjs-cli`
+and get the words and their scores; the application plays Solo Play and can read
+a board from the camera, though the reader has only been tested on drawn frames.
 
-!!! note "Status: pre-release, nothing released yet"
-    The solver is real and tested. Camera input and reading letters from a
-    picture do not exist yet, and nothing has been released. (A scanning
-    library that reads a board from a frame is built and tested on drawn frames only:
-    no camera is connected to it and it has not seen a real board. See
-    [Scanner design](design/scanner.md).) The English word list is ENABLE, and a
-    Windows build installs and packages ([Building](building.md#packaging)). It has been
-    built and run on Windows with MSVC only; the Linux and macOS code is
-    written but has not been built. It has not been tried with children.
-    [Architecture](architecture.md) says what is built, and the
-    [roadmap](roadmap.md) says what comes next.
+!!! note "Status: pre-release, 0.1.0 not yet released"
+    The solver, the Solo Play game and the parent area are real and tested.
+    The scanner's reader and the desktop camera exist, and **no real board has
+    been read**: the reader is tested on drawn frames only
+    ([Scanner design](design/scanner.md)). CI builds and tests the library and
+    `wjs-cli` on Windows, Linux and macOS and the application on Windows; the
+    release workflow builds packages for all three desktops and an ad-hoc iOS build
+    for the author's own devices, and has never run on GitHub. Android is in
+    progress and does not exist yet. The English word list is ENABLE. It has not been
+    tried with children. [Architecture](architecture.md) says what is built,
+    [Requirements and traceability](requirements.md) lists each requirement with the
+    test that shows it, and the [roadmap](roadmap.md) says what comes next.
 
 ## What works today
 
@@ -27,13 +30,19 @@ type the board in, and the program finds and scores the words.
 - **`wjs-cli`**, a command-line front end to the library: give it a board and a
   word list, and it prints the words, their scores and the tiles that spell
   them.
-- **A small Qt Quick window**, built when Qt 6.12 is found
+- **The Qt Quick application**, built when Qt 6.12 is found
   (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it):
-  the Solo Play game of [Game design](design/game.md) — shake the box, trace
-  words on the board and collect jewels — played over the library's session.
-  It is a shell over the same library, not the camera application.
+  the Solo Play game of [Game design](design/game.md) (shake the box, trace
+  words on the board and collect jewels) played over the library's session, a
+  parent area behind a gate (the dashboard, the settings, About and licences),
+  the interface in eight languages, and Mode A: a camera or typed board that the
+  grown-up confirms, and a helper that lights a start tile. It is a shell over
+  the same library.
+- **A board reader** (`src/scan`) that finds a board in a camera frame and reads
+  its letters, with a confirm-and-correct step so the solver only sees a
+  confirmed board. Tested on drawn frames.
 - **A platform layer** (`src/platforms`) holding the little that differs
-  between Windows, Linux and macOS, and a check that nothing else does. See
+  between Windows, Linux, macOS and iOS, and a check that nothing else does. See
   [Platform isolation](platform-isolation.md).
 
 ## Using the command-line solver
@@ -136,18 +145,20 @@ word list is also missing.
 
 ## Using the window
 
-The window is built when a Qt 6.12 kit is found (`WJS_BUILD_APP=AUTO`; see
+The application is built when a Qt 6.12 kit is found (`WJS_BUILD_APP=AUTO`; see
 [Building](building.md#the-qt-quick-window)), then start `WordJewelsSolver`
 from `build/<preset>/bin/`. It plays the Solo Play
-game: shake the box and trace words on the board. The default board is the
+game: shake the box and trace words on the board. A grown-up reaches the
+settings, the dashboard and the scanner (Mode A) through the parent button, which
+asks for a two-second press-and-hold. The default board is the
 **standard board**, a roll of the project's dice (`dice/` beside the executable)
 at 3x3 to 6x6 against the English dictionary (`dictionaries/en.txt` beside the
 executable, or the one `--dictionary <file>` names); the phonics board is played
 when the program is started with `--phase-directory <dir>` and the Phonics board
 is chosen in the parent area's settings. A game in progress is kept in the store
 (`--store <file>`, or the per-user file) and comes back after a restart. The
-window always uses a minimum length of three letters and standard Boggle
-scoring; the options of `wjs-cli` have no equivalent in it yet.
+application always uses a minimum length of three letters and its own star and
+point scoring; the options of `wjs-cli` have no equivalent in it.
 
 ## Where to go next
 
@@ -162,4 +173,6 @@ scoring; the options of `wjs-cli` have no equivalent in it yet.
 | [CI](ci.md) and [Branch protection](branch-protection.md) | What runs on a pull request, and how the branches are protected |
 | [Roadmap](roadmap.md) | What is planned |
 | [Product requirements](product-requirements.md) | The product brief the roadmap is built from |
+| [Requirements and traceability](requirements.md) | Each requirement, where it is built, the test that shows it, and what is left |
+| [Design](design/index.md) | The game, board, phonics, application, parent-area and scanner design |
 | [FAQ](faq.md) | Short answers |

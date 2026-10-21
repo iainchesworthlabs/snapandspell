@@ -61,8 +61,12 @@ A checker, `tools/data/check_phonics.ps1`, in the style of
 - no duplicate words; sorted, as the other lists are;
 - a file with no `reviewed-by`, `reviewed-on` (as `YYYY-MM-DD`) and `source` is
   a **test file**: the release configurations refuse to build with one in the
-  data. That is the review gate as a build rule, not a hope. A file that claims
-  a review has to say where its list came from; test data need not.
+  data (`tools/data/check_phonics_review.cmake`, a target of the library). That
+  is the review gate as a build rule, not a hope, **and it holds for the files in
+  `data/phonics` at build time only**. At run time the application merely warns
+  about a phase it was given that lacks its review (`--phase-directory`), and it
+  installs no phase data, so no phase ships. A file that claims a review has to
+  say where its list came from; test data need not.
 
 Tests use phase files of a dozen words written in the test itself, as the
 repository's rule for word lists says, and they are marked as test data.

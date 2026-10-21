@@ -24,8 +24,8 @@ How to read the evidence marks:
    The command-line package carries no third-party code; the rest of what is
    used today is a build tool (vcpkg) and a test framework (Catch2), neither of
    which is in a package.
-4. **Qt 6.12 is used by the optional window** and is planned for the GUI. The
-   window links Qt Quick 3D for the 3D board scene, which Qt offers only under
+4. **Qt 6.12 is used by the application** (the optional window; the library and
+   the CLI do not use it). The window links Qt Quick 3D for the 3D board scene, which Qt offers only under
    the GPL-3.0 or commercially, so a build of the window is **GPL-3.0 only**
    (the author's recorded decision; see [Qt](#qt)). The library and the CLI stay
    free of Qt and of that consequence. A package of the window says so plainly
@@ -74,8 +74,8 @@ unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
 | Qt 6.12 (Core, Gui, Qml, Quick, Quick Controls 2, Quick 3D) | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 for the first five; **Quick 3D: GPL-3.0 only** [I] | The optional Qt Quick window; not built by vcpkg. A build of the window is GPL-3.0 only | Yes, in a Windows package: the DLLs, plugins and QML modules the window loads, with the LGPL text in `NOTICES.txt` |
 | Qt 6.12 Multimedia, Sensors and TextToSpeech | LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only [V: `<qt>/sbom/qt{multimedia,sensors,speech}-6.12.0.spdx` in the shared kit] | The feedback engines: short sounds, the device's speech, the accelerometer/gyroscope. Optional at build time (silent variants) | Yes, in a Windows package when the kit has them: the DLLs and their plugins, under the LGPL option |
 | The project's feedback sounds (`assets/sounds/*.wav`) | GPL-3.0-or-later, the project's own work; synthesised placeholders for the reviewer's recordings [V: `tools/sounds/make_sounds.ps1`] | The eight cue assets | Yes, embedded in the application |
-| Tracy | BSD-3-Clause [I] | Planned: opt-in profiling | Not present yet |
-| A camera and letter-recognition stack | Not chosen | Planned | Not present yet |
+| Tracy 0.14.1 (a vcpkg port) | BSD-3-Clause [V: the port's installed `copyright`, reproduced in `notices/fragments/tracy.txt`] | Profiling, in the Debug and `*-profiling` presets only. It opens a TCP listener ([Profiling](profiling.md#the-profiler-listens-on-the-network)) | **Never in a release.** The release presets build without it and `cpack` refuses a Tracy build; a development package (a Debug build, which is what CI uploads) carries `TracyClient` and a Tracy section in its notices, added to `NOTICES.txt` only when the build has Tracy |
+| The camera: Qt Multimedia (above); the letter reader | Qt Multimedia as above; the reader is the project's own code | Mode A's live picture on the desktops, and the reader | Yes: the Multimedia DLLs and plugin with the rest of Qt, and the project's code. No OpenCV, Vision or trained model is used yet |
 
 Ports are listed with the licence in their installed `copyright` file. The
 notices a package carries are assembled from what actually ships
@@ -152,10 +152,11 @@ obligations that come with them: the LGPL-3.0 text travels in `NOTICES.txt`
 with a binary-compatible Qt 6 (they are loaded from beside the program through
 the `qt.conf` the install-time deploy writes), and Qt's corresponding source is
 named where it is published. The application embeds the notice, so the About
-screen shows it without a file to find. The Linux distribution packages declare
-Qt as a dependency and leave the libraries to the system; no macOS host has
-built the window with Qt yet, so that package's deployment is unverified
-([CI](ci.md)).
+screen shows it without a file to find. The Linux `.deb` and `.rpm` are the
+command-line solver only and carry no Qt; the Linux application is an AppImage that
+bundles Qt, and the macOS application is a bundle with Qt deployed into it. Both are
+built by `release.yml` and **have never run**, so how they meet the replaceability
+and notice obligations is unverified ([CI](ci.md)).
 
 ## The word list
 
@@ -232,11 +233,11 @@ catalogues (`qtbase_*.qm` and friends) are **not** installed or merged.
 
 ## Camera input and letter recognition
 
-The first slice of both is built (`src/scan`) and **adds no third-party code**: the
-camera interface has no backend on the desktops, and the reader is the project's own
-C++23 over a byte buffer, matching glyphs against the project's own stroke font (a
-drawing of the project's, not a typeface of anyone's), with no trained model and no data
-file. So nothing here has a licence to record yet. An OpenCV-backed reader, a Vision
+Both are built (`src/scan`) and add **no third-party code beyond Qt**: the desktops'
+camera backend is Qt Multimedia (already recorded above), and the reader is the
+project's own C++23 over a byte buffer, matching glyphs against the project's own stroke
+font (a drawing of the project's, not a typeface of anyone's), with no trained model and
+no data file. So nothing here has a further licence to record yet. An OpenCV-backed reader, a Vision
 reader on the iPad, or a font or model trained from the real dice would each add one
 ([Scanner design](design/scanner.md#no-image-dependency)). When one is added:
 
