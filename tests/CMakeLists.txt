@@ -746,6 +746,15 @@ add_test(NAME profiling.zone_names
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_zone_names.cmake")
 
+# Tracy is built for any machine of its architecture: the repository's tracy port
+# (an overlay on the fork's) passes NO_ISA_EXTENSIONS, since a vcpkg cache built on
+# one hosted runner is restored on another and a -march=native tracy-capture dies
+# there with SIGILL. Reads files only, so it runs in every leg.
+add_test(NAME profiling.tracy_portable
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_tracy_port.cmake")
+
 # A trace of the program holds the names the documents say it does: the program
 # is run with the Tracy capture attached and the exported trace is read
 # (check_trace.cmake). check_zone_names reads the sources, which cannot tell a zone
@@ -933,6 +942,7 @@ set(WJS_QUALITY_TESTS
     platform.fragments
     profiling.perf_budgets_ran
     profiling.shipped_presets
+    profiling.tracy_portable
     profiling.zone_names
     toolchain.versions
     privacy.sources
