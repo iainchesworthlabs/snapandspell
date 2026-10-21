@@ -3,7 +3,8 @@ import QtQuick.Layouts
 import WordJewelsSolver
 
 // A name, what it does, and the control: side by side where there is room, one
-// above the other where there is not.
+// above the other where there is not. A card of the kit's look (the card colour
+// and the `line` edge); the name and the hint are Labels.
 Rectangle {
     id: root
 
@@ -15,8 +16,8 @@ Rectangle {
 
     implicitHeight: layout.implicitHeight + 2 * Theme.space4
     radius: Theme.radius
-    color: Theme.surface
-    border.width: 1
+    color: Theme.card
+    border.width: Theme.hair
     border.color: Theme.line
 
     GridLayout {
@@ -33,22 +34,17 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredWidth: root.narrow ? root.width : root.width * 0.4
             spacing: Theme.space1
-            Text {
+            Label {
                 Layout.fillWidth: true
+                role: "label"
                 text: root.title
-                font.family: Theme.uiFont
-                font.pixelSize: Theme.bodySize
-                font.weight: Font.DemiBold
-                color: Theme.ink
                 wrapMode: Text.WordWrap
             }
-            Text {
+            Label {
                 Layout.fillWidth: true
                 visible: root.hint.length > 0
+                role: "caption"
                 text: root.hint
-                font.family: Theme.uiFont
-                font.pixelSize: Theme.smallSize
-                color: Theme.inkSecondary
                 wrapMode: Text.WordWrap
             }
         }

@@ -7,6 +7,11 @@ import WordJewelsSolver
 // the words and the earlier boards live, so the play panel can be about the
 // board in front of the child. Nothing here is a rank against anyone else: the
 // records are this device's own, and there is nothing to lose.
+//
+// Every block is a kit Card (a heading and, when there is nothing in it, an
+// empty state); the best boards are a grid of three columns, not a line padded
+// with spaces. Gold is the reward and appears only where one is shown: the big
+// jewel and the points beside it, and each found word's jewel.
 FocusScope {
     id: root
 
@@ -29,6 +34,19 @@ FocusScope {
     // beyond the size, and no one else's score exists to compare with.
     readonly property var bestSizes: [3, 4, 5, 6]
     readonly property bool anyBest: root.bestSizes.some(size => root.bestStars(size) > 0)
+    // The cells of the best-boards grid, three to a row: the size, the stars and
+    // the words of that board. A size with no board kept has no row.
+    readonly property var bestCells: {
+        const cells = [];
+        for (const size of root.bestSizes) {
+            const stars = root.bestStars(size);
+            if (stars > 0) {
+                cells.push(JewelsWording.sizeLabel(size), JewelsWording.stars(stars),
+                           JewelsWording.words(root.bestWords(size)));
+            }
+        }
+        return cells;
+    }
 
     function bestStars(size) {
         let best = 0;
@@ -47,6 +65,82 @@ FocusScope {
             }
         }
         return best;
+    }
+
+    // A found word: its jewel and the word, pressed to hear it. A sticker on the
+    // card (the page's own paper and its edge), reachable by keyboard.
+    component WordChip: Rectangle {
+        id: chip
+
+        required property int index
+        required property var modelData
+        readonly property bool showFocus: activeFocus && !pointerFocus
+        property bool pointerFocus: false
+
+        implicitWidth: chipRow.implicitWidth + 2 * Theme.space3
+        implicitHeight: Theme.targetMin
+        radius: height / 2
+        color: chipTap.pressed ? Theme.pressWash : (chipHover.hovered ? Theme.hoverWash : Theme.panel)
+        border.width: Theme.hair
+        border.color: Theme.line
+        activeFocusOnTab: true
+
+        Accessible.role: Accessible.Button
+        Accessible.name: chip.modelData.word
+        Accessible.focusable: true
+        Accessible.onPressAction: Feedback.cue("speak", chip.modelData.word)
+
+        Row {
+            id: chipRow
+            anchors.centerIn: parent
+            spacing: Theme.space2
+
+            Jewel {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Theme.jewelSm
+                height: width
+                tier: chip.modelData.word.length <= 3 ? "spark"
+                      : (chip.modelData.word.length === 4 ? "power" : "mega")
+                colorIndex: chip.index
+                Accessible.ignored: true
+            }
+            Label {
+                anchors.verticalCenter: parent.verticalCenter
+                role: "word"
+                text: chip.modelData.word
+                decorative: true
+            }
+        }
+
+        FocusRing {
+            visible: chip.showFocus
+            inner: chip.radius
+        }
+        HoverHandler {
+            id: chipHover
+        }
+        TapHandler {
+            id: chipTap
+            onPressedChanged: {
+                if (chipTap.pressed) {
+                    chip.pointerFocus = true;
+                }
+            }
+            onTapped: Feedback.cue("speak", chip.modelData.word)
+        }
+        Keys.onPressed: event => {
+            chip.pointerFocus = false;
+            const acts = event.key === Qt.Key_Space || event.key === Qt.Key_Return || event.key === Qt.Key_Enter;
+            if (acts) {
+                Feedback.cue("speak", chip.modelData.word);
+            }
+            event.accepted = acts;
+        }
+        onActiveFocusChanged: {
+            if (!chip.activeFocus) {
+                chip.pointerFocus = false;
+            }
+        }
     }
 
     Component.onCompleted: {
@@ -87,61 +181,54 @@ FocusScope {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
-        Column {
+        ColumnLayout {
             id: column
-            width: Math.min(page.width - 2 * Theme.space6, 980)
+            width: Math.min(page.width - 2 * Theme.space6, Theme.contentWidth)
             x: (page.width - width) / 2
             y: Theme.space6
             spacing: Theme.space6
 
             // --- the big picture ------------------------------------------------
-            Rectangle {
-                width: parent.width
-                implicitHeight: hero.implicitHeight + 2 * Theme.space6
+            Card {
+                Layout.fillWidth: true
                 radius: Theme.radiusLarge
-                color: Theme.card
-                border.width: 1
-                border.color: Theme.gold
+                padding: Theme.space6
+                Accessible.name: JewelsWording.jewels(root.controller.lifetimeStars)
 
                 RowLayout {
-                    id: hero
-                    anchors.fill: parent
-                    anchors.margins: Theme.space6
+                    Layout.fillWidth: true
                     spacing: Theme.space6
 
                     Jewel {
-                        Layout.preferredWidth: 72
-                        Layout.preferredHeight: 72
+                        Layout.preferredWidth: Theme.jewelXl
+                        Layout.preferredHeight: Theme.jewelXl
                         Layout.alignment: Qt.AlignVCenter
                         tier: "mega"
                         color: Theme.gold
+                        Accessible.ignored: true
                     }
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: Theme.space1
-                        Text {
+                        Label {
                             Layout.fillWidth: true
+                            role: "title"
                             text: JewelsWording.jewels(root.controller.lifetimeStars)
-                            font.family: Theme.uiFont
-                            font.pixelSize: Theme.titleSize
-                            font.weight: Font.ExtraBold
-                            color: Theme.ink
                             wrapMode: Text.WordWrap
                         }
-                        Text {
+                        Label {
                             Layout.fillWidth: true
+                            role: "label"
                             text: JewelsWording.points(root.controller.lifetimePoints)
-                            font.family: Theme.monoFont
-                            font.pixelSize: Theme.labelSize
                             color: Theme.goldInk
                         }
-                        Text {
+                        Label {
                             Layout.fillWidth: true
+                            role: "body"
+                            learning: true
                             text: JewelsWording.words(root.controller.lifetimeWords)
                                    + (root.controller.longestWord.length > 0
                                       ? "  ·  " + JewelsWording.longest(root.controller.longestWord) : "")
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.bodySize
                             color: Theme.inkSecondary
                             wrapMode: Text.WordWrap
                         }
@@ -150,223 +237,117 @@ FocusScope {
             }
 
             // --- my best boards ---------------------------------------------------
-            Rectangle {
-                width: parent.width
+            Card {
+                Layout.fillWidth: true
                 visible: root.anyBest
-                implicitHeight: bestColumn.implicitHeight + 2 * Theme.space4
-                radius: Theme.radius
-                color: Theme.card
-                border.width: 1
-                border.color: Theme.line
+                title: JewelsWording.bestTitle
 
-                Column {
-                    id: bestColumn
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space2
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: 3
+                    columnSpacing: Theme.space6
+                    rowSpacing: Theme.space2
 
-                    Text {
-                        text: JewelsWording.bestTitle
-                        font.family: Theme.uiFont
-                        font.pixelSize: Theme.headingSize
-                        font.weight: Font.DemiBold
-                        color: Theme.ink
-                    }
                     Repeater {
-                        model: root.bestSizes
+                        model: root.bestCells
 
-                        Text {
-                            required property int modelData
-                            visible: root.bestStars(modelData) > 0
-                            text: JewelsWording.bestLine(modelData, root.bestStars(modelData),
-                                                         root.bestWords(modelData))
-                            font.family: Theme.monoFont
-                            font.pixelSize: Theme.labelSize
-                            color: Theme.ink
+                        Label {
+                            required property int index
+                            required property string modelData
+                            // The size leads its row; the stars and the words
+                            // follow in the voice of the page.
+                            role: index % 3 === 0 ? "label" : "body"
+                            lineRatio: Theme.lineBody
+                            learning: index % 3 !== 0
+                            text: modelData
+                            Layout.fillWidth: index % 3 === 2
+                            Layout.alignment: Qt.AlignBaseline
                         }
                     }
                 }
             }
 
             // --- this week -------------------------------------------------------
-            Rectangle {
-                width: parent.width
+            Card {
+                Layout.fillWidth: true
                 visible: root.week.played
-                implicitHeight: weekColumn.implicitHeight + 2 * Theme.space4
-                radius: Theme.radius
-                color: Theme.card
-                border.width: 1
-                border.color: Theme.line
+                title: JewelsWording.weekTitle
 
-                ColumnLayout {
-                    id: weekColumn
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space1
-                    Text {
-                        text: JewelsWording.weekTitle
-                        font.family: Theme.uiFont
-                        font.pixelSize: Theme.headingSize
-                        font.weight: Font.DemiBold
-                        color: Theme.ink
-                    }
-                    Text {
-                        text: JewelsWording.weekLine(root.week.stars, root.week.newWords)
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
-                    }
-                    Text {
-                        visible: root.week.longestWord.length > 0
-                        text: JewelsWording.longest(root.week.longestWord)
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
-                    }
+                Label {
+                    Layout.fillWidth: true
+                    role: "body"
+                    learning: true
+                    text: JewelsWording.weekLine(root.week.stars, root.week.newWords)
+                    color: Theme.inkSecondary
+                    wrapMode: Text.WordWrap
+                }
+                Label {
+                    Layout.fillWidth: true
+                    visible: root.week.longestWord.length > 0
+                    role: "body"
+                    learning: true
+                    text: JewelsWording.longest(root.week.longestWord)
+                    color: Theme.inkSecondary
+                    wrapMode: Text.WordWrap
                 }
             }
 
             // --- the words -------------------------------------------------------
-            Rectangle {
-                width: parent.width
+            Card {
+                Layout.fillWidth: true
                 visible: !root.empty
-                implicitHeight: shelfColumn.implicitHeight + 2 * Theme.space4
-                radius: Theme.radius
-                color: Theme.card
-                border.width: 1
-                border.color: Theme.line
+                title: JewelsWording.shelfTitle
+                empty: root.words.length === 0
+                emptyText: JewelsWording.shelfEmpty
 
-                Column {
-                    id: shelfColumn
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space3
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
 
-                    Text {
-                        text: JewelsWording.shelfTitle
-                        font.family: Theme.uiFont
-                        font.pixelSize: Theme.headingSize
-                        font.weight: Font.DemiBold
-                        color: Theme.ink
-                    }
-                    Text {
-                        visible: root.words.length === 0
-                        text: JewelsWording.shelfEmpty
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
-                    }
-                    Flow {
-                        width: parent.width
-                        spacing: Theme.space2
+                    Repeater {
+                        model: root.words
 
-                        Repeater {
-                            model: root.words
-
-                            Rectangle {
-                                id: chip
-                                required property int index
-                                required property var modelData
-                                width: chipRow.implicitWidth + 2 * Theme.space3
-                                height: 48
-                                radius: 24
-                                color: Theme.accentSoft
-                                border.width: 1
-                                border.color: Theme.accent
-
-                                Row {
-                                    id: chipRow
-                                    anchors.centerIn: parent
-                                    spacing: Theme.space2
-                                    Jewel {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        width: 22
-                                        height: 22
-                                        tier: chip.modelData.word.length <= 3 ? "spark"
-                                              : (chip.modelData.word.length === 4 ? "power" : "mega")
-                                        colorIndex: chip.index
-                                    }
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: chip.modelData.word
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.labelSize
-                                        color: Theme.ink
-                                    }
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: Feedback.cue("speak", chip.modelData.word)
-                                }
-                                Accessible.role: Accessible.Button
-                                Accessible.name: chip.modelData.word
-                                Accessible.onPressAction: Feedback.cue("speak", chip.modelData.word)
-                            }
+                        WordChip {
                         }
                     }
                 }
             }
 
             // --- earlier boards ---------------------------------------------------
-            Rectangle {
-                width: parent.width
+            Card {
+                Layout.fillWidth: true
                 visible: !root.empty
-                implicitHeight: boardsColumn.implicitHeight + 2 * Theme.space4
-                radius: Theme.radius
-                color: Theme.card
-                border.width: 1
-                border.color: Theme.line
+                title: JewelsWording.boardsTitle
+                empty: root.recent.length === 0
+                emptyText: JewelsWording.boardsEmpty
 
-                Column {
-                    id: boardsColumn
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space3
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: Theme.space4
 
-                    Text {
-                        text: JewelsWording.boardsTitle
-                        font.family: Theme.uiFont
-                        font.pixelSize: Theme.headingSize
-                        font.weight: Font.DemiBold
-                        color: Theme.ink
-                    }
-                    Text {
-                        visible: root.recent.length === 0
-                        text: JewelsWording.boardsEmpty
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
-                    }
-                    Flow {
-                        width: parent.width
-                        spacing: Theme.space4
+                    Repeater {
+                        model: root.recent.slice(0, 8)
 
-                        Repeater {
-                            model: root.recent.slice(0, 8)
+                        Column {
+                            id: boardCard
+                            required property var modelData
+                            width: Theme.thumbSheetCell
+                            spacing: Theme.space1
 
-                            Column {
-                                id: boardCard
-                                required property var modelData
-                                width: 142
-                                spacing: Theme.space1
-
-                                BoardThumb {
-                                    width: 132
-                                    height: 132
-                                    rows: boardCard.modelData.rows
-                                    columns: boardCard.modelData.columns
-                                    tiles: boardCard.modelData.tiles
-                                    found: boardCard.modelData.words
-                                }
-                                Text {
-                                    width: parent.width
-                                    text: JewelsWording.boardLine(boardCard.modelData.stars,
-                                                                  boardCard.modelData.found)
-                                    font.family: Theme.monoFont
-                                    font.pixelSize: Theme.monoSize
-                                    color: Theme.inkSecondary
-                                    elide: Text.ElideRight
-                                }
+                            BoardThumb {
+                                width: parent.width
+                                height: width
+                                rows: boardCard.modelData.rows
+                                columns: boardCard.modelData.columns
+                                tiles: boardCard.modelData.tiles
+                                found: boardCard.modelData.words
+                            }
+                            Label {
+                                width: parent.width
+                                role: "caption"
+                                text: JewelsWording.boardLine(boardCard.modelData.stars,
+                                                              boardCard.modelData.found)
+                                elide: Text.ElideRight
                             }
                         }
                     }
@@ -374,35 +355,20 @@ FocusScope {
             }
 
             // --- a first visit ------------------------------------------------------
-            Column {
-                width: parent.width
+            Card {
+                Layout.fillWidth: true
                 visible: root.empty
-                spacing: Theme.space2
-                Text {
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    text: JewelsWording.emptyTitle
-                    font.family: Theme.uiFont
-                    font.pixelSize: Theme.headingSize
-                    font.weight: Font.DemiBold
-                    color: Theme.ink
-                }
-                Text {
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    text: JewelsWording.emptyBody
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.bodySize
-                    color: Theme.inkSecondary
-                    wrapMode: Text.WordWrap
-                }
-                AppButton {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    size: "primary"
-                    variant: "primary"
-                    label: JewelsWording.play
-                    onClicked: root.playRequested()
-                }
+                empty: true
+                emptyTitle: JewelsWording.emptyTitle
+                emptyText: JewelsWording.emptyBody
+            }
+            AppButton {
+                Layout.alignment: Qt.AlignHCenter
+                visible: root.empty
+                size: "primary"
+                variant: "primary"
+                label: JewelsWording.play
+                onClicked: root.playRequested()
             }
         }
     }

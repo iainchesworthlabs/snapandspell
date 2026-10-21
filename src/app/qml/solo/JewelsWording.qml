@@ -20,10 +20,12 @@ QtObject {
     }
 
     readonly property string bestTitle: qsTr("My best boards")
-    function bestLine(size, stars, words) {
-        const starText = stars === 1 ? qsTr("1 star") : qsTr("%1 stars").arg(stars);
-        const wordText = words === 1 ? qsTr("1 word") : qsTr("%1 words").arg(words);
-        return qsTr("%1 × %2").arg(size).arg(size) + "   " + starText + "  ·  " + wordText;
+    // The three cells of a best board's row: its size, its stars and its words.
+    function sizeLabel(size) {
+        return qsTr("%1 × %2").arg(size).arg(size);
+    }
+    function stars(count) {
+        return count === 1 ? qsTr("1 star") : qsTr("%1 stars").arg(count);
     }
 
     readonly property string weekTitle: qsTr("This week")

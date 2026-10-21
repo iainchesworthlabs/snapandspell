@@ -4,7 +4,9 @@ import WordJewelsSolver
 
 // The persistent top bar of a screen, the child's and the parent's. On home it
 // carries the wordmark; on a child screen the way back and the screen's name;
-// in the parent area the wordmark, "Parent area" and the four tabs. The
+// in the parent area the wordmark, "Parent area" and the four tabs. Home's
+// three entries (the boards, the jewels, the grown-ups) are bordered buttons
+// with a picture and a word, so they read as buttons beside one another; the
 // grown-up entry is always a labelled control, never a bare person icon.
 //
 // The bar is 72 dp. When the leading and trailing groups do not fit one line -
@@ -125,7 +127,9 @@ Item {
         AppButton {
             visible: root.showBoards
             size: "min"
-            variant: "ghost"
+            variant: "secondary"
+            quiet: true
+            iconName: "history"
             label: qsTr("My boards")
             accessibleName: qsTr("My boards")
             onClicked: root.boardsRequested()
@@ -134,7 +138,9 @@ Item {
         AppButton {
             visible: root.showJewels
             size: "min"
-            variant: "ghost"
+            variant: "secondary"
+            quiet: true
+            iconName: "jewel"
             label: qsTr("My jewels")
             accessibleName: qsTr("My jewels")
             onClicked: root.jewelsRequested()
@@ -157,7 +163,8 @@ Item {
         AppButton {
             visible: root.showParent
             size: "min"
-            variant: "ghost"
+            variant: "secondary"
+            quiet: true
             iconName: "parent"
             label: qsTr("For grown-ups")
             accessibleName: qsTr("For grown-ups")
