@@ -15,7 +15,6 @@
 set(WJS_ALLOW_PIXEL_SIZE
     "parent/DashboardScreen.qml=1"
     "parent/SettingsScreen.qml=1"
-    "scan/CheckScreen.qml=1"
 )
 
 set(WJS_ALLOW_LETTER_SPACING
@@ -38,9 +37,6 @@ set(WJS_ALLOW_BARE_TEXT
     "parent/Section.qml=1"
     "parent/SettingRow.qml=2"
     "parent/SettingsScreen.qml=6"
-    "scan/AssistScreen.qml=3"
-    "scan/CheckScreen.qml=9"
-    "scan/ScanScreen.qml=8"
     "solo/FlatBoard.qml=1"
     "solo/JewelsScreen.qml=16"
     "solo/PlayingPanel.qml=12"
@@ -56,6 +52,5 @@ set(WJS_ALLOW_GOLD_SELECTION
 )
 
 set(WJS_ALLOW_ICON_ONLY
-    "scan/AssistScreen.qml=1"
 )
 

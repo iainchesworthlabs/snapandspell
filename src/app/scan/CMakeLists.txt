@@ -30,8 +30,12 @@ set(WJS_SCAN_QML_FILES
     AssistBoard.qml
     AssistHistory.qml
     AssistScreen.qml
+    CameraOffArt.qml
     CheckScreen.qml
+    LetterPicker.qml
+    RingedQuestion.qml
     ScanScreen.qml
+    ScanStepper.qml
     ScanWording.qml)
 
 # The module's files are in another directory than this CMake file, so each is
