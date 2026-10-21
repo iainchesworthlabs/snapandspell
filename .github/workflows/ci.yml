@@ -116,43 +116,22 @@ jobs:
         shell: pwsh
         run: ./tools/checks/check_platform_isolation.ps1 -Root $PWD
 
-  # Picks the desktop build legs. A push, pull request or merge_group run
-  # always gets all three; only a manual dispatch can narrow it. The matrix
-  # lives here, as JSON, because a job-level `if` cannot see `matrix`.
+  # Checks the legs a manual dispatch names (an unknown name fails the run
+  # rather than running nothing). The legs themselves do not wait for this job:
+  # they pick themselves from the same input (build-and-test below). It is a
+  # required check, so it stays, and it is a job of its own so that a bad name
+  # is a red check with a message.
   plan:
     name: Plan build legs
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
-    outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
-      - name: Select build legs
-        id: plan
+      - name: Check the named legs
         shell: bash
         env:
           LEGS: ${{ github.event_name == 'workflow_dispatch' && inputs.legs || 'all' }}
         run: |
-          # One leg per desktop platform, each on its own default compiler:
-          # MSVC on the VS 2026 image, the image's g++ on Ubuntu, AppleClang
-          # (Xcode) on the Apple-silicon macOS image. The triplet is the vcpkg
-          # triplet the preset selects; it names the binary cache.
-          all='[
-            {"leg": "windows", "name": "Windows (MSVC)",     "os": "windows-2025-vs2026", "preset": "windows-msvc-debug", "triplet": "x64-windows"},
-            {"leg": "linux",   "name": "Linux (GCC)",        "os": "ubuntu-26.04",        "preset": "linux-gcc-debug",    "triplet": "x64-linux"},
-            {"leg": "macos",   "name": "macOS (AppleClang)", "os": "macos-26",            "preset": "macos-clang-debug",  "triplet": "arm64-osx"}
-          ]'
-          # The profiling presets (RelWithDebInfo with Tracy: docs/profiling.md)
-          # are the same three platforms, and are only ever run when a dispatch
-          # names them: the client opens a network port and the vcpkg tools
-          # take a while to build, so a push does not pay for them as well as
-          # for the debug legs, which are instrumented by default (their Tracy
-          # is a debug build's, for connecting, not for numbers).
-          profiling='[
-            {"leg": "profiling-windows", "name": "Profiling (Windows, MSVC)",     "os": "windows-2025-vs2026", "preset": "windows-msvc-profiling", "triplet": "x64-windows"},
-            {"leg": "profiling-linux",   "name": "Profiling (Linux, GCC)",        "os": "ubuntu-26.04",        "preset": "linux-gcc-profiling",    "triplet": "x64-linux"},
-            {"leg": "profiling-macos",   "name": "Profiling (macOS, AppleClang)", "os": "macos-26",            "preset": "macos-clang-profiling",  "triplet": "arm64-osx"}
-          ]'
           case "$LEGS" in
             *[[:space:]]*)
               echo "::error::legs must be comma-separated with no spaces: '$LEGS'"
@@ -166,19 +145,7 @@ jobs:
                  exit 1 ;;
             esac
           done
-          if [ -z "$LEGS" ] || [ "$LEGS" = all ]; then
-            selected=$(jq -c . <<<"$all")
-          else
-            selected=$(jq -c --arg legs ",${LEGS}," '[.[] | select(.leg as $leg | $legs | contains("," + $leg + ","))]' <<<"$all")
-            # `profiling` names all three of the Tracy builds.
-            named=$(jq -c --arg legs ",${LEGS}," '[.[] | select((.leg as $leg | $legs | contains("," + $leg + ",")) or ($legs | contains(",profiling,")))]' <<<"$profiling")
-            selected=$(jq -c -n --argjson a "$selected" --argjson b "$named" '$a + $b')
-          fi
-          count=$(jq 'length' <<<"$selected")
-          # A dispatch that names only clang-format, platform-isolation or
-          # coverage legitimately selects none.
-          echo "legs: $LEGS -> $count desktop leg(s)"
-          echo "matrix=$selected" >> "$GITHUB_OUTPUT"
+          echo "legs: $LEGS"
 
   # Configure, build and test one preset per desktop platform. The Debug
   # presets turn on the sanitizers, Tracy (on by default for Debug builds:
@@ -187,22 +154,43 @@ jobs:
   # platform.fragments and platform.isolation pass under ASan (and UBSan where
   # the compiler has it).
   build-and-test:
-    name: ${{ github.event_name == 'workflow_dispatch' && format('dispatch - {0}', matrix.name) || matrix.name }}
-    needs: plan
-    # The matrix is empty when a dispatch names no desktop leg, which would
-    # otherwise be an error rather than a skip.
-    if: ${{ needs.plan.outputs.matrix != '[]' }}
-    runs-on: ${{ matrix.os }}
+    name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - ' || '' }}${{ fromJSON('{"windows":"Windows (MSVC)","linux":"Linux (GCC)","macos":"macOS (AppleClang)","profiling-windows":"Profiling (Windows, MSVC)","profiling-linux":"Profiling (Linux, GCC)","profiling-macos":"Profiling (macOS, AppleClang)"}')[matrix.leg] }}
+    # No `needs: plan`. The legs used to wait for it, and a job that takes three
+    # seconds still waits for a runner like any other: on a busy day the Windows
+    # leg began half an hour after the run did, behind a three-second job, while
+    # the ungated release package job began after one minute. A push, pull
+    # request or queue run always gets the first three legs; a dispatch picks
+    # from its `legs` input, here and in the matrix's `exclude` below.
+    if: ${{ (github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',windows,')) || (github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',linux,')) || (github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',macos,')) || (github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-windows,'))) || (github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-linux,'))) || (github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-macos,'))) }}
+    runs-on: ${{ fromJSON('{"windows":"windows-2025-vs2026","linux":"ubuntu-26.04","macos":"macos-26","profiling-windows":"windows-2025-vs2026","profiling-linux":"ubuntu-26.04","profiling-macos":"macos-26"}')[matrix.leg] }}
     # The Windows leg builds the application and its prototype with the
     # sanitizers on and then runs about a thousand tests; on a hosted runner
     # that is 40 minutes or more, so 45 cancelled it in its last step.
     timeout-minutes: 75
     permissions:
       contents: read
+    env:
+      # What each leg builds with; the steps read these where they used to read the matrix.
+      WJS_PRESET: ${{ fromJSON('{"windows":"windows-msvc-debug","linux":"linux-gcc-debug","macos":"macos-clang-debug","profiling-windows":"windows-msvc-profiling","profiling-linux":"linux-gcc-profiling","profiling-macos":"macos-clang-profiling"}')[matrix.leg] }}
+      WJS_TRIPLET: ${{ fromJSON('{"windows":"x64-windows","linux":"x64-linux","macos":"arm64-osx","profiling-windows":"x64-windows","profiling-linux":"x64-linux","profiling-macos":"arm64-osx"}')[matrix.leg] }}
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+        # One desktop leg per platform, each on its own default compiler: MSVC
+        # on the VS 2026 image, the image's g++ on Ubuntu, AppleClang (Xcode) on
+        # the Apple-silicon macOS image. The runner, the preset and the vcpkg
+        # triplet (which names the binary cache) of each are looked up from the
+        # leg's name, above and in the job's `env`, and are not carried in the
+        # matrix: an `include` entry would bring back a leg that `exclude`
+        # dropped. The profiling presets (RelWithDebInfo with Tracy:
+        # docs/profiling.md) are the same three platforms and run only when a
+        # dispatch names them: the client opens a network port and the vcpkg
+        # tools take a while to build, so a push does not pay for them as well
+        # as for the debug legs, which are instrumented by default.
+        leg: [windows, linux, macos, profiling-windows, profiling-linux, profiling-macos]
+        # The legs this run does not want. The list always ends in a leg that
+        # matches nothing, so that it is valid JSON whatever was dropped.
+        exclude: ${{ fromJSON(format('[{0}{1}{2}{3}{4}{5}{{"leg":"none"}}]', !(github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',windows,')) && '{"leg":"windows"},' || '', !(github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',linux,')) && '{"leg":"linux"},' || '', !(github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',macos,')) && '{"leg":"macos"},' || '', !(github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-windows,'))) && '{"leg":"profiling-windows"},' || '', !(github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-linux,'))) && '{"leg":"profiling-linux"},' || '', !(github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-macos,'))) && '{"leg":"profiling-macos"},' || '')) }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -221,7 +209,7 @@ jobs:
         id: vcpkg-cache
         uses: ./.github/actions/vcpkg-cache/restore
         with:
-          triplet: ${{ matrix.triplet }}
+          triplet: ${{ env.WJS_TRIPLET }}
 
       - name: Install CMake 4 + Ninja
         uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
@@ -277,7 +265,7 @@ jobs:
         id: ccache
         uses: ./.github/actions/ccache/setup
         with:
-          preset: ${{ matrix.preset }}
+          preset: ${{ env.WJS_PRESET }}
 
       # What the leg actually built with, in the log: the first thing to read
       # when a compiler-specific failure shows up.
@@ -308,7 +296,7 @@ jobs:
       - name: Configure
         shell: bash
         env:
-          CMAKE_PRESET: ${{ matrix.preset }}
+          CMAKE_PRESET: ${{ env.WJS_PRESET }}
           QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
         run: |
           if [ "${{ matrix.leg }}" = "windows" ]; then
@@ -327,13 +315,13 @@ jobs:
       - name: Save vcpkg binaries (built, before the build)
         uses: ./.github/actions/vcpkg-cache/save
         with:
-          triplet: ${{ matrix.triplet }}
+          triplet: ${{ env.WJS_TRIPLET }}
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
       - name: Build
         shell: bash
         env:
-          CMAKE_PRESET: ${{ matrix.preset }}
+          CMAKE_PRESET: ${{ env.WJS_PRESET }}
         run: cmake --build --preset "$CMAKE_PRESET"
 
       # The test preset errors out when no test is found, so an empty suite
@@ -342,7 +330,7 @@ jobs:
       - name: Test
         shell: bash
         env:
-          CMAKE_PRESET: ${{ matrix.preset }}
+          CMAKE_PRESET: ${{ env.WJS_PRESET }}
           QT_QPA_PLATFORM: offscreen
           # The offscreen plugin draws text with the fonts in this directory and
           # finds none of its own on Windows: the screen checks and the glyph
@@ -369,7 +357,7 @@ jobs:
         if: matrix.leg == 'windows'
         shell: bash
         env:
-          CMAKE_PRESET: ${{ matrix.preset }}
+          CMAKE_PRESET: ${{ env.WJS_PRESET }}
         run: ctest --preset "$CMAKE_PRESET" -R '^i18n\.catalogues$' --output-on-failure
 
       # The window starts, loads every screen and presents frames, on the leg
@@ -380,7 +368,7 @@ jobs:
         if: matrix.leg == 'windows'
         shell: bash
         env:
-          CMAKE_PRESET: ${{ matrix.preset }}
+          CMAKE_PRESET: ${{ env.WJS_PRESET }}
           QT_QPA_PLATFORM: offscreen
           QSG_RHI_BACKEND: opengl
         run: build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
@@ -405,7 +393,7 @@ jobs:
         if: matrix.leg == 'windows'
         shell: pwsh
         env:
-          CMAKE_PRESET: ${{ matrix.preset }}
+          CMAKE_PRESET: ${{ env.WJS_PRESET }}
         run: ./tools/package/check_package.ps1 -Build "build/$env:CMAKE_PRESET"
 
       - name: Upload the package (Windows)
@@ -416,8 +404,8 @@ jobs:
           # name says so, so that it is never taken for the release one.
           name: wordjewelssolver-windows-x64-debug-dev
           path: |
-            build/${{ matrix.preset }}/packages/*.zip
-            build/${{ matrix.preset }}/packages/SHA256SUMS
+            build/${{ env.WJS_PRESET }}/packages/*.zip
+            build/${{ env.WJS_PRESET }}/packages/SHA256SUMS
           if-no-files-found: error
 
       # Saved even when a later step fails: otherwise a red leg throws away
@@ -427,14 +415,14 @@ jobs:
         if: ${{ always() }}
         uses: ./.github/actions/vcpkg-cache/save
         with:
-          triplet: ${{ matrix.triplet }}
+          triplet: ${{ env.WJS_TRIPLET }}
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
       - name: Save ccache (Windows)
         if: ${{ always() && matrix.leg == 'windows' }}
         uses: ./.github/actions/ccache/save
         with:
-          preset: ${{ matrix.preset }}
+          preset: ${{ env.WJS_PRESET }}
 
   # The performance tier's work budgets (tests/perf; docs/testing.md,
   # "Performance tests"), which the Debug legs above skip: they are counts, the
