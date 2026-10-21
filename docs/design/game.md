@@ -337,19 +337,22 @@ first screen:
 
 ```text
   +-----------------------------------------------------------+
-  |   Is this your board?                        [ turn ]     |
-  |                                                           |
-  |        +------+------+------+------+       4 x 4          |
-  |        |  C   |  A   |  T   |  S   |                      |
-  |        +------+------+------+------+                      |
-  |        |  O   | (R?) |  E   |  D   |   ringed: the reader  |
-  |        +------+------+------+------+   doubts this tile    |
-  |        |  ...                       |                      |
-  |        +------+------+------+------+                      |
-  |                                                           |
-  |   [ Read again ]               [      Yes, play      ]    |
+  |  < Back   Is this your board?                             |
+  |         (v) Place ---- (2) Check ---- (3) Play            |
+  |  +------+------+------+------+  | Board size             |
+  |  |  C   |  A   |  T   |  S   |  |  [3x3][4x4][5x5][6x6]  |
+  |  +------+------+------+------+  |  [ turn ]              |
+  |  |  O   | (R?) |  E   |  D   |  |  A ringed tile may be  |
+  |  +------+------+------+------+  |  wrong. Tap it to ...  |
+  |  |  ...                       |  |  [   Scan again    ]   |
+  |  +------+------+------+------+  |  [  Start playing   ]  |
   +-----------------------------------------------------------+
 ```
+
+The screen uses Solo Play's split (the replica in the leading two thirds, a
+panel in the trailing third; the replica above and the panel below in a tall
+window), so the board is the same tray at the same size on this screen and on
+the assistant's. The steps are shown throughout: Place, Check, Play.
 
 - The replica is **upright**: the real dice are turned every which way and the
   replica is not, which is itself a help to a young reader. **Turn** rotates
@@ -359,6 +362,12 @@ first screen:
   pairs (**unverified**, see [Board design](board.md#sizes)).
 - The size is counted from the picture and shown first; nothing is solved until
   the board is confirmed (question 11).
+- **Start playing** is disabled until every tile has a letter, and a blank typed
+  grid says what to do. With ringed tiles left it asks first, "Check them" or
+  "Play anyway": a wrong letter finds words that are not there, which a young
+  reader cannot tell from a real find. The press is still the grown-up's
+  statement that they looked ([Scanner](scanner.md#confirm-and-correct)).
+- The letter picker and that question are the kit's Sheet over the whole screen.
 - An OCR error would otherwise feed a wrong board to the solver (question 67),
   so **the check is never skipped in the MVP.** The reader and the data flow of
   this screen are built and measured on synthetic frames ([Scanner](scanner.md));
