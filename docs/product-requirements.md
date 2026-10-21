@@ -228,8 +228,13 @@ tier automatically:
   cluster together more often, to raise the chance of finding the larger words,
   such as RAIN and STAR.
 
-**Fact.** Nothing here exists yet: the application stores no progress of any
-kind. The solver library can already list every word on a given board with its
+**Not built, and the design says it will not be (2026-10-22).** The application
+adjusts nothing to a child's tier: the parent chooses the phase and the board
+size, and the app never moves a child between them or raises the help
+([Game](design/game.md)). The note above is the brief's original statement.
+
+**Fact.** The application stores progress locally (the stars, the finds, the best
+boards, the week; section 12.2). The solver library can already list every word on a given board with its
 path and a letter count (the "Qu" tile counts as two letters), so the tier of a
 found word and the number of words of each tier on a board are computable. The
 category lists in `data/lexicon` (animals, colours, shapes, food and others)

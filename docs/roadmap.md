@@ -33,7 +33,7 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | The parent area: gate, dashboard, settings, About and licences, eight languages with right-to-left | Built | Library and app tests, the wording and privacy checks, the screens run in all eight languages. The gate is one press-and-hold ([D9](#4-decisions-that-gate-the-plan)); the translations are mechanical and unreviewed |
 | Windows build (MSVC 19.51, Qt 6.12.0, `/W4 /WX`, ASan) | Verified | CI, Debug: the whole ctest, the application's smoke, a Release package job that checks the ZIP |
 | Linux (GCC 15.2) and macOS (Apple clang 21) builds | The library, `wjs-cli` and their tests verified in CI | Debug, warnings as errors, sanitizers. The Qt application is built on neither in `ci.yml`; `release.yml` builds it (an AppImage and a macOS bundle) and has **never run** |
-| iOS and Android builds of this app | iOS: platform section, preset, unsigned compile check and signed ad-hoc release job written, **never run** ([CI](ci.md#ios)). Android: **in progress** on a separate branch; `cmake/Platform.cmake` still refuses it | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad |
+| iOS and Android builds of this app | iOS: platform section, preset, unsigned compile check and signed ad-hoc release job written: the unsigned compile has passed on a hosted runner, the signing and the install have **never run** ([CI](ci.md#ios)). Android: **in progress** on a separate branch; `cmake/Platform.cmake` still refuses it | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad |
 | Releases | `release.yml` written: Release packages, SBOM, GPG signatures, attestations, a draft release verified from the public side | **Has never run on GitHub**: `main` is behind `develop`, so scheduled and manually dispatched workflows cannot start yet ([CI](ci.md#releases)) |
 | CI, repository rules, documentation | Running; rulesets applied and enforced | Required checks on every pull request; the docs build strictly (`docs.yml`); the nightly analysis jobs are written and wait for `develop` to reach `main` |
 | Touch tracing, dice, shake, audio, stars and points | Built | The path tracer, the dice sets and deal, the staged 3D shake script, the feedback engines (placeholder sounds, the device's voice, Qt Sensors motion) behind the parent's settings. Haptics are a no-op on the desktops |
@@ -244,8 +244,9 @@ The same application on the other targets named in the brief.
 Fuzz the board parser and dictionary loader; raise the coverage gate beyond its
 90% line / 80% branch baseline (the gate itself is in place: `coverage-unit`,
 the CI job and `coverage-ui`); a macro-free route through Tracy's runtime
-source-location API is **unverified** (the integration uses CMake-selected
-variant headers, so the macro API never reaches a call site); a performance
+source-location API is built and settled (the integration uses CMake-selected
+variant headers, so the macro API never reaches a call site; see
+[Performance](design/performance.md)); a performance
 budget for dictionary load and solve on a low-end tablet. Measured so far, on
 Windows, Release build:
 the whole `wjs-cli` process (load 172,823 words, solve, print) takes about 76 ms

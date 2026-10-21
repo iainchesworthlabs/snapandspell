@@ -158,6 +158,7 @@ use this sound yet".
 | "Read aloud" voice recording | 41 | Have its privacy review first; the microphone permission, its retention and deletion, and each store's children's-app policy |
 | Time played | 52 | Define "played" as active play (a touch within the last 30 s, say) and a day's end; not stored in the MVP, so nothing past can be reconstructed |
 | A parent-set limit on play (a daily or weekly allowance, a locked session) | 53, 54 | Sit beside the system's own screen-time controls (iPadOS has them; a browser has none); never end play abruptly; and square with "nothing pushes the child to continue". The board clock above is not this: it ends one board, on the parent's setting, and nothing is stored |
+| Weekly milestone callouts ("their first 5-letter word") and parent advice lines ("point out a *ch* word") (PRD 7.4) | | Be reviewed wording, as the definitions above are. **Not built**: the dashboard has a "This week" line and the longest word only; these were neither built nor listed here until 2026-10-22 |
 | The printable summary and its e-mail | 55 to 57 | Be a parent's action with a preview, behind the gate, handed to the system's share and print facilities with no stored address; the first route by which a child's data leaves |
 
 The weekly report's **read-aloud shared moment** and **time played** are
