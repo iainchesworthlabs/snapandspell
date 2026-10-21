@@ -44,8 +44,9 @@ src/
     qml/scene/           BoardScene (the 3D scene, in the module WordJewelsSolver.Scene),
                          Die, FaceAtlas, ShakeScript.js, lightprobe/sky.ktx; fallback/
                          holds the 2D implementation of the same interface for D2, not built
-    qml/solo/            SoloScreen (solo.box, solo.playing, solo.resting), TraceLayer,
-                         PlayingPanel, SoloBox, SoloResting, HistorySheet, BoardThumb
+    qml/solo/            SoloScreen (solo.box, solo.playing and the end-of-board Sheet),
+                         FlatBoard, PlayingPanel, SoloBox, HistorySheet, BoardThumb,
+                         ScrollCue
     qml/scan/            ScanScreen (scan.ready, scan.reading, scan.check), CheckScreen,
                          AssistScreen (assist.playing), AssistBoard, ScanWording
     camera/              CameraSource (QML element: the live view and one frame),

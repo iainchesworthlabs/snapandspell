@@ -13,7 +13,7 @@ import WordJewelsSolver.Scan
 //   - the panel that is not the board takes the leading side of the split, and
 //     inside the panel the hint takes the leading side,
 //   - the board and its tiles keep their reading order in every language: the
-//     square's own geometry, the Solo Play trace layer's tiles and the check
+//     square's own geometry, the Solo Play flat board's tiles and the check
 //     screen's replica are the same left to right as in English.
 TestCase {
     id: testCase
@@ -27,7 +27,7 @@ TestCase {
     Component { id: screenComponent; SoloScreen { } }
     Component { id: panelComponent; PlayingPanel { } }
     Component { id: layoutComponent; SoloLayout { } }
-    Component { id: traceComponent; TraceLayer { } }
+    Component { id: boardComponent; FlatBoard { } }
     Component { id: scanComponent; ScanScreen { } }
     Component { id: checkComponent; CheckScreen { } }
     Component { id: parentComponent; ParentArea { } }
@@ -70,7 +70,7 @@ TestCase {
 
     function buttonNamed(root, name) {
         for (const item of allItems(root)) {
-            if (item.accessibleName === name) {
+            if (item.accessibleName === name || item.label === name) {
                 return item
             }
         }
@@ -146,28 +146,44 @@ TestCase {
     // --- the panel and the split ---------------------------------------------
     function test_thePanelFollowsTheReadingDirection() {
         play()
+        // The wide window's panel: the actions stacked in reading order, the hint
+        // above Finish board, each filling the panel's width.
         const panel = createTemporaryObject(panelComponent, testCase,
-                                            { width: 280, height: 500, wide: false,
+                                            { width: 300, height: 548, wide: true,
                                               solo: soloModel })
         verify(panel !== null)
         const hint = buttonNamed(panel, SoloWording.showStart)
         const finish = buttonNamed(panel, SoloWording.finishBoard)
         verify(hint !== null)
         verify(finish !== null)
-        // The cards are stacked in reading order, not placed side by side; the
-        // panel itself mirrors, and its cards keep the same start edge.
-        const hintCard = hint.parent
-        const finishCard = finish.parent
+        const at = item => item.mapToItem(panel, 0, 0)
         compare(panel.mirrored, false)
-        verify(hintCard.width > 0)
-        verify(finishCard.width > 0)
-        verify(hintCard.y < finishCard.y)
+        verify(hint.width > 0)
+        verify(finish.width > 0)
+        verify(at(hint).y < at(finish).y)
 
         Theme.rightToLeft = true
         compare(panel.mirrored, true)
-        verify(hintCard.width > 0)
-        verify(finishCard.width > 0)
-        verify(hintCard.y < finishCard.y)
+        verify(hint.width > 0)
+        verify(at(hint).y < at(finish).y)
+        compare(hint.width, finish.width)
+    }
+
+    function test_theTallPanelKeepsTheWordsOnTheLeadingSide() {
+        // A tall window's panel has the words and the actions side by side: the
+        // words on the leading side, which is the right in Hebrew.
+        play()
+        const panel = createTemporaryObject(panelComponent, testCase,
+                                            { width: 900, height: 376, wide: false,
+                                              solo: soloModel })
+        verify(panel !== null)
+        const card = findChild(panel, "wordsCard")
+        const finish = buttonNamed(panel, SoloWording.finishBoard)
+        verify(card.mapToItem(panel, 0, 0).x < finish.mapToItem(panel, 0, 0).x)
+
+        Theme.rightToLeft = true
+        compare(panel.mirrored, true)
+        tryVerify(() => card.mapToItem(panel, 0, 0).x > finish.mapToItem(panel, 0, 0).x)
     }
 
     function test_theSplitMirrorsButTheBoardDoesNot() {
@@ -195,17 +211,17 @@ TestCase {
         compare(ltr.boardRect.y - ltr.boardArea.y, rtl.boardRect.y - rtl.boardArea.y)
     }
 
-    function test_theTraceLayersTilesKeepTheirOrder() {
+    function test_theFlatBoardsTilesKeepTheirOrder() {
         play()
         const parent = createTemporaryObject(mirroredComponent, testCase,
                                              { width: 700, height: 700 })
         verify(parent !== null)
-        const trace = createTemporaryObject(traceComponent, parent,
+        const trace = createTemporaryObject(boardComponent, parent,
                                             { width: 600, height: 600, solo: soloModel,
                                               boardRect: Qt.rect(30, 30, 540, 540),
                                               tileSize: 180, tileGap: 0 })
         verify(trace !== null)
-        // The layer is inside a mirrored hierarchy and switches the mirroring
+        // The board is inside a mirrored hierarchy and switches the mirroring
         // off: a tile's place is the board's own, row by row from the left.
         compare(trace.tileX(0), 30)
         compare(trace.tileX(1), 210)
