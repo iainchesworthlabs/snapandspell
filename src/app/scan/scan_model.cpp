@@ -50,6 +50,9 @@ constexpr int kMaxFramePolls = 40;
             return ReadProblem::size_not_found;
         case wjs::scan::ReadError::no_letters:
             return ReadProblem::no_letters;
+        case wjs::scan::ReadError::invalid_options:
+            // The caller's options, never the camera's: not a board this program can show.
+            return ReadProblem::invalid_reading;
     }
     return ReadProblem::board_not_found;
 }

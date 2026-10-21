@@ -4,6 +4,8 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <stdexcept>
+#include <string_view>
 
 namespace wjs::scan {
 
@@ -137,50 +139,61 @@ std::array<StrokeGlyph, kGlyphCount> build() {
     }};
     // The round letters are drawn from elliptical arcs, as a typeface's are, so that
     // an O is round and a D is flat on one side.
-    const auto glyph = [&](std::size_t index, std::vector<Stroke> strokes) {
-        font[index].strokes = std::move(strokes);
+    // By the letters, not by a position in the table: a table that is reordered would
+    // otherwise put an O's strokes on another letter. `at` throws for letters the table
+    // does not have, so the font fails to build, loudly, and not into a wrong glyph.
+    const auto at = [&](std::string_view letters) -> StrokeGlyph& {
+        for (StrokeGlyph& candidate : font) {
+            if (candidate.letters == letters) {
+                return candidate;
+            }
+        }
+        throw std::logic_error("the stroke font has no glyph for these letters");
+    };
+    const auto glyph = [&](std::string_view letters, std::vector<Stroke> strokes) {
+        at(letters).strokes = std::move(strokes);
     };
     {
         Stroke o;  // O: the whole ellipse
         arc(o, 2.0, 3.0, 2.0, 3.0, -90.0, 270.0, 28);
-        glyph(14, {o});
+        glyph("O", {o});
         Stroke q = o;  // Q: an O and a tail
-        glyph(16, {q, {{2.4, 4.4}, {4.0, 6.5}}});
+        glyph("Q", {q, {{2.4, 4.4}, {4.0, 6.5}}});
         Stroke c;  // C: open to the right
         arc(c, 2.0, 3.0, 2.0, 3.0, 40.0, 320.0, 22);
-        glyph(2, {c});
+        glyph("C", {c});
         Stroke g;  // G: a C with a bar
         arc(g, 2.0, 3.0, 2.0, 3.0, 325.0, 10.0, 24);
         g.push_back({4.0, 3.3});
         g.push_back({2.3, 3.3});
-        glyph(6, {g});
+        glyph("G", {g});
         Stroke d = {{0.0, 0.0}, {2.0, 0.0}};  // D: flat on the left, round on the right
         arc(d, 2.0, 3.0, 2.0, 3.0, -90.0, 90.0, 16);
         d.push_back({0.0, 6.0});
         d.push_back({0.0, 0.0});
-        glyph(3, {d});
+        glyph("D", {d});
         Stroke u = {{0.0, 0.0}, {0.0, 3.0}};  // U: straight sides, a round bottom
         arc(u, 2.0, 3.0, 2.0, 3.0, 180.0, 0.0, 16);
         u.push_back({4.0, 0.0});
-        glyph(20, {u});
+        glyph("U", {u});
         Stroke j = {{4.0, 0.0}, {4.0, 3.8}};  // J: a stem and a hook
         arc(j, 2.2, 3.8, 1.8, 2.2, 0.0, 160.0, 12);
-        glyph(9, {j});
+        glyph("J", {j});
         Stroke b1 = {{0.0, 0.0}, {1.9, 0.0}};  // B: a stem and two bowls
         arc(b1, 1.9, 1.5, 1.9, 1.5, -90.0, 90.0, 10);
         b1.push_back({0.0, 3.0});
         Stroke b2 = {{0.0, 3.0}, {2.0, 3.0}};
         arc(b2, 2.0, 4.5, 2.0, 1.5, -90.0, 90.0, 10);
         b2.push_back({0.0, 6.0});
-        glyph(1, {{{0.0, 0.0}, {0.0, 6.0}}, b1, b2});
+        glyph("B", {{{0.0, 0.0}, {0.0, 6.0}}, b1, b2});
         Stroke p = {{0.0, 6.0}, {0.0, 0.0}, {1.8, 0.0}};  // P: a stem and a bowl
         arc(p, 1.8, 1.6, 2.0, 1.6, -90.0, 90.0, 12);
         p.push_back({0.0, 3.2});
-        glyph(15, {p});
+        glyph("P", {p});
         Stroke r = p;  // R: a P and a leg
-        glyph(17, {r, {{1.8, 3.2}, {4.0, 6.0}}});
+        glyph("R", {r, {{1.8, 3.2}, {4.0, 6.0}}});
     }
-    font[26].strokes = qu_strokes(font[16].strokes);
+    at("QU").strokes = qu_strokes(at("Q").strokes);
     return font;
 }
 
