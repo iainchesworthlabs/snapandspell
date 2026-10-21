@@ -358,9 +358,12 @@ add_custom_command(TARGET WordJewelsSolver POST_BUILD
 # command-line program is built too and both share the bindir, its own rule
 # installs the one file and this one stays out of the way.
 # ---------------------------------------------------------------------------
+# LIBRARY: on Android the application target is a module library (a shared object
+# the activity loads); the rule is never used there, but the generator insists on it.
 install(TARGETS WordJewelsSolver
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-    BUNDLE DESTINATION ".")
+    BUNDLE DESTINATION "."
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 install(FILES
     "${PROJECT_SOURCE_DIR}/data/dice/3x3.txt"
     "${PROJECT_SOURCE_DIR}/data/dice/4x4.txt"

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The page colour of the light theme (Theme.qml), as the iOS launch colour. -->
+<resources>
+    <color name="wjs_launch_background">#F6F1E7</color>
+    <color name="wjs_icon_background">#17323A</color>
+</resources>
