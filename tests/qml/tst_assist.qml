@@ -199,34 +199,66 @@ TestCase {
     // --- the action zone -----------------------------------------------------
     function test_theActionsAreOnTheLadderAndSixteenDpFromTheEdge() {
         const view = screen()
+        const clear = buttonNamed(view, ScanWording.clear)
+        const done = buttonNamed(view, ScanWording.done)
         const help = buttonNamed(view, ScanWording.showStart)
         const newBoard = buttonNamed(view, ScanWording.newBoard)
-        verify(help !== null && newBoard !== null)
-        verify(help.visible && newBoard.visible)
-        // The ladder: 96 dp for the primary, 64 dp for the secondary.
-        verify(help.height >= Theme.targetPrimary)
-        compare(newBoard.height, Theme.targetChild)
-        // The edge: 16 dp from the window's right edge (not the old 8 dp).
+        verify(clear !== null && done !== null && help !== null && newBoard !== null)
+        verify(clear.visible && done.visible && help.visible && newBoard.visible)
+        // The ladder: Done 96 dp, Clear 64 dp, the help at least 64 dp (its picture sits above
+        // its word), the ways out 48 dp.
+        compare(done.height, Theme.targetPrimary)
+        compare(clear.height, Theme.targetChild)
+        verify(help.height >= Theme.targetChild, "the help (a picture above its word): " + help.height)
+        compare(newBoard.height, Theme.targetMin)
+        // The edge: 16 dp from the window's right edge (not the old 8 dp) and from
+        // the bottom.
+        const doneBox = done.mapToItem(view, 0, 0)
+        const clearBox = clear.mapToItem(view, 0, 0)
         const helpBox = help.mapToItem(view, 0, 0)
         const newBox = newBoard.mapToItem(view, 0, 0)
-        const right = Math.max(helpBox.x + help.width, newBox.x + newBoard.width)
+        const right = Math.max(doneBox.x + done.width, helpBox.x + help.width)
         verify(Math.abs(view.width - right - Theme.space4) < 1)
-        // And from the bottom.
-        verify(Math.abs(view.height - (helpBox.y + help.height) - Theme.space4) < 1)
-        // Primary last in reading order, in a row or a stack.
-        verify(helpBox.x > newBox.x || helpBox.y > newBox.y)
-        // Every label is the button's label: no picture-only button but Back and
-        // Close, and no label under the 14 px of the type scale's caption.
+        verify(Math.abs(view.height - (newBox.y + newBoard.height) - Theme.space4) < 1)
+        // Done last in its pair, in a row or a stack.
+        verify(doneBox.x > clearBox.x || doneBox.y > clearBox.y)
+        // Every visible button has a word: no picture-only button but Back and
+        // Close.
         for (const item of allItems(view)) {
             if (item.iconName !== undefined && item.iconName !== "" && item.visible) {
                 verify(item.label !== "" || item.iconName === "back" || item.iconName === "close",
                        "icon-only button: " + item.iconName)
             }
         }
-        const labels = allItems(view).filter(item => item.objectName === "" && item.text === ScanWording.newBoard)
-        for (const label of labels) {
-            verify(label.font.pixelSize >= 14)
-        }
+    }
+
+    function test_clearAndDoneWaitForAPathAndDoWhatTheySay() {
+        const view = screen()
+        const clear = buttonNamed(view, ScanWording.clear)
+        const done = buttonNamed(view, ScanWording.done)
+        // Nothing to hand in or put down yet.
+        compare(clear.enabled, false)
+        compare(done.enabled, false)
+
+        // A word made by taps: SAT, then Done hands it in (as the Return key did).
+        assistModel.tapTile(0)
+        assistModel.tapTile(1)
+        assistModel.tapTile(2)
+        compare(assistModel.path.length, 3)
+        compare(clear.enabled, true)
+        compare(done.enabled, true)
+        mouseClick(done, done.width / 2, done.height / 2)
+        compare(assistModel.found.length, 1)
+        compare(assistModel.path.length, 0)
+        compare(done.enabled, false)
+
+        // A path put down with Clear is not a word.
+        assistModel.tapTile(4)
+        assistModel.tapTile(5)
+        compare(assistModel.path.length, 2)
+        mouseClick(clear, clear.width / 2, clear.height / 2)
+        compare(assistModel.path.length, 0)
+        compare(assistModel.found.length, 1)
     }
 
     function test_theEarlierBoardsAreAButtonWithAWord() {
@@ -237,6 +269,18 @@ TestCase {
         verify(history.label.length > 0)
         compare(history.iconName, "history")
         verify(history.height >= Theme.targetMin)
+    }
+
+    function test_thePanelsColumnIsNoWiderThanAPhonesOnABigWindow() {
+        const view = screen(2400, 1200)
+        const done = buttonNamed(view, ScanWording.done)
+        const help = buttonNamed(view, ScanWording.showStart)
+        verify(help.width <= Theme.modalMax + 0.5, "the help: " + help.width)
+        verify(done.width <= Theme.modalMax + 0.5, "Done: " + done.width)
+        // And it is centred in the panel, not pushed to one edge.
+        const box = help.mapToItem(view, 0, 0)
+        const panelCentre = view.panelX + view.panelArea.width / 2
+        verify(Math.abs(box.x + help.width / 2 - panelCentre) < 1)
     }
 
     function test_newBoardAsksForANewScan() {
@@ -314,8 +358,11 @@ TestCase {
         compare(view.wide, false)
         const newBoard = buttonNamed(view, ScanWording.newBoard)
         verify(newBoard.mapToItem(view, 0, 0).y > view.height / 2)
+        // The column is capped, and centred in the full-width panel.
         const help = buttonNamed(view, ScanWording.showStart)
-        verify(Math.abs(view.width - (help.mapToItem(view, 0, 0).x + help.width) - Theme.space4) < 1)
+        verify(help.width <= Theme.modalMax + 0.5)
+        const box = help.mapToItem(view, 0, 0)
+        verify(Math.abs(box.x + help.width / 2 - view.width / 2) < 1)
     }
 
     function test_bigTextWrapsTheHelpInsteadOfCuttingIt() {

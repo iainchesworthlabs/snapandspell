@@ -62,6 +62,18 @@ FocusScope {
     readonly property real gap: rule.gap
     readonly property real pitch: root.tile + root.gap
 
+    // The sizes offered (3 to 6, the sizes the game plays), and the size the
+    // reader counted if it is none of them (it counts 3 to 8): shown and chosen,
+    // so the board never has a size the grown-up cannot see.
+    readonly property var sizeOptions: {
+        const sizes = root.scan.sizes.slice();
+        if (root.scan.size > 0 && sizes.indexOf(root.scan.size) < 0) {
+            sizes.push(root.scan.size);
+        }
+        sizes.sort((a, b) => a - b);
+        return sizes.map(side => ({value: side, label: ScanWording.sizeLabel(side)}));
+    }
+
     // The sentence under the board size: the one thing the grown-up most needs
     // to know now.
     readonly property string guidance: {
@@ -307,9 +319,15 @@ FocusScope {
             color: Theme.line
         }
 
+        // As wide as a phone's panel at most: on a 2400 px window the buttons
+        // would otherwise stretch across a third of the screen.
         ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Theme.space4
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.topMargin: Theme.space4
+            anchors.bottomMargin: Theme.space4
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: Math.min(parent.width - 2 * Theme.space4, Theme.modalMax)
             spacing: Theme.space3
 
             // What can scroll is the middle: the actions below it never leave the
@@ -344,7 +362,7 @@ FocusScope {
                             title: ScanWording.boardSize
                             size: "min"
                             compact: true
-                            options: root.scan.sizes.map(side => ({value: side, label: ScanWording.sizeLabel(side)}))
+                            options: root.sizeOptions
                             current: root.scan.size
                             onChosen: value => root.scan.resize(value, value)
                         }

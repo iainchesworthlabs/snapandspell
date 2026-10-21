@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+363"/>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+381"/>
         <source>Turn</source>
         <translation>转动</translation>
     </message>
@@ -1199,6 +1199,18 @@ The button that opens the Licences page from the About page.</extracomment>
         <location line="+1"/>
         <source>Earlier boards</source>
         <translation>之前的棋盘</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Clear</source>
+        <extracomment>Puts the path being made down.</extracomment>
+        <translation>清除</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Done</source>
+        <extracomment>Hands the path being made in as a word.</extracomment>
+        <translation>完成</translation>
     </message>
     <message>
         <location line="+3"/>

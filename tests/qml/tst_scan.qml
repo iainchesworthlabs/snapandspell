@@ -234,6 +234,35 @@ TestCase {
         verify(textsShown(view).indexOf(ScanWording.incomplete) < 0)
     }
 
+    // --- the board size ------------------------------------------------------
+    function sizeChoices(root) {
+        const group = allItems(root).find(item => item.options !== undefined && item.current !== undefined)
+        return group
+    }
+
+    function test_theSizesOfferedAreTheGamesAndASizeTheReaderCountedIsShown() {
+        const view = screen()
+        scanModel.typeBoard()
+        waitForTiles(view)
+        const group = sizeChoices(view)
+        verify(group !== undefined)
+        // 3x3 to 6x6, the sizes the game plays (PRD 12.7), and the typed board's 4x4
+        // is the one chosen.
+        compare(group.options.map(option => option.value), [3, 4, 5, 6])
+        compare(group.current, 4)
+
+        // The reader counts 3 to 8: a 7x7 it counted is shown, chosen, and can be
+        // changed, so the board never has a size the grown-up cannot see.
+        verify(scanModel.resize(7, 7))
+        wait(50)
+        compare(group.options.map(option => option.value), [3, 4, 5, 6, 7])
+        compare(group.current, 7)
+        verify(scanModel.resize(5, 5))
+        wait(50)
+        compare(group.options.map(option => option.value), [3, 4, 5, 6])
+        compare(group.current, 5)
+    }
+
     // --- the secondary action and its alignment ------------------------------
     function test_typedBoardsStartOverOnAFreshTypedBoard() {
         const view = screen()

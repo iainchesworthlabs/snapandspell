@@ -131,6 +131,10 @@ QtObject {
     //: The screen-reader name of the ring that lights the start tile.
     readonly property string startHere: qsTr("Start here")
     readonly property string earlierBoards: qsTr("Earlier boards")
+    //: Puts the path being made down.
+    readonly property string clear: qsTr("Clear")
+    //: Hands the path being made in as a word.
+    readonly property string done: qsTr("Done")
 
     function tileName(letters, row, column) {
         return qsTr("%1, row %2, column %3").arg(letters).arg(row).arg(column);
