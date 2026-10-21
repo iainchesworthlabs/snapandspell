@@ -18,13 +18,13 @@ Flickable {
 
     readonly property var s: controller.settings
 
-    component GroupTitle: Text {
+    // A group's heading: the same Heading as a Section's, so every group
+    // (Reset included) is one level.
+    component GroupTitle: Label {
         Layout.fillWidth: true
-        topPadding: Theme.space4
-        font.family: Theme.monoFont
-        font.pixelSize: 11
-        font.letterSpacing: 1.2
-        color: Theme.accent
+        Layout.topMargin: Theme.space4
+        role: "heading"
+        wrapMode: Text.WordWrap
     }
 
     function onOff() {
@@ -47,20 +47,17 @@ Flickable {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: Theme.space1
-            Text {
+            Label {
                 Layout.fillWidth: true
+                role: "title"
                 text: ParentWording.tabSettings
-                font.family: Theme.uiFont
-                font.pixelSize: Theme.titleSize
-                font.weight: Font.ExtraBold
-                color: Theme.ink
             }
-            Text {
+            Label {
                 Layout.fillWidth: true
+                role: "body"
                 text: ParentWording.settingsSubtitle
-                font.family: Theme.uiFont
-                font.pixelSize: Theme.bodySize
                 color: Theme.inkSecondary
+                wrapMode: Text.WordWrap
             }
         }
 
@@ -98,13 +95,11 @@ Flickable {
                     current: root.s.board
                     onChosen: value => root.controller.setSetting("board", value)
                 }
-                Text {
+                Label {
                     Layout.fillWidth: true
                     visible: !root.controller.phonicsAvailable
+                    role: "caption"
                     text: ParentWording.settingsBoardNoPhonics
-                    font.family: Theme.uiFont
-                    font.pixelSize: Theme.smallSize
-                    color: Theme.inkSecondary
                     wrapMode: Text.WordWrap
                 }
             }
@@ -159,23 +154,23 @@ Flickable {
                         Layout.fillWidth: true
                         spacing: 0
 
-                        Text {
+                        Label {
                             Layout.fillWidth: true
                             textFormat: Text.StyledText
                             wrapMode: Text.WordWrap
-                            font.pixelSize: Theme.smallSize
+                            role: "caption"
                             color: Theme.ink
                             text: "<i>" + tickedRow.modelData.letters + "</i>: "
                                   + (tickedRow.modelData.boardsMet > 0
                                          ? ParentWording.onBoardsFoundOn(tickedRow.modelData.boardsMet, tickedRow.modelData.boardsFound)
                                          : ParentWording.notMetYet)
+                            Accessible.name: text.replace(/<[^>]*>/g, "")
                         }
-                        Text {
+                        Label {
                             Layout.fillWidth: true
                             visible: tickedRow.modelData.fewWords
                             wrapMode: Text.WordWrap
-                            font.pixelSize: Theme.smallSize
-                            color: Theme.inkSecondary
+                            role: "caption"
                             text: ParentWording.fewWords
                         }
                     }
@@ -188,10 +183,8 @@ Flickable {
                 hint: ParentWording.settingsBoardSizeHint
                 SegmentedChoice {
                     title: ParentWording.settingsBoardSize
-                    options: root.s.board === "standard"
-                        ? [{value: 3, label: "3x3"}, {value: 4, label: "4x4"},
-                           {value: 5, label: "5x5"}, {value: 6, label: "6x6"}]
-                        : [{value: 3, label: "3x3"}, {value: 4, label: "4x4"}]
+                    options: (root.s.board === "standard" ? [3, 4, 5, 6] : [3, 4]).map(
+                        size => ({value: size, label: ParentWording.boardSizeLabel(size)}))
                     current: root.s.boardSize
                     onChosen: value => root.controller.setSetting("boardSize", value)
                 }
@@ -219,7 +212,7 @@ Flickable {
                 title: ParentWording.settingsTimerLength
                 SegmentedChoice {
                     title: ParentWording.settingsTimerLength
-                    options: root.controller.timerLengthChoices.map(choice => ({value: choice, label: choice + " min"}))
+                    options: root.controller.timerLengthChoices.map(choice => ({value: choice, label: ParentWording.timerLengthLabel(choice)}))
                     current: root.s.timerLength
                     onChosen: value => root.controller.setSetting("timerLength", value)
                 }
@@ -328,7 +321,7 @@ Flickable {
                 title: ParentWording.settingsTextSize
                 SegmentedChoice {
                     title: ParentWording.settingsTextSize
-                    options: [{value: 100, label: "1"}, {value: 125, label: "1.25"}, {value: 150, label: "1.5"}]
+                    options: [100, 125, 150].map(percent => ({value: percent, label: ParentWording.textSizeLabel(percent)}))
                     current: root.s.textSizePercent
                     onChosen: value => root.controller.setSetting("textSizePercent", value)
                 }
@@ -366,8 +359,6 @@ Flickable {
                 }
             }
         }
-
-        GroupTitle { Layout.fillWidth: true; text: ParentWording.groupData }
 
         Section {
             Layout.fillWidth: true

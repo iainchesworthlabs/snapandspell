@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Layouts
 import WordJewelsSolver
 
 // The parental gate: one large press-and-hold target, not two far-apart
@@ -71,143 +72,160 @@ FocusScope {
         color: Theme.page
     }
 
-    Rectangle {
-        id: card
-        anchors.centerIn: parent
-        width: Math.min(parent.width - 2 * Theme.space8, 560)
-        height: Math.min(parent.height - 2 * Theme.space8, 440)
-        radius: Theme.radius
-        color: Theme.surface
-        border.width: 1
-        border.color: Theme.line
+    // The card sits in the middle of the page and takes its height from what is
+    // on it (it was a fixed 560 x 440 with a dead third below its last line); a
+    // window too short for it, or a large text size, scrolls it.
+    Flickable {
+        id: view
+        anchors.fill: parent
+        contentWidth: width
+        contentHeight: Math.max(height, card.height + 2 * Theme.space8)
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        flickableDirection: Flickable.VerticalFlick
+        interactive: contentHeight > height
 
-        Column {
-            id: words
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: Theme.space6
-            spacing: Theme.space2
-
-            Text {
-                width: parent.width
-                text: ParentWording.gateTitle
-                font.family: Theme.uiFont
-                font.pixelSize: Theme.titleSize
-                font.weight: Font.ExtraBold
-                color: Theme.ink
-                wrapMode: Text.WordWrap
-                Accessible.role: Accessible.Heading
-                Accessible.name: text
-            }
-            Text {
-                width: parent.width
-                text: ParentWording.gateInstruction
-                font.family: Theme.uiFont
-                font.pixelSize: Theme.headingSize
-                color: Theme.ink
-                wrapMode: Text.WordWrap
-            }
-            Text {
-                width: parent.width
-                text: ParentWording.gateWhy
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.smallSize
-                color: Theme.inkSecondary
-                wrapMode: Text.WordWrap
-            }
-        }
-
-        // The one target. It is deliberately large: 96 dp high, the whole width
-        // of the card less its margins.
         Rectangle {
-            id: holdTarget
-            objectName: "gateHoldTarget"
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: words.bottom
-            anchors.topMargin: Theme.space6
-            anchors.leftMargin: Theme.space6
-            anchors.rightMargin: Theme.space6
-            height: 96
+            id: card
+            width: Math.min(view.width - 2 * Theme.space8, Theme.modalMax)
+            height: words.implicitHeight + 2 * Theme.space6
+            x: (view.width - width) / 2
+            y: Math.max(Theme.space8, (view.contentHeight - height) / 2)
             radius: Theme.radius
-            color: root.holding ? Theme.accentSoft : Theme.card
-            border.width: root.holding ? 2 : 1
-            border.color: root.holding ? Theme.gold : Theme.outline
-            activeFocusOnTab: true
+            color: Theme.card
+            border.width: Theme.hair
+            border.color: Theme.line
 
-            Accessible.role: Accessible.Button
-            Accessible.name: ParentWording.gateHoldButton
-            Accessible.focusable: true
-            Accessible.onPressAction: root.controller.unlockForAssistiveTechnology()
+            ColumnLayout {
+                id: words
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Theme.space6
+                spacing: Theme.space2
 
-            MouseArea {
-                anchors.fill: parent
-                onPressed: {
-                    holdTarget.forceActiveFocus();
-                    root.beginHold();
+                Label {
+                    Layout.fillWidth: true
+                    role: "title"
+                    text: ParentWording.gateTitle
+                    wrapMode: Text.WordWrap
                 }
-                onReleased: root.endHold()
-                onCanceled: root.endHold()
-                onContainsPressChanged: {
-                    if (!containsPress) {
-                        root.endHold();
+                Label {
+                    Layout.fillWidth: true
+                    role: "body"
+                    size: Theme.headingSize
+                    text: ParentWording.gateInstruction
+                    wrapMode: Text.WordWrap
+                }
+                Label {
+                    Layout.fillWidth: true
+                    role: "caption"
+                    text: ParentWording.gateWhy
+                    wrapMode: Text.WordWrap
+                }
+
+                // The one target. It is deliberately large: 96 dp high, the whole
+                // width of the card less its margins; its edge is the action
+                // colour, so it looks like a thing to press.
+                Rectangle {
+                    id: holdTarget
+                    objectName: "gateHoldTarget"
+                    Layout.fillWidth: true
+                    Layout.topMargin: Theme.space4
+                    Layout.preferredHeight: Math.max(Theme.targetPrimary, holdWords.implicitHeight + 2 * Theme.space3)
+                    radius: Theme.radius
+                    color: root.holding ? Theme.selectedFill : Theme.card
+                    border.width: Theme.heavy
+                    border.color: Theme.accent
+                    activeFocusOnTab: true
+
+                    readonly property bool showFocus: activeFocus && !pointerFocus
+                    property bool pointerFocus: false
+
+                    Accessible.role: Accessible.Button
+                    Accessible.name: ParentWording.gateHoldButton
+                    Accessible.focusable: true
+                    Accessible.onPressAction: root.controller.unlockForAssistiveTechnology()
+
+                    onActiveFocusChanged: {
+                        if (!holdTarget.activeFocus) {
+                            holdTarget.pointerFocus = false;
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onPressed: {
+                            holdTarget.pointerFocus = true;
+                            holdTarget.forceActiveFocus();
+                            root.beginHold();
+                        }
+                        onReleased: root.endHold()
+                        onCanceled: root.endHold()
+                        onContainsPressChanged: {
+                            if (!containsPress) {
+                                root.endHold();
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        id: holdWords
+                        anchors.centerIn: parent
+                        width: parent.width - 2 * Theme.space3
+                        spacing: Theme.space1
+                        Label {
+                            Layout.fillWidth: true
+                            role: "heading"
+                            text: ParentWording.gateHoldButton
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.WordWrap
+                            decorative: true
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            role: "caption"
+                            text: ParentWording.gateHoldHint
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.WordWrap
+                            decorative: true
+                        }
+                    }
+
+                    FocusRing {
+                        visible: holdTarget.showFocus
+                        inner: holdTarget.radius
                     }
                 }
-            }
 
-            Column {
-                anchors.centerIn: parent
-                spacing: Theme.space1
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: ParentWording.gateHoldButton
-                    font.family: Theme.uiFont
-                    font.pixelSize: Theme.headingSize
-                    font.weight: Font.DemiBold
-                    color: Theme.ink
+                // The progress is a bar, not a ring around two hidden spots: it
+                // says exactly how much longer the press has to last. The empty
+                // track is outlined in the token that holds 3:1 against the card.
+                Rectangle {
+                    id: progress
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.space2
+                    radius: Theme.radiusXs
+                    color: Theme.hoverWash
+                    border.width: Theme.hair
+                    border.color: Theme.track
+
+                    Rectangle {
+                        width: parent.width * Math.min(1, root.controller.gateProgress)
+                        height: parent.height
+                        radius: parent.radius
+                        color: Theme.buttonFill
+                    }
                 }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: ParentWording.gateHoldHint
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.smallSize
-                    color: Theme.inkSecondary
+
+                Label {
+                    Layout.fillWidth: true
+                    role: "caption"
+                    horizontalAlignment: Text.AlignHCenter
+                    text: ParentWording.gateKeys
+                    wrapMode: Text.WordWrap
                 }
             }
-        }
-
-        // The progress is a bar, not a ring around two hidden spots: it says
-        // exactly how much longer the press has to last.
-        Rectangle {
-            id: progress
-            anchors.left: holdTarget.left
-            anchors.right: holdTarget.right
-            anchors.top: holdTarget.bottom
-            anchors.topMargin: Theme.space3
-            height: 8
-            radius: 4
-            color: Theme.hoverWash
-
-            Rectangle {
-                width: parent.width * Math.min(1, root.controller.gateProgress)
-                height: parent.height
-                radius: parent.radius
-                color: Theme.buttonFill
-            }
-        }
-
-        Text {
-            anchors.left: holdTarget.left
-            anchors.right: holdTarget.right
-            anchors.top: progress.bottom
-            anchors.topMargin: Theme.space2
-            horizontalAlignment: Text.AlignHCenter
-            text: ParentWording.gateKeys
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.smallSize
-            color: Theme.inkSecondary
-            wrapMode: Text.WordWrap
         }
     }
 
