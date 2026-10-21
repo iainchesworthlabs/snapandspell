@@ -138,6 +138,8 @@ rarity.
 | 1 | A usage error: an unknown option, an option without its value, a bad number or scheme, or no board |
 | 2 | The word list could not be opened or read |
 | 3 | The board could not be read |
+| 4 | An exception the program did not foresee |
+| 5 | The result could not be written to standard output |
 
 Errors go to standard error as `wjs-cli: <what went wrong>`. The board is read
 before the word list is opened, so a bad board is reported as 3 even if the
