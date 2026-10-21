@@ -2,7 +2,7 @@ name: Save vcpkg binary cache
 description: >-
   Saves the vcpkg binary cache if packages were added since ../restore and no
   identical entry is already readable from this ref, under a key named after
-  the cache's contents. Meant to run with `if: always()` so a failing build
+  the ports it was made for (see ../restore) and the cache's contents. Meant to run with `if: always()` so a failing build
   keeps the packages vcpkg had already built.
 
 inputs:
@@ -46,7 +46,7 @@ runs:
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ runner.temp }}/vcpkg-cache
-        key: vcpkg-binary-cache-${{ inputs.triplet }}-${{ steps.state.outputs.listing }}
+        key: vcpkg-binary-cache-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'cmake/vcpkg-commit.txt', 'cmake/vcpkg-ports/**') }}-${{ steps.state.outputs.listing }}
         lookup-only: true
 
     # Keyed by content, not by run: a clean run that built nothing new saves
@@ -59,7 +59,7 @@ runs:
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ runner.temp }}/vcpkg-cache
-        key: vcpkg-binary-cache-${{ inputs.triplet }}-${{ steps.state.outputs.listing }}
+        key: vcpkg-binary-cache-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'cmake/vcpkg-commit.txt', 'cmake/vcpkg-ports/**') }}-${{ steps.state.outputs.listing }}
 
     # One line per job on the run's summary page, so "did this leg restore, and
     # did it have to store anything" does not mean opening a log.
@@ -83,7 +83,7 @@ runs:
         elif [ "$EXISTS" = true ]; then
           outcome="identical entry already readable from this ref - not saved"
         else
-          outcome="new entry \`vcpkg-binary-cache-$TRIPLET-$LISTING\` offered to the cache"
+          outcome="new entry \`vcpkg-binary-cache-$TRIPLET-<ports hash>-$LISTING\` offered to the cache"
         fi
         if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
           echo "- vcpkg cache \`$TRIPLET\`: ${PACKAGES:-?} archive(s), restored \`$RESTORED\`, $outcome" >> "$GITHUB_STEP_SUMMARY"

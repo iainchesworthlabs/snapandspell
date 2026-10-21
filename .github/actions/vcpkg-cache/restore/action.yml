@@ -31,12 +31,19 @@ runs:
     # (see ../save), so this always falls through to restore-keys, which
     # GitHub resolves to the most recently created entry with that prefix.
     #
-    # The key carries the triplet and nothing else, deliberately: vcpkg names
-    # an archive by its ABI hash, which already covers the triplet, the port
-    # and its dependencies' versions and the compiler, and every archive holds
-    # the debug and the release variant. The CMake preset (Debug, Release,
-    # coverage) is not in that hash, so every preset of one triplet shares one
-    # set of archives - see docs/ci.md.
+    # The key carries the triplet and a hash of what decides which ports are
+    # built from what: the manifest, the vcpkg commit and the repository's own
+    # overlay ports (the Tracy port). vcpkg names an archive by its ABI hash,
+    # which already covers the triplet, the port and its dependencies'
+    # versions and the compiler, and every archive holds the debug and the
+    # release variant; the CMake preset (Debug, Release, coverage) is not in
+    # that hash, so every preset of one triplet shares one set of archives -
+    # see docs/ci.md. The hash is only there so that the first restore key
+    # finds an entry made for these ports, before the older ones: an entry a
+    # pull request saved before a port changed, in the pull request's own
+    # scope, must not be picked over develop's newer one. The second restore
+    # key is the fallback (the archives whose ABI did not change are still
+    # reused); keep the hashed files in step with ../save.
     - name: Restore the newest cache for this triplet
       id: restore
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -44,6 +51,7 @@ runs:
         path: ${{ runner.temp }}/vcpkg-cache
         key: vcpkg-binary-cache-${{ inputs.triplet }}-restore
         restore-keys: |
+          vcpkg-binary-cache-${{ inputs.triplet }}-${{ hashFiles('vcpkg.json', 'cmake/vcpkg-commit.txt', 'cmake/vcpkg-ports/**') }}-
           vcpkg-binary-cache-${{ inputs.triplet }}-
 
     - name: Fingerprint what was restored

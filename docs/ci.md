@@ -70,7 +70,7 @@ with the rulesets.
 | `clang-format` | ubuntu-24.04 | Every `.cpp`/`.hpp` (and sibling extensions) under `src/` and `tests/` is exactly what the repository's `.clang-format` produces, with one pinned clang-format release (`.github/requirements/lint.txt`). Any difference fails; the log names file and line. |
 | `platform-isolation` | ubuntu-24.04 | `tools/checks/check_platform_isolation.ps1`: no preprocessor conditional, no OS header or OS-querying API outside `src/platforms/`, no OS test in CMake outside the selector, no `#define`, every platform source wired. Fast, and deliberately not behind the build legs. |
 | `Plan build legs` | ubuntu-24.04 | The build matrix was computed. It is a required check only so that a failure here cannot turn the three build legs into "skipped" (which counts as a pass). |
-| `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes. The leg also builds the Qt application, runs its offscreen smoke, and packages a ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64` artifact). |
+| `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes (one test per core; the cases that need the machine alone are `RUN_SERIAL`). The leg also builds the Qt application, runs its offscreen smoke, and packages a ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64` artifact). |
 | `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. |
 | `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit tier, and gcovr over `src/lib` **fails the job below the project's minimum standard: 90% of lines and 80% of branches**. The HTML, `summary.json` and the table in the job summary are the `coverage-report` artifact. The same gate is `coverage-unit` locally ([Testing](testing.md#coverage)). |
@@ -828,29 +828,43 @@ nothing: that is why `analysis.yml` and `codeql.yml` do not have it.
 
 ## The vcpkg binary cache
 
-Dependencies come from vcpkg (the labs' fork, manifest mode; the
-only one today is Catch2, behind the `tests` feature). Every job that runs
+Dependencies come from vcpkg (the labs' fork, manifest mode): Catch2 behind
+the `tests` feature, and Tracy (the repository's own overlay port in
+`cmake/vcpkg-ports/tracy`, with its command-line capture tools built for the
+host) behind `profiling`, which a Debug build turns on. Every job that runs
 vcpkg uses the same two composite actions,
 `.github/actions/vcpkg-cache/restore` and `/save`, which wrap vcpkg's `files`
 binary-cache provider around `actions/cache`:
 
 | Step | What it does |
 | --- | --- |
-| restore | Points `VCPKG_BINARY_SOURCES` at `$RUNNER_TEMP/vcpkg-cache` and fills it from the newest entry whose key starts `vcpkg-binary-cache-<triplet>-`. |
+| restore | Points `VCPKG_BINARY_SOURCES` at `$RUNNER_TEMP/vcpkg-cache` and fills it from the newest entry whose key starts `vcpkg-binary-cache-<triplet>-<ports hash>-` (made for these ports), else the newest that starts `vcpkg-binary-cache-<triplet>-`. |
 | *(build)* | vcpkg restores every archive whose ABI hash matches and builds only the rest. |
-| save | Runs with `if: always()`, so a red leg keeps what it built. Stores the directory under `vcpkg-binary-cache-<triplet>-<hash of its file listing>`, only if an archive was added since the restore and the key is not already readable from this ref. |
+| save | Runs twice in a build leg: right after Configure, which is when vcpkg has built whatever was missing, and with `if: always()` as the last step, so a red or timed-out leg keeps what it built. Stores the directory under `vcpkg-binary-cache-<triplet>-<ports hash>-<hash of its file listing>`, only if an archive was added since the restore and the key is not already readable from this ref. |
 
-The key carries the **triplet and nothing else** (`x64-windows`, `x64-linux`,
-`arm64-osx`): vcpkg's ABI hash already covers what changes the binaries, and
-every archive holds both the debug and the release variant. `Linux (GCC)` and
-`Coverage (Linux, GCC)` share `x64-linux`.
+The key carries the **triplet** (`x64-windows`, `x64-linux`, `arm64-osx`) and a
+**hash of `vcpkg.json`, `cmake/vcpkg-commit.txt` and `cmake/vcpkg-ports/**`**.
+vcpkg's ABI hash already covers what changes the binaries, and every archive
+holds both the debug and the release variant, so the hash is not what decides
+whether an archive is reused (the second restore key takes the newest entry of
+the triplet whatever its hash, and vcpkg reuses every archive that still
+matches). It decides which entry is tried first: one made for these ports, from
+develop, before an older one a pull request saved into its own scope before a
+port changed. `Linux (GCC)` and `Coverage (Linux, GCC)` share `x64-linux`.
 
 An Actions cache entry is readable from its own ref, the base branch of a pull
 request and the default branch, nothing else. So `develop` is where the cache
 every pull request starts from is made: a push to `develop` (or `main`) is
-never cancelled by the next push (`cancel-in-progress` is off for them), and
-the first run on a new branch is cold. With Catch2 as the only port a cold
-run costs minutes, not hours; the cache earns its keep mostly on macOS.
+never cancelled by the next push once it is running (`cancel-in-progress` is
+off for them; a run still waiting is replaced by a newer one), and the first
+run on a new branch is cold. A cold Windows run builds Tracy's capture tools
+from source, which took 18 minutes of a 75-minute job, so a pull request that
+changes a port, or starts before develop has stored the new archives, pays for
+it once; develop's runs run one after the other, so an entry made by a leg that
+saved only at its end reached the pull requests an hour or more after the
+merge, and that is why the save also runs right after Configure. An entry a
+pull request saves is readable only from that pull request, so a pull request
+cannot warm develop for the next one.
 
 vcpkg is not a submodule: the vcpkg-using jobs run the composite action
 `.github/actions/vcpkg-setup`, which clones the fork into `$RUNNER_TEMP/vcpkg`
