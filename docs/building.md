@@ -172,6 +172,7 @@ Pass these to the configure step, for example
 | `WJS_BUILD_TESTS` | `ON` | Build the test suites, and register the platform tests. Turning it off also stops vcpkg building Catch2 |
 | `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the harness around the 3D board scene as `ShakePrototype`. Needs the application built (`WJS_BUILD_APP=AUTO` with Qt found, or `ON`) and Qt Quick 3D; the harness links the same scene module as the application, so both are GPL-3.0 only. See [the prototype](design/shake-prototype.md#how-it-was-measured) |
 | `WJS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
+| `WJS_SANITIZER_OPTIMIZE` | `ON` | Build first-party code with `/O1` instead of `/Od` in a Debug build that has MSVC's AddressSanitizer on. The sanitizer makes every unoptimised access and struct copy a call, and the tests ran about twice as fast with it. `OFF` to step through the code in a debugger. See [Sanitizers](#sanitizers-and-warnings) |
 | `WJS_ENABLE_MSVC_ANALYSIS` | `OFF` | MSVC's static analyzer during compilation (`/analyze`, with `/W4 /WX`), SARIF logs written beside the objects. Needs MSVC; the `windows-msvc-analysis` preset turns it on. See [Static analysis](#static-analysis) |
 | `WJS_ENABLE_COVERAGE` | `OFF` | Source coverage instrumentation, read back with gcovr (GCC/Clang) or llvm-cov (clang-cl). Only the `*-coverage` presets turn it on. See [Coverage](#coverage) |
 | `WJS_COVERAGE_MIN_LINE` | `90` | The unit tier's line floor, as a percentage. `coverage-unit` fails below it |
@@ -666,6 +667,7 @@ Debug builds also turn on sanitizers (`cmake/Sanitizers.cmake`):
   are turned off because they cannot be used with it. The ASan runtime DLL
   (`clang_rt.asan_dynamic-*.dll`) is copied beside each executable at build
   time, so the programs start outside a Developer prompt too.
+  The code is also built with `/O1` (no `/Od`, no `/Ob0`): see `WJS_SANITIZER_OPTIMIZE`.
 - clang-cl: disabled.
 
 Release builds are not instrumented. `-DWJS_ENABLE_SANITIZERS=OFF` turns it all

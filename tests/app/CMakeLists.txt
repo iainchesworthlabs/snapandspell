@@ -155,7 +155,8 @@ wjs_platform_deploy_qt_runtime(wjs_shake_script_tests "")
 # part of `ctest -L perf` as the tier's own cases are.
 catch_discover_tests(wjs_shake_script_tests
     TEST_PREFIX "integration."
-    ADD_TAGS_AS_LABELS)
+    ADD_TAGS_AS_LABELS
+    PROPERTIES COST 12)
 
 # The window's frame budget (tests/app/frame_timing_test.cpp): the
 # application's own smoke run in a child process, and the report it prints.
@@ -313,6 +314,7 @@ set_tests_properties(parent.screens PROPERTIES
 add_test(NAME parent.languages
     COMMAND wjs_parent_preview --languages --out "${CMAKE_CURRENT_BINARY_DIR}/parent-languages")
 set_tests_properties(parent.languages PROPERTIES
+    COST 30
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
     TIMEOUT 240
     LABELS "system;ui;gui")
@@ -437,6 +439,7 @@ endif()
 add_test(NAME scan.languages
     COMMAND wjs_scan_preview --languages --out "${CMAKE_CURRENT_BINARY_DIR}/scan-languages")
 set_tests_properties(scan.languages PROPERTIES
+    COST 30
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
     TIMEOUT 240
     LABELS "system;ui;gui")

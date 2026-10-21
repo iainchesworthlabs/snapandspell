@@ -1157,6 +1157,91 @@ finding aborts the test. Details, and how to turn them off, are in
 [Building](building.md#sanitizers-and-warnings). The nightly Clang leg runs the
 same suite with `clang++` ([CI](ci.md#nightly-analysis)).
 
+### Why the Windows tests set `ASAN_OPTIONS`
+
+MSVC's AddressSanitizer records a 30-frame stack for every allocation and every
+free, so that a report can say where a block was allocated and freed, and it
+unwinds each with `RtlCaptureStackBackTrace`. A test that allocates much (the
+solver, the deal, strings) spent four fifths of its time there, measured by
+sampling: a 4x4 chunk of the deal test took 18.1 s with the default and 3.7 s
+with two frames (3 frames: 7.5 s; 5: 8.8 s; 10: 9.6 s). The `windows-msvc-debug`
+test presets therefore set `ASAN_OPTIONS=malloc_context_size=2`
+(`CMakePresets.json`, the hidden preset `windows-asan`).
+
+What this does not change: every bad access, use after free, double free and
+overflow is found as before, and reported with the full stack of the access. What
+it cuts is the "allocated by" and "freed by" stacks in the report, to the
+allocating function (`operator new` and its caller, with file and line). To get
+the whole stacks for a failure, run the test again with the variable set after
+the preset's value, which wins:
+
+```sh
+ASAN_OPTIONS=malloc_context_size=30 ctest --preset windows-msvc-debug -R "the name of the test"
+```
+
+(Run the program directly, outside `ctest --preset`, and the default of 30
+applies.) `detect_stack_use_after_return`, the quarantine size, the red zone and
+`fast_unwind_on_malloc` made no difference to the time.
+
+The other cost under ASan is by value copies: with the sanitizer a copy of a
+24-byte vector is a call into the runtime (`__asan_memcpy`), so the dice
+simulation (`src/app/scene/sim`) passes its vectors and quaternions by reference
+and writes the arithmetic of its inner loop out by component. The digests of its
+plays, which the tests compare, are the same as before.
+
+### Test cost: where the Windows Debug run spends its time
+
+The Windows leg runs every case under ASan, a case is a program started afresh
+(`catch_discover_tests`), and the leg has four cores. Measured on a four-core
+run (`ctest -j 4` with the process held to four cores of a larger machine, no
+timing from an earlier run), each change on top of the one before:
+
+| | wall | sum of the cases |
+|---|---|---|
+| the tree before | 613 s | 1,994 s |
+| allocation stacks of two frames, the dice world by reference, the long cases split | about 357 s | 1,275 s |
+| the two trace tests beside the others, not alone | about 321 s | 1,170 s |
+| first-party code built with `/O1` (`WJS_SANITIZER_OPTIMIZE`) | about 274 s | 970 s |
+| Tracy's Debug client does not calibrate its timer | about 204 s | 710 s |
+| the longest cases are started first (`COST`) | about 182 s | 715 s |
+| the same, after merging `develop` (two runs, 1,144 cases) | 194 s | 727 s |
+
+What each one is:
+
+- **Allocation stacks** and **by-value copies**: the section above.
+- **Long cases.** A case that sweeps seeds is several cases, a range of seeds
+  each, when each seed's checks stand alone (the 600 deals of "a board is never
+  dealt with no word on it", the output of `wjs-cli` 60 times over, the groups of
+  checks about the scene's script). A case that keeps a statistic *over* its seeds
+  stays one: the median of how far sixteen dice were shaken, the median of how
+  long the guide took, the share of the 18 face-up runs that were late, the count
+  of seedings that kept a later board. Splitting those would hold each part to
+  the bound the whole is held to, which is a different test.
+- **The trace tests** ran alone (`RUN_SERIAL`), 48 s with three cores idle. They
+  take a lock between themselves (`RESOURCE_LOCK`) and run beside the others;
+  they passed in each of the eight full runs made beside the others.
+- **`/O1`.** ASan makes every access to memory a check and every copy of a struct
+  a call, and unoptimised code has many of both. `-DWJS_SANITIZER_OPTIMIZE=OFF`
+  brings back `/Od` to step through the code in a debugger. Two tests that skip
+  themselves in a build that is not optimised read their flag through a
+  `volatile`, since an optimising compiler that sees the flag is constant warns
+  of unreachable code (C4702) after the skip.
+- **The Tracy client** (a Debug build has it, `cmake/Tracy.cmake`) calibrates its
+  cycle counter with a sleep of 200 ms before `main`, in every program: 0.27 s to
+  start a test program, 0.09 s without. The Debug client uses the clock instead
+  (`TRACY_TIMER_FALLBACK`, `TRACY_DISALLOW_HW_TIMER`, in the port and in
+  `cmake/Tracy.cmake`, which have to agree: the timer is read inline in Tracy's
+  headers). A Debug build's timings are not numbers about the code; the
+  `*-profiling` presets, which numbers are taken from, keep the cycle counter.
+- **`COST`.** With no timing from an earlier run, as on a fresh checkout, ctest
+  starts the cases in the order they are registered, and the last to start was the
+  longest. The cases of 15 s or more have a `COST`, so that they start first.
+
+What is left is mostly the programs themselves: `release.tooling` and
+`data.phonics.checker` (a PowerShell process for each of their cases, 35 to 60 s
+each), the eight languages of `parent.languages` and `scan.languages`, and the
+face-up sweep of the dice (50 s).
+
 ## Static analysis
 
 clang-tidy and MSVC's `/analyze` are not ctest entries: they are the nightly

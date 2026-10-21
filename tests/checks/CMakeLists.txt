@@ -118,11 +118,14 @@ if(WJS_BUILD_APP)
     list(APPEND WJS_TRACE_TESTS profiling.trace_app)
 endif()
 if(WJS_TRACE_TESTS)
-    # Alone: a capture needs the machine's attention for the seconds it takes to
-    # find the program, and the two use ports of their own but share a disk.
+    # One at a time, but not alone: the two use ports of their own and share a disk (the
+    # lock keeps them apart), and a capture finds a program in about a second, which the
+    # other tests running beside it do not stop (they were run alone, with every other
+    # core idle for the 48 s they take; see docs/testing.md, "Test cost").
     set_tests_properties(${WJS_TRACE_TESTS} PROPERTIES
         SKIP_RETURN_CODE 4
-        RUN_SERIAL TRUE
+        RESOURCE_LOCK tracy_capture
+        COST 25
         TIMEOUT 240
         LABELS "system;profiling")
 endif()
@@ -336,7 +339,10 @@ if(WJS_PWSH)
     add_test(NAME release.tooling
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${WJS_TESTS_DIR}/package/run_release_tools_test.ps1")
-    set_tests_properties(release.tooling PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+    set_tests_properties(release.tooling PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 COST 60)
+    # Both start a program for each of their cases; started first, they are not the last
+    # thing a -j run waits for (a COST is what ctest orders by when it has no timing).
+    set_tests_properties(data.phonics.checker PROPERTIES COST 40)
 
     list(APPEND WJS_QUALITY_TESTS
         data.dice data.wordlists data.sounds data.phonics data.phonics.checker

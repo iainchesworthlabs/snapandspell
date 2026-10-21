@@ -58,7 +58,10 @@ struct SceneCheck {
     int atlas_jewels = 0;
 };
 
-[[nodiscard]] SceneCheck run_check() {
+// One group of the script's checks (shake_script_check.js, `run(S, group)`).
+// The groups are independent and each is plays of the simulation, so each is its
+// own test case and ctest runs them at once.
+[[nodiscard]] SceneCheck run_check(const QString& group) {
     application();
 
     QString script = read_text(script_path);
@@ -72,8 +75,8 @@ struct SceneCheck {
             "\nreturn run({ create: create, advance: advance, evaluate: evaluate, "
             "at: at, digest: digest, finish: finish, faceReport: faceReport, "
             "sides: sides, faceUp: faceUp, topSide: topSide, quatRotate: quatRotate, "
-            "newTracker: newTracker, atlasCells: atlasCells, sim: diceSim });\n"
-            "})()");
+            "newTracker: newTracker, atlasCells: atlasCells, sim: diceSim }, \"") +
+        group + QStringLiteral("\");\n})()");
 
     QJSEngine engine;
     DiceSim sim;
@@ -95,13 +98,6 @@ struct SceneCheck {
     return found;
 }
 
-// One run per binary, shared by the cases: the program is a dozen plays, and
-// the second case adds no work of its own.
-[[nodiscard]] const SceneCheck& scene_check() {
-    static const SceneCheck found = run_check();
-    return found;
-}
-
 void report(const SceneCheck& found) {
     std::string said;
     for (const QString& line : found.summary) {
@@ -114,18 +110,70 @@ void report(const SceneCheck& found) {
     CHECK(found.faults.isEmpty());
 }
 
+// A group of the script's checks, run on its own: its faults are failures, and it
+// says what it checked in one line.
+void check_group(const char* group) {
+    const SceneCheck found = run_check(QString::fromLatin1(group));
+    report(found);
+    CHECK(found.summary.size() == 1);
+}
+
 }  // namespace
 
-TEST_CASE("the shake script lands each die on the face the roll says and tumbles the others",
-          "[app][shake]") {
-    const SceneCheck& found = scene_check();
-    report(found);
-    CHECK(found.summary.size() >= 6);
+TEST_CASE(
+    "the shake script lands each die on the face the roll says and tumbles the others: "
+    "the six sides",
+    "[app][shake]") {
+    check_group("sides");
+}
+
+TEST_CASE(
+    "the shake script lands each die on the face the roll says and tumbles the others: "
+    "the weighted plays",
+    "[app][shake]") {
+    check_group("play weighted");
+}
+
+TEST_CASE(
+    "the shake script lands each die on the face the roll says and tumbles the others: "
+    "the staged plays",
+    "[app][shake]") {
+    check_group("play staged");
+}
+
+TEST_CASE(
+    "the shake script lands each die on the face the roll says and tumbles the others: "
+    "the reduced plays",
+    "[app][shake]") {
+    check_group("play reduced");
+}
+
+TEST_CASE(
+    "the shake script lands each die on the face the roll says and tumbles the others: "
+    "a replay",
+    "[app][shake]") {
+    check_group("replay");
+}
+
+TEST_CASE(
+    "the shake script lands each die on the face the roll says and tumbles the others: "
+    "the faces move nothing before the dice are sent home",
+    "[app][shake]") {
+    check_group("faces");
+}
+
+TEST_CASE(
+    "the shake script lands each die on the face the roll says and tumbles the others: "
+    "a board that is shown has its faces up",
+    "[app][shake]") {
+    check_group("show");
 }
 
 TEST_CASE("the scene's work is within its budgets: a play's simulation steps and an atlas's cells",
           "[app][scene][perf]") {
-    const SceneCheck& found = scene_check();
+    const SceneCheck found = run_check(QStringLiteral("work"));
+    report(found);
+    CHECK(found.summary.size() == 1);
 
     // One 4x4 play at 60 Hz with the stand-in's shake, from the first frame to
     // the last die home. The budget sits a quarter above what it measures; it is

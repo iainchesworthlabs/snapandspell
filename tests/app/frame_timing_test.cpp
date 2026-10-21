@@ -29,8 +29,10 @@
 
 namespace {
 
-constexpr bool optimised = WJS_TEST_OPTIMISED != 0;
-constexpr bool instrumented = WJS_TEST_INSTRUMENTED != 0;
+// Read through volatile, so that an optimising compiler cannot see the value: it would see
+// that SKIP always ends the case and warn (C4702) about every statement after it.
+const volatile bool optimised = WJS_TEST_OPTIMISED != 0;
+const volatile bool instrumented = WJS_TEST_INSTRUMENTED != 0;
 
 // The frames measured, after the smoke run's own warm-up. Four seconds at
 // 60 Hz: enough shakes and drops for a tail to mean something.
