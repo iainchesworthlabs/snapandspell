@@ -268,6 +268,17 @@ jobs:
           modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
           cache: true
 
+      # A compiler cache for the Windows build, which is where the minutes are
+      # (the debug build with the sanitizers, the application and its tests:
+      # about 480 translation units on four cores). A pull request restores what
+      # the last push to develop stored; see .github/actions/ccache.
+      - name: Set up ccache (Windows)
+        if: matrix.leg == 'windows'
+        id: ccache
+        uses: ./.github/actions/ccache/setup
+        with:
+          preset: ${{ matrix.preset }}
+
       # What the leg actually built with, in the log: the first thing to read
       # when a compiler-specific failure shows up.
       - name: Show the toolchain
@@ -301,7 +312,9 @@ jobs:
           QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
         run: |
           if [ "${{ matrix.leg }}" = "windows" ]; then
-            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON
+            # /Z7 puts the debug information in the objects, which is what
+            # ccache can store (a shared .pdb it cannot).
+            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
           else
             cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF
           fi
@@ -417,6 +430,12 @@ jobs:
           triplet: ${{ matrix.triplet }}
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
+      - name: Save ccache (Windows)
+        if: ${{ always() && matrix.leg == 'windows' }}
+        uses: ./.github/actions/ccache/save
+        with:
+          preset: ${{ matrix.preset }}
+
   # The performance tier's work budgets (tests/perf; docs/testing.md,
   # "Performance tests"), which the Debug legs above skip: they are counts, the
   # same on every compiler, but only an optimised build runs them in seconds,
@@ -531,11 +550,17 @@ jobs:
           modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
           cache: true
 
+      # The same compiler cache as the Windows leg, under its own preset's key.
+      - name: Set up ccache
+        uses: ./.github/actions/ccache/setup
+        with:
+          preset: windows-msvc-release
+
       - name: Configure (Release)
         shell: bash
         env:
           QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
-        run: cmake --preset windows-msvc-release -DWJS_BUILD_TESTS=OFF
+        run: cmake --preset windows-msvc-release -DWJS_BUILD_TESTS=OFF -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: cmake --build --preset windows-msvc-release
@@ -567,6 +592,12 @@ jobs:
         with:
           triplet: x64-windows
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
+
+      - name: Save ccache
+        if: ${{ always() }}
+        uses: ./.github/actions/ccache/save
+        with:
+          preset: windows-msvc-release
 
   # Line and branch coverage of the unit tier (src/lib), gated at the project's
   # minimum standard: 90% of lines and 80% of branches. The same gate is the

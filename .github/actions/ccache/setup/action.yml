@@ -1,0 +1,74 @@
+name: ccache for the Windows MSVC builds
+description: >-
+  Installs a pinned ccache, points it at a directory under RUNNER_TEMP and
+  fills that from the newest cache saved for this preset. Pair it with ../save,
+  run with `if: always()` as the job's last step, and configure with
+  `-DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded`
+  (ccache cannot cache a compile that writes a shared .pdb, only /Z7).
+
+inputs:
+  preset:
+    description: CMake preset the objects are built by; part of the cache key.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # A release zip, checked against the digest GitHub lists for the asset, then
+    # put on PATH. Windows only: the zip and the paths are Windows' (the other
+    # legs' builds are a minute long, not worth a cache).
+    - name: Install ccache (pinned)
+      shell: pwsh
+      env:
+        CCACHE_VERSION: "4.14.1"
+        CCACHE_SHA256: 6219f3865ca59aec41ee4b678df171d5d35855ecb2b6dbbbd20690b3a68af7b4
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $name = "ccache-$env:CCACHE_VERSION-windows-x86_64"
+        $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
+        Invoke-WebRequest -Uri "https://github.com/ccache/ccache/releases/download/v$env:CCACHE_VERSION/$name.zip" -OutFile $zip
+        $got = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
+        if ($got -ne $env:CCACHE_SHA256) { throw "ccache zip digest $got is not the pinned $env:CCACHE_SHA256" }
+        Expand-Archive -Path $zip -DestinationPath $env:RUNNER_TEMP
+        $bin = Join-Path $env:RUNNER_TEMP $name
+        Add-Content -Path $env:GITHUB_PATH -Value $bin
+        & "$bin\ccache.exe" --version | Select-Object -First 1
+
+    # Values are RUNNER_TEMP / workspace derived plus literals: nothing a pull
+    # request title, branch name or other input can reach.
+    - name: Point ccache at its directory
+      shell: bash
+      run: | # zizmor: ignore[github-env] RUNNER_TEMP- and workspace-derived, not attacker-influenced - see above
+        mkdir -p "$RUNNER_TEMP/ccache"
+        {
+          echo "CCACHE_DIR=$RUNNER_TEMP/ccache"
+          # Paths under the checkout are hashed relative to it, so the key does
+          # not depend on where the runner put the workspace.
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE"
+          # Debug objects with ASan and /Z7 are big; ccache keeps its own
+          # least-recently-used ones within this, so the entry stays one size.
+          echo "CCACHE_MAXSIZE=600M"
+          echo "CCACHE_STATSLOG=$RUNNER_TEMP/ccache-stats.log"
+        } >> "$GITHUB_ENV"
+
+    # `key` is never an exact hit: the save step names an entry after its run,
+    # so this falls through to restore-keys, which GitHub resolves to the most
+    # recently created entry with that prefix. A pull request reads the one
+    # develop saved (it can read its base branch's caches); only develop
+    # pushes and manual runs save (../save).
+    - name: Restore the newest ccache directory for this preset
+      id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ccache
+        key: ccache-${{ runner.os }}-${{ inputs.preset }}-restore
+        restore-keys: |
+          ccache-${{ runner.os }}-${{ inputs.preset }}-
+
+    - name: Zero the statistics
+      shell: bash
+      env:
+        MATCHED: ${{ steps.restore.outputs.cache-matched-key }}
+      run: |
+        ccache --zero-stats
+        echo "ccache: restored from ${MATCHED:-nothing (cold cache)}"

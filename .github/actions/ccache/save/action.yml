@@ -1,0 +1,60 @@
+name: Save the ccache directory
+description: >-
+  Reports what ccache did and, on a push to develop or a manual run that
+  compiled enough new objects, saves the directory for ../setup to restore.
+  Meant to run with `if: always()` as the job's last step.
+
+inputs:
+  preset:
+    description: The same value as ../setup.
+    required: true
+  min-new-objects:
+    description: >-
+      Fewest objects compiled (cache misses) that make a run worth a new entry.
+      Each entry is hundreds of megabytes of a quota the repository's other
+      caches share, and a run that compiled five files adds nothing to it.
+    default: "25"
+
+runs:
+  using: composite
+  steps:
+    - name: Statistics
+      id: stats
+      shell: bash
+      run: |
+        # --print-stats is the machine-readable form: "name<TAB>value" lines.
+        stats="$(ccache --print-stats 2>/dev/null || true)"
+        hits=$(awk -F'\t' '$1=="direct_cache_hit"||$1=="preprocessed_cache_hit"{n+=$2} END{print n+0}' <<<"$stats")
+        misses=$(awk -F'\t' '$1=="cache_miss"{n+=$2} END{print n+0}' <<<"$stats")
+        echo "hits=$hits" >> "$GITHUB_OUTPUT"
+        echo "misses=$misses" >> "$GITHUB_OUTPUT"
+        echo "ccache: $hits hit(s), $misses miss(es)"
+        ccache --show-stats --verbose || true
+        du -sh "$CCACHE_DIR" || true
+
+    # Only a run whose result other runs can read is worth storing: develop is
+    # where pull requests get their cache from, and a manual run on a branch
+    # reads its own. A pull request, a merge-queue entry and a tag read but
+    # never write.
+    - name: Save
+      id: save
+      if: >-
+        (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        && fromJSON(steps.stats.outputs.misses) >= fromJSON(inputs.min-new-objects)
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/ccache
+        key: ccache-${{ runner.os }}-${{ inputs.preset }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+    - name: Summarise
+      if: always()
+      shell: bash
+      env:
+        PRESET: ${{ inputs.preset }}
+        HITS: ${{ steps.stats.outputs.hits }}
+        MISSES: ${{ steps.stats.outputs.misses }}
+        SAVED: ${{ steps.save.outcome }}
+      run: |
+        if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+          echo "- ccache \`$PRESET\`: ${HITS:-?} hit(s), ${MISSES:-?} miss(es), save: ${SAVED:-skipped}" >> "$GITHUB_STEP_SUMMARY"
+        fi
