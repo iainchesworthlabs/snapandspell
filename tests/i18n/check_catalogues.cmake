@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # The interface's catalogues are what lupdate makes from the sources now
-# (docs/audit-0.1.md, "Languages, RTL and i18n"; docs/ci.md).
+# (docs/design/application.md, "Languages"; docs/ci.md).
 #
 #   cmake -DLUPDATE=<lupdate> -DREPO_ROOT=<repository>
 #         -DWORK_DIR=<empty directory> -P tests/i18n/check_catalogues.cmake

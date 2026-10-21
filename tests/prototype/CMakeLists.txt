@@ -11,5 +11,7 @@ if(TARGET wjs_dice_world)
     wjs_deploy_sanitizer_runtime(wjs_dice_tests)
     catch_discover_tests(wjs_dice_tests
         TEST_PREFIX "unit."
-        PROPERTIES LABELS "unit")
+        # The sweeps of dice are the longest cases of the suite (docs/testing.md, "Test cost"):
+        # a high COST starts them first when ctest has no timing of an earlier run.
+        PROPERTIES LABELS "unit" COST 40)
 endif()

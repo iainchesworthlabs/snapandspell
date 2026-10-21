@@ -11,6 +11,18 @@ It does not change the [roadmap](../roadmap.md), whose milestones are the full
 product's order and which says section 12 wins where they disagree. The
 roadmap changes this page suggests are put as questions at the end.
 
+> **Where 0.1 stands against this path (2026-10-22).** The release that is being
+> prepared is neither R1 as drawn below nor a later one. It takes from R3 the dice
+> for 3x3 to 6x6 and the open dictionary (the standard board, with no block list),
+> and a parent-set help; from R4 the desktops; and from R6 a parent-set board clock
+> (decision D8). It is not on a tablet: 0.1 is the three desktops plus an ad-hoc
+> iOS build that has never run on a device (D11), and Android is in progress. It
+> leaves out R1's reviewed Phase A index (there is no reviewer, so the phonics board
+> has no data), R1's stickers by tier on screen, and every R2 item. The diagram and
+> the sections below are the plan as written, not a record; the record is
+> [Requirements and traceability](../requirements.md) and the
+> [roadmap](../roadmap.md#4-decisions-that-gate-the-plan).
+
 ## The shape of it
 
 ```text

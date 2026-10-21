@@ -11,6 +11,8 @@
 # ---------------------------------------------------------------------------
 
 option(WJS_ENABLE_SANITIZERS "Enable ASan/UBSan for Debug builds" ON)
+option(WJS_SANITIZER_OPTIMIZE
+    "Build first-party code with /O1 in a Debug build that has MSVC's AddressSanitizer on" ON)
 
 add_library(wjs_sanitizers INTERFACE)
 add_library(wjs::sanitizers ALIAS wjs_sanitizers)
@@ -48,6 +50,20 @@ if(WJS_ENABLE_SANITIZERS)
         # /RTC (runtime checks) and incremental linking are incompatible with
         # ASan, so remove /RTC from the Debug flags and disable incremental link.
         string(REGEX REPLACE "/RTC[1csu]+" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+        # Optimised, with the sanitizer on: ASan turns every access to memory into
+        # a check and every copy of a struct into a call, and unoptimised code has
+        # a great many of both (a value kept in the stack and read again, a small
+        # function not inlined). /O1 takes the dice simulation from 1.57 s to 0.79 s
+        # a play with the same results, with ASan finding what it found. Debug
+        # information is kept; to step through the code in a debugger, configure
+        # with -DWJS_SANITIZER_OPTIMIZE=OFF.
+        if(WJS_SANITIZER_OPTIMIZE)
+            # CMake adds /RTC1 to a Debug target by itself (policy CMP0184), apart
+            # from the flags above, and cl refuses /O1 together with /RTC1.
+            set(CMAKE_MSVC_RUNTIME_CHECKS "")
+            string(REGEX REPLACE "/O[12dgisx]|/Ob[0-3]" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+            string(STRIP "${CMAKE_CXX_FLAGS_DEBUG} /O1" CMAKE_CXX_FLAGS_DEBUG)
+        endif()
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}"
             CACHE STRING "Flags used by the CXX compiler during Debug builds." FORCE)
         target_link_options(wjs_sanitizers INTERFACE

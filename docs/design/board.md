@@ -5,16 +5,22 @@ kind of screen, how it looks, how it is shaken and dropped, and what drawing it
 costs in licence terms. Written from the
 [product requirements](../product-requirements.md) sections 3, 5, 7 and 12.
 Proposals unless marked **Fact**. What the first release (the MVP, section 12)
-takes from this page is marked **MVP**; the rest is the full product.
+takes from this page is marked **MVP**; the rest is the full product. Where the
+build differs from a sentence, it says **As built**.
 
 ## Sizes
 
 | Size | Dice | Faces | Mode B, Solo Play | Mode A, the scanner | Words of 3+ letters on a board, any dictionary word |
 | --- | --- | --- | --- | --- | --- |
-| 3x3 | 9 | 54 | **MVP**: the first board | No | 31 (10th to 90th percentile 9 to 59) |
-| 4x4 | 16 | 96 | **MVP**: the default | **MVP**: the physical board | 120 (52 to 196) |
-| 5x5 | 25 | 150 | After the MVP, where a tile fits | After the MVP | 254 (134 to 404) |
-| 6x6 | 36 | 216 | After the MVP, where a tile fits | After the MVP | 435 (262 to 617) |
+| 3x3 | 9 | 54 | **MVP**: the first board (**as built**, and the default) | No | 31 (10th to 90th percentile 9 to 59) |
+| 4x4 | 16 | 96 | **MVP**: the design's default | **MVP**: the physical board | 120 (52 to 196) |
+| 5x5 | 25 | 150 | **As built**, on the standard board, where a tile fits (the decision of 2026-10-16, PRD 12.7) | **As built**: the reader reads 3 to 8, the picker offers 3 to 6 | 254 (134 to 404) |
+| 6x6 | 36 | 216 | The same | The same | 435 (262 to 617) |
+
+**Default size.** The design and PRD 5 say 4x4; the code and its test start a new
+device at 3x3 (`settings.hpp`, `settings_test`), the parent can change the first
+size offered to 3 or 4, and a child's pick on the box becomes the next default. The
+author has not decided between them; this page and the code disagree until they do.
 
 **Fact, measured:** the last column is from 200 boards a size, letters drawn at
 random in proportion to their counts in ENABLE, solved with the repository's
@@ -32,7 +38,9 @@ Notes.
   it. The real 6x6 game's four-letter minimum and four-minute timer are from the
   same summary and are the family's game, not the child's list.
 - The 3x3 is the same game on nine cells and is **not** a window onto a 4x4. In
-  the scanner there is no 3x3: a real board is 4x4 or larger.
+  the scanner there is no 3x3: a real board is 4x4 or larger. (**As built** the
+  scanner's reader and size picker accept 3 to 8 and 3 to 6; the author has not
+  settled the sizes Mode A offers.)
 
 ## Where the letters come from
 
@@ -160,16 +168,21 @@ than 48 dp is still shown, for reading and for the highlighted tile.
 | 300 dp or more on both sides | Tablets, desktop | A tray, 3 or more rows | A button and a display | Three thumbnails inline |
 | Anything smaller | Phones | A tray in the space left | One button, 64 dp | One button that opens a sheet |
 
+**Not built as a table.** The panel is shaped by the window's shape, not by size:
+the same tray, hint, clock and Finish/Clear/Done column everywhere, and history is
+always a sheet opened from the bar or from home. The table above is the design for
+phones, which have no layout yet.
+
 ## The tile
 
 | Part | Rule |
 | --- | --- |
-| Shape | A square with square corners. Cubeulator's rule: flat, no shadows, no gradients, regions ruled, "the cube is the colour". The dice are plain and the jewels are the colour. In the 3D scene (below) the dice are lit solids and the faces keep this look |
-| Letter | Upper case, centred, upright, about 55% of the tile's height (a starting value); `Qu` at 80% of that so it fits. The real board is upper case, so the replica matches it. The typeface and the school-font setting are on [Application design](application.md#type) |
+| Shape | A square with square corners. Cubeulator's rule: flat, no shadows, no gradients, regions ruled, "the cube is the colour". The dice are plain and the jewels are the colour. In the 3D scene (below) the dice are lit solids and the faces keep this look. **As built:** the tile's corners are slightly rounded (a small radius token) |
+| Letter | Upper case, centred, upright, about 55% of the tile's height (a starting value); `Qu` at 80% of that so it fits (**as built** 78%). The real board is upper case, so the replica matches it. The typeface and the school-font setting are on [Application design](application.md#type) |
 | Rest | Cream face, dark letter, dark edge |
-| Lit | On the path: the face turns amber, the edge thickens to 4 dp, and the tile scales to 106%. Not colour alone |
-| Grapheme link | Tiles that make one sound share a bar under them and a common edge colour; a split digraph is joined by an arc over the tile between. Shape first, colour second |
-| Found | The path's tiles flash once in the order they were traced, 60 ms apart |
+| Lit | On the path: the face turns amber, the edge thickens to 4 dp, and the tile scales to 106%. Not colour alone. **As built:** the edge thickens to 3 dp (a token) and the lit tile is not scaled |
+| Grapheme link | Tiles that make one sound share a bar under them and a common edge colour; a split digraph is joined by an arc over the tile between. Shape first, colour second. **Not built:** the live board does not draw the bar or the arc (the library binds the blocks; the layer that drew them was deleted with `TraceLayer`) |
+| Found | The path's tiles flash once in the order they were traced, 60 ms apart. **Not built:** the live board has no staggered flash |
 | Start tile | A pulsing ring: shape and motion, not colour alone. **MVP**: the only help |
 | Dead jewel | A faceted shape with no letter, not part of any path; a touch on it does nothing |
 | Doubtful | Scanner check only: a ring and a `?` |
@@ -187,7 +200,7 @@ are Cubeulator's own motion tokens (`quick`, `turn`).
 
 | Stage | Full motion | Reduced motion |
 | --- | --- | --- |
-| Shake | The box rattles through about 8 degrees, 0.7 s at least and while the device shakes, 3 s at most. A looped rattle; haptic taps, no more than 8 a second | The box is still; one soft rattle, 0.3 s |
+| Shake | The box rattles through about 8 degrees, 0.7 s at least (**as built** the weighted script's floor is 0.4 s) and while the device shakes, 3 s at most. A looped rattle; haptic taps, no more than 8 a second | The box is still; one soft rattle, 0.3 s |
 | Lid | Lifts and tilts away, 250 ms | Cross-fades, 120 ms |
 | Drop | Each die falls from one tile above, 280 to 420 ms, started in a fixed pseudo-random order. The gap between starts is the smaller of 30 ms and 700 ms divided by the number of dice. A small overshoot on landing. One click each, pitched a little differently | All dice fade in together, 120 ms |
 | Settle | Letters straighten, 150 ms | None |

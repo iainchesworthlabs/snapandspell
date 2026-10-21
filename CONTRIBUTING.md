@@ -49,7 +49,9 @@ ctest --preset windows-msvc-debug
 
 Use `linux-gcc-debug` or `macos-clang-debug` on those systems. All three are
 built and tested by CI; a problem on a compiler or system it does not cover is a
-useful report.
+useful report. Several of the repository's checks are PowerShell 7 scripts
+(`pwsh`); the tests that need it skip with a message when it is not installed, and
+CI runs them.
 
 ## Tests are not optional
 
@@ -118,6 +120,12 @@ what to do instead of an `#ifdef`, and how to add a platform.
   riding along with it.
 - If a person using the program would notice the change, add a line under
   `Unreleased` in [CHANGELOG.md](CHANGELOG.md).
+- If you change what a requirement says, or rename or remove a test, correct its
+  row in [docs/requirements/](docs/requirements.md): the `requirements.matrix`
+  test names the rows that point at a test that is gone.
+- Documentation is built strictly in CI (a broken link or heading is a red build).
+  To check before you push: `pip install -r .github/requirements/docs.txt` and
+  `mkdocs build --strict --config-file .github/mkdocs-ci.yml`.
 - Do not commit a word list whose source and licence are not recorded in
   `data/README.md` (see
   [docs/licensing.md](docs/licensing.md#the-word-list)), a picture of a person,

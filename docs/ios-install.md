@@ -7,8 +7,10 @@ the install, adding a device, and what to do when the signing runs out. How the
 build is made is in [CI](ci.md#ios).
 
 !!! warning "This has not run yet"
-    The iOS build, the signing and the install have never been run on a Mac, a
-    hosted runner or a device. The first run is expected to need fixes
+    The unsigned compile of the iOS application has passed on a hosted runner
+    (`ios-build.yml`, since 2026-10-21), but the signing, the archive, the export,
+    the install and running it on a device have never been done. The first run is
+    expected to need fixes
     ([what is unverified](ci.md#what-ios-has-and-has-not-shown)). Rehearse it
     before relying on it, as below.
 

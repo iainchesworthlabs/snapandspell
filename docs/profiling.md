@@ -19,7 +19,14 @@ What counts as fast enough, and the tests that hold it, are in
 is not optimised, and a skip is not a failure, so `profiling.perf_budgets_ran`
 fails a Release leg (or any leg with `WJS_REQUIRE_PERF_BUDGETS=1` in its
 environment) that ran none of them, and reports itself skipped, with the
-reason, in the others.
+reason, in the others. **No required CI leg holds them:** the three required
+build legs are Debug, where the budgets skip and this check reports itself
+skipped, no workflow sets `WJS_REQUIRE_PERF_BUDGETS`, and the one automatic
+Release leg (`Performance (Linux, GCC)`) is not a required check (the other
+place they run is the release workflow's Release build). The wall-time
+checks (`WJS_PERF_TIMING`) and the window's frame check
+(`WJS_PERF_FRAME_TIMING`) run in no automatic leg at all
+([Testing](testing.md#performance-tests)).
 
 ## Building a profiling binary
 
@@ -74,7 +81,10 @@ skip), and run their work budgets as in any optimised build.
 
 A Tracy client opens a TCP data port (8086) on every interface and answers UDP
 discovery broadcasts, **independently of anything the program does**. That is
-what makes it a neutral profiler, and it is why no preset that ships has it:
+what makes it a neutral profiler, and it is why no preset that ships has it. In
+a Debug build and a profiling build the port is open for as long as the program
+runs; the release presets and the packages made from them exclude the client
+(`SECURITY.md` says the same to a reporter):
 
 - The option's default is `ON` for a Debug build type and `OFF` otherwise; the
   `*-debug` and `*-profiling` presets are the instrumented ones, and every
@@ -85,6 +95,13 @@ what makes it a neutral profiler, and it is why no preset that ships has it:
   than a `*-debug` or `*-profiling` one enables the option, if a debug preset
   does not, if the default moved, if `tracy` became a base dependency, or if a
   workflow sets the option by hand.
+- `cpack` refuses a tree configured with Tracy (`cmake/PackagePreflight.cmake`)
+  unless asked for a development package by name
+  (`cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON`), and
+  `tools/package/check_package.ps1` fails a package of a Release tree that holds
+  `TracyClient*`, the AddressSanitizer runtime or a `.pdb`. CI's Windows Debug
+  package is a development package on purpose (its artefact is named
+  `debug-dev`); the Release packages are the ones that ship.
 
 `TRACY_ONLY_LOCALHOST` and `TRACY_NO_BROADCAST` are compile definitions of the
 Tracy client *library*, so this project cannot set them from its own sources;
@@ -259,13 +276,17 @@ the CSV and the GUI show, so a rename is deliberate. Two checks hold them:
   is not asked of the offscreen run: its software renderer has no render pass
   to record.
 
-The zone-name registry also names a few layers the next zones are called after
-(`assist`, `parent`, `session`, `sound`, `speech`); they are moved up with the
-first zone that uses them.
+The zone-name registry also lists, apart, the layers the next zones were to be
+called after (`assist`, `parent`, `session`, `sound`, `speech`). Every one of
+them has a zone now, so the list is out of date: they are still in the
+reserved list and have not been moved up to the registry.
 
 Only code that exists is instrumented. The [performance design](design/performance.md#what-to-instrument)
 lists the zones the rest of the application will carry, and they are added with
-the code they time.
+the code they time. What the check requires is every zone, plot, frame
+set and thread name in the two tables below except the 2D fallback's; a name
+that is in the design pages and not in them is planned, or was removed
+(`app.scene_create`, `scene.celebrate` and `solver.model` were).
 
 The **board mode** matters to how a trace reads. The standard board (dice, 3x3
 to 6x6) is the default and the seeded phonics board is a parent's switch, so a
@@ -302,6 +323,48 @@ as the finger moves. The column below says which.
 | `ui.sync_ms` | plot | both | the frame clock, once a frame | the render thread waiting for the GUI thread |
 | `render.record_ms` | plot | both | the frame clock, once a frame | the render thread recording the scene graph's main render pass (`beforeRenderPassRecording` to `afterRenderPassRecording`): the scene's draw calls |
 | `ui.animate_ms` | plot | both | the frame clock, once a frame the GUI thread was asked for | the GUI thread from the update request to the end of animations and polish (`afterAnimating`): QML, bindings and animation, before the render thread is asked to synchronise |
+
+The other zones the check requires are in the code below (the file and the
+function; each times the call and carries no number unless the table above says
+so). They are not repeated from the table above.
+
+| Layer | Zones | Where |
+| --- | --- | --- |
+| `app` | `app.fonts` | `main()` in `src/app/main.cpp`: the six bundled font files read before the first screen |
+| `assist` | `assist.confirm`, `assist.solve` | `AssistModel::begin` in `src/app/scan/assist_model.cpp` and `solve_board` in `src/app/scan/assist_game.cpp` (Mode A: the grown-up's "yes, play", which parses the board, makes the game and records the old round; the game's own solve is `assist.solve`) |
+| `board` | `board.deal_playable`, `board.parse` | `wjs::deal_playable` (`src/lib/src/deal.cpp`: the standard board's roll-until-it-holds-a-word loop) and `Board::parse` |
+| `camera` | `camera.convert_frame` | `frame_from_image` in `src/app/camera/frame_conversion.cpp`: a Qt image into the scanner's frame |
+| `cli` | `cli.run` | `src/cli/main.cpp`, around the whole run |
+| `data` | `data.load_store`, `data.save_store`, `data.build_dashboard`, `data.load_catalogue` | the store's file load and save (`src/lib/src/store.cpp`), `build_dashboard`, and `LanguageManager::install` (a translation catalogue) |
+| `dice` | `dice.load_sets` | `DiceSets::load_directory` |
+| `feedback` | `feedback.plan`, `feedback.play` | `plan_cue` in the library (which sound, haptic and speech a cue asks for) and `FeedbackEngine::cue` in the application (the call that carries it out) |
+| `gate` | `gate.refresh` | `Gate::refresh`, the parental gate's press-and-hold |
+| `input` | `input.trace` | `src/app/solo/path_tracer.cpp`: the C++ half of a traced path (`ui.trace` is the QML half) |
+| `motion` | `motion.push`, `shake.detect` | `MotionProcessor::push` and `detect_shakes` |
+| `parent` | `parent.edit` | `ParentController`'s one edit scope, `EditScope` in `src/app/parent/parent_controller.cpp`: every slot that changes the store is timed under this one name |
+| `path` | `path.validate`, `rules.classify` | `validate_path` and `classify_path` |
+| `phonics` | `phonics.sound_it_out` | `sound_it_out_sequence`: the sequence of sounds for a word of the phase |
+| `scan` | `scan.find_board`, `scan.bright_mask`, `scan.box_blur`, `scan.find_blobs`, `scan.decode_frame`, `scan.convert_working`, `scan.warp_board`, `scan.read_tiles`, `scan.read_glyphs`, `scan.process_frame` | the stages of `wjs::scan::find_board` and of `read_board` (`src/scan/src/`); `scan.process_frame` wraps the whole `board_reader::read` in `src/app/scan/scan_model.cpp`, on the scan thread (below) |
+| `session` | `session.finish` | `GameSession::make_record`: the board's record, which the store keeps and every snapshot carries |
+| `settings` | `settings.normalize` | `Settings::normalized` |
+| `solo` | `solo.path`, `solo.blocks`, `solo.history`, `solo.submit`, `solo.help`, `solo.words_with_start`, `solo.again` | `SoloModel` (path and blocks refresh, history refresh, `submitPath`) and `RealSoloGame` (`startTile`, `wordsWithStart`, `again`) |
+| `sound` | `sound.play`, `sound.sequence` | `SoundEngine::play` and `SoundSequencePlayer::start` |
+| `speech` | `speech.say` | `src/app/feedback/speech.cpp` |
+| `store` | `store.serialize`, `store.parse`, `store.session_snapshot`, `store.session_record` | `serialize_store`, `parse_store`, `snapshot_of`, `record_of` |
+
+`sound.play`, `feedback.play` and `speech.say` time the call that hands a sound
+or a voice to the device, not the moment it is heard: nothing measures
+touch-to-sound ([performance design](design/performance.md#budgets)).
+
+**Frame sets and threads.** The frame set `UI` is the window's (the frame clock,
+below) and `Capture` is the camera's: `CameraSource::capture` marks one for every
+frame it takes, apart from the window's. The threads are named `main` (the
+application's and `wjs-cli`'s), `render` (the scene graph's thread when it is
+not the GUI thread) and `scan`. **The scan read runs on a worker thread named
+`scan`** (a `QThreadPool` of one in `ScanModel`; the reading comes back through
+the event loop), so a trace of Mode A shows `scan.process_frame` and the
+scanner's stages on that thread and not on the GUI's. The check requires all
+three names and both frame sets.
 
 `board.seed` has no plot of its own. The solves it makes, the verifications and
 the guided fill's trials, are `solver.solve` zones inside it, each with its
@@ -369,9 +432,10 @@ first frames create the scene and compile its shaders: 150 ms of
 directly, so the mark and the plot are sent where the frame ended: the render
 thread of Qt's threaded render loop (the GUI thread of the basic one). The mark
 is the process's, not a thread's, and the named frame set is `UI`. The
-application names its threads `main` (in `main`) and `render` (the first time
+application names its threads `main` (in `main`), `render` (the first time
 the scene graph is initialised, and only when that is a thread of its own: under
-the basic render loop the scene graph is the GUI thread's, which keeps its name).
+the basic render loop the scene graph is the GUI thread's, which keeps its name)
+and `scan` (the worker the scanner's read runs on, named the first time it runs).
 
 The signals run on the render thread, which the profiler does not control: they
 belong to a state that the connections keep alive, which reaches the profiler
@@ -490,13 +554,16 @@ window on the 100 Hz one. **Which screen the window is on changes the answer
 
 ### The frame on a desktop with two screens
 
-The desktop this was measured on has two: a 3440x1440 landscape at 100 Hz
+**Measured on 2026-10-20 and 21, and open: the cause is not found.** The
+desktop this was measured on has two screens: a 3440x1440 landscape at 100 Hz
 (`Acer X34 P`) and, as the primary screen, a 1200x1920 portrait at 59.95 Hz
 (`SyncMaster`). Windows puts a new window on either, depending on what had the
 focus, so the same binary was measured on both, by moving the window in the
 first second of `--smoke` (Windows Release build, MSVC 19.51, Qt 6.12, Direct3D
 11, the default threaded render loop, an RTX 4090 at 3-6% utilisation; the
-median and 95th percentile of `ui.frame_ms`, the mean of `render.frame_ms`):
+median and 95th percentile of `ui.frame_ms`, the mean of `render.frame_ms`).
+Nothing else has been measured: no other desktop, no second machine, and
+nothing on a tablet or phone:
 
 | Window | On | p50 / p95 ms | `render.frame_ms` mean |
 | --- | --- | --- | --- |
@@ -532,19 +599,29 @@ What that says:
   OpenGL backend or the basic render loop each puts it back to the screen's
   rate, which points at how the application's window is set up and presented,
   and at the interplay of the threaded loop with the desktop compositor on a
-  mixed-refresh desktop. **Cause not found.** The application draws its own
-  controls (the kit), so the `Basic` style costs it nothing and is the first
-  thing to try in `main.cpp`; `QSG_RENDER_LOOP` and `QSG_RHI_BACKEND` are
-  environment variables Qt reads, and the application could set one itself
-  before it creates the window.
+  mixed-refresh desktop. **Cause not found, and no change has been made.** The
+  application draws its own controls (the kit), so the `Basic` style costs it
+  nothing and is the first thing to try: `src/app/main.cpp` does **not** set a
+  Quick Controls style (the one `QtQuick.Controls` import is `Main.qml`'s
+  `ApplicationWindow`, so the platform's default style is in use), and no
+  `qtquickcontrols2.conf` or style variable is set anywhere in the
+  application (the shake prototype's `main.cpp` does set
+  `Basic`, and it is the row of the table that holds 16.7 ms; that is a
+  difference between the two programs, not a finding). `QSG_RENDER_LOOP` and
+  `QSG_RHI_BACKEND` are environment variables Qt reads, and the application
+  could set one itself before it creates the window; it sets none.
 - **A busy machine moves the figure too**, which is why the budget is opt-in and
   runs alone (`RUN_SERIAL`): with every core busy the 100 Hz screen keeps its 10.1 ms
 median and its 95th percentile goes to 14.2 ms, which is what the `p95` row of
 the budget is for.
 - **The frame check is honest.** On the 59.95 Hz screen it fails (19.9 ms
-  against 16.97), and the earlier reports of a failing p50 on "a 100 Hz
-  display" were this: the window was on the other screen. The report now says
-  which (`screen=`, `refresh_hz=`), and the budget follows it.
+  against 16.97), and the earlier reports of a failing p50 were this: the
+  window was on the other screen. An earlier version of the
+  [performance design](design/performance.md#the-windows-frames) put that p50
+  down to a 60 Hz display and Windows' timer quantisation; that was a
+  guess, and the measurements above do not support it. The report now says
+  which screen (`screen=`, `refresh_hz=`), and the budget follows it. The
+  check is opt-in (`WJS_PERF_FRAME_TIMING=1`) and runs in no CI leg.
 
 **Those numbers are a real offscreen run, and they are not the 3D scene's.**
 Under `QT_QPA_PLATFORM=offscreen` with `QSG_RHI_BACKEND=opengl`, Qt Quick runs
@@ -612,7 +689,9 @@ and on a desktop with a display `--smoke 300` prints the line to read.
 
 **A profiler gets its moment.** A build with Tracy's `--smoke` waits up to five
 seconds for a profiler to connect before it loads anything, then calls
-`connected()` until one does or the time is up. That is what puts
+`connected()` until one does or the time is up. A normal launch can ask for the
+same wait with `--wait-for-profiler` or by setting `WJS_WAIT_FOR_PROFILER` (to
+anything), so a real session's start-up can be captured too. That is what puts
 `app.startup`, `app.load_qml` and `data.load_phase` in a capture: they run once,
 before a profiler started alongside the program could otherwise have found it
 (on-demand mode records nothing until one is connected). The wait is not part of
@@ -628,9 +707,12 @@ draw and a report is printed, but Quick 3D says on stderr that it is not
 functional there and the report is not the 3D scene's; the frame check skips
 that platform for the same reason. If no frame at all can be presented, the run
 says so on stderr and leaves with 3 after 20 seconds rather than hanging: it
-never reports an empty measurement as a result. The exit codes are 0 for a
-report, 1 when the QML made no window, 2 when the game could not be made, and 3
-when no frame was presented.
+never reports an empty measurement as a result. The exit codes
+(`src/app/startup_failure.hpp`) are 0 for a report, 2 when the game could not be
+set up (the word list, the dice or the phase directory), 3 when no frame was
+presented and 4 when the window did not load; 1 is left to the toolkit and to a
+crash. A failed start-up shows a dialog on Windows; `WJS_NO_DIALOGS=1`, or the
+`offscreen` or `minimal` platform, suppresses it.
 
 **A window that is not presented.** On the machine this package was built on
 (the session's window was not composited), the animation clock ran and the

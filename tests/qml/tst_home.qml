@@ -31,6 +31,7 @@ TestCase {
     }
 
     function cleanup() {
+        Theme.textScale = 1.0
         Navigation.home()
         Navigation.scanAvailable = true
         Navigation.parentAvailable = true
@@ -146,6 +147,52 @@ TestCase {
         compare(Navigation.history.length, 0)
         compare(soloSpy.count, 0)
         compare(parentSpy.count, 0)
+    }
+
+    // A card's name for assistive technology is the title written on it: the
+    // right card was once "Play with the family" over "Play with a real board".
+    function test_aCardIsNamedByItsVisibleTitle() {
+        const screen = home()
+        for (const item of allItems(screen)) {
+            if (typeof item.title === "string" && typeof item.accessibleName === "string"
+                    && typeof item.grownUp === "boolean") {
+                compare(item.accessibleName, item.title)
+            }
+        }
+        verify(picture(screen, "Play with a real board") !== null)
+        verify(picture(screen, "Play on my own") !== null)
+    }
+
+    // The words of a card are never drawn over its picture: at 150% text the
+    // card is as tall as its words and its least picture need, not a fixed
+    // height, and the page scrolls when that is more than the window has.
+    function test_aLargerTextSizeMakesTheCardTallerNotCrowded() {
+        Theme.textScale = 1.5
+        const screen = home()
+        const play = picture(screen, HomeWording.soloPicture)
+        const board = picture(screen, HomeWording.familyPicture)
+        verify(play.height >= play.minimumHeight)
+        verify(board.height >= board.minimumHeight)
+        compare(play.height, board.height)
+        Theme.textScale = 1.0
+    }
+
+    // In a window far larger than the design the content is centred under the
+    // bar, not left at the top of an empty page.
+    function test_aVeryLargeWindowCentresTheColumn() {
+        const screen = createTemporaryObject(homeComponent, testCase, { width: 2400, height: 1200 })
+        verify(screen !== null)
+        const play = picture(screen, HomeWording.soloPicture)
+        const board = picture(screen, HomeWording.familyPicture)
+        tryVerify(() => board.x > play.x + play.width, 2000)
+        // The column grows to the window's zoom and the cards follow it a frame later.
+        tryVerify(() => Math.abs(play.parent.width - play.parent.parent.width) < 1, 2000)
+        const left = play.mapToItem(screen, 0, 0).x
+        const right = screen.width - (board.mapToItem(screen, 0, 0).x + board.width)
+        verify(Math.abs(left - right) < 2)
+        const top = play.mapToItem(screen, 0, 0).y - Theme.appBarHeight
+        const bottom = screen.height - (play.mapToItem(screen, 0, 0).y + play.height)
+        verify(bottom > top * 0.4)
     }
 
     function test_theCardsFollowTheReadingDirection() {

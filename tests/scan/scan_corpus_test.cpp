@@ -47,7 +47,9 @@ namespace {
 using namespace wjs::scan;
 using namespace wjs::scan::synth;
 
-constexpr bool kOptimised = WJS_SCAN_OPTIMISED != 0;
+// Read through volatile: an optimising compiler that could see the value would see that SKIP
+// always ends the case, and warn (C4702) about the statements after it.
+const volatile bool kOptimised = WJS_SCAN_OPTIMISED != 0;
 
 // A call and not `if constexpr (kOptimised)`: SKIP ends the case, and where the
 // compiler can see that it always does, the statements after it are unreachable

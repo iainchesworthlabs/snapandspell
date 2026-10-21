@@ -380,7 +380,13 @@
         "noTestsAction": "error"
       }
     },
-    { "name": "windows-msvc-debug", "configurePreset": "windows-msvc-debug", "inherits": ["base"] },
+    {
+      "name": "windows-asan",
+      "hidden": true,
+      "description": "MSVC's AddressSanitizer keeps 30 frames for every allocation and free (RtlCaptureStackBackTrace), which is most of the time of a test that allocates. Two frames find every bad access as before, with the full stack of the access; only the 'allocated by' and 'freed by' stacks are cut, to the allocating function. A value of ASAN_OPTIONS set by the caller comes after this one and wins (malloc_context_size=30 for the whole stacks).",
+      "environment": { "ASAN_OPTIONS": "malloc_context_size=2:$penv{ASAN_OPTIONS}" }
+    },
+    { "name": "windows-msvc-debug", "configurePreset": "windows-msvc-debug", "inherits": ["base", "windows-asan"] },
     { "name": "windows-msvc-release", "configurePreset": "windows-msvc-release", "inherits": ["base"] },
     { "name": "windows-clang-coverage", "configurePreset": "windows-clang-coverage", "inherits": ["base"], "configuration": "Debug" },
     { "name": "linux-gcc-debug", "configurePreset": "linux-gcc-debug", "inherits": ["base"] },
@@ -416,10 +422,10 @@
       "inherits": ["base"],
       "filter": { "include": { "label": "ui" } }
     },
-    { "name": "windows-msvc-debug-unit", "configurePreset": "windows-msvc-debug", "inherits": ["unit"] },
-    { "name": "windows-msvc-debug-integration", "configurePreset": "windows-msvc-debug", "inherits": ["integration"] },
-    { "name": "windows-msvc-debug-system", "configurePreset": "windows-msvc-debug", "inherits": ["system"] },
-    { "name": "windows-msvc-debug-ui", "configurePreset": "windows-msvc-debug", "inherits": ["ui"] },
+    { "name": "windows-msvc-debug-unit", "configurePreset": "windows-msvc-debug", "inherits": ["unit", "windows-asan"] },
+    { "name": "windows-msvc-debug-integration", "configurePreset": "windows-msvc-debug", "inherits": ["integration", "windows-asan"] },
+    { "name": "windows-msvc-debug-system", "configurePreset": "windows-msvc-debug", "inherits": ["system", "windows-asan"] },
+    { "name": "windows-msvc-debug-ui", "configurePreset": "windows-msvc-debug", "inherits": ["ui", "windows-asan"] },
     { "name": "linux-gcc-debug-unit", "configurePreset": "linux-gcc-debug", "inherits": ["unit"] },
     { "name": "linux-gcc-debug-integration", "configurePreset": "linux-gcc-debug", "inherits": ["integration"] },
     { "name": "linux-gcc-debug-system", "configurePreset": "linux-gcc-debug", "inherits": ["system"] },

@@ -195,12 +195,12 @@ struct Upright {
     int face = 4;
     int turns = 0;
 };
-Upright uprightOf(Quat q);
+Upright uprightOf(const Quat& q);
 
 // The nearest of the 24 orientations that put a die flat and square to the box;
 // or, with a face (0 to 5, as kFaceNormal), the nearest of the four that put that
 // face up.
-Quat squareTo(Quat q, int face = -1);
+Quat squareTo(const Quat& q, int face = -1);
 
 class World {
 public:
@@ -301,15 +301,15 @@ private:
     void correctPositions();
     void finishStep(double h);
     const Contact* previousOf(const Contact& c) const;
-    double effectiveMass(const Contact& c, Vec3 direction) const;
+    double effectiveMass(const Contact& c, const Vec3& direction) const;
     Vec3 relativeVelocity(const Contact& c) const;
     double guideWeight(const Die& d) const;
     double inverseMass(int i) const;
     double inverseInertia(int i) const;
-    Vec3 pointOf(int i, Vec3 local) const;
-    Vec3 pointVelocity(int i, Vec3 r) const;
-    void push(int i, Vec3 impulse, Vec3 r);
-    void impulse(int i, Vec3 impulse, Vec3 r);
+    Vec3 pointOf(int i, const Vec3& local) const;
+    Vec3 pointVelocity(int i, const Vec3& r) const;
+    void push(int i, const Vec3& impulse, const Vec3& r);
+    void impulse(int i, const Vec3& impulse, const Vec3& r);
     double random();
 
     Box box_;

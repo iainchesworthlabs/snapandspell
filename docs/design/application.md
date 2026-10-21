@@ -1,21 +1,34 @@
 # Application design
 
 The screens and how they connect, the sizes of things a child touches, type,
-the interface's languages and right-to-left layouts, colour, accessibility,
-sound and touch feedback, how the privacy rules of the
-MVP are built in and checked, and what the application needs from Qt and the
-operating system. Written from the
-[product requirements](../product-requirements.md) sections 2, 7, 10 and 12.
-Proposals unless marked **Fact**.
+the interface's languages and right-to-left layouts, the Jewel Box design
+system, colour, accessibility, sound and touch feedback, how the privacy rules
+of the MVP are built in and checked, and what the application needs from Qt and
+the operating system. Written from the
+[product requirements](../product-requirements.md) sections 2, 7, 10 and 12,
+and kept in line with the code at 0.1: where a sentence says **As built** it
+describes what the application does; where it says **Not built** or **Open** it
+does not. The rest is design intent.
 
 The privacy architecture (section 12.2) is frozen before visuals or layouts:
-**no audio recording, no network capability, no export, no timers or limits**.
-No screen on this page needs any of them.
+**no audio recording, no network capability, no export**, and, until
+2026-10-21, **no timers or limits**. The last rule is amended
+([Decisions](#decisions)): a grown-up can switch on a clock for the board, off by
+default. No screen needs any of the first three.
 
 ## Platform and scope
 
 **MVP (question 64, assumed):** an iPad, as a private ad-hoc build for the
 author's own devices; the platform list of section 2 is the product's scope.
+
+**0.1 (decided 2026-10-21, [D11](../roadmap.md#4-decisions-that-gate-the-plan)).**
+The first release is built, tested and packaged on the three **desktops**
+(Windows, Linux, macOS), plus an **ad-hoc iOS build** for the author's own
+devices. The iOS fragment, preset, signing job and install page exist and have
+**never run on a device** ([CI](../ci.md#ios)). **Android is in progress in a
+separate stream and is not built**: do not read the Android column below as a
+claim that it works. Web and phone layouts come after 0.1. The tablet-first
+table below remains the product's target.
 
 | | iPad (MVP) | Android tablet | Phone | Web (WebAssembly) | Desktop |
 | --- | --- | --- | --- | --- | --- |
@@ -41,8 +54,8 @@ author's own devices; the platform list of section 2 is the product's scope.
 Gui, Qml, Quick, QuickControls2, Quick3D, ShaderTools, Svg, **Multimedia,
 Sensors and TextToSpeech** for the feedback engines; the module archives for the
 last three were fetched from the Qt repository and merged into the kit
-(docs/building.md, "The Qt Quick window"). There is still no iOS kit. The
-application finds the three **optionally**: a contributor's kit without them
+(docs/building.md, "The Qt Quick window"). The iOS kit is installed by the iOS
+CI jobs only. The application finds the three **optionally**: a contributor's kit without them
 builds the silent variants of the sound, speech and motion backends
 (`src/app/feedback`), and the game is complete, only quieter.
 
@@ -70,29 +83,33 @@ GPL-3.0-only because of Quick 3D, as before.
         │  solo.box        │          │ scan.ready       │            │
         │   ▼ shake        │          │   ▼ capture      │       ┌────┴────────┐
         │  solo.playing    │          │ scan.check       │       │ dashboard   │
-        │   ▼ cleared      │          │   ▼              │       │ settings    │
-        │  solo.resting    │          │ assist.playing   │       │ about       │
+        │   ▼ summary      │          │   ▼              │       │ settings    │
+        │                  │          │ assist.playing   │       │ about       │
         └──────────────────┘          └──────────────────┘       └─────────────┘
-              vault, history: from the panel or from home
+              My jewels, earlier boards: from home or the bar
+      (Mode A is reached through the gate and the dashboard, not from home)
 ```
 
 | id | Screen | Notes |
 | --- | --- | --- |
-| `home` | Two large pictures: the box (Solo Play) and the tablet on a stand (the family game). A small corner button for the parent | A picture speaks its name when pressed and acts on release inside it; slide off to cancel |
+| `home` | Two large pictures: the box (Solo Play) and the tablet on a stand (the family game, marked for grown-ups). A parent button, and a way to My jewels and earlier boards | **As built** the cards also carry a title and a line of text, and the family card opens the gate. A picture speaks its name when pressed |
 | `solo.*` | Mode B | [Game design](game.md#mode-b-solo-play) |
 | `scan.*`, `assist.*` | Mode A | [Game design](game.md#mode-a-the-family-assistant-and-scanner) |
-| `vault` | The album | From home; never offered after a board |
-| `history` | Earlier boards | From the panel or from home |
-| `parent.gate` | The gate | [Dashboard](dashboard.md#the-gate) |
+| `jewels` | **My jewels**, the child's collection (the design's vault; [Game](game.md#progress-without-a-pull)) | From home; never offered after a board; no gate ([D10](../roadmap.md#4-decisions-that-gate-the-plan)) |
+| `history` | Earlier boards, a sheet | From the bar in Solo Play, or from home |
+| `parent.gate` | The gate | [Parent area](parent-area.md#the-gate) |
 | `parent.*` | Dashboard, settings, about, licences, privacy | [Dashboard](dashboard.md) |
 
 Rules that hold everywhere, taken from Cubeulator's journey:
 
 1. **A way back and a way on.** Every state has a visible control that goes
    back. System back does the same and is never the only way.
-2. **Back goes where the person came from**, with two exceptions: from
-   `solo.resting` it goes to `home`, so leaving does not show the shake button;
-   from `solo.playing` it puts the lid on (`solo.box`) and saves the board.
+2. **Back goes where the person came from**, with one exception: from
+   `solo.playing` (and a word being shown, the shake or the drop) it goes
+   `home` and **leaves the round as it is**; the next visit to Solo Play finds it
+   there, because the game is saved on every find. The design had Back put the
+   lid on and finish the board; the code does the other, and a test pins it
+   (`tst_box`, "test_backFromPlayLeavesTheRoundInProgress").
 3. **Nothing is lost.** Leaving never asks "are you sure"; the board is saved
    to history, as Cubeulator's solve is kept. The only things that ask are in
    the parent area (clear history, reset).
@@ -131,10 +148,12 @@ with real children, not a finding.
   focused tile, Enter submits, Escape clears. A switch device that sends those
   keys can play.
 - **Screen readers.** The board is a grid; each tile is named by its letter and
-  its place ("A, row 2, column 3"); the panel's words are a list; a found word
-  is announced politely ("pain, found"). The 3D scene is opaque, so the tiles'
-  accessible items are a 2D layer over it, as Cubeulator's instruction block is
-  the alternative to its cube.
+  its place ("A, row 2, column 3"); the panel's words are a list, each named
+  "pain, found". **Not built:** the polite live announcement when a word is found
+  (WCAG 4.1.3): the list changes and the word is spoken aloud, and nothing is
+  sent to a screen reader. The 3D scene is opaque, so the tiles' accessible
+  items are a 2D layer over it, as Cubeulator's instruction block is the
+  alternative to its cube.
 
 ## Type
 
@@ -144,7 +163,7 @@ and lower case are very clear and "I", "l" and "1" are not confused. Question
 
 | Face | Licence | What is known | What is not |
 | --- | --- | --- | --- |
-| **Andika** (SIL) | SIL Open Font Licence (**read** from several secondary sources, not from the licence file) | Designed for beginning readers; single-storey a and g by default; its design notes list "capital I, lowercase l and numeral 1 that don't look alike" among its aims (**read**) | Its glyphs at this app's sizes: **not looked at**, the face is not installed here; its file size |
+| **Andika** (SIL) | SIL Open Font Licence (**read** from several secondary sources, not from the licence file) | Designed for beginning readers; single-storey a and g by default; its design notes list "capital I, lowercase l and numeral 1 that don't look alike" among its aims (**read**) | **As built:** bundled (Regular and Bold, `assets/fonts`). Its glyphs at this app's sizes with a child: **not looked at** |
 | **OpenDyslexic** | OFL; Wikipedia gives version 1.1; the project says only the newest release moved to it, so older releases may differ (**read**) | Named in the brief | The same, and its design aims for the "I, l, 1" shapes were not checked |
 
 **Recommendation.** Andika for the dice, the panel and every label, because it
@@ -153,6 +172,14 @@ side-by-side with a child decides it**, and both are named in the brief. Each
 face's licence file must be read before it is bundled. Bundle it on every
 platform: a browser has no system fonts (Cubeulator's web notes), and a
 tablet cannot be assumed to have it.
+
+**As built.** Three typefaces are bundled and compiled into the application,
+all under the SIL Open Font License (`notices/fragments/fonts.txt`): **Andika**
+(Regular, Bold) for the reading text, the dice and the words a child reads;
+**Archivo** (Regular, SemiBold, ExtraBold) for headings, buttons and labels; and
+**IBM Plex Mono** (Medium) for small uppercase labels and counts.
+OpenDyslexic is not bundled. The five-step glyph check below has not been done
+with a child, and no specimen sheet is committed.
 
 **The glyph check (question 18), as a procedure** because it cannot be done
 from a description:
@@ -223,16 +250,25 @@ and error text a developer reads stay English.
 **What is translated.** The chrome: every label, sentence, accessible name and
 message. **Not** the board: the dice letters, the words in the tray, the ENABLE
 word list and the phonics content are English, because the game is an English
-word game (audit-0.1.md, "Languages, RTL and i18n"). The translations are
-**mechanical and unreviewed**; they are listed with the phonics content for the
-literacy/reviewer pass, which decides the wording a child and a parent see.
+word game. The translations are **mechanical and unreviewed**; they are listed
+with the phonics content for the literacy/reviewer pass, which decides the
+wording a child and a parent see. The author's list of eight languages was
+stated on 2026-10-19, with a full linguistic review as a later task.
+
+**How complete the catalogues are.** Each of the eight has the same 279
+messages and none is marked `unfinished`. That is not the same as translated:
+**90 to 96 of the 279 messages in each non-English catalogue are identical to
+their English source**. Some of those are right (`Qu`, numbers, a brand name),
+the rest are untranslated or cognates; no test counts them
+([Testing](../testing.md#the-interfaces-languages)). The Chinese, Japanese,
+Hebrew and Yiddish catalogues are drafts.
 
 **Right to left.** Hebrew and Yiddish read right to left. The window sets
 `LayoutMirroring.enabled` with `childrenInherit` from the language, and the
 screens that need the direction for something other than anchors read
-`Theme.rightToLeft`/`ParentTheme.rightToLeft`: the navigation bars put the way
-back on the leading edge, the parent area's rows and choices order from it, the
-gate's words and two symmetric spots follow it, and the two-thirds/one-third
+`Theme.rightToLeft`: the navigation bars put the way back on the leading edge,
+the parent area's rows and choices order from it, the gate's words follow it,
+and the two-thirds/one-third
 split puts the panel on the trailing side (the left) and the board on the
 leading side (the right). The **board never mirrors**: the dice, the tiles, the
 trace path and the 2D and 3D scenes keep their reading order and their
@@ -256,51 +292,96 @@ Windows check today (docs/testing.md). **Recorded:** run on Windows on
 2026-10-19, the chain carried every glyph of all eight samples (Latin with
 accents, Hebrew, Yiddish, Chinese and Japanese).
 
+**Checked by.** A catalogue-completeness and direction test
+(`tests/app/language_test.cpp`: every language has a catalogue with the same
+messages and none unfinished or vanished, Hebrew and Yiddish are right to
+left and the rest left to right, a catalogue is really installed, the font chain
+carries each language's sample); a QML right-to-left suite
+(`tests/qml/tst_rtl.qml`: the chrome mirrors and the board does not); the
+`i18n.catalogues` drift check, which regenerates the catalogues with `lupdate`
+and fails on any difference (skipped where `lupdate` is absent); and the screens
+checks of the parent and scan areas in all eight languages. **Not checked:** a
+Solo Play or Home smoke run in each language, text overflow in the longest
+translations, or number and date formatting by locale.
+## The Jewel Box design system
+
+**As built.** One design system, the Jewel Box, serves every screen, the parent
+area included: warm paper, a deep tray, cream dice, an emerald action colour and
+a gold reward. It replaced three hand-built looks (the child screens, the parent
+area's own theme and the scan screens) after the October 2026 human-factors
+review of the prototype, whose findings are kept in git history rather than in
+this tree (the last commit that holds it is `b1aeb44`, in
+`docs/design/ux-audit-2026-10/`). The values live
+in `src/app/qml/kit/Theme.qml` and are **not copied here**: this page says what
+the system is made of and which rules the tests hold it to.
+
+- **One token source.** A screen writes no colour, size, radius or type value of
+  its own; it reads `Theme`. Light and dark are chosen by the parent's Colour
+  scheme setting, or by the system. The board is the one object that stays the
+  same in both: the tray, the dice and the gold rim are the physical toy on the
+  table.
+- **Roles, not sizes, for text.** A `Label` takes a role (display, title,
+  heading, body, label, child, word, mono, caption) and never a pixel size. The
+  scale has eight steps and nothing is smaller than 12 at any text scale. Two
+  tiers share it: the **child tier** (`child`, `word`, `title`, `display`) is
+  what a five-year-old reads, set in Archivo or in Andika; the **parent tier**
+  (`body`, `label`, `caption`, `mono`, `heading`) is what an adult scans. Source
+  strings are never upper-cased; a small label is an `Eyebrow`, which the
+  platform capitalises.
+- **Colour has jobs.** Emerald is the one action colour; selection is a soft
+  emerald fill, an emerald edge and a check mark. **Gold is reward only**: the
+  hint, the lit die, the tray rim, a jewel's rim; never a selection. A disabled
+  control has its own fill, ink and edge, never reduced opacity, so its label
+  keeps a readable contrast. A container is told from its surround by a line
+  with a measured separation.
+- **Components** (`src/app/qml/kit`): `AppButton` (variants and three sizes,
+  48, 64 and 96 dp, that grow with their label and wrap rather than truncate;
+  a 2 px focus ring after a key press), `SegmentedChoice` (a titled group of
+  radio buttons), `Card` (a title and an empty state), `Sheet` (a modal over its
+  area with a scrim, Escape, a Tab trap and focus given back to the opener),
+  `ActionBar` (one height ladder, child 96 and 64, parent 64 and 48),
+  `AppBar` (way back, title, tabs), `BoardTray`, `JewelBox`, `ModeCard`,
+  `Wordmark`, `Icon`, `Label`, `Eyebrow`, `FocusRing`. Icon-only buttons are
+  allowed for back and close only.
+- **Guard rails.** Four tests in `tests/qml` keep it so: `quick.lint` rejects a
+  pixel size, a letter spacing, a hex colour, a bare `Text`, a disabled opacity,
+  gold used for selection and an icon-only button outside back and close, against
+  an allow-list that may only shrink; `quick.contrast` measures about sixty
+  foreground and background token pairs in both schemes against the gates below;
+  `quick.sizematrix` lays the screens out at 900x620, 900x1200, 1024x768,
+  2400x1200 and at 150 % text and checks that every focusable item is at least
+  48 dp, inside its window, not truncated and not overlapping another control; and
+  `quick.kit` and `quick.theme` pin the components and tokens.
+- **Where it is not finished.** The 3D scene still reads some colours of its own
+  rather than the tokens; the parent area's bare `Text` items are on the lint
+  allow-list; at 150 % text on the smallest window the playing panel scrolls
+  (Clear and Done are reachable below the fold).
+
 ## Colour and contrast
 
-The brief gives no palette. These are **placeholders** chosen to be measured,
-not designs; the numbers are WCAG 2.x contrast ratios computed from the
-values, and are the gate a final palette has to meet. Cubeulator holds its
-tokens to the same gate with a script (`docs/design/tools/check_tokens.py`).
-The board is dark in both themes, so the dice read the same; the chrome around
-it follows the **Colour scheme** setting: System (the default) follows the
-operating system's light or dark setting, and Light or Dark is the parent's
-choice for the whole program (the house standard of the sibling projects,
-decided 2026-10-18).
+The gates are WCAG 2.x relative-luminance ratios, and they are **enforced by
+`tests/qml/tst_contrast.qml` from the live tokens in both schemes**, so this page
+carries no table of colours (the palette it once tabulated was replaced, and a
+table would be stale again with the next token change):
 
-| Pair | Values | Ratio | Target |
-| --- | --- | --- | --- |
-| Letter ink on a die | `#1F2A37` on `#FFF8E1` | 13.68 | 7:1 (the letters are the content) |
-| Die against the tray | `#FFF8E1` on `#1F2A37` | 13.68 | 3:1 |
-| A lit die against the tray | `#FFD54F` on `#1F2A37` | 10.30 | 3:1 |
-| Ink on a lit die | `#1F2A37` on `#FFD54F` | 10.30 | 4.5:1 |
-| **A lit die against a resting die** | `#FFD54F` on `#FFF8E1` | **1.33** | not met: so lit is shape, not colour |
-| Path casing on the tray | `#FFFFFF` on `#1F2A37` | 14.54 | 3:1 |
-| Path core on a die | `#1F2A37` on `#FFF8E1` | 13.68 | 3:1 |
-| Path core on a lit die | `#1F2A37` on `#FFD54F` | 10.30 | 3:1 |
-| Body text on the page | `#1F2A37` on `#FBF8F1` | 13.71 | 4.5:1 |
-| Secondary text | `#4A5666` on `#FBF8F1` | 7.04 | 4.5:1 |
-| Button label on the button | `#FFFFFF` on `#1F5FA8` | 6.44 | 4.5:1 |
-| The button on the page | `#1F5FA8` on `#FBF8F1` | 6.07 | 3:1 |
+| What | Gate |
+| --- | --- |
+| Text: ink and secondary ink on every surface they sit on, including hovered and pressed | 4.5:1 |
+| Large text, and a disabled label (exempt from WCAG, held to the house floor) | 3:1 |
+| Non-text: a control's edge, the focus ring, the selected edge, a track, the gold of the path and of the hint against the die | 3:1 |
+| Separation of a container from its surround, measured on the pair named: a line on a card, the tray on its stage, the panel on the stage | 1.1 to 1.6 |
 
-The path is therefore two-tone: a pale casing seen against the tray and a dark
-core seen against the dice. And:
+The path is a pale line in a gold edge with a thin dark line, so it shows on the
+dice and on the tray. And:
 
-- **State is never colour alone.** Lit is a thicker edge and a scale; a grapheme
-  link is a bar and a shared edge; the start tile is a pulsing ring; a doubtful
-  tile is a ring and a `?`; a dead jewel has a shape. This is Cubeulator's rule.
+- **State is never colour alone.** Lit is a heavier edge; a grapheme link is a
+  bar and a shared edge; the start tile is a ring; a doubtful tile is a ring
+  and a `?`; a dead jewel has a shape; a selected choice has a check mark. This
+  is Cubeulator's rule.
 - **A jewel's colour is decoration.** Its size says its tier; nothing is "the
   red one". A world (7.2) swaps the board's look and background tokens and no
   rule.
-- **Dark theme values** are in `src/app/qml/kit/Theme.qml`, with the light ones, and
-  were computed against the same gate: the page `#12161C` and ink `#F4EFE3`
-  (15.82), secondary ink `#B4BDC9` (9.56), a control's edge `#8C98A8` (6.20 on the
-  page, 4.49 on a card, 5.16 on the panel), the button `#7DB4EE` under `#0E1620`
-  (8.35, and 8.33 on the page). The board is the same in both, so its edge, which
-  the dark tray would otherwise lose against a dark page, is `#8C98A8` (5.66 on
-  the board area). The parent area's tokens (`ParentTheme.qml`) are the same
-  pairs under its own names, so the ratios carry over. Nothing here has been
-  looked at on a device.
+- Nothing here has been looked at on a device.
 
 ## Motion
 
@@ -318,6 +399,14 @@ brief's strong effects are limited, because they are strong for a young child
 | Voiceover | Spoken at the device's volume | Spoken; a parent can set celebration sounds to quiet or off |
 | Resting screen | Fades in over 600 ms, then still | A cut |
 | Anything that loops | Never for more than 5 seconds (WCAG 2.2.2) | Nothing loops |
+
+**What is built and what is not.** The shake, lid and drop of the 3D scene, the
+page and sheet transitions, and the reduced-motion behaviour of all of them are
+built. **Not built:** the sparkle and rainbow trail on a word, the Mega burst
+and bounce, confetti and the particle layer, the "single slow glow when the board
+clears", and the resting screen (deleted on 2026-10-21; [Game](game.md#the-end-of-a-board)).
+The rows above are the design for them and the limits any such effect must
+keep.
 
 **Who sets it.** The system's reduced-motion setting is the default and the
 parent area can override it (Motion: System, Reduced). It is a parent's
@@ -339,22 +428,22 @@ to be tuned on a tablet.
 ([Board](board.md#the-shake-and-the-drop)). With reduced motion the scene keeps
 the box still, cross-fades the lid and fades the dice in on the faces the roll
 left up; nothing tumbles, and the board appears and plays as it does otherwise.
-The scene draws no particles of its own; the single slow glow when the board
-clears is the 2D layer's and is switched off with reduced motion too.
+The scene draws no particles of its own.
 
 ## Accessibility
 
 | WCAG 2.2 criterion | How it is met |
 | --- | --- |
 | 1.1.1 Non-text content | Tiles, jewels, the start tile and stickers have names; the 3D scene's alternative is the 2D tile layer |
-| 1.4.1 Use of colour, 1.4.11 Non-text contrast | The table above |
-| 1.4.4 Resize text | Text scale 1, 1.25 and 1.5 times the system's, clamped to 0.85 to 2.0; layouts hold at 2.0 (tray scrolls, buttons grow with their labels). The system's size is not read yet: Qt 6.12 does not expose it ([parent area](parent-area.md#integration)) |
-| 2.2.1 Timing, 2.2.2 Pause, stop, hide | There are no timers; nothing loops over 5 seconds |
+| 1.4.1 Use of colour, 1.4.11 Non-text contrast | The gates above, measured by `quick.contrast` |
+| 1.4.4 Resize text | The parent's Text size is 100, 125 or 150 % **of the design size** (the app does not read the system's text size: Qt 6.12 does not expose it, [parent area](parent-area.md#integration)); tokens have a floor of 12 and the size matrix checks 150 % at two window sizes. 200 % is not tested |
+| 2.2.1 Timing, 2.2.2 Pause, stop, hide | **No timer unless a grown-up chooses one** (off by default; D8); nothing loops over 5 seconds. A count-down ends the board and keeps everything found, which is a time limit a parent set deliberately |
 | 2.3.3 Animation from interactions | Reduced motion (above) |
 | 2.5.1 Pointer gestures | Tap in order is always on |
 | 2.5.4 Motion actuation | The **Shake** button, and shake detection can be switched off |
 | 2.5.8 Target size | 48 / 64 / 96 dp |
-| 4.1.2 Name, role, value | Every control has a name and a role |
+| 4.1.2 Name, role, value | Every control has a name and a role by convention; no test reads an accessible name or role yet |
+| 4.1.3 Status messages | **Not built**: a found word is spoken aloud, and no live announcement goes to a screen reader |
 | Photosensitivity | At most three flashes a second; no full-screen flash |
 | Colour vision | State is never colour alone (above) |
 | Hearing | Everything that is announced by sound is also seen: a jewel, a lit block |
@@ -377,7 +466,7 @@ All sound is **output**. Nothing is captured from the child (section 12.2).
 | Not a word | Nothing | Nothing |
 | A new best | One chime | One tap |
 | Board cleared | A quiet three notes | A soft double tap |
-| Resting | Nothing | Nothing |
+| Resting (not built; [Game](game.md#the-end-of-a-board)) | Nothing | Nothing |
 
 An error is never scolded (Cubeulator: "An error is not scolded"). Sounds are
 under 300 ms except the sequence and the rattle. No music.
@@ -417,10 +506,15 @@ played for "not a word".
   recorded set exists.
 - **The voice** is the device's own Qt TextToSpeech engine, whole words and
   sentences only. It is output only: there is no audio input in the engine or
-  anywhere else in the application (section 12.2). `say_letter_sequence()` is
-  the seam for the sound-it-out sequence and is deliberately silent: the
-  isolated phonemes are the reviewer's recording job, and the platform's voice
-  must not substitute letter names for them.
+  anywhere else in the application (section 12.2). **The sound-it-out sequence
+  is built and has no sounds to play.** The library makes the steps for a word
+  of the phonics board (`wjs::sound_it_out_sequence`: a sound for each block, a
+  blend, the word, a cheer; a tricky word is said whole), and the application's
+  `SoundSequencePlayer` walks them through a `ClipPlayer`. No phoneme clip
+  exists, so the application has the player that answers "no such clip" and the
+  word is said at once, as before: the isolated phonemes are the reviewer's
+  recording job, and the platform's voice must not substitute letter names for
+  them. The standard board's words are always said whole.
 - **The assets** are placeholders made by `tools/sounds/make_sounds.ps1` and
   owned by the project (`assets/sounds/README.md`, notices). The real phoneme
   clips and recorded cheers replace them after the literacy review; the file
@@ -443,10 +537,10 @@ checked on each target.
 | Rule | In the build | Checked by |
 | --- | --- | --- |
 | **No audio recording** | No microphone usage string in the iOS property list; no audio input in the camera session, which is video only; no `QAudioSource` or audio capture in first-party code; the sound and speech engines only play and say | A scan of first-party code for the audio-capture classes, in the style of `check_platform_isolation.ps1` (**built for the scanner and its camera files:** `scan.privacy`, [Scanner](scanner.md#privacy-built-in-and-checked), which also scans them for network classes and for any file output, so a frame is never written); a check on the built property list |
-| **No network capability** | Android: no `INTERNET` permission in the merged manifest. All targets: first-party code does not use the network classes; the QML engine is given a network manager that refuses everything but local and resource URLs. Web: the page makes no request beyond its own files (a content-security policy of `connect-src 'self'`) | On Android, a dump of the built package's permissions (it must not list `INTERNET`; whether Qt's Android build adds it for a module is **unverified**, which is why it is checked on the built package); a scan for the network classes; a test that loads a remote URL in QML and fails; on the web, a header check. **Qt Network cannot be left unlinked**: Cubeulator's licensing paper notes that Qml and Quick depend on it, so the rule is "no capability and no use", not "no module" |
+| **No network capability** | Android: no `INTERNET` permission in the merged manifest. All targets: first-party code does not use the network classes. **Not built:** a QML network manager that refuses everything but local and resource URLs (the application installs none), and the web page's content-security policy (there is no web build). The rule is kept by the source scan, not by a runtime refusal | A scan for the network classes (`privacy.sources`). **Planned, not built:** on Android, a dump of the built package's permissions (it must not list `INTERNET`; whether Qt's Android build adds it for a module is **unverified**, which is why it would be checked on the built package); a test that loads a remote URL in QML and fails; on the web, a header check. **Qt Network cannot be left unlinked**: Cubeulator's licensing paper notes that Qml and Quick depend on it, so the rule is "no capability and no use", not "no module" |
 | **Zero export** | No share sheet, print, file-save or mail code; no URL scheme handler | A scan for the share, print and file-dialog classes. **Backups are an open question**: an iOS app's data is included in a device backup by default (**general knowledge, not checked**), which is data leaving the app under the user's own account; whether to exclude it is the author's decision (question 50) |
 | **Local store** | A small versioned file, written atomically, in the app's private directory, with only what the dashboard needs (below). SQLite through Qt SQL is possible but the data is a few kilobytes and has no query that needs it | A test that round-trips and migrates a version |
-| **No profiling in what ships** | Tracy listens on a TCP port when built in (Cubeulator's profiling notes) | The shipped presets must not enable it; a check that a release artefact has no Tracy symbols |
+| **No profiling in what ships** | Tracy listens on a TCP port (8086) when built in, and the Debug and profiling presets build it in, so a Debug build or its CI artefact is **not** a privacy-clean build. The release presets keep it off | `profiling.shipped_presets` reads the presets; `cpack` refuses to package a Tracy build, and `tools/package/check_package.ps1` rejects `TracyClient`, the AddressSanitizer runtime and `.pdb` files in a release package (the `Package (Windows, Release)` CI job runs it on the real package) |
 
 **What the store holds**, which is also what the dashboard may say: for each
 find, the word, the board size, the day it was found, whether the start
@@ -463,6 +557,125 @@ cap, and the parent area's wording are tests that run in every CI leg
 (`privacy.sources`, the `[store]` cases, `parent.wording`; the table in
 [The parent area as built](parent-area.md#privacy-checks-ci)). The checks on a built
 Android package, an iOS property list and a web page wait for those targets.
+
+## Open accessibility items
+
+What the October 2026 review found and the build has not yet closed. Tick one off
+only when a test or a recorded check shows it.
+
+- [ ] **Live announcements.** Announce a found word politely and the board's
+  summary when it opens (WCAG 4.1.3). Confirm with NVDA, VoiceOver and TalkBack.
+- [ ] **Accessible names and roles are asserted nowhere.** A Quick Test that
+  walks each screen and fails on an interactive item with an empty
+  `Accessible.name` or no role, and one that checks the tiles are named "A, row 2,
+  column 3".
+- [ ] **A spoken label on press for every child control** (the kit makes icon-only
+  buttons impossible outside back and close; the spoken part is not asserted).
+- [ ] **The parent gate by keyboard and screen reader.** Space and Enter hold the
+  button (`GateScreen.qml`); no test drives it with a key, and no screen reader
+  has been tried on it.
+- [ ] **The letter picker and the sheets as dialogs.** `Sheet` traps Tab and
+  returns focus (`quick.kit`); confirm the Mode A letter picker does the same
+  with a keyboard.
+- [ ] **200 % text and a 320 px width.** The size matrix covers 150 % at two
+  window sizes and a 900 px minimum window; the app claims nothing narrower.
+- [ ] **Targets.** Anything the matrix does not reach: the "Show me a start"
+  button is 64 dp and not 96, and word rows in the tray are shorter than 64 dp.
+- [ ] **Keyboard play of the board** (arrows, Space, Enter, Escape, Backspace),
+  including under right-to-left, has no test.
+- [ ] **Screens never run on a device.** TalkBack and VoiceOver reading the 2D
+  layer over the 3D scene; the camera screens by a screen reader; reduced motion
+  on a screen that is open when the system setting changes.
+
+## User study plan (open)
+
+Nothing in this design has been put in front of a child or a parent. This is the
+plan for the first round; its results would amend the touch-target sizes, the
+"real, not today's" cue and the gate. It is **not done**.
+
+**Questions.** Can a five- or six-year-old start a game without help? Do they
+know what **Shake** will do before they press it? Can they make a word and know it
+was accepted? Do they understand the jewels and the tray? Can they stop and go
+home? Would they play again without a pull? Can a parent find the gate, the
+settings and the dashboard unaided, set up a board (camera or typed) and say what
+the app keeps?
+
+**Who.** Five children of five or six with a parent present, mixed reading
+confidence, at least one not yet reading; five parents of such children; and, for
+access, a keyboard-only adult, a screen-reader user and, if possible, a child with
+a motor or visual access need (with a specialist's advice). A quiet room, the
+release build, no network.
+
+**Child session (20 to 30 minutes, play, not a test).** Show me how you would
+start. What will this button do? (before Shake). Find a word. What now? (Done).
+What happened, and how do you know? What are these? (jewels, tray). Show me how
+you would stop. Play again? Five minutes of free play, watched without prompting.
+Do not correct, point or explain.
+
+**Parent session (30 to 40 minutes).** Get to the grown-up area. Turn the sound
+off. Make the text bigger. Start a game with a real board. What did your child do
+this week? What does the app keep and what does it never do? Where would you clear
+progress, and what would you expect?
+
+**Success criteria (targets, not guarantees).**
+
+| Measure | Target |
+| --- | --- |
+| Time to first action, a child | median under 15 s, no help for 4 of 5 |
+| Shake comprehension before pressing | 4 of 5 say or show shake, open or roll |
+| A word made | 3 of 5 unprompted, 4 of 5 with one prompt |
+| Found-word understanding | 4 of 5 point to the word or jewel |
+| Leaving the board | 4 of 5 |
+| Parent gate | unlocked in under 15 s by 4 of 5 parents |
+| Parent settings (sound, text size) | found in under 60 s by 4 of 5 |
+| Privacy understanding | 4 of 5 parents say "on this device" and "no recording or network" |
+| Engagement | 4 of 5 children say yes to playing again; no distress |
+| Parent questionnaire | SUS at least 75; single ease question at least 5.5 of 7 |
+
+**Ethics.** Written parental consent and the child's assent; the child can stop at
+any time; no audio or video without separate consent (the app records nothing and
+the study follows it); codes, not names; notes kept on the local device and
+deleted after; a familiar adult in the room; a thank-you that creates no pressure
+to finish. **What would change the plan:** if the product is mainly a parent tool,
+the home hierarchy flips; if 3D cannot be made reliable, play moves to the 2D
+board and 3D stays an optional shake; if the phonics content is not ready, the
+app is a word-finding game with a start-tile hint, not a phonics tutor.
+
+## Decisions
+
+Decided by the author and recorded with the date; the roadmap's
+[decision table](../roadmap.md#4-decisions-that-gate-the-plan) holds the same
+entries (D8 to D12) with the pages they amend. D8 to D11 are the author's; D12
+and the two entries after it are recorded from the build and wait for the
+author's confirmation.
+
+- **2026-10-21, D8: a parent-set board clock stays.** The settings have a **Time
+  on the board** row: off (the default), count up, or count down for 1 to 30
+  minutes, which ends the board and keeps everything found. It amends the frozen
+  "no timers or limits" (PRD 12.3). *Weakness:* the clock is visible to the child
+  when set, and a count-down is a limit on a board; it is one the parent sets
+  behind the gate and the app never starts. No duration is stored.
+- **2026-10-21, D9: the parental gate is one press-and-hold.** A single button held
+  for two seconds puts both of the library gate's virtual touches down; Space or
+  Enter holds it by keyboard. It amends "two fingers held on two spots". *Weakness:*
+  a determined child passes it with one finger, which the design's own review called
+  too weak alone; it is a brake against accidents, not security. Nothing the gate
+  protects is dangerous (no purchase, no network, no export); what it guards is the
+  settings, the dashboard and the scanner.
+- **2026-10-21, D10: "My jewels" stays ungated and shows the best board for each
+  size, the points and the week.** It amends "shown to the parent only".
+  *Weakness:* it is a number a child can try to beat. The records are the device's
+  own and nothing is lost by a poor board.
+- **2026-10-21, D11: 0.1 is the three desktops plus an ad-hoc iOS build; Android
+  is in progress** and not built.
+- **Recorded from the build, 2026-10-21, to confirm (D12): help is the parent's
+  three-step setting** (off, the start tile, the start tile then two letters;
+  default the last). The MVP was one level (PRD 12.5). It is built and tested, and
+  the author has not yet said it should stay.
+- **Recorded from the build, to confirm: the resting screen is not built**
+  ([Game](game.md#the-end-of-a-board)); Back from play leaves the round in
+  progress instead of putting the lid on; and the board size a child picks on the
+  box becomes the next default, overwriting the parent's.
 
 ## Unknowns
 

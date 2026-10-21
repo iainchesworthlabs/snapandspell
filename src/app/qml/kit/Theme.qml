@@ -22,8 +22,8 @@ import WordJewelsSolver
 //     never `opacity`, so its label keeps 3:1 or better.
 //   * A container is told from its surround by `line` (>= 1.6:1 on a card).
 //
-// Type rules (docs/design/ux-audit-2026-10, 7.4): the scale is 12, 14, 16, 20,
-// 24, 32, 40, 48 and nothing is smaller than 12. Two tiers share it. The CHILD
+// Type rules (docs/design/application.md, "The Jewel Box design system"): the scale is 12,
+// 14, 16, 20, 24, 32, 40, 48 and nothing is smaller than 12. Two tiers share it. The CHILD
 // tier is `child` (24), `word` (24), `title` (32) and `display` (40): what a
 // five-year-old reads. The PARENT tier is `body` (16), `label` (16), `caption`
 // (14), `mono` (12) and `heading` (20): what an adult scans. A screen picks a
@@ -245,6 +245,16 @@ QtObject {
     readonly property real sheetMaxHeight: 560
     readonly property real modalMax: 560
     readonly property real contentWidth: 860
+    // Home's column and the design's window (a screen larger than this is
+    // zoomed to 1.5 at most and centred), the widest comfortable line of a
+    // sentence, and a home card's picture: what it is given, the least it may
+    // be given, and the tallest the card gets.
+    readonly property real pageWidth: 1180
+    readonly property real pageHeight: 740
+    readonly property real measure: 720
+    readonly property real cardArt: 240
+    readonly property real cardArtMin: 160
+    readonly property real cardMax: 420
     readonly property real hintDisplay: 96
     readonly property real doneWidth: 160
     readonly property real startRing: 8

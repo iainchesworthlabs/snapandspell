@@ -7,7 +7,7 @@ import WordJewelsSolver
 // separations that tell a card from the paper and the tray from its stage.
 // Nothing here is a copy of a colour: a token that moves is measured again.
 //
-// The gates (docs/design/ux-audit-2026-10/index.md, 7.5, "Rules"):
+// The gates (docs/design/application.md, "Colour and contrast"):
 //   text            4.5   ink and secondary ink on every surface they sit on
 //   large / disabled 3.0  a disabled label is exempt from WCAG, the house floor is 3
 //   non-text        3.0   a control's edge, the focus ring, the selected edge, a

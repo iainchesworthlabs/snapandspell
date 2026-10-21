@@ -4,14 +4,13 @@ import WordJewelsSolver
 
 // About and privacy (docs/design/dashboard.md, "Settings"). Plain text: no link
 // to anywhere, because the application has nowhere to go. The licences have
-// their own page (LicencesScreen.qml), reached by the one button here, so the
-// legal text is not the longest thing on this page.
+// their own page (LicencesScreen.qml), a tab of the bar beside this one, so the
+// legal text is not the longest thing on this page and nothing here repeats the
+// tab.
 Flickable {
     id: root
 
     required property var controller
-
-    signal licencesRequested
 
     // The parent area's direction, from the shell.
     LayoutMirroring.enabled: Theme.rightToLeft
@@ -23,11 +22,9 @@ Flickable {
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.VerticalFlick
 
-    component Paragraph: Text {
+    component Paragraph: Label {
         Layout.fillWidth: true
-        font.family: Theme.uiFont
-        font.pixelSize: Theme.bodySize
-        color: Theme.ink
+        role: "body"
         wrapMode: Text.WordWrap
     }
 
@@ -41,77 +38,41 @@ Flickable {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: Theme.space1
-            Text {
+            Label {
                 Layout.fillWidth: true
+                role: "title"
                 text: ParentWording.appName
-                font.family: Theme.uiFont
-                font.pixelSize: Theme.titleSize
-                font.weight: Font.ExtraBold
-                color: Theme.ink
+                wrapMode: Text.WordWrap
             }
-            Text {
+            Label {
                 Layout.fillWidth: true
+                role: "body"
+                size: Theme.headingSize
                 text: ParentWording.tagline
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.headingSize
                 color: Theme.inkSecondary
                 wrapMode: Text.WordWrap
             }
         }
 
-        Section {
+        // The version and the build's provenance: no heading, because the page
+        // title above is the name they belong to.
+        ColumnLayout {
             Layout.fillWidth: true
-            title: ParentWording.aboutHeading
+            spacing: Theme.space2
             Paragraph {
                 text: ParentWording.version(root.controller.version)
             }
             // The build's provenance, as the build system stamped it: the
             // release, the commit, the branch and the target. A technical
             // label, in the mono face, not a sentence to translate.
-            Text {
+            Label {
                 id: details
                 objectName: "versionDetails"
                 Layout.fillWidth: true
-                Layout.topMargin: Theme.space2
+                role: "caption"
                 text: root.controller.versionDetails
                 font.family: Theme.monoFont
-                font.pixelSize: Theme.smallSize
-                color: Theme.inkSecondary
                 wrapMode: Text.WordWrap
-            }
-        }
-
-        // The way to the Licences page: its own screen, so the legal text
-        // scrolls there and not through this page.
-        Rectangle {
-            Layout.fillWidth: true
-            implicitHeight: linkColumn.implicitHeight + 2 * Theme.space4
-            radius: Theme.radius
-            color: Theme.card
-            border.width: 1
-            border.color: Theme.line
-
-            ColumnLayout {
-                id: linkColumn
-                anchors.fill: parent
-                anchors.margins: Theme.space4
-                spacing: Theme.space2
-
-                AppButton {
-                    size: "min"
-                    quiet: true
-                    Layout.fillWidth: true
-                    label: ParentWording.aboutLicencesLink
-                    onClicked: root.licencesRequested()
-                }
-                Text {
-                    Layout.fillWidth: true
-                    text: ParentWording.aboutLicencesLinkHint
-                    font.family: Theme.uiFont
-                    font.pixelSize: Theme.smallSize
-                    color: Theme.inkSecondary
-                    wrapMode: Text.WordWrap
-                }
             }
         }
 
@@ -122,7 +83,6 @@ Flickable {
             title: ParentWording.privacyHeading
             Paragraph {
                 text: ParentWording.privacySummary
-                font.family: Theme.uiFont
                 font.weight: Font.DemiBold
             }
             Paragraph {

@@ -1,6 +1,5 @@
 # ---------------------------------------------------------------------------
-# The interface's catalogues (docs/audit-0.1.md, "Languages, RTL and i18n";
-# docs/design/application.md, "Languages, right-to-left and fonts").
+# The interface's catalogues (docs/design/application.md, "Languages").
 #
 # One Qt Linguist .ts catalogue per language in i18n/, checked in. lupdate scans
 # the QML sources (and any C++ that carries qsTr) into them; lrelease compiles

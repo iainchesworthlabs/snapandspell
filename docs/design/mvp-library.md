@@ -6,6 +6,14 @@ or missing in the design ([Game](game.md), [Phonics](phonics.md),
 [Board](board.md), [Performance](performance.md), [Path](path.md)) once it was
 built, what the author decided, and what is still open.
 
+> **Read on 2026-10-22.** This page is the record of the 2026-10-16 library work
+> and the standard-board decision. The decision stands and is pinned: the standard
+> board counts and speaks every ENABLE word of three letters or more, with no block
+> list, and a test (`a word a child must never meet is counted by the standard board
+> and not by the phonics`) keeps the risk visible so that lifting it is a
+> deliberate edit. The tallies below are as of that date; the build has moved on
+> (see [Requirements and traceability](../requirements.md)).
+
 ## What was built
 
 All of it is in `src/lib`, with Catch2 tests, no operating system code and no
@@ -187,8 +195,9 @@ entries no child should meet (the brief names three), and the design had avoided
 this by curating the lists. The author has put block lists, and a
 child-appropriate cut, after the MVP, so the MVP, a private build, shows what the
 dictionary holds. It stays the gate to wider use (roadmap G2). Two consequences
-for the design: the "real, not today's" cue of [Game](game.md) has nothing to do
-on the standard board, where every real word counts; and no block list means no
+for the design: the "real, not today's" cue of [Game](game.md) has next to nothing
+to do on the standard board, where every real word of three letters or more counts
+(it answers only a real word of two letters); and no block list means no
 word is withheld, not that none is unsuitable.
 
 ## What the standard board needed, and what is built

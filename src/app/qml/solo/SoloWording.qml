@@ -7,7 +7,7 @@ import QtQuick
 // own.
 //
 // The game itself is English: the dice letters, the words in the tray and the
-// word list are not translated (docs/audit-0.1.md, "Languages, RTL and i18n").
+// word list are not translated (docs/design/application.md, "Languages").
 // These are the words around them.
 QtObject {
     id: root

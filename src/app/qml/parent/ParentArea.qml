@@ -124,7 +124,6 @@ FocusScope {
         id: about
         AboutScreen {
             controller: root.controller
-            onLicencesRequested: root.page = "licences"
         }
     }
     Component {
