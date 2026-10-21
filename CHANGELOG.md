@@ -16,6 +16,27 @@ that release, so that its rules (branch protection, required checks) can apply.
 
 ### Added
 
+- **An Android build: an APK for tablets and phones, and an AAB for Google Play.**
+  Android is a platform now (`src/platforms/android`, selected by `cmake/Platform.cmake`
+  before `UNIX`): the dictionary and the dice are compiled into the resources and
+  unpacked into the application's private directory (an APK has no files beside an
+  executable), fatal errors go to the system log, and the manifest asks for the camera
+  and nothing else: Qt's core module would add network and storage permissions at its
+  template's placeholder, so the manifest has none, and `verify_apk.sh` and
+  `tests/platform/check_android.cmake` hold the package and the source to that.
+  `android-arm64-release` and `android-arm64-debuggable` are the presets (Qt 6.12's
+  Android kit, API 28 to 36, arm64-v8a, no tests, no `wjs-cli`, Tracy off);
+  `android-build.yml` builds a debug-signed APK on a hosted runner when a pull request
+  touches what Android reads; the `release.yml` job `Build the signed Android packages`
+  signs an APK and an AAB with the upload key when the four `ANDROID_` secrets are set
+  (`tools/release/new_android_keystore.sh` makes the key and prints the `gh secret set`
+  commands), and says so and skips Android when none is. The APK and AAB then get the
+  same checksums, GPG signatures, attestations and SBOM entry as every other release
+  file. Built, packaged, signed and checked on Windows with the shared Qt kit; **none
+  of it has run on an Android device or on a hosted runner**, and the shared kit has
+  no Qt Multimedia, Sensors or Text To Speech, so the local package has no live camera
+  view (see [CI, "Android"](docs/ci.md#android) for what is unverified). The haptics
+  are still the desktops' no-op.
 - **An iPhone and iPad build, installed ad hoc on the author's own devices.**
   iOS is a platform now (`src/platforms/ios`, selected by `cmake/Platform.cmake`
   before `APPLE`): a flat application bundle with its own `Info.plist` (the

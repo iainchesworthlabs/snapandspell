@@ -28,7 +28,8 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | --- | --- | --- |
 | `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report and the performance work budgets | yes |
 | `analysis.yml` | nightly `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
-| `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS and the ad-hoc iOS IPA, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets) |
+| `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS the ad-hoc iOS IPA and, when its signing secrets are set, the signed Android APK and AAB, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
+| `android-build.yml` | the debug-signed Android APK, built and looked inside, only when what Android reads changes; no secret, not required ([Android](#android)) | yes |
 | `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
 | `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages on every push to `main` that changes the docs ([Documentation site](#documentation-site)) | yes (the build; the publication needs Pages) |
 | `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change | yes |
@@ -668,6 +669,190 @@ Mac.** Specifically, and in the order it is likely to fail:
 The first signed run is expected to need fixes. A red `Build the iOS ad-hoc IPA` job
 blocks a tag release (by design: a release should not quietly lack iOS), which is why
 the rehearsal comes first, and why there is `RELEASE_WITHOUT_IOS`.
+
+### Android
+
+The Android application is built for tablets and phones that run Android 9 (API 28)
+or later, in one architecture (arm64-v8a). Two packages come out of it: an **APK**, which
+installs on a device that allows apps from outside the store, and an **AAB** (Android App
+Bundle), which is what Google Play takes if a Play listing is ever made. Building it
+locally is in [Building, Android](building.md#android); here is how CI and the release
+make it.
+
+**What is in the tree.** A platform section, `src/platforms/android/` (`platform.cmake`,
+the paths and fatal-error implementations, and `packaging/`: the manifest and resources
+Qt packs, and `verify_apk.sh`), selected by `cmake/Platform.cmake` before `UNIX` (the NDK's
+toolchain sets `UNIX` too); the presets `android-arm64-release` and
+`android-arm64-debuggable`; `tools/release/new_android_keystore.sh`; and
+`tests/platform/check_android.cmake`. The packaging is Qt's own: `qt_add_executable` makes
+the application a shared library on Android and writes the deployment settings, and the
+`apk` and `aab` targets run `androiddeployqt`, which gathers Qt's libraries, plugins and
+the QML modules the application imports, and Gradle makes the package.
+
+**Choices worth knowing.**
+
+- *The data is unpacked, not installed beside an executable.* The word list and the dice
+  are read from files by path, and nothing inside an APK is a file. `wjs_platform_configure_app`
+  compiles them into the application's resources, and `paths_android.cpp` lays them down
+  in the application's private directory once (a file that already matches is left
+  alone) and answers `executable_path()` with where an executable would be in it, which
+  is how the program finds them. These are the program's own read-only files, not the
+  person's data; the privacy scan (`privacy.sources`) does not name this call, and this
+  paragraph is where the exception is written down.
+- *The manifest asks for the camera and nothing else.* Qt's core module asks for
+  `INTERNET` and storage permissions at its manifest template's permissions
+  placeholder, whatever the program uses, so the manifest leaves the placeholder out;
+  `tests/platform/check_android.cmake` fails if it comes back or any other permission
+  appears, `verify_apk.sh` checks the finished package (the merged manifest is what a
+  device sees), and the privacy scan reads the source. The camera and the accelerometer
+  are optional features, so a tablet without either still installs it. Android's backup
+  is off, so the store is not copied to a cloud account.
+- *No Tracy.* Its client listens on the network. The Android presets set it off, which is
+  why the debuggable preset is not named `*-debug`: `tests/profiling/check_presets.cmake`
+  reads that name as "Tracy on".
+- *No haptics.* The only engine is the Vibrator service, which has no Qt API: it means
+  JNI and the `VIBRATE` permission, a second permission this build does not ask for.
+  `vibrate()` answers false, as on the desktops. The camera is Qt Multimedia's
+  (shared with the desktops and iOS), the shake is Qt Sensors' accelerometer.
+- *The platform levels:* minimum 28 (what Qt 6.12 supports), target and compile 36 (Google
+  Play's requirement is 35 or later). `versionCode` is derived from the version
+  (0.1.0 is 10000); `-DWJS_ANDROID_VERSION_CODE=<n>` overrides it.
+- *One application id,* `org.iainchesworth.wordjewelssolver`, the iOS bundle identifier.
+
+**The toolchain.** A Qt for Android kit (arm64-v8a) and, for the host tools a cross build
+runs (`moc`, `rcc`, `qmlcachegen`, `qsb`, `androiddeployqt`), a desktop Qt of the same
+version; the Android SDK (platform 36, build-tools 36.0.0); the **NDK the kit was
+built with** (r27c, `27.2.12479018`: the kit's own toolchain file names it); and a JDK 17
+or later for Gradle. The pins are `.github/toolchain-versions.json`'s (`qt.kits.android`
+and `android`); `tests/platform/check_android.cmake` holds both workflows to them.
+`jurplel/install-qt-action` installs Qt with `host: all_os`, `target: android`,
+`arch: android_arm64_v8a`: from Qt 6.7 the Android repository is `all_os`, not the
+host's name (`aqt list-qt all_os android --arch 6.12.0` lists `android_arm64_v8a`, and
+`aqt list-qt all_os android --modules 6.12.0 android_arm64_v8a` lists the five
+modules the application uses, `qtquick3d qtshadertools qtmultimedia qtsensors qtspeech`),
+and the action adds `--autodesktop`, which installs the Linux kit beside it (`gcc_64`).
+`aqt list-qt linux android` finds nothing for 6.12 with the pinned aqtinstall. The kits are
+several gigabytes, so the jobs do not cache them. The runner image already has the SDK, so
+`sdkmanager` adds only the exact NDK, platform and build-tools; the JDK is the image's own
+17 (`JAVA_HOME_17_X64`), so no action is added to the supply chain for it.
+
+**`android-build.yml`: the debug-signed APK.** `Android (arm64-v8a, debug-signed APK)` runs
+on `ubuntu-24.04`: the toolchain above, `cmake --preset android-arm64-debuggable`, the
+build (which runs the `apk` target), then `verify_apk.sh` on what came out (the application
+id and version, `minSdkVersion` 28 or later, `targetSdkVersion` 35 or later, the camera as the
+only permission, the camera and accelerometer not required, `arm64-v8a` only, the program's
+library inside, a launcher icon and activity, a valid signature) and an upload of
+`WordJewelsSolver-<v>-android-arm64-debug-signed.apk` as `android-apk-debug-signed`
+(14 days). Gradle signs it with Android's own debug key, so it installs on any device
+that allows it and cannot be updated by a package signed with another key. It needs no secret and runs on
+pull requests and pushes to `main`/`develop` that touch what Android reads, and by hand
+(`gh workflow run android-build.yml --ref <branch>`). It is not a required check, for the
+reason every path-filtered workflow here is not. There is no emulator job: a hosted
+emulator needs hardware acceleration and an image download, neither reliable enough to
+stand behind a green tick, and it would still not have a camera or an accelerometer worth
+trusting.
+
+**`release.yml`, job `Build the signed Android packages`.** The signing key is the
+author's upload key, in four repository secrets. In order:
+
+1. *Look for the Android signing secrets.* All four (`ANDROID_KEYSTORE_BASE64`,
+   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`) set: go on.
+   None set: say so (a notice, not an error), do nothing else, and the release goes on
+   **without an Android file**. Some but not all: fail with the missing names, since
+   that is a mistake and not a choice. Nothing is built with a throw-away key: such a
+   package could not be updated.
+2. vcpkg, CMake and Ninja, the JDK, the SDK parts and the Qt kits, as above.
+3. *Write the upload keystore* from the base64 secret into a file in the runner's temporary
+   directory (`umask 077`); the file is removed at the end whatever happened.
+4. *Configure* `android-arm64-release` with `-DQT_ANDROID_SIGN_APK=ON
+   -DQT_ANDROID_SIGN_AAB=ON`, then *build* the `apk` and `aab` targets, with the keystore's
+   path, alias and passwords in `QT_ANDROID_KEYSTORE_PATH`, `QT_ANDROID_KEYSTORE_ALIAS`,
+   `QT_ANDROID_KEYSTORE_STORE_PASS` and `QT_ANDROID_KEYSTORE_KEY_PASS`, which
+   `androiddeployqt` reads. The files are
+   `WordJewelsSolver-<v>-android-arm64.apk` and `.aab`.
+5. *Check the APK* with `verify_apk.sh --release --signed --version <v>`: as above, plus not
+   debuggable and not signed with the debug key.
+6. Upload `package-android`.
+
+`SBOM, checksums and signatures` downloads `package-*`, so the APK and AAB are in `dist/` with
+everything else and get the same `SHA256SUMS`, GPG signatures, attestations and SBOM entry (an
+`.apk` and an `.aab` count as carrying Qt, like an AppImage). `Publish the release` adds an
+install note when there is an APK.
+
+**When it runs.** A `v*` tag and a manual run (unless its `android` input is unticked). The
+weekly rehearsal does not (it would download several gigabytes of Qt kits every Sunday). The
+`sign` job accepts a skipped Android job, which is also what a run without the secrets
+looks like, and refuses a failed one.
+
+#### What the author does once for Android
+
+1. Make the upload keystore, on your own machine, outside the repository (it prints no
+   secret; it refuses a folder inside a git working tree; it needs `keytool`, which any JDK has):
+
+   ```sh
+   tools/release/new_android_keystore.sh        # ~/wjs-android-keystore by default
+   ```
+
+   It writes the keystore, its password, the alias and the certificate's SHA-256 into the
+   folder, opens the keystore again with the password it wrote, and prints the four commands:
+
+   ```sh
+   gh secret set ANDROID_KEYSTORE_BASE64   --repo iainchesworthlabs/wordjewelssolver < <folder>/upload-keystore.p12.base64
+   gh secret set ANDROID_KEYSTORE_PASSWORD --repo iainchesworthlabs/wordjewelssolver < <folder>/store-password.txt
+   gh secret set ANDROID_KEY_ALIAS         --repo iainchesworthlabs/wordjewelssolver < <folder>/key-alias.txt
+   gh secret set ANDROID_KEY_PASSWORD      --repo iainchesworthlabs/wordjewelssolver < <folder>/key-password.txt
+   ```
+
+   (The key's password is the keystore's: a PKCS12 store has one.) Keep a copy of the keystore and
+   the password in a password manager, then delete the files. **A package signed with this key can be
+   updated only by a package signed with it**: losing the keystore ends updates to installed copies
+   (an upload key registered with Google Play can be replaced by Google on request; a key that
+   signed an APK people installed from GitHub cannot).
+2. Dispatch `android-build.yml` (and then a `release.yml` rehearsal) before the first tag.
+3. Put the APK on a tablet and try it (below).
+
+#### What Android has and has not shown
+
+Verified here, on a Windows machine with the Android SDK, NDK 28.2 (not the r27c the kit was
+built with), JDK 21 and the author's Qt 6.12.0 Android kit from the shared tree: the platform
+fragment satisfies the contract (`platform.fragments`); the isolation, privacy, toolchain-pin and
+Tracy-policy checks pass with the new platform and presets; `platform.apk` (the Android target's checks) and its
+self-test; `android-arm64-debuggable` and `android-arm64-release` **configure, compile, link and
+package** (the debug-signed APK is 107 MB, the release one 94 MB, the AAB 39 MB), and
+`verify_apk.sh` passes on the signed release APK; a signed release build was made with a
+throw-away keystore (made by `new_android_keystore.sh`, which ran, and deleted afterwards) to
+prove the signing path (`apksigner` and `jarsigner` verify the signatures; the signer is not the
+debug key); the manifest in the finished package asks for the camera and nothing else; the
+workflow files (actionlint with ShellCheck) and `test_release_tools.sh`.
+
+Not verified, because nothing here has an Android device, and the author's kit has none of the
+three optional modules:
+
+- **Anything that runs on a device.** The program has never started on Android. Whether the
+  window comes up (Quick 3D on the device's GPU, `QtQuick.Controls` styles and the fonts),
+  the data unpacking and the store in the private directory, rotation, the camera's
+  permission prompt and live view, the shake, the speech engine, sound, the launcher icon and
+  theme, and the settings it shows under *App info*: all unseen. `verify_apk.sh` says what is
+  in the package, not that it runs.
+- **Qt Multimedia, Qt Sensors and Qt TextToSpeech on Android.** The shared kit was built without
+  them, so the local build used the silent camera, motion and speech variants. The real
+  backends (`camera-multimedia`, `motion-sensors`, `speech-texttospeech`) compile against
+  Android only in CI, and `QtMultimedia`'s QML module has to arrive in the package through the
+  import scan: this is the first place either happens.
+- **The CI job itself**: aqtinstall resolving `all_os` with `--autodesktop` to
+  `.../Qt/6.12.0/android_arm64_v8a` and `.../gcc_64`, `sdkmanager` installing NDK 27.2.12479018
+  (the build here used 28.2), the runner's `JAVA_HOME_17_X64`, Gradle downloading its
+  distribution and AndroidX in CI, the Ninja build on Linux, and the release job's signing steps
+  with the real secrets (the local signing run set the same `QT_ANDROID_KEYSTORE_*`
+  variables, not the workflow around them).
+- Google Play: nothing was tried, and a listing needs a developer account, a store entry and
+  the privacy declarations (docs/design/application.md, "Privacy, built in and checked").
+
+On a device, try in this order: install (`adb install -r WordJewelsSolver-<v>-android-arm64-debug-signed.apk`,
+or open the file on the tablet), the window and Home, Solo Play (shake, the box, the path), the
+camera prompt and Mode A, rotation and split-screen, the parent area and that its progress
+survives closing the app from the recents list, the settings *App info → Permissions* (the camera
+alone, no network access listed), and uninstall.
 
 ### The SBOM
 

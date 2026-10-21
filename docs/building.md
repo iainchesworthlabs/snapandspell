@@ -117,6 +117,8 @@ A preset configures into `build/<preset>/` and is named
 | `macos-clang-debug` | macOS | `arm64-osx` | Debug, with AddressSanitizer and UBSan |
 | `macos-clang-release` | macOS | `arm64-osx` | Release |
 | `ios-release` | macOS | `arm64-ios` | An Xcode project for an iPhone or iPad: Release, no tests, no `wjs-cli`, unsigned unless given a team and a profile. Needs Qt's iOS kit; see [iOS](#ios) |
+| `android-arm64-release` | any | `arm64-android` | An APK and an AAB for an arm64 tablet or phone: Release, no tests, no `wjs-cli`, unsigned unless asked. Needs Qt's Android kit, the SDK, the NDK and a JDK; see [Android](#android) |
+| `android-arm64-debuggable` | any | `arm64-android` | As above, a debuggable APK signed with Android's debug key. Tracy is off, so it is not named `*-debug` |
 | `windows-msvc-profiling` | Windows | `x64-windows` | RelWithDebInfo with Tracy, sanitizers off. A development build, never shipped: see [Profiling](profiling.md) |
 | `linux-gcc-profiling` | Linux | `x64-linux` | As above, with `g++` |
 | `macos-clang-profiling` | macOS | `arm64-osx` | As above |
@@ -346,6 +348,81 @@ xcodebuild -exportArchive -archivePath build/ios-release/WordJewelsSolver.xcarch
 `ExportOptions.plist` is the one `release.yml` writes (method `ad-hoc`, the team, manual
 signing, `Apple Distribution`, the profile by name); read it there. The built `.app`
 is where Xcode puts it, so the check above looks for it.
+
+## Android
+
+An Android build makes an **APK** (or an **AAB**) of the application for an arm64 tablet or
+phone running Android 9 or later; [CI](ci.md#android) is how the debug-signed one and the
+release one are made, and what has and has not been shown on a device is there too
+([what is unverified](ci.md#what-android-has-and-has-not-shown)). It cross-builds from
+Windows, Linux or macOS with five things, all of one version:
+
+| What | Which | Where it is on the author's machine |
+| --- | --- | --- |
+| Qt for Android | 6.12.0, `android_arm64_v8a` | `C:\Repos\common\qt\6.12.0\android_arm64_v8a` (`QT_ANDROID_DIR`) |
+| A desktop Qt | 6.12.0, for the host tools and `androiddeployqt` | `C:\Repos\common\qt\6.12.0\msvc2022_64` (`QT_HOST_PATH`) |
+| The Android SDK | platform 36, build-tools 36.0.0 | `C:\Repos\common\android-sdk` (`ANDROID_SDK_ROOT`) |
+| The NDK | the one the kit was built with: r27c, `27.2.12479018` | `ANDROID_NDK_ROOT` |
+| A JDK | 17 or later, on `PATH` or `JAVA_HOME` | any |
+
+`C:\Repos\common\env.ps1` sets `QT_ANDROID_DIR`, `QT_HOST_PATH` (the Windows Qt) and
+`ANDROID_SDK_ROOT`; set `ANDROID_NDK_ROOT` to the NDK under the SDK (the shared SDK has
+28.2.13676358, which compiled and linked this program here; the kit's own toolchain file names
+r27c, so use that, `sdkmanager "ndk;27.2.12479018"`, for a build you ship). **Write
+those paths with forward slashes** (`C:/Repos/...`): a backslash in `QT_HOST_PATH` is read as an
+escape by CMake's package finder and the configure stops with `Invalid character escape`.
+With aqtinstall, both Qt kits come in one go:
+
+```sh
+aqt install-qt all_os android 6.12.0 android_arm64_v8a --autodesktop --outputdir ~/Qt \
+    -m qtquick3d qtshadertools qtmultimedia qtsensors qtspeech
+export QT_ANDROID_DIR=~/Qt/6.12.0/android_arm64_v8a
+export QT_HOST_PATH=~/Qt/6.12.0/gcc_64          # msvc2022_64 on Windows, macos on a Mac
+export ANDROID_SDK_ROOT=...  ANDROID_NDK_ROOT=...
+export VCPKG_ROOT=...                           # as for any preset
+```
+
+(`aqt` is the pinned one: `.github/toolchain-versions.json`, `qt.aqtsource`. The host is
+`all_os` for Android from Qt 6.7. This is the command the install action runs; it was not run
+here, where the kits were already in the shared tree.)
+
+```sh
+cmake --preset android-arm64-debuggable            # build/android-arm64-debuggable/
+cmake --build --preset android-arm64-debuggable    # the apk target: a debug-signed APK
+src/platforms/android/packaging/verify_apk.sh \
+    build/android-arm64-debuggable/src/app/android-build/build/outputs/apk/debug/android-build-debug.apk --signed
+adb install -r build/android-arm64-debuggable/src/app/android-build/build/outputs/apk/debug/android-build-debug.apk
+```
+
+(`verify_apk.sh` finds `aapt2` and `apksigner` in the SDK's newest build-tools.) The package is
+under the target's directory, `build/<preset>/src/app/android-build/build/outputs/`.
+`android-arm64-release` is the same with Release and an unsigned APK
+(`.../apk/release/android-build-release-unsigned.apk`, which no device installs); `--target
+aab` makes the bundle (`.../bundle/release/android-build-release.aab`). The presets turn the
+tests and `wjs-cli` off, and Tracy and the sanitizers off: Tracy's client listens on the
+network, which the application has no permission for. For that reason the debuggable preset
+is not named `*-debug` ([CI](ci.md#android)). The vcpkg toolchain is still the CMake
+toolchain file, chaining to Qt's; the manifest has no dependency without the tests or Tracy, so
+vcpkg installs nothing. The module scan for C++ modules is off in the preset: nothing here uses
+modules, and on a Windows host its command line exceeds what `cmd.exe` runs.
+
+To sign a release build with your own key, ask for it on the configure line and name the
+keystore in the environment (`tools/release/new_android_keystore.sh` makes one, and prints
+what the release workflow's secrets need):
+
+```sh
+export QT_ANDROID_KEYSTORE_PATH=... QT_ANDROID_KEYSTORE_ALIAS=... \
+       QT_ANDROID_KEYSTORE_STORE_PASS=... QT_ANDROID_KEYSTORE_KEY_PASS=...
+cmake --preset android-arm64-release -DQT_ANDROID_SIGN_APK=ON -DQT_ANDROID_SIGN_AAB=ON
+cmake --build --preset android-arm64-release
+cmake --build --preset android-arm64-release --target aab
+```
+
+The application's modules are found as on the desktops: Qt Multimedia, Sensors and Text To
+Speech are optional, and a kit without them (the shared one) builds the silent variants, so a
+package from it has no live camera view, no shake and no speech. The CI kit has them.
+No Android build runs the tests: the library's, the scanner's and the screens' tests run on the
+host builds (a device or an emulator would be needed for these ones, and none is wired).
 
 ## Packaging
 
@@ -687,6 +764,12 @@ symlinks resolved. Neither this nor the Linux code has been built or run yet.
 and the dictionary and dice are beside it; the data directory is
 `Library/Application Support` in the application's own container. Not built or run
 yet either ([iOS](#ios)).
+
+**Android.** The program is a shared library inside a package, so there is no executable beside
+the data: `paths_android.cpp` unpacks the dictionary and the dice, which are compiled into the
+resources, into the application's private directory and answers with a path in it; the data
+directory is that application's files directory. Built and packaged on Windows, not run on a
+device ([Android](#android)).
 
 A build can be installed and packaged ([Packaging](#packaging)); without that
 step the programs run from `build/<preset>/bin/`, with the dictionary and dice

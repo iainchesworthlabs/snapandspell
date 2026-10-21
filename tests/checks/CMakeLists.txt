@@ -58,14 +58,16 @@ add_test(NAME platform.fragments
 # so it runs on every host; the build itself and the package it makes are
 # .github/workflows/android-build.yml's, and what runs on a device is nobody's
 # yet. The manifest rules are held to a table of cases on throw-away manifests.
-add_test(NAME platform.android
+# The tests are named for the package, not the platform: the isolation check keeps a
+# CMake file outside the platform section from naming one.
+add_test(NAME platform.apk
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${WJS_TESTS_DIR}/platform/check_android.cmake")
-add_test(NAME platform.android.selftest
+add_test(NAME platform.apk.selftest
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/platform-android"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/platform-apk"
         -P "${WJS_TESTS_DIR}/platform/test_check_android.cmake")
 
 # The Tracy policy: Debug builds are instrumented by default, and nothing that
@@ -227,8 +229,8 @@ set(WJS_QUALITY_TESTS
     notices.sections
     package.config
     platform.fragments
-    platform.android
-    platform.android.selftest
+    platform.apk
+    platform.apk.selftest
     profiling.perf_budgets_ran
     profiling.shipped_presets
     profiling.tracy_portable
