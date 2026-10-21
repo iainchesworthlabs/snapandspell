@@ -48,6 +48,12 @@ runs:
           # Debug objects with ASan and /Z7 are big; ccache keeps its own
           # least-recently-used ones within this, so the entry stays one size.
           echo "CCACHE_MAXSIZE=600M"
+          # What decides whether the compiler is the same one: its version
+          # banner, not the modification time of cl.exe, which is the default and
+          # differs between two builds of the runner image (two images were in
+          # use at once, and a cache made on one missed every object on the
+          # other). cl prints the banner to stderr and exits non-zero.
+          echo "CCACHE_COMPILERCHECK=string:$(cl 2>&1 | head -n 1 | tr -d '\r')"
         } >> "$GITHUB_ENV"
 
     # `key` is never an exact hit: the save step names an entry after its run,
