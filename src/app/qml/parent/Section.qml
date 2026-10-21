@@ -2,8 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import WordJewelsSolver
 
-// A titled block of a parent screen. The title is a heading for assistive
-// technology.
+// A titled block of a parent screen: a rule, a heading and the content. The
+// heading is a Heading to assistive technology (Label's role does that), and a
+// block with no title (the week's sentence) has neither the rule nor the heading.
 ColumnLayout {
     id: root
 
@@ -14,22 +15,17 @@ ColumnLayout {
 
     Rectangle {
         Layout.fillWidth: true
-        height: 1
+        Layout.preferredHeight: Theme.hair
         color: Theme.line
         visible: root.title.length > 0
     }
 
-    Text {
+    Label {
         Layout.fillWidth: true
         visible: root.title.length > 0
+        role: "heading"
         text: root.title
-        font.family: Theme.uiFont
-        font.pixelSize: Theme.headingSize
-        font.weight: Font.ExtraBold
-        color: Theme.ink
         wrapMode: Text.WordWrap
-        Accessible.role: Accessible.Heading
-        Accessible.name: root.title
     }
 
     ColumnLayout {

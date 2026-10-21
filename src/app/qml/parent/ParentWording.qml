@@ -118,19 +118,34 @@ QtObject {
         return qsTr("The longest word: %1.").arg(word);
     }
 
-    // "3x3: 12 stars"
+    // "3 x 3": a board's size, as the game writes it.
+    function boardSizeLabel(size) {
+        return qsTr("%1 x %1").arg(size);
+    }
+
+    // "3 x 3: 12 stars"
     function bestLine(size, starCount) {
-        return qsTr("%1x%1: %2").arg(size).arg(stars(starCount));
+        return qsTr("%1: %2").arg(boardSizeLabel(size)).arg(stars(starCount));
+    }
+
+    // A count-down's length, in whole minutes: "5 min".
+    function timerLengthLabel(n) {
+        return qsTr("%1 min").arg(n);
+    }
+
+    // The Text size choices: "125%".
+    function textSizeLabel(percent) {
+        return qsTr("%1%").arg(percent);
     }
 
     // --- the settings ----------------------------------------------------------
     readonly property string settingsTitle: qsTr("Settings")
     readonly property string settingsSubtitle: qsTr("How the game behaves for your child.")
-    readonly property string groupPlay: qsTr("PLAY")
-    readonly property string groupSoundTouch: qsTr("SOUND & TOUCH")
-    readonly property string groupAppearance: qsTr("APPEARANCE")
-    readonly property string groupLanguage: qsTr("LANGUAGE")
-    readonly property string groupData: qsTr("DATA")
+    //: The settings' groups: headings, written in the language's own case.
+    readonly property string groupPlay: qsTr("Play")
+    readonly property string groupSoundTouch: qsTr("Sound and touch")
+    readonly property string groupAppearance: qsTr("Appearance")
+    readonly property string groupLanguage: qsTr("Language")
     readonly property string settingsHelp: qsTr("Help")
     readonly property string settingsHelpHint: qsTr("The start tile glows to show where a word begins. Two letters is the most the game ever shows.")
     //: The help's middle level: one tile glows, and a second press hides it.
@@ -170,18 +185,19 @@ QtObject {
     readonly property string settingsLanguageHint: qsTr("The words on the screens. The board and its letters stay English.")
 
     // The languages on offer, each named in its own script, in the order the
-    // design lists them (docs/design/application.md, "Languages"). The names
-    // are not translated: a parent reading Hebrew sees "עברית" whatever the
-    // screens are in. `""` is the device's own language.
+    // author gave them (docs/design/application.md, "Languages"): English
+    // first, since it is the language of the board. The names are not
+    // translated: a parent reading Hebrew sees "עברית" whatever the screens are
+    // in. `""` is the device's own language.
     readonly property var languageChoices: [
+        {code: "en", label: "English"},
         {code: "fr", label: "Français"},
         {code: "es", label: "Español"},
         {code: "de", label: "Deutsch"},
         {code: "yi", label: "ייִדיש"},
         {code: "he", label: "עברית"},
         {code: "zh", label: "中文"},
-        {code: "ja", label: "日本語"},
-        {code: "en", label: "English"}
+        {code: "ja", label: "日本語"}
     ]
 
     readonly property string valueOn: qsTr("On")
@@ -214,7 +230,6 @@ QtObject {
     readonly property string resetDone: qsTr("Cleared.")
 
     // --- about -----------------------------------------------------------------------
-    readonly property string aboutHeading: qsTr("About")
     readonly property string licencesHeading: qsTr("Licences")
     readonly property string privacyHeading: qsTr("Privacy")
     readonly property string privacySummary: qsTr("Kept on this device. No recording, no network. Nothing moves between devices.")
@@ -223,9 +238,6 @@ QtObject {
         return qsTr("Word Jewels Solver, version %1").arg(v);
     }
 
-    //: The button that opens the Licences page from the About page.
-    readonly property string aboutLicencesLink: qsTr("Licences")
-    readonly property string aboutLicencesLinkHint: qsTr("The licence of everything this build includes, each with its full text.")
     readonly property string licenceNotice: qsTr("This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.")
     readonly property string licenceParts: qsTr("It is built with Qt. The English word list is ENABLE, a public-domain list. The licences of everything in a package are listed with the package.")
     //: Above the full notices, in the Licences page's own scroll box.

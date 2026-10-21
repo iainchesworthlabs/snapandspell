@@ -229,10 +229,10 @@ TestCase {
         press(control(help, ParentWording.valueHelpTwo))
         compare(parentController.settings.help, "two")
 
-        // Board size: 4x4.
+        // Board size: 4 x 4, as the game writes it.
         const size = row(view, ParentWording.settingsBoardSize)
         verify(size !== null)
-        press(control(size, "4x4"))
+        press(control(size, ParentWording.boardSizeLabel(4)))
         compare(parentController.settings.boardSize, 4)
 
         // Motion: Reduced, which is what the window applies to Theme.
@@ -248,10 +248,10 @@ TestCase {
         press(control(colour, ParentWording.valueDark))
         compare(parentController.colourScheme, "dark")
 
-        // Text size: 1.25, applied to every screen's type.
+        // Text size: 125%, applied to every screen's type.
         const text = row(view, ParentWording.settingsTextSize)
         verify(text !== null)
-        press(control(text, "1.25"))
+        press(control(text, ParentWording.textSizeLabel(125)))
         compare(parentController.settings.textSizePercent, 125)
         compare(parentController.textScale, 1.25)
         compare(Theme.textScale, 1.25)
@@ -265,7 +265,7 @@ TestCase {
         wait(250)
         const minutes = row(view, ParentWording.settingsTimerLength)
         verify(minutes !== null)
-        press(control(minutes, "10 min"))
+        press(control(minutes, ParentWording.timerLengthLabel(10)))
         compare(parentController.settings.timerLength, 10)
 
         // And off again puts the minutes row away; the minutes stay as chosen.

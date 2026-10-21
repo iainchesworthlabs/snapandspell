@@ -32,6 +32,11 @@ Flickable {
     readonly property var week: report.week
     readonly property bool anything: week.played || report.sounds.length > 0 || report.vault.length > 0 || report.best.length > 0
 
+    // A sentence with <i> in it, as a screen reader says it: the words, no tags.
+    function plain(text) {
+        return text.replace(/<[^>]*>/g, "");
+    }
+
     contentWidth: width
     contentHeight: column.implicitHeight + 2 * Theme.space6
     clip: true
@@ -49,57 +54,39 @@ Flickable {
         // The adult way into the family game. The scanner is a parent's
         // workflow, so it lives behind this gate rather than on the child's
         // home, and it is the first thing on the screen: the action is not
-        // one of the records below it.
-        Rectangle {
+        // one of the records below it. It is the page's primary card (the
+        // action colour's heavier edge, as on home), not a gold-edged one: gold
+        // is the reward.
+        Card {
             Layout.fillWidth: true
-            implicitHeight: welcome.implicitHeight + 2 * Theme.space4
-            radius: Theme.radius
-            color: Theme.card
-            border.width: 1
-            border.color: Theme.gold
+            title: ParentWording.welcomeTitle
+            border.width: Theme.heavy
+            border.color: Theme.accent
 
-            ColumnLayout {
-                id: welcome
-                anchors.fill: parent
-                anchors.margins: Theme.space4
+            Label {
+                Layout.fillWidth: true
+                role: "body"
+                text: ParentWording.welcomeBody
+                color: Theme.inkSecondary
+                wrapMode: Text.WordWrap
+            }
+            // A Flow, so the two actions share a line where there is room
+            // and stack where there is not: neither ever leaves the card.
+            Flow {
+                Layout.fillWidth: true
                 spacing: Theme.space2
-
-                Text {
-                    Layout.fillWidth: true
-                    text: ParentWording.welcomeTitle
-                    font.family: Theme.uiFont
-                    font.pixelSize: Theme.headingSize
-                    font.weight: Font.ExtraBold
-                    color: Theme.ink
-                    Accessible.role: Accessible.Heading
-                    Accessible.name: text
+                AppButton {
+                    size: "min"
+                    quiet: true
+                    label: ParentWording.setUpBoard
+                    variant: "primary"
+                    onClicked: root.scanRequested()
                 }
-                Text {
-                    Layout.fillWidth: true
-                    text: ParentWording.welcomeBody
-                    font.family: Theme.uiFont
-                    font.pixelSize: Theme.bodySize
-                    color: Theme.inkSecondary
-                    wrapMode: Text.WordWrap
-                }
-                // A Flow, so the two actions share a line where there is room
-                // and stack where there is not: neither ever leaves the card.
-                Flow {
-                    Layout.fillWidth: true
-                    spacing: Theme.space2
-                    AppButton {
-                        size: "min"
-                        quiet: true
-                        label: ParentWording.setUpBoard
-                        variant: "primary"
-                        onClicked: root.scanRequested()
-                    }
-                    AppButton {
-                        size: "min"
-                        quiet: true
-                        label: ParentWording.backToPlay
-                        onClicked: root.playRequested()
-                    }
+                AppButton {
+                    size: "min"
+                    quiet: true
+                    label: ParentWording.backToPlay
+                    onClicked: root.playRequested()
                 }
             }
         }
@@ -110,8 +97,8 @@ Flickable {
             visible: root.controller.storeNote.length > 0 || root.retryTried
             implicitHeight: noteColumn.implicitHeight + 2 * Theme.space3
             radius: Theme.radius
-            color: Theme.hintCard
-            border.width: Theme.hair * 2
+            color: Theme.panel
+            border.width: Theme.heavy
             border.color: Theme.outline
 
             ColumnLayout {
@@ -120,12 +107,11 @@ Flickable {
                 anchors.margins: Theme.space3
                 spacing: Theme.space2
 
-                Text {
+                Label {
                     id: noteText
                     Layout.fillWidth: true
                     wrapMode: Text.WordWrap
-                    font.pixelSize: Theme.bodySize
-                    color: Theme.hintCardInk
+                    role: "body"
                     text: {
                         switch (root.controller.storeNote) {
                         case "unreadable":
@@ -139,12 +125,12 @@ Flickable {
                         }
                     }
                 }
-                Text {
+                Label {
                     Layout.fillWidth: true
                     visible: root.retryTried
                     wrapMode: Text.WordWrap
-                    font.pixelSize: Theme.smallSize
-                    color: Theme.hintCardInk
+                    role: "caption"
+                    color: Theme.ink
                     text: root.retrySucceeded ? ParentWording.saved : ParentWording.saveStillNotSaved
                 }
                 AppButton {
@@ -164,24 +150,20 @@ Flickable {
         // The boundary between the action above and the records below: a
         // heading of their own, so the week, the sounds, the vault and the
         // best read as what the play has made, never as one more button.
-        Text {
+        Eyebrow {
             Layout.fillWidth: true
             visible: root.anything
+            accented: true
             text: ParentWording.recordsHeading
-            font.family: Theme.monoFont
-            font.pixelSize: 11
-            font.letterSpacing: 1.2
-            color: Theme.accent
             wrapMode: Text.WordWrap
             Accessible.role: Accessible.Heading
-            Accessible.name: text
         }
 
-        Text {
+        Label {
             Layout.fillWidth: true
             visible: !root.anything
+            role: "heading"
             text: ParentWording.nothingYet
-            font.pixelSize: Theme.headingSize
             color: Theme.inkSecondary
             wrapMode: Text.WordWrap
         }
@@ -190,40 +172,22 @@ Flickable {
         // The sentence begins "This week:", so the block has no heading of its
         // own. It is a card like the sounds' rows, so every record shares one
         // visual language.
-        Section {
+        Card {
             Layout.fillWidth: true
             visible: root.week.played
 
-            Rectangle {
+            Label {
                 Layout.fillWidth: true
-                implicitHeight: weekColumn.implicitHeight + 2 * Theme.space4
-                radius: Theme.radius
-                color: Theme.card
-                border.width: Theme.hair
-                border.color: Theme.line
-
-                ColumnLayout {
-                    id: weekColumn
-                    anchors.fill: parent
-                    anchors.margins: Theme.space4
-                    spacing: Theme.space1
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: ParentWording.weekSentence(root.week.boardsCleared, root.week.stars, root.week.newWords)
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.ink
-                        wrapMode: Text.WordWrap
-                    }
-                    Text {
-                        Layout.fillWidth: true
-                        visible: root.week.longestWord.length > 0
-                        text: ParentWording.longestWord(root.week.longestWord)
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.ink
-                        wrapMode: Text.WordWrap
-                    }
-                }
+                role: "body"
+                text: ParentWording.weekSentence(root.week.boardsCleared, root.week.stars, root.week.newWords)
+                wrapMode: Text.WordWrap
+            }
+            Label {
+                Layout.fillWidth: true
+                visible: root.week.longestWord.length > 0
+                role: "body"
+                text: ParentWording.longestWord(root.week.longestWord)
+                wrapMode: Text.WordWrap
             }
         }
 
@@ -232,6 +196,8 @@ Flickable {
             Layout.fillWidth: true
             visible: root.report.sounds.length > 0
             title: ParentWording.soundsHeading
+            Accessible.role: Accessible.List
+            Accessible.name: ParentWording.soundsHeading
 
             Repeater {
                 model: root.report.sounds
@@ -244,22 +210,26 @@ Flickable {
                     implicitHeight: Math.max(Theme.targetMin + 2 * Theme.space2, rowText.implicitHeight + 2 * Theme.space3)
                     radius: Theme.radius
                     color: Theme.card
-                    border.width: Theme.hair * 2
-                    border.color: Theme.hoverWash
+                    border.width: Theme.hair
+                    border.color: Theme.line
+
+                    Accessible.role: Accessible.ListItem
+                    Accessible.name: root.plain(row.modelData.boardsMet > 0
+                        ? ParentWording.soundSentence(row.modelData.letters, row.modelData.boardsMet, row.modelData.boardsFound)
+                        : row.modelData.letters + ": " + ParentWording.notMetYet)
 
                     RowLayout {
                         anchors.fill: parent
                         anchors.margins: Theme.space3
                         spacing: Theme.space4
 
-                        Text {
-                            Layout.preferredWidth: Theme.space12
+                        Label {
+                            Layout.preferredWidth: Theme.space12 + Theme.space4
+                            role: "child"
+                            size: Theme.titleSize
                             text: row.modelData.letters
-                            font.pixelSize: Theme.titleSize
-                            font.bold: true
-                            color: Theme.ink
                             horizontalAlignment: Text.AlignHCenter
-                            Accessible.ignored: true
+                            decorative: true
                         }
 
                         ColumnLayout {
@@ -267,39 +237,37 @@ Flickable {
                             Layout.fillWidth: true
                             spacing: Theme.space1
 
-                            Text {
+                            Label {
                                 Layout.fillWidth: true
                                 textFormat: Text.StyledText
                                 wrapMode: Text.WordWrap
-                                font.pixelSize: Theme.bodySize
-                                color: Theme.ink
+                                role: "body"
+                                decorative: true
                                 text: row.modelData.boardsMet > 0
                                     ? ParentWording.soundSentence(row.modelData.letters, row.modelData.boardsMet, row.modelData.boardsFound)
                                     : ParentWording.notMetYet
                             }
-                            Text {
+                            Label {
                                 Layout.fillWidth: true
                                 visible: row.modelData.wordsUnassisted > 0
                                 wrapMode: Text.WordWrap
-                                font.pixelSize: Theme.smallSize
-                                color: Theme.inkSecondary
+                                role: "caption"
                                 text: ParentWording.foundWithoutStartTile(row.modelData.wordsUnassisted)
                             }
-                            Text {
+                            Label {
                                 Layout.fillWidth: true
                                 visible: row.modelData.oftenFound
                                 wrapMode: Text.WordWrap
-                                font.pixelSize: Theme.smallSize
-                                font.bold: true
+                                role: "caption"
+                                font.weight: Font.Bold
                                 color: Theme.ink
                                 text: ParentWording.oftenFound
                             }
-                            Text {
+                            Label {
                                 Layout.fillWidth: true
                                 visible: row.modelData.fewWords
                                 wrapMode: Text.WordWrap
-                                font.pixelSize: Theme.smallSize
-                                color: Theme.inkSecondary
+                                role: "caption"
                                 text: ParentWording.fewWords
                             }
                         }
@@ -314,9 +282,13 @@ Flickable {
             visible: root.report.vault.length > 0
             title: ParentWording.vaultHeading
 
+            // Each word is a sticker on the page: the card colour with the
+            // `line` edge, so it stands off the paper in both themes.
             Flow {
                 Layout.fillWidth: true
                 spacing: Theme.space2
+                Accessible.role: Accessible.List
+                Accessible.name: ParentWording.vaultHeading
 
                 Repeater {
                     model: root.report.vault
@@ -328,14 +300,20 @@ Flickable {
                         width: stickerText.implicitWidth + 2 * Theme.space3
                         height: Theme.space8 + Theme.space1
                         radius: height / 2
-                        color: Theme.panel
+                        color: Theme.card
+                        border.width: Theme.hair
+                        border.color: Theme.line
 
-                        Text {
+                        Accessible.role: Accessible.ListItem
+                        Accessible.name: sticker.modelData.word
+
+                        Label {
                             id: stickerText
                             anchors.centerIn: parent
+                            role: "body"
+                            learning: true
                             text: sticker.modelData.word
-                            font.pixelSize: Theme.bodySize
-                            color: Theme.ink
+                            decorative: true
                         }
                     }
                 }
@@ -347,17 +325,19 @@ Flickable {
             Layout.fillWidth: true
             visible: root.report.best.length > 0
             title: ParentWording.bestHeading
+            Accessible.role: Accessible.List
+            Accessible.name: ParentWording.bestHeading
 
             Repeater {
                 model: root.report.best
 
-                Text {
+                Label {
                     required property var modelData
                     Layout.fillWidth: true
+                    role: "body"
                     text: ParentWording.bestLine(modelData.size, modelData.stars)
-                    font.pixelSize: Theme.bodySize
-                    color: Theme.ink
                     wrapMode: Text.WordWrap
+                    Accessible.role: Accessible.ListItem
                 }
             }
         }
@@ -365,12 +345,11 @@ Flickable {
         // The privacy promise is a reassurance on the way out, not an
         // instruction on the way in: it closes the page, as on the child's
         // home.
-        Text {
+        Label {
             Layout.fillWidth: true
+            role: "caption"
             text: ParentWording.privacyLine
-            font.family: Theme.monoFont
-            font.pixelSize: Theme.smallSize
-            color: Theme.inkSecondary
+            wrapMode: Text.WordWrap
         }
     }
 }
