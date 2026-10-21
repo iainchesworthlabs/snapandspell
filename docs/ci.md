@@ -30,7 +30,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | `analysis.yml` | nightly `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
 | `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS and the ad-hoc iOS IPA, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets) |
 | `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
-| `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages from `main` once the author has enabled that ([Documentation site](#documentation-site)); only when the docs change | yes (the build; the publication needs Pages) |
+| `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages on every push to `main` that changes the docs ([Documentation site](#documentation-site)) | yes (the build; the publication needs Pages) |
 | `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change | yes |
 | `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
 | `commit-policy.yml` | no attribution in the PR title, PR body or any commit message of the PR | yes |
@@ -623,8 +623,9 @@ scheme), so `docs/install-ios.html` builds it in the browser from `?tag=` (or fi
 newest release with a `manifest.plist`). MkDocs copies a non-Markdown file in `docs/`
 into the site unchanged, so the page needs no nav entry and passes `mkdocs build
 --strict`; it is deployed with the docs, so it exists only once
-[the site is published](#documentation-site): the Pages and `PUBLISH_DOCS` steps there
-are now also what makes the install link work. The release workflow does not wait for it.
+[the site is published](#documentation-site): a merge to `main` publishes it, so the
+merge that precedes the first release makes the install link work. The release
+workflow does not wait for it.
 
 #### What iOS has and has not shown
 
@@ -766,21 +767,22 @@ and the Material theme are pinned in `.github/requirements/docs.txt`, MkDocs bel
 2.0. The job runs only when something under `docs/` or the docs tooling changes,
 so it is not a required check.
 
-Publishing is off until the author turns it on, once:
-
-```sh
-gh api -X POST repos/iainchesworthlabs/wordjewelssolver/pages -f build_type=workflow   # Pages from GitHub Actions
-gh variable set PUBLISH_DOCS --body true --repo iainchesworthlabs/wordjewelssolver
-```
+Publishing needs one setting, once, that a workflow cannot make for itself: the
+repository's Pages source is "GitHub Actions" (Settings, Pages; or
+`gh api -X POST repos/iainchesworthlabs/wordjewelssolver/pages -f build_type=workflow`).
+Nothing else is switched on or off: the deploy job runs on every push to `main`.
 
 `docs/install-ios.html` is not a page: it is the iOS install link's page
 ([iOS](#ios)), a static file that MkDocs copies into the site as it is, so it is
 deployed with the docs and the iOS install link works only once the site is published.
 
-After that a push to `main` that changes the docs deploys the site to
+A push to `main` that changes the docs deploys the site to
 `https://iainchesworthlabs.github.io/wordjewelssolver/` (`site_url` in
-`mkdocs.yml`). Until then `Publish to GitHub Pages` is skipped, not red. A build
-of a pull request is never deployed.
+`mkdocs.yml`), so the merge of `develop` into `main` that precedes the first release
+is what makes the site, and the install page, exist: by the time a tag is cut they
+are there. (Until the Pages source is set, `Publish to GitHub Pages` is red with
+GitHub's message that Pages is not enabled.) A build of a pull request is never
+deployed.
 
 ## Required checks and their staging
 

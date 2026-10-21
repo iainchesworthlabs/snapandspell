@@ -9,10 +9,12 @@ name: Docs
 # documentation changes, and a check that a path filter keeps from running never
 # reports, which would hold every unrelated pull request.
 #
-# Publishing is off until the author turns it on (docs/ci.md, "Documentation
-# site"): Pages must be enabled with "GitHub Actions" as its source, and the
-# repository variable PUBLISH_DOCS set to true. Until then the deploy job is
-# skipped, not red, and the build still runs.
+# A push to main publishes the site, so merging develop to main for a release is
+# what makes it exist, and the iOS install page (docs/install-ios.html) with it.
+# The one thing that cannot be done from here is setting the repository's Pages
+# source to "GitHub Actions", once, in its settings (docs/ci.md, "Documentation
+# site"); until that is done the deploy job fails with GitHub's own message saying
+# so.
 
 on:
   pull_request:
@@ -77,7 +79,7 @@ jobs:
 
   deploy:
     name: Publish to GitHub Pages
-    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.PUBLISH_DOCS == 'true' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 10
