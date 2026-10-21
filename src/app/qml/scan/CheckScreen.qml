@@ -329,10 +329,15 @@ FocusScope {
                     width: middle.width
                     spacing: Theme.space3
 
-                    Card {
+                    // Not a Card: its title and padding cost 70 dp that the panel
+                    // does not have at 150% text on a 900 by 620 window.
+                    ColumnLayout {
                         Layout.fillWidth: true
-                        title: ScanWording.boardSize
-                        padding: Theme.space3
+                        spacing: Theme.space2
+
+                        Eyebrow {
+                            text: ScanWording.boardSize
+                        }
 
                         SegmentedChoice {
                             Layout.fillWidth: true
@@ -364,7 +369,7 @@ FocusScope {
             }
 
             // What the grown-up most needs to know now. It stays put, above the
-            // actions, where the size card above it may scroll.
+            // actions, where the board size above it may scroll.
             Label {
                 Layout.fillWidth: true
                 visible: text !== ""
