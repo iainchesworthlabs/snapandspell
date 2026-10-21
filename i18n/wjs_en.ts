@@ -30,7 +30,7 @@
 <context>
     <name>AssistScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+103"/>
+        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+113"/>
         <source>Find words</source>
         <translation>Find words</translation>
     </message>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+191"/>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+358"/>
         <source>Turn</source>
         <translation>Turn</translation>
     </message>
@@ -941,24 +941,9 @@ The button that opens the Licences page from the About page.</extracomment>
 <context>
     <name>ScanScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+107"/>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+118"/>
         <source>Set up a board</source>
         <translation>Set up a board</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <source>1  Place</source>
-        <translation>1  Place</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>2  Check</source>
-        <translation>2  Check</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>3  Play</source>
-        <translation>3  Play</translation>
     </message>
 </context>
 <context>
@@ -999,7 +984,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>I could not read the board. Try again, or type it in.</translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+51"/>
         <source>Is this your board?</source>
         <translation>Is this your board?</translation>
     </message>
@@ -1030,7 +1015,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>The board could not be started. Try again.</translation>
     </message>
     <message>
-        <location line="-42"/>
+        <location line="-62"/>
         <source>No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.</source>
         <extracomment>A camera that was not found may still be there: covered, busy or plugged in after the screen opened. The retry button is the way to look again.</extracomment>
         <translation>No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.</translation>
@@ -1052,7 +1037,49 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Try camera again</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+3"/>
+        <source>No camera</source>
+        <extracomment>The headline of the picture shown in place of the camera&apos;s view when there is no camera.</extracomment>
+        <translation>No camera</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Steps</source>
+        <translation>Steps</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Place</source>
+        <translation>Place</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check</source>
+        <translation>Check</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play</source>
+        <translation>Play</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Step %1 of 3: %2, done</source>
+        <extracomment>A step of three, for a screen reader: &quot;Step 2 of 3: Check, you are here&quot;.</extracomment>
+        <translation>Step %1 of 3: %2, done</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2, you are here</source>
+        <translation>Step %1 of 3: %2, you are here</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2</source>
+        <translation>Step %1 of 3: %2</translation>
+    </message>
+    <message>
+        <location line="+41"/>
         <source>Start over</source>
         <extracomment>A typed board&apos;s secondary action: clear it and start typing a fresh one.</extracomment>
         <translation>Start over</translation>
@@ -1070,7 +1097,39 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Start playing</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+3"/>
+        <source>Tap a square to choose its letter. Start playing opens when every square has one.</source>
+        <extracomment>Shown over a blank typed board, so the empty grid says what to do.</extracomment>
+        <translation>Tap a square to choose its letter. Start playing opens when every square has one.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Every square has a letter. Is it the board in front of you?</source>
+        <extracomment>Under the typed board once every square has a letter.</extracomment>
+        <translation>Every square has a letter. Is it the board in front of you?</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Check the ringed tiles?</source>
+        <translation>Check the ringed tiles?</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The reader was not sure about the tiles with a ring. Check them first, or play with the board as it is.</source>
+        <translation>The reader was not sure about the tiles with a ring. Check them first, or play with the board as it is.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check them</source>
+        <translation>Check them</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play anyway</source>
+        <translation>Play anyway</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>%1 by %1 board</source>
         <translation>%1 by %1 board</translation>
     </message>
@@ -1145,6 +1204,33 @@ The button that opens the Licences page from the About page.</extracomment>
         <location line="+3"/>
         <source>%1, row %2, column %3</source>
         <translation>%1, row %2, column %3</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1, row %2, column %3, may be wrong</source>
+        <extracomment>A tile the reader doubted, for a screen reader: the ring is a picture.</extracomment>
+        <translation>%1, row %2, column %3, may be wrong</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Trace a word on the board and it lands here.</source>
+        <translation>Trace a word on the board and it lands here.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No earlier boards yet</source>
+        <translation>No earlier boards yet</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A board you leave is kept here.</source>
+        <translation>A board you leave is kept here.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 x %1, %2 found</source>
+        <extracomment>One earlier board&apos;s caption: its size and how many words were found.</extracomment>
+        <translation>%1 x %1, %2 found</translation>
     </message>
     <message>
         <location line="+4"/>

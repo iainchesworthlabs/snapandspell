@@ -30,7 +30,7 @@
 <context>
     <name>AssistScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+103"/>
+        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+113"/>
         <source>Find words</source>
         <translation>Wörter finden</translation>
     </message>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+191"/>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+358"/>
         <source>Turn</source>
         <translation>Drehen</translation>
     </message>
@@ -941,24 +941,9 @@ The button that opens the Licences page from the About page.</extracomment>
 <context>
     <name>ScanScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+107"/>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+118"/>
         <source>Set up a board</source>
         <translation>Brett einrichten</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <source>1  Place</source>
-        <translation>1  Platzieren</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>2  Check</source>
-        <translation>2  Prüfen</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>3  Play</source>
-        <translation>3  Spielen</translation>
     </message>
 </context>
 <context>
@@ -999,7 +984,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Ich konnte das Brett nicht lesen. Versuchen Sie es erneut oder geben Sie es ein.</translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+51"/>
         <source>Is this your board?</source>
         <translation>Ist das Ihr Brett?</translation>
     </message>
@@ -1030,7 +1015,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Das Brett konnte nicht gestartet werden. Versuchen Sie es erneut.</translation>
     </message>
     <message>
-        <location line="-42"/>
+        <location line="-62"/>
         <source>No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.</source>
         <extracomment>A camera that was not found may still be there: covered, busy or plugged in after the screen opened. The retry button is the way to look again.</extracomment>
         <translation>Keine Kamera gefunden. Wenn dieses Gerät eine hat, ist sie vielleicht verdeckt oder von einer anderen App belegt. Sie können Ihr Brett eingeben.</translation>
@@ -1052,7 +1037,49 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Kamera erneut versuchen</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+3"/>
+        <source>No camera</source>
+        <extracomment>The headline of the picture shown in place of the camera&apos;s view when there is no camera.</extracomment>
+        <translation>Keine Kamera</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Steps</source>
+        <translation>Schritte</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Place</source>
+        <translation>Aufstellen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check</source>
+        <translation>Prüfen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play</source>
+        <translation>Spielen</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Step %1 of 3: %2, done</source>
+        <extracomment>A step of three, for a screen reader: &quot;Step 2 of 3: Check, you are here&quot;.</extracomment>
+        <translation>Schritt %1 von 3: %2, erledigt</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2, you are here</source>
+        <translation>Schritt %1 von 3: %2, hier sind Sie</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2</source>
+        <translation>Schritt %1 von 3: %2</translation>
+    </message>
+    <message>
+        <location line="+41"/>
         <source>Start over</source>
         <extracomment>A typed board&apos;s secondary action: clear it and start typing a fresh one.</extracomment>
         <translation>Neu beginnen</translation>
@@ -1070,7 +1097,39 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Spielen starten</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+3"/>
+        <source>Tap a square to choose its letter. Start playing opens when every square has one.</source>
+        <extracomment>Shown over a blank typed board, so the empty grid says what to do.</extracomment>
+        <translation>Tippen Sie auf ein Feld, um seinen Buchstaben zu wählen. „Spielen starten“ geht auf, sobald jedes Feld einen Buchstaben hat.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Every square has a letter. Is it the board in front of you?</source>
+        <extracomment>Under the typed board once every square has a letter.</extracomment>
+        <translation>Jedes Feld hat einen Buchstaben. Ist das das Brett vor Ihnen?</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Check the ringed tiles?</source>
+        <translation>Umringte Felder prüfen?</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The reader was not sure about the tiles with a ring. Check them first, or play with the board as it is.</source>
+        <translation>Der Leser war sich bei den umringten Feldern nicht sicher. Prüfen Sie sie zuerst, oder spielen Sie mit dem Brett, wie es ist.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check them</source>
+        <translation>Felder prüfen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play anyway</source>
+        <translation>Trotzdem spielen</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>%1 by %1 board</source>
         <translation>%1-mal-%1-Brett</translation>
     </message>
@@ -1145,6 +1204,33 @@ The button that opens the Licences page from the About page.</extracomment>
         <location line="+3"/>
         <source>%1, row %2, column %3</source>
         <translation>%1, Zeile %2, Spalte %3</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1, row %2, column %3, may be wrong</source>
+        <extracomment>A tile the reader doubted, for a screen reader: the ring is a picture.</extracomment>
+        <translation>%1, Zeile %2, Spalte %3, könnte falsch sein</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Trace a word on the board and it lands here.</source>
+        <translation>Zeichne ein Wort auf dem Brett, dann landet es hier.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No earlier boards yet</source>
+        <translation>Noch keine früheren Bretter</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A board you leave is kept here.</source>
+        <translation>Ein Brett, das du verlässt, wird hier aufbewahrt.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 x %1, %2 found</source>
+        <extracomment>One earlier board&apos;s caption: its size and how many words were found.</extracomment>
+        <translation>%1 x %1, %2 gefunden</translation>
     </message>
     <message>
         <location line="+4"/>
