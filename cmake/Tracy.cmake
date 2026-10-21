@@ -50,6 +50,15 @@ if(WJS_ENABLE_TRACY)
     find_package(Tracy CONFIG REQUIRED)
     target_link_libraries(wjs_tracy INTERFACE Tracy::TracyClient)
 
+    # The Debug client is built with the clock for its timer, not the CPU's cycle counter
+    # (cmake/vcpkg-ports/tracy/portfile.cmake: the cycle counter is calibrated by a sleep of
+    # 200 ms in every program's start, and a Debug build's timings are not numbers). The
+    # timer is read inline from Tracy's headers, so the code that includes them has to be
+    # built with the same two definitions as the client; the Release client, and the
+    # *-profiling presets that link it, keep the cycle counter.
+    target_compile_definitions(wjs_tracy INTERFACE
+        "$<$<CONFIG:Debug>:TRACY_TIMER_FALLBACK;TRACY_DISALLOW_HW_TIMER>")
+
     # Coverage and Tracy measure the same program and would talk over each
     # other: a build with both is an error in the numbers, and nothing else
     # will say so. A Debug build with Tracy is the default now, so it gets a
