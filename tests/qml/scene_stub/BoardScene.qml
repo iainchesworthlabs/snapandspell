@@ -31,6 +31,17 @@ Item {
 
     property bool reducedMotion: false
 
+    // The colours the screen hands the real scene (Theme's tray, gold, die and lid
+    // tokens), so the screen's bindings have something to bind to.
+    property color trayColor: "transparent"
+    property color rimColor: "transparent"
+    property color dieColor: "transparent"
+    property color dieEdgeColor: "transparent"
+    property color dieInkColor: "transparent"
+    property color jewelColor: "transparent"
+    property color lidColor: "transparent"
+    property real trayInset: 0
+
     signal settled
     signal landed(int index, real pitch)
     signal rattled

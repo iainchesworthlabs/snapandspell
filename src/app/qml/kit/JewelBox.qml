@@ -13,7 +13,6 @@ Item {
     id: root
 
     property bool closed: true
-    property bool asleep: false
     property var tiles: ["S", "O", "S", "S", "A", "N", "N", "S", "L"]
     property bool showDice: true
     // The board size the closed box is waiting for. It changes the picture of
@@ -30,6 +29,17 @@ Item {
     // The largest square grid that fits inside the tray's padded well.
     readonly property real cell: Math.max(1, (Math.min(trayWidth, trayHeight) * 0.76
                                                - (side - 1) * spacing) / side)
+    // Where the first row of compartments begins, below the tray's top edge.
+    readonly property real gridTop: (trayHeight - (side * cell + (side - 1) * spacing)) / 2
+    // The lid: tall enough for its jewel and latch, and lowered over the tray's rim
+    // by no more than the air above the first compartments (less its tilt, which
+    // lifts one end a few px), so that every row of the chosen size shows and a
+    // 6 x 6 does not read as five rows.
+    readonly property real lidHeight: Math.max(Theme.targetMin, Math.min(trayHeight * 0.2, Theme.targetChild))
+    readonly property real lidTilt: -2.5
+    readonly property real lidOverlap: Math.max(0, Math.min(lidHeight * 0.5,
+                                                 gridTop - Theme.space2
+                                                 - Math.abs(Math.sin(lidTilt * Math.PI / 180)) * trayWidth / 2))
 
     Rectangle {
         // The shadow under the box.
@@ -90,21 +100,21 @@ Item {
         }
     }
 
-    // The lid: a cream slab with a gold rim, hinged at the back. It rests over
-    // the top of the tray; the wells below stay visible, so a closed box reads
-    // as a box rather than a blank screen.
+    // The lid: a cream slab with a gold rim, hinged at the back. It stands over the
+    // tray's top edge and never over the compartments (see lidOverlap), so a closed
+    // box reads as a box and its rows can be counted.
     Rectangle {
         id: lid
         visible: root.closed
         x: tray.x - 6
-        y: tray.y - 16
+        y: tray.y - root.lidHeight + root.lidOverlap
         width: tray.width + 12
-        height: Math.max(46, tray.height * 0.28)
+        height: root.lidHeight
         radius: Theme.radius
         color: Theme.lid
         border.width: Theme.litEdge
         border.color: Theme.gold
-        rotation: -2.5
+        rotation: root.lidTilt
         transformOrigin: Item.Center
 
         Rectangle {
@@ -119,9 +129,10 @@ Item {
 
         // The box's jewel mark.
         Jewel {
-            visible: !root.asleep
-            anchors.centerIn: parent
-            width: Math.min(parent.width * 0.16, 50)
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.verticalCenterOffset: -Theme.space1
+            width: Math.min(parent.height * 0.5, Theme.jewelMega)
             height: width
             tier: "power"
             color: Theme.gold
@@ -131,27 +142,11 @@ Item {
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 5
-            width: 34
-            height: 7
-            radius: 3
+            anchors.bottomMargin: Theme.space1
+            width: Theme.space8 + Theme.space1
+            height: Theme.space1 + 3
+            radius: Theme.radiusXs
             color: Theme.gold
-        }
-
-        // Two closed eyes, when the box is asleep.
-        Row {
-            visible: root.asleep
-            anchors.centerIn: parent
-            spacing: parent.width * 0.08
-            Repeater {
-                model: 2
-                Rectangle {
-                    width: parent.parent.width * 0.06
-                    height: 3
-                    radius: 2
-                    color: Theme.dieEdge
-                }
-            }
         }
     }
 

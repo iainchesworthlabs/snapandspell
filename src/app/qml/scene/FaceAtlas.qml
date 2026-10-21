@@ -48,12 +48,15 @@ Item {
     readonly property int faceEdge: 2
 
     // The same cream, dark-teal edge and ink as TileFace.qml, and the dead
-    // jewel and gold of Jewel.qml.
-    readonly property color faceColor: "#FFF7E3"
-    readonly property color edgeColor: "#20323A"
-    readonly property color inkColor: "#1F2A30"
-    readonly property color jewelColor: "#8FA1B8"
-    readonly property color goldColor: "#C98A1E"
+    // jewel and gold of Jewel.qml: the application's Theme tokens (Theme.die,
+    // dieEdge, dieInk, jewelDead, gold), handed in by the scene, which gets them
+    // from the screen. The values here are the same tokens' own, for a harness
+    // that does not pass them.
+    property color faceColor: "#FFF7E3"
+    property color edgeColor: "#20323A"
+    property color inkColor: "#1F2A30"
+    property color jewelColor: "#7A8DA6"
+    property color goldColor: "#BF8019"
 
     // Theme.letterShare and Theme.quShare: the letter is this share of the
     // tile, and Qu this share of that.

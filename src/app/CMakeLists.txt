@@ -108,8 +108,8 @@ set_source_files_properties(
     PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
 
 # The rest of the skips are things the shared aqtinstall kit cannot link:
-# - FlatBoard's Timer needs qqmltimer_p.h, and TraceLayer's old-form Connections
-#   needs qqmlconnections_p.h, neither of which the kit ships;
+# - FlatBoard's Timer needs qqmltimer_p.h, and its old-form Connections needs
+#   qqmlconnections_p.h, neither of which the kit ships;
 # - Home, PlayingPanel and JewelsScreen set LayoutMirroring, whose compiled
 #   private class (QQuickLayoutMirroringAttached) the kit's QtQuick DLL does not
 #   export, so qmltc's C++ for them cannot link.
@@ -118,7 +118,6 @@ set_source_files_properties(
     qml/solo/FlatBoard.qml
     qml/solo/JewelsScreen.qml
     qml/solo/PlayingPanel.qml
-    qml/solo/TraceLayer.qml
     PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
 
 # The wording singletons carry qsTr(): compiled by qmltc, a translation is
@@ -157,11 +156,10 @@ qt_add_qml_module(WordJewelsSolver
         qml/solo/JewelsScreen.qml
         qml/solo/JewelsWording.qml
         qml/solo/PlayingPanel.qml
+        qml/solo/ScrollCue.qml
         qml/solo/SoloBox.qml
-        qml/solo/SoloResting.qml
         qml/solo/SoloScreen.qml
         qml/solo/SoloWording.qml
-        qml/solo/TraceLayer.qml
     SOURCES
         frame_profiler.cpp
         frame_profiler.hpp

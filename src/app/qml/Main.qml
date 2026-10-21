@@ -211,7 +211,7 @@ ApplicationWindow {
         // Hebrew and Yiddish read right to left: the window's layout follows, and
         // its children inherit the mirroring (anchors flip, RTL layouts order their
         // children from the right). The board containers switch it off again where
-        // a mirrored anchor would move a tile (qml/solo/TraceLayer.qml).
+        // a mirrored anchor would move a tile (qml/solo/FlatBoard.qml).
         LayoutMirroring.enabled: window.languageManager.rightToLeft
         LayoutMirroring.childrenInherit: true
 
@@ -303,6 +303,14 @@ ApplicationWindow {
             }
         }
 
+        // The boards played, over whichever screen asked (Home's "My boards"). It
+        // fills the window, so its scrim covers the app bar too.
+        HistorySheet {
+            id: boardsSheet
+            anchors.fill: parent
+            solo: soloGame
+        }
+
         // Solo Play takes the keyboard when it is shown (its own screen keeps the
         // focus while it is not).
         Connections {
@@ -333,12 +341,10 @@ ApplicationWindow {
             onSoloRequested: Navigation.go("solo")
             onParentRequested: Navigation.go("parent")
             onCollectionRequested: Navigation.go("jewels")
-            // The boards played: Solo Play's own sheet, over whatever is in the
-            // box. Back returns to home.
-            onBoardsRequested: {
-                Navigation.go("solo");
-                soloScreen.openHistory();
-            }
+            // The boards played: a sheet over Home itself, so the child is not
+            // taken into the box to look at a list. Back, Escape and Close
+            // return to Home.
+            onBoardsRequested: boardsSheet.open = true
         }
     }
     Component {

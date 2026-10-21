@@ -293,7 +293,7 @@ as the finger moves. The column below says which.
 | `scene.play` | zone (QML) | both | `BoardScene.play`, once a play | none |
 | `scene.show` | zone (QML) | both | `BoardScene.show`, once a board is shown without motion | none |
 | `scene.shake`, `scene.drop`, `scene.settle` | zone (QML) | both | `BoardScene.step`, one a frame, by the stage the script is in (`BoardScene.stageZone()` chooses the name, so the check pins them as literals) | none |
-| `ui.trace` | zone (QML) | both | `FlatBoard.qml`, the trace layer of the flat board, one for each pointer or key event that traces (`TraceLayer.qml` has the same calls and is the same name) | none |
+| `ui.trace` | zone (QML) | both | `FlatBoard.qml`, the flat board, one for each pointer or key event that traces | none |
 | `ui.screen` | zone (QML) | both | `Main.qml`, the loader's `onLoaded`: the screen transition's work | none |
 | `scene2d.play`, `scene2d.step`, `scene2d.show` | zone (QML) | the 2D fallback (**not built**, so not required by any check) | `qml/scene/fallback/BoardScene.qml`, its script calls | none |
 | `ui.frame_ms` | plot | both | the frame clock, once a frame | the interval between swaps |
