@@ -827,12 +827,24 @@ Vec3 World::relativeVelocity(const Contact& c) const {
 }
 
 const World::Contact* World::previousOf(const Contact& c) const {
+    // previous_ is in the order findContacts made it: the contacts with the box
+    // by die, then those between dice by (a, b), each pair's together. So the
+    // contacts of c's pair (or of c's die with the box) are one run, found by
+    // bisection and walked in order, as a walk of the whole list would meet them.
+    const auto before = [](const Contact& x, const Contact& y) {
+        if ((x.b >= 0) != (y.b >= 0)) {
+            return x.b < 0;
+        }
+        if (x.a != y.a) {
+            return x.a < y.a;
+        }
+        return x.b < y.b;
+    };
     const Contact* best = nullptr;
     double nearest = 0.05;
-    for (const Contact& old : previous_) {
-        if (old.a != c.a || old.b != c.b) {
-            continue;
-        }
+    for (auto it = std::lower_bound(previous_.begin(), previous_.end(), c, before);
+         it != previous_.end() && it->a == c.a && it->b == c.b; ++it) {
+        const Contact& old = *it;
         if (c.key >= 0) {
             if (old.key == c.key) {
                 return &old;
