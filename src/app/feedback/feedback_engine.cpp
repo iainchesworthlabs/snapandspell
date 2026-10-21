@@ -64,6 +64,7 @@ template <typename Value>
 
 FeedbackEngine::FeedbackEngine(QObject* parent)
     : QObject(parent),
+      sequence_([this](const QString& word, double volume) { speech_.say_word(word, volume); }),
       settings_map_{{QStringLiteral("sound"), true},
                     {QStringLiteral("celebrationSounds"), QStringLiteral("full")},
                     {QStringLiteral("soundItOut"), QStringLiteral("full")},
@@ -77,11 +78,29 @@ void FeedbackEngine::setSettings(const QVariantMap& settings) {
     }
     settings_map_ = settings;
     settings_ = policy_settings(settings_map_);
+    phonics_board_ =
+        settings_map_.value(QStringLiteral("board")).toString() == QStringLiteral("phonics");
     emit settingsChanged();
 }
 
 int FeedbackEngine::soundsPlayed() const {
     return sound_.plays();
+}
+
+bool FeedbackEngine::sayFoundWord(const QString& word, double volume) {
+    // A word of the phonics board is sounded out by the library's steps, and the
+    // last of them says the word; with no clips recorded yet that is at once, so
+    // the child hears the word as before. Anything else is said whole.
+    if (phase_ != nullptr && phonics_board_ && !word.isEmpty()) {
+        auto sequence = wjs::sound_it_out_sequence(*phase_, to_utf8(word), settings_.sound_it_out);
+        if (sequence && !sequence->steps.empty()) {
+            // Asked for: the word is said by the sequence's say step, now or when
+            // the clips before it have played.
+            sequence_.start(*std::move(sequence), volume);
+            return true;
+        }
+    }
+    return speech_.say_word(word, volume);
 }
 
 int FeedbackEngine::utterances() const noexcept {
@@ -105,15 +124,8 @@ void FeedbackEngine::cue(const QString& kind, const QString& detail) {
         sound_.play(to_qstring(plan.asset), plan.volume);
         asked = true;
     }
-    // The sound-it-out sequence is the seam for the reviewer's phoneme clips:
-    // it is silent today, and called before the word so that the day the clips
-    // exist the word still comes last (docs/design/phonics.md).
-    if (plan.speak_sequence) {
-        speech_.say_letter_sequence(detail);
-        asked = true;
-    }
     if (plan.speak_word) {
-        asked = speech_.say_word(detail, plan.volume) || asked;
+        asked = sayFoundWord(detail, plan.volume) || asked;
     } else if (plan.speak_text) {
         asked = speech_.say_text(detail, plan.volume) || asked;
     }
