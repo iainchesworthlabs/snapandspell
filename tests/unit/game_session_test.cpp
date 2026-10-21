@@ -971,36 +971,37 @@ TEST_CASE("one seed is a whole run of boards, and they are not all the same", "[
     CHECK(boards.size() >= 12U);
 }
 
-TEST_CASE("a board is never dealt with no word on it, and three to five is what it lands",
-          "[session]") {
-    // Property-style: many seeds, both sizes, the phase's own words. The count
-    // the board holds is checked against the solver, not against the session's
-    // own list.
+namespace {
+
+// Property-style: many seeds of one size, the phase's own words. The count the
+// board holds is checked against the solver, not against the session's own
+// list. The seeds are dealt in ranges, each its own test case, so that ctest
+// runs the ranges at once: the 600 deals were the longest case under the
+// sanitizers.
+void check_boards_are_dealt_with_a_word(BoardSize size, std::uint32_t first, std::uint32_t last) {
     std::size_t in_range = 0;
     std::size_t boards = 0;
-    for (const BoardSize size : {BoardSize::three, BoardSize::four}) {
-        for (std::uint32_t seed = 1; seed <= 300; ++seed) {
-            wjs::SessionOptions options;
-            options.size = size;
-            options.seed = seed;
-            wjs::GameSession session = make(options);
-            REQUIRE(session.shake().has_value());
-            REQUIRE(session.still());
-            REQUIRE(session.landed());
+    for (std::uint32_t seed = first; seed <= last; ++seed) {
+        wjs::SessionOptions options;
+        options.size = size;
+        options.seed = seed;
+        wjs::GameSession session = make(options);
+        REQUIRE(session.shake().has_value());
+        REQUIRE(session.still());
+        REQUIRE(session.landed());
 
-            const auto words = wjs::solve(*session.board(), phase_a().dictionary());
-            const wjs::DealReport& deal = *session.last_deal();
-            INFO("size " << wjs::side(size) << ", seed " << seed);
-            CHECK(words.size() >= 1U);  // never none
-            CHECK(deal.viable == words.size());
-            CHECK(deal.in_range == (words.size() >= 3U && words.size() <= 5U));
-            CHECK(session.record()->viable.size() == words.size());
-            CHECK(deal.seedings >= 1U);
-            CHECK(deal.seedings <= wjs::SessionOptions{}.max_seedings);
-            ++boards;
-            if (deal.in_range) {
-                ++in_range;
-            }
+        const auto words = wjs::solve(*session.board(), phase_a().dictionary());
+        const wjs::DealReport& deal = *session.last_deal();
+        INFO("size " << wjs::side(size) << ", seed " << seed);
+        CHECK(words.size() >= 1U);  // never none
+        CHECK(deal.viable == words.size());
+        CHECK(deal.in_range == (words.size() >= 3U && words.size() <= 5U));
+        CHECK(session.record()->viable.size() == words.size());
+        CHECK(deal.seedings >= 1U);
+        CHECK(deal.seedings <= wjs::SessionOptions{}.max_seedings);
+        ++boards;
+        if (deal.in_range) {
+            ++in_range;
         }
     }
     // The test data is a handful of words, which the seeding lands nearly every
@@ -1008,6 +1009,50 @@ TEST_CASE("a board is never dealt with no word on it, and three to five is what 
     // make a miss rarer still.
     INFO(in_range << " of " << boards << " in range");
     CHECK(in_range == boards);
+}
+
+}  // namespace
+
+TEST_CASE(
+    "a board is never dealt with no word on it, and three to five is what it lands: 3x3, seeds 1 "
+    "to 100",
+    "[session]") {
+    check_boards_are_dealt_with_a_word(BoardSize::three, 1, 100);
+}
+
+TEST_CASE(
+    "a board is never dealt with no word on it, and three to five is what it lands: 3x3, seeds 101 "
+    "to 200",
+    "[session]") {
+    check_boards_are_dealt_with_a_word(BoardSize::three, 101, 200);
+}
+
+TEST_CASE(
+    "a board is never dealt with no word on it, and three to five is what it lands: 3x3, seeds 201 "
+    "to 300",
+    "[session]") {
+    check_boards_are_dealt_with_a_word(BoardSize::three, 201, 300);
+}
+
+TEST_CASE(
+    "a board is never dealt with no word on it, and three to five is what it lands: 4x4, seeds 1 "
+    "to 100",
+    "[session]") {
+    check_boards_are_dealt_with_a_word(BoardSize::four, 1, 100);
+}
+
+TEST_CASE(
+    "a board is never dealt with no word on it, and three to five is what it lands: 4x4, seeds 101 "
+    "to 200",
+    "[session]") {
+    check_boards_are_dealt_with_a_word(BoardSize::four, 101, 200);
+}
+
+TEST_CASE(
+    "a board is never dealt with no word on it, and three to five is what it lands: 4x4, seeds 201 "
+    "to 300",
+    "[session]") {
+    check_boards_are_dealt_with_a_word(BoardSize::four, 201, 300);
 }
 
 TEST_CASE("the range and the number of seedings are the options'", "[session]") {
