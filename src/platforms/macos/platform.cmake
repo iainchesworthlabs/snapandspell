@@ -29,6 +29,7 @@ set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
 set(WJS_PLATFORM_SOURCES
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
+    detail/fatal_error_stderr.cpp
     detail/haptics_none.cpp
     detail/window_chrome_none.cpp
     macos/paths_macos.cpp

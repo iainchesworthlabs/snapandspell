@@ -26,8 +26,10 @@ public:
 
 // The game the application plays: the installed maker's, which is the library's
 // session (RealSoloGame, set up by SoloGameSetup); the program installs its
-// maker before the engine loads (main.cpp). With none installed, the tests'
-// FakeSoloGame. This is the one place that decides. See solo_game.hpp.
+// maker before the engine loads (main.cpp). With none installed, a game that
+// cannot be shaken (the box and nothing in it); the tests' stand-in is
+// FakeSoloGame, handed to a SoloModel by the test. This is the one place that
+// decides. See solo_game.hpp.
 [[nodiscard]] std::unique_ptr<SoloGame> make_solo_game();
 
 }  // namespace wjs::app

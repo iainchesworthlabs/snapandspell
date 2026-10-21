@@ -129,6 +129,11 @@ public:
 
     [[nodiscard]] std::vector<SoloHistoryEntry> history() const override;
 
+    // The store refused a board or the game in progress, or its file could not be
+    // written, the last time the game asked it to keep something. Cleared by the
+    // next write that the store accepts and writes.
+    [[nodiscard]] bool saveFailed() const override { return save_failed_; }
+
     // The session underneath, for a test to read what the adapter did to it.
     [[nodiscard]] const wjs::GameSession& session() const noexcept { return session_; }
 
@@ -143,6 +148,9 @@ private:
     void save_session();
     // Writes the size to the settings, if it is not the one there.
     void remember_size(wjs::BoardSize size);
+    // Takes the store's word for how the last write went: refused, or accepted and
+    // then not written.
+    void note_write(bool accepted);
 
     wjs::GameSession session_;
     bool help_allowed_;
@@ -167,6 +175,7 @@ private:
     // again until the next shake, so the screens never read a board that is gone.
     SoloBoard board_;
     std::vector<SoloFound> found_;
+    bool save_failed_ = false;
 };
 
 }  // namespace wjs::app

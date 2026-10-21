@@ -20,6 +20,7 @@
 #include "fake_camera.hpp"
 #include "frame_conversion.hpp"
 #include "scan_model.hpp"
+#include "test_support.hpp"
 #include "wjs/scan/frame.hpp"
 
 namespace {
@@ -53,17 +54,9 @@ wjs::scan::OwnedFrame small_frame() {
     return frame;
 }
 
-// A QCoreApplication is needed by the model's frame timer when a capture has to
-// wait for one. It is made inside the case, so the cases that do not start a
-// timer need none.
-struct TestApplication {
-    TestApplication() : application(argc, argv) {}
-
-    int argc = 1;
-    char name[16] = "wjs_app_tests";
-    char* argv[2] = {name, nullptr};
-    QCoreApplication application;
-};
+// A QCoreApplication is needed by the model's frame timer and by the reader's
+// answer. It is made inside the case, so the cases that need neither make none.
+using TestApplication = wjs::app::test::CoreApplication;
 
 }  // namespace
 
@@ -127,6 +120,53 @@ TEST_CASE("a grey image becomes an RGB frame with equal channels", "[app][scan][
     CHECK(frame->pixels[2] == 128);
 }
 
+TEST_CASE("an ARGB32 image, the live camera's format, drops the alpha and keeps the colours",
+          "[app][scan][camera]") {
+    QImage image(2, 1, QImage::Format_ARGB32);
+    REQUIRE_FALSE(image.isNull());
+    image.setPixel(0, 0, qRgba(10, 20, 30, 128));
+    image.setPixel(1, 0, qRgba(40, 50, 60, 0));
+
+    const std::optional<wjs::scan::OwnedFrame> frame = wjs::app::frame_from_image(image);
+    REQUIRE(frame.has_value());
+    CHECK(frame->width == 2);
+    CHECK(frame->height == 1);
+    CHECK(frame->format == PixelFormat::rgb8);
+    REQUIRE(frame->pixels.size() == 6);
+    // Red, green, blue in that order: a swapped pair is a different picture.
+    CHECK(frame->pixels[0] == 10);
+    CHECK(frame->pixels[1] == 20);
+    CHECK(frame->pixels[2] == 30);
+    CHECK(frame->pixels[3] == 40);
+    CHECK(frame->pixels[4] == 50);
+    CHECK(frame->pixels[5] == 60);
+}
+
+TEST_CASE("an RGB32 and a premultiplied image become the same picture", "[app][scan][camera]") {
+    QImage rgb32(1, 1, QImage::Format_RGB32);
+    REQUIRE_FALSE(rgb32.isNull());
+    rgb32.setPixel(0, 0, qRgb(70, 80, 90));
+    const std::optional<wjs::scan::OwnedFrame> from_rgb32 = wjs::app::frame_from_image(rgb32);
+    REQUIRE(from_rgb32.has_value());
+    REQUIRE(from_rgb32->pixels.size() == 3);
+    CHECK(from_rgb32->pixels[0] == 70);
+    CHECK(from_rgb32->pixels[1] == 80);
+    CHECK(from_rgb32->pixels[2] == 90);
+
+    // Opaque, so premultiplying changes nothing: the colours must come out as
+    // they went in, through the generic conversion.
+    QImage premultiplied(1, 1, QImage::Format_ARGB32_Premultiplied);
+    REQUIRE_FALSE(premultiplied.isNull());
+    premultiplied.setPixel(0, 0, qRgba(70, 80, 90, 255));
+    const std::optional<wjs::scan::OwnedFrame> from_premultiplied =
+        wjs::app::frame_from_image(premultiplied);
+    REQUIRE(from_premultiplied.has_value());
+    REQUIRE(from_premultiplied->pixels.size() == 3);
+    CHECK(from_premultiplied->pixels[0] == 70);
+    CHECK(from_premultiplied->pixels[1] == 80);
+    CHECK(from_premultiplied->pixels[2] == 90);
+}
+
 TEST_CASE("a null image is not a frame", "[app][scan][camera]") {
     const QImage none;
     CHECK_FALSE(wjs::app::frame_from_image(none).has_value());
@@ -144,16 +184,72 @@ TEST_CASE("a camera source with no device says no_camera and hands over nothing"
     CHECK_FALSE(camera.source->capture());
     CHECK_FALSE(camera.source->takeFrame().has_value());
 
-    // A null preview is not a hand-over: the source asks the backend to forget
-    // one, and there was none.
+    // A null preview is not a hand-over: the backend is told, and counts none.
     camera.source->attachPreview(nullptr);
     CHECK(camera.fake->previews() == 0);
+    CHECK(camera.fake->preview() == nullptr);
+}
+
+TEST_CASE("the preview item is handed to the backend and taken back", "[app][scan][camera]") {
+    FakeCamera camera;
+    QObject item;
+
+    camera.source->attachPreview(&item);
+    CHECK(camera.fake->previews() == 1);
+    CHECK(camera.fake->preview() == &item);
+
+    camera.source->detachPreview();
+    CHECK(camera.fake->detaches() == 1);
+    CHECK(camera.fake->preview() == nullptr);
+}
+
+TEST_CASE("a source with no backend answers no camera and does nothing", "[app][scan][camera]") {
+    CameraSource source{std::unique_ptr<wjs::app::CameraBackend>{}};
+    QObject item;
+
+    CHECK_FALSE(source.available());
+    CHECK(source.devices().isEmpty());
+    CHECK(source.problem() == "no_camera");
+    CHECK(source.problemKind() == wjs::app::CameraProblem::no_camera);
+    CHECK_FALSE(source.running());
+    CHECK_FALSE(source.start());
+    CHECK_FALSE(source.capture());
+    CHECK_FALSE(source.takeFrame().has_value());
+    source.attachPreview(&item);
+    source.detachPreview();
+    source.stop();
+}
+
+TEST_CASE("a capture says so, and starting and stopping tell QML", "[app][scan][camera]") {
+    FakeCamera camera;
+    camera.fake->setAvailable(true);
+    camera.fake->setProblem(wjs::app::CameraProblem::none);
+    camera.fake->setFrame(small_frame());
+
+    int changed = 0;
+    int captured = 0;
+    QObject::connect(camera.source.get(), &CameraSource::changed, camera.source.get(),
+                     [&changed] { ++changed; });
+    QObject::connect(camera.source.get(), &CameraSource::captured, camera.source.get(),
+                     [&captured] { ++captured; });
+
+    REQUIRE(camera.source->start());
+    CHECK(changed == 1);
+    CHECK(captured == 0);
+
+    // A frame the model did not take is dropped by the next start: one frame at a
+    // time, and none carried over a restart.
+    REQUIRE(camera.source->capture());
+    CHECK(captured == 1);
+    camera.source->stop();
+    CHECK(changed == 2);
+    CHECK_FALSE(camera.source->takeFrame().has_value());
 }
 
 TEST_CASE("a refused camera reports permission and does not run", "[app][scan][camera]") {
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(QStringLiteral("permission"));
+    camera.fake->setProblem(wjs::app::CameraProblem::permission);
 
     CHECK(camera.source->available());
     CHECK(camera.source->devices().size() == 1);
@@ -166,7 +262,7 @@ TEST_CASE("a running camera hands its frame over once and a failure is reported"
           "[app][scan][camera]") {
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(QString());
+    camera.fake->setProblem(wjs::app::CameraProblem::none);
     camera.fake->setFrame(small_frame());
 
     int changed = 0;
@@ -187,7 +283,7 @@ TEST_CASE("a running camera hands its frame over once and a failure is reported"
     CHECK_FALSE(camera.source->takeFrame().has_value());
     CHECK_FALSE(camera.source->capture());
 
-    camera.fake->fail(QStringLiteral("failed"));
+    camera.fake->fail(wjs::app::CameraProblem::failed);
     CHECK_FALSE(camera.source->running());
     CHECK(camera.source->problem() == "failed");
     CHECK(changed > 0);
@@ -217,7 +313,7 @@ TEST_CASE("a frame from the camera source opens the check screen", "[app][scan][
     TestApplication application;
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(QString());
+    camera.fake->setProblem(wjs::app::CameraProblem::none);
     camera.fake->setFrame(wjs::app::test::synthetic_board_frame());
 
     ScanModel model;
@@ -227,6 +323,8 @@ TEST_CASE("a frame from the camera source opens the check screen", "[app][scan][
     REQUIRE(model.cameraCapturing());
 
     model.capture();
+    // The read is on the scanner's thread; the answer arrives through the loop.
+    REQUIRE(wjs::app::test::spin_until([&model] { return model.state() != "reading"; }));
     CHECK(model.state() == "check");
     CHECK(model.rows() == 4);
     CHECK(model.columns() == 4);
@@ -243,9 +341,12 @@ TEST_CASE("a camera that never delivers a frame returns the screen to ready",
     TestApplication application;
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(QString());
+    camera.fake->setProblem(wjs::app::CameraProblem::none);
 
     ScanModel model;
+    // Three looks, five milliseconds apart: the screen waits four seconds, which a
+    // case need not spend to know what happens when the wait is out.
+    model.setFramePatience(5, 3);
     model.setCameraSource(camera.source.get());
     model.open();
     REQUIRE(model.cameraAvailable());
@@ -253,11 +354,11 @@ TEST_CASE("a camera that never delivers a frame returns the screen to ready",
     model.capture();
     REQUIRE(model.state() == "reading");
 
-    // The model's patience, not the test's: the read problem is reported when
-    // the wait is over, and the screen is ready again with the camera on.
+    // The read problem is reported when the wait is over, and the screen is ready
+    // again with the camera on.
     QEventLoop loop;
     QObject::connect(&model, &ScanModel::readProblemChanged, &loop, &QEventLoop::quit);
-    QTimer::singleShot(8000, &loop, &QEventLoop::quit);
+    QTimer::singleShot(3000, &loop, &QEventLoop::quit);
     loop.exec();
 
     CHECK(model.state() == "ready");
@@ -269,7 +370,7 @@ TEST_CASE("a camera that never delivers a frame returns the screen to ready",
 TEST_CASE("a camera that fails while the ready screen waits is described", "[app][scan][camera]") {
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(QString());
+    camera.fake->setProblem(wjs::app::CameraProblem::none);
 
     ScanModel model;
     model.setCameraSource(camera.source.get());
@@ -280,11 +381,36 @@ TEST_CASE("a camera that fails while the ready screen waits is described", "[app
     QObject::connect(&model, &ScanModel::cameraChanged, &model,
                      [&camera_changes] { ++camera_changes; });
 
-    camera.fake->fail(QStringLiteral("failed"));
+    camera.fake->fail(wjs::app::CameraProblem::failed);
     CHECK_FALSE(model.cameraCapturing());
     CHECK_FALSE(model.cameraAvailable());
     CHECK(model.cameraProblem() == "failed");
     CHECK(camera_changes > 0);
+}
+
+TEST_CASE("a camera source destroyed while a capture waits returns the screen to ready",
+          "[app][scan][camera]") {
+    TestApplication application;
+    ScanModel model;
+    model.setFramePatience(5, 1000);
+    {
+        FakeCamera camera;
+        camera.fake->setAvailable(true);
+        camera.fake->setProblem(wjs::app::CameraProblem::none);
+        model.setCameraSource(camera.source.get());
+        model.open();
+        REQUIRE(model.cameraCapturing());
+        model.capture();
+        REQUIRE(model.state() == "reading");
+    }
+    // The poll was stopped with the camera that fed it: the screen is not left
+    // waiting on a source that is gone.
+    CHECK(model.state() == "ready");
+    QEventLoop loop;
+    QTimer::singleShot(50, &loop, &QEventLoop::quit);
+    loop.exec();
+    CHECK(model.state() == "ready");
+    CHECK(model.readProblem().isEmpty());
 }
 
 TEST_CASE("a camera source that is destroyed leaves the model with none", "[app][scan][camera]") {
@@ -292,7 +418,7 @@ TEST_CASE("a camera source that is destroyed leaves the model with none", "[app]
     {
         FakeCamera camera;
         camera.fake->setAvailable(true);
-        camera.fake->setProblem(QString());
+        camera.fake->setProblem(wjs::app::CameraProblem::none);
         model.setCameraSource(camera.source.get());
         model.open();
         REQUIRE(model.cameraAvailable());

@@ -47,7 +47,7 @@ public:
     void setSettings(const QVariantMap& settings);
 
     [[nodiscard]] int soundsPlayed() const;
-    [[nodiscard]] int utterances() const noexcept { return utterances_; }
+    [[nodiscard]] int utterances() const noexcept;
     [[nodiscard]] int hapticsRequested() const noexcept { return haptics_requested_; }
 
     // One cue from the screens or a model: "rattle", "tile", "tile-landed",
@@ -55,6 +55,11 @@ public:
     // one of those is ignored: the seam is not a place to be strict with a
     // child's game.
     Q_INVOKABLE void cue(const QString& kind, const QString& detail);
+
+    // The engines behind the cues, for a test or a tool to put its own output on
+    // (SoundEngine::setOutput, Speech::setOutput) so that nothing is heard.
+    [[nodiscard]] SoundEngine& soundEngine() noexcept { return sound_; }
+    [[nodiscard]] Speech& speech() noexcept { return speech_; }
 
 signals:
     void settingsChanged();
@@ -65,7 +70,6 @@ private:
     Speech speech_;
     QVariantMap settings_map_;
     wjs::FeedbackSettings settings_;
-    int utterances_ = 0;
     int haptics_requested_ = 0;
 };
 

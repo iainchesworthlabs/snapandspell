@@ -4,6 +4,7 @@
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
+#include <QQmlError>
 #include <QQuickWindow>
 #include <QStandardPaths>
 #include <QString>
@@ -16,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <expected>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -28,10 +30,12 @@
 #include "frame_profiler.hpp"
 #include "language_manager.hpp"
 #include "parent/parent_controller.hpp"
+#include "qt_text.hpp"
 #include "scan/assist_game.hpp"
 #include "scan/assist_game_factory.hpp"
 #include "solo/solo_game_factory.hpp"
 #include "solo/solo_game_setup.hpp"
+#include "startup_failure.hpp"
 #include "wjs/calendar.hpp"
 #include "wjs/platform/paths.hpp"
 #include "wjs/platform/window_chrome.hpp"
@@ -41,17 +45,6 @@
 #include "wjs/version.hpp"
 
 namespace {
-
-// A filesystem path from Qt text. Going through UTF-16 keeps it portable: the
-// standard converts to the native encoding.
-[[nodiscard]] std::filesystem::path to_path(const QString& text) {
-    return std::filesystem::path{text.toStdU16String()};
-}
-
-// Text from the library, which is UTF-8.
-[[nodiscard]] QString utf8_text(std::string_view value) {
-    return QString::fromUtf8(value.data(), static_cast<qsizetype>(value.size()));
-}
 
 // The value after `flag` in the arguments, if the program was started with one.
 [[nodiscard]] std::optional<QString> value_of(const QStringList& arguments, const QString& flag) {
@@ -94,6 +87,9 @@ constexpr int kProfilerWaitMs = 5000;
 // render: Quick 3D needs a display, and the offscreen platform plugin does not
 // give it one (docs/profiling.md, "The smoke mode").
 constexpr int kSmokeFrameTimeoutMs = 20000;
+// How many of Qt's QML warnings a failed load puts in the dialog: the first ones
+// are the cause, the rest follow from it.
+constexpr qsizetype kMaxQmlErrors = 5;
 // The seed a smoke run plays when none is given, so that a capture is the same
 // boards in the same order on every run.
 constexpr std::uint32_t kSmokeSeed = 7919;
@@ -120,23 +116,40 @@ constexpr std::uint32_t kSmokeSeed = 7919;
     return 0;
 }
 
+// Whether this run gives a profiler the moment it needs before the setup: a smoke
+// run always does, and any run does when it is started with `--wait-for-profiler`
+// or with WJS_WAIT_FOR_PROFILER set (to anything). Tracy is attached on demand and
+// takes about a second to find a program, so without the wait a normal launch
+// has finished app.startup and app.load_qml before a profiler could see them.
+[[nodiscard]] bool profiler_wait_asked(int argc, char* argv[]) {
+    if (qEnvironmentVariableIsSet("WJS_WAIT_FOR_PROFILER")) {
+        return true;
+    }
+    for (int i = 1; i < argc; ++i) {
+        if (std::string_view{argv[i]} == "--wait-for-profiler") {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Gives a profiler that was started before this program the moment it needs to
 // find the client (about a second, docs/profiling.md) before the setup, so that
 // app.startup, app.load_qml and the store's load are in the capture. The wait is
 // over as soon as one is connected and is over the deadline otherwise, so the
-// smoke works with no profiler too. Calling connected() starts Tracy's client,
-// and so its listener, if nothing else has.
+// run works with no profiler too. Calling connected() starts Tracy's client, and
+// so its listener, if nothing else has.
 void wait_for_profiler() {
     if constexpr (wjs::profiling::enabled) {
-        std::fputs("smoke: waiting up to 5 s for a profiler (Tracy build)\n", stdout);
+        std::fputs("waiting up to 5 s for a profiler (Tracy build)\n", stdout);
         std::fflush(stdout);
         const auto deadline =
             std::chrono::steady_clock::now() + std::chrono::milliseconds(kProfilerWaitMs);
         while (!wjs::profiling::connected() && std::chrono::steady_clock::now() < deadline) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        std::fputs(wjs::profiling::connected() ? "smoke: profiler connected\n"
-                                               : "smoke: no profiler connected; continuing\n",
+        std::fputs(wjs::profiling::connected() ? "profiler connected\n"
+                                               : "no profiler connected; continuing\n",
                    stdout);
         std::fflush(stdout);
     }
@@ -149,7 +162,7 @@ void wait_for_profiler() {
 [[nodiscard]] wjs::OpenResult open_store(const QStringList& arguments) {
     std::filesystem::path file;
     if (const auto given = value_of(arguments, QStringLiteral("--store"))) {
-        file = to_path(*given);
+        file = wjs::app::to_path(*given);
     } else {
         // Qt's per-user application data directory, which already exists for the
         // cache and follows the app's organisation name on every platform. The
@@ -158,7 +171,7 @@ void wait_for_profiler() {
         // to memory and the parent was told progress could not be saved.
         const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
         if (!base.isEmpty()) {
-            file = to_path(base) / std::string{wjs::store_file_name};
+            file = wjs::app::to_path(base) / std::string{wjs::store_file_name};
         } else if (const std::filesystem::path fallback = wjs::platform::user_data_directory();
                    !fallback.empty()) {
             file = wjs::default_store_path(fallback);
@@ -182,7 +195,7 @@ void wait_for_profiler() {
                                                           bool repeatable) {
     wjs::app::SoloGameOptions options;
     if (const auto directory = value_of(arguments, QStringLiteral("--phase-directory"))) {
-        options.phase_directory = to_path(*directory);
+        options.phase_directory = wjs::app::to_path(*directory);
     }
     if (options.phase_directory.empty()) {
         if (arguments.contains(QStringLiteral("--phase"))) {
@@ -192,7 +205,7 @@ void wait_for_profiler() {
         options.phase = phase->toStdString();
     }
     if (const auto dictionary = value_of(arguments, QStringLiteral("--dictionary"))) {
-        options.dictionary = to_path(*dictionary);
+        options.dictionary = wjs::app::to_path(*dictionary);
     } else {
         options.dictionary =
             wjs::platform::executable_path().parent_path() / "dictionaries" / "en.txt";
@@ -248,9 +261,10 @@ struct Startup {
     std::unique_ptr<wjs::app::SoloGameSetup> solo_setup;
 };
 
-// Opens the store and loads what the game is played from. Null when the game
-// cannot be made; the sentence is already on stderr.
-[[nodiscard]] std::unique_ptr<Startup> start(const QStringList& arguments, bool repeatable) {
+// Opens the store and loads what the game is played from. The sentence that says
+// why, when the game cannot be made.
+[[nodiscard]] std::expected<std::unique_ptr<Startup>, QString> start(const QStringList& arguments,
+                                                                     bool repeatable) {
     auto zone = wjs::profiling::zone<"app.startup">();
 
     auto made =
@@ -260,8 +274,7 @@ struct Startup {
     }
     auto setup = wjs::app::SoloGameSetup::open(made->options, made->opened.store);
     if (!setup) {
-        qCritical().noquote() << QString::fromStdString(setup.error());
-        return nullptr;
+        return std::unexpected(QString::fromStdString(setup.error()));
     }
     made->solo_setup = *std::move(setup);
     return made;
@@ -271,7 +284,7 @@ struct Startup {
 
 int main(int argc, char* argv[]) {
     const int smoke = smoke_frames(argc, argv);
-    if (smoke > 0) {
+    if (smoke > 0 || profiler_wait_asked(argc, argv)) {
         // Before the clock starts and before anything is loaded, so that a
         // capture has the start-up zones and no number contains the wait.
         wait_for_profiler();
@@ -291,12 +304,17 @@ int main(int argc, char* argv[]) {
     // CMakeLists.txt). Register them before the engine loads so every QML
     // `font.family` resolves to the face the design names rather than a
     // platform fallback.
-    for (const char* font : {":/fonts/Archivo-Regular.ttf", ":/fonts/Archivo-SemiBold.ttf",
-                             ":/fonts/Archivo-ExtraBold.ttf", ":/fonts/IBMPlexMono-Medium.ttf",
-                             ":/fonts/Andika-Regular.ttf", ":/fonts/Andika-Bold.ttf"}) {
-        const int id = QFontDatabase::addApplicationFont(QString::fromLatin1(font));
-        if (id < 0) {
-            qWarning() << "The bundled font" << font << "could not be loaded.";
+    {
+        // Six font files read and parsed before the first screen: a cost every
+        // launch pays, so it has a name in the profile.
+        auto zone = wjs::profiling::zone<"app.fonts">();
+        for (const char* font : {":/fonts/Archivo-Regular.ttf", ":/fonts/Archivo-SemiBold.ttf",
+                                 ":/fonts/Archivo-ExtraBold.ttf", ":/fonts/IBMPlexMono-Medium.ttf",
+                                 ":/fonts/Andika-Regular.ttf", ":/fonts/Andika-Bold.ttf"}) {
+            const int id = QFontDatabase::addApplicationFont(QString::fromLatin1(font));
+            if (id < 0) {
+                qWarning() << "The bundled font" << font << "could not be loaded.";
+            }
         }
     }
     const QStringList arguments = application.arguments();
@@ -304,11 +322,11 @@ int main(int argc, char* argv[]) {
     // Everything the engine points at is declared before it, which is gone first:
     // the store, which the game and the parent area share, then the game's word
     // list, dice and (given one) phases, and the parent area's controller.
-    std::unique_ptr<Startup> started = start(arguments, smoke > 0);
+    auto started = start(arguments, smoke > 0);
     if (!started) {
-        return 2;
+        return wjs::app::fail_startup(wjs::app::ExitStatus::setup_failed, started.error());
     }
-    Startup& setup = *started;
+    Startup& setup = **started;
     wjs::Store& store = setup.opened.store;
     if (!setup.options.phase_directory.empty() && !setup.solo_setup->reviewed()) {
         qWarning() << "The phase files are test data, not a reviewed phase; they are for a"
@@ -342,7 +360,7 @@ int main(int argc, char* argv[]) {
     // translated and mirrored; a change in the parent area goes through the same
     // object, and the engine's bindings follow `languageChanged`.
     wjs::app::LanguageManager language;
-    language.apply(utf8_text(store.settings().language));
+    language.apply(wjs::app::to_qstring(store.settings().language));
 
     // The feedback engines and the device's motion, made before the engine that
     // points at them and gone after it: Main.qml binds the parent's settings to
@@ -351,11 +369,33 @@ int main(int argc, char* argv[]) {
     // Multimedia, Sensors or TextToSpeech has their silent variants behind
     // these same objects.
     wjs::app::FeedbackEngine feedback;
+    if (smoke > 0) {
+        // A smoke run measures frames, and plays nothing: a sound is noise in the
+        // numbers, and on Windows Qt Multimedia's audio-device thread sends an event
+        // to an object of the main thread, which Qt's debug libraries assert on
+        // ("Cannot send events to objects owned by a different thread") about one
+        // run in three, so that a Debug smoke run on a machine with a sound device
+        // aborts. The cues are still counted and reported; they reach no speaker
+        // and no voice.
+        feedback.soundEngine().setOutput([](const QString&, double) {});
+        feedback.speech().setOutput([](const QString&, double) {});
+    }
     wjs::app::MotionSource motion;
 
     QQmlApplicationEngine engine;
     QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
                      &QQmlEngine::retranslate);
+    // Qt reports a QML file that will not load as warnings, which are all the
+    // person is told; keep the first few to say in the dialog.
+    QStringList qml_errors;
+    QObject::connect(&engine, &QQmlApplicationEngine::warnings, &engine,
+                     [&qml_errors](const QList<QQmlError>& errors) {
+                         for (const QQmlError& error : errors) {
+                             if (qml_errors.size() < kMaxQmlErrors) {
+                                 qml_errors.append(error.toString());
+                             }
+                         }
+                     });
     {
         auto zone = wjs::profiling::zone<"app.load_qml">();
         engine.setInitialProperties({
@@ -370,13 +410,15 @@ int main(int argc, char* argv[]) {
         engine.loadFromModule("WordJewelsSolver", "Main");
     }
     if (engine.rootObjects().isEmpty()) {
-        return 1;
+        return wjs::app::fail_startup(
+            wjs::app::ExitStatus::window_failed,
+            QStringLiteral("The window could not be loaded.\n\n") + qml_errors.join(u'\n'));
     }
     auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
     if (window == nullptr) {
-        qCritical() << "The QML root object is not a window; the frame clock has nothing to"
-                       " attach to.";
-        return 1;
+        return wjs::app::fail_startup(wjs::app::ExitStatus::window_failed,
+                                      QStringLiteral("The QML root object is not a window; the"
+                                                     " frame clock has nothing to attach to."));
     }
     wjs::platform::set_window_chrome(
         reinterpret_cast<void*>(window->winId()),
@@ -406,7 +448,7 @@ int main(int argc, char* argv[]) {
                                   << "s. Qt Quick 3D needs a display; the offscreen platform"
                                      " plugin does not provide one (docs/profiling.md, \"The"
                                      " smoke mode\").";
-            application.exit(3);
+            application.exit(wjs::app::exit_code(wjs::app::ExitStatus::no_frame));
         });
     }
     return application.exec();

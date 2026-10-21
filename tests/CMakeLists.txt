@@ -139,6 +139,7 @@ catch_discover_tests(wjs_perf_tests DISCOVERY_MODE PRE_TEST ADD_TAGS_AS_LABELS
 if(WJS_BUILD_APP)
     add_executable(wjs_app_tests
         app/assist_game_test.cpp
+        app/assist_model_test.cpp
         app/board_layout_test.cpp
         app/camera_test.cpp
         app/fake_solo_game_test.cpp
@@ -151,7 +152,8 @@ if(WJS_BUILD_APP)
         app/real_solo_game_test.cpp
         app/scan_model_test.cpp
         app/solo_model_test.cpp
-        app/solver_model_test.cpp
+        app/qt_text_test.cpp
+        app/startup_failure_test.cpp
         app/system_colour_scheme_test.cpp
         app/system_motion_test.cpp
         "${PROJECT_SOURCE_DIR}/src/app/camera/camera_source.cpp"
@@ -170,7 +172,7 @@ if(WJS_BUILD_APP)
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_setup.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/solo/solo_model.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/solver_model.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/startup_failure.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp"
         "${PROJECT_SOURCE_DIR}/src/app/system_motion.cpp")
     set_target_properties(wjs_app_tests PROPERTIES AUTOMOC ON)
@@ -209,7 +211,9 @@ if(WJS_BUILD_APP)
     # the tests that hand in a fake backend do not. A kit without Qt Multimedia
     # builds the none backend and this block is skipped.
     if(WJS_QT_HAS_MULTIMEDIA)
-        target_sources(wjs_app_tests PRIVATE app/camera_video_frame_test.cpp)
+        target_sources(wjs_app_tests PRIVATE
+            app/camera_backend_test.cpp
+            app/camera_video_frame_test.cpp)
         target_link_libraries(wjs_app_tests PRIVATE Qt6::Multimedia)
     endif()
     wjs_deploy_sanitizer_runtime(wjs_app_tests)
@@ -221,9 +225,30 @@ if(WJS_BUILD_APP)
     # library and with Qt. Named `integration.<sentence>`; the tier is selected
     # by `ctest -R "^integration\\."` because Catch2's tags are this suite's
     # CTest labels (`-L camera`, `-L app`, `-L parent`, ...).
+    #
+    # A case that makes a GUI application draws on the offscreen platform, chosen
+    # here, in the entry's environment, and not from inside the process: a case
+    # run by hand needs the same (docs/testing.md). The fonts directory is the one
+    # the platform's fragment names, for the cases that ask the font database. The
+    # discovery passes a property's value on as one list element, so the platform's
+    # NAME=value entry goes in the second property, the environment modification
+    # (NAME=set:value), and not in a ';'-separated list of the first.
+    list(LENGTH WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT _wjs_headless_entries)
+    if(_wjs_headless_entries GREATER 1)
+        message(FATAL_ERROR
+            "WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT has ${_wjs_headless_entries} entries; the "
+            "app tests' discovery takes one. Extend tests/CMakeLists.txt before adding a second.")
+    endif()
+    set(_wjs_app_test_properties ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    if(_wjs_headless_entries EQUAL 1)
+        string(REGEX REPLACE "^([^=]+)=(.*)$" "\\1=set:\\2" _wjs_headless_modification
+            "${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}")
+        list(APPEND _wjs_app_test_properties ENVIRONMENT_MODIFICATION "${_wjs_headless_modification}")
+    endif()
     catch_discover_tests(wjs_app_tests
         TEST_PREFIX "integration."
-        ADD_TAGS_AS_LABELS)
+        ADD_TAGS_AS_LABELS
+        PROPERTIES ${_wjs_app_test_properties})
 
     # The 3D board scene's script (src/app/qml/scene/ShakeScript.js) in Qt's own
     # JavaScript engine, so what is tested is the file the scene plays and not a

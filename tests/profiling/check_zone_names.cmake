@@ -155,8 +155,11 @@ endforeach()
 # is. A name is added here with the code it times, and removed only with a
 # reason in the commit that says where the work went.
 set(_required_zones
+    app.fonts
     app.load_qml
     app.startup
+    assist.confirm
+    assist.solve
     board.deal
     board.deal_playable
     board.parse
@@ -173,11 +176,13 @@ set(_required_zones
     data.load_store
     data.save_store
     dice.load_sets
+    feedback.play
     feedback.plan
     gate.refresh
     input.submit
     input.trace
     motion.push
+    parent.edit
     path.validate
     phonics.bind
     phonics.sound_it_out
@@ -194,12 +199,16 @@ set(_required_zones
     session.finish
     settings.normalize
     shake.detect
+    solo.again
     solo.blocks
+    solo.help
     solo.history
     solo.path
     solo.submit
-    solver.model
+    solo.words_with_start
     solver.solve
+    sound.play
+    speech.say
     store.parse
     store.serialize
     store.session_record
@@ -232,6 +241,19 @@ endforeach()
 foreach(_name IN LISTS _required_qml)
     if(NOT _name IN_LIST _qml_names)
         _fail("the required QML scope '${_name}' is gone")
+    endif()
+endforeach()
+# The frame sets and the named threads a trace is read by: the window's frames and
+# the camera's, and the threads the work runs on (the scanner's read has one of
+# its own, so it is not mistaken for the window's).
+foreach(_name IN ITEMS Capture UI)
+    if(NOT _name IN_LIST _frame_names)
+        _fail("the required frame set '${_name}' is gone")
+    endif()
+endforeach()
+foreach(_name IN ITEMS main render scan)
+    if(NOT _name IN_LIST _thread_names)
+        _fail("the required thread name '${_name}' is gone")
     endif()
 endforeach()
 

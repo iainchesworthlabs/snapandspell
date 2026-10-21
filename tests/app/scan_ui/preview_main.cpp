@@ -337,6 +337,11 @@ int run_camera_check(const QString& out) {
 
     // --- Capture: the frame arrives, is read, and the check screen opens -----------
     scan.capture();
+    // The read runs on the scanner's own thread: the window keeps drawing while it
+    // does, and the answer comes back through the event loop.
+    for (int i = 0; i < 400 && scan.state() == "reading"; ++i) {
+        pump(1);
+    }
     pump();
     check(scan.state() == "check", "Capture opens the check screen");
     check(scan.rows() == 4 && scan.columns() == 4, "the synthetic board is the 4x4 it is");
