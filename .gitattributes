@@ -27,3 +27,6 @@ CMakeLists.txt text
 
 # Git hooks are run by sh: LF only, whatever the checkout platform.
 tools/hooks/* text eol=lf
+
+# The vcpkg overlay ports are patched with git apply, which wants the bytes the patch was made from.
+cmake/vcpkg-ports/** -text

@@ -43,6 +43,19 @@ the code. That one option does everything:
   built for the *host* so that a cross-build does not try to build them for the
   device.
 
+**Tracy is built without ISA extensions.** Tracy's own CMake compiles for the machine
+it is built on (`-march=native` on x86, `-mcpu=native` on arm). CI shares one vcpkg
+binary cache per triplet between jobs that run on different hosted machines, so a
+`tracy-capture` built on one runner and restored on another with an older CPU died
+with an illegal instruction (SIGILL), and `profiling.trace_cli` failed at random.
+The fork's port does not pass `NO_ISA_EXTENSIONS`, so this repository carries the
+port as an overlay (`cmake/vcpkg-ports/tracy`, named in `vcpkg-configuration.json`)
+that adds `-DNO_ISA_EXTENSIONS=ON`; `profiling.tracy_portable` holds that, and
+`profiling.trace_cli`/`profiling.trace_app` say plainly, as a build failure and not
+a missing trace, when a capture tool will not run on the machine. When the fork's
+port passes the option itself the overlay, its check and its `.gitattributes` line
+go.
+
 On Windows the client is a DLL: vcpkg puts `TracyClient.dll` beside each program
 it was linked into. **On Linux** vcpkg builds the tools from `dbus` upward
 (`libxcrypt`, `libsystemd`), which needs `autoconf`, `autoconf-archive`,
