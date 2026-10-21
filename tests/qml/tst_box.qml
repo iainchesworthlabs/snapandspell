@@ -19,6 +19,21 @@ TestCase {
     Component { id: screenComponent; SoloScreen { } }
     Component { id: boxComponent; SoloBox { } }
     Component { id: layoutComponent; SoloLayout { } }
+    Component { id: historyComponent; HistorySheet { } }
+    Component { id: jewelBoxComponent; JewelBox { } }
+    // A game that offers every size, for the segmented row of four.
+    Component {
+        id: fourSizesComponent
+        QtObject {
+            property var sizes: [3, 4, 5, 6]
+            property int boardSize: 3
+            property var history: []
+            function chooseSize(size) {
+                boardSize = size
+            }
+        }
+    }
+    Component { id: ruleStubComponent; QtObject { property int largestOffered: 6 } }
 
     // The device's motion without hardware: a MotionSource-shaped object the
     // screen can start and stop, whose sample and shake signals a suite emits.
@@ -34,6 +49,7 @@ TestCase {
     }
 
     SignalSpy { id: homeSpy; signalName: "homeRequested" }
+    SignalSpy { id: cueSpy; target: Feedback; signalName: "cue" }
 
     function init() {
         // A QML warning in a test function fails it, as one outside does the
@@ -42,11 +58,13 @@ TestCase {
         fixture.reset()
         Theme.rightToLeft = false
         Theme.reducedMotion = false
+        Theme.textScale = 1.0
     }
 
     function cleanup() {
         Theme.rightToLeft = false
         Theme.reducedMotion = false
+        Theme.textScale = 1.0
     }
 
     function allItems(root, found) {
@@ -61,7 +79,8 @@ TestCase {
 
     function buttonNamed(root, name) {
         for (const item of allItems(root)) {
-            if (item.accessibleName === name) {
+            // A button's name is its accessibleName, or its label (an ActionBar's).
+            if (item.accessibleName === name || item.label === name) {
                 return item
             }
         }
@@ -92,9 +111,64 @@ TestCase {
         return box
     }
 
+    // The board-size options: the radio buttons of the box's segmented row.
     function sizeButtons(box) {
-        return allItems(box).filter(item => typeof item.boardSize === "number"
-                                             && item.checkable === true)
+        return allItems(box).filter(item => item.radio === true && item.checkable === true)
+    }
+
+    // The tiles, in order, that spell a word on the board in play.
+    function pathFor(word) {
+        const tiles = soloModel.tiles
+        const columns = soloModel.columns
+        const rows = soloModel.rows
+        const upper = word.toUpperCase()
+        function walk(at, used, depth) {
+            if (tiles[at] !== upper[depth]) {
+                return null
+            }
+            if (depth === upper.length - 1) {
+                return used.concat([at])
+            }
+            for (let dr = -1; dr <= 1; ++dr) {
+                for (let dc = -1; dc <= 1; ++dc) {
+                    const r = Math.floor(at / columns) + dr
+                    const c = at % columns + dc
+                    if ((dr === 0 && dc === 0) || r < 0 || r >= rows || c < 0 || c >= columns) {
+                        continue
+                    }
+                    const next = r * columns + c
+                    if (used.indexOf(next) >= 0) {
+                        continue
+                    }
+                    const found = walk(next, used.concat([at]), depth + 1)
+                    if (found !== null) {
+                        return found
+                    }
+                }
+            }
+            return null
+        }
+        for (let first = 0; first < tiles.length; ++first) {
+            const found = walk(first, [], 0)
+            if (found !== null) {
+                return found
+            }
+        }
+        return null
+    }
+
+    // The fake game's five words, found one after another: the last clears it.
+    function clearTheBoard() {
+        soloModel.shake()
+        tryCompare(soloModel, "state", "playing")
+        for (const word of ["sit", "sat", "tap", "pat", "nip"]) {
+            for (const index of pathFor(word)) {
+                soloModel.tapTile(index)
+            }
+            soloModel.done()
+            soloModel.wordShown()
+        }
+        compare(soloModel.state, "cleared")
     }
 
     // --- the size choice ----------------------------------------------------
@@ -162,7 +236,7 @@ TestCase {
         verify(wideShake !== null)
         compare(wideShake.size, "primary")
         compare(wideShake.height, Theme.targetPrimary)
-        compare(wideShake.width, wide.width - 2 * Theme.space6)
+        compare(wideShake.width, wide.width - 2 * Theme.space4)
 
         const tall = boxFor(400, 420, false)
         const tallShake = buttonNamed(tall, SoloWording.shake)
@@ -311,6 +385,10 @@ TestCase {
         compare(soloModel.tiles, tiles)
     }
 
+    function summaryOf(screen) {
+        return allItems(screen).find(item => item.dismissOnScrim === false)
+    }
+
     function test_theFinishSummaryOffersTheWayOn() {
         // Finish board shows the summary: the reward, the words, and Play
         // again as the first offer, which shakes a new board.
@@ -328,20 +406,204 @@ TestCase {
 
         const again = buttonNamed(screen, SoloWording.playAgain)
         verify(again !== null)
-        const home = buttonNamed(screen, qsTr("Home"))
+        const home = buttonNamed(screen, SoloWording.home)
         verify(home !== null)
+        const sheet = summaryOf(screen)
+        verify(sheet !== null)
+        compare(sheet.open, true)
 
-        // The card takes the focus and keeps it: Play again holds it on
-        // arrival, and Tab walks to Home and back without leaving the card.
-        verify(again.activeFocus)
+        // The sheet takes the focus and keeps it: Play again holds it on arrival,
+        // Tab walks to Home, and on round the sheet without leaving it.
+        tryVerify(() => again.activeFocus)
         keyClick(Qt.Key_Tab)
         verify(home.activeFocus)
         keyClick(Qt.Key_Tab)
-        verify(again.activeFocus)
+        tryVerify(() => sheet.descendantOfSheet(Window.activeFocusItem))
 
+        again.forceActiveFocus()
         mouseClick(again, again.width / 2, again.height / 2)
         compare(screen.finishSummary, false)
         tryCompare(soloModel, "state", "playing")
+    }
+
+    function test_theSummaryIsTheSharedSheet() {
+        // One scrim rule, one radius, one size cap: the summary is a kit Sheet over
+        // the whole window (the bar too), with a title, and Escape closes it.
+        const screen = soloScreen()
+        soloModel.shake()
+        tryCompare(soloModel, "state", "playing")
+        screen.finishBoard()
+        const sheet = summaryOf(screen)
+        verify(sheet !== null)
+        compare(sheet.width, screen.width)
+        compare(sheet.height, screen.height)
+        compare(sheet.title, SoloWording.finishTitle)
+        compare(sheet.maxWidth, Theme.modalMax)
+        const panel = allItems(sheet).find(item => item.radius === Theme.radiusLarge
+                                                   && item.color === Theme.card)
+        verify(panel !== null)
+        verify(panel.width <= Theme.modalMax)
+        verify(panel.height <= Theme.modalMax)
+
+        // The two ways on are the same size.
+        const again = buttonNamed(screen, SoloWording.playAgain)
+        const home = buttonNamed(screen, SoloWording.home)
+        compare(again.height, home.height)
+        compare(again.width, home.width)
+
+        // Escape puts the lid back on, as Close does.
+        tryVerify(() => sheet.descendantOfSheet(Window.activeFocusItem))
+        keyClick(Qt.Key_Escape)
+        compare(screen.finishSummary, false)
+        tryCompare(soloModel, "state", "box")
+    }
+
+    function test_aClearedBoardShowsTheSummaryAndStaysOnIt() {
+        // The cleared board is not timed out to a resting screen: the summary is
+        // the end of the board, and it waits for a choice (docs/design/game.md's
+        // resting screen was never built; the summary replaced it).
+        const screen = soloScreen()
+        clearTheBoard()
+        compare(screen.summaryShown, true)
+        const sheet = summaryOf(screen)
+        compare(sheet.open, true)
+        compare(sheet.title, qsTr("You found all %1 words!").arg(5))
+
+        wait(Theme.clearedHold + 500)
+        compare(soloModel.state, "cleared")
+        compare(sheet.open, true)
+
+        const again = buttonNamed(screen, SoloWording.playAgain)
+        mouseClick(again, again.width / 2, again.height / 2)
+        // Play again from a cleared board goes through resting to the box, in one
+        // step: a new game is waiting with its lid on.
+        tryCompare(soloModel, "state", "box")
+        compare(screen.summaryShown, false)
+    }
+
+    function test_aClearedBoardPutAwayIsShownAsTheSummaryToo() {
+        // A game brought back from the store can open on "resting": the screen
+        // shows that board under the same summary, never a blank.
+        const screen = soloScreen()
+        clearTheBoard()
+        soloModel.celebrated()
+        compare(soloModel.state, "resting")
+        compare(screen.summaryShown, true)
+        compare(screen.boardShown, true)
+        const sheet = summaryOf(screen)
+        compare(sheet.open, true)
+
+        keyClick(Qt.Key_Escape)
+        tryCompare(soloModel, "state", "box")
+    }
+
+    // --- the box, as the review found it ------------------------------------
+    function test_fourSizesAreOneRowOfSixtyFourDpTargets() {
+        // 900 x 620: the panel is 300 dp wide. Four sizes fit one row; 6 x 6 does
+        // not wrap alone onto a second.
+        const game = createTemporaryObject(fourSizesComponent, testCase)
+        const rule = createTemporaryObject(ruleStubComponent, testCase)
+        const box = createTemporaryObject(boxComponent, testCase,
+                                          { width: 300, height: 548, wide: true,
+                                            solo: game, layoutRule: rule })
+        verify(box !== null)
+        wait(50)
+        const buttons = sizeButtons(box)
+        compare(buttons.length, 4)
+        for (const button of buttons) {
+            verify(button.height >= Theme.targetChild)
+            verify(button.width >= Theme.choiceMin - 0.5)
+            compare(button.mapToItem(box, 0, 0).y, buttons[0].mapToItem(box, 0, 0).y)
+            verify(button.mapToItem(box, 0, 0).x + button.width <= box.width)
+        }
+        mouseClick(buttons[3], buttons[3].width / 2, buttons[3].height / 2)
+        compare(game.boardSize, 6)
+        compare(buttons[3].checked, true)
+        // Chosen by a check mark and a fill as well as a colour: the control says
+        // which, in words, to assistive technology.
+        verify(buttons[3].accessibleName.indexOf("6") >= 0)
+    }
+
+    function test_shakeIsAtTheFootAndTheHowItWorksListIsRealItems() {
+        const box = boxFor(300, 548, true)
+        const shake = buttonNamed(box, SoloWording.shake)
+        verify(shake.mapToItem(box, 0, 0).y + shake.height > box.height - 2 * Theme.space6 - Theme.space4)
+        const steps = allItems(box).filter(item => item.objectName === "howItem")
+        compare(steps.length, 3)
+        verify(findChild(box, "howList") !== null)
+        // Each step is an item with a number of its own, not spaces in a sentence.
+        for (const step of steps) {
+            verify(allItems(step).some(item => item.text === String(steps.indexOf(step) + 1)))
+        }
+    }
+
+    function test_theShakePanelStaysWhileTheBoxShakes() {
+        const screen = soloScreen()
+        const panel = allItems(screen).find(item => item.busy !== undefined && item.layoutRule !== undefined)
+        verify(panel !== null)
+        compare(panel.busy, false)
+        soloModel.shake()
+        compare(soloModel.state, "shaking")
+        compare(panel.busy, true)
+        // Not blank paper: the panel is there, with its button saying so.
+        verify(panel.visible)
+        verify(buttonNamed(panel, SoloWording.shaking) !== null)
+        compare(buttonNamed(panel, SoloWording.shaking).enabled, false)
+    }
+
+    function test_theLidNeverCoversTheCompartments() {
+        // The lid stands over the tray's rim, not over a row of the box: every
+        // size shows all its rows (a 6 x 6 read as five).
+        for (const side of [3, 4, 5, 6]) {
+            for (const width of [360, 560]) {
+                const art = createTemporaryObject(jewelBoxComponent, testCase,
+                                                  { width: width, height: width * 0.8,
+                                                    closed: true, showDice: false, boardSize: side })
+                verify(art !== null)
+                // The lowest the lid reaches below the tray's top edge, counting its
+                // tilt, is above the first compartment.
+                const tilt = Math.abs(Math.sin(art.lidTilt * Math.PI / 180)) * art.trayWidth / 2
+                verify(art.lidOverlap + tilt <= art.gridTop,
+                       side + " x " + side + " at " + width + ": the lid reaches "
+                       + (art.lidOverlap + tilt) + " dp into the tray, the first row is at " + art.gridTop)
+                art.destroy()
+            }
+        }
+    }
+
+    // --- the boards played ----------------------------------------------------
+    function test_theBoardsSheetHasATitleAndAWordedEmptyState() {
+        const game = createTemporaryObject(fourSizesComponent, testCase)
+        const sheet = createTemporaryObject(historyComponent, testCase,
+                                            { width: 900, height: 620, solo: game, open: true })
+        verify(sheet !== null)
+        compare(sheet.title, SoloWording.earlierBoards)
+        // No boards: a title and a line, not a picture of nothing.
+        const texts = allItems(sheet).filter(item => item.visible === true
+                                                     && typeof item.text === "string")
+                                     .map(item => item.text)
+        verify(texts.indexOf(SoloWording.earlierBoards) >= 0)
+        verify(texts.indexOf(SoloWording.noBoardsTitle) >= 0)
+        verify(texts.indexOf(SoloWording.noBoardsText) >= 0)
+        const panel = allItems(sheet).find(item => item.radius === Theme.radiusLarge
+                                                   && item.color === Theme.card)
+        verify(panel !== null)
+
+        keyClick(Qt.Key_Escape)
+        compare(sheet.open, false)
+    }
+
+    function test_aBoardInTheSheetSaysItsSizeAndItsWords() {
+        const game = createTemporaryObject(fourSizesComponent, testCase)
+        game.history = [{ rows: 3, columns: 3, tiles: ["C", "A", "T", "S", "E", "R", "P", "I", "N"],
+                          found: [{ word: "cat", tier: "spark" }, { word: "sat", tier: "spark" }] }]
+        const sheet = createTemporaryObject(historyComponent, testCase,
+                                            { width: 900, height: 620, solo: game, open: true })
+        const texts = allItems(sheet).filter(item => item.visible === true
+                                                     && typeof item.text === "string")
+                                     .map(item => item.text)
+        verify(texts.indexOf(SoloWording.boardCaption(3, 2)) >= 0)
+        verify(texts.indexOf(SoloWording.noBoardsTitle) < 0)
     }
 
     function test_theFlatBoardsLineFollowsThePathAndTheShownWord() {

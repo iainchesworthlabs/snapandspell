@@ -861,17 +861,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+48"/>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+59"/>
         <source>Tap the last die again, or press Done</source>
         <translation>צאַפּן ווידער אויף די לעצטע מאָל אָדער דריקן געטאן</translation>
     </message>
     <message>
-        <location line="+55"/>
-        <source>Words I found</source>
-        <translation>ווערטער וואָס איך האָב געפֿונען</translation>
-    </message>
-    <message>
-        <location line="+12"/>
+        <location line="+107"/>
         <source>1 word</source>
         <translation>1 וואָרט</translation>
     </message>
@@ -881,38 +876,27 @@
         <translation>%1 ווערטער</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+5"/>
         <source>%1 points</source>
         <translation>%1 points</translation>
     </message>
     <message>
-        <location line="+101"/>
+        <location line="+102"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+42"/>
         <source>Your words will land here.</source>
         <translation>דיין ווערטער וועט לאַנד דאָ.</translation>
     </message>
     <message>
-        <location line="+25"/>
-        <source>Need a start?</source>
-        <translation>דאַרפֿן אַ אָנהייב?</translation>
-    </message>
-    <message>
-        <location line="+108"/>
+        <location line="+112"/>
         <source>Clear</source>
         <translation>אויסמעקן</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Clear the word</source>
-        <translation>מעק דאָס וואָרט</translation>
-    </message>
-    <message>
-        <location line="+12"/>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Done</source>
         <translation>פֿאַרטיק</translation>
     </message>
@@ -1148,59 +1132,15 @@
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloBox.qml" line="+113"/>
-        <source>Choose a board</source>
-        <translation>קלייַבן אַ ברעט</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
-        <translation>3 × 3 איז אַ גוט אָנהייב. גרעסערע באָרדז האַלטן מער ווערטער.</translation>
-    </message>
-    <message>
-        <location line="+47"/>
-        <source>How it works</source>
-        <translation>ווי עס אַרבעט</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>1   Shake the box.</source>
-        <translation>1 שאָקלען די קעסטל.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>2   Find a word.</source>
-        <translation>2 געפֿינען אַ וואָרט.</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>3   Collect the jewels.</source>
-        <translation>3 קלייַבן די דזשולז.</translation>
-    </message>
-</context>
-<context>
-    <name>SoloResting</name>
-    <message>
-        <location filename="../src/app/qml/solo/SoloResting.qml" line="+46"/>
-        <source>Time for a rest.</source>
-        <translation>צייט פֿאַר אַ מנוחה.</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>You did it. The words are safe in your collection.</source>
-        <translation>איר האט עס. די ווערטער זענען זיכער אין דיין זאַמלונג.</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <location line="+1"/>
-        <source>Play again</source>
-        <translation>שפּילן נאָכאַמאָל</translation>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+124"/>
+        <source>%1. %2</source>
+        <translation>%1. %2</translation>
     </message>
 </context>
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+238"/>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+250"/>
         <source>Solo Play</source>
         <translation>סאָלאָ שפּיל</translation>
     </message>
@@ -1210,7 +1150,7 @@
         <translation>Board finished</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>All words found</source>
         <translation>אַלע ווערטער געפונען</translation>
     </message>
@@ -1220,44 +1160,27 @@
         <translation>געפֿינען אַ וואָרט</translation>
     </message>
     <message>
-        <location line="+82"/>
-        <source>Shaking the box…</source>
-        <translation>מען שאָקלט די שוחט…</translation>
-    </message>
-    <message>
-        <location line="+194"/>
+        <location line="+236"/>
         <source>You found all %1 words!</source>
         <translation>איר האָט געפֿונען אַלע %1 ווערטער!</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+50"/>
         <source>Look at the jewels you collected.</source>
         <translation>קוק בייַ די דזשולז איר געזאמלט.</translation>
     </message>
     <message>
-        <location line="+151"/>
-        <location line="+1"/>
-        <source>Home</source>
-        <translation>היים</translation>
-    </message>
-    <message>
-        <location line="-26"/>
-        <location line="+1"/>
-        <source>Play again</source>
-        <translation>שפּילן נאָכאַמאָל</translation>
-    </message>
-    <message>
-        <location line="-174"/>
+        <location line="-51"/>
         <source>You found the word!</source>
         <translation>You found the word!</translation>
     </message>
     <message>
-        <location line="+140"/>
+        <location line="+137"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+168"/>
+        <location line="+122"/>
         <source>You found this one already.</source>
         <translation>You found this one already.</translation>
     </message>
@@ -1324,6 +1247,44 @@
     </message>
     <message>
         <location line="+4"/>
+        <source>Choose a board</source>
+        <extracomment>The box panel&apos;s title over the row of board sizes.</extracomment>
+        <translation>קלייַבן אַ ברעט</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
+        <translation>3 × 3 איז אַ גוט אָנהייב. גרעסערע באָרדז האַלטן מער ווערטער.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>How it works</source>
+        <extracomment>The box panel&apos;s card of three steps.</extracomment>
+        <translation>ווי עס אַרבעט</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shake the box.</source>
+        <translation>שאָקל דאָס קעסטל.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Find a word.</source>
+        <translation>געפֿין אַ וואָרט.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Collect the jewels.</source>
+        <translation>זאַמל די אבנים טובות.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Shaking the box…</source>
+        <extracomment>The line under the box while it shakes.</extracomment>
+        <translation>מען שאָקלט די שוחט…</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Words I found</source>
         <translation>ווערטער וואָס איך האָב געפֿונען</translation>
     </message>
@@ -1350,9 +1311,36 @@
         <translation>פֿאַרמאַכן</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+2"/>
+        <source>No boards yet</source>
+        <extracomment>The history sheet&apos;s empty state: nothing has been played yet.</extracomment>
+        <translation>נאָך קיין ברעטער ניטאָ</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Boards you play will be kept here.</source>
+        <translation>ברעטער וואָס דו שפּילסט ועלן אויפֿגעהייט ווערן דאָ.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 × %1, 1 word</source>
+        <extracomment>A board in the history sheet: its size and how many words were found.</extracomment>
+        <translation>%1 × %1, איין וואָרט</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 × %1, %2 words</source>
+        <translation>%1 × %1, %2 ווערטער</translation>
+    </message>
+    <message>
+        <location line="+4"/>
         <source>Play again</source>
         <translation>שפּילן נאָכאַמאָל</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Home</source>
+        <translation>היים</translation>
     </message>
     <message>
         <location line="+3"/>

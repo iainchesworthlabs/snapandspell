@@ -861,17 +861,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+48"/>
+        <location filename="../src/app/qml/solo/PlayingPanel.qml" line="+59"/>
         <source>Tap the last die again, or press Done</source>
         <translation>最後のサイコロをもう一度タップするか、「完了」を押します</translation>
     </message>
     <message>
-        <location line="+55"/>
-        <source>Words I found</source>
-        <translation>みつけたことば</translation>
-    </message>
-    <message>
-        <location line="+12"/>
+        <location line="+107"/>
         <source>1 word</source>
         <translation>1単語</translation>
     </message>
@@ -881,38 +876,27 @@
         <translation>%1 単語</translation>
     </message>
     <message>
-        <location line="+7"/>
+        <location line="+5"/>
         <source>%1 points</source>
         <translation>%1 points</translation>
     </message>
     <message>
-        <location line="+101"/>
+        <location line="+102"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+42"/>
         <source>Your words will land here.</source>
         <translation>あなたの言葉がここに届きます。</translation>
     </message>
     <message>
-        <location line="+25"/>
-        <source>Need a start?</source>
-        <translation>始める必要がありますか?</translation>
-    </message>
-    <message>
-        <location line="+108"/>
+        <location line="+112"/>
         <source>Clear</source>
         <translation>けす</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>Clear the word</source>
-        <translation>単語を消す</translation>
-    </message>
-    <message>
-        <location line="+12"/>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>Done</source>
         <translation>できた</translation>
     </message>
@@ -1148,59 +1132,15 @@
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloBox.qml" line="+113"/>
-        <source>Choose a board</source>
-        <translation>ボードを選択してください</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
-        <translation>3×3は良いスタートです。ボードが大きいほど、より多くの単語を保持できます。</translation>
-    </message>
-    <message>
-        <location line="+47"/>
-        <source>How it works</source>
-        <translation>仕組み</translation>
-    </message>
-    <message>
-        <location line="+7"/>
-        <source>1   Shake the box.</source>
-        <translation>1 箱を振ります。</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>2   Find a word.</source>
-        <translation>2 単語を検索します。</translation>
-    </message>
-    <message>
-        <location line="+6"/>
-        <source>3   Collect the jewels.</source>
-        <translation>3 宝石を集めます。</translation>
-    </message>
-</context>
-<context>
-    <name>SoloResting</name>
-    <message>
-        <location filename="../src/app/qml/solo/SoloResting.qml" line="+46"/>
-        <source>Time for a rest.</source>
-        <translation>休憩の時間です。</translation>
-    </message>
-    <message>
-        <location line="+8"/>
-        <source>You did it. The words are safe in your collection.</source>
-        <translation>やったね。言葉はあなたのコレクションに安全に保管されます。</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <location line="+1"/>
-        <source>Play again</source>
-        <translation>もういちど遊ぶ</translation>
+        <location filename="../src/app/qml/solo/SoloBox.qml" line="+124"/>
+        <source>%1. %2</source>
+        <translation>%1. %2</translation>
     </message>
 </context>
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+238"/>
+        <location filename="../src/app/qml/solo/SoloScreen.qml" line="+250"/>
         <source>Solo Play</source>
         <translation>ソロプレイ</translation>
     </message>
@@ -1210,7 +1150,7 @@
         <translation>Board finished</translation>
     </message>
     <message>
-        <location line="+1"/>
+        <location line="+2"/>
         <source>All words found</source>
         <translation>すべての単語が見つかりました</translation>
     </message>
@@ -1220,44 +1160,27 @@
         <translation>単語を探す</translation>
     </message>
     <message>
-        <location line="+82"/>
-        <source>Shaking the box…</source>
-        <translation>箱を振っています…</translation>
-    </message>
-    <message>
-        <location line="+194"/>
+        <location line="+236"/>
         <source>You found all %1 words!</source>
         <translation>%1 個の単語をすべて見つけました!</translation>
     </message>
     <message>
-        <location line="+46"/>
+        <location line="+50"/>
         <source>Look at the jewels you collected.</source>
         <translation>集めた宝石を見てください。</translation>
     </message>
     <message>
-        <location line="+151"/>
-        <location line="+1"/>
-        <source>Home</source>
-        <translation>ホーム</translation>
-    </message>
-    <message>
-        <location line="-26"/>
-        <location line="+1"/>
-        <source>Play again</source>
-        <translation>もういちど遊ぶ</translation>
-    </message>
-    <message>
-        <location line="-174"/>
+        <location line="-51"/>
         <source>You found the word!</source>
         <translation>You found the word!</translation>
     </message>
     <message>
-        <location line="+140"/>
+        <location line="+137"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+168"/>
+        <location line="+122"/>
         <source>You found this one already.</source>
         <translation>You found this one already.</translation>
     </message>
@@ -1324,6 +1247,44 @@
     </message>
     <message>
         <location line="+4"/>
+        <source>Choose a board</source>
+        <extracomment>The box panel&apos;s title over the row of board sizes.</extracomment>
+        <translation>ボードを選択してください</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>3 × 3 is a good start. Bigger boards hold more words.</source>
+        <translation>3×3は良いスタートです。ボードが大きいほど、より多くの単語を保持できます。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>How it works</source>
+        <extracomment>The box panel&apos;s card of three steps.</extracomment>
+        <translation>仕組み</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Shake the box.</source>
+        <translation>箱を振ろう。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Find a word.</source>
+        <translation>言葉を見つけよう。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Collect the jewels.</source>
+        <translation>宝石を集めよう。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Shaking the box…</source>
+        <extracomment>The line under the box while it shakes.</extracomment>
+        <translation>箱を振っています…</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>Words I found</source>
         <translation>みつけたことば</translation>
     </message>
@@ -1350,9 +1311,36 @@
         <translation>とじる</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+2"/>
+        <source>No boards yet</source>
+        <extracomment>The history sheet&apos;s empty state: nothing has been played yet.</extracomment>
+        <translation>まだボードがありません</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Boards you play will be kept here.</source>
+        <translation>あそんだボードはここに残ります。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 × %1, 1 word</source>
+        <extracomment>A board in the history sheet: its size and how many words were found.</extracomment>
+        <translation>%1 × %1、1語</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>%1 × %1, %2 words</source>
+        <translation>%1 × %1、%2語</translation>
+    </message>
+    <message>
+        <location line="+4"/>
         <source>Play again</source>
         <translation>もういちど遊ぶ</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Home</source>
+        <translation>ホーム</translation>
     </message>
     <message>
         <location line="+3"/>

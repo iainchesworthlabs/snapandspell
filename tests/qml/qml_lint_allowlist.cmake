@@ -20,7 +20,6 @@ set(WJS_ALLOW_LETTER_SPACING
 )
 
 set(WJS_ALLOW_HEX_COLOUR
-    "solo/FlatBoard.qml=1"
 )
 
 set(WJS_ALLOW_BARE_TEXT
@@ -28,10 +27,6 @@ set(WJS_ALLOW_BARE_TEXT
     "scan/CheckScreen.qml=9"
     "scan/ScanScreen.qml=8"
     "solo/FlatBoard.qml=1"
-    "solo/PlayingPanel.qml=12"
-    "solo/SoloBox.qml=7"
-    "solo/SoloResting.qml=2"
-    "solo/SoloScreen.qml=12"
 )
 
 set(WJS_ALLOW_DISABLED_OPACITY

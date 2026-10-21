@@ -27,7 +27,13 @@ Item {
     readonly property bool accepting: solo.state === "playing"
     readonly property bool presenting: solo.state === "word-found"
     readonly property real slack: tileSize * 0.38
-    readonly property real trayInset: Math.max(10, tileSize * 0.08)
+    // How far the tray stands off the tiles. The screen passes the outset that
+    // fits inside the board area's own inset (Theme.trayOutset with the layout's
+    // inset), so the rim never leaves the area; alone it is the token's wish.
+    property real trayInset: Theme.trayOutset(tileSize)
+    readonly property real ribbonCore: Theme.ribbonCoreWidth(tileSize)
+    readonly property real ribbonEdge: Theme.ribbonEdgeWidth(tileSize)
+    readonly property real ribbonLine: Theme.ribbonLineWidth(tileSize)
 
     property int focusIndex: 0
     property bool keyboardUsed: false
@@ -94,26 +100,11 @@ Item {
     }
 
     // --- the tray ----------------------------------------------------------------
-    Rectangle {
+    BoardTray {
         x: root.boardRect.x - root.trayInset
         y: root.boardRect.y - root.trayInset
         width: root.boardRect.width + 2 * root.trayInset
         height: root.boardRect.height + 2 * root.trayInset
-        radius: Theme.radiusLarge
-        color: Theme.tray
-        border.width: 2
-        border.color: Theme.gold
-    }
-    Rectangle {
-        x: root.boardRect.x - root.trayInset + 6
-        y: root.boardRect.y - root.trayInset + 6
-        width: root.boardRect.width + 2 * root.trayInset - 12
-        height: root.boardRect.height + 2 * root.trayInset - 12
-        radius: Theme.radiusLarge - 4
-        color: Theme.well
-        border.width: 1
-        border.color: "#2A4A52"
-        visible: false
     }
 
     // --- the die faces ------------------------------------------------------------
@@ -164,22 +155,33 @@ Item {
     }
 
     // --- the path -----------------------------------------------------------------
+    // A ribbon through the dice's middles, under the letters: a gold edge round a
+    // pale core, as wide as the die allows (14 and 22 px on a 200 px die), with a
+    // thin dark line outside the gold.
     Shape {
         anchors.fill: parent
         visible: root.linePath.length > 1
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
-            strokeColor: Theme.pathCasing
-            strokeWidth: Theme.pathCasingWidth
+            strokeColor: Theme.ribbonLine
+            strokeWidth: root.ribbonLine
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
             PathPolyline { path: root.linePoints }
         }
         ShapePath {
-            strokeColor: Theme.pathCore
-            strokeWidth: Theme.pathCoreWidth
+            strokeColor: Theme.ribbonEdge
+            strokeWidth: root.ribbonEdge
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+            joinStyle: ShapePath.RoundJoin
+            PathPolyline { path: root.linePoints }
+        }
+        ShapePath {
+            strokeColor: Theme.ribbonCore
+            strokeWidth: root.ribbonCore
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
@@ -207,16 +209,24 @@ Item {
         visible: opacity > 0 && root.ghostPath.length > 1
         preferredRendererType: Shape.CurveRenderer
         ShapePath {
-            strokeColor: Theme.pathCasing
-            strokeWidth: Theme.pathCasingWidth
+            strokeColor: Theme.ribbonLine
+            strokeWidth: root.ribbonLine
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
             PathPolyline { path: root.ghostPoints }
         }
         ShapePath {
-            strokeColor: Theme.pathCore
-            strokeWidth: Theme.pathCoreWidth
+            strokeColor: Theme.ribbonEdge
+            strokeWidth: root.ribbonEdge
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+            joinStyle: ShapePath.RoundJoin
+            PathPolyline { path: root.ghostPoints }
+        }
+        ShapePath {
+            strokeColor: Theme.ribbonCore
+            strokeWidth: root.ribbonCore
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
             joinStyle: ShapePath.RoundJoin
@@ -233,9 +243,9 @@ Item {
     }
 
     // --- the letters --------------------------------------------------------------
-    // The same Andika face as TileFace, above the gold ribbon. The lit tile's
-    // ink is unchanged: the gold edge and the line say "selected" without
-    // recolouring the letter a child is reading.
+    // The same Andika face as TileFace, above the ribbon. The lit tile's ink is
+    // unchanged: the gold edge and the line say "selected" without recolouring
+    // the letter a child is reading.
     Repeater {
         model: root.solo.tiles
 
@@ -263,18 +273,22 @@ Item {
     Rectangle {
         visible: root.accepting && root.activeFocus && root.keyboardUsed
                  && root.focusIndex >= 0 && root.focusIndex < root.solo.tiles.length
-        x: root.focusIndex >= 0 ? root.tileX(root.focusIndex) - 3 : 0
-        y: root.focusIndex >= 0 ? root.tileY(root.focusIndex) - 3 : 0
-        width: root.tileSize + 6
-        height: root.tileSize + 6
-        radius: Theme.radiusSmall + 3
+        x: root.focusIndex >= 0 ? root.tileX(root.focusIndex) - Theme.focusGap : 0
+        y: root.focusIndex >= 0 ? root.tileY(root.focusIndex) - Theme.focusGap : 0
+        width: root.tileSize + 2 * Theme.focusGap
+        height: root.tileSize + 2 * Theme.focusGap
+        radius: Theme.radiusSmall + Theme.focusGap
         color: "transparent"
-        border.width: 2
-        border.color: Theme.gold
+        // Cream on the dark tray: the emerald focus colour does not show on it
+        // and gold is the hint's.
+        border.width: Theme.litEdge
+        border.color: Theme.die
     }
 
     // The start tile, and the second letter when the child asks for more. One
-    // ring for the first rung; two for the second. The word itself is never
+    // ring for the first rung; two for the second, the second a size smaller so
+    // the two never merge. Each is a gold band with a thin dark line outside it,
+    // which holds 3:1 on the cream dice and on the tray. The word itself is never
     // shown or spoken here.
     Repeater {
         model: root.solo.helpTiles
@@ -283,17 +297,28 @@ Item {
             id: ring
             required property int index
             required property var modelData
+            readonly property real reach: ring.index === 0 ? Theme.startRing : Theme.startRing / 2
             visible: root.accepting && modelData >= 0
-            x: modelData >= 0 ? root.tileX(modelData) - Theme.startRing : 0
-            y: modelData >= 0 ? root.tileY(modelData) - Theme.startRing : 0
-            width: root.tileSize + 2 * Theme.startRing
+            x: modelData >= 0 ? root.tileX(modelData) - ring.reach : 0
+            y: modelData >= 0 ? root.tileY(modelData) - ring.reach : 0
+            width: root.tileSize + 2 * ring.reach
             height: width
-            radius: Theme.radiusSmall + Theme.startRing
+            radius: Theme.radiusSmall + ring.reach
             color: "transparent"
-            border.width: ring.index === 0 ? 3 : 2
-            border.color: Theme.gold
+            border.width: Theme.hair
+            border.color: Theme.dieEdge
             Accessible.role: Accessible.Graphic
             Accessible.name: ring.index === 0 ? SoloWording.startHere : SoloWording.nextLetter
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: Theme.hair
+                radius: parent.radius - Theme.hair
+                color: "transparent"
+                border.width: ring.index === 0 ? Theme.ringWidth : Theme.ringWidthSecond
+                border.color: Theme.gold
+                Accessible.ignored: true
+            }
 
             SequentialAnimation on scale {
                 running: ring.visible && !Theme.reducedMotion

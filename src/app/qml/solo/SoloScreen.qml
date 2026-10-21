@@ -9,7 +9,8 @@ import WordJewelsSolver.Scene
 // way back and the grown-up entry, so no control lies over the board. The
 // panel is one full-height column: the words, the hint, the board's clock and
 // the Clear and Done actions all live in it, and nothing of the board moves
-// when a path starts.
+// when a path starts. The end of a board - cleared, finished or timed out - is
+// one Sheet over the whole window; there is no separate resting screen.
 FocusScope {
     id: root
 
@@ -23,14 +24,18 @@ FocusScope {
     readonly property string soloState: solo.state
     readonly property bool boxShown: soloState === "box"
     readonly property bool shaking: soloState === "shaking" || soloState === "dropping"
-    readonly property bool boardShown: soloState === "playing" || soloState === "word-found" || soloState === "cleared"
+    // A board that was cleared and put away ("resting", which a game brought back
+    // from the store can open on) is shown as the cleared board is: settled, under
+    // its summary.
+    readonly property bool boardShown: soloState === "playing" || soloState === "word-found"
+                                       || soloState === "cleared" || soloState === "resting"
     // A board can be ended by the child before every dictionary word is found.
     // The summary is the same card, worded for a finish rather than a clear.
     property bool finishSummary: false
     // The round ended because the count-down reached zero (not the child's
     // Finish board): the summary says so.
     property bool finishedByClock: false
-    readonly property bool summaryShown: soloState === "cleared" || root.finishSummary
+    readonly property bool summaryShown: soloState === "cleared" || soloState === "resting" || root.finishSummary
     readonly property bool settling: settlingNow
     property bool settlingNow: false
     readonly property bool motionLive: motionSource !== null && motionSource.available
@@ -84,6 +89,12 @@ FocusScope {
                                               rule.boardArea.width, rule.boardArea.height)
     readonly property rect panelArea: Qt.rect(rule.panelArea.x, rule.panelArea.y,
                                               rule.panelArea.width, rule.panelArea.height)
+
+    // How far the tray stands off the tiles, in the flat board and in the 3D scene
+    // alike: the token's outset, held inside the board area's own inset with a
+    // little air (4 dp) before the area's edge, so the rim is never clipped or
+    // flush against the window.
+    readonly property real trayInset: Theme.trayOutset(rule.tile, rule.inset - Theme.space1)
 
     function relayout() {
         if (solo.rows > 0) {
@@ -177,20 +188,21 @@ FocusScope {
         root.solo.lidOn();
     }
 
-    // Earlier boards over whatever this screen shows: the way Home's "My
-    // boards" opens the history without losing the board in front of the child.
-    function openHistory() {
-        history.open = true;
+    // The summary's Close, and Escape: the board is over and the lid goes back on,
+    // as Play again does without the shake.
+    function dismissSummary() {
+        if (root.finishSummary) {
+            root.leaveFinishSummary();
+        } else {
+            root.solo.celebrated();
+            root.solo.again();
+        }
     }
 
     function back() {
         if (root.finishSummary) {
             root.leaveFinishSummary();
             root.homeRequested();
-            return;
-        }
-        if (history.open) {
-            history.close();
             return;
         }
         switch (solo.state) {
@@ -237,7 +249,8 @@ FocusScope {
         showParent: true
         title: root.boxShown ? qsTr("Solo Play")
                : root.finishSummary ? qsTr("Board finished")
-               : (root.soloState === "cleared" ? qsTr("All words found") : qsTr("Find a word"))
+               : (root.soloState === "cleared" || root.soloState === "resting"
+                  ? qsTr("All words found") : qsTr("Find a word"))
         onBack: root.back()
         onParentRequested: root.parentRequested()
     }
@@ -270,7 +283,6 @@ FocusScope {
             width: boxSide
             height: boxSide * 0.80
             closed: true
-            asleep: false
             showDice: false
             boardSize: root.solo.boardSize
             visible: root.boxShown
@@ -296,33 +308,17 @@ FocusScope {
             }
         }
 
-        Text {
+        Label {
             id: boxCaption
             visible: root.boxShown
             width: Math.min(boxArt.width * 1.2, root.boardArea.width)
             x: boxArt.x + (boxArt.width - width) / 2
             y: boxArt.y + boxArt.height + Theme.space4
             horizontalAlignment: Text.AlignHCenter
+            role: "word"
             text: SoloWording.shakeToOpen
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.headingSize
             color: Theme.inkSecondary
-        }
-
-        // What is happening while the box shakes, as a quiet caption at the
-        // foot of the board's area (the strip the action bar once reserved is
-        // gone).
-        Text {
-            id: shakingCaption
-            visible: root.shaking
-            width: root.boardArea.width - 2 * Theme.space8
-            x: root.boardArea.x + (root.boardArea.width - width) / 2
-            y: root.boardArea.y + root.boardArea.height - Theme.space12
-            horizontalAlignment: Text.AlignHCenter
-            text: qsTr("Shaking the box…")
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.headingSize
-            color: Theme.inkSecondary
+            wrapMode: Text.WordWrap
         }
 
         // The 3D theatre: the shake and the drop only. It is made by a Loader,
@@ -380,6 +376,16 @@ FocusScope {
                 // the cross-fade to read as one object changing surface.
                 reducedMotion: Theme.reducedMotion
                 LayoutMirroring.enabled: false
+                // The flat board's own colours, so the cross-fade between the
+                // two does not change colour.
+                trayColor: Theme.tray
+                rimColor: Theme.trayEdge
+                dieColor: Theme.die
+                dieEdgeColor: Theme.dieEdge
+                dieInkColor: Theme.dieInk
+                jewelColor: Theme.jewelDead
+                lidColor: Theme.lid
+                trayInset: root.trayInset
 
                 onSettled: root.solo.sceneSettled()
                 onLanded: (index, pitch) => Feedback.cue("tile-landed", String(pitch))
@@ -398,6 +404,7 @@ FocusScope {
             boardRect: rule.boardRect
             tileSize: rule.tile
             tileGap: rule.gap
+            trayInset: root.trayInset
             visible: root.boardShown || root.settling
             opacity: root.boardShown ? 1 : 0
             scale: root.boardShown ? 1 : 0.992
@@ -408,6 +415,7 @@ FocusScope {
             // takes the keyboard nor speaks to a screen reader: the summary's
             // own focus stays in its card, where the way on is.
             focus: root.boardShown && !root.summaryShown
+            activeFocusOnTab: !root.summaryShown
             Accessible.ignored: root.summaryShown
             onVisibleChanged: if (root.boardShown && !root.summaryShown) forceActiveFocus()
         }
@@ -432,7 +440,10 @@ FocusScope {
                 solo: root.solo
                 layoutRule: rule
                 wide: rule.wide
-                opacity: root.boxShown ? 1 : 0
+                // The panel stays while the box shakes (quiet, its Shake button
+                // saying so) instead of fading to blank paper.
+                busy: root.shaking
+                opacity: root.boxShown || root.shaking ? 1 : 0
                 visible: opacity > 0
                 enabled: root.boxShown
                 onShakeRequested: root.solo.shake()
@@ -448,6 +459,8 @@ FocusScope {
                 statusText: root.feedbackText
                 statusDetail: root.feedbackDetail
                 statusWord: root.feedbackWord
+                // Under the summary nothing of the panel takes a key or a touch.
+                enabled: !root.summaryShown
                 property real shown: root.boardShown ? 1 : 0
                 Behavior on shown { NumberAnimation { duration: Theme.turn; easing.type: Easing.OutCubic } }
                 opacity: shown > 0 ? 1 : 0
@@ -457,300 +470,211 @@ FocusScope {
                 onFinishRequested: root.finishBoard()
             }
         }
+    }
 
-        // --- the clear summary ----------------------------------------------------
-        // The board is over, one way or the other: the words are safe, and the
-        // card says what was earned and offers the way on. The words scroll in
-        // their own card, so the actions at the foot never move; the primary
-        // action takes the focus and the reward is spoken.
-        Item {
-            id: summary
-            anchors.fill: parent
-            visible: root.summaryShown
-            z: 30
+    // --- the end of a board -----------------------------------------------------
+    // The board is over, one way or the other: the words are safe, and the sheet
+    // says what was earned and offers the way on. It is the one modal of the
+    // application (kit/Sheet): it dims the whole window, the bar too, and takes
+    // the focus; Play again leads, Home is as big beside it, and Close puts the
+    // lid back on. The words scroll in their own card, so the buttons never move.
+    Sheet {
+        id: summary
+        anchors.fill: parent
+        open: root.summaryShown
+        title: root.finishSummary
+               ? SoloWording.finishTitle
+               : root.solo.found.length === 1
+                 ? qsTr("You found the word!")
+                 : qsTr("You found all %1 words!").arg(root.solo.found.length)
+        maxWidth: Theme.modalMax
+        maxHeight: Theme.modalMax
+        dismissOnScrim: false
+        onClose: root.dismissSummary()
 
-            onVisibleChanged: {
-                if (summary.visible) {
-                    playAgain.forceActiveFocus();
-                    Feedback.cue("speak", summaryTitle.text + ". "
-                                              + SoloWording.summaryStars(root.solo.boardStars)
-                                              + " and " + SoloWording.summaryPoints(root.solo.boardPoints));
-                }
+        // The reward is spoken as the sheet opens, and Play again takes the focus.
+        onOpenChanged: {
+            if (summary.open) {
+                Feedback.cue("speak", summary.title + ". "
+                                      + SoloWording.summaryStars(root.solo.boardStars)
+                                      + " and " + SoloWording.summaryPoints(root.solo.boardPoints));
+                Qt.callLater(() => playAgain.forceActiveFocus());
             }
+        }
 
-            Rectangle {
-                anchors.fill: parent
-                color: Theme.scrim
+        // The reward, front and centre: the stars (which feed the collection) and
+        // the points, large enough to read at arm's length.
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.space2
+
+            Jewel {
+                Layout.preferredWidth: Theme.jewelMd
+                Layout.preferredHeight: Theme.jewelMd
+                tier: "power"
+                color: Theme.gold
+                Accessible.ignored: true
             }
+            Label {
+                role: "child"
+                color: Theme.goldInk
+                text: SoloWording.summaryStars(root.solo.boardStars)
+            }
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+            }
+            Label {
+                role: "child"
+                font.family: Theme.monoFont
+                text: SoloWording.summaryPoints(root.solo.boardPoints)
+            }
+        }
 
-            Rectangle {
-                anchors.centerIn: parent
-                width: Math.min(parent.width - 2 * Theme.space8, 560)
-                height: Math.min(parent.height - 2 * Theme.space8, 560)
-                radius: Theme.radiusLarge
-                color: Theme.surface
-                border.width: Theme.hair
-                border.color: Theme.line
-                clip: true
+        Label {
+            Layout.fillWidth: true
+            role: "body"
+            learning: true
+            color: Theme.inkSecondary
+            text: root.finishSummary ? SoloWording.finishBody : qsTr("Look at the jewels you collected.")
+            wrapMode: Text.WordWrap
+        }
 
-                Accessible.role: Accessible.Pane
-                Accessible.name: summaryTitle.text
+        Label {
+            Layout.fillWidth: true
+            visible: root.solo.clockMode === "up"
+            role: "caption"
+            text: SoloWording.playedFor(root.solo.clockText)
+        }
 
-                ColumnLayout {
+        Label {
+            Layout.fillWidth: true
+            visible: root.finishedByClock
+            role: "body"
+            learning: true
+            color: Theme.inkSecondary
+            text: SoloWording.timeRanOut
+            wrapMode: Text.WordWrap
+        }
+
+        // The words, one jewel each, in their own scroll: the sheet stays one
+        // height however many were found, and the buttons below stay put.
+        Card {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            title: SoloWording.yourWordsCount(root.solo.found.length)
+            empty: root.solo.found.length === 0
+            emptyTitle: SoloWording.summaryNoWords
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: Theme.rowHeight
+                Layout.preferredHeight: Math.min(summaryWords.contentHeight, 4 * Theme.rowHeight)
+
+                ListView {
+                    id: summaryWords
                     anchors.fill: parent
-                    anchors.margins: Theme.space6
-                    spacing: Theme.space3
+                    anchors.rightMargin: Theme.space3
+                    clip: true
+                    model: root.solo.found
+                    boundsBehavior: Flickable.StopAtBounds
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space1
+                    Accessible.role: Accessible.List
+                    Accessible.name: SoloWording.yourWordsCount(root.solo.found.length)
 
-                        Text {
-                            id: summaryTitle
-                            Layout.fillWidth: true
-                            horizontalAlignment: Text.AlignHCenter
-                            text: root.finishSummary
-                                  ? SoloWording.finishTitle
-                                  : root.solo.found.length === 1
-                                    ? qsTr("You found the word!")
-                                    : qsTr("You found all %1 words!").arg(root.solo.found.length)
-                            font.family: Theme.uiFont
-                            font.pixelSize: Theme.titleSize
-                            font.weight: Font.ExtraBold
-                            color: Theme.ink
-                            wrapMode: Text.WordWrap
+                    delegate: Item {
+                        id: summaryRow
+                        required property int index
+                        required property var modelData
+                        width: ListView.view.width
+                        height: Theme.rowHeight
+
+                        Accessible.role: Accessible.ListItem
+                        Accessible.name: SoloWording.found(summaryRow.modelData.word)
+
+                        Jewel {
+                            id: summaryJewel
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Theme.jewelMd
+                            height: Theme.jewelMd
+                            tier: summaryRow.modelData.tier
+                            colorIndex: summaryRow.index
+                            Accessible.ignored: true
                         }
-
-                        // The reward, front and centre: the stars (which feed
-                        // the collection) and the points, large enough to read
-                        // at arm's length.
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.space2
-
-                            Jewel {
-                                Layout.preferredWidth: 30
-                                Layout.preferredHeight: 30
-                                tier: "power"
-                                color: Theme.gold
-                            }
-                            Text {
-                                text: SoloWording.summaryStars(root.solo.boardStars)
-                                font.family: Theme.uiFont
-                                font.pixelSize: Theme.headingSize
-                                font.weight: Font.DemiBold
-                                color: Theme.goldInk
-                            }
-                            Item {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 1
-                            }
-                            Text {
-                                text: SoloWording.summaryPoints(root.solo.boardPoints)
-                                font.family: Theme.monoFont
-                                font.pixelSize: Theme.headingSize
-                                color: Theme.ink
-                            }
+                        Label {
+                            anchors.left: summaryJewel.right
+                            anchors.leftMargin: Theme.space3
+                            anchors.right: summaryPoints.left
+                            anchors.rightMargin: Theme.space2
+                            anchors.verticalCenter: parent.verticalCenter
+                            role: "word"
+                            decorative: true
+                            text: summaryRow.modelData.word
+                            elide: Text.ElideRight
                         }
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        horizontalAlignment: Text.AlignHCenter
-                        text: root.finishSummary
-                              ? SoloWording.finishBody
-                              : qsTr("Look at the jewels you collected.")
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        visible: root.solo.clockMode === "up"
-                        horizontalAlignment: Text.AlignHCenter
-                        text: SoloWording.playedFor(root.solo.clockText)
-                        font.family: Theme.monoFont
-                        font.pixelSize: Theme.labelSize
-                        color: Theme.inkSecondary
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        visible: root.finishedByClock
-                        horizontalAlignment: Text.AlignHCenter
-                        text: SoloWording.timeRanOut
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.bodySize
-                        color: Theme.inkSecondary
-                        wrapMode: Text.WordWrap
-                    }
-
-                    // The words, one jewel each, in their own scroll: the card
-                    // stays one height however many were found, and the actions
-                    // below it stay put.
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        radius: Theme.radius
-                        color: Theme.card
-                        border.width: 1
-                        border.color: Theme.line
-
-                        ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: Theme.space3
-                            spacing: Theme.space2
-
-                            Text {
-                                Layout.fillWidth: true
-                                text: SoloWording.yourWordsCount(root.solo.found.length)
-                                font.family: Theme.monoFont
-                                font.pixelSize: Theme.smallSize
-                                color: Theme.inkSecondary
-                            }
-
-                            ListView {
-                                id: summaryWords
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                clip: true
-                                model: root.solo.found
-                                spacing: 2
-
-                                delegate: Item {
-                                    id: summaryRow
-                                    required property int index
-                                    required property var modelData
-                                    width: summaryWords.width
-                                    height: 42
-
-                                    Accessible.role: Accessible.ListItem
-                                    Accessible.name: SoloWording.found(summaryRow.modelData.word)
-
-                                    Jewel {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        width: 24
-                                        height: 24
-                                        tier: summaryRow.modelData.tier
-                                        colorIndex: summaryRow.index
-                                    }
-                                    Text {
-                                        anchors.left: parent.left
-                                        anchors.leftMargin: 36
-                                        anchors.right: pointsText.left
-                                        anchors.rightMargin: Theme.space2
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: summaryRow.modelData.word
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.wordSize
-                                        color: Theme.ink
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        id: pointsText
-                                        anchors.right: parent.right
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: qsTr("+%1").arg(summaryRow.modelData.points)
-                                        font.family: Theme.monoFont
-                                        font.pixelSize: Theme.monoSize
-                                        color: Theme.goldInk
-                                    }
-                                }
-                            }
-
-                            Text {
-                                Layout.fillWidth: true
-                                visible: root.solo.found.length === 0
-                                horizontalAlignment: Text.AlignHCenter
-                                text: SoloWording.summaryNoWords
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.bodySize
-                                color: Theme.inkSecondary
-                                wrapMode: Text.WordWrap
-                            }
-                        }
-                    }
-
-                    // The way on: Play again leads, Home is the quiet way out.
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space3
-
-                        AppButton {
-                            id: playAgain
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: Theme.targetPrimary
-                            Layout.alignment: Qt.AlignVCenter
-                            variant: "primary"
-                            size: "primary"
-                            label: qsTr("Play again")
-                            accessibleName: qsTr("Play again")
-                            iconName: "again"
-                            // Tab stays inside the card: the two ways on are
-                            // each other's next stop, and the board behind the
-                            // scrim is not focusable (FlatBoard above).
-                            KeyNavigation.tab: homeButton
-                            KeyNavigation.backtab: homeButton
-                            onClicked: {
-                                if (root.finishSummary) {
-                                    root.leaveFinishSummary();
-                                    root.solo.shake();
-                                } else {
-                                    root.solo.celebrated();
-                                    root.solo.again();
-                                }
-                            }
-                        }
-                        AppButton {
-                            id: homeButton
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: Theme.targetChild
-                            Layout.alignment: Qt.AlignVCenter
-                            variant: "secondary"
-                            size: "child"
-                            label: qsTr("Home")
-                            accessibleName: qsTr("Home")
-                            KeyNavigation.tab: playAgain
-                            KeyNavigation.backtab: playAgain
-                            onClicked: {
-                                if (root.finishSummary) {
-                                    root.leaveFinishSummary();
-                                } else {
-                                    root.solo.celebrated();
-                                    root.solo.again();
-                                }
-                                root.homeRequested();
-                            }
+                        Label {
+                            id: summaryPoints
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            role: "mono"
+                            decorative: true
+                            font.capitalization: Font.MixedCase
+                            color: Theme.goldInk
+                            text: qsTr("+%1").arg(summaryRow.modelData.points)
                         }
                     }
                 }
+
+                ScrollCue {
+                    view: summaryWords
+                    anchors.top: summaryWords.top
+                    anchors.bottom: summaryWords.bottom
+                    anchors.right: parent.right
+                }
             }
         }
-    }
 
-    // --- resting --------------------------------------------------------------------
-    Loader {
-        anchors.top: appBar.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        active: root.soloState === "resting"
-        asynchronous: true
-        sourceComponent: SoloResting {
-            onAgainRequested: root.solo.again()
-            onBackRequested: {
-                root.solo.again();
-                root.homeRequested();
+        // The way on: Play again leads, Home is as big beside it. The two are
+        // the same height and share the row equally; the colour says which leads.
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.space3
+
+            AppButton {
+                id: playAgain
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                size: "primary"
+                variant: "primary"
+                wrap: true
+                label: SoloWording.playAgain
+                iconName: "again"
+                onClicked: {
+                    if (root.finishSummary) {
+                        root.leaveFinishSummary();
+                        root.solo.shake();
+                    } else {
+                        root.solo.celebrated();
+                        root.solo.again();
+                    }
+                }
+            }
+            AppButton {
+                id: homeButton
+                Layout.fillWidth: true
+                Layout.preferredWidth: 1
+                size: "primary"
+                variant: "secondary"
+                wrap: true
+                label: SoloWording.home
+                onClicked: {
+                    root.dismissSummary();
+                    root.homeRequested();
+                }
             }
         }
-    }
-
-    HistorySheet {
-        id: history
-        solo: root.solo
-        onClosed: flatBoard.forceActiveFocus()
     }
 
     // The board's clock ticks only while this screen is the one on show and a

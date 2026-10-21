@@ -11,7 +11,8 @@ import WordJewelsSolver
 //
 // For assistive technology the whole is a labelled group (`title`) and each
 // option is a radio button named "<title>: <label>" - not, as PChoice was, a
-// focusable radio button wrapped round more radio buttons.
+// focusable radio button wrapped round more radio buttons. An option that carries
+// `name` is named by it instead (a numeral on screen, "3 by 3 board" to a reader).
 Flow {
     id: root
 
@@ -48,7 +49,8 @@ Flow {
             radio: true
             checked: root.current === modelData.value
             enabled: modelData.enabled === undefined || modelData.enabled
-            accessibleName: root.title.length > 0 ? root.title + ": " + modelData.label : modelData.label
+            accessibleName: modelData.name !== undefined ? modelData.name
+                            : root.title.length > 0 ? root.title + ": " + modelData.label : modelData.label
             onClicked: root.chosen(modelData.value)
         }
     }
