@@ -20,52 +20,16 @@
 #include <vector>
 
 #include "language_manager.hpp"
+#include "test_support.hpp"
 #include "wjs/settings.hpp"
 
 namespace {
 
 using wjs::app::LanguageManager;
 
-// The platform is read when the application is made, so it is chosen before it.
-// The first test case records what the run was started with, because a later
-// case asks for the platform's own fonts and must undo an earlier case's choice.
-struct PlatformEnvironment {
-    explicit PlatformEnvironment(bool offscreen) {
-        // Read (and so freeze) what the run started with before this changes it.
-        const QByteArray started_with = initial_platform();
-        if (offscreen) {
-            qputenv("QT_QPA_PLATFORM", "offscreen");
-            return;
-        }
-        if (started_with.isEmpty()) {
-            qunsetenv("QT_QPA_PLATFORM");
-        } else {
-            qputenv("QT_QPA_PLATFORM", started_with);
-        }
-    }
-
-private:
-    [[nodiscard]] static const QByteArray& initial_platform() {
-        static const QByteArray value = qgetenv("QT_QPA_PLATFORM");
-        return value;
-    }
-};
-
-class TestApplication : private PlatformEnvironment {
-public:
-    // Offscreen needs no display; the glyph check asks for the platform's own
-    // fonts instead, so it takes whichever platform the run was started with
-    // (offscreen under CI, where it then skips itself: that plugin has no fonts).
-    explicit TestApplication(bool offscreen = true)
-        : PlatformEnvironment(offscreen), application_(argc_, argv_) {}
-
-private:
-    static inline int argc_ = 1;
-    static inline char name_[] = "wjs_app_tests";
-    static inline char* argv_[] = {name_, nullptr};
-
-    QGuiApplication application_;
-};
+// A GUI application on the platform the entry's environment names: offscreen,
+// with the fonts directory the platform's fragment gives it (tests/CMakeLists.txt).
+using TestApplication = wjs::app::test::GuiApplication;
 
 // One catalogue as the completeness check reads it.
 struct Catalogue {
@@ -224,13 +188,14 @@ TEST_CASE("every language has a complete catalogue, and all eight are there",
 
 TEST_CASE("the app's font chain carries every glyph of the eight sample sentences",
           "[app][i18n][glyph]") {
-    // The platform's own fonts, not the offscreen plugin's (which has none): the
-    // check is about the fallback a person sees on Windows.
-    TestApplication app(false);
+    // The offscreen platform draws with the fonts of the directory the platform's
+    // fragment names (the system's fonts on Windows, fontconfig's elsewhere), so
+    // the check asks the fonts a person sees.
+    TestApplication app;
 
-    // Without any fonts (some headless platforms) there is nothing to check: the
-    // platform's fallback is what the app relies on. The check is a Windows check
-    // today and skips itself elsewhere, with this message.
+    // Without any fonts (some headless machines) there is nothing to check: the
+    // platform's fallback is what the app relies on. The check skips itself then,
+    // with this message.
     if (QFontDatabase::families().isEmpty()) {
         SKIP("no fonts are installed on this platform: the glyph check is a Windows check today");
     }

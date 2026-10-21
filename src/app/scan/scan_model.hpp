@@ -1,22 +1,65 @@
 #pragma once
 
 #include <QtQml/qqmlregistration.h>
+#include <QFutureWatcher>
 #include <QObject>
 #include <QPointer>
 #include <QString>
 #include <QStringList>
+#include <QThreadPool>
 #include <QTimer>
 #include <QVariantList>
 #include <cstddef>
+#include <cstdint>
+#include <expected>
 #include <optional>
 #include <string>
+#include <string_view>
 
+#include "camera_problem.hpp"
 #include "camera_source.hpp"
 #include "wjs/board.hpp"
 #include "wjs/scan/confirmation.hpp"
 #include "wjs/scan/reading.hpp"
 
 namespace wjs::app {
+
+// Why the last capture did not become a reading. QML is given the code
+// (readProblem), and ScanWording.qml the sentence; `none` is the empty code.
+enum class ReadProblem : std::uint8_t {
+    none,
+    no_camera,  // there was no running camera to capture from
+    no_frame,   // the camera gave no frame in the time the screen waits
+    // The reader's own (wjs::scan::ReadError).
+    invalid_frame,
+    board_not_found,
+    size_not_found,
+    no_letters,
+    // A reading that is not a board this program can show.
+    invalid_reading,
+};
+
+[[nodiscard]] constexpr std::string_view code(ReadProblem problem) noexcept {
+    switch (problem) {
+        case ReadProblem::none:
+            return "";
+        case ReadProblem::no_camera:
+            return "no_camera";
+        case ReadProblem::no_frame:
+            return "no_frame";
+        case ReadProblem::invalid_frame:
+            return "invalid_frame";
+        case ReadProblem::board_not_found:
+            return "board_not_found";
+        case ReadProblem::size_not_found:
+            return "size_not_found";
+        case ReadProblem::no_letters:
+            return "no_letters";
+        case ReadProblem::invalid_reading:
+            return "invalid_reading";
+    }
+    return "board_not_found";
+}
 
 // The check screen's model (`scan.ready`, `scan.reading` and `scan.check`): the
 // wjs::scan::BoardDraft a grown-up confirms, the camera's little lifecycle, and
@@ -108,9 +151,16 @@ public:
     [[nodiscard]] QVariantList sizes() const;
     [[nodiscard]] bool cameraAvailable() const noexcept { return camera_available_; }
     [[nodiscard]] bool cameraCapturing() const noexcept { return camera_capturing_; }
-    [[nodiscard]] QString cameraProblem() const { return camera_problem_; }
-    [[nodiscard]] QString readProblem() const { return read_problem_; }
+    [[nodiscard]] QString cameraProblem() const { return problem_code(camera_problem_); }
+    [[nodiscard]] QString readProblem() const;
+    [[nodiscard]] CameraProblem cameraProblemKind() const noexcept { return camera_problem_; }
+    [[nodiscard]] ReadProblem readProblemKind() const noexcept { return read_problem_; }
     [[nodiscard]] CameraSource* cameraSource() const { return camera_source_; }
+
+    // How a capture waits for a frame: it looks every `interval_ms` and gives up
+    // after `max_polls` looks. The defaults are the screen's patience (a tenth of
+    // a second, four seconds); a test shortens them so that it need not wait.
+    void setFramePatience(int interval_ms, int max_polls);
 
     // The application's camera, or null to keep using the platform interface.
     // The model does not own it; a source destroyed before the model leaves the
@@ -179,9 +229,16 @@ private:
     void setState(State state);
     void stopCamera();
     void tryFrame();
-    void readFrame(const wjs::scan::OwnedFrame& frame);
+    // Hands a frame to the reader's own thread and goes on; readFinished() takes
+    // the answer back. The read is the one long piece of work Mode A does
+    // (the scanner's budget is in docs/design/scanner.md), and the window keeps
+    // drawing while it runs.
+    void readFrame(wjs::scan::OwnedFrame frame);
+    void readFinished();
+    void cancelRead();
     void refreshCameraState();
-    void failed(const QString& code);
+    void failed(ReadProblem problem);
+    void clearReadProblem();
     void changedDraft();
     [[nodiscard]] bool on_grid(int index) const;
 
@@ -193,10 +250,19 @@ private:
     QPointer<CameraSource> camera_source_;
     bool camera_available_ = false;
     bool camera_capturing_ = false;
-    QString camera_problem_;
-    QString read_problem_;
+    CameraProblem camera_problem_ = CameraProblem::none;
+    ReadProblem read_problem_ = ReadProblem::none;
+    // The reader's thread (one, named "scan" in a profile) and the answer it
+    // brings back for the frame being read.
+    struct ReadResult {
+        std::expected<wjs::scan::BoardReading, wjs::scan::ReadError> reading{
+            std::unexpected(wjs::scan::ReadError::board_not_found)};
+    };
+    QThreadPool reader_pool_;
+    QFutureWatcher<ReadResult> reader_;
     QTimer frame_timer_;
     int frame_ticks_ = 0;
+    int max_frame_polls_ = 40;
 };
 
 }  // namespace wjs::app

@@ -62,12 +62,19 @@ public:
         }
         clock_.start();
         running_ = accelerometer_->start();
+        if (!running_) {
+            // The accelerometer is the stream that keeps time; without it the
+            // gyroscope would run for nothing, draining the battery and delivering
+            // to no one. Nothing is left running.
+            accelerometer_->stop();
+            return false;
+        }
         if (gyroscope_) {
             // A gyroscope that will not start is not fatal: the accelerometer
             // still shakes the dice, with no turning.
             gyroscope_->start();
         }
-        return running_;
+        return true;
     }
 
     void stop() {

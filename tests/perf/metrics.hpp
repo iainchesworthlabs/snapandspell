@@ -125,6 +125,30 @@ struct Metric {
 // one's is.
 [[nodiscard]] std::uint64_t standard_session_digest();
 
+// --- what the screens wait on besides the solver (data_metrics.cpp) ----------
+
+// The store twenty played boards leave, per mode (STANDARD and PHONICS): the records
+// it holds (exact), the bytes of one save, the bytes the twenty changes wrote (the
+// file is rewritten whole after each), and the heaviest store the format allows.
+[[nodiscard]] std::vector<Metric> store_metrics();
+
+// PHONICS BOARD. The dashboard built from that store against the test phase: the
+// sounds, what they add up to, and what it is built from.
+[[nodiscard]] std::vector<Metric> dashboard_metrics();
+
+// PHONICS BOARD. The test phase as a directory of two files, loaded: phases, words,
+// graphemes and the bytes read.
+[[nodiscard]] std::vector<Metric> phase_load_metrics();
+
+// What submitting a path does to a session in `playing`, per mode: a path that is
+// no word finds nothing, and a word again is a find again, however often.
+[[nodiscard]] std::vector<Metric> submit_metrics();
+
+// The time of those, against the calibration workload: store serialize, parse and
+// save at the heaviest, the dashboard, the phase directory, a session's submit
+// of each kind of path for each mode, and a finger's path on a 6x6.
+[[nodiscard]] std::vector<Metric> data_timing_metrics();
+
 // --- the scanner, counted (wjs/scan/work.hpp) ---------------------------------
 
 // What reading four fixed synthetic frames costs the reader (a 4x4, a 5x5, a 6x6

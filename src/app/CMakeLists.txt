@@ -131,6 +131,14 @@ set_source_files_properties(
     qml/solo/SoloWording.qml
     PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
 
+# The kit's files are listed once, in qml/kit/kit_files.cmake: the previews and
+# the Qt Quick Test module embed the same set.
+include("${CMAKE_CURRENT_SOURCE_DIR}/qml/kit/kit_files.cmake")
+set(WJS_APP_KIT_SOURCES "")
+foreach(_wjs_kit_file IN LISTS WJS_KIT_QML_FILES)
+    list(APPEND WJS_APP_KIT_SOURCES "qml/kit/${_wjs_kit_file}")
+endforeach()
+
 qt_add_qml_module(WordJewelsSolver
     URI WordJewelsSolver
     VERSION 1.0
@@ -142,18 +150,7 @@ qt_add_qml_module(WordJewelsSolver
         qml/Home.qml
         qml/HomeWording.qml
         qml/Main.qml
-        qml/kit/AppBar.qml
-        qml/kit/AppButton.qml
-        qml/kit/Feedback.qml
-        qml/kit/HoldButton.qml
-        qml/kit/Icon.qml
-        qml/kit/Jewel.qml
-        qml/kit/JewelBox.qml
-        qml/kit/ModeCard.qml
-        qml/kit/Navigation.qml
-        qml/kit/Theme.qml
-        qml/kit/TileFace.qml
-        qml/kit/Wordmark.qml
+        ${WJS_APP_KIT_SOURCES}
         qml/solo/BoardThumb.qml
         qml/solo/FlatBoard.qml
         qml/solo/HistorySheet.qml
@@ -170,8 +167,6 @@ qt_add_qml_module(WordJewelsSolver
         frame_profiler.hpp
         solo/board_layout.cpp
         solo/board_layout.hpp
-        solo/fake_solo_game.cpp
-        solo/fake_solo_game.hpp
         solo/path_tracer.hpp
         solo/real_solo_game.cpp
         solo/real_solo_game.hpp
@@ -185,8 +180,8 @@ qt_add_qml_module(WordJewelsSolver
         solo/solo_layout.hpp
         solo/solo_model.cpp
         solo/solo_model.hpp
-        solver_model.cpp
-        solver_model.hpp
+        startup_failure.cpp
+        startup_failure.hpp
         system_colour_scheme.cpp
         system_colour_scheme.hpp
         system_motion.cpp
@@ -329,9 +324,9 @@ endif()
 wjs_platform_deploy_qt_runtime(WordJewelsSolver ${WJS_APP_QML_DEPLOY_DIRS})
 wjs_deploy_sanitizer_runtime(WordJewelsSolver)
 
-# The default dictionary the model looks for, and the standard board's dice the
-# game is played with: dictionaries/en.txt and dice/3x3.txt to 6x6.txt beside
-# the executable (see SolverModel::loadDefaultDictionary and SoloGameSetup).
+# The default dictionary and the standard board's dice the game is played with:
+# dictionaries/en.txt and dice/3x3.txt to 6x6.txt beside the executable (see
+# SoloGameSetup and main.cpp).
 add_custom_command(TARGET WordJewelsSolver POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WordJewelsSolver>/dictionaries"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different

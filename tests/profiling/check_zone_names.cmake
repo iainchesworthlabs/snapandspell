@@ -24,6 +24,19 @@
 # caches one source location for each name, which is what one name one place
 # means there (the calls are one zone, whatever opens them).
 #
+# Every name's first part is a LAYER, and the layers are a registry in this
+# file (_layer_registry): a name whose layer is not in it fails, so a new
+# layer is a deliberate edit with a reason beside it, not a typo that quietly
+# starts a second spelling of "store" or "solver" in the traces. The registry
+# has no entry nothing uses (a layer is added with its first name), except the
+# ones in _reserved_layers, which the next zones to be added are named after.
+#
+# Three QML names are not written as a Profiler call's argument: BoardScene
+# chooses the stage's zone in stageZone() and passes it as a variable. They are
+# pinned as string literals (_required_qml_literals) in the QML and JavaScript
+# sources, and they take part in the shape and uniqueness checks as the other
+# QML names do.
+#
 # Scans src/ for `zone<"...">`, `plot("...")`, `frame_mark("...")`,
 # `thread_name("...")`, and the QML files for the Profiler calls. The variant
 # headers and profiling_types.hpp are skipped (they are where the calls are
@@ -40,10 +53,61 @@ set(_zone_shape "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$")
 set(_frame_shape "^[A-Z][A-Za-z0-9]*$")
 set(_thread_shape "^[a-z][a-z0-9_-]*$")
 
+# --- the layer registry -------------------------------------------------------
+# The first part of every zone, plot and QML name. One line a layer, with what
+# the layer is; keep them sorted.
+set(_layer_registry
+    app        # start-up of the application: src/app/main.cpp
+    board      # making and restoring a board: roll, seed, verify, deal, parse
+    camera     # converting a camera frame
+    cli        # wjs-cli
+    data       # loading and saving: dictionary, dice, phases, catalogue, store, dashboard
+    dice       # the dice sets
+    feedback   # the cue plan for sound and haptics
+    gate       # the parent gate
+    input      # a traced path as the player makes it
+    motion     # the device-motion processor
+    path       # path validation
+    phonics    # the grapheme binder
+    render     # the render thread's frame (plots)
+    rules      # the game rules
+    scan       # reading a board from a camera frame
+    scene      # the 3D board scene, C++ and QML
+    scene2d    # the 2D fallback scene kept in src/app/qml/scene/fallback: not built, so not required
+    settings   # normalising the settings
+    shake      # shake detection
+    solo       # Solo Play's model
+    solver     # the solver (and the solver app model)
+    store      # the store's own parse and serialise
+    ui)        # the QML screens and the GUI thread's frame
+# Layers the zones now being added are named after. A name may use one before
+# it is in the registry above; move it up with its first use, so that the
+# registry stays free of layers nothing uses.
+set(_reserved_layers
+    assist     # Mode A, reading a board from a photograph
+    parent     # the parent area's edits
+    session    # the game session
+    sound      # the sound engine
+    speech)    # the speech engine
+
 set(_failures "")
 function(_fail text)
     set(_failures "${_failures}\n  ${text}" PARENT_SCOPE)
 endfunction()
+
+# Fails unless the name's first part is a registered layer; remembers which
+# layers were used. A macro, so that it fails and remembers in the caller's scope.
+set(_layers_used "")
+macro(_check_layer where kind name)
+    string(REGEX REPLACE "\\..*$" "" _layer "${name}")
+    if(_layer IN_LIST _layer_registry OR _layer IN_LIST _reserved_layers)
+        list(APPEND _layers_used "${_layer}")
+    else()
+        _fail("${where}: ${kind} '${name}' has the layer '${_layer}', which is not in "
+              "_layer_registry (tests/profiling/check_zone_names.cmake); add it there "
+              "with what it is, or use a layer that exists")
+    endif()
+endmacro()
 
 set(_zone_names "")
 set(_qml_names "")
@@ -81,6 +145,8 @@ foreach(_source IN LISTS _sources)
             math(EXPR _zones "${_zones} + 1")
             if(NOT _name MATCHES "${_zone_shape}")
                 _fail("${_where}: zone '${_name}' is not <layer>.<thing>, lower case and dotted")
+            else()
+                _check_layer("${_where}" "zone" "${_name}")
             endif()
             if("${_name}" IN_LIST _zone_names)
                 _fail("${_where}: zone '${_name}' is used again; one name is one place")
@@ -91,6 +157,8 @@ foreach(_source IN LISTS _sources)
             math(EXPR _plots "${_plots} + 1")
             if(NOT _name MATCHES "${_zone_shape}")
                 _fail("${_where}: plot '${_name}' is not <layer>.<thing>, lower case and dotted")
+            else()
+                _check_layer("${_where}" "plot" "${_name}")
             endif()
             if("${_name}" IN_LIST _plot_names)
                 _fail("${_where}: plot '${_name}' is used again; one line is one name")
@@ -140,6 +208,8 @@ foreach(_source IN LISTS _qml_sources)
         math(EXPR _qml_scopes "${_qml_scopes} + 1")
         if(NOT _name MATCHES "${_zone_shape}")
             _fail("${_where}: '${_name}' is not <layer>.<thing>, lower case and dotted")
+        else()
+            _check_layer("${_where}" "QML scope" "${_name}")
         endif()
         if("${_name}" IN_LIST _zone_names)
             _fail("${_where}: '${_name}' is also a C++ zone; one name is one place")
@@ -155,8 +225,11 @@ endforeach()
 # is. A name is added here with the code it times, and removed only with a
 # reason in the commit that says where the work went.
 set(_required_zones
+    app.fonts
     app.load_qml
     app.startup
+    assist.confirm
+    assist.solve
     board.deal
     board.deal_playable
     board.parse
@@ -173,11 +246,13 @@ set(_required_zones
     data.load_store
     data.save_store
     dice.load_sets
+    feedback.play
     feedback.plan
     gate.refresh
     input.submit
     input.trace
     motion.push
+    parent.edit
     path.validate
     phonics.bind
     phonics.sound_it_out
@@ -194,19 +269,25 @@ set(_required_zones
     session.finish
     settings.normalize
     shake.detect
+    solo.again
     solo.blocks
+    solo.help
     solo.history
     solo.path
     solo.submit
-    solver.model
+    solo.words_with_start
     solver.solve
+    sound.play
+    speech.say
     store.parse
     store.serialize
     store.session_record
     store.session_snapshot)
 set(_required_plots
     render.frame_ms
+    render.record_ms
     solver.visits
+    ui.animate_ms
     ui.first_frame_ms
     ui.frame_ms
     ui.sync_ms)
@@ -214,11 +295,15 @@ set(_required_qml
     scene.play
     scene.prepare
     scene.show
-    scene2d.play
-    scene2d.show
-    scene2d.step
     ui.screen
     ui.trace)
+# The stage's zone is chosen by BoardScene.stageZone() and passed to
+# Profiler.begin() as a variable, so the call is not a literal to find. The
+# names are pinned as string literals in the QML and JavaScript instead.
+set(_required_qml_literals
+    scene.drop
+    scene.settle
+    scene.shake)
 foreach(_name IN LISTS _required_zones)
     if(NOT _name IN_LIST _zone_names)
         _fail("the required zone '${_name}' is gone; instrumentation was removed")
@@ -232,6 +317,56 @@ endforeach()
 foreach(_name IN LISTS _required_qml)
     if(NOT _name IN_LIST _qml_names)
         _fail("the required QML scope '${_name}' is gone")
+    endif()
+endforeach()
+# The frame sets and the named threads a trace is read by: the window's frames and
+# the camera's, and the threads the work runs on (the scanner's read has one of
+# its own, so it is not mistaken for the window's).
+foreach(_name IN ITEMS Capture UI)
+    if(NOT _name IN_LIST _frame_names)
+        _fail("the required frame set '${_name}' is gone")
+    endif()
+endforeach()
+foreach(_name IN ITEMS main render scan)
+    if(NOT _name IN_LIST _thread_names)
+        _fail("the required thread name '${_name}' is gone")
+    endif()
+endforeach()
+
+# The pinned literals: a quoted name on a line that is not a comment, in the
+# QML or JavaScript. They then take part in what the other QML names do.
+foreach(_name IN LISTS _required_qml_literals)
+    set(_found FALSE)
+    foreach(_source IN LISTS _qml_sources)
+        file(STRINGS "${_source}" _lines REGEX "\"${_name}\"")
+        foreach(_line IN LISTS _lines)
+            if(NOT _line MATCHES "^[ 	]*//")
+                set(_found TRUE)
+            endif()
+        endforeach()
+    endforeach()
+    if(NOT _found)
+        _fail("the required QML scope '${_name}' is gone: no QML or JavaScript line has "
+              "the literal \"${_name}\" (BoardScene.stageZone() chooses it)")
+        continue()
+    endif()
+    if(NOT _name MATCHES "${_zone_shape}")
+        _fail("'${_name}' is not <layer>.<thing>, lower case and dotted")
+    else()
+        _check_layer("_required_qml_literals" "QML scope" "${_name}")
+    endif()
+    if("${_name}" IN_LIST _zone_names)
+        _fail("'${_name}' is also a C++ zone; one name is one place")
+    endif()
+    list(APPEND _qml_names "${_name}")
+endforeach()
+
+# The registry has nothing in it that nothing uses.
+list(REMOVE_DUPLICATES _layers_used)
+foreach(_layer IN LISTS _layer_registry)
+    if(NOT _layer IN_LIST _layers_used)
+        _fail("the layer '${_layer}' is in _layer_registry and no zone, plot or QML scope "
+              "uses it; remove it, or move it to _reserved_layers if a name is coming")
     endif()
 endforeach()
 

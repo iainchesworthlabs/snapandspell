@@ -165,7 +165,8 @@ template <typename Parsed, typename Parse>
     return *std::move(parsed);
 }
 
-[[nodiscard]] wjs::PhaseSet build_phonics_phase() {
+// The test phase's two files, as the text a directory would hold.
+[[nodiscard]] PhaseTexts make_phase_texts() {
     std::vector<std::string> letters;
     for (const char letter : phase_letters) {
         letters.emplace_back(1, to_lower(letter));
@@ -189,11 +190,15 @@ template <typename Parsed, typename Parse>
         }
         words_text += lower + "  " + split + "\n";
     }
+    return {graphemes_text(letters), std::move(words_text)};
+}
 
+[[nodiscard]] wjs::PhaseSet build_phonics_phase() {
+    const PhaseTexts& texts = phonics_phase_texts();
     const std::vector<wjs::GraphemesFile> graphemes = {
-        parse_or_abort<wjs::GraphemesFile>(graphemes_text(letters), wjs::parse_graphemes)};
+        parse_or_abort<wjs::GraphemesFile>(texts.graphemes, wjs::parse_graphemes)};
     const std::vector<wjs::WordsFile> files = {
-        parse_or_abort<wjs::WordsFile>(words_text, wjs::parse_words)};
+        parse_or_abort<wjs::WordsFile>(texts.words, wjs::parse_words)};
     auto built = wjs::PhaseSet::build(graphemes, files, english());
     if (!built) {
         std::abort();
@@ -211,6 +216,11 @@ constexpr std::array<std::string_view, 39> binder_letters = {
     "ou", "ow",  "oy",  "p",   "ph",  "s",  "sh", "t",  "th", "ue", "ur",  "ure", "wh"};
 
 }  // namespace
+
+const PhaseTexts& phonics_phase_texts() {
+    static const PhaseTexts texts = make_phase_texts();
+    return texts;
+}
 
 const wjs::PhaseIndex& phonics_phase() {
     static const wjs::PhaseSet set = build_phonics_phase();

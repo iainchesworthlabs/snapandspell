@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 
+#include "camera_problem.hpp"
 #include "wjs/scan/frame.hpp"
 
 // What a camera has to do for Mode A, behind the seam the screens and the model
@@ -55,16 +56,18 @@ public:
     // is none.
     [[nodiscard]] virtual QStringList devices() const = 0;
 
-    // Empty when there is nothing wrong, otherwise one of the codes the wording
-    // file turns into a sentence: "no_camera", "permission" or "failed".
-    // "no_camera" is a fact about the device, not a fault.
-    [[nodiscard]] virtual QString problem() const = 0;
+    // `none` when there is nothing wrong, otherwise why: no_camera, permission or
+    // failed (CameraProblem). no_camera is a fact about the device, not a fault.
+    [[nodiscard]] virtual CameraProblem problem() const = 0;
 
     // The camera is on and delivering frames (or is about to).
     [[nodiscard]] virtual bool running() const = 0;
 
     // Starts the first rear camera (a desktop's first camera otherwise). False,
-    // with problem() set, when it cannot. Safe to call while running.
+    // with problem() set, when it cannot. Safe to call while running. A platform
+    // that has to ask the person first (the permission prompt) may answer true
+    // while the question is open: running() turns true when the camera is on, and
+    // problem() and the changed callback say if it is refused.
     virtual bool start() = 0;
 
     // Stops capturing and drops any frame not yet taken. Safe more than once.
@@ -75,9 +78,10 @@ public:
     // copy: what is returned is the caller's to read and forget.
     [[nodiscard]] virtual std::optional<wjs::scan::OwnedFrame> capture() = 0;
 
-    // Points a QML VideoOutput at the camera's sink, without this header naming
-    // Qt Multimedia: the multimedia backend sets the item's "videoSink" property.
-    // The none backend does nothing. `videoOutput` may be null.
+    // Shows the camera in a QML VideoOutput, without this header naming Qt
+    // Multimedia: the multimedia backend reads the item's "videoSink" (which the
+    // item owns and QML cannot be given another of) and forwards the camera's
+    // frames to it. The none backend does nothing. `videoOutput` may be null.
     virtual void attachPreview(QObject* videoOutput) = 0;
 
     // Forgets the item attachPreview() was given. It is not required before the

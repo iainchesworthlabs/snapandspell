@@ -25,10 +25,7 @@ set(WJS_PARENT_QML_FILES
     DashboardScreen.qml
     GateScreen.qml
     LicencesScreen.qml
-    PButton.qml
-    PChoice.qml
     ParentArea.qml
-    ParentTheme.qml
     ParentWording.qml
     ResetStep.qml
     Section.qml
@@ -44,9 +41,9 @@ foreach(_file IN LISTS WJS_PARENT_QML_FILES)
     list(APPEND WJS_PARENT_QML_SOURCES "${WJS_PARENT_QML_DIR}/${_file}")
 endforeach()
 
-# The two files that are singletons: the tokens and the wording.
+# The wording is the one singleton of this module: the tokens are the kit's
+# (Theme, in the application's own module).
 set_source_files_properties(
-    "${WJS_PARENT_QML_DIR}/ParentTheme.qml"
     "${WJS_PARENT_QML_DIR}/ParentWording.qml"
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
@@ -62,12 +59,23 @@ qt_add_qml_module(wjs_parent
     # first show is the acceptable place for this cost; the child-facing kit
     # and screens are the compiled ones.
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/WordJewelsSolver/Parent"
+    # The screens use the kit's tokens and components (Theme, AppBar, AppButton,
+    # SegmentedChoice), which are the application's own module, built in src/app:
+    # the import path is the directory above this one, where WordJewelsSolver/qmldir
+    # lives, as for the scan module. The application imports this module back; QML
+    # resolves the two at run time from their resources.
+    IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}/.."
     QML_FILES ${WJS_PARENT_QML_SOURCES}
     SOURCES
         parent_controller.cpp
         parent_controller.hpp)
 
-target_include_directories(wjs_parent PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(wjs_parent
+    PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    PRIVATE
+        # qt_text.hpp, the one place text crosses between the library and Qt.
+        "${PROJECT_SOURCE_DIR}/src/app")
 
 target_link_libraries(wjs_parent
     PUBLIC

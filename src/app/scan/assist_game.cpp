@@ -5,6 +5,7 @@
 #include <string_view>
 #include <utility>
 
+#include "wjs/profiling.hpp"
 #include "wjs/session_store.hpp"
 
 namespace wjs::app {
@@ -27,6 +28,14 @@ namespace {
     return wjs::tier_for_letters(word.size()).value_or(wjs::Tier::spark);
 }
 
+// Every word of the word set that the board holds: the one long piece of work a
+// confirmed board starts, and the reason "Yes, play" is not instant.
+[[nodiscard]] std::vector<wjs::FoundWord> solve_board(const wjs::Board& board,
+                                                      const wjs::WordSets& words) {
+    const auto zone = wjs::profiling::zone<"assist.solve">();
+    return wjs::viable_words(board, words);
+}
+
 }  // namespace
 
 AssistGame::AssistGame(wjs::Board board, const wjs::Dictionary& dictionary, wjs::Store& store,
@@ -41,7 +50,7 @@ AssistGame::AssistGame(wjs::Board board, const wjs::Dictionary& dictionary,
       active_(&active),
       store_(&store),
       today_(std::move(today)),
-      viable_(wjs::viable_words(board_, words())) {}
+      viable_(solve_board(board_, words())) {}
 
 wjs::WordSets AssistGame::words() const noexcept {
     return {*dictionary_, *active_};
@@ -212,7 +221,8 @@ void AssistGame::leave() {
     }
 
     if (const std::optional<wjs::BoardSnapshot> snapshot = wjs::snapshot_of(record)) {
-        static_cast<void>(store_->record(*snapshot, day));
+        const wjs::RecordOutcome outcome = store_->record(*snapshot, day);
+        save_failed_ = !outcome.stored || store_->last_save_error().has_value();
     }
 }
 

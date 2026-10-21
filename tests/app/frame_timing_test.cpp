@@ -6,7 +6,9 @@
 #include <QString>
 #include <QStringList>
 #include <QTemporaryDir>
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
 #include <string>
 
 #include "budgets.hpp"
@@ -14,8 +16,10 @@
 // The window's frame budget, measured on the application itself: its smoke run
 // (`WordJewelsSolver --smoke <frames>`, docs/profiling.md, "The smoke mode") in
 // a child process, and the report it prints. The budget is the design's
-// (docs/design/performance.md, "Budgets"): one 60 Hz frame, and no frame over
-// 33 ms during the shake and the drop.
+// (docs/design/performance.md, "Budgets"): one frame, and no frame over 33 ms
+// during the shake and the drop. One frame is the DISPLAY's, which the report
+// carries (tests/perf/budgets.hpp, "The window's frame"): 16.7 ms on a 60 Hz
+// screen and 10 ms on a 100 Hz one.
 //
 // It is a wall-time check, so it is treated as the performance tier's are
 // (docs/testing.md, "Performance tests"): it skips in a build where a clock is
@@ -103,6 +107,21 @@ void skip_unless_frame_wanted() {
     return values;
 }
 
+// A word of the summary line that is not a number (`screen=Acer_X34_P`).
+[[nodiscard]] QString smoke_word(const QString& output, const QString& key) {
+    for (const QString& line : output.split(QLatin1Char('\n'))) {
+        if (!line.startsWith(QStringLiteral("smoke: "))) {
+            continue;
+        }
+        for (const QString& token : line.mid(7).split(QLatin1Char(' '), Qt::SkipEmptyParts)) {
+            if (token.startsWith(key + QLatin1Char('='))) {
+                return token.mid(key.size() + 1);
+            }
+        }
+    }
+    return {};
+}
+
 // The application object QProcess needs, made once (Catch2's main makes none).
 QCoreApplication& application() {
     static int argc = 1;
@@ -164,20 +183,55 @@ TEST_CASE("the window holds the frame budget through the smoke run's shakes", "[
     REQUIRE(report.contains(QStringLiteral("p50_ms")));
     REQUIRE(report.contains(QStringLiteral("max_ms")));
     REQUIRE(report.contains(QStringLiteral("over33")));
+    REQUIRE(report.contains(QStringLiteral("refresh_hz")));
 
-    INFO("frames " << report.value(QStringLiteral("frames")) << ", p50 "
+    INFO("frames " << report.value(QStringLiteral("frames")) << ", window on screen '"
+                   << smoke_word(output, QStringLiteral("screen")).toStdString() << "', display "
+                   << report.value(QStringLiteral("refresh_hz")) << " Hz, p50 "
                    << report.value(QStringLiteral("p50_ms")) << " ms, p95 "
                    << report.value(QStringLiteral("p95_ms")) << " ms, max "
                    << report.value(QStringLiteral("max_ms")) << " ms, over 33 ms "
-                   << report.value(QStringLiteral("over33")));
+                   << report.value(QStringLiteral("over33")) << "; render thread mean "
+                   << report.value(QStringLiteral("render_mean_ms")) << " ms of which recording "
+                   << report.value(QStringLiteral("record_mean_ms")) << " ms, GUI thread mean "
+                   << report.value(QStringLiteral("animate_mean_ms")) << " ms to animate and "
+                   << report.value(QStringLiteral("sync_mean_ms")) << " ms to sync");
 
     // The frames asked for, and the warm-up left out of them.
     CHECK(report.value(QStringLiteral("frames")) == static_cast<double>(kFrames));
-    // The typical frame: 16.7 ms at 60 Hz, with the budget's own small room.
-    CHECK(report.value(QStringLiteral("p50_ms")) <= wjs::perf::budget::kFrameP50Ms);
+    // The typical frame is one period of the display the window was on, and all
+    // but the odd one are close to it.
+    const double refresh_hz = report.value(QStringLiteral("refresh_hz"));
+    CHECK(report.value(QStringLiteral("p50_ms")) <=
+          wjs::perf::budget::frame_p50_budget_ms(refresh_hz));
+    CHECK(report.value(QStringLiteral("p95_ms")) <=
+          wjs::perf::budget::frame_p95_budget_ms(refresh_hz));
     // No frame over 33 ms during the shake and the drop.
     CHECK(report.value(QStringLiteral("max_ms")) <= wjs::perf::budget::kFrameMaxMs);
     CHECK(report.value(QStringLiteral("over33")) == 0.0);
     // The report is of a window that drew.
     CHECK(report.value(QStringLiteral("first_frame_ms")) > 0.0);
+}
+
+// The budget's arithmetic is always checked, with or without a display: it is the
+// part of the check that can be wrong on a machine that never runs the window.
+TEST_CASE("the frame budget follows the display's refresh rate", "[app][frame]") {
+    namespace budget = wjs::perf::budget;
+
+    // 60 Hz is the budget the design states: 17 ms for the median.
+    CHECK(budget::frame_p50_budget_ms(60.0) == Catch::Approx(16.97).margin(0.01));
+    CHECK(budget::frame_p50_budget_ms(60.0) <= 17.0);
+    // A 100 Hz display is held to 10 ms, so a window that skips every second
+    // refresh (a 20 ms median) fails it, and one that holds them passes.
+    CHECK(budget::frame_p50_budget_ms(100.0) == Catch::Approx(10.3));
+    CHECK(19.9 > budget::frame_p50_budget_ms(100.0));
+    CHECK(10.03 <= budget::frame_p50_budget_ms(100.0));
+    CHECK(budget::frame_p95_budget_ms(100.0) == Catch::Approx(12.0));
+    CHECK(budget::frame_p95_budget_ms(144.0) < budget::frame_p95_budget_ms(60.0));
+
+    // A refresh rate that is not one is the 60 Hz budget, not a division by zero.
+    for (const double unknown : {0.0, -1.0, 1.0e9, std::numeric_limits<double>::quiet_NaN(),
+                                 std::numeric_limits<double>::infinity()}) {
+        CHECK(budget::frame_period_ms(unknown) == Catch::Approx(1000.0 / 60.0));
+    }
 }

@@ -65,6 +65,10 @@ void print_timing() {
 
     print_metrics("timing: reading a frame (one read against the heavy calibration workload)",
                   wjs::perf::scan_timing_metrics());
+    print_metrics(
+        "timing: the store, the dashboard, the phase directory, a submit and a path (against the "
+        "calibration workload)",
+        wjs::perf::data_timing_metrics());
     // The two calibrations on their own, so that a ratio can be read back into
     // milliseconds.
     for (const wjs::perf::Weight weight : {wjs::perf::Weight::light, wjs::perf::Weight::heavy}) {
@@ -115,6 +119,13 @@ TEST_CASE("report: what every metric measures now", "[.perf-report]") {
         wjs::perf::standard_session_digest());
     print_metrics("PHONICS BOARD (a parent's switch): the binder, a path of nine tiles",
                   wjs::perf::binder_metrics());
+    print_metrics("the store a play leaves, by mode (twenty boards), and at its heaviest",
+                  wjs::perf::store_metrics());
+    print_metrics("PHONICS BOARD (a parent's switch): the dashboard built from that store",
+                  wjs::perf::dashboard_metrics());
+    print_metrics("PHONICS BOARD (a parent's switch): the test phase loaded from a directory",
+                  wjs::perf::phase_load_metrics());
+    print_metrics("a path submitted to a session, by mode", wjs::perf::submit_metrics());
     print_timing();
 }
 

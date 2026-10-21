@@ -7,35 +7,22 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "system_motion.hpp"
+#include "test_support.hpp"
 
 namespace {
 
 using wjs::app::SystemMotion;
 
-// The platform is read when the application is made, so it is chosen before it.
-struct OffscreenPlatform {
-    OffscreenPlatform() { qputenv("QT_QPA_PLATFORM", "offscreen"); }
-};
-
-// A GUI application on Qt's offscreen platform, which needs no display: the
-// hints SystemMotion listens to belong to it.
-class OffscreenApplication : private OffscreenPlatform {
+// A GUI application on Qt's offscreen platform (the entry's environment chooses
+// it), which needs no display: the hints SystemMotion listens to belong to it.
+class OffscreenApplication : private wjs::app::test::GuiApplication {
 public:
-    OffscreenApplication() : application_(argc_, argv_) {}
-
     // The system's accessibility hints, which a test then tells of a change: the
     // platform that would say so is not there to ask. A signal is public in Qt 6; the
     // hints are const because nothing but the platform changes them.
     [[nodiscard]] QAccessibilityHints& hints() const {
         return *const_cast<QAccessibilityHints*>(QGuiApplication::styleHints()->accessibility());
     }
-
-private:
-    static inline int argc_ = 1;
-    static inline char name_[] = "wjs_app_tests";
-    static inline char* argv_[] = {name_, nullptr};
-
-    QGuiApplication application_;
 };
 
 }  // namespace
@@ -76,7 +63,8 @@ TEST_CASE("a change of the system's motion preference is reported, once", "[app]
     CHECK(reports == 2);
 }
 
-TEST_CASE("the property is read by name and notifies, as QML needs", "[app][system][motion]") {
+TEST_CASE("the motion property is read by name and notifies, as QML needs",
+          "[app][system][motion]") {
     OffscreenApplication app;
     SystemMotion motion;
     app.hints().motionPreferenceChanged(Qt::MotionPreference::NoPreference);
