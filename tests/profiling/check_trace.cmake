@@ -115,6 +115,15 @@ endforeach()
 file(MAKE_DIRECTORY "${WORK_DIR}")
 set(_trace "${WORK_DIR}/${CASE}.tracy")
 file(REMOVE "${_trace}")
+if(CASE STREQUAL "app")
+    # The same trace on every run, in this build directory or a fresh one: a store
+    # left by an earlier run holds a game to resume, and an app that resumes a game
+    # does not show the closed box first, so a trace of it has no scene.show.
+    file(GLOB _stale_store "${WORK_DIR}/app-store.wjs*")
+    if(_stale_store)
+        file(REMOVE ${_stale_store})
+    endif()
+endif()
 
 set(ENV{TRACY_PORT} "${PORT}")
 if(CASE STREQUAL "app")
