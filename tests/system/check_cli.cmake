@@ -99,13 +99,15 @@ if(CASE STREQUAL "help")
     expect_in("--dictionary" "${RUN_OUT}")
     expect_in("--scoring" "${RUN_OUT}")
     expect_in("--repeat" "${RUN_OUT}")
-elseif(CASE STREQUAL "output-every-time")
+elseif(CASE MATCHES "^output-every-time-[1-4]$")
     # The program's whole output reaches the caller on every run, not on most. In the
     # Debug build (AddressSanitizer and the profiler's client) the flush at exit was
     # lost about one run in ten, so --version and --help sometimes left 0 with nothing
     # printed; one run proves nothing, so each is run 60 times, which a loss of
     # one in ten does not survive. The program flushes its output itself now (src/cli/main.cpp).
-    foreach(_run RANGE 1 60)
+    # The 60 runs are four cases of 15 (output-every-time-1 to -4), so that ctest runs the
+    # four at once: a run starts the program, and under the sanitizers that is the cost.
+    foreach(_run RANGE 1 15)
         run_cli(--version)
         expect_code(0)
         expect_match("wjs-cli [0-9]+\\.[0-9]+\\.[0-9]+" "${RUN_OUT}")

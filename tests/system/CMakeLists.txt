@@ -15,7 +15,10 @@ if(WJS_BUILD_CLI)
     foreach(_case IN ITEMS
             help
             version
-            output-every-time
+            output-every-time-1
+            output-every-time-2
+            output-every-time-3
+            output-every-time-4
             solve
             min-length
             rarity
