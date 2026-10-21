@@ -714,6 +714,16 @@ the QML modules the application imports, and Gradle makes the package.
   JNI and the `VIBRATE` permission, a second permission this build does not ask for.
   `vibrate()` answers false, as on the desktops. The camera is Qt Multimedia's
   (shared with the desktops and iOS), the shake is Qt Sensors' accelerometer.
+- *The QML debugger plugins are in the package.* Qt's Android dependency rules bundle the
+  whole `plugins/qmltooling` directory with any program that has a QML module (13 files:
+  the TCP debug server, the profilers, among them the Quick 3D profiler the Windows deploy
+  leaves out). Excluding them through the plugin list does not work (`qt_import_plugins(...
+  EXCLUDE_BY_TYPE qmltooling)` changes the list `androiddeployqt` is given and not what it
+  copies) and the one way left is a replacement for Qt's `build.gradle` that tracks Qt's
+  own. They are inert unless QML debugging is compiled into the program (`QT_QML_DEBUG` is
+  not defined anywhere here), which has not been checked on a device. The licence is
+  not the issue it is for a desktop package (the application is GPL-3.0-only); the open
+  question is whether a release should carry a debug server at all.
 - *The platform levels:* minimum 28 (what Qt 6.12 supports), target and compile 36 (Google
   Play's requirement is 35 or later). `versionCode` is derived from the version
   (0.1.0 is 10000); `-DWJS_ANDROID_VERSION_CODE=<n>` overrides it.
