@@ -154,7 +154,11 @@ jobs:
           for kit in "$QT_ANDROID_DIR/lib/cmake/Qt6/qt.toolchain.cmake" "$QT_HOST_PATH/lib/cmake/Qt6/Qt6Config.cmake" "$QT_HOST_PATH/bin/androiddeployqt"; do
             [ -e "$kit" ] || { echo "::error::$kit is not there: the Qt install put its kits somewhere else (look at the install step's log)"; exit 1; }
           done
-          ls "$QT_ANDROID_DIR/lib/cmake" | grep -E '^Qt6(Multimedia|Sensors|TextToSpeech|Quick3D)$'
+          # The modules whose real engines this leg is the one to build (the silent
+          # variants would otherwise be chosen without a word).
+          for module in Multimedia Sensors TextToSpeech Quick3D; do
+            [ -d "$QT_ANDROID_DIR/lib/cmake/Qt6$module" ] || { echo "::error::the Qt Android kit has no $module: the module list in the install step is wrong"; exit 1; }
+          done
 
       - name: Configure
         run: cmake --preset android-arm64-debuggable

@@ -47,11 +47,11 @@ find_tool() {
   sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
   if [ -n "$sdk" ] && [ -d "$sdk/build-tools" ]; then
     # Newest first: build-tools directories are version numbers.
-    for dir in $(ls -1 "$sdk/build-tools" | sort -Vr); do
-      for candidate in "$sdk/build-tools/$dir/$name" "$sdk/build-tools/$dir/$name.exe" "$sdk/build-tools/$dir/$name.bat"; do
+    while IFS= read -r dir; do
+      for candidate in "$dir/$name" "$dir/$name.exe" "$dir/$name.bat"; do
         if [ -f "$candidate" ]; then printf '%s' "$candidate"; return 0; fi
       done
-    done
+    done < <(find "$sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -Vr)
   fi
   return 1
 }
@@ -141,8 +141,8 @@ else
 fi
 
 # The icon and a launcher activity.
-printf '%s\n' "$badging" | grep -q "^application-icon-" && ok "the package has a launcher icon" || bad "the package has no launcher icon"
-printf '%s\n' "$badging" | grep -q "^launchable-activity:" && ok "the package has a launchable activity" || bad "the package has no launchable activity"
+if printf '%s\n' "$badging" | grep -q "^application-icon-"; then ok "the package has a launcher icon"; else bad "the package has no launcher icon"; fi
+if printf '%s\n' "$badging" | grep -q "^launchable-activity:"; then ok "the package has a launchable activity"; else bad "the package has no launchable activity"; fi
 
 # The signature.
 if [ "$signed" = true ] || [ "$release" = true ]; then
