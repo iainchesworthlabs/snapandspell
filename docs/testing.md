@@ -325,8 +325,9 @@ program without `--check` is a window to look at them in.
 
 ## The interface's languages
 
-Section 8 of the [audit](audit-0.1.md#8-languages-rtl-and-i18n) asks for the eight
-languages, RTL and LTR, and the checks below. They all run in every ctest of a
+The interface is offered in eight languages, right to left and left to right
+([Application design](design/application.md#languages-right-to-left-and-fonts)), and the
+checks below hold it. They all run in every ctest of a
 build with the window (`WJS_BUILD_APP=ON`, the Windows CI leg).
 
 - **`i18n.catalogues`** regenerates `i18n/*.ts` from the QML sources with the kit's

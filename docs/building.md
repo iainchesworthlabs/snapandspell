@@ -299,7 +299,7 @@ into a temporary directory and fails when the checked-in ones differ, so a
 docs/ci.md#the-jobs-in-ciyml).
 
 The translations are **mechanical and unreviewed** for now; a later pass with
-the literacy reviewer replaces them (docs/audit-0.1.md, section 8).
+the literacy reviewer replaces them (docs/design/application.md, "Languages, right-to-left and fonts").
 
 ## iOS
 

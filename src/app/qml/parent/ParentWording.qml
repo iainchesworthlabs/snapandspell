@@ -170,7 +170,7 @@ QtObject {
     readonly property string settingsLanguageHint: qsTr("The words on the screens. The board and its letters stay English.")
 
     // The languages on offer, each named in its own script, in the order the
-    // design lists them (docs/audit-0.1.md, "Languages, RTL and i18n"). The names
+    // design lists them (docs/design/application.md, "Languages"). The names
     // are not translated: a parent reading Hebrew sees "עברית" whatever the
     // screens are in. `""` is the device's own language.
     readonly property var languageChoices: [
