@@ -219,6 +219,16 @@ QtObject {
     readonly property real sheetMaxHeight: 560
     readonly property real modalMax: 560
     readonly property real contentWidth: 860
+    // Home's column and the design's window (a screen larger than this is
+    // zoomed to 1.5 at most and centred), the widest comfortable line of a
+    // sentence, and a home card's picture: what it is given, the least it may
+    // be given, and the tallest the card gets.
+    readonly property real pageWidth: 1180
+    readonly property real pageHeight: 740
+    readonly property real measure: 720
+    readonly property real cardArt: 240
+    readonly property real cardArtMin: 160
+    readonly property real cardMax: 420
     readonly property real hintDisplay: 96
     readonly property real doneWidth: 160
     readonly property real startRing: 8
