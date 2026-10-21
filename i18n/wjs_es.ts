@@ -4,24 +4,24 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../src/app/qml/kit/AppBar.qml" line="+32"/>
+        <location filename="../src/app/qml/kit/AppBar.qml" line="+34"/>
         <source>Back</source>
         <translation>Atrás</translation>
     </message>
     <message>
-        <location line="+97"/>
+        <location line="+99"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>My boards</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+10"/>
         <location line="+1"/>
         <source>My jewels</source>
         <translation>My jewels</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+24"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>Para adultos</translation>
@@ -46,69 +46,47 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../src/app/qml/Home.qml" line="+95"/>
-        <source>A WORD-FINDING GAME FOR YOUNG READERS</source>
-        <translation>UN JUEGO DE ENCUENTRO DE PALABRAS PARA LECTORES JÓVENES</translation>
-    </message>
-    <message>
-        <location line="+8"/>
+        <location filename="../src/app/qml/Home.qml" line="+113"/>
         <source>Shake. Find. Collect.</source>
         <translation>Agita. Encuentra. Recoge.</translation>
     </message>
     <message>
-        <location line="+13"/>
+        <location line="+12"/>
         <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
         <translation>Un tranquilo juego de palabras para pequeños lectores. Agita el joyero, encuentra palabras y recoge las joyas.</translation>
     </message>
     <message>
-        <location line="+18"/>
-        <location line="+115"/>
-        <source>Play on my own</source>
-        <translation>Jugar solo</translation>
-    </message>
-    <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+25"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>Agite la caja. Encuentra palabras. Colecciona joyas.</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+1"/>
         <source>Play</source>
         <translation>Jugar</translation>
     </message>
     <message>
-        <location line="-98"/>
-        <location line="+115"/>
-        <source>FOR GROWN-UPS</source>
-        <translation>PARA MAYORES</translation>
+        <location line="-45"/>
+        <source>A word-finding game for young readers</source>
+        <translation>Un juego de encontrar palabras para lectores jóvenes</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
-        <source>Play with a real board</source>
-        <translation>Juega con un tablero real</translation>
+        <location line="+65"/>
+        <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
+        <translation>Use la cámara o escriba el tablero. Un adulto lo&#xa0;prepara.</translation>
     </message>
     <message>
-        <location line="-114"/>
-        <location line="+115"/>
-        <source>Use the camera, or type the board. A grown-up sets this up.</source>
-        <translation>Usa la cámara o escribe el tablero. Un adulto lo prepara.</translation>
-    </message>
-    <message>
-        <location line="-114"/>
-        <location line="+115"/>
+        <location line="+1"/>
         <source>Continue</source>
         <translation>Continuar</translation>
     </message>
     <message>
-        <location line="+81"/>
+        <location line="+23"/>
         <source>Word Jewels Solver</source>
         <translation>Word Jewels Solver</translation>
     </message>
     <message>
-        <location line="+12"/>
+        <location line="+10"/>
         <source>Everything stays on this device.</source>
         <translation>Todo queda en este dispositivo.</translation>
     </message>
@@ -116,14 +94,19 @@
 <context>
     <name>HomeWording</name>
     <message>
-        <location filename="../src/app/qml/HomeWording.qml" line="+8"/>
+        <location filename="../src/app/qml/HomeWording.qml" line="+9"/>
         <source>Play on my own</source>
         <translation>Jugar solo</translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Play with the family</source>
-        <translation>Jugar en familia</translation>
+        <source>For children</source>
+        <translation>Para niños</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play with a real board</source>
+        <translation>Juega con un tablero real</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -165,15 +148,13 @@
     </message>
     <message>
         <location line="+3"/>
-        <location line="+6"/>
-        <location line="+20"/>
+        <location line="+28"/>
         <source>1 word</source>
         <translation>1 word</translation>
     </message>
     <message>
-        <location line="-26"/>
-        <location line="+6"/>
-        <location line="+20"/>
+        <location line="-28"/>
+        <location line="+28"/>
         <source>%1 words</source>
         <translation>%1 words</translation>
     </message>
@@ -183,31 +164,31 @@
         <translation>This week</translation>
     </message>
     <message>
-        <location line="-5"/>
-        <location line="+7"/>
+        <location line="-3"/>
+        <location line="+5"/>
         <location line="+13"/>
         <source>1 star</source>
         <translation>1 star</translation>
     </message>
     <message>
-        <location line="-22"/>
+        <location line="-24"/>
         <source>My best boards</source>
         <translation>My best boards</translation>
     </message>
     <message>
-        <location line="+2"/>
-        <location line="+7"/>
+        <location line="+6"/>
+        <location line="+5"/>
         <location line="+13"/>
         <source>%1 stars</source>
         <translation>%1 stars</translation>
     </message>
     <message>
-        <location line="-18"/>
+        <location line="-21"/>
         <source>%1 × %2</source>
         <translation>%1 × %2</translation>
     </message>
     <message>
-        <location line="+6"/>
+        <location line="+9"/>
         <source>1 new word</source>
         <translation>1 new word</translation>
     </message>
@@ -309,19 +290,18 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+92"/>
+        <location line="+107"/>
         <source>Settings</source>
         <translation>Ajustes</translation>
     </message>
     <message>
-        <location line="-90"/>
-        <location line="+180"/>
+        <location line="-105"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Acerca de</translation>
     </message>
     <message>
-        <location line="-177"/>
+        <location line="+3"/>
         <source>Nothing to show yet.</source>
         <translation>Todavía no hay nada que mostrar.</translation>
     </message>
@@ -524,42 +504,12 @@
         <translation>La palabra más larga: %1.</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>%1x%1: %2</source>
-        <translation>%1x%1: %2</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+25"/>
         <source>How the game behaves for your child.</source>
         <translation>Cómo se comporta el juego para tu hijo.</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>PLAY</source>
-        <translation>JUGAR</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>SOUND &amp; TOUCH</source>
-        <translation>SONIDO Y TACTO</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>APPEARANCE</source>
-        <translation>APARIENCIA</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>LANGUAGE</source>
-        <translation>IDIOMA</translation>
-    </message>
-    <message>
-        <location line="+1"/>
-        <source>DATA</source>
-        <translation>DATOS</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+6"/>
         <source>Help</source>
         <translation>Ayuda</translation>
     </message>
@@ -680,13 +630,50 @@
         <translation>Fuente escolar</translation>
     </message>
     <message>
-        <location line="+2"/>
+        <location line="-34"/>
+        <location line="+36"/>
         <source>Language</source>
         <extracomment>The interface&apos;s language; the board and its letters stay English.</extracomment>
         <translation>Idioma</translation>
     </message>
     <message>
+        <location line="-61"/>
+        <source>%1 x %1</source>
+        <translation>%1 x %1</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1: %2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1 min</source>
+        <translation>%1 min</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1%</source>
+        <translation>%1&#xa0;%</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Play</source>
+        <extracomment>The settings&apos; groups: headings, written in the language&apos;s own case.</extracomment>
+        <translation>Jugar</translation>
+    </message>
+    <message>
         <location line="+1"/>
+        <source>Sound and touch</source>
+        <translation>Sonido y tacto</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Appearance</source>
+        <translation>Apariencia</translation>
+    </message>
+    <message>
+        <location line="+38"/>
         <source>The words on the screens. The board and its letters stay English.</source>
         <translation>Las palabras de las pantallas. El tablero y sus letras siguen en inglés.</translation>
     </message>
@@ -801,17 +788,14 @@
         <translation>Borrado.</translation>
     </message>
     <message>
-        <location line="-175"/>
-        <location line="+179"/>
-        <location line="+9"/>
+        <location line="-190"/>
+        <location line="+193"/>
         <source>Licences</source>
-        <extracomment>The Licences tab of the parent area, and the heading of the page it shows.
-----------
-The button that opens the Licences page from the About page.</extracomment>
+        <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Licencias</translation>
     </message>
     <message>
-        <location line="-92"/>
+        <location line="-82"/>
         <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
         <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
     </message>
@@ -828,7 +812,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Two letters</translation>
     </message>
     <message>
-        <location line="+80"/>
+        <location line="+79"/>
         <source>Privacy</source>
         <translation>Privacidad</translation>
     </message>
@@ -843,12 +827,7 @@ The button that opens the Licences page from the About page.</extracomment>
         <translation>Word Jewels Solver, versión %1</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>The licence of everything this build includes, each with its full text.</source>
-        <translation>The licence of everything this build includes, each with its full text.</translation>
-    </message>
-    <message>
-        <location line="+1"/>
+        <location line="+3"/>
         <source>This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.</source>
         <translation>Este programa es software libre. Puede redistribuirlo y modificarlo bajo los términos de la Licencia Pública General de GNU, versión 3, o (a su elección) cualquier versión posterior.</translation>
     </message>
