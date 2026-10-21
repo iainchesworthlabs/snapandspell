@@ -64,6 +64,26 @@ inline constexpr std::array<Vec3, kFaceCount> kFaceUp{{{0.0, 0.0, 1.0},
                                                        {0.0, 1.0, 0.0},
                                                        {1.0, 0.0, 0.0}}};
 
+// What the world accepts. It is driven from QML (DiceSim), where a number is
+// whatever a script computed, so the world takes any input and makes it safe
+// rather than trusting the caller: a box outside these limits is the nearest one
+// inside them (see sanitised), a reading with a number that is not finite reads
+// as the box at rest in that axis, and one advance() takes at most
+// kMaxAdvanceSeconds of time.
+inline constexpr int kMaxBoxSide = 8;     // rows and columns, at least 1
+inline constexpr double kMinPitch = 1.0;  // dice that touch, no closer
+inline constexpr double kMaxPitch = 4.0;
+inline constexpr double kMaxSlack = 16.0;     // at least 0
+inline constexpr double kMinLidHeight = 1.0;  // a die stands one edge high
+inline constexpr double kMaxLidHeight = 1000.0;
+inline constexpr double kMaxForce = 100.0;          // g, per axis, either way
+inline constexpr double kMaxSpin = 500.0;           // rad/s
+inline constexpr double kMaxSpinChange = 100000.0;  // rad/s^2
+// More than this in one advance() is a stall of the caller's, not time the dice
+// should live through: a second is 1,200 steps (about 80 ms of work with 16
+// dice), and an unbounded number of them would hang the caller.
+inline constexpr double kMaxAdvanceSeconds = 1.0;
+
 // The box. Rows run down the board (y up on screen), columns across it (x right).
 struct Box {
     int rows = 4;
@@ -81,6 +101,13 @@ struct Reading {
     Vec3 spin;
     Vec3 spinChange;
 };
+
+// The box as the world will use it: every number finite and within the limits
+// above (one that is not finite is the default's).
+[[nodiscard]] Box sanitised(const Box& box);
+// The reading as the world will use it: a component that is not finite is the
+// box at rest, and every one is within the limits above.
+[[nodiscard]] Reading sanitised(const Reading& reading);
 
 struct Tuning {
     double g = 9810.0 / 20.0;       // 1 g, in die edges per second squared
@@ -193,11 +220,13 @@ public:
     Vec3 cellCentre(int cell) const;
 
     // What the box is doing, from now until it is set again.
-    void setReading(const Reading& reading) { reading_ = reading; }
+    void setReading(const Reading& reading) { reading_ = sanitised(reading); }
     // Whether the lid is on.
     void setLid(bool on) { lid_ = on; }
 
-    // Moves time on. Whole steps are taken; what is left over is carried.
+    // Moves time on. Whole steps are taken; what is left over is carried. A
+    // time that is not finite or not positive is ignored, and one past
+    // kMaxAdvanceSeconds is cut to it.
     void advance(double seconds);
     // How many whole steps have been taken since the world was made: the work a
     // play does, counted, which the scene's work budget holds (a step is

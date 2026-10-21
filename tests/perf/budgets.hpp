@@ -326,6 +326,102 @@ inline constexpr int kDealsPerRun = 5;
 inline constexpr int kDealRuns = 9;
 
 // ---------------------------------------------------------------------------
+// What the screens wait on besides the solver (data_metrics.cpp)
+// ---------------------------------------------------------------------------
+
+// The store that twenty played boards leave, the dashboard built from it, the test
+// phase as a directory, and a path submitted to a session. The library keeps no
+// counter for these as it does for the solver, so the work is what can be counted
+// from outside and does not depend on the compiler or the standard library: bytes,
+// records, rows, words. Each figure a quarter above what it measured, rounded up
+// to three significant figures, except the exact ones; the time of each is a ratio
+// to the calibration workload, below.
+//
+// Every row states its board mode. The store of the STANDARD board lists no words
+// (a board holds tens to hundreds, and the store keeps their count); the PHONICS
+// board's lists its own, up to 24, which is most of what a kept board costs.
+struct StoreBudget {
+    std::uint64_t boards;         // kept boards (exact: wjs::max_stored_boards)
+    std::uint64_t finds;          // finds kept over them (exact)
+    std::uint64_t vault_words;    // words ever found (exact)
+    std::uint64_t bytes;          // the file after the twenty boards: one save, whole
+    std::uint64_t written_bytes;  // what the twenty changes wrote, a file after each
+};
+
+//
+// The standard board's twenty boards hold hundreds of words each, so the store is
+// at both of its limits (300 finds, 1,000 vault words) and a save writes 31 KB; the
+// phonics board's, 95 finds and 48 words, is 4.8 KB. The change that rewrites the
+// file whole after every find is what the written bytes are: 517 KB over the
+// twenty changes of the standard board's, on the GUI thread.
+inline constexpr std::array<StoreBudget, 2> kStoreBudgets = {{
+    // standard: 20 / 300 / 1,000 / 31,013 / 517,233
+    {20, 300, 1'000, 38'800, 647'000},
+    // phonics: 20 / 95 / 48 / 4,756 / 53,550
+    {20, 95, 48, 5'950, 67'000},
+}};
+
+// The heaviest store the format allows (data_corpus.hpp, heaviest_store()): the
+// file a save writes at worst, and the room under the format's own 128 KiB cap.
+// Measured 88,521 bytes, 68% of the cap.
+inline constexpr std::uint64_t kStoreHeaviestBytes = 111'000;
+
+// The dashboard built from the phonics board's twenty boards (data_corpus.hpp,
+// kept_store) against the test phase: the rows are the phase's graphemes, and what
+// they add up to is exact.
+struct DashboardBudget {
+    std::uint64_t sounds;       // exact
+    std::uint64_t boards_met;   // exact
+    std::uint64_t words_found;  // exact
+    std::uint64_t vault;        // exact
+    std::uint64_t inputs;       // boards, finds and vault words it reads
+};
+// Measured 6 / 81 / 133 / 48 / 163.
+inline constexpr DashboardBudget kDashboardBudget = {6, 81, 133, 48, 204};
+
+// The test phase loaded from a directory of its two files (PhaseSet::load_directory).
+struct PhaseLoadBudget {
+    std::uint64_t phases;     // exact
+    std::uint64_t words;      // exact: kPhonicsWords
+    std::uint64_t graphemes;  // exact
+    std::uint64_t bytes;      // the two files together
+};
+// Measured 1 / 249 / 6 / 4,345.
+inline constexpr PhaseLoadBudget kPhaseLoadBudget = {1, kPhonicsWords, 6, 5'440};
+
+// Time, as a multiple of the calibration workload (below, "Time"): the save a
+// find waits for, the parse at start-up, the dashboard a parent opens, the phase
+// directory at start-up, a path handed in by a finger and the session that checks
+// it. None of these is on a thread but the GUI's. About ten times the highest of
+// three runs on the desktop above, against the light calibration (14 to 19 ms; the
+// save and the phase directory, which read and write files, against the heavy one,
+// 118 to 130 ms). The save and the phase directory touch files, which is the one
+// thing here that another process or a virus scanner changes and a ratio to CPU work
+// does not cancel (the phase directory measured 0.40 once, with a build running on
+// the same disk), so they are held about fifty times, to catch a read or a write per
+// word and not a busy disk:
+//
+//   serialize the heaviest store   0.026 to 0.040  (0.58 ms)   budget 0.4
+//   parse it                       0.069 to 0.082  (1.3 ms)    budget 0.8
+//   save it to a file              0.018 to 0.022  (2.8 ms)    budget 1.0
+//   build the dashboard            0.012 to 0.014  (0.23 ms)   budget 0.15
+//   load the phase directory       0.008 to 0.010  (1.0 ms)    budget 0.5
+//   200 submits of each kind       0.004 to 0.008  (0.11 ms)   budget 0.08
+//   200 validations of 12 tiles    0.001 to 0.002  (0.025 ms)  budget 0.02
+inline constexpr TimeBudget kStoreSerializeTime = {0.4};
+inline constexpr TimeBudget kStoreParseTime = {0.8};
+inline constexpr TimeBudget kStoreSaveTime = {1.0};
+inline constexpr TimeBudget kDashboardTime = {0.15};
+inline constexpr TimeBudget kPhaseLoadTime = {0.5};
+inline constexpr std::array<TimeBudget, 2> kSubmitTimes = {{{0.08}, {0.08}}};
+inline constexpr TimeBudget kPathValidateTime = {0.02};
+
+// How many timed runs each takes, and how many submits or traced paths make one.
+inline constexpr int kDataRuns = 9;
+inline constexpr int kSubmitsPerRun = 200;
+inline constexpr int kPathsPerRun = 200;
+
+// ---------------------------------------------------------------------------
 // The board scene, counted (tests/app/shake_script_test.cpp)
 // ---------------------------------------------------------------------------
 
@@ -350,14 +446,47 @@ inline constexpr std::uint64_t kSceneAtlasJewels = 48;
 // The window's frame, during a smoke run's shake cycle (docs/profiling.md,
 // "The smoke mode"). The design's budget is one frame's 16.7 ms at 60 Hz and no
 // frame over 33 ms during the shake, drop and confetti (docs/design/
-// performance.md, "Budgets"). The median gets 0.3 ms of room for the display's
-// own period (16.68 ms measured on the desktop) and a timer's granularity; the
-// maximum gets none, because a missed refresh is what it is there to catch.
-// Measured by tests/app/frame_timing_test.cpp, which runs the window: a debug, a
-// Tracy or a coverage build cannot take a clock reading and skips it, and it is
-// opt-in (WJS_PERF_FRAME_TIMING=1), so a shared runner never runs it.
-inline constexpr double kFrameP50Ms = 17.0;
+// performance.md, "Budgets").
+//
+// The frame is held against the DISPLAY's period and not a fixed 16.7 ms. A window
+// that holds every refresh of a 100 Hz screen has a 10 ms median; one that holds
+// every second refresh (50 frames a second, a 20 ms median) has missed half its
+// frames. A fixed 17 ms is right for a 60 Hz screen, fails the 100 Hz one for a
+// reason that is the display's and not the program's, and cannot see the same miss
+// at 144 Hz, where 17 ms is two and a half periods. The smoke report carries the
+// refresh rate of the screen the window was on (`refresh_hz`), and the budget
+// follows it:
+//
+//   median   one period and 0.3 ms of room for the display's own period (16.68 ms
+//            measured on a 60 Hz one) and a timer's granularity: 16.97 ms at 60 Hz,
+//            which is the 17.0 the budget was
+//   95th     one period and 2 ms: one frame in twenty may be late, by a little. A
+//            100 Hz display measured 10.0 / 10.5 (median / 95th) at idle and
+//            10.1 / 14.2 with every core busy; the load fails it, as it should
+//   maximum  33 ms, the design's, whatever the display: no frame the player can
+//            see as a stall
+//
+// A report with no refresh rate (0, from a screen that does not say) is held to
+// 60 Hz. Measured by tests/app/frame_timing_test.cpp, which runs the window: a
+// debug, a Tracy or a coverage build cannot take a clock reading and skips it, and
+// it is opt-in (WJS_PERF_FRAME_TIMING=1), so a shared runner never runs it.
+inline constexpr double kFrameFallbackHz = 60.0;
+inline constexpr double kFrameP50RoomMs = 0.3;
+inline constexpr double kFrameP95RoomMs = 2.0;
 inline constexpr double kFrameMaxMs = 33.0;
+
+// The display's period in ms: from its refresh rate when that is one a screen has,
+// 60 Hz's when it is not (unknown, zero or nonsense).
+[[nodiscard]] constexpr double frame_period_ms(double refresh_hz) {
+    const bool known = refresh_hz >= 24.0 && refresh_hz <= 1000.0;
+    return 1000.0 / (known ? refresh_hz : kFrameFallbackHz);
+}
+[[nodiscard]] constexpr double frame_p50_budget_ms(double refresh_hz) {
+    return frame_period_ms(refresh_hz) + kFrameP50RoomMs;
+}
+[[nodiscard]] constexpr double frame_p95_budget_ms(double refresh_hz) {
+    return frame_period_ms(refresh_hz) + kFrameP95RoomMs;
+}
 
 // ---------------------------------------------------------------------------
 // The scanner, counted (wjs/scan/work.hpp)
@@ -402,8 +531,15 @@ inline constexpr std::uint64_t kScanComparisonsExact = 291'600;
 // several pictures, none of which stays in cache). Measured 0.36 to 0.44 (45 to 50 ms)
 // and 0.46 to 0.55 (61 to 69 ms) against 102 to 150 ms, three runs, on the desktop
 // above; each budget is seven to eight times what it measures.
+//
+// A read is on the GUI thread (ScanModel runs board_reader::read where the capture
+// arrives), so what it costs is the stall the player sees: the 5x5 (0.40 to 0.51)
+// and the 4x4 under glare (0.37 to 0.51), the other two frames of the corpus, are
+// held as well, at about eight times the highest.
 inline constexpr TimeBudget kScanRead4Time = {3.0};
+inline constexpr TimeBudget kScanRead5Time = {4.0};
 inline constexpr TimeBudget kScanRead6Time = {4.0};
+inline constexpr TimeBudget kScanReadGlareTime = {4.0};
 inline constexpr int kScanRuns = 7;
 
 }  // namespace wjs::perf::budget

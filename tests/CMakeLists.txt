@@ -77,6 +77,8 @@ add_subdirectory(scan)
 # docs/testing.md, "Performance tests".
 add_executable(wjs_perf_tests
     perf/corpus.cpp
+    perf/data_metrics.cpp
+    perf/data_work_test.cpp
     perf/game_work_test.cpp
     perf/measure.cpp
     perf/metrics.cpp
@@ -257,9 +259,14 @@ if(WJS_BUILD_APP)
     # the face the library's roll says is up, shows other faces on the way, and that
     # none of it moves a die before it is sent home. Built with the application,
     # whose scene the script is.
+    # With it, the scene's two QML objects that take what a script gives them:
+    # DiceSim (dice_sim_test.cpp) and the profiler seam (profiler_test.cpp).
     add_executable(wjs_shake_script_tests
+        app/dice_sim_test.cpp
+        app/profiler_test.cpp
         app/shake_script_test.cpp
-        "${PROJECT_SOURCE_DIR}/src/app/scene/dice_sim.cpp")
+        "${PROJECT_SOURCE_DIR}/src/app/scene/dice_sim.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/scene/profiler.cpp")
     set_target_properties(wjs_shake_script_tests PROPERTIES AUTOMOC ON)
     target_include_directories(wjs_shake_script_tests PRIVATE
         "${PROJECT_SOURCE_DIR}/src/app/scene"
@@ -312,6 +319,31 @@ if(WJS_BUILD_APP)
     catch_discover_tests(wjs_frame_timing_tests DISCOVERY_MODE PRE_TEST
         TEST_PREFIX "system.frame."
         PROPERTIES RUN_SERIAL TRUE TIMEOUT 240 LABELS "system;perf;gui")
+
+    # The window's frame clock (src/app/frame_profiler.cpp) on a window that is
+    # never shown: the signals it listens to are emitted by the test, from a
+    # thread of its own for the render thread's. Its own binary because it needs
+    # Qt Quick and a GUI application on the offscreen platform.
+    add_executable(wjs_frame_profiler_tests
+        app/frame_profiler_test.cpp
+        "${PROJECT_SOURCE_DIR}/src/app/frame_profiler.cpp")
+    set_target_properties(wjs_frame_profiler_tests PROPERTIES AUTOMOC ON)
+    target_include_directories(wjs_frame_profiler_tests PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
+    target_link_libraries(wjs_frame_profiler_tests
+        PRIVATE
+            Qt6::Core
+            Qt6::Gui
+            Qt6::Quick
+            wjs::profiling
+            wjs::warnings
+            wjs::sanitizers
+            wjs::coverage
+            Catch2::Catch2WithMain)
+    wjs_deploy_sanitizer_runtime(wjs_frame_profiler_tests)
+    wjs_platform_deploy_qt_runtime(wjs_frame_profiler_tests "")
+    catch_discover_tests(wjs_frame_profiler_tests
+        TEST_PREFIX "integration."
+        ADD_TAGS_AS_LABELS)
 
     # The parent area's screens in a stub shell (app/parent_ui): a program to
     # look at them with, and, with --check, a test that walks the gate, the
@@ -714,6 +746,71 @@ add_test(NAME profiling.zone_names
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_zone_names.cmake")
 
+# A trace of the program holds the names the documents say it does: the program
+# is run with the Tracy capture attached and the exported trace is read
+# (check_trace.cmake). check_zone_names reads the sources, which cannot tell a zone
+# in code that never runs, or a name chosen at run time (the scene's stage zones),
+# from one a trace has. Only a build with Tracy on has a client to capture, and the
+# capture tools are built with it (vcpkg's `profiling` feature, in
+# vcpkg_installed/<triplet>/tools/tracy); in any other build the cases report
+# themselves skipped (exit 4) with the reason. A port of its own for each, since
+# every Tracy client listens on 8086 and a capture attaches to whichever program
+# started first (docs/profiling.md, "Which program the capture attaches to").
+set(WJS_TRACY_TOOLS_DIR "")
+if(WJS_ENABLE_TRACY)
+    set(WJS_TRACY_TOOLS_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/tracy")
+endif()
+set(WJS_TRACE_TESTS "")
+if(WJS_BUILD_CLI)
+    add_test(NAME profiling.trace_cli
+        COMMAND "${CMAKE_COMMAND}"
+            -DCASE=cli
+            "-DTRACY_TOOLS=${WJS_TRACY_TOOLS_DIR}"
+            "-DPROGRAM=$<TARGET_FILE:wjs-cli>"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+            -DPORT=18086
+            "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_trace.cmake")
+    list(APPEND WJS_TRACE_TESTS profiling.trace_cli)
+endif()
+if(WJS_BUILD_APP)
+    add_test(NAME profiling.trace_app
+        COMMAND "${CMAKE_COMMAND}"
+            -DCASE=app
+            "-DTRACY_TOOLS=${WJS_TRACY_TOOLS_DIR}"
+            "-DPROGRAM=$<TARGET_FILE:WordJewelsSolver>"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+            -DPORT=18087
+            "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_trace.cmake")
+    list(APPEND WJS_TRACE_TESTS profiling.trace_app)
+endif()
+if(WJS_TRACE_TESTS)
+    # Alone: a capture needs the machine's attention for the seconds it takes to
+    # find the program, and the two use ports of their own but share a disk.
+    set_tests_properties(${WJS_TRACE_TESTS} PROPERTIES
+        SKIP_RETURN_CODE 4
+        RUN_SERIAL TRUE
+        TIMEOUT 240
+        LABELS "system;profiling")
+endif()
+
+# A leg that holds the performance tier's work budgets ran them. Every work case
+# stands aside (SKIP) in a build that is not optimised, and a skip is not a
+# failure, so a leg of Debug builds passes with the whole tier skipped. This runs
+# the work cases and fails when an optimised build (or a workflow that sets
+# WJS_REQUIRE_PERF_BUDGETS=1) ran none; in any other build it reports itself
+# skipped (exit 4) with the reason, so it is never a pass that checked nothing.
+add_test(NAME profiling.perf_budgets_ran
+    COMMAND "${CMAKE_COMMAND}"
+        "-DPERF_TESTS=$<TARGET_FILE:wjs_perf_tests>"
+        "-DEXPECT_RUN=$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,1,0>"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/profiling/check_perf_ran.cmake")
+set_tests_properties(profiling.perf_budgets_ran PROPERTIES
+    SKIP_RETURN_CODE 4
+    TIMEOUT 300)
+
 # The workflow's toolchain pins (CMake, Ninja, Qt, aqtinstall) are the ones in
 # .github/toolchain-versions.json, and the vcpkg baseline is the pinned commit.
 # Runs on every host: it only reads the files.
@@ -834,6 +931,7 @@ set(WJS_QUALITY_TESTS
     notices.sections
     package.config
     platform.fragments
+    profiling.perf_budgets_ran
     profiling.shipped_presets
     profiling.zone_names
     toolchain.versions

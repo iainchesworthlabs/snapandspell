@@ -27,9 +27,11 @@ namespace wjs::scene {
 //     calls are: `begin("outer"); begin("inner"); end(); end()`.
 //   - The calls are on one thread (QML's). A begin() and an end() on different
 //     threads would end a zone Tracy opened for another one.
-//   - A begin() without its end() leaves the stack one deep; the seam drops a
-//     begin() past its depth rather than nesting without limit, and an end()
-//     with nothing open does nothing.
+//   - Every begin() is balanced by its end(), even one that opens no zone: an
+//     empty name, or a begin() past the seam's depth (which is counted and not
+//     nested without limit). An end() never closes a zone another moment
+//     opened, and an end() with nothing open does nothing. A begin() without
+//     its end() leaves the stack one deep.
 //   - value() sets the number shown beside the innermost open zone, as a
 //     compile-time zone's Value() does (the cells an atlas built, say).
 //   - mark() is a moment with no work: a zero-length zone, for the trace's
@@ -48,15 +50,20 @@ public:
     explicit Profiler(QObject* parent = nullptr);
 
     // Opens a zone named `name` and leaves it open until end(). The name is
-    // `<layer>.<thing>`, as every zone's is (docs/profiling.md); an empty one is
-    // ignored.
+    // `<layer>.<thing>`, as every zone's is (docs/profiling.md); with an empty
+    // one no zone opens, but the call is still matched by its end().
     Q_INVOKABLE void begin(const QString& name);
-    // Closes the innermost open zone, if there is one.
+    // Closes the innermost open begin(), if there is one.
     Q_INVOKABLE void end();
     // A number shown beside the innermost open zone.
     Q_INVOKABLE void value(qulonglong number);
     // A discrete moment: a zero-length zone named `name`.
     Q_INVOKABLE void mark(const QString& name);
+
+    // How many begin() calls have no end() yet, in any build (tests/app/
+    // profiler_test.cpp holds the balance on it): the stack's depth, and the
+    // calls past it.
+    [[nodiscard]] std::size_t open_count() const noexcept { return depth_ + overflow_; }
 
 private:
     // How deep the seam will nest. Deeper than any synchronous moment of the
@@ -66,6 +73,8 @@ private:
 
     std::array<std::optional<wjs::profiling::RuntimeScope>, kMaxDepth> open_;
     std::size_t depth_ = 0;
+    // The begin() calls past kMaxDepth, whose end() calls are to be ignored.
+    std::size_t overflow_ = 0;
 };
 
 }  // namespace wjs::scene
