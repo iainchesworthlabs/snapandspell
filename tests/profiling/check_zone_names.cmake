@@ -257,6 +257,8 @@ set(_required_zones
     phonics.bind
     phonics.sound_it_out
     rules.classify
+    scan.box_blur
+    scan.bright_mask
     scan.convert_working
     scan.decode_frame
     scan.find_blobs

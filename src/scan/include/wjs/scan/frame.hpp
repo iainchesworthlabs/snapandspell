@@ -44,17 +44,26 @@ struct Frame {
         return stride != 0 ? stride : width * bytes_per_pixel(format);
     }
 
-    // True if the sizes are positive and the buffer holds every row.
+    // The longest side, in pixels, of a frame the reader will look at. It is far
+    // beyond any camera's (a 16-bit side) and keeps every product of a side with a
+    // pixel's bytes, and every side an `int`, inside what arithmetic can hold: the
+    // reader's pictures index with `int`.
+    static constexpr std::size_t max_side = std::size_t{1} << 16;
+
+    // True if the sizes are positive and within `max_side`, and the buffer holds
+    // every row. Written so that no product of the sizes is formed that could wrap:
+    // the sizes and the stride come from a camera and are not trusted.
     [[nodiscard]] bool valid() const noexcept {
-        if (width == 0 || height == 0) {
+        if (width == 0 || height == 0 || width > max_side || height > max_side) {
             return false;
         }
-        const std::size_t used = width * bytes_per_pixel(format);
+        const std::size_t used = width * bytes_per_pixel(format);  // at most 2^18
         const std::size_t row = row_bytes();
-        if (row < used) {
+        if (row < used || used > pixels.size()) {
             return false;
         }
-        return pixels.size() >= (height - 1) * row + used;
+        // (height - 1) * row + used <= size, as a division: row >= used > 0.
+        return (height - 1) <= (pixels.size() - used) / row;
     }
 };
 

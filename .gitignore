@@ -1,18 +1,13 @@
 # Build trees, package caches and generated output
 /build/
-build*/
-cmake-build-*/
+/build-*/
+/cmake-build-*/
 /vcpkg_installed/
 compile_commands.json
 .cache/
 .ninja_deps
 .ninja_log
 CMakeUserPresets.json
-
-# A clone of vcpkg left over from when it was a submodule. vcpkg is not part
-# of this repository: one shared clone serves every project, found through
-# VCPKG_ROOT (docs/building.md). Never commit a clone here.
-/deps/
 
 # mkdocs build output
 /site/

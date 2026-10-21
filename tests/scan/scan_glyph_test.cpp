@@ -6,6 +6,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <numbers>
 #include <string>
 
@@ -176,6 +177,73 @@ TEST_CASE("a gradient of light across the die does not hide the letter", "[scan]
     const GlyphRead result = read(lit);
     REQUIRE(result.has_ink);
     CHECK(result.best[0].glyph == glyph_index("R").value());
+}
+
+TEST_CASE("every glyph of the font has strokes, and the round letters are round", "[scan][glyph]") {
+    // The curved letters are put in by their letters after the table is built; a letter that
+    // missed would have been left as the straight strokes (or none) of the table.
+    for (const StrokeGlyph& glyph : stroke_font()) {
+        INFO(glyph.letters);
+        REQUIRE_FALSE(glyph.strokes.empty());
+        REQUIRE_FALSE(glyph.strokes.front().empty());
+    }
+    for (const char* round : {"O", "Q", "C", "G", "D", "U", "J", "B", "P", "R", "QU"}) {
+        const std::size_t index = glyph_index(round).value();
+        std::size_t points = 0;
+        for (const Stroke& stroke : stroke_font()[index].strokes) {
+            points += stroke.size();
+        }
+        INFO(round);
+        CHECK(points >= 10);  // an arc is a dozen points or more; a straight letter has 2 to 7
+    }
+    // Q has O's ring and a tail; QU has Q's strokes and its own.
+    CHECK(stroke_font()[glyph_index("Q").value()].strokes.size() == 2);
+    CHECK(stroke_font()[glyph_index("QU").value()].strokes.size() > 2);
+}
+
+TEST_CASE("a flat patch has no glyph even when no contrast is asked for", "[scan][glyph]") {
+    // A contrast of 0 let a patch with no ink in it through to the division by its ink
+    // depth, and then to a "letter" chosen from scores that had never been compared.
+    const GrayImage flat(100, 100, 150);
+    const GlyphRead zero = GlyphReader::standard().read(flat, {50.0, 50.0}, 34.0, 0.0);
+    CHECK_FALSE(zero.has_ink);
+    CHECK(zero.found == 0);
+    const GlyphRead negative = GlyphReader::standard().read(flat, {50.0, 50.0}, 34.0, -5.0);
+    CHECK_FALSE(negative.has_ink);
+    CHECK(negative.found == 0);
+}
+
+TEST_CASE("a cell that is not a place on the board is read as nothing, not as a letter",
+          "[scan][glyph]") {
+    const GrayImage board = die_with_glyph(glyph_index("R").value(), 0.0);
+    constexpr double nan = std::numeric_limits<double>::quiet_NaN();
+    constexpr double inf = std::numeric_limits<double>::infinity();
+    for (const Point centre : {Point{nan, 50.0}, Point{50.0, nan}, Point{inf, -inf},
+                               Point{1e300, 1e300}, Point{-1e300, 5.0}}) {
+        const GlyphRead far = GlyphReader::standard().read(board, centre, 34.0, 24.0);
+        // Off the board the picture's edge repeats: the tray, with no ink on it.
+        CHECK_FALSE(far.has_ink);
+    }
+    for (const double half_side : {0.0, -3.0, nan, inf}) {
+        const GlyphRead odd = GlyphReader::standard().read(board, {50.0, 50.0}, half_side, 24.0);
+        CHECK(odd.found <= 3);
+    }
+}
+
+TEST_CASE("reading a cell twice gives the same answer, whatever was read between",
+          "[scan][glyph]") {
+    // The per-thread work area is reused across cells: nothing of one may reach the next.
+    const GrayImage r = die_with_glyph(glyph_index("R").value(), 30.0);
+    const GrayImage o = die_with_glyph(glyph_index("O").value(), 200.0);
+    const GlyphRead first = GlyphReader::standard().read(r, {50.0, 50.0}, 34.0, 24.0);
+    (void)GlyphReader::standard().read(o, {50.0, 50.0}, 34.0, 24.0);
+    (void)GlyphReader::standard().read(GrayImage(100, 100, 150), {50.0, 50.0}, 34.0, 0.0);
+    const GlyphRead again = GlyphReader::standard().read(r, {50.0, 50.0}, 34.0, 24.0);
+    REQUIRE(first.has_ink);
+    CHECK(again.best[0].glyph == first.best[0].glyph);
+    CHECK(again.best[0].score == first.best[0].score);
+    CHECK(again.best[1].score == first.best[1].score);
+    CHECK(again.best[0].rotation_degrees == first.best[0].rotation_degrees);
 }
 
 TEST_CASE("what each clean upright glyph is read as, with its scores", "[.glyph-print]") {

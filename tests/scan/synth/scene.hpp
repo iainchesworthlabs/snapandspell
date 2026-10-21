@@ -28,9 +28,18 @@ inline constexpr std::size_t kConditionCount = 4;
 
 [[nodiscard]] const char* name(Condition condition) noexcept;
 
-// Which seeds a frame is drawn from. Tuning is for choosing the doubt thresholds
-// and nothing else; the target is held against test.
-enum class Split { tuning, test };
+// Which seeds a frame is drawn from.
+//   tuning:  the reader is developed against this split, and the doubt thresholds and
+//            the test thresholds are chosen from it, and from nothing else.
+//   test:    the split the first targets were held against. It has been read and
+//            reported on while the reader changed, so it is no longer held out; it is
+//            kept for the tools and for the frames other tests draw.
+//   heldout: seeds nothing has been tuned or tuned-to on. The target tests read it, and
+//            it is read to check, never to steer: a miss on it is reported as a miss.
+//            When it has been looked at to change something, it is retired like the two
+//            before it (docs/design/scanner.md, "The corpus plan") and a new base seed
+//            takes its place.
+enum class Split { tuning, test, heldout };
 
 struct Spec {
     Condition condition = Condition::upright;
@@ -66,6 +75,11 @@ struct Rendered {
 };
 
 [[nodiscard]] Rendered render(const Spec& spec);
+
+// The same board with nothing on the dice: a lattice of blank dice, in the lighting
+// and view of the spec's condition. The truth is empty letters. For a frame in which
+// a board and a size are found and not a letter.
+[[nodiscard]] Rendered render_blank(const Spec& spec);
 
 // The corpus of a split: for each condition 24 boards, 12 of 4x4, 6 of 5x5 and 6 of
 // 6x6.

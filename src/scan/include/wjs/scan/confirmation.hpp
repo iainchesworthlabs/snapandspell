@@ -51,6 +51,8 @@ enum class DraftError {
     off_grid,
     // confirm() with a tile that has no letters yet, or accept_tile on one.
     incomplete,
+    // A reading whose tiles are not rows * columns of them.
+    inconsistent_reading,
 };
 
 [[nodiscard]] std::string_view to_string(DraftError error) noexcept;
@@ -70,6 +72,18 @@ enum class Turn : std::uint8_t { clockwise, counter_clockwise };
 class BoardDraft {
 public:
     // The grid as read. A tile the reader saw nothing in is empty and doubtful.
+    // Refused if the reading is not a grid: no rows or columns, more than a Board
+    // can have, or a number of tiles other than rows * columns (a reading made by
+    // wjs::scan::read_board never is any of those; one made by anything else may
+    // be, and a draft over such a reading would index past its tiles).
+    [[nodiscard]] static std::expected<BoardDraft, DraftError> try_from_reading(
+        const BoardReading& reading);
+
+    // Deprecated: the call for code written before `try_from_reading`, which it
+    // keeps building. For a reading that is a grid it is the same draft; for one
+    // that is not, it is an empty grid of the reading's size held to 1..16 on each
+    // side, every tile blank and doubted, so that nothing overruns and the grown-up
+    // types the board in. New code uses `try_from_reading` and handles the error.
     [[nodiscard]] static BoardDraft from_reading(const BoardReading& reading);
 
     // An empty grid, nothing doubted: the "Type in your board" screen.

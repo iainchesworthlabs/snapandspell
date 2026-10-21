@@ -24,7 +24,33 @@ constexpr double kBoxUnit = 0.2417;
 // the ink's depth.
 constexpr double kInkPercentile = 0.96;
 
+// Less ink than this is none, whatever contrast was asked for: the ink map is
+// made by dividing by the ink's depth.
+constexpr double kMinInkDepth = 1e-6;
+
 using PatchMap = std::array<float, kPatchPixels>;
+
+// What one cell's read works in: about 35 KB of fixed arrays. On the stack that is
+// a frame large enough for the analyser to object to (C6262), and it is not
+// allocated per cell either way: this is one set per thread, so reads on two
+// threads do not touch. Each array is written in full before it is read, except
+// `ink`, which is cleared.
+struct Work {
+    PatchMap grey;
+    std::array<double, kPatchPixels> values;
+    std::array<double, kPatchPixels> sorted;
+    std::array<double, kPatchPixels> pu;
+    std::array<double, kPatchPixels> pv;
+    std::array<double, kPatchPixels> pz;
+    std::array<double, kPatchPixels> depth;
+    PatchMap ink;
+    std::array<float, kPatchPixels> turned;
+};
+
+Work& thread_work() noexcept {
+    static thread_local Work work{};
+    return work;
+}
 
 // The pixels of the patch inside its inscribed circle, and where they are, with
 // the patch's half-side as the unit. There are at most kPatchPixels of them, so
@@ -249,6 +275,7 @@ const GlyphReader& GlyphReader::standard() {
 
 GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_side,
                             double min_contrast) const {
+    Work& work = thread_work();
     GlyphRead result;
     const Circle& c = circle();
     const std::size_t count = c.pixel.size();
@@ -256,7 +283,7 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
 
     // The patch's grey levels, each averaged over 3 x 3 samples of the pixel's
     // footprint in the board image.
-    PatchMap grey{};
+    PatchMap& grey = work.grey;  // every pixel is written below
     for (int j = 0; j < kPatch; ++j) {
         for (int i = 0; i < kPatch; ++i) {
             double sum = 0.0;
@@ -276,19 +303,19 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
     // glyph is well under half of it, so that half is die. The values live in
     // fixed arrays: the circle holds at most kPatchPixels, so nothing is
     // allocated for one cell.
-    std::array<double, kPatchPixels> values{};
+    auto& values = work.values;
     for (std::size_t m = 0; m < count; ++m) {
         values[m] = static_cast<double>(grey[c.pixel[m]]);
     }
-    std::array<double, kPatchPixels> sorted{};
+    auto& sorted = work.sorted;
     std::copy_n(values.begin(), static_cast<std::ptrdiff_t>(count), sorted.begin());
     std::ranges::nth_element(sorted.begin(),
                              sorted.begin() + static_cast<std::ptrdiff_t>(count / 2),
                              sorted.begin() + static_cast<std::ptrdiff_t>(count));
     const double median = sorted[count / 2];
-    std::array<double, kPatchPixels> pu{};
-    std::array<double, kPatchPixels> pv{};
-    std::array<double, kPatchPixels> pz{};
+    auto& pu = work.pu;
+    auto& pv = work.pv;
+    auto& pz = work.pz;
     std::size_t bright = 0;
     for (std::size_t m = 0; m < count; ++m) {
         if (values[m] >= median) {
@@ -301,7 +328,7 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
     const Plane light = fit_plane(pu.data(), pv.data(), pz.data(), bright);
 
     // How deep each pixel is below that light, and how deep the ink is.
-    std::array<double, kPatchPixels> depth{};
+    auto& depth = work.depth;
     for (std::size_t m = 0; m < count; ++m) {
         depth[m] = light.at(c.u[m], c.v[m]) - values[m];
     }
@@ -311,12 +338,15 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
                              sorted.begin() + static_cast<std::ptrdiff_t>(count));
     const double ink_depth = sorted[rank];
     result.contrast = std::max(ink_depth, 0.0);
-    if (result.contrast < min_contrast) {
+    // A contrast of zero asked for would let a patch with no ink in it through to
+    // divide by its depth; there is no glyph in a patch that is flat.
+    if (result.contrast < min_contrast || ink_depth < kMinInkDepth) {
         return result;
     }
     result.has_ink = true;
 
-    PatchMap ink{};
+    PatchMap& ink = work.ink;
+    ink.fill(0.0F);  // the blur spreads into the corners, which are not the circle's
     for (std::size_t m = 0; m < count; ++m) {
         ink[c.pixel[m]] = static_cast<float>(std::clamp(depth[m] / ink_depth, 0.0, 1.0));
     }
@@ -329,7 +359,8 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
         int angle = 0;
     };
     std::array<Best, kGlyphCount> best{};
-    std::array<float, kPatchPixels> turned{};
+    auto& turned = work.turned;
+    bool compared = false;
     const std::array<Trig, kAngles>& table = turns();
     for (int k = 0; k < kAngles; ++k) {
         const double cos_a = table[static_cast<std::size_t>(k)].cos;
@@ -345,6 +376,7 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
         if (!normalise(span)) {
             continue;
         }
+        compared = true;
         for (std::size_t g = 0; g < kGlyphCount; ++g) {
             const float score =
                 dot(span, std::span<const float>(templates_[g].data(), templates_[g].size()));
@@ -352,6 +384,12 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
                 best[g] = {score, k};
             }
         }
+    }
+    if (!compared) {
+        // No turn of the ink had any variation to compare: nothing was read, and the
+        // scores below would be the starting value of every glyph, in no order.
+        result.has_ink = false;
+        return result;
     }
     detail::scan_tally().comparisons += static_cast<std::uint64_t>(kAngles) * kGlyphCount;
 
