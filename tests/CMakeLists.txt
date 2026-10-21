@@ -154,6 +154,7 @@ if(WJS_BUILD_APP)
         app/real_solo_game_test.cpp
         app/scan_model_test.cpp
         app/solo_model_test.cpp
+        app/sound_sequence_player_test.cpp
         app/qt_text_test.cpp
         app/startup_failure_test.cpp
         app/system_colour_scheme_test.cpp

@@ -278,6 +278,7 @@ set(_required_zones
     solo.words_with_start
     solver.solve
     sound.play
+    sound.sequence
     speech.say
     store.parse
     store.serialize

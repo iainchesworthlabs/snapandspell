@@ -211,6 +211,14 @@ TEST_CASE("a reading that is not a grid is refused", "[app][scan]") {
     reading.tiles.resize(3);  // not rows * columns
     CHECK_FALSE(model.useReading(reading));
     CHECK(model.state() == "ready");
+
+    // Larger than a board can be, though every tile is there.
+    reading.rows = 17;
+    reading.columns = 17;
+    reading.tiles.resize(17 * 17);
+    CHECK_FALSE(model.useReading(reading));
+    CHECK(model.state() == "ready");
+    CHECK(model.rows() == 0);
 }
 
 TEST_CASE("without a camera the typed board is the way on, and nothing is faked",
