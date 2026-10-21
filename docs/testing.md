@@ -939,6 +939,7 @@ timing from an earlier run), each change on top of the one before:
 | first-party code built with `/O1` (`WJS_SANITIZER_OPTIMIZE`) | about 274 s | 970 s |
 | Tracy's Debug client does not calibrate its timer | about 204 s | 710 s |
 | the longest cases are started first (`COST`) | about 182 s | 715 s |
+| the same, after merging `develop` (two runs, 1,144 cases) | 194 s | 727 s |
 
 What each one is:
 
