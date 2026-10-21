@@ -19,7 +19,10 @@ name: Release
 #                        the day. GitHub runs a schedule from the DEFAULT branch
 #                        (main) only. It does not build iOS: that needs a macOS
 #                        runner and the Apple signing secrets, so it runs on a tag
-#                        and on a manual dispatch (the `ios` input).
+#                        and on a manual dispatch (the `ios` input). Nor does it
+#                        build Android (a download of several gigabytes of Qt kits),
+#                        which runs on a tag and on a manual dispatch (the `android`
+#                        input) and only when the four Android signing secrets are set.
 #
 # Not a required check, and not on a pull request or the merge queue: nothing
 # here blocks a merge. The Release presets turn Tracy off
@@ -48,6 +51,14 @@ on:
           (it fails at once if they are not set). Untick it to rehearse the
           desktop packages alone. A tag builds it too, unless the repository
           variable RELEASE_WITHOUT_IOS is true.
+        type: boolean
+        default: true
+      android:
+        description: >-
+          Also build the signed Android APK and AAB. It does nothing unless the four
+          Android signing secrets are set (it says so and the run goes on without
+          Android). Untick it to rehearse the other packages alone. A tag builds it
+          too.
         type: boolean
         default: true
 
@@ -80,6 +91,7 @@ jobs:
       prerelease: ${{ steps.plan.outputs.prerelease }}
       suffix: ${{ steps.plan.outputs.suffix }}
       ios: ${{ steps.plan.outputs.ios }}
+      android: ${{ steps.plan.outputs.android }}
     steps:
       # The whole history: whether the tag is on main needs it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -96,6 +108,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           SIGNING_INPUT: ${{ inputs.signing }}
           IOS_INPUT: ${{ inputs.ios }}
+          ANDROID_INPUT: ${{ inputs.android }}
           RELEASE_WITHOUT_IOS: ${{ vars.RELEASE_WITHOUT_IOS }}
           RUN_NUMBER: ${{ github.run_number }}
           SHA: ${{ github.sha }}
@@ -114,16 +127,20 @@ jobs:
               echo "mode=release"
               echo "signing=repository"
               echo "ios=$ios"
+              echo "android=true"
             } >> "$GITHUB_OUTPUT"
             tools/release/check_release_ref.sh --tag "$REF_NAME" --sha "$SHA"
           else
             signing="${SIGNING_INPUT:-ephemeral}"
             ios=false
+            android=false
             if [ "$EVENT_NAME" = workflow_dispatch ] && [ "$IOS_INPUT" != false ]; then ios=true; fi
+            if [ "$EVENT_NAME" = workflow_dispatch ] && [ "$ANDROID_INPUT" != false ]; then android=true; fi
             {
               echo "mode=dry-run"
               echo "signing=$signing"
               echo "ios=$ios"
+              echo "android=$android"
             } >> "$GITHUB_OUTPUT"
             tools/release/check_release_ref.sh --dry-run "dryrun.${RUN_NUMBER}"
           fi
@@ -752,14 +769,202 @@ jobs:
           if [ -n "${WJS_IOS_PROFILE_FILE:-}" ]; then rm -f "$WJS_IOS_PROFILE_FILE"; fi
           rm -f "$RUNNER_TEMP/dist.p12" "$RUNNER_TEMP/wjs.mobileprovision" "$RUNNER_TEMP/profile.plist"
 
+  # The Android application, as an APK and an AAB signed with the author's upload
+  # key (repository secrets), which go to `sign` with the other packages and get the
+  # same checksums, GPG signatures, attestation and SBOM entry as every other file.
+  # The APK installs on a tablet that allows apps from outside the store; the AAB is
+  # what Google Play takes later (docs/ci.md, "Android").
+  #
+  # The signing secrets are optional: with none of the four set, this job says so and
+  # does nothing, and the release has no Android file (an Android package signed with
+  # a throw-away key would be one nobody could update). With some of them set and not
+  # the others it fails at once: that is a mistake, not a choice. A tag and a manual
+  # run build it; the weekly rehearsal does not (the Qt kits are a download of
+  # several gigabytes). This job has not run yet: rehearse it with a dispatch before
+  # tagging.
+  android:
+    name: Build the signed Android packages
+    if: needs.prepare.outputs.android == 'true'
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+    env:
+      # The pins are .github/toolchain-versions.json's (android.*; tests/platform/
+      # check_android.cmake holds this file to them).
+      ANDROID_NDK_VERSION: "27.2.12479018"
+      ANDROID_PLATFORM: "android-36"
+      ANDROID_BUILD_TOOLS: "36.0.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Before a Qt download of several gigabytes: the four secrets, by name. The
+      # values are never printed.
+      - name: Look for the Android signing secrets
+        id: signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=""
+          present=0
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -n "${!name}" ]; then present=$((present + 1)); else missing="$missing $name"; fi
+          done
+          if [ "$present" -eq 4 ]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          elif [ "$present" -eq 0 ]; then
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=No Android package::None of the Android signing secrets is set, so this release has no Android APK or AAB. tools/release/new_android_keystore.sh makes the upload keystore and prints the gh secret set commands (docs/ci.md, 'Android')."
+          else
+            echo "::error title=Android signing secrets incomplete::Repository secret(s) not set:$missing. Set all four (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD) or none of them; tools/release/new_android_keystore.sh makes them. docs/ci.md, 'Android'."
+            exit 1
+          fi
+
+      - name: Set up vcpkg
+        if: steps.signing.outputs.have == 'true'
+        uses: ./.github/actions/vcpkg-setup
+
+      - name: Install CMake 4 + Ninja
+        if: steps.signing.outputs.have == 'true'
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      - name: Use the runner's JDK 17
+        if: steps.signing.outputs.have == 'true'
+        run: |
+          set -euo pipefail
+          jdk="${JAVA_HOME_17_X64:-}"
+          [ -x "$jdk/bin/java" ] || { echo "::error::the runner image has no JDK 17 (JAVA_HOME_17_X64 is '$jdk')"; exit 1; }
+          echo "JAVA_HOME=$jdk" >> "$GITHUB_ENV"
+          "$jdk/bin/java" -version
+
+      - name: Install the Android SDK parts
+        if: steps.signing.outputs.have == 'true'
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          [ -d "$sdk" ] || { echo "::error::the runner image has no Android SDK (ANDROID_HOME is '$sdk')"; exit 1; }
+          sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$sdkmanager" ] || { echo "::error::$sdkmanager is not there"; exit 1; }
+          "$sdkmanager" --sdk_root="$sdk" --install "ndk;$ANDROID_NDK_VERSION" "platforms;$ANDROID_PLATFORM" "build-tools;$ANDROID_BUILD_TOOLS"
+          echo "ANDROID_SDK_ROOT=$sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$sdk/ndk/$ANDROID_NDK_VERSION" >> "$GITHUB_ENV"
+
+      # Qt's Android kit and the Linux kit aqtinstall's --autodesktop installs beside
+      # it with the same modules, for the host tools. The pins are
+      # .github/toolchain-versions.json's (qt.kits.android).
+      - name: Install Qt (Android kit and Linux host kit)
+        if: steps.signing.outputs.have == 'true'
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        with:
+          version: "6.12.0"
+          host: all_os
+          target: android
+          arch: android_arm64_v8a
+          dir: ${{ runner.temp }}
+          aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          cache: false
+
+      - name: Name the Qt kits
+        if: steps.signing.outputs.have == 'true'
+        run: |
+          echo "QT_ANDROID_DIR=$RUNNER_TEMP/Qt/6.12.0/android_arm64_v8a" >> "$GITHUB_ENV"
+          echo "QT_HOST_PATH=$RUNNER_TEMP/Qt/6.12.0/gcc_64" >> "$GITHUB_ENV"
+
+      - name: Show the toolchain
+        if: steps.signing.outputs.have == 'true'
+        run: |
+          cmake --version | head -n 1
+          java -version
+          cat "$ANDROID_NDK_ROOT/source.properties"
+          for kit in "$QT_ANDROID_DIR/lib/cmake/Qt6/qt.toolchain.cmake" "$QT_HOST_PATH/lib/cmake/Qt6/Qt6Config.cmake" "$QT_HOST_PATH/bin/androiddeployqt"; do
+            [ -e "$kit" ] || { echo "::error::$kit is not there: the Qt install put its kits somewhere else (look at the install step's log)"; exit 1; }
+          done
+
+      # The upload keystore goes into a file in the runner's temporary directory,
+      # which androiddeployqt reads through QT_ANDROID_KEYSTORE_PATH and the
+      # passwords through their own variables (the same ones the secrets fill).
+      # Neither is written to the log, and the file does not stay on the runner.
+      - name: Write the upload keystore
+        if: steps.signing.outputs.have == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/wjs-upload.p12"
+          echo "WJS_ANDROID_KEYSTORE=$RUNNER_TEMP/wjs-upload.p12" >> "$GITHUB_ENV"
+
+      - name: Configure (Release, signed)
+        if: steps.signing.outputs.have == 'true'
+        run: cmake --preset android-arm64-release -DQT_ANDROID_SIGN_APK=ON -DQT_ANDROID_SIGN_AAB=ON
+
+      - name: Build the APK and the AAB
+        if: steps.signing.outputs.have == 'true'
+        env:
+          QT_ANDROID_KEYSTORE_PATH: ${{ env.WJS_ANDROID_KEYSTORE }}
+          QT_ANDROID_KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          QT_ANDROID_KEYSTORE_STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          QT_ANDROID_KEYSTORE_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          SUFFIX: ${{ needs.prepare.outputs.suffix }}
+        run: |
+          set -euo pipefail
+          cmake --build --preset android-arm64-release
+          cmake --build --preset android-arm64-release --target aab
+          apk="$(find build/android-arm64-release -path '*outputs/apk/release/*' -name '*.apk' -type f | head -n 1)"
+          aab="$(find build/android-arm64-release -path '*outputs/bundle/release/*' -name '*.aab' -type f | head -n 1)"
+          [ -n "$apk" ] || { echo "::error::no release APK under build/android-arm64-release"; exit 1; }
+          [ -n "$aab" ] || { echo "::error::no release AAB under build/android-arm64-release"; exit 1; }
+          mkdir -p android-dist
+          stem="WordJewelsSolver-$VERSION${SUFFIX:+-$SUFFIX}-android-arm64"
+          cp "$apk" "android-dist/$stem.apk"
+          cp "$aab" "android-dist/$stem.aab"
+          echo "WJS_ANDROID_APK=$stem.apk" >> "$GITHUB_ENV"
+          ls -l android-dist
+
+      # The signed APK, opened as a device would: the application id, the version, the
+      # platform levels, the camera as the only permission, arm64, not debuggable, and a
+      # signature that is not Android's debug key.
+      - name: Check the APK
+        if: steps.signing.outputs.have == 'true'
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: src/platforms/android/packaging/verify_apk.sh "android-dist/$WJS_ANDROID_APK" --version "$VERSION" --release --signed
+
+      - name: Upload the APK and the AAB
+        if: steps.signing.outputs.have == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-android
+          path: android-dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+      # Whatever happened above, the keystore does not stay on the runner.
+      - name: Remove the upload keystore
+        if: ${{ always() }}
+        run: rm -f "$RUNNER_TEMP/wjs-upload.p12"
+
   # The SBOM, the checksums and the signatures, in one directory that is both
   # what a release publishes and what a rehearsal leaves for inspection. The iOS
-  # job may have been left out of a rehearsal (skipped); a build that failed, or
-  # an iOS job that failed, stops here.
+  # and Android jobs may have been left out of a rehearsal (skipped), and Android does
+  # nothing without its secrets; a build that failed, or an iOS or Android job that
+  # failed, stops here.
   sign:
     name: SBOM, checksums and signatures
-    needs: [prepare, build, ios]
-    if: ${{ !cancelled() && needs.build.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.ios.result) }}
+    needs: [prepare, build, ios, android]
+    if: ${{ !cancelled() && needs.build.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.ios.result) && contains(fromJSON('["success","skipped"]'), needs.android.result) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -964,6 +1169,12 @@ jobs:
               echo "### Installing on an iPhone or iPad"
               echo
               echo "The \`.ipa\` is an ad-hoc build: it installs only on a device registered in its provisioning profile. On such a device, open this page in Safari and tap Install: $pages/install-ios.html?tag=$TAG. How it works, and how to add a device: $pages/ios-install/."
+            fi
+            if ls dist/*-android-arm64.apk >/dev/null 2>&1; then
+              echo
+              echo "### Installing on an Android tablet or phone"
+              echo
+              echo "The \`-android-arm64.apk\` installs on an arm64 device that allows apps from outside the store (an app from your browser or file manager: the setting is per app, in the device's settings). It asks for the camera and nothing else. The \`.aab\` is the same program as an Android App Bundle, for Google Play."
             fi
           } > notes.md
 
