@@ -22,8 +22,8 @@ import WordJewelsSolver
 //     never `opacity`, so its label keeps 3:1 or better.
 //   * A container is told from its surround by `line` (>= 1.6:1 on a card).
 //
-// Type rules (docs/design/ux-audit-2026-10, 7.4): the scale is 12, 14, 16, 20,
-// 24, 32, 40, 48 and nothing is smaller than 12. Two tiers share it. The CHILD
+// Type rules (docs/design/application.md, "The Jewel Box design system"): the scale is 12,
+// 14, 16, 20, 24, 32, 40, 48 and nothing is smaller than 12. Two tiers share it. The CHILD
 // tier is `child` (24), `word` (24), `title` (32) and `display` (40): what a
 // five-year-old reads. The PARENT tier is `body` (16), `label` (16), `caption`
 // (14), `mono` (12) and `heading` (20): what an adult scans. A screen picks a

@@ -1,4 +1,4 @@
-// The interface's languages (docs/audit-0.1.md, "Languages, RTL and i18n"):
+// The interface's languages (docs/design/application.md, "Languages"):
 // the catalogues in i18n/, the LanguageManager's direction and fallback, that a
 // catalogue is really installed, and that the app's font chain carries the
 // glyphs of all eight languages. Built with the application, in wjs_app_tests.

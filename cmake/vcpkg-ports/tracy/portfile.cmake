@@ -69,6 +69,16 @@ vcpkg_cmake_configure(
         -DCMAKE_FIND_PACKAGE_TARGETS_GLOBAL=ON
         -DCMAKE_DISABLE_FIND_PACKAGE_Git=ON # embeds a git hash in the binaries; see build-tools.patch
         ${FEATURE_OPTIONS}
+    OPTIONS_DEBUG
+        # The Debug client does not calibrate its timer. Calibrating the CPU's cycle counter
+        # against the clock is a sleep of 200 ms in the constructor of the profiler, in every
+        # program that has Tracy in it, and the tests start more than a thousand programs
+        # (about a quarter of a Debug test run is that sleep). A Debug build's timings are not
+        # numbers about the code (cmake/Tracy.cmake); the Release client, which the *-profiling
+        # presets use, keeps the cycle counter. The consumers' side of this is in
+        # cmake/Tracy.cmake, which must agree: the timer is read inline in Tracy's headers.
+        -DTRACY_TIMER_FALLBACK=ON
+        -DTRACY_DISALLOW_HW_TIMER=ON
     OPTIONS_RELEASE
         ${TOOLS_OPTIONS}
     MAYBE_UNUSED_VARIABLES

@@ -17,6 +17,23 @@ build differed from the plan or settled something. The code that makes a board
 (the roll of the dice, the seeding) and the grapheme binder have their zones
 and work budgets too: see [The game rows](#the-game-rows).
 
+**What is not built or not held** (checked against the merged code, 2026-10-22):
+
+- **No required CI leg holds the work budgets.** They skip in a Debug build, and
+  the three required build legs are Debug. The one automatic Release leg
+  (`Performance (Linux, GCC)`) is not a required check, no workflow sets
+  `WJS_REQUIRE_PERF_BUDGETS`, and the wall-time checks and the window's frame
+  check run in no automatic leg ([The performance tier](#the-performance-tier)).
+- **The dictionary load is synchronous.** It runs on the main thread before the
+  QML engine exists; "off the UI thread" is not built ([Budgets](#budgets)).
+- **The frame check fails on one screen of the author's desktop, and the cause is
+  open** ([The window's frames](#the-windows-frames)).
+- **There is no resting screen and no confetti or celebration scene.** The
+  resting screen was not built and a cleared board waits on a summary sheet
+  ([D12](../roadmap.md#4-decisions-that-gate-the-plan)); the zeros those rows
+  asked for are not measured by anything.
+- Nothing has been measured on a tablet or a phone.
+
 **Board modes.** The standard board (dice, 3x3 to 6x6) is the MVP's **default**
 and the seeded phonics board is a parent's switch (decided 2026-10-16). A
 budget is for one mode, and every row below and every metric in the tier says
@@ -37,15 +54,17 @@ its letters in integer arithmetic where the throw-away program scaled a double,
 and that changed no board of the 800. The maxima over 200 boards are 514 / 1,548
 / 2,859 / 5,174 visits, the four rich boards make 2,832 / 5,496 / 9,443 / 12,350
 visits and find 1,126 / 1,464 / 1,788 / 327 words, and the two empty boards make
-100 and 256. Loading ENABLE took 65 to 68 ms in the tier's runs (the
-throw-away program saw 55 to 65 ms). The tier also runs, and passes, under GCC
+100 and 256. Loading ENABLE took 66 to 68 ms in the tier's runs (the
+throw-away program saw 55 to 65 ms); 66 to 68 ms is the figure the budgets, the
+[time ratios](#time-ratios) and [Profiling](../profiling.md#capturing-a-trace)
+(67 ms at the fastest under a profiler) use, and the one below. The tier also runs, and passes, under GCC
 15.2 on Ubuntu 26.04 with the same counts (a container of the CI image, and the
 `Performance` CI leg).
 
 | | Result |
 | --- | --- |
-| Loading ENABLE (172,823 words) | 55 to 65 ms; 387,889 trie nodes; +17.7 MB of working set |
-| Whole `wjs-cli` run (roadmap) | About 76 ms, load dominating |
+| Loading ENABLE (172,823 words) | 66 to 68 ms in the tier (55 to 65 ms in the throw-away program); 387,889 trie nodes; +17.7 MB of working set |
+| Whole `wjs-cli` run (roadmap's figure, not re-measured) | About 76 ms, load dominating |
 | Solving one board, mean / 95th percentile / worst | 3x3: 0.03 / 0.06 / 0.07 ms. 4x4: 0.12 / 0.19 / 0.26 ms. 5x5: 0.26 / 0.42 / 0.51 ms. 6x6: 0.48 / 0.69 / 0.85 ms |
 | Visits of the search, mean / worst | 3x3: 181 / 514. 4x4: 707 / 1,548. 5x5: 1,477 / 2,859. 6x6: 2,692 / 5,174 |
 | Boards built to hold many words (not dice sets) | 4x4 1,126 words, 2,832 visits, 0.9 ms; 5x5 1,464 words, 5,496 visits, 1.1 ms; 6x6 1,788 words, 9,443 visits, 1.7 ms; a 6x6 mix 12,350 visits, 1.5 ms |
@@ -56,7 +75,7 @@ each letter chosen by `rng() % 1,000,000` against ENABLE's letter counts. It
 is a test corpus, not a dice set. A 4x4 with no word costs a hundred visits.
 
 **What this says.** Solving is not the cost to budget: the worst board tried
-took 1.7 ms. **Loading the dictionary is** (about 60 ms and 18 MB). Whether it is
+took 1.7 ms. **Loading the dictionary is** (about 66 to 68 ms and 18 MB). Whether it is
 on the critical path depends on the **board mode** (decided 2026-10-16: the
 standard board is the default, the phonics board a parent's switch):
 
@@ -79,25 +98,25 @@ to be confirmed on the first device.
 
 | Path | Budget | Basis |
 | --- | --- | --- |
-| One UI frame, steady, board on screen | 16.7 ms at 60 Hz | Cubeulator's UI budget. A 120 Hz display halves it; the design aims at 60 Hz and does not require more |
-| During the shake, drop and confetti | No frame over 33 ms; 95% of frames under 16.7 ms | Proposal; measured on the device, not in CI |
-| The resting screen | No frame is rendered after the fade (zero in five seconds) | Proposal. It is "calm", and a screen that draws nothing draws no power |
+| One UI frame, steady, board on screen | 16.7 ms at 60 Hz | Cubeulator's UI budget. A 120 Hz display halves it; the design aims at 60 Hz and does not require more. Built as the display's own period (the median within one period and 0.3 ms), because a fixed 17 ms is wrong for a 100 Hz screen ([The window's frames](#the-windows-frames)) |
+| During the shake and the drop | No frame over 33 ms; 95% of frames within one display period and 2 ms | Proposal, and checked by the opt-in frame check on a desktop with a display; never in CI. The row used to name the confetti too, which was never built. On a tablet or phone: unmeasured |
+| The resting screen | ~~No frame is rendered after the fade (zero in five seconds)~~ **Dropped with the screen** | The resting screen was not built; a cleared board waits on a summary sheet ([D12](../roadmap.md#4-decisions-that-gate-the-plan)). Nothing measures what that sheet draws |
 | A touch to a lit tile | 2 frames | Proposal |
 | A touch to its letter's sound | 100 ms | Proposal; audio latency is unmeasured and differs by platform |
-| Launch to `home` drawn | 2 s | Cubeulator proposes 2 s on a desktop; the same figure is proposed here |
-| Full dictionary load (standard board: before its first board) | 1 s, off the UI thread; `home` is usable meanwhile | Estimate 0.2 to 0.33 s from 55 to 65 ms |
-| Phase index load (phonics board) | 10 ms | Hundreds of words |
+| Launch to `home` drawn | 2 s | Cubeulator proposes 2 s on a desktop; the same figure is proposed here. Reported by every smoke run (`ui.first_frame_ms`, 576 to 852 ms in optimised builds on the desktop), **not held by a test** |
+| Full dictionary load (standard board: before its first board) | 1 s. **Not built: off the UI thread, with `home` usable meanwhile.** The load is synchronous, in `start()` in `src/app/main.cpp` before the QML engine exists, so nothing is drawn until it ends | Estimate 0.2 to 0.34 s on a tablet from 66 to 68 ms at 3 to 5 times a desktop core. **Reported only:** the time is held as a ratio to a calibration workload (5.0), opt-in and run in no CI leg; no test holds the 1 s |
+| Phase index load (phonics board) | 10 ms | Hundreds of words. Measured at about 1 ms for the 249-word test phase as a directory (and 0.4 ms for 7 words); held as work (bytes, words, graphemes) and a ratio, [below](#what-the-screens-wait-on) |
 | Seeding a board (**phonics** only) | 10 ms typical, 50 ms worst | Up to 20 verifications at 0.02 to 0.5 ms (measured, desktop); the guided fill is up to 7 ms on a 6x6 (measured, desktop). Re-measured by the tier's corpus: [The game rows](#the-game-rows) |
 | Making a standard board (**standard**, the default) | 50 ms | A roll of dice and one solve; the solve is the cost (worst measured 0.85 ms on a 6x6 of random letters; the dice's worst solves are in [The game rows](#the-game-rows)). The session's whole deal, measured: 0.05 ms on a 3x3 to 0.67 ms on a 6x6 |
 | Solving any board | 50 ms | Worst measured 1.7 ms; a multiple of 5 gives 9 ms |
 | Start of the sound-it-out sequence after the finger lifts | 100 ms | Proposal |
-| Capture to the check screen (the single capture) | 3 s | Proposal. **Measured, desktop only:** the portable reader reads a 4x4 frame in 45 to 50 ms and a 6x6 in 61 to 69 ms (MSVC, Release, [Scanner design](scanner.md#what-was-measured)). A tablet and Vision's speed on dice are **unmeasured** |
+| Capture to the check screen (the single capture) | 3 s | Proposal. **Measured, desktop only:** the portable reader reads a 4x4 frame in 45 to 50 ms and a 6x6 in 61 to 69 ms (MSVC, Release, [Scanner design](scanner.md#what-was-measured)). The read runs on a worker thread named `scan`, not on the GUI thread. A tablet and Vision's speed on dice are **unmeasured** |
 | Camera frame, after the MVP | 33 ms, all of it | Cubeulator's `DirectScan` budget |
 | Memory for the dictionary | 32 MB | Measured 17.7 MB; a compact trie is an option if a device needs it |
 
 Which are measured by a test is the next section. **Built (2026-10-19):** the
 two frame rows above are measured by the application's own frame clock and
-`--smoke`, and held by an opt-in check ([The window's
+`--smoke`, and held by an opt-in check that no CI leg runs ([The window's
 frames](#the-windows-frames)); the rest is where this document said it was.
 
 ## Tracy
@@ -111,6 +130,19 @@ does no work), has its crash handler off, and is never in a shipped package
 because its client **listens on a TCP port** and answers discovery broadcasts.
 It also cannot run in a browser tab, so the web build has a recorder of its own
 behind the same macros.
+
+**Built here, and what it exposes.** A Debug build and the `*-profiling` presets
+are instrumented, and in them the Tracy client listens on **TCP port 8086 on
+every interface** and answers discovery broadcasts for as long as the program
+runs, whatever the program does ([Profiling](../profiling.md#the-profiler-listens-on-the-network);
+`SECURITY.md` says the same to a reporter). The release presets, and the
+packages made from them, exclude the client: the preset names are held by
+`profiling.shipped_presets`, `cpack` refuses a Tracy tree unless a development
+package is asked for by name, and the package check rejects a Release package
+that carries `TracyClient*`. CI's Windows Debug package is a development package
+on purpose. The capture tools are built from an overlay of the vcpkg port without
+ISA extensions, so a tool built on one hosted runner runs on another
+([Profiling](../profiling.md#building-a-profiling-binary)).
 
 ### The constraint here
 
@@ -179,8 +211,8 @@ connection check.
 **Built, and checked.** Compiled warning-free (`/W4 /WX`, `-Wall -Wextra
 -Wpedantic -Werror ...`) against the **real Tracy v0.14.1 headers** (vcpkg
 `tracy[on-demand]`, crash handler off) with MSVC 19.51, GCC 15.2 and Apple
-clang 21 (Xcode), each running all 43 tests of its profiling preset: the
-dispatch-only `profiling-*` legs of `ci.yml`, and the first two also locally.
+clang 21 (Xcode), each running the tests of its profiling preset (43 of them
+then): the dispatch-only `profiling-*` legs of `ci.yml`, and the first two also locally.
 The disabled variant is what every Debug leg compiles. Three things the plan
 did not have:
 
@@ -213,7 +245,13 @@ with the code that makes a board, `board.seed` (the verifications it spent),
 session, `board.deal` (the seedings a deal spent on the phonics board, the rolls on
 the standard), `input.submit` (the length of a traced path) and `board.restore`, in
 `GameSession::shake`, `trace` and `restore`; and, with the scanner, `scan.find_board` and `scan.read_tiles`, in
-`wjs::scan::find_board` and `read_board`. The rest of the table is added with the code it times.
+`wjs::scan::find_board` and `read_board`. Since then the rest of the table below
+that is marked built was added with the code it times, and the whole set is
+pinned: `profiling.zone_names` fails when a required zone, plot, QML scope, frame
+set or thread name is gone, and [Profiling](../profiling.md#what-is-instrumented)
+has the complete list with where each is. `scene.shake`, `scene.drop` and
+`scene.settle` are chosen at run time by `BoardScene.stageZone()`, so the check
+pins them as string literals in the QML.
 
 `board.roll` is not in the plan's table: the dice did not exist when it was
 written. It is the standard board's, where `board.seed` and `board.verify` are
@@ -226,24 +264,30 @@ zones inside `board.seed`, each with its `solver.visits`.
 
 | Layer | Zones, with the value each carries |
 | --- | --- |
-| app | **Built:** `app.startup`, `app.load_qml` (C++), `app.scene_create` (from QML, the scene's first layout) |
-| data | `data.load_dictionary` (words), **`data.load_phase`** (words, built), `data.save_store` (bytes written), `data.load_store` (bytes read), `data.build_dashboard` (sounds); the last three are built, in the parent area's store and dashboard |
-| board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.deal` (the session: seedings on the **phonics** board, rolls on the **standard**), `board.restore` (the session, either board), `board.roll` (dice; **standard**) |
-| solver | `solver.solve` (words found; visits) |
-| phonics (**phonics** board only) | `phonics.bind` (comparisons), `phonics.segment`, `phonics.sequence` |
-| input | `input.submit` (path length; built, in `GameSession::trace`). Per-move work is a plot, `input.hit_test_us`, not a zone |
-| ui | **Built:** `ui.trace` (the trace layer's path work, from QML), `ui.screen` (a screen's transition, from QML); the plots `ui.frame_ms`, `ui.first_frame_ms` and the frame mark `UI` are the frame clock's, and `render.frame_ms` and `ui.sync_ms` are the render thread's |
-| audio | `audio.play_clip` (clip id); a plot `audio.start_latency_ms` |
-| scene | **Built:** `scene.step` (the dice world's step; the steps it took), `scene.prepare` (the atlas; its cells), `scene.play`, `scene.show`, `scene.shake`, `scene.drop`, `scene.settle`, `scene.celebrate` (all from QML). The 2D fallback's `scene2d.play`, `scene2d.step` and `scene2d.show` are in the file kept for D2 and not built |
-| scan | **Built:** `scan.find_board`, `scan.read_tiles`. Not built: `capture.read` (the desktop camera exists through `CameraSource`, but its capture has no zone yet), and `vision.*` as Cubeulator names them, which the iOS reader will have |
+| app | **Built:** `app.startup`, `app.fonts` (six font files read before the first screen), `app.load_qml` (all C++). `app.scene_create` (the scene's first layout, from QML) was built once and is **gone** (removed in the Jewel Box design overhaul): nothing times the scene's creation, and `scene.prepare` times a board's atlas |
+| data | **Built:** `data.load_dictionary` (words), `data.load_phase` (words), `data.save_store` (bytes written), `data.load_store` (bytes read), `data.build_dashboard` (sounds), `data.load_catalogue` (a translation catalogue installed) |
+| board | `board.seed` (tries; **phonics**), `board.verify` (viable words; **phonics**), `board.deal` (the session: seedings on the **phonics** board, rolls on the **standard**), `board.restore` (the session, either board), `board.roll` (dice; **standard**); also built, `board.deal_playable` (the standard deal's roll-until-it-holds-a-word loop) and `board.parse` |
+| solver | `solver.solve` (words found; visits). The former `solver.model` went with the solver's app model, which was removed |
+| phonics (**phonics** board only) | **Built:** `phonics.bind` (comparisons) and `phonics.sound_it_out` (the sequence of sounds for a word). `phonics.segment` and `phonics.sequence` were planned and are **not built** (the playback is `sound.sequence`) |
+| input | `input.submit` (path length; built, in `GameSession::trace`) and `input.trace` (the C++ path tracer). Per-move work as a plot, `input.hit_test_us`, is **not built** |
+| ui | **Built:** `ui.trace` (the trace layer's path work, from QML), `ui.screen` (a screen's transition, from QML); the plots `ui.frame_ms`, `ui.first_frame_ms` and the frame mark `UI` are the frame clock's, and `render.frame_ms`, `render.record_ms`, `ui.sync_ms` and `ui.animate_ms` are the two threads' shares |
+| feedback, sound, speech | **Built:** `feedback.plan`, `feedback.play`, `sound.play`, `sound.sequence`, `speech.say`. They time the call that hands a cue to the device, not the moment it is heard. `audio.play_clip` (clip id) and the plot `audio.start_latency_ms` were planned and are **not built**: no sound latency is measured |
+| scene | **Built:** `scene.step` (the dice world's step; the steps it took, C++), `scene.prepare` (the atlas; its cells), `scene.play`, `scene.show`, `scene.shake`, `scene.drop`, `scene.settle` (all from QML). `scene.celebrate` was built once and is **gone** with the celebration scene: there is none now. The 2D fallback's `scene2d.play`, `scene2d.step` and `scene2d.show` are in the file kept for D2 and not built |
+| scan, assist, camera | **Built:** `scan.find_board`, `scan.read_tiles`, the stages inside them (`scan.bright_mask`, `scan.box_blur`, `scan.find_blobs`, `scan.decode_frame`, `scan.convert_working`, `scan.warp_board`, `scan.read_glyphs`), `scan.process_frame` (the whole read, on the `scan` thread), `camera.convert_frame`, `assist.confirm` and `assist.solve`. Not built: `capture.read` (the camera's capture has the frame mark `Capture` but no zone), and `vision.*` as Cubeulator names them, which the iOS reader will have |
+| solo, session, parent | **Built:** `solo.path`, `solo.blocks`, `solo.history`, `solo.submit`, `solo.help`, `solo.words_with_start`, `solo.again`, `session.finish`, `parent.edit` |
+| the library's other calls | **Built:** `path.validate`, `rules.classify`, `settings.normalize`, `shake.detect`, `motion.push`, `gate.refresh`, `dice.load_sets`, `store.parse`, `store.serialize`, `store.session_snapshot`, `store.session_record`, `cli.run` |
 
-Frame sets: unnamed for the seeding loop's passes if useful, **`UI`** for the Qt
-Quick frame (built, `frameSwapped`, as Cubeulator), `Capture` for the camera.
-Threads: `main` and `render` (built; the frame clock names the render thread),
-then `audio`, `data-load`, `camera-capture`. Messages:
-`solo.board_started`, `solo.word_found`, `solo.cleared`, `scan.captured` (none
-yet: the application has no moment without a duration). The trace's information
-window carries the build (version, commit, dirty).
+Frame sets: unnamed for the seeding loop's passes if useful (none), **`UI`** for
+the Qt Quick frame (built, `frameSwapped`, as Cubeulator), and **`Capture`** for the
+camera (built: `CameraSource::capture` marks one for each frame it takes).
+Threads: `main`, `render` and `scan` are built (the frame clock names the render
+thread; the scanner's read runs on a worker thread of one named `scan`, so it is
+not mistaken for the window's), and `profiling.zone_names` requires all three.
+`audio`, `data-load` and `camera-capture` are **not built**: the dictionary load is on `main`
+(see the budgets). Messages: `solo.board_started`,
+`solo.word_found`, `solo.cleared`, `scan.captured` are **not built** (the
+application has no moment without a duration). The trace's information window
+would carry the build (version, commit, dirty); nothing sets it yet.
 
 ## The performance tier
 
@@ -253,13 +297,34 @@ threshold in one file,
 `tests/perf/budgets.hpp`. **Two halves, and the split is the design.**
 | | Holds | Exact? | Runs |
 | --- | --- | --- | --- |
-| **Work budgets** | What the code *does*: visits, words, tries, trie nodes | Yes, on every machine and compiler | In every plain `ctest` |
-| **Wall-time checks** | What it *takes*, as a multiple of a calibration workload run in the same process | No, and loose on purpose | Only when asked: `WJS_PERF_TIMING=1`, a `*-perf` test preset, or a CI leg; run serially |
+| **Work budgets** | What the code *does*: visits, words, tries, trie nodes | Yes, on every machine and compiler | In every plain `ctest` of an optimised build; **skipped in a Debug build**, and so in the three required CI legs |
+| **Wall-time checks** | What it *takes*, as a multiple of a calibration workload run in the same process | No, and loose on purpose | Only when asked: `WJS_PERF_TIMING=1` or a `*-perf` test preset; run serially. No automatic CI leg asks |
 
 Cubeulator's reasons carry over: a count fails with a number and a seed rather
 than "slower"; a time is the one check that can fail with nothing changed, so it
 is a ratio of the fastest of N runs to the calibration's fastest, alternating,
 and a budget is several times the ratio.
+
+**What runs where, and what holds the budgets (2026-10-22).** The work budgets
+stand aside (SKIP, which is not a failure) in a build that is not optimised, and
+all three required CI legs (Windows, Linux, macOS) are Debug, so **no required
+leg holds a work budget**: a regression in a visit count, a digest or the
+dictionary's size passes the required checks. The places that do run them are
+the `Performance (Linux, GCC)` leg of `ci.yml` (the `linux-gcc-release` preset
+with the application off, then all of `ctest`), which is **not a required
+check**, and the release workflow's Release build. Three more pieces:
+
+- `profiling.perf_budgets_ran` (`tests/profiling/check_perf_ran.cmake`) runs the
+  work cases and **fails** when a Release, RelWithDebInfo or MinSizeRel build,
+  or any build run with `WJS_REQUIRE_PERF_BUDGETS=1` in its environment, ran
+  none of them or found one that skipped; in any other build it reports itself
+  skipped, with the reason, so it is never a pass that checked nothing. No
+  workflow sets `WJS_REQUIRE_PERF_BUDGETS` yet, so a Debug leg does not use it.
+- `WJS_PERF_TIMING=1` turns the wall-time checks on. The `*-perf` test presets
+  set it and select the `perf` label; the Performance leg runs that preset on a
+  manual dispatch only.
+- `WJS_PERF_FRAME_TIMING=1` turns on the window's frame check
+  ([The window's frames](#the-windows-frames)); no preset and no workflow sets it.
 
 ### Mechanics to copy
 
@@ -296,8 +361,9 @@ repository has none.
 | `solve.visits.max` 3x3 / 4x4 / 5x5 / 6x6 over 200 boards | standard | 514 / 1,548 / 2,859 / 5,174 | 640 / 1,940 / 3,580 / 6,470 |
 | `solve.visits` on the four built-to-be-rich boards | standard | 2,832 / 5,496 / 9,443 / 12,350 | 3,550 / 6,900 / 11,800 / 15,500 |
 | `solve.words` on each of those four | standard | 1,126 / 1,464 / 1,788 / 327 | Exactly (it pins the corpus) |
-| `roll.visits.max` 3x3 / 4x4 / 5x5 / 6x6: a roll of the dice, then a solve, over 200 seeds | standard | 471 / 1,636 / 3,748 / 6,457 | 589 / 2,050 / 4,690 / 8,080 |
-| digest of every solution over those boards | standard | 9710656603150208005 | Exactly |
+| digest of every solution over the random, rich and empty boards | standard | 228066831253711239 | Exactly |
+| `roll.visits.max` 3x3 / 4x4 / 5x5 / 6x6: a roll of the dice, then a solve, over 200 seeds | standard | 471 / 1,636 / 3,748 / 6,457 (the earlier dice: see below) | 589 / 2,050 / 4,690 / 8,080 |
+| digest of every solution over those boards | standard | 8038812626269854397 (moved with the dice, 2026-10-19) | Exactly |
 | `seed.phase.words`: the test phase | phonics | 249 | Exactly (it pins the phase) |
 | `seed.tries.total` over 100 seeds, 3x3 / 4x4 / 5x5 / 6x6 | phonics | 1,739 / 664 / 194 / 187 | 2,000 (the cap: see below) / 830 / 243 / 234 |
 | `seed.solves.total`, the same | phonics | 5,503 / 21,653 / 40,663 / 68,049 | 6,880 / 27,100 / 50,900 / 85,100 |
@@ -306,12 +372,23 @@ repository has none.
 | `seed.tries.max` | phonics | 20 / 20 / 7 / 7 | 20, the algorithm's own cap (`SeedOptions::max_tries`) |
 | `seed.fallbacks` of 100 | phonics | 77 / 5 / 0 / 0 | 97 / 7 / 0 / 0 (**not** the plan's 0: see below) |
 | `seed.out_of_range`: a board called a landing that is outside 3 to 5 words | phonics | 0 | Exactly 0, always |
-| digest of every board seeded | phonics | 15489434241397487766 | Exactly |
+| digest of every board seeded | phonics | 6255957985524133718 (moved when the fallback boards began to list their dead jewels in row order) | Exactly |
 | `bind.comparisons`, a path of 9: none / all / mixed | phonics | 279 / 50 / 187 | 349 / 63 / 234 |
 
 The plan's "viable words within 3 to 5, always" row (for `board.verify`) is
 `seed.out_of_range`, held as a count of boards outside the range that are not
 marked fallbacks.
+
+**The dice were replaced on 2026-10-19.** `data/dice` is now generated from a
+Scrabble-style English tile table and not from ENABLE's letter counts
+(`data/README.md`), so every board the dice make is a different board. What moved
+with them is exact in the test: the dice digest, the standard-session digest and
+the standard-session word totals (below). The visit, roll and time figures that
+were measured on the dice (the `roll.visits.max` row, the dice table and the
+standard-session and time-ratio rows below) are the earlier set's, taken on
+2026-10-16, and **have not been repeated**; what the test asserts today is their
+budgets, which are ceilings a quarter above them. Treat those figures as the
+size of the work and not as what the current dice measure.
 
 ### The game rows
 
@@ -326,9 +403,10 @@ program that is not committed). The cases are in
 (`data/dice/<n>x<n>.txt`, the shipped files) with the seeds of the random
 boards (`7919 * i + n`, 200 a size), then `wjs::solve` against the full word
 list: what making a standard board costs. The zone is `board.roll` (the dice
-rolled).
+rolled). The three measured columns are the earlier dice's (see above); the
+budget is what the test asserts.
 
-| Size | Most visits of a solve | Budget | Roll alone | Roll and solve, mean / worst |
+| Size | Most visits of a solve (earlier dice) | Budget | Roll alone | Roll and solve, mean / worst |
 | --- | --- | --- | --- | --- |
 | 3x3 | 471 | 589 | 2.5 us | 0.03 / 0.08 ms |
 | 4x4 | 1,636 | 2,050 | 3.4 us | 0.11 / 0.26 ms |
@@ -336,13 +414,13 @@ rolled).
 | 6x6 | 6,457 | 8,080 | 5.8 us | 0.53 / 1.02 ms |
 
 The roll is not the cost, as the plan said: a shuffle and a parse, a few
-microseconds, and the solve is the rest. The dice's worst solves are below the
-random boards' (514 / 1,548 / 2,859 / 5,174) on a 3x3 and up to a third above
-them from 4x4 up: a die has a vowel on it, so these boards hold more words than
+microseconds, and the solve is the rest. With the earlier dice, the worst solves were below
+the random boards' (514 / 1,548 / 2,859 / 5,174) on a 3x3 and up to a third above
+them from 4x4 up: a die has a vowel on it, so these boards held more words than
 a draw by letter counts. The 50 ms budget for making a board is met by a factor
 of fifty on this desktop. The digest pins the dice files and the roll together;
 it moves when the files do (they are made from the fixed Scrabble-style table:
-`data/README.md`).
+`data/README.md`), and it moved when they were regenerated.
 
 **Phonics board (a parent's switch): seeding.** The corpus is the proxy index
 of [Testing](../testing.md#seeding-what-was-measured): the 249 words of three
@@ -412,7 +490,7 @@ back and the order the binder documents, with nothing the library counts.
 holds three to five words, up to five seedings (`SessionOptions::max_seedings`).
 The corpus is the same test phase and the sizes the first release plays: 100
 sessions each of 3x3 and 4x4, seeded `7919 * i + n`, each dealt, played to the
-resting screen and restored once (`tests/perf/game_work_test.cpp`, tag
+`resting` state (the C++ state; the resting screen was not built) and restored once (`tests/perf/game_work_test.cpp`, tag
 `[session]`). The zones are `board.deal` (the seedings it spent),
 `input.submit` (the length of the path traced) and `board.restore`.
 
@@ -456,33 +534,43 @@ board with `wjs::deal_standard_board`: it rolls the dice of the chosen size and
 solves the roll, and rolls again, with the next seed of its stream, until the board
 holds a word, up to 20 rolls (`SessionOptions::max_rolls`). It lands no range of
 words. The corpus is the dice rows' seeds, 100 sessions each of 3x3, 4x4, 5x5 and 6x6,
-seeded `7919 * i + n`, each dealt, played to the resting screen (a find for every
-word of the dictionary on the board) and restored once (`tests/perf/game_work_test.cpp`,
+seeded `7919 * i + n`, each dealt, played to the `resting` state (the C++ state; a
+find for every word of the dictionary on the board) and restored once (`tests/perf/game_work_test.cpp`,
 tags `[session][standard]`). The zones are `board.deal` (the rolls it made),
 `input.submit` and `board.restore`, as for the phonics board.
 
-| Size | Rolls (max one) | Visits, total / worst deal | Words on the 100 boards (a board) | Restore, visits | Time a deal |
-| --- | --- | --- | --- | --- | --- |
-| 3x3 | 108 (3) | 18,755 / 446 | 3,432 (34) | 18,567 | 0.05 ms |
-| 4x4 | 100 (1) | 57,089 / 1,109 | 10,897 (109) | 57,089 | 0.15 ms |
-| 5x5 | 100 (1) | 161,035 / 3,748 | 26,311 (263) | 161,035 | 0.35 ms |
-| 6x6 | 100 (1) | 298,302 / 6,457 | 48,121 (481) | 298,302 | 0.67 ms |
+The columns are what `tests/perf/budgets.hpp` asserts today (`kStandardSessionBudgets`):
+ceilings for the rolls and the visits, and the **exact** words of the dictionary on
+the 100 boards, which are the current dice's.
+
+| Size | Rolls, total (most for one board): at most | Visits, total / worst deal: at most | Words on the 100 boards (a board, on average): exactly | Restore, visits: at most |
+| --- | --- | --- | --- | --- |
+| 3x3 | 135 (4) | 23,500 / 558 | 3,273 (33) | 23,300 |
+| 4x4 | 125 (2) | 71,400 / 1,390 | 9,948 (99) | 71,400 |
+| 5x5 | 125 (2) | 202,000 / 4,690 | 19,165 (192) | 202,000 |
+| 6x6 | 125 (2) | 373,000 / 8,080 | 31,396 (314) | 373,000 |
+
+The ceilings are a quarter above what the **earlier dice** measured on
+2026-10-16 (108 rolls for the 3x3, the worst board needing three, and 100 for each
+larger size; 18,755 / 446, 57,089 / 1,109, 161,035 / 3,748 and 298,302 / 6,457
+visits; a deal of 0.05 ms on a 3x3 to 0.67 ms on a 6x6), and have not been
+re-measured on the current dice. The word totals moved from 3,432 / 10,897 /
+26,311 / 48,121 with the dice and are the test's figures now.
 
 What it says:
 
-- **The standard deal costs one solve, and a 3x3 sometimes two.** 3.8% of 3x3 rolls
-  of the project's dice hold no word of three letters or more, so 8 of the 100 3x3
-  boards were rolled again (the worst three times); 0.15% of 4x4 rolls do, and none
-  of these 300 boards on a 4x4 or larger did. A deal is a roll (a shuffle of the
-  dice) and a solve, 0.05 to 0.67 ms on this desktop: two orders of magnitude under
+- **The standard deal costs one solve, and a 3x3 sometimes two.** With the earlier
+  dice, 3.8% of 3x3 rolls hold no word of three letters or more, so 8 of the 100 3x3
+  boards were rolled again (the worst three times); 0.15% of 4x4 rolls did, and none
+  of those 300 boards on a 4x4 or larger. A deal is a roll (a shuffle of the
+  dice) and a solve, 0.05 to 0.67 ms on this desktop with them: two orders of magnitude under
   the 50 ms of the budget table, and under the phonics board's 1.2 to 1.3 ms, which
-  seeds and solves up to five times. The worst deal of a 5x5 and a 6x6 is the very
-  board that is worst in the dice rows (3,748 and 6,457 visits), because the first
+  seeds and solves up to five times. The worst deal of a 5x5 and a 6x6 was the very
+  board that was worst in the dice rows (3,748 and 6,457 visits), because the first
   roll of a corpus seed is the dice rows' board.
 - **Playing makes no solve, however many words there are.** Tracing, asking for the
   help, `record()`, `snapshot()` and `rest()` read what the deal kept: 0 solves and 0
-  visits over all 400 boards, which hold 88,761 words between them (up to 481 on one
-  6x6), held exactly. A **restore** makes one solve (100 of 100 for each size), the
+  visits over all 400 boards, which hold 63,782 words between them, held exactly. A **restore** makes one solve (100 of 100 for each size), the
   cost of the board again, which is the cost of its deal when it landed first
   time.
 - **A board with no word was never dealt**, on any seed, and the words of the
@@ -499,8 +587,44 @@ What it says:
 the binder: the counts above see the order-of-magnitude slowdown a ratio would,
 and a seeding is dominated by the solver, which has them. The game session has
 one for each board mode, opt-in like the others (below), because a deal is the one
-path of the game that a child waits for. The standard board's word list is still the full
-dictionary until the author chooses a list; the dice rows are against it.
+path of the game that a child waits for. The standard board's word list is the full
+ENABLE list with no block list: the accepted MVP choice, pinned by a test
+([decisions](../roadmap.md#4-decisions-that-gate-the-plan)); the dice rows are
+against it.
+
+### What the screens wait on
+
+**Built (2026-10-20).** Besides the solver, the screens wait on four
+things that are not a search: the store that is rewritten whole after every find,
+the dashboard a parent opens, the phase directory read at start-up, and the path a
+finger hands in. The library keeps no counter for them as it does for the solver,
+so the work held is what can be counted from outside and does not depend on the
+compiler: bytes, records, rows and words, in `tests/perf/data_work_test.cpp` and
+`tests/perf/data_metrics.cpp`, with the figures in `tests/perf/budgets.hpp`
+(`kStoreBudgets`, `kStoreHeaviestBytes`, `kDashboardBudget`, `kPhaseLoadBudget`).
+Every case carries its board mode, and skips in a build that is not optimised.
+
+| What | Mode | Held | Recorded measurement | Budget |
+| --- | --- | --- | --- | --- |
+| The store after twenty played boards: boards / finds / vault words (exact), the file, and the bytes the twenty saves wrote | standard | the store's own limits, so a save writes whole | 20 / 300 / 1,000 and a file of 31,013 B (517,233 B written), with the earlier dice | 38,800 B file, 647,000 B written |
+| The same | phonics | as above | 20 / 95 / 48; 4,756 B (53,550 B written) | 5,950 B, 67,000 B written |
+| The heaviest store the format allows | both | the file a save writes at worst | 88,521 B, 68% of the format's cap | 111,000 B |
+| The dashboard built from the phonics board's twenty boards | phonics | sounds / boards met / words found / vault / inputs read | 6 / 81 / 133 / 48 / 163 | 6 / 81 / 133 / 48 exactly, 204 inputs at most |
+| The test phase loaded as a directory | phonics | phases / words / graphemes (exact), bytes | 1 / 249 / 6, 4,345 B | the same exactly, 5,440 B |
+| A path submitted to a session | both | a miss and a repeated find change nothing but the finds | no solve | exact |
+
+The store is rewritten whole after each change, on the GUI thread, which is why
+the written bytes are held and not only the file: on the standard board the
+twenty changes write 517 KB for a 31 KB file, because the board's finds and the
+vault are at both of their limits. Their times are ratios to a calibration
+workload, opt-in and run in no CI leg: serialising the heaviest store 0.026 to
+0.040 (budget 0.4), parsing it 0.069 to 0.082 (0.8), saving it to a file 0.018 to
+0.022 (1.0), building the dashboard 0.012 to 0.014 (0.15), loading the phase
+directory 0.008 to 0.010 (0.5), 200 submits of each kind 0.004 to 0.008 (0.08) and
+200 validations of 12 tiles 0.001 to 0.002 (0.02). The save and the phase
+directory touch files, so they are held about fifty times the measurement, to catch
+a read or a write per word and not a busy disk. The phase directory's 1 ms is the
+measurement behind the 10 ms row of the [budgets](#budgets).
 
 ### The scene's work
 
@@ -546,7 +670,7 @@ to budget a launch in CI:
 
 - **Ahead-of-time compilation.** The application's QML module builds with the
   type compiler (`ENABLE_TYPE_COMPILER`, qmltc): the kit's frequent types - the
-  buttons, icons, jewels, the box, the resting screen, the thumbnails - are C++
+  buttons, icons, jewels, the box, the thumbnails - are C++
   classes with compiled bindings, so first instantiation is no longer
   interpreted. The files qmltc of the shared aqtinstall kit cannot take are
   skipped per file and keep bytecode-compiled bindings (cross-module screens,
@@ -577,49 +701,71 @@ steady-state frames, and a person measures launch on the device as before.
 
 ### The window's frames
 
-**Built, and measured 2026-10-19** (a Release build of the application, on the
-Windows 11 desktop above, with a 60 Hz display). The frame clock
+**Built, and measured 2026-10-19 to 21** (a Release build of the application, on
+the Windows 11 desktop above, which has two screens at different rates: see
+[the frame on a desktop with two screens](../profiling.md#the-frame-on-a-desktop-with-two-screens)). The frame clock
 (`src/app/frame_profiler.cpp`, [Profiling](../profiling.md#the-frame)) keeps a
 rolling window of the frames the window swapped, and `--smoke` prints it. The
-budgets are the design's table's own, and the check is a wall-time check held
-like the tier's others: opt-in, and it skips a debug, Tracy or coverage build.
+budgets are the design's table's own, held against **the refresh rate of the
+screen the window is on** (the report carries `refresh_hz` and `screen`), and the
+check is a wall-time check held like the tier's others: opt-in, and it skips a
+debug, Tracy or coverage build and the `offscreen` platform.
 
 | Metric | Budget | What it holds |
 | --- | --- | --- |
-| `frame.p50` | 17.0 ms | The typical frame: 16.7 ms at 60 Hz, with 0.3 ms for the display's own 16.68 ms period and a timer's granularity |
+| `frame.p50` | One display period and 0.3 ms (16.97 ms at 60 Hz, 10.3 ms at 100 Hz) | The typical frame is a refresh: 0.3 ms is room for the display's own period (16.68 ms measured on a 60 Hz one) and a timer's granularity. A fixed 17 ms was right at 60 Hz, failed a 100 Hz screen for a reason that was the display's, and could not see a window that held only half its frames there |
+| `frame.p95` | One display period and 2 ms | One frame in twenty may be late, by a little. A busy machine moved a 100 Hz screen's from 10.5 to 14.2 ms, which this catches |
 | `frame.max` | 33 ms | No frame over 33 ms during the shake and the drop: one missed refresh is a late frame, two are a stall |
 | `frame.over33` | 0 | The same, counted: no frame in the measured window is over it |
 
-The check is `tests/app/frame_timing_test.cpp`: it runs
-`WordJewelsSolver --smoke 240` in a child process, reads the report's
-`smoke: key=value` line, and compares those three numbers. It needs a display
-and a quiet machine, so it is **not** selected by the `perf` test preset and
-never runs in CI: it is `WJS_PERF_FRAME_TIMING=1` on a desktop, and CTest runs
-it alone (`RUN_SERIAL`). A window that cannot present a frame (the offscreen
-platform plugin cannot give Quick 3D one) is reported as a skip with the
+A report with no refresh rate is held to 60 Hz. The check is
+`tests/app/frame_timing_test.cpp`: it runs `WordJewelsSolver --smoke 240` in a
+child process, reads the report's `smoke: key=value` line, requires 240 frames and
+a first frame, and compares the four numbers above. A second case, always run,
+checks the arithmetic of the budget for 60, 100 and 144 Hz and for a refresh rate
+that is not one. The frame case needs a display and a quiet machine; it carries
+the `perf` label, so a `*-perf` test preset selects it, but it **skips** unless
+`WJS_PERF_FRAME_TIMING=1` is set, which no preset and no workflow sets. So it
+**runs in no CI leg**: it is a desktop check, run alone (`RUN_SERIAL`). A window
+that cannot present a frame (exit code 3) is reported as a skip with the
 application's own sentence, not as a pass.
 
 **The first windowed frame report, 2026-10-20.** The same desktop, a Release
 build (`windows-msvc-release`), the check run as designed (`WJS_PERF_FRAME_TIMING=1`
-with a real window): `frames=240, mean 16.69 ms, p50 19.72, p95 20.30, p99 20.37,
-max 22.36, over 33 ms 0, first frame 582 ms`. The check's 12 assertions pass 11;
-the one that fails is `frame.p50 <= 17.0 ms`. What the numbers say:
+with a real window), when the budget was still a fixed 17.0 ms median and the
+report did not yet say which screen the window was on: `frames=240, mean 16.69 ms,
+p50 19.72, p95 20.30, p99 20.37, max 22.36, over 33 ms 0, first frame 582 ms`. The
+check's 12 assertions passed 11; the one that failed was the median.
 
-- **The window holds 60 Hz.** The mean frame is 16.69 ms, and no frame is over
-  33 ms: the human-visible budgets (`frame.max`, `frame.over33`) hold.
-- **The p50 lands on Windows' timer quantisation, not on render cost.** The
-  frames are a bimodal mix around 60 Hz (mean 16.69) whose median falls on the
-  upper quantile at 19.7 ms; the default Windows timer granularity shapes the
-  presented-frame timestamps that way. The 17.0 ms p50 budget was written
-  before any windowed report existed and assumes a clean 16.7 ms median.
+**What this page first said about it was wrong.** It read the numbers as a 60 Hz
+display whose median landed on "Windows' timer quantisation". That was a guess,
+made before the screen was recorded, and the measurements that followed do not
+support it. The desktop has two screens, and the window had landed on the
+59.95 Hz one:
+
+- **Measured 2026-10-20 and 21, and open:** the same binary holds **p50 10.0 / p95
+  10.5 ms** on the 100 Hz screen and shows **p50 19.9 / p95 20.3 ms, with the
+  render thread spending about 7 ms a frame in the present,** on the 59.95 Hz one.
+  A plain Qt Quick window and a Quick 3D window hold 17 ms there, and the shake
+  prototype (the same scene) 16.7 ms. The scene's own cost is 0.6 ms of GUI thread,
+  0.6 ms of render thread and 0.03 ms of recording, at 3 to 6% of the GPU: the
+  scene is not what is slow.
+- On the 59.95 Hz screen, switching the Quick Controls style to Basic, the basic or
+  windows render loop, or an OpenGL or Direct3D 12 backend puts the application back
+  at the screen's rate; Vulkan does not. **The cause is not found.** The Basic style
+  is not set in `src/app/main.cpp` (the shake prototype's `main.cpp` sets it), and
+  nothing has been changed. The table, the method and the other rows are in
+  [Profiling](../profiling.md#the-frame-on-a-desktop-with-two-screens).
+- The budget was re-expressed after that, as the display's period plus room (above)
+  and not made looser: the check **fails on the 59.95 Hz screen, truthfully,** and
+  holds on the 100 Hz one in the runs above. That the budget is an opt-in desktop check and not a
+  gate is why this does not stop anything; whether a window that misses its
+  screen's refresh there is acceptable is the author's decision, not this page's.
 - **Launch is within budget with margin.** First frame 582 ms against the 2 s
-  "launch to `home` drawn" row (see [The first show](#the-first-show)).
+  "launch to `home` drawn" row (see [The first show](#the-first-show)); not held by
+  a test.
 
-Whether the p50 row should be re-expressed (a mean against 16.7 ms, or the
-p50 budget raised to the quantisation) is left to the author: a budget is moved
-by a person's decision, never to make a run green, and this is the first number
-there has ever been to decide against. Nothing was measured on a tablet or a
-phone.
+Nothing was measured on a tablet or a phone.
 
 The scene's work, on the same capture: `scene.step` (the dice world's step) is
 0.51 ms a frame at a 3x3, and a frame of the shake 0.69 ms, of the drop 0.72 ms
@@ -642,7 +788,7 @@ heavy one (a working set of tens of megabytes):
 | Solving a 4x4 built to be rich | 0.57 to 0.59 ms | 0.042 to 0.043 | 0.3 |
 | Solving a 6x6 built to be rich | 1.6 ms | 0.115 to 0.120 | 0.8 |
 | Dealing a session board, 3x3 and 4x4 (**phonics**; one deal, the first five corpus seeds) | 1.2 and 1.3 ms | 0.087 and 0.086 | 0.6 and 0.6 |
-| Dealing a session board, 3x3 to 6x6 (**standard**; one deal, the first five corpus seeds) | 0.05, 0.15, 0.35 and 0.67 ms | 0.003, 0.010, 0.023 and 0.046 | 0.03, 0.08, 0.15 and 0.30 |
+| Dealing a session board, 3x3 to 6x6 (**standard**; one deal, the first five corpus seeds; the earlier dice) | 0.05, 0.15, 0.35 and 0.67 ms | 0.003, 0.010, 0.023 and 0.046 | 0.03, 0.08, 0.15 and 0.30 |
 
 Fastest of 5 runs (the load) and of 15 runs of 50 solves, alternating with the
 calibration. The proposal's starting values (10, 1.0, 1.0) were against a
@@ -655,20 +801,26 @@ per visit, is a factor of several, which these absorb.
 Not every budget is in `wjs_perf_tests`. It is not the frame time of the
 application's window (held opt-in, with the window and Qt, by
 `tests/app/frame_timing_test.cpp`: [The window's frames](#the-windows-frames)),
-the start of a sound, the speed of the OCR (it is), or a launch (the frame
-clock's `ui.first_frame_ms` reports it, but no budget holds it yet). What is
+the start of a sound, the speed of the OCR (it is held, as work and as ratios), the dictionary load being off the UI thread (it is not),
+or a launch (the frame clock's `ui.first_frame_ms` reports it, but no budget
+holds it yet). The load's time is held as a ratio (5.0, opt-in, in no CI leg),
+not the 1 s of the budgets table. What is
 left is measured on the device by a person with Tracy connected (or Qt's own
 `QSG_RENDER_TIMING`, as Cubeulator's page does), and written down as
 Cubeulator's `performance.md` does: the build, the machine, what was and was not
 measured. The frame check is the one automatable exception: it needs a display,
 a quiet machine and a Release build, so it is opt-in and a shared runner never
-runs it. A system test that counts frames on the resting screen (the design's
-zero-frames-in-five-seconds proposal) is still not written: it needs the window
-and a way to know the fade has ended.
+runs it. The resting screen's zero-frames-in-five-seconds proposal was dropped
+with the screen.
 
 ## Unknowns
 
 - Every device figure above.
+- **Why the application's window presents every 19.9 ms on the 59.95 Hz screen
+  of the author's desktop** (and nowhere else it was tried): not found; see
+  [The window's frames](#the-windows-frames).
+- Whether the dictionary load should leave the UI thread: the 1 s row assumes it
+  does, and the load is synchronous at 66 to 68 ms on a desktop.
 - The size of the phase index, and so the seeding's tries. **Measured** on a
   proxy of 249 words ([The game rows](#the-game-rows)); the real phases'
   sizes are not known, and a smaller or larger index moves every `seed.*` row.

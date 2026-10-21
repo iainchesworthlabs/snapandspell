@@ -4,7 +4,7 @@ import WordJewelsSolver
 import WordJewelsSolver.Parent
 import WordJewelsSolver.Scan
 
-// Hebrew and Yiddish (docs/audit-0.1.md, "Languages, RTL and i18n"): the chrome
+// Hebrew and Yiddish (docs/design/application.md, "Languages"): the chrome
 // mirrors and the board does not. Three things are held here, and they are the
 // three the language checks in the stub shells hold for the other two areas:
 //

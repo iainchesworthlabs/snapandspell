@@ -46,15 +46,23 @@ The application is to run on:
 Private builds that run only on the author's own devices are acceptable for
 the mobile targets, as was done for CountdownSolver.
 
-**Fact.** What exists today: the solver library and command-line solver build
-and pass their tests in CI on Windows, Linux and macOS, and a small Qt Quick
-window (a grid to type a board into, a Solve button, a word list) builds on
-Windows. Nothing yet builds for Android, iOS or the browser: `cmake/Platform.cmake`
-refuses those targets until each has a platform fragment under `src/platforms`.
-The shared Qt 6.12.0 tree on the author's machine
-(`C:\Repos\common\qt\6.12.0`) has the Windows, WebAssembly (multithread) and
-Android kits, with Emscripten 5.0.5 beside it; it has no iOS kit. Qt comes from
-there and from `aqtinstall` in CI, not from vcpkg.
+**Fact, as of 2026-10-22.** The solver library and command-line solver build
+and pass their tests in CI on Windows, Linux and macOS. The Qt Quick
+application (Solo Play, the parent area, the scanner screens) builds and is
+tested in CI on Windows, and `release.yml` builds it for Linux and macOS (it has
+never run). An iOS fragment, preset and ad-hoc signing job exist and have never
+run on a device. Nothing builds for Android or the browser yet:
+`cmake/Platform.cmake` refuses those targets until each has a platform fragment
+under `src/platforms`, and the Android one is being written separately. The
+shared Qt 6.12.0 tree on the author's machine (`C:\Repos\common\qt\6.12.0`)
+has the Windows, WebAssembly (multithread) and Android kits, with Emscripten
+5.0.5 beside it; the iOS kit is installed by CI. Qt comes from there and from
+`aqtinstall` in CI, not from vcpkg.
+
+**Amended 2026-10-21 (decision D11, [Roadmap](roadmap.md#4-decisions-that-gate-the-plan)).**
+The first release, 0.1, is the three desktops plus an ad-hoc iOS build for the
+author's own devices. Android follows when its stream lands; the web and phone
+layouts come after 0.1.
 
 ## 3. Solo Play: "I'm playing by myself"
 
@@ -113,7 +121,7 @@ and asks, for example, "Can you find a 3-letter animal starting with 'C'?"
 
 ## 5. Board sizes
 
-- **Standard: 4x4.**
+- **Standard: 4x4.** (As built the box offers 3x3 to 6x6 and a new device starts at 3x3; the author has not changed this text.)
 - **Optional: 5x5 or 6x6**, selectable, where 6x6 is a "Super Big Boggle"
   board. The original brief also named a simplified 3x3 for the youngest
   players.
@@ -121,9 +129,8 @@ and asks, for example, "Can you find a 3-letter animal starting with 'C'?"
   separate problem, to be worked on separately.
 
 **Fact.** The solver library already takes any board from 1x1 to 16x16, with
-tiles of one to three letters (the "Qu" face is a two-letter tile). It does not
-yet have dice sets: the letter distributions of the physical dice for each size
-are data to be sourced.
+tiles of one to three letters (the "Qu" face is a two-letter tile). The project's own dice sets are in `data/dice` (3x3 to 6x6, made from a fixed
+Scrabble-style English letter table by `tools/data/make_dice.ps1`).
 
 ## 6. Help
 
@@ -221,8 +228,13 @@ tier automatically:
   cluster together more often, to raise the chance of finding the larger words,
   such as RAIN and STAR.
 
-**Fact.** Nothing here exists yet: the application stores no progress of any
-kind. The solver library can already list every word on a given board with its
+**Not built, and the design says it will not be (2026-10-22).** The application
+adjusts nothing to a child's tier: the parent chooses the phase and the board
+size, and the app never moves a child between them or raises the help
+([Game](design/game.md)). The note above is the brief's original statement.
+
+**Fact.** The application stores progress locally (the stars, the finds, the best
+boards, the week; section 12.2). The solver library can already list every word on a given board with its
 path and a letter count (the "Qu" tile counts as two letters), so the tier of a
 found word and the number of words of each tier on a board are computable. The
 category lists in `data/lexicon` (animals, colours, shapes, food and others)
@@ -374,8 +386,8 @@ would leave the device, started by a parent. The roadmap's privacy constraints
 - Performance is tracked with **Tracy**.
 - There are **performance tests** around the application.
 
-**Fact, from Cubeulator.** Tracy is in an opt-in build (a `profiling` preset
-and a vcpkg feature), runs in on-demand mode so an idle instrumented build does
+**Fact, from Cubeulator.** Tracy is in an instrumented build (here the Debug and
+`profiling` presets; a vcpkg feature; never a release preset or a package), runs in on-demand mode so an idle instrumented build does
 no work, and is instrumented through the camera thread, the Qt Quick frame and
 the solver. Its documents give budgets (a 33 ms camera frame, a 16.7 ms UI
 frame at 60 Hz), and its `tests/perf` tier holds two kinds of threshold: a
@@ -384,8 +396,10 @@ frame at 60 Hz), and its `tests/perf` tier holds two kinds of threshold: a
 loose so a busy machine never fails it.
 
 **Fact, here.** Tracy's macros collide with this repository's no-`#define` rule.
-Cubeulator resolves it with macro-only variant headers chosen by CMake; a
-macro-free route through Tracy's runtime source-location API has not been tried.
+Cubeulator resolves it with macro-only variant headers chosen by CMake; here a
+macro-free route through Tracy's runtime source-location API is built and
+settled ([Performance](design/performance.md)), and the instrumented build
+listens on a TCP port, which is why no release carries it.
 The solver measures about 76 ms for a whole `wjs-cli` run (loading 172,823 words
 and solving) in a Release build on a desktop; nothing has been measured on a
 tablet.
@@ -432,7 +446,9 @@ These are decided elsewhere and the design has to fit them.
 - For the MVP (section 12): no voice capture, no export of data, no network
   capability, no timers or limits, and a calm resting screen when a board is
   cleared. The privacy architecture is frozen before any visual assets or
-  layouts are designed.
+  layouts are designed. **Amended 2026-10-21:** a grown-up can switch on a board
+  clock, off by default (12.3), and the resting screen is not built; a cleared
+  or finished board ends on a summary card.
 
 ## 11. Questions for the design work
 
@@ -724,6 +740,20 @@ the privacy review before they came back (question 62).
 
 **Adopted.** Nothing micro-manages the child or pushes them to continue.
 
+> **Amended 2026-10-21 (decisions D8, D10 and D12).** The 0.1 build departs from
+> the text below in three places, each recorded in the
+> [roadmap](roadmap.md#4-decisions-that-gate-the-plan), and the text is kept as
+> the original statement of intent. (1) The parent can set a **board clock** in the
+> parent area: off by default, a count-up, or a count-down of 1 to 30 minutes that
+> ends the board with everything found kept. The app never starts a clock itself,
+> locks nothing and stores no duration. (2) The **resting screen is not built**: a
+> cleared board, a finished board and a timed-out board all end on one summary card
+> that the child dismisses ([Game](design/game.md#the-end-of-a-board)).
+> (3) **High scores** are not hidden from the child: the best board for each size,
+> the points and the week are shown on the child's "My jewels" screen, which has no
+> gate. The pull this risks is named in D10 and is the first thing to watch in a
+> study with children ([Application](design/application.md#user-study-plan-open)).
+
 - **No timers or limits.** No ticking countdown clocks, locked session windows
   or sudden "time's up" interruptions: forcing a child off an application with a
   hard gate invites friction.
@@ -797,10 +827,10 @@ As read; each is a deferral under the assumption of question 62.
 | --- | --- |
 | The "read aloud" voice recording (7.4) | Out: no voice capture |
 | The printable PDF and e-mail to a teacher (7.4) | Out: no export |
-| Time played and the parent-set limit (7.4) | Out: no timers or limits |
+| Time played and the parent-set limit (7.4) | Out: no time played and no limit. **Amended 2026-10-21:** a parent-set board clock, off by default, is in (12.3) |
 | Open dictionary solver for early levels | **In, as the standard board's word list** (12.7): the full dictionary, unmodified. Out: a block list and a child-appropriate cut of it. The phase index is the phonics board's |
 | Boards of 5x5 and 6x6 (5) | **In, for the standard board** (12.7). The phonics board is designed at 3x3 and 4x4 |
-| Tailorable help levels (4, 6) | One level: the starting tile |
+| Tailorable help levels (4, 6) | One level: the starting tile. **As built:** the parent chooses off, the start tile, or the start tile then its first two letters (D12, to confirm) |
 | Camera on a stand, watching the lid come off (4) | A single capture (assumed) |
 | Worlds, mascot, stickers by theme (7.2) | Not mentioned in the categorisation; to confirm whether any are in the MVP |
 | School fonts (7.1) | Not mentioned; to confirm |

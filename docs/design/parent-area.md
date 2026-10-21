@@ -7,8 +7,12 @@ and by which test, and what is **not** established. The design pages are
 proposals; this page is **Fact** about the code unless a line says otherwise.
 
 **Scope kept to the MVP's frozen privacy rules** ([product requirements](../product-requirements.md)
-12.2, 12.3, 12.5): no voice, no export, no network, no time played, no limit, no
-passive tracking and no several children. None is built, not even behind a flag.
+12.2, 12.3, 12.5): no voice, no export, no network, no time played, no limit on
+play, no passive tracking and no several children. None is built, not even behind
+a flag. One thing the frozen text ruled out **is** built, by the author's decision
+of 2026-10-21 ([D8](../roadmap.md#4-decisions-that-gate-the-plan)): a **board
+clock** the parent can set (off, count up, or a count-down of 1 to 30 minutes that
+ends the board). It is a setting behind the gate; the store keeps no duration.
 
 ## What is where
 
@@ -35,8 +39,9 @@ The parent area is routed from the Solo Play window, on one store.
 
 - **The screen.** `Main.qml` has a `parent` case that shows
   `ParentArea { controller: window.parentController; onClosed: Navigation.back() }`.
-  Home's corner button and the box's both emit `parentRequested()`, which goes to
-  `Navigation.go("parent")`; `Navigation.parentAvailable` is true. Closing goes
+  Home's parent button, the family card ("Play with a real board") and the box's
+  bar all emit `parentRequested()`, which goes to `Navigation.go("parent")`;
+  `Navigation.parentAvailable` is true. Closing goes
   back to where the person came from (home, or the box), by Back, Esc or the system
   back, and shuts the gate again. The gate is the parent area's own and nothing in
   the shell opens it: `ParentArea` shows the gate until the controller says it is
@@ -66,9 +71,15 @@ The parent area is routed from the Solo Play window, on one store.
 - **The tokens.** `Main.qml` binds `Theme.reducedMotion` to the Motion setting,
   `Theme.textScale` to the Text size (`controller.textScale`) and `Theme.colourScheme`
   to the Colour scheme setting, so every screen that draws from `Theme` follows them
-  without being touched. The parent screens bind their own `ParentTheme.textScale`
-  and `ParentTheme.dark` as before: `ParentTheme.dark` follows `Theme.dark`, so the
-  parent area is in the same light or dark chrome as the rest.
+  without being touched. The parent screens read the same `Theme` (the separate
+  `ParentTheme` they once had is gone, with the parent area's own buttons and
+  choices), so the parent area is in the same light or dark chrome as the rest and
+  its pairs are held by the same contrast test
+  ([Application](application.md#the-jewel-box-design-system)).
+- **The scanner.** The dashboard's entry for a real board opens Mode A. The
+  parent area keeps the gate open while the scanner is shown (`stayUnlockedOnClose`),
+  so Back from the scanner returns to the dashboard and not to the gate; leaving the
+  parent area from there shuts it. No test drives the route through `Main.qml`.
 - **Colour scheme: System, Light or Dark.** System (the default) follows the
   operating system's light or dark setting through `SystemColourScheme` (over
   `QStyleHints::colorScheme`, with a `dark` property that notifies); Light and Dark
@@ -104,11 +115,14 @@ The parent area is routed from the Solo Play window, on one store.
 
 ## The store
 
-One small text file, `store.wjs`, in `<user data directory>/WordJewelsSolver/`:
-`%LOCALAPPDATA%` on Windows, `$XDG_DATA_HOME` or `~/.local/share` on Linux,
-`~/Library/Application Support` on macOS (the last two are written and not run).
-The per-user, per-device directory, never a roaming one: nothing moves between
-devices (question 50).
+One small text file, `store.wjs`, in Qt's per-user application data directory
+(`QStandardPaths::AppLocalDataLocation`, which follows the organisation and
+application names: under `%LOCALAPPDATA%` on Windows, `$XDG_DATA_HOME` or
+`~/.local/share` on Linux, `~/Library/Application Support` on macOS; the last two
+are written and not run), or, if Qt cannot name one, the platform's
+`user_data_directory()`; `--store <file>` overrides both. The per-user,
+per-device directory, never a roaming one: nothing moves between devices (question
+50).
 
 What it holds, and what is **not** in it:
 
@@ -137,7 +151,10 @@ Choices where the design reads two ways, **to confirm with the author**:
   `new_best` is told once, when the board is cleared with more than a best that
   exists; the first board has nothing to beat, a tie says nothing, and an
   abandoned board sets no best (game.md: "a game that does not beat it says
-  nothing"). Whether even the one sparkle is a pull is the reviewer's.
+  nothing"). The design had the best shown to the parent only; **as built** the
+  child's My jewels screen shows the best board for each size, the points and the
+  week with no gate ([D10](../roadmap.md#4-decisions-that-gate-the-plan)), computed
+  from the boards the store still holds. Whether that is a pull is the reviewer's.
 - **Stars are stored per find**, as the game gave them, and not worked out again
   from the word: a later change to the reward table must not rewrite history.
 
@@ -211,10 +228,20 @@ the session dealt itself, and `restore()` accepts it.
 
 ## The gate
 
-[dashboard.md](dashboard.md#the-gate): two fingers on two marked circles for two
-seconds. The rules are the library's and have no screen and no clock of their own
-(`Gate` is told the time with each touch, so a stopped clock cannot open it and a
-late one only opens it late).
+[dashboard.md](dashboard.md#the-gate): the design is two fingers on two marked
+circles for two seconds. The rules are the library's and have no screen and no clock
+of their own (`Gate` is told the time with each touch, so a stopped clock cannot
+open it and a late one only opens it late).
+
+**As built (decided 2026-10-21, D9): one press-and-hold.** `GateScreen.qml` is one
+large "hold to enter" button with a progress bar. Pressing it puts two virtual
+touches down, one in each of the library's two hidden spots (ids 9001 and 9002),
+and letting go, or the screen losing focus, lifts them, so the library's
+rules below are unchanged and a child needs **one finger**, not two. Space or Enter
+holds it by keyboard. This is weaker than the design, on purpose and knowingly: the
+gate is a brake against accidents, not security, and guards the settings, the
+dashboard and the scanner only. The text below describes the library's rules, which
+are as they were; where it says "two touches", read it as what the button sends.
 
 - The circles are a diagonal apart (a quarter in from each side, half the width
   between them), at least 48 dp in radius, so that one finger cannot be on both and
@@ -224,9 +251,9 @@ late one only opens it late).
   slides out, lifts, or a **third touch** starts the hold over.
 - **Accessibility.** The first circle carries an accessible press action
   that opens the gate with no hold; a tap is not that action.
-- **Desktop.** A mouse makes one touch, so the second circle is held with the
-  **Space** key (a mouse on the left circle, Space for the right). Not in the design;
-  without it the gate could not be passed on a machine with no touch screen.
+- **Desktop.** The button is held with a mouse, or with Space or Enter. (The
+  earlier arrangement, a mouse on the left circle and Space for the right, is gone
+  with the circles.)
 - Leaving shuts it again (`lock()`), so the next visit meets the gate.
 
 A property test drives 400 random runs of touches (fingers in and out of the circles,
@@ -237,6 +264,11 @@ the end exactly when two circles were held for two seconds.
 the library's number is two seconds because the design says so), and what Apple's and
 Google's children's-app policies accept as a gate (roadmap G6). The MVP has no links
 out and no purchases, so the gate guards settings and data only.
+
+**What the tests hold:** the library rules and 400 random runs (`parent_gate_test`);
+the controller's events (`parent_controller_test`); and a QML case that a single
+press opens it (`tst_parent`). The QML case is still named for two spots, and no QML
+test sends a key to the gate or cancels a hold by moving off the button.
 
 ## The dashboard's numbers
 
@@ -285,15 +317,22 @@ outside the wording file.
 ## Settings
 
 All of dashboard.md's table is stored and edited, with the values it names, and the
-controller refuses any other (a test tries a long list). Two rows are conditional:
+controller refuses any other (a test tries a long list). Two rows differ from the
+design and are decisions: **Help** has three levels (off, a start tile, two letters;
+D12, to confirm) and **Time on the board** (D8) is off, count up, or a count-down of
+1 to 30 minutes. Some rows are conditional:
 
 - **Board: Phonics** is disabled and the **Phase** row is hidden until phase data is
   loaded.
 - **Focus sounds** is the phase's graphemes; a sound outside the phase **cannot be
   ticked** and is dropped when the phase changes.
 - **School font** is not offered: no font whose licence permits bundling exists
-  (dashboard.md, roadmap). The setting is stored and validated and the screen has the
-  row for when one does.
+  (dashboard.md, roadmap). The setting is stored and validated; the screen's row shows
+  only when `ParentController.schoolFonts` has a font, and that list is an
+  always-empty stub.
+- **Vibration** is stored and applied to nothing on the desktops (no haptic
+  backend); **Sound it out** changes only whether the word is said, because no
+  phoneme clip exists; **Phase** is read once at the start of the run.
 - **Language** is one of the eight codes or System (the device's own when it is one
   of the eight, English otherwise). It is applied at once by `LanguageManager`
   (`src/app/language_manager.*`), which installs the catalogue, calls
@@ -315,15 +354,16 @@ checked now:
 | No audio recording | A scan of first-party source and manifests for the capture classes, calls and permission strings | `privacy.sources` |
 | No network capability | The same scan for the network classes and headers, a URL literal in code, the Qt modules whose job is the network, the manifest permissions | `privacy.sources` |
 | Zero export | The same scan for printing, sharing, saving through a dialog, the clipboard, a URL handed to the system, mail, a launched program, and any file written outside `src/lib/src/store.cpp` | `privacy.sources` |
-| The checks themselves | 50 cases on throw-away trees: each rule finds its violation and leaves alone a comment, the store's own source, the prototype, a name inside a longer word | `privacy.sources.selftest` |
+| The checks themselves | Cases on throw-away trees: each rule finds its violation and leaves alone a comment, the store's own source, the prototype, a name inside a longer word | `privacy.sources.selftest` |
 | Local store | Round trip, migration, damage, newer version, nothing left in the directory | the `[store]` cases of `wjs_unit_tests` |
 | Store size cap | The worst case the bounds allow is under the cap and reads back; a file over it is refused; a busy few months is under 32 KiB | the `[bounds]` cases |
 | Nothing but what the design says | The file has only the lines the design lists, and no time of day (no colon, no ten-digit number) | the `[privacy]` cases |
 | What a parent reads | The wording, source and as drawn | `parent.wording`, `parent.wording.selftest`, `parent.screens` |
 
 **Not checked yet**, each waiting for its target: a built Android package's permissions,
-an iOS property list, a web page's content-security policy (no such target exists); a
-QML network manager that refuses remote URLs. That one needs `Qt6::Network` linked
+an iOS property list, a web page's content-security policy (no such target exists). **Not
+built:** a QML network manager that refuses remote URLs (this page and the application
+page once listed it as checked; it is neither built nor checked). It would need `Qt6::Network` linked
 directly (its base class is declared there), which is exactly what `network.modules`
 forbids, so it is a decision for the author and the UI session (Qt Qml links Qt Network
 itself, so "no capability and no use" is the rule, not "no module"). The scan does not
@@ -351,6 +391,6 @@ and the about page looked at.
 **Not run:** Linux and macOS (the platform paths are written, compiled by no one here;
 CI runs them); a device, an iPad, a touch screen (the gate was driven by synthetic
 touches and the check's clock); VoiceOver or TalkBack (the accessible names and the
-press action are set and not heard); a child using the gate; the dark theme (its
-values are not computed); the stores' rules on a gate; the wording in front of a
-reviewer.
+press action are set and not heard); a child using the gate; the stores' rules on a
+gate; the wording in front of a reviewer. (The dark theme's pairs are measured by
+`quick.contrast`; no test renders a parent screen in dark.)

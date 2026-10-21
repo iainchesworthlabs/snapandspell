@@ -185,7 +185,7 @@ QtObject {
     readonly property string settingsLanguageHint: qsTr("The words on the screens. The board and its letters stay English.")
 
     // The languages on offer, each named in its own script, in the order the
-    // author gave them (docs/audit-0.1.md, "Languages, RTL and i18n"): English
+    // author gave them (docs/design/application.md, "Languages"): English
     // first, since it is the language of the board. The names are not
     // translated: a parent reading Hebrew sees "עברית" whatever the screens are
     // in. `""` is the device's own language.

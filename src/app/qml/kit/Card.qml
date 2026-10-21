@@ -6,8 +6,8 @@ import WordJewelsSolver
 // dashboard's sections and the jewels page. A 12 px radius, the card colour and
 // a 1 px `line` edge (which is what tells it from the paper in both themes).
 //
-// Every card has a title and an empty state (docs/design/ux-audit-2026-10,
-// 7.2.5 and 7.7): `title` is the heading, `hint` a caption under it, and while
+// Every card has a title and an empty state (docs/design/application.md,
+// "The Jewel Box design system"): `title` is the heading, `hint` a caption under it, and while
 // `empty` is true the content is replaced by a small dead jewel, `emptyTitle`
 // and `emptyText`, so a card with nothing in it still says what it is for.
 // Children go into the body and may use Layout.* properties.
