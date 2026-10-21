@@ -30,6 +30,26 @@ QtObject {
     //: Look for the camera again without leaving the ready screen.
     readonly property string tryCameraAgain: qsTr("Try camera again")
     readonly property string readAgainMessage: qsTr("I could not read the board. Try again, or type it in.")
+    //: The headline of the picture shown in place of the camera's view when there is no camera.
+    readonly property string noCamera: qsTr("No camera")
+
+    // --- the three steps -----------------------------------------------------
+    readonly property string stepsName: qsTr("Steps")
+    readonly property string stepPlace: qsTr("Place")
+    readonly property string stepCheck: qsTr("Check")
+    readonly property string stepPlay: qsTr("Play")
+
+    //: A step of three, for a screen reader: "Step 2 of 3: Check, you are here".
+    function stepName(number, label, status) {
+        switch (status) {
+        case "done":
+            return qsTr("Step %1 of 3: %2, done").arg(number).arg(label);
+        case "current":
+            return qsTr("Step %1 of 3: %2, you are here").arg(number).arg(label);
+        default:
+            return qsTr("Step %1 of 3: %2").arg(number).arg(label);
+        }
+    }
 
     function cameraProblem(code) {
         switch (code) {
@@ -75,6 +95,16 @@ QtObject {
     //: The grown-up confirms the board and starts the round.
     readonly property string startPlaying: qsTr("Start playing")
     readonly property string doubtfulMark: "?"
+    //: Shown over a blank typed board, so the empty grid says what to do.
+    readonly property string typedHint: qsTr("Tap a square to choose its letter. Start playing opens when every square has one.")
+    //: Under the typed board once every square has a letter.
+    readonly property string typedReady: qsTr("Every square has a letter. Is it the board in front of you?")
+
+    // --- ringed tiles left when the grown-up presses Start playing -------------
+    readonly property string ringedTitle: qsTr("Check the ringed tiles?")
+    readonly property string ringedBody: qsTr("The reader was not sure about the tiles with a ring. Check them first, or play with the board as it is.")
+    readonly property string checkThem: qsTr("Check them")
+    readonly property string playAnyway: qsTr("Play anyway")
 
     function sizeChoice(side) {
         return qsTr("%1 by %1 board").arg(side);
@@ -104,6 +134,20 @@ QtObject {
 
     function tileName(letters, row, column) {
         return qsTr("%1, row %2, column %3").arg(letters).arg(row).arg(column);
+    }
+
+    //: A tile the reader doubted, for a screen reader: the ring is a picture.
+    function doubtfulTileName(letters, row, column) {
+        return qsTr("%1, row %2, column %3, may be wrong").arg(letters).arg(row).arg(column);
+    }
+
+    readonly property string noWordsHint: qsTr("Trace a word on the board and it lands here.")
+    readonly property string historyEmpty: qsTr("No earlier boards yet")
+    readonly property string historyEmptyHint: qsTr("A board you leave is kept here.")
+
+    //: One earlier board's caption: its size and how many words were found.
+    function historyCaption(size, found) {
+        return qsTr("%1 x %1, %2 found").arg(size).arg(found);
     }
 
     function foundName(word) {
