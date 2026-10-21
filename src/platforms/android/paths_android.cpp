@@ -64,8 +64,7 @@ constexpr auto executable_name = "WordJewelsSolver";
         QFile::remove(target);
         packed.copy(target);
     }
-    return std::filesystem::path{
-        root.filePath(QString::fromLatin1(executable_name)).toStdString()};
+    return std::filesystem::path{root.filePath(QString::fromLatin1(executable_name)).toStdString()};
 }
 
 }  // namespace
