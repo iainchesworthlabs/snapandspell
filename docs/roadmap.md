@@ -30,7 +30,7 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | Qt Quick shell (type a board, Solve, scored list) | Works, **not seen rendered** | Built with Qt 6.12.0; launched offscreen, QML loads; 3 model tests |
 | Windows build (MSVC 19.51, Qt 6.12.0, `/W4 /WX`, ASan) | Verified | Locally and in CI; 31 ctests locally (with the window), 28 in CI |
 | Linux (GCC 15.2) and macOS (Apple clang 21) builds | Verified | CI, Debug, warnings as errors, sanitizers: 28/28 tests on each. The Qt window is not built on either |
-| Android and iOS builds of this app | Not started | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad (its CHANGELOG records it; `docs/building.md` there is out of date on this) |
+| Android and iOS builds of this app | iOS: platform section, preset, unsigned compile check and signed ad-hoc release job written, **never run** ([CI](ci.md#ios)). Android: not started | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad (its CHANGELOG records it; `docs/building.md` there is out of date on this) |
 | CI, repository rules, documentation | Running; rulesets applied and enforced | First CI run green (12 checks); branch-name rule verified by a rejected push. The `main` and `develop` protections are applied but not exercised |
 | Touch UI, dice, shake, tracing, audio, rewards | Not started | |
 | Path validation and shake detection (the library parts of M1) | Done, **on synthetic data**: `validate_path`, `detect_shakes` | Catch2 cases. The detector's thresholds are starting values that have to be tuned on a device |
@@ -103,9 +103,10 @@ it, and collect a jewel.
   via `QT_ANDROID_ROOT`/`QT_HOST_PATH`, `android-arm64-v8a-*` presets).
 - iOS ad-hoc IPA from a macOS CI runner, following CountdownSolver's
   `ios-release` job and install page, with this app's own bundle identifier,
-  certificate and profile. Qt's iOS kit for 6.12.0 has to be installed in CI
-  (its availability for 6.12 is **unverified**; the labs notes say to check each
-  host and module with `aqt list-qt` and a real install before bumping).
+  certificate and profile. Written, and **not yet run** ([CI](ci.md#ios),
+  [installing](ios-install.md)). Qt's iOS kit for 6.12.0 and its five modules are
+  listed by the pinned `aqt list-qt mac ios`, but no real install or build has been
+  tried.
 - Dice model, shake detection, `validate_path`, with unit tests. All three are
   done: the dice model reads a set of dice and rolls a board (`wjs::roll`), and
   the project's own dice for 3x3 to 6x6 are in `data/dice`, made from a fixed

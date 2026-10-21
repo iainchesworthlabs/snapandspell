@@ -81,7 +81,8 @@ src/
     windows/             console_windows.cpp  paths_windows.cpp  platform.cmake
     linux/               paths_linux.cpp  platform.cmake
     macos/               paths_macos.cpp  platform.cmake
-    posix/               console_posix.cpp (shared by Linux and macOS)
+    ios/                 paths_ios.cpp  platform.cmake  packaging/ (Info.plist.in, Assets.xcassets)
+    posix/               console_posix.cpp (shared by Linux, macOS and iOS)
 assets/sounds/          the project's eight placeholder feedback WAVs
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,

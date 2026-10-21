@@ -22,7 +22,8 @@ This is a rule for every contributor, and it is enforced by a check (see
 src/platforms/
   interfaces/wjs/platform/   what the program needs from a platform: one header each
     console.hpp  paths.hpp  camera.hpp  board_reader.hpp
-  windows/ linux/ macos/     one implementation per interface, plus platform.cmake
+  windows/ linux/ macos/ ios/
+                             one implementation per interface, plus platform.cmake
   posix/                     implementations shared by Linux and macOS
   detail/                    implementations shared by every platform that has nothing
                              of its own to say (no camera yet, the portable board reader)
@@ -46,9 +47,9 @@ leaves `detail/` out; the isolation check has never needed a `platform.cmake` in
 ## How CMake selects
 
 `cmake/Platform.cmake` is the **only** CMake file that tests `WIN32`, `APPLE` or
-`UNIX` (and `ANDROID`, `IOS` and `EMSCRIPTEN`, which it turns into an error
-saying that only the three desktops are targets). It maps them to a platform
-name, includes `src/platforms/<name>/platform.cmake`, and then checks that the
+`UNIX`, and `IOS`, which it tests first because an iOS build is an Apple build
+too (`ANDROID` and `EMSCRIPTEN` it turns into an error saying that they are not
+targets yet). It maps them to a platform name, includes `src/platforms/<name>/platform.cmake`, and then checks that the
 fragment filled in the whole contract (`cmake/PlatformContract.cmake`). Every
 other CMake file reads what the fragment declared:
 
@@ -58,7 +59,7 @@ other CMake file reads what the fragment declared:
 | System libraries `wjs_platform` links | `WJS_PLATFORM_LINK_LIBRARIES` | `src/platforms/CMakeLists.txt` |
 | Compile definitions, for `wjs_platform` only (Windows: `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE`) | `WJS_PLATFORM_COMPILE_DEFINITIONS` | `src/platforms/CMakeLists.txt` |
 | The name in the version block (`Windows`, `Linux`, `macOS`) | `WJS_PLATFORM_DISPLAY_NAME` | `src/lib` (generated `version.hpp`), the configure summary |
-| Whether this is a desktop (installers, the Qt application and notices exist) | `WJS_PLATFORM_DESKTOP` | `cmake/Packaging.cmake` (no CPack configuration where it is `OFF`) |
+| Whether this is a desktop (CPack installers exist; `OFF` on iOS, whose application Xcode archives and exports) | `WJS_PLATFORM_DESKTOP` | `cmake/Packaging.cmake` (no CPack configuration where it is `OFF`) |
 | Where an installed Qt lives | `WJS_PLATFORM_QT_SEARCH_ROOTS`, `WJS_PLATFORM_QT_ARCH_DIRS` | `cmake/FindQt6.cmake` |
 | `NAME=value` entries a Qt Quick test needs to run without a display, besides `QT_QPA_PLATFORM=offscreen` (`""` for none) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` | `tests/CMakeLists.txt` |
 | Where the application's dictionary and dice go, relative to the install prefix (the bindir, or `Contents/MacOS` in a bundle) | `WJS_PLATFORM_INSTALL_APP_DATA_DIR` | `src/app/CMakeLists.txt`, `cmake/Notices.cmake` |
@@ -104,7 +105,7 @@ The cases already in the tree:
 | Need | Done as |
 | --- | --- |
 | `<windows.h>` without the `min`/`max` macros, and with the wide-character API | `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE` are in the Windows `platform.cmake` and passed to `wjs_platform`; no source file defines them |
-| The path of the running executable, and the directory a program keeps its own data in | `interfaces/wjs/platform/paths.hpp` (`executable_path`, `user_data_directory`); `windows/paths_windows.cpp`, `linux/paths_linux.cpp`, `macos/paths_macos.cpp` |
+| The path of the running executable, and the directory a program keeps its own data in | `interfaces/wjs/platform/paths.hpp` (`executable_path`, `user_data_directory`); `windows/paths_windows.cpp`, `linux/paths_linux.cpp`, `macos/paths_macos.cpp`, `ios/paths_ios.cpp` |
 | What a Qt Quick test needs to draw with no display (the offscreen platform has no fonts on Windows until told where the system's are) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` in each `platform.cmake`, read by the tests that run Qt Quick |
 | A UTF-8 console on Windows, nothing to do on a POSIX terminal | `interfaces/wjs/platform/console.hpp`; `windows/console_windows.cpp` and `posix/console_posix.cpp` |
 | The version and the platform's name in `wjs-cli --version` | `configure_file` generates `constexpr` values (`wjs::project_version`, `wjs::target_platform`); no macro |
