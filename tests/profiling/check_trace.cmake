@@ -44,9 +44,12 @@ endforeach()
 # program must emit; one removed is one the program no longer does.
 if(CASE STREQUAL "cli")
     set(_args --repeat 1000000 "S E R S/P A T G/L I N E/S E R S")
-    # The capture records this long once attached; the run is ended by the timeout.
-    set(_capture_seconds 4)
-    set(_timeout 9)
+    # The capture records this long once attached (a Debug build with the sanitizers takes
+    # several seconds to load the dictionary before the first solve); the run is ended by
+    # the timeout, which has to be later than the capture, since a run killed first saves
+    # nothing.
+    set(_capture_seconds 12)
+    set(_timeout 25)
     set(_ends_by_timeout TRUE)
     set(_zones solver.solve)
     set(_plots solver.visits)
