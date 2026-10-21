@@ -1,7 +1,8 @@
 #include "wjs/platform/window_chrome.hpp"
 
-#include <dwmapi.h>
 #include <windows.h>
+
+#include <dwmapi.h>
 
 namespace {
 

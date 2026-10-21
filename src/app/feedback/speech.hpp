@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <functional>
 #include <memory>
 
 namespace wjs::app {
@@ -9,8 +10,9 @@ namespace wjs::app {
 // The device's own voice, over Qt TextToSpeech when the application was built
 // with it and silently nothing when it was not. Whole words and sentences only:
 // the isolated phonemes of the sound-it-out sequence are recordings the reviewer
-// owns (docs/design/phonics.md), and say_letter_sequence() is the seam they
-// will arrive through. It never captures audio: speech is output only.
+// owns (docs/design/phonics.md), which SoundSequencePlayer plays; the voice
+// never stands in for one, because letter names are not the sounds a child is
+// learning. It never captures audio: speech is output only.
 //
 // A build or a device with no voice engine answers available() false and every
 // say() is a harmless request. The application's policy decides whether a word
@@ -31,18 +33,19 @@ public:
     [[nodiscard]] bool available() const;
     [[nodiscard]] int utterances() const;
 
-    // The whole word, through the platform's voice. `volume` is 0 to 1.
-    void say_word(const QString& word, double volume = 1.0);
+    // The whole word, through the platform's voice. `volume` is 0 to 1. False,
+    // and nothing said, for an empty word.
+    bool say_word(const QString& word, double volume = 1.0);
 
-    // The sound-it-out sequence before a found word. The phoneme clips are the
-    // reviewer's recording job and are not in the tree, so this is deliberately
-    // silent today: the application calls it in full mode, and the day the
-    // clips exist this is the one place that plays them. It must not fall back
-    // to spelling the word: letter names are not its sounds.
-    void say_letter_sequence(const QString& word);
+    // Where the voice goes instead of the platform's engine: a test that must not
+    // speak, or a tool. The utterance is still counted and reported. An empty
+    // function puts the engine back.
+    using Output = std::function<void(const QString& text, double volume)>;
+    void setOutput(Output output);
 
-    // A sentence or a picture's name, through the platform's voice.
-    void say_text(const QString& text, double volume = 1.0);
+    // A sentence or a picture's name, through the platform's voice. False, and
+    // nothing said, for an empty text.
+    bool say_text(const QString& text, double volume = 1.0);
 
     // Stops whatever is being said. Safe when nothing is.
     void stop();
@@ -51,6 +54,8 @@ signals:
     void spoken(const QString& text);
 
 private:
+    bool say(const QString& text, double volume);
+
     class Impl;
     std::unique_ptr<Impl> impl_;
 };

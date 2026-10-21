@@ -34,3 +34,6 @@ tools/hooks/* text eol=lf
 /.github export-ignore
 /docs/design export-ignore
 /tests/perf export-ignore
+
+# The vcpkg overlay ports are patched with git apply, which wants the bytes the patch was made from.
+cmake/vcpkg-ports/** -text

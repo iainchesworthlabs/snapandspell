@@ -1,0 +1,17 @@
+name: Linux packages for Tracy's tools
+description: >-
+  Installs what vcpkg needs to build Tracy's command-line tools for the host on
+  a hosted Ubuntu image. Every Debug configure turns Tracy on (docs/profiling.md),
+  so every job that configures a Debug preset on Linux, whatever it then does
+  with the tree, needs this before its Configure step.
+
+# On Linux the tools are a chain of autotools ports (dbus, libxcrypt, libsystemd)
+# that the hosted image does not carry the tools for. A job that configures a
+# Release preset (Tracy off) does not need it.
+
+runs:
+  using: composite
+  steps:
+    - name: Install autoconf, automake, libtool and Python's venv
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y autoconf autoconf-archive automake libtool libltdl-dev python3-venv

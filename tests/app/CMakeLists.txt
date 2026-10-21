@@ -3,6 +3,7 @@
 # when the application is.
 add_executable(wjs_app_tests
     assist_game_test.cpp
+    assist_model_test.cpp
     board_layout_test.cpp
     camera_test.cpp
     fake_solo_game_test.cpp
@@ -15,7 +16,9 @@ add_executable(wjs_app_tests
     real_solo_game_test.cpp
     scan_model_test.cpp
     solo_model_test.cpp
-    solver_model_test.cpp
+    sound_sequence_player_test.cpp
+    qt_text_test.cpp
+    startup_failure_test.cpp
     system_colour_scheme_test.cpp
     system_motion_test.cpp
     "${PROJECT_SOURCE_DIR}/src/app/camera/camera_source.cpp"
@@ -34,7 +37,7 @@ add_executable(wjs_app_tests
     "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_setup.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/solo/solo_model.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solver_model.cpp"
+    "${PROJECT_SOURCE_DIR}/src/app/startup_failure.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp"
     "${PROJECT_SOURCE_DIR}/src/app/system_motion.cpp")
 set_target_properties(wjs_app_tests PROPERTIES AUTOMOC ON)
@@ -73,7 +76,9 @@ target_link_libraries(wjs_app_tests
 # the tests that hand in a fake backend do not. A kit without Qt Multimedia
 # builds the none backend and this block is skipped.
 if(WJS_QT_HAS_MULTIMEDIA)
-    target_sources(wjs_app_tests PRIVATE camera_video_frame_test.cpp)
+    target_sources(wjs_app_tests PRIVATE
+        camera_backend_test.cpp
+        camera_video_frame_test.cpp)
     target_link_libraries(wjs_app_tests PRIVATE Qt6::Multimedia)
 endif()
 wjs_deploy_sanitizer_runtime(wjs_app_tests)
@@ -85,9 +90,30 @@ wjs_platform_deploy_qt_runtime(wjs_app_tests "")
 # library and with Qt. Named `integration.<sentence>`; the tier is selected
 # by `ctest -R "^integration\\."` because Catch2's tags are this suite's
 # CTest labels (`-L camera`, `-L app`, `-L parent`, ...).
+#
+# A case that makes a GUI application draws on the offscreen platform, chosen
+# here, in the entry's environment, and not from inside the process: a case
+# run by hand needs the same (docs/testing.md). The fonts directory is the one
+# the platform's fragment names, for the cases that ask the font database. The
+# discovery passes a property's value on as one list element, so the platform's
+# NAME=value entry goes in the second property, the environment modification
+# (NAME=set:value), and not in a ';'-separated list of the first.
+list(LENGTH WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT _wjs_headless_entries)
+if(_wjs_headless_entries GREATER 1)
+    message(FATAL_ERROR
+        "WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT has ${_wjs_headless_entries} entries; the "
+        "app tests' discovery takes one. Extend tests/app/CMakeLists.txt before adding a second.")
+endif()
+set(_wjs_app_test_properties ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+if(_wjs_headless_entries EQUAL 1)
+    string(REGEX REPLACE "^([^=]+)=(.*)$" "\\1=set:\\2" _wjs_headless_modification
+        "${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}")
+    list(APPEND _wjs_app_test_properties ENVIRONMENT_MODIFICATION "${_wjs_headless_modification}")
+endif()
 catch_discover_tests(wjs_app_tests
     TEST_PREFIX "integration."
-    ADD_TAGS_AS_LABELS)
+    ADD_TAGS_AS_LABELS
+    PROPERTIES ${_wjs_app_test_properties})
 
 # The 3D board scene's script (src/app/qml/scene/ShakeScript.js) in Qt's own
 # JavaScript engine, so what is tested is the file the scene plays and not a
@@ -96,9 +122,14 @@ catch_discover_tests(wjs_app_tests
 # the face the library's roll says is up, shows other faces on the way, and that
 # none of it moves a die before it is sent home. Built with the application,
 # whose scene the script is.
+# With it, the scene's two QML objects that take what a script gives them:
+# DiceSim (dice_sim_test.cpp) and the profiler seam (profiler_test.cpp).
 add_executable(wjs_shake_script_tests
+    dice_sim_test.cpp
+    profiler_test.cpp
     shake_script_test.cpp
-    "${PROJECT_SOURCE_DIR}/src/app/scene/dice_sim.cpp")
+    "${PROJECT_SOURCE_DIR}/src/app/scene/dice_sim.cpp"
+    "${PROJECT_SOURCE_DIR}/src/app/scene/profiler.cpp")
 set_target_properties(wjs_shake_script_tests PROPERTIES AUTOMOC ON)
 target_include_directories(wjs_shake_script_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/src/app/scene"
@@ -152,11 +183,79 @@ catch_discover_tests(wjs_frame_timing_tests DISCOVERY_MODE PRE_TEST
     TEST_PREFIX "system.frame."
     PROPERTIES RUN_SERIAL TRUE TIMEOUT 240 LABELS "system;perf;gui")
 
+# The window's frame clock (src/app/frame_profiler.cpp) on a window that is
+# never shown: the signals it listens to are emitted by the test, from a
+# thread of its own for the render thread's. Its own binary because it needs
+# Qt Quick and a GUI application on the offscreen platform.
+add_executable(wjs_frame_profiler_tests
+    frame_profiler_test.cpp
+    "${PROJECT_SOURCE_DIR}/src/app/frame_profiler.cpp")
+set_target_properties(wjs_frame_profiler_tests PROPERTIES AUTOMOC ON)
+target_include_directories(wjs_frame_profiler_tests PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
+target_link_libraries(wjs_frame_profiler_tests
+    PRIVATE
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Quick
+        wjs::profiling
+        wjs::warnings
+        wjs::sanitizers
+        wjs::coverage
+        Catch2::Catch2WithMain)
+wjs_deploy_sanitizer_runtime(wjs_frame_profiler_tests)
+wjs_platform_deploy_qt_runtime(wjs_frame_profiler_tests "")
+catch_discover_tests(wjs_frame_profiler_tests
+    TEST_PREFIX "integration."
+    ADD_TAGS_AS_LABELS)
+
 # The parent area's screens in a stub shell (app/parent_ui): a program to
 # look at them with, and, with --check, a test that walks the gate, the
 # dashboard, the settings and the about page without a display, checks what
 # they say, and fails on any warning from QML. Not part of the application.
 qt_policy(SET QTP0001 NEW)
+# The parent screens use the kit's tokens and components (Theme, AppBar,
+# AppButton, SegmentedChoice), so the shell carries the kit as the module
+# WordJewelsSolver, in a library of its own as tests/qml does for its scene:
+# the shell's own module is ParentPreview.
+include("${PROJECT_SOURCE_DIR}/src/app/qml/kit/kit_files.cmake")
+set(WJS_PARENT_PREVIEW_KIT_SOURCES "")
+foreach(_file IN LISTS WJS_KIT_QML_FILES)
+    set_source_files_properties("${PROJECT_SOURCE_DIR}/src/app/qml/kit/${_file}"
+        PROPERTIES QT_RESOURCE_ALIAS "${_file}")
+    list(APPEND WJS_PARENT_PREVIEW_KIT_SOURCES "${PROJECT_SOURCE_DIR}/src/app/qml/kit/${_file}")
+endforeach()
+foreach(_file IN LISTS WJS_KIT_QML_SINGLETONS)
+    set_source_files_properties("${PROJECT_SOURCE_DIR}/src/app/qml/kit/${_file}"
+        PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+endforeach()
+qt_add_library(wjs_parent_preview_kit STATIC)
+set_target_properties(wjs_parent_preview_kit PROPERTIES AUTOMOC ON)
+qt_add_qml_module(wjs_parent_preview_kit
+    URI WordJewelsSolver
+    VERSION 1.0
+    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/parent-preview-kit/WordJewelsSolver"
+    QML_FILES ${WJS_PARENT_PREVIEW_KIT_SOURCES}
+    SOURCES
+        "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp"
+        "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.hpp")
+target_include_directories(wjs_parent_preview_kit PUBLIC "${PROJECT_SOURCE_DIR}/src/app")
+target_link_libraries(wjs_parent_preview_kit
+    PUBLIC
+        Qt6::Core
+        Qt6::Gui
+        Qt6::Qml
+        Qt6::Quick
+    PRIVATE
+        wjs::warnings
+        wjs::sanitizers
+        wjs::coverage)
+get_target_property(_wjs_parent_kit_sources wjs_parent_preview_kit SOURCES)
+foreach(_wjs_source IN LISTS _wjs_parent_kit_sources)
+    if(_wjs_source MATCHES "/[.]rcc/qmlcache/")
+        set_source_files_properties("${_wjs_source}" PROPERTIES
+            COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/wd4702>")
+    endif()
+endforeach()
 qt_add_executable(wjs_parent_preview
     parent_ui/demo_data.cpp
     parent_ui/preview_main.cpp)
@@ -172,6 +271,8 @@ target_include_directories(wjs_parent_preview PRIVATE "${PROJECT_SOURCE_DIR}/src
 target_link_libraries(wjs_parent_preview
     PRIVATE
         wjs_parentplugin
+        wjs_parent_preview_kit
+        wjs_parent_preview_kitplugin
         wjs_i18n
         wjs::lib
         Qt6::Core
@@ -225,28 +326,24 @@ set_tests_properties(parent.languages PROPERTIES
 # application executable and its 3D scene needs a display. Not part of the
 # application.
 qt_policy(SET QTP0001 NEW)
-# The preview aliases the kit and Solo Play QML under qml/kit/ and qml/solo/;
-# the policy (a qmldir for every such directory) is NEW, its previous
-# behaviour being deprecated.
+# The preview aliases the kit flat (as the parent preview does, so the one
+# source property serves both) and Solo Play's BoardThumb under qml/solo/; the
+# policy (a qmldir for every such directory) is NEW, its previous behaviour being
+# deprecated.
 qt_policy(SET QTP0004 NEW)
 add_executable(wjs_scan_preview
     scan_ui/preview_main.cpp)
 set_target_properties(wjs_scan_preview PROPERTIES AUTOMOC ON WIN32_EXECUTABLE OFF)
 
+# The whole kit, from the one list (src/app/qml/kit/kit_files.cmake): a kit
+# component that uses another fails to load in a preview that lacks it.
+include("${PROJECT_SOURCE_DIR}/src/app/qml/kit/kit_files.cmake")
 set(WJS_SCAN_PREVIEW_KIT_DIR "${PROJECT_SOURCE_DIR}/src/app/qml/kit")
-set(WJS_SCAN_PREVIEW_KIT_FILES
-    AppBar.qml
-    AppButton.qml
-    Feedback.qml
-    Icon.qml
-    Jewel.qml
-    Theme.qml
-    TileFace.qml
-    Wordmark.qml)
+set(WJS_SCAN_PREVIEW_KIT_FILES ${WJS_KIT_QML_FILES})
 set(WJS_SCAN_PREVIEW_KIT_SOURCES "")
 foreach(_file IN LISTS WJS_SCAN_PREVIEW_KIT_FILES)
     set_source_files_properties("${WJS_SCAN_PREVIEW_KIT_DIR}/${_file}"
-        PROPERTIES QT_RESOURCE_ALIAS "qml/kit/${_file}")
+        PROPERTIES QT_RESOURCE_ALIAS "${_file}")
     list(APPEND WJS_SCAN_PREVIEW_KIT_SOURCES "${WJS_SCAN_PREVIEW_KIT_DIR}/${_file}")
 endforeach()
 # The history's pictures: the same BoardThumb Solo Play's history uses.
@@ -254,10 +351,10 @@ set_source_files_properties("${PROJECT_SOURCE_DIR}/src/app/qml/solo/BoardThumb.q
     PROPERTIES QT_RESOURCE_ALIAS "qml/solo/BoardThumb.qml")
 list(APPEND WJS_SCAN_PREVIEW_KIT_SOURCES
     "${PROJECT_SOURCE_DIR}/src/app/qml/solo/BoardThumb.qml")
-set_source_files_properties(
-    "${WJS_SCAN_PREVIEW_KIT_DIR}/Theme.qml"
-    "${WJS_SCAN_PREVIEW_KIT_DIR}/Feedback.qml"
-    PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+foreach(_file IN LISTS WJS_KIT_QML_SINGLETONS)
+    set_source_files_properties("${WJS_SCAN_PREVIEW_KIT_DIR}/${_file}"
+        PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+endforeach()
 set_source_files_properties(scan_ui/PreviewHost.qml
     PROPERTIES QT_RESOURCE_ALIAS PreviewHost.qml)
 

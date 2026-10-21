@@ -15,8 +15,8 @@
 // of docs/design/game.md (Mode B, "The flow") as plain C++, with no Qt. The
 // screens talk to SoloModel, SoloModel talks to this, and this is answered by
 // the library's session (RealSoloGame, over src/lib's GameSession), which the
-// program always plays; FakeSoloGame is the stand-in the tests fall back to
-// when no game is installed. The library's session owns the
+// program always plays; FakeSoloGame is the stand-in the tests hand to a
+// SoloModel. The library's session owns the
 // rules: what a traced path is, what a find earns, which tile the help lights and when the board is
 // cleared. This port owns none of them and decides nothing.
 //
@@ -180,6 +180,13 @@ public:
 
     // Earlier boards, newest first.
     [[nodiscard]] virtual std::vector<SoloHistoryEntry> history() const = 0;
+
+    // The game's progress could not be kept: the store refused a board or a
+    // game in progress, or its file could not be written. A game with nowhere to
+    // keep anything (the fake) has nothing to fail and answers false. The parent
+    // area is where the grown-up is told how the store is doing; this is how the
+    // game says that it has just been let down.
+    [[nodiscard]] virtual bool saveFailed() const { return false; }
 };
 
 }  // namespace wjs::app

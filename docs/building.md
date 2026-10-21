@@ -116,6 +116,7 @@ A preset configures into `build/<preset>/` and is named
 | `linux-clang-debug` | Linux | `x64-linux` | Debug, with Clang's AddressSanitizer and UBSan; uses `clang++`. The nightly Clang sanitizer leg |
 | `macos-clang-debug` | macOS | `arm64-osx` | Debug, with AddressSanitizer and UBSan |
 | `macos-clang-release` | macOS | `arm64-osx` | Release |
+| `ios-release` | macOS | `arm64-ios` | An Xcode project for an iPhone or iPad: Release, no tests, no `wjs-cli`, unsigned unless given a team and a profile. Needs Qt's iOS kit; see [iOS](#ios) |
 | `windows-msvc-profiling` | Windows | `x64-windows` | RelWithDebInfo with Tracy, sanitizers off. A development build, never shipped: see [Profiling](profiling.md) |
 | `linux-gcc-profiling` | Linux | `x64-linux` | As above, with `g++` |
 | `macos-clang-profiling` | macOS | `arm64-osx` | As above |
@@ -167,7 +168,7 @@ deliberately, or `-DWJS_BUILD_APP=ON` to make a missing Qt a configure error
 (the Windows CI leg does the latter).
 
 It needs Qt 6.12 with the modules Core, Gui, Qml, Quick, Quick Controls 2,
-Quick 3D and LinguistTools (the `qttools` module: `lupdate` and `lrelease`), as
+Quick 3D and LinguistTools (`lupdate` and `lrelease`, in the base kit from 6.12; before that the `qttools` module), as
 a prebuilt install (from the Qt online installer, or with
 [aqtinstall](https://github.com/miurahr/aqtinstall)). Qt is not built by vcpkg.
 The board scene is 3D, so a build of the window links Qt Quick 3D, which Qt
@@ -291,7 +292,7 @@ cmake --build --preset windows-msvc-debug --target wjs_update_translations
 That target runs the kit's `lupdate` over the source list in
 `cmake/Translations.cmake` and rewrites every `i18n/*.ts`; the translations
 already there are kept, and a new message is written as `type="unfinished"`
-until a person fills it in. Qt Linguist (in the same `qttools` module) opens a
+until a person fills it in. Qt Linguist (in the same package as `lupdate`) opens a
 `.ts` for translating. The test `i18n.catalogues` regenerates the catalogues
 into a temporary directory and fails when the checked-in ones differ, so a
 `qsTr()` without its catalogue is caught (docs/testing.md,
@@ -299,6 +300,52 @@ docs/ci.md#the-jobs-in-ciyml).
 
 The translations are **mechanical and unreviewed** for now; a later pass with
 the literacy reviewer replaces them (docs/audit-0.1.md, section 8).
+
+## iOS
+
+An iPhone or iPad build is a device build for the author's own devices, ad hoc
+signed; [Installing on my iPhone/iPad](ios-install.md) is the install, and
+[CI](ci.md#ios) is how the release workflow makes it. It needs a Mac with Xcode 16
+or later (the iOS 18 SDK), because Xcode is what compiles, signs and archives it.
+Nothing about it has been run yet ([what is unverified](ci.md#what-ios-has-and-has-not-shown)).
+
+Qt comes as two kits of the same version: its iOS kit (static Qt), and a macOS Qt
+for the host tools a cross build runs. aqtinstall installs both with
+`--autodesktop`:
+
+```sh
+aqt install-qt mac ios 6.12.0 ios --autodesktop --outputdir ~/Qt \
+    -m qtquick3d qtshadertools qtmultimedia qtsensors qtspeech
+export QT_ROOT_DIR=~/Qt/6.12.0/ios
+export QT_HOST_PATH=~/Qt/6.12.0/macos
+export VCPKG_ROOT=...            # as for any preset
+
+cmake --preset ios-release       # an Xcode project in build/ios-release/
+cmake --build --preset ios-release   # unsigned: compiles for a device
+src/platforms/ios/packaging/verify_ipa.sh "$(find build/ios-release -name WordJewelsSolver.app -type d | head -n 1)"
+```
+
+(`aqt` is the pinned one: `.github/toolchain-versions.json`, `qt.aqtsource`.) The
+preset turns the tests and `wjs-cli` off, Tracy and the sanitizers off, builds for
+`arm64` with an iOS 18.0 deployment target, and signs nothing. The vcpkg toolchain is
+still the CMake toolchain file, chaining to Qt's; the manifest has no dependency
+without the tests or Tracy, so vcpkg installs nothing.
+
+A signed build gives the application target a team and a provisioning profile name
+(the profile's name in the Apple portal), with the distribution certificate in a
+keychain and the profile in `~/Library/MobileDevice/Provisioning Profiles`:
+
+```sh
+cmake --preset ios-release -DWJS_IOS_SIGNING_TEAM=<team id> "-DWJS_IOS_SIGNING_PROFILE=<profile name>"
+xcodebuild archive -project build/ios-release/WordJewelsSolver.xcodeproj -scheme WordJewelsSolver \
+    -configuration Release -destination "generic/platform=iOS" -archivePath build/ios-release/WordJewelsSolver.xcarchive
+xcodebuild -exportArchive -archivePath build/ios-release/WordJewelsSolver.xcarchive \
+    -exportPath build/ios-release/export -exportOptionsPlist ExportOptions.plist
+```
+
+`ExportOptions.plist` is the one `release.yml` writes (method `ad-hoc`, the team, manual
+signing, `Apple Distribution`, the profile by name); read it there. The built `.app`
+is where Xcode puts it, so the check above looks for it.
 
 ## Packaging
 
@@ -320,9 +367,10 @@ and the configure says which it will make. A ZIP is always offered.
 | Tool | Adds | Where |
 | --- | --- | --- |
 | `makensis` | the NSIS installer (`.exe`) | Windows, from [NSIS](https://nsis.sourceforge.io/) |
-| `dpkg-deb` and `dpkg-shlibdeps` | the `.deb` | Linux, in `dpkg-dev` |
-| `rpmbuild` | the `.rpm` | Linux, in `rpm` |
+| `dpkg-deb` and `dpkg-shlibdeps` | the `.deb` (command-line solver only) | Linux, in `dpkg-dev` |
+| `rpmbuild` | the `.rpm` (command-line solver only) | Linux, in `rpm` |
 | `hdiutil` | the `.dmg` | macOS, part of the system |
+| `linuxdeploy` and its Qt plugin | the `.AppImage` (the application, with Qt inside) | Linux; `src/platforms/linux/packaging/build_appimage.sh` fetches them, pinned |
 
 ```sh
 # Windows, from the same Developer PowerShell the build used
@@ -348,8 +396,22 @@ What lands in `build/<preset>/packages/`:
 | NSIS | `WordJewelsSolver-<version>-win64.exe` | Windows, when `makensis` is found |
 | DragNDrop | `WordJewelsSolver-<version>-Darwin.dmg` | macOS |
 | TGZ | `WordJewelsSolver-<version>-Linux.tar.gz` | Linux |
-| DEB | `wordjewelssolver_<version>_<arch>.deb` | Linux, when `dpkg-deb` and `dpkg-shlibdeps` are found |
-| RPM | `wordjewelssolver-<version>-<release>.<arch>.rpm` | Linux, when `rpmbuild` is found |
+| DEB | `wordjewelssolver_<version>_<arch>.deb` | Linux, when `dpkg-deb` and `dpkg-shlibdeps` are found and the application is not built |
+| RPM | `wordjewelssolver-<version>-<release>.<arch>.rpm` | Linux, when `rpmbuild` is found and the application is not built |
+| *(AppImage)* | `WordJewelsSolver-<version>-x86_64.AppImage` | Linux, with the application: `build_appimage.sh`, not CPack |
+
+The deb and rpm are for the command-line solver: the application needs a Qt 6.12
+with Quick 3D that no distribution packages, so a package of it could only declare
+dependencies nobody can satisfy. On Linux the application is the AppImage, which
+carries its Qt. A prerelease is packaged under its own version:
+`-DWJS_PACKAGE_PRERELEASE=rc.1` gives `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1` and
+an rpm release `0.rc.1`.
+
+CPack **refuses to package a build that has Tracy in it** (the Debug and profiling
+presets): `cmake/PackagePreflight.cmake` stops it and says why, and a development
+package has to be asked for by name with `cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON`.
+The Release presets turn the application on (a missing Qt is an error), Tracy off
+and the sanitizers off.
 
 The ZIP's contents are under one directory named after the package (CPack's
 default for the archive generators):
@@ -417,6 +479,67 @@ Two checks cover packaging:
 ```
 
 The Windows CI leg runs the same script and uploads the ZIP ([CI](ci.md)).
+
+### Making a release package
+
+A release is the Release presets, packaged, checked and signed. `release.yml`
+does it on a `v*` tag ([CI, "Releases"](ci.md#releases)); the steps are the
+ones to run by hand to see what a release will contain:
+
+```powershell
+# Windows, from a Developer PowerShell (the application needs Qt 6.12.0:
+# QT_ROOT_DIR or CMAKE_PREFIX_PATH)
+cmake --preset windows-msvc-release -DWJS_BUILD_APP=ON
+cmake --build --preset windows-msvc-release
+ctest --preset windows-msvc-release
+./tools/package/check_package.ps1 -Build build/windows-msvc-release
+./tools/release/check_release_build.ps1 -Build build/windows-msvc-release -Expect .zip
+```
+
+```sh
+# Linux, the command-line solver (no Qt needed)
+cmake --preset linux-gcc-release -DWJS_BUILD_APP=OFF
+cmake --build --preset linux-gcc-release
+ctest --preset linux-gcc-release
+cpack --preset package-linux-gcc-release                  # every generator the configure chose
+tools/release/smoke_package.sh build/linux-gcc-release/packages/*.{zip,tar.gz,deb,rpm}
+
+# Linux, the application, as an AppImage (QT_ROOT_DIR names a Qt 6.12 kit)
+cmake --preset linux-gcc-release
+cmake --build --preset linux-gcc-release
+src/platforms/linux/packaging/build_appimage.sh --build build/linux-gcc-release   --version 0.1.0 --out build/linux-gcc-release/packages --qt-prefix "$QT_ROOT_DIR" --smoke
+
+# macOS, the application bundle in a disk image
+cmake --preset macos-clang-release
+cmake --build --preset macos-clang-release
+cpack --preset package-macos-clang-release
+src/platforms/macos/packaging/verify_bundle.sh build/macos-clang-release/packages/*.dmg --smoke
+```
+
+The Release presets turn the application on, Tracy and the sanitizers off, and
+require reviewed phonics data (`WJS_REQUIRE_REVIEWED_PHONICS`; it needs `pwsh`).
+`check_release_build.ps1` fails if the profiler or the sanitizers are on in the
+cache or a package holds either, and `smoke_package.sh`
+opens each format a user would (ZIP, tar.gz, deb, rpm, a mounted disk image)
+and solves a board with the dictionary it carries. For the NSIS installer,
+install NSIS before configuring (`makensis` is found at configure time), then
+`cpack -G NSIS --config build/windows-msvc-release/CPackConfig.cmake`.
+
+The SBOM, the checksums and the signatures of a release directory:
+
+```sh
+pwsh tools/release/generate_sbom.ps1 -Tag v0.1.0 -PackagesDir dist -Output dist/WordJewelsSolver-0.1.0.cdx.json
+tools/release/sign_release.sh --dist dist --ephemeral   # a throw-away key; the real one is CI's
+tools/release/verify_release.sh --dir dist --unpinned
+```
+
+With `--ephemeral` nothing needs a secret and the signatures verify only
+against the `KEYS` that run wrote beside them. The real key, the secrets and the
+fingerprint are set up once, by the author ([CI](ci.md#what-the-author-sets-up-once));
+users check a download as in [CI](ci.md#checking-a-download). Packages are
+named after the project version (`0.1.0`), also for a `-rc` tag, so a
+prerelease's files and the final release's differ in their checksums and in
+which release they are attached to, not in their names.
 
 ### Third-party notices
 
@@ -559,6 +682,11 @@ needs `/proc` mounted, as on any normal system.
 
 **macOS.** The executable's own path comes from `_NSGetExecutablePath`, with
 symlinks resolved. Neither this nor the Linux code has been built or run yet.
+
+**iOS.** The same call finds the executable, which is the root of the flat bundle,
+and the dictionary and dice are beside it; the data directory is
+`Library/Application Support` in the application's own container. Not built or run
+yet either ([iOS](#ios)).
 
 A build can be installed and packaged ([Packaging](#packaging)); without that
 step the programs run from `build/<preset>/bin/`, with the dictionary and dice

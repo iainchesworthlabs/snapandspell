@@ -15,7 +15,11 @@ is a development build: **it listens on a TCP port, and is never shipped**
 
 What counts as fast enough, and the tests that hold it, are in
 [Testing](testing.md#performance-tests) and the
-[performance design](design/performance.md).
+[performance design](design/performance.md). The work budgets skip in a build that
+is not optimised, and a skip is not a failure, so `profiling.perf_budgets_ran`
+fails a Release leg (or any leg with `WJS_REQUIRE_PERF_BUDGETS=1` in its
+environment) that ran none of them, and reports itself skipped, with the
+reason, in the others.
 
 ## Building a profiling binary
 
@@ -38,6 +42,19 @@ the code. That one option does everything:
   link, and Tracy's **command-line tools** (`tracy-capture`, `tracy-csvexport`),
   built for the *host* so that a cross-build does not try to build them for the
   device.
+
+**Tracy is built without ISA extensions.** Tracy's own CMake compiles for the machine
+it is built on (`-march=native` on x86, `-mcpu=native` on arm). CI shares one vcpkg
+binary cache per triplet between jobs that run on different hosted machines, so a
+`tracy-capture` built on one runner and restored on another with an older CPU died
+with an illegal instruction (SIGILL), and `profiling.trace_cli` failed at random.
+The fork's port does not pass `NO_ISA_EXTENSIONS`, so this repository carries the
+port as an overlay (`cmake/vcpkg-ports/tracy`, named in `vcpkg-configuration.json`)
+that adds `-DNO_ISA_EXTENSIONS=ON`; `profiling.tracy_portable` holds that, and
+`profiling.trace_cli`/`profiling.trace_app` say plainly, as a build failure and not
+a missing trace, when a capture tool will not run on the machine. When the fork's
+port passes the option itself the overlay, its check and its `.gitattributes` line
+go.
 
 On Windows the client is a DLL: vcpkg puts `TracyClient.dll` beside each program
 it was linked into. **On Linux** vcpkg builds the tools from `dbus` upward
@@ -87,6 +104,29 @@ zone. Two consequences:
   own it is over before a capture can attach. Give it work to do for the capture
   with `--repeat <n>` (it solves the board `n` times and prints one result).
 
+### Which program the capture attaches to
+
+**Every Tracy client listens on port 8086**, whatever program it is in, and a
+capture started with only an address (`tracy-capture -a 127.0.0.1`) attaches to
+whichever client answers first. With two Tracy-built programs on one machine
+(a sibling project's, or this one's CLI and its window) the capture can be of
+the wrong one: this was found when `tracy-capture` attached to another project
+that happened to be running, and the application's own `--smoke` wait for "a
+profiler" can be satisfied by a capture of something else.
+
+Give the program a port of its own, and the capture the same one:
+
+```sh
+TRACY_PORT=18086 build/windows-msvc-profiling/bin/wjs-cli --repeat 4000 "S E R S/P A T G/L I N E/S E R S" &
+$TOOLS/tracy-capture -o solve.tracy -a 127.0.0.1 -p 18086 -f
+```
+
+`TRACY_PORT` is read by the client when it starts (an environment variable of
+the program, not a build option), and `-p` is `tracy-capture`'s. The profiler
+GUI takes the port after the address in its Connect box (`127.0.0.1:18086`).
+The tests that capture (`profiling.trace_cli` on 18086, `profiling.trace_app`
+on 18087) do this, so they cannot attach to a program that is not theirs.
+
 Use the tools at the **same version as the client** (the wire protocol changes
 between releases). The pin is an explicit `overrides` entry in `vcpkg.json`:
 0.14.1 (port-version 1).
@@ -96,14 +136,16 @@ Headless, from the tools vcpkg built into the build tree:
 ```sh
 TOOLS=build/windows-msvc-profiling/vcpkg_installed/x64-windows/tools/tracy   # x64-linux, arm64-osx elsewhere
 
-# start the capture first; it waits for the program to appear
+# start the capture first; it waits for the program to appear (use TRACY_PORT and -p
+# below if anything else with Tracy in it is running)
 $TOOLS/tracy-capture -o solve.tracy -a 127.0.0.1 -f &
 build/windows-msvc-profiling/bin/wjs-cli --repeat 4000 "S E R S/P A T G/L I N E/S E R S"
 
 # the capture ends when the program exits; then export it
 $TOOLS/tracy-csvexport solve.tracy                 # one row per zone: count, total, mean, min, max
 $TOOLS/tracy-csvexport -u solve.tracy              # every zone event, with its value
-$TOOLS/tracy-csvexport -u -p solve.tracy           # the plot samples (needs -u)
+$TOOLS/tracy-csvexport -u -p -f "no zone" solve.tracy   # the plot samples (-p needs -u; the filter
+                                                       # leaves out the millions of zone events -u lists)
 $TOOLS/tracy-csvexport -m solve.tracy              # the messages
 ```
 
@@ -144,7 +186,7 @@ The application is captured the same way, with its smoke run for a workload
 $TOOLS/tracy-capture -o app.tracy -a 127.0.0.1 -f &
 build/windows-msvc-profiling/bin/WordJewelsSolver.exe --smoke 600 --store build/smoke-store.wjs > build/smoke.txt
 $TOOLS/tracy-csvexport app.tracy
-$TOOLS/tracy-csvexport -p app.tracy    # the plots: ui.frame_ms, render.frame_ms, ui.sync_ms
+$TOOLS/tracy-csvexport -u -p -f "no zone" app.tracy    # the plots: ui.frame_ms, render.frame_ms, ...
 ```
 
 A build with Tracy's `--smoke` gives the profiler that was started first up to
@@ -194,10 +236,32 @@ yet.
 ## What is instrumented
 
 Names are `<layer>.<thing>`, lower case, dotted, string literals. They are what
-the CSV and the GUI show, so a rename is deliberate; `profiling.zone_names`
-checks the shape, that no name is used twice, and that the required set of
-zones, plots and QML scopes still exists (removed instrumentation is a failed
-test, as removed unit tests are).
+the CSV and the GUI show, so a rename is deliberate. Two checks hold them:
+
+- `profiling.zone_names` reads the sources. It checks the shape; that the first
+  part of a name is a **layer in the registry** at the top of
+  `tests/profiling/check_zone_names.cmake` (one line a layer, with what it is: a
+  new layer is a deliberate edit, so a misspelling cannot start a second
+  `store` or `solver` in the traces); that no name is used twice; and that the
+  required set of zones, plots and QML scopes still exists (removed
+  instrumentation is a failed test, as removed unit tests are). The scene's
+  stage zones `scene.shake`, `scene.drop` and `scene.settle` are chosen at run
+  time by `BoardScene.stageZone()`, so they are pinned as string literals in the
+  QML.
+- `profiling.trace_cli` and `profiling.trace_app` read a **trace**. They run
+  `wjs-cli --repeat` and the application's `--smoke` (offscreen) with the
+  capture attached on a port of their own, export the trace and assert that the
+  zones and plots a trace of the program is made of are in it: what the sources
+  cannot tell, a zone in code that never runs or a name only a run chooses.
+  They need a build with Tracy on and the capture tools (the same vcpkg
+  feature; `build/<preset>/vcpkg_installed/<triplet>/tools/tracy`), so in a
+  Release build they report themselves skipped, with the reason. `render.record_ms`
+  is not asked of the offscreen run: its software renderer has no render pass
+  to record.
+
+The zone-name registry also names a few layers the next zones are called after
+(`assist`, `parent`, `session`, `sound`, `speech`); they are moved up with the
+first zone that uses them.
 
 Only code that exists is instrumented. The [performance design](design/performance.md#what-to-instrument)
 lists the zones the rest of the application will carry, and they are added with
@@ -223,21 +287,21 @@ as the finger moves. The column below says which.
 | `input.submit` | zone | both | `GameSession::trace` of two tiles or more in `playing`; not for an event that is refused or a touch of one tile | the number of tiles in the path |
 | `app.startup` | zone | both | `start()` in `src/app/main.cpp`, once: the store and everything the game is made from | none |
 | `app.load_qml` | zone | both | the same file, once, around the engine's properties and `loadFromModule` | none |
-| `app.scene_create` | zone (QML) | both | `SoloScreen.qml`, once, the scene's first layout | none |
 | `data.load_phase` | zone | phonics | `PhaseSet::load_directory`, so a `--phase-directory` load | the words of every phase |
 | `scene.step` | zone | both | `DiceSim::advance`, once a device sample (one or two a frame) | the simulation steps that call took |
 | `scene.prepare` | zone (QML) | both | `BoardScene.prepare`, only when the board's faces are not in an atlas already | the cells of the atlas built |
 | `scene.play` | zone (QML) | both | `BoardScene.play`, once a play | none |
 | `scene.show` | zone (QML) | both | `BoardScene.show`, once a board is shown without motion | none |
-| `scene.shake`, `scene.drop`, `scene.settle` | zone (QML) | both | `BoardScene.step`, one a frame, by the stage the script is in | none |
-| `scene.celebrate` | zone (QML) | both | `SoloScreen.qml`, when the last word lands: the glow and its hold | none |
-| `ui.trace` | zone (QML) | both | `TraceLayer.qml`, one for each pointer or key event that traces | none |
+| `scene.shake`, `scene.drop`, `scene.settle` | zone (QML) | both | `BoardScene.step`, one a frame, by the stage the script is in (`BoardScene.stageZone()` chooses the name, so the check pins them as literals) | none |
+| `ui.trace` | zone (QML) | both | `FlatBoard.qml`, the trace layer of the flat board, one for each pointer or key event that traces (`TraceLayer.qml` has the same calls and is the same name) | none |
 | `ui.screen` | zone (QML) | both | `Main.qml`, the loader's `onLoaded`: the screen transition's work | none |
-| `scene2d.play`, `scene2d.step`, `scene2d.show` | zone (QML) | the 2D fallback (**not built**) | `qml/scene/fallback/BoardScene.qml`, its script calls | none |
+| `scene2d.play`, `scene2d.step`, `scene2d.show` | zone (QML) | the 2D fallback (**not built**, so not required by any check) | `qml/scene/fallback/BoardScene.qml`, its script calls | none |
 | `ui.frame_ms` | plot | both | the frame clock, once a frame | the interval between swaps |
 | `ui.first_frame_ms` | plot | both | the frame clock, once | process start to the first frame |
 | `render.frame_ms` | plot | both | the frame clock, once a frame | the render thread's own time for the frame |
 | `ui.sync_ms` | plot | both | the frame clock, once a frame | the render thread waiting for the GUI thread |
+| `render.record_ms` | plot | both | the frame clock, once a frame | the render thread recording the scene graph's main render pass (`beforeRenderPassRecording` to `afterRenderPassRecording`): the scene's draw calls |
+| `ui.animate_ms` | plot | both | the frame clock, once a frame the GUI thread was asked for | the GUI thread from the update request to the end of animations and polish (`afterAnimating`): QML, bindings and animation, before the render thread is asked to synchronise |
 
 `board.seed` has no plot of its own. The solves it makes, the verifications and
 the guided fill's trials, are `solver.solve` zones inside it, each with its
@@ -282,25 +346,52 @@ the mode it is part of.
 The **application** adds the window to that list. Its frame clock is
 `src/app/frame_profiler.cpp`: a frame mark named `UI` at every
 `QQuickWindow::frameSwapped`, the interval between swaps as the plot
-`ui.frame_ms`, the render thread's own time for the frame as `render.frame_ms`
-and its wait for the GUI thread as `ui.sync_ms`, and `ui.first_frame_ms` once,
-from the start of the process to the first frame. The swap is connected
+`ui.frame_ms`, and `ui.first_frame_ms` once, from the start of the process to
+the first frame. The frame is split into the two threads' shares:
+
+- **GUI thread:** `ui.animate_ms`, the time the GUI thread was busy from the end
+  of the last frame's synchronisation (which released it) to the end of this
+  frame's animations and polish (`afterAnimating`): the events, the animations'
+  tick and the bindings it sets off, the polish. It is the event loop's busy
+  time (`QAbstractEventDispatcher`'s awake and aboutToBlock), less the wait for
+  the render thread. The scene's own per-frame work (`scene.shake` etc.) is the
+  largest part of it in play.
+- **Render thread:** `ui.sync_ms`, its wait for the GUI thread, and
+  `render.frame_ms`, its own time for the frame; and inside that,
+  `render.record_ms`, recording the scene graph's main render pass
+  (`beforeRenderPassRecording` to `afterRenderPassRecording`): the scene's draw
+  calls. `render.frame_ms` includes the render thread's wait to present, which
+  is not work.
+
+The report leaves out the same warm-up frames for all of them (a smoke run's
+first frames create the scene and compile its shaders: 150 ms of
+`render.frame_ms` once, which is not a frame the player sees again). The swap is connected
 directly, so the mark and the plot are sent where the frame ended: the render
 thread of Qt's threaded render loop (the GUI thread of the basic one). The mark
 is the process's, not a thread's, and the named frame set is `UI`. The
 application names its threads `main` (in `main`) and `render` (the first time
-the scene graph is initialised).
+the scene graph is initialised, and only when that is a thread of its own: under
+the basic render loop the scene graph is the GUI thread's, which keeps its name).
+
+The signals run on the render thread, which the profiler does not control: they
+belong to a state that the connections keep alive, which reaches the profiler
+only under its own mutex until the destructor says otherwise. So the profiler
+may be destroyed while the render thread is inside a frame, and no frame is
+handled after the destructor returns (the first version asserted "Called object
+is not of the correct type (class destructor may have already run)" in a stress
+test of exactly that; `tests/app/frame_profiler_test.cpp` keeps it).
 
 The frame clock keeps a rolling window of the last 4,096 intervals and their
 report: count, mean, p50, p95, p99, max, the frames over 16.7 and over 33 ms,
-and the first frame's time. `--smoke` prints it (below); the frame budget is
+the first frame's time, and the **refresh rate and name of the screen the window
+is on**, which the budget is held against. `--smoke` prints it (below); the frame budget is
 held on it (tests/app/frame_timing_test.cpp,
 [performance design](design/performance.md#budgets)). A trace has the same
 numbers under `ui.frame_ms` and `render.frame_ms`.
 
-`app.startup`, `app.load_qml`, `app.scene_create`, `data.load_phase`, the
-scene's zones and the seam that opens them from QML are in the table above and
-in [QML and the scene](#qml-and-the-scene) below. There are no messages yet:
+`app.startup`, `app.load_qml`, `data.load_phase`, the scene's zones and the
+seam that opens them from QML are in the table above and in
+[QML and the scene](#qml-and-the-scene) below. There are no messages yet:
 nothing in the application is a moment without a duration.
 
 ## QML and the scene
@@ -316,7 +407,7 @@ fillAtlas(spareAtlas, shown)
 Profiler.value(96)                    // the number beside the innermost zone
 Profiler.end()
 
-Profiler.mark("scene.celebrate")      // a moment with no work: a zero-length zone
+Profiler.mark("ui.screen")             // a moment with no work: a zero-length zone
 ```
 
 **The discipline**, because QML has no scopes of its own:
@@ -349,9 +440,9 @@ finds the QML names (`Profiler.begin("...")`, `Profiler.mark("...")`) in the
 zone's.
 
 **Where it is used**, and only there: the scene's `prepare`/`play`/`show` and
-its per-frame stage; the trace layer's path work (one per pointer or key
-event); a screen's transition; the celebration's start; the 2D fallback's
-script calls. The names are in the table above. `Profiler.value()` is the QML
+its per-frame stage; the flat board's path work (one per pointer or key event);
+a screen's transition; the 2D fallback's script calls. The names are in the
+table above. `Profiler.value()` is the QML
 side of a zone's `Value()`: the atlas's cells are the number beside
 `scene.prepare`.
 
@@ -374,18 +465,86 @@ person's store.
 it is redirected, as above):
 
 ```text
-smoke: frames=60 warmup=60 span_ms=1583.08 p50_ms=15.69 p95_ms=17.74 p99_ms=309.13 max_ms=722.15 over16_7=12 over33=1 first_frame_ms=144.14 render_mean_ms=0.77 render_max_ms=8.32 sync_mean_ms=0.15 sync_max_ms=1.82
-ui.frame_ms: 60 frames over 1583.08 ms: mean 26.68, p50 15.69, p95 17.74, p99 309.13, max 722.15 ms
-ui.frame_ms over 16.7 ms: 12 (20.00%)   over 33 ms: 1
-ui.first_frame_ms: 144.14 ms (process start to the first frame)
-render.frame_ms: 121 frames, mean 0.77, p95 1.29, max 8.32 ms (the render thread's own time for a frame)
-ui.sync_ms: 121 frames, mean 0.15, p95 0.92, max 1.82 ms (the render thread waiting for the GUI thread)
+smoke: frames=240 warmup=60 span_ms=2394.81 p50_ms=10.02 p95_ms=10.45 p99_ms=11.72 max_ms=13.60 over16_7=0 over33=0 first_frame_ms=851.82 render_mean_ms=0.59 render_max_ms=6.58 sync_mean_ms=0.05 sync_max_ms=1.48 refresh_hz=100.00 record_mean_ms=0.03 record_max_ms=0.15 animate_mean_ms=0.60 animate_max_ms=1.37 screen=Acer_X34_P
+ui.frame_ms: 240 frames over 2394.81 ms: mean 10.02, p50 10.02, p95 10.45, p99 11.72, max 13.60 ms (the window is on 'Acer X34 P', which refreshes at 100.00 Hz)
+ui.frame_ms over 16.7 ms: 0 (0.00%)   over 33 ms: 0
+ui.first_frame_ms: 851.82 ms (process start to the first frame)
+render.frame_ms: 241 frames, mean 0.59, p95 0.93, max 6.58 ms (the render thread's own time for a frame)
+render.record_ms: 240 frames, mean 0.03, p95 0.09, max 0.15 ms (recording the main render pass: the scene's draw calls)
+ui.sync_ms: 240 frames, mean 0.05, p95 0.08, max 1.48 ms (the render thread waiting for the GUI thread)
+ui.animate_ms: 240 frames, mean 0.60, p95 1.05, max 1.37 ms (the GUI thread busy from the last synchronisation to the end of this frame's animations and polish)
 ```
 
 The first line is the one a machine reads: `key=value`, no spaces in a value.
-`tests/app/frame_timing_test.cpp` holds the frame budget on it
-([performance design](design/performance.md#budgets)):
-`p50_ms <= 17.0`, `max_ms <= 33.0` and `over33 == 0`.
+`tests/app/frame_timing_test.cpp` holds the frame budget on it, against **the
+refresh rate of the screen the window was on** (`refresh_hz`; tests/perf/
+budgets.hpp, "The window's frame"): `p50_ms` within one period and 0.3 ms
+(16.97 ms at 60 Hz, 10.3 ms at 100 Hz), `p95_ms` within one period and 2 ms,
+`max_ms <= 33.0` and `over33 == 0`. A fixed 17 ms is right for a 60 Hz screen
+and was wrong for a 100 Hz one: it could not see a window that held only half
+its frames there.
+
+The report above is a Release build on a desktop with two screens, with the
+window on the 100 Hz one. **Which screen the window is on changes the answer
+(next section).**
+
+### The frame on a desktop with two screens
+
+The desktop this was measured on has two: a 3440x1440 landscape at 100 Hz
+(`Acer X34 P`) and, as the primary screen, a 1200x1920 portrait at 59.95 Hz
+(`SyncMaster`). Windows puts a new window on either, depending on what had the
+focus, so the same binary was measured on both, by moving the window in the
+first second of `--smoke` (Windows Release build, MSVC 19.51, Qt 6.12, Direct3D
+11, the default threaded render loop, an RTX 4090 at 3-6% utilisation; the
+median and 95th percentile of `ui.frame_ms`, the mean of `render.frame_ms`):
+
+| Window | On | p50 / p95 ms | `render.frame_ms` mean |
+| --- | --- | --- | --- |
+| The application, `--smoke 240` | 100 Hz screen | **10.0 / 10.5** | 0.6 to 1.1 ms |
+| The application, `--smoke 240` | 59.95 Hz screen | **19.9 / 20.3** | 6.8 to 7.3 ms |
+| A Qt Quick window with a spinning rectangle | 59.95 Hz screen | 17 / 18 | |
+| A Qt Quick 3D window (MSAA, a cube) | 59.95 Hz screen | 17 / 18 | |
+| The shake prototype (the application's scene) | 59.95 Hz screen | 16.7 / 17.2 | 0.8 to 1.2 ms (its own count) |
+| The application, `QSG_RENDER_LOOP=basic` or `windows` | 59.95 Hz screen | 16.7 / 17.6 | 0.9 to 1.1 ms |
+| The application, `QSG_RHI_BACKEND=opengl` | 59.95 Hz screen | 16.7 / 16.9 | 16.6 ms |
+| The application, `QSG_RHI_BACKEND=d3d12` | 59.95 Hz screen | 16.9 / 21.1 | 6.2 ms |
+| The application, `QSG_RHI_BACKEND=vulkan` | 59.95 Hz screen | 19.8 / 20.7 | 11.7 ms |
+| The application, `QT_QUICK_CONTROLS_STYLE=Basic` | 59.95 Hz screen | 16.7 / 20.3 | 3.5 ms |
+| The application, `QT_QPA_PLATFORM=windows:nodarkmode` | 59.95 Hz screen | 16.8 / 20.3 | 4.0 ms |
+| The application, every core busy (32 spinning processes) | 100 Hz screen | 10.1 / 14.2 | 1.1 ms |
+| The application, the basic render loop | 100 Hz screen | 14.0 / 95.2 | 2.4 ms |
+
+What that says:
+
+- **The measurement is right.** `frameSwapped` is the presentation cadence, and
+  the same clock reads 10.0 ms on one screen, 16.7 ms on the other for the
+  prototype, and 17 ms for plain Quick windows.
+- **The scene is not what is slow.** The scene's frame is 0.6 ms of GUI thread
+  (`ui.animate_ms`), 0.6 ms of render thread and 0.03 ms of recording, at 3 to
+  6% of the GPU. The prototype, which plays the same scene in a window of its
+  own, holds 16.7 ms on the 59.95 Hz screen.
+- **It is the window of the application on a 59.95 Hz screen next to a 100 Hz
+  one.** There it presents every 19.9 ms (50 frames a second: neither the screen's
+  16.7 ms nor a multiple of the other screen's 10 ms vblank that would explain
+  it), and the render thread spends 7 ms a frame in the present. A plain Quick
+  window and a Quick 3D one do not do it, nor does the prototype. Changing the
+  Quick Controls style, switching off Qt's dark-mode integration, using the
+  OpenGL backend or the basic render loop each puts it back to the screen's
+  rate, which points at how the application's window is set up and presented,
+  and at the interplay of the threaded loop with the desktop compositor on a
+  mixed-refresh desktop. **Cause not found.** The application draws its own
+  controls (the kit), so the `Basic` style costs it nothing and is the first
+  thing to try in `main.cpp`; `QSG_RENDER_LOOP` and `QSG_RHI_BACKEND` are
+  environment variables Qt reads, and the application could set one itself
+  before it creates the window.
+- **A busy machine moves the figure too**, which is why the budget is opt-in and
+  runs alone (`RUN_SERIAL`): with every core busy the 100 Hz screen keeps its 10.1 ms
+median and its 95th percentile goes to 14.2 ms, which is what the `p95` row of
+the budget is for.
+- **The frame check is honest.** On the 59.95 Hz screen it fails (19.9 ms
+  against 16.97), and the earlier reports of a failing p50 on "a 100 Hz
+  display" were this: the window was on the other screen. The report now says
+  which (`screen=`, `refresh_hz=`), and the budget follows it.
 
 **Those numbers are a real offscreen run, and they are not the 3D scene's.**
 Under `QT_QPA_PLATFORM=offscreen` with `QSG_RHI_BACKEND=opengl`, Qt Quick runs
@@ -421,7 +580,6 @@ before the program started, so the start-up zones are in them):
 | --- | --- | --- | --- | --- |
 | `app.startup` | 1 | 71.6 ms | | |
 | `app.load_qml` | 1 | 251.2 ms | | |
-| `app.scene_create` (QML) | 1 | 0.47 ms | | |
 | `data.load_dictionary` | 1 | 70.5 ms (172,823 words) | | |
 | `data.load_phase` | 1 | 0.41 ms (7 words, a test directory) | | |
 | `data.load_store` | 1 | 0.08 ms | | |
@@ -444,13 +602,13 @@ shakes, so the device's samples are made inside the script), and its 0.51 ms is
 the dice world's step for a 3x3, against the prototype's 0.59 ms a frame for the
 same size: the zone is the simulation's own time, as it should be. The QML
 stage zones (`scene.shake` etc.) are the whole frame's scene work and sit above
-it, as the nesting says. `scene.celebrate` is not in the table: a smoke run
-does not clear a board. Neither is `ui.trace`: a smoke run sends no pointer
-input. `scene2d.*` never appears: the 2D fallback is not built.
+it, as the nesting says. `ui.trace` is not in the table: a smoke run sends no
+pointer input. `scene2d.*` never appears: the 2D fallback is not built.
 
-The frame percentiles this document can give are the offscreen line above (60
-frames, a p50 at 15.7 ms) and **not** a desktop 3D measurement; on a desktop
-with a display the same line is the one to read, and `--smoke 300` prints it.
+The offscreen run this document first printed (60 frames, a p50 at 15.7 ms) was
+**not** a desktop 3D measurement; the windowed figures are in
+[the frame on a desktop with two screens](#the-frame-on-a-desktop-with-two-screens),
+and on a desktop with a display `--smoke 300` prints the line to read.
 
 **A profiler gets its moment.** A build with Tracy's `--smoke` waits up to five
 seconds for a profiler to connect before it loads anything, then calls

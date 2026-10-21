@@ -131,7 +131,7 @@ the session notes outside the repository.
 | ENABLE: 172,823 words; 387,889 trie nodes; load 55 to 65 ms; +17.7 MB | [Performance](performance.md) |
 | Solving 200 boards a size, 3x3 to 6x6, letters by ENABLE frequency | [Board](board.md#sizes), [Performance](performance.md) |
 | The child-facing lists against the dictionary, by length | [Game](game.md#words-and-what-each-does) |
-| Known words per board with two word lists, and the share rejected by a floor | [Board](board.md#dice-after-the-mvp) |
+| Known words per board with two word lists, and the share rejected by a floor | [Board](board.md#dice-the-standard-board-in-the-mvp-decided-2026-10-16) |
 | The 249 SATPIN words: lengths, plurals, words per random board, the share of boards holding three to five with 0 to 12 dead cells, for three index sizes | [Phonics](phonics.md#why-verification-is-the-method) |
 | Words of the same indexes on real-looking 4x4 boards (the scanner's yield) | [Game](game.md#playing) |
 | The macro-free zone, compiled with stand-ins for Tracy's two types | [Performance](performance.md#a-macro-free-route) |

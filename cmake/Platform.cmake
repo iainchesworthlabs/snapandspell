@@ -21,9 +21,11 @@
 # ------------------------------------------------------------------------
 # Facts:
 #   WJS_PLATFORM_DISPLAY_NAME     How the platform is written in the version
-#                                 block ("Windows", "macOS", "Linux").
-#   WJS_PLATFORM_DESKTOP          ON where installers, the Qt application and
-#                                 the third-party notices exist.
+#                                 block ("Windows", "macOS", "Linux", "iOS").
+#   WJS_PLATFORM_DESKTOP          ON where CPack installers exist (the three
+#                                 desktops). OFF on iOS, whose application is
+#                                 archived and exported by Xcode, so no CPack
+#                                 configuration is written.
 #   WJS_PLATFORM_QT_SEARCH_ROOTS, WJS_PLATFORM_QT_ARCH_DIRS
 #                                 Where cmake/FindQt6.cmake looks for an
 #                                 aqtinstall-style Qt when none is on
@@ -41,7 +43,7 @@
 #                                 to the install prefix: beside the program's
 #                                 own executable, which is where it looks for
 #                                 them. The bindir, except on a platform whose
-#                                 application is a bundle.
+#                                 application is a bundle (macOS, iOS).
 #   WJS_PLATFORM_QT_DEPLOY_AT_INSTALL
 #                                 ON where an installed copy of the application
 #                                 carries Qt's runtime beside it, deployed by
@@ -60,9 +62,9 @@
 # Hooks (every platform defines all of them, even as no-ops):
 #   wjs_platform_configure_app(<target>)
 #                                 What makes <target>, the Qt application, a
-#                                 program of this desktop: a GUI-subsystem
+#                                 program of this platform: a GUI-subsystem
 #                                 executable on Windows, an application bundle
-#                                 on macOS.
+#                                 on macOS, a signed-by-Xcode bundle on iOS.
 #   wjs_platform_deploy_qt_runtime(<target> <qml_dir> [<more_qml_dirs>...])
 #                                 Puts Qt's runtime next to the built program,
 #                                 including the QML modules imported by the
@@ -87,15 +89,18 @@ include_guard(GLOBAL)
 # fragment is read.
 include(GNUInstallDirs)
 
-# Phones and the browser are not targets yet (docs/roadmap.md). Saying so here
+# Android and the browser are not targets yet (docs/roadmap.md). Saying so here
 # is clearer than a missing-fragment error further down.
-if(ANDROID OR IOS OR EMSCRIPTEN)
+if(ANDROID OR EMSCRIPTEN)
     message(FATAL_ERROR
-        "Only Windows, macOS and Linux desktops are supported targets. "
-        "Mobile and web are on the roadmap (docs/roadmap.md).")
+        "Only Windows, macOS and Linux desktops and iOS are supported targets. "
+        "Android and web are on the roadmap (docs/roadmap.md).")
 endif()
 
-if(WIN32)
+# IOS before APPLE: an iOS build is an Apple build too.
+if(IOS)
+    set(WJS_PLATFORM ios)
+elseif(WIN32)
     set(WJS_PLATFORM windows)
 elseif(APPLE)
     set(WJS_PLATFORM macos)

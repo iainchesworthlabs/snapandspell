@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <functional>
 #include <memory>
 
 namespace wjs::app {
@@ -35,6 +36,12 @@ public:
 
     // `asset` is a stem under assets/sounds ("rattle"); `volume` is 0 to 1.
     void play(const QString& asset, double volume);
+
+    // Where the sound goes instead of the platform's backend: a test that must
+    // not make a noise, or a tool. The play is still counted and reported. An
+    // empty function puts the backend back.
+    using Output = std::function<void(const QString& asset, double volume)>;
+    void setOutput(Output output);
 
 signals:
     // A play was asked for, with the asset and the volume it was asked at.

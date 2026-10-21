@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The iOS application's Info.plist. CMake fills the MACOSX_BUNDLE_ names in from
+     the target's properties (wjs_platform_configure_app in
+     src/platforms/ios/platform.cmake). CMake substitutes inside comments too, so
+     no comment here may write a dollar sign and a brace. -->
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
+    <key>CFBundleIdentifier</key>
+    <string>${MACOSX_BUNDLE_GUI_IDENTIFIER}</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
+    <key>CFBundleDisplayName</key>
+    <string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${MACOSX_BUNDLE_SHORT_VERSION_STRING}</string>
+    <key>CFBundleVersion</key>
+    <string>${MACOSX_BUNDLE_BUNDLE_VERSION}</string>
+    <!-- The same eight languages as the macOS bundle and the application's own
+         catalogue (i18n/). -->
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>en</string>
+        <string>fr</string>
+        <string>es</string>
+        <string>de</string>
+        <string>yi</string>
+        <string>he</string>
+        <string>zh</string>
+        <string>ja</string>
+    </array>
+    <!-- The icon: the AppIcon set in Assets.xcassets, compiled by Xcode (the
+         target's ASSETCATALOG_COMPILER_APPICON_NAME names the same set). -->
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.word-games</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>${MACOSX_BUNDLE_COPYRIGHT}</string>
+
+    <!-- Without this key iOS ends the program the moment it asks for the camera.
+         The scanner reads the letters of a board from the camera's picture on
+         this device (docs/design/scanner.md). The text is the macOS bundle's. -->
+    <key>NSCameraUsageDescription</key>
+    <string>WordJewelsSolver uses the camera to read the letters of a board you point it at. The picture stays on this device.</string>
+
+    <!-- A launch screen in the property list: without one iOS runs the program
+         in a legacy 320 x 480 window and scales it up. The colour is the
+         page colour of the light and dark themes (Assets.xcassets,
+         LaunchBackground), so the first frame is not a white flash in the dark
+         theme. -->
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIColorName</key>
+        <string>LaunchBackground</string>
+    </dict>
+
+    <!-- iPhone and iPad, every orientation: the screens lay themselves out from
+         the window's size, not from the device or its orientation. The iPad
+         list matters on its own: without it an iPad is limited to the iPhone's
+         (no upside-down portrait). -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <!-- The status bar stays visible and takes its colour from the system, so it
+         is dark on the light theme and light on the dark one. -->
+    <key>UIStatusBarHidden</key>
+    <false/>
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleDefault</string>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <true/>
+</dict>
+</plist>

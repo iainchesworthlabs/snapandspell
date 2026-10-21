@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import WordJewelsSolver
 
 // What a parent sets (docs/design/dashboard.md, "Settings"). Every value is one
 // the table allows; the controller refuses any other, and the store holds the
@@ -12,18 +13,18 @@ Flickable {
 
     // The parent area's direction, from the shell: Hebrew and Yiddish mirror the
     // rows and every choice.
-    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.enabled: Theme.rightToLeft
     LayoutMirroring.childrenInherit: true
 
     readonly property var s: controller.settings
 
     component GroupTitle: Text {
         Layout.fillWidth: true
-        topPadding: ParentTheme.space4
-        font.family: ParentTheme.monoFont
+        topPadding: Theme.space4
+        font.family: Theme.monoFont
         font.pixelSize: 11
         font.letterSpacing: 1.2
-        color: ParentTheme.accent
+        color: Theme.accent
     }
 
     function onOff() {
@@ -31,35 +32,35 @@ Flickable {
     }
 
     contentWidth: width
-    contentHeight: column.implicitHeight + 2 * ParentTheme.space6
+    contentHeight: column.implicitHeight + 2 * Theme.space6
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.VerticalFlick
 
     ColumnLayout {
         id: column
-        x: Math.max(ParentTheme.space4, (root.width - width) / 2)
-        y: ParentTheme.space6
-        width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
-        spacing: ParentTheme.space8
+        x: Math.max(Theme.space4, (root.width - width) / 2)
+        y: Theme.space6
+        width: Math.min(root.width - 2 * Theme.space4, Theme.contentWidth)
+        spacing: Theme.space8
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: ParentTheme.space1
+            spacing: Theme.space1
             Text {
                 Layout.fillWidth: true
                 text: ParentWording.tabSettings
-                font.family: ParentTheme.uiFont
-                font.pixelSize: ParentTheme.sizeTitle
+                font.family: Theme.uiFont
+                font.pixelSize: Theme.titleSize
                 font.weight: Font.ExtraBold
-                color: ParentTheme.ink
+                color: Theme.ink
             }
             Text {
                 Layout.fillWidth: true
                 text: ParentWording.settingsSubtitle
-                font.family: ParentTheme.uiFont
-                font.pixelSize: ParentTheme.sizeBody
-                color: ParentTheme.inkSecondary
+                font.family: Theme.uiFont
+                font.pixelSize: Theme.bodySize
+                color: Theme.inkSecondary
             }
         }
 
@@ -72,7 +73,7 @@ Flickable {
                 Layout.fillWidth: true
                 title: ParentWording.settingsHelp
                 hint: ParentWording.settingsHelpHint
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsHelp
                     options: [
                         {value: "off", label: ParentWording.valueOff},
@@ -88,7 +89,7 @@ Flickable {
                 Layout.fillWidth: true
                 title: ParentWording.settingsBoard
                 hint: ParentWording.settingsBoardHint
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsBoard
                     options: [
                         {value: "standard", label: ParentWording.valueStandard},
@@ -101,9 +102,9 @@ Flickable {
                     Layout.fillWidth: true
                     visible: !root.controller.phonicsAvailable
                     text: ParentWording.settingsBoardNoPhonics
-                    font.family: ParentTheme.uiFont
-                    font.pixelSize: ParentTheme.sizeSmall
-                    color: ParentTheme.inkSecondary
+                    font.family: Theme.uiFont
+                    font.pixelSize: Theme.smallSize
+                    color: Theme.inkSecondary
                     wrapMode: Text.WordWrap
                 }
             }
@@ -112,7 +113,7 @@ Flickable {
                 Layout.fillWidth: true
                 visible: root.controller.phonicsAvailable
                 title: ParentWording.settingsPhase
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsPhase
                     options: root.controller.phases.map(name => ({value: name, label: name}))
                     current: root.s.phase
@@ -129,14 +130,16 @@ Flickable {
 
                 Flow {
                     Layout.fillWidth: true
-                    spacing: ParentTheme.space2
+                    spacing: Theme.space2
 
                     Repeater {
                         model: root.controller.focusChoices
 
-                        PButton {
+                        AppButton {
+                            size: "min"
+                            quiet: true
                             required property string modelData
-                            text: modelData
+                            label: modelData
                             compact: true
                             checkable: true
                             checked: root.s.focusSounds.indexOf(modelData) >= 0
@@ -160,8 +163,8 @@ Flickable {
                             Layout.fillWidth: true
                             textFormat: Text.StyledText
                             wrapMode: Text.WordWrap
-                            font.pixelSize: ParentTheme.sizeSmall
-                            color: ParentTheme.ink
+                            font.pixelSize: Theme.smallSize
+                            color: Theme.ink
                             text: "<i>" + tickedRow.modelData.letters + "</i>: "
                                   + (tickedRow.modelData.boardsMet > 0
                                          ? ParentWording.onBoardsFoundOn(tickedRow.modelData.boardsMet, tickedRow.modelData.boardsFound)
@@ -171,8 +174,8 @@ Flickable {
                             Layout.fillWidth: true
                             visible: tickedRow.modelData.fewWords
                             wrapMode: Text.WordWrap
-                            font.pixelSize: ParentTheme.sizeSmall
-                            color: ParentTheme.inkSecondary
+                            font.pixelSize: Theme.smallSize
+                            color: Theme.inkSecondary
                             text: ParentWording.fewWords
                         }
                     }
@@ -183,7 +186,7 @@ Flickable {
                 Layout.fillWidth: true
                 title: ParentWording.settingsBoardSize
                 hint: ParentWording.settingsBoardSizeHint
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsBoardSize
                     options: root.s.board === "standard"
                         ? [{value: 3, label: "3x3"}, {value: 4, label: "4x4"},
@@ -198,7 +201,7 @@ Flickable {
                 Layout.fillWidth: true
                 title: ParentWording.settingsTimer
                 hint: ParentWording.settingsTimerHint
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsTimer
                     options: [
                         {value: "off", label: ParentWording.valueOff},
@@ -214,7 +217,7 @@ Flickable {
                 Layout.fillWidth: true
                 visible: root.s.timer === "down"
                 title: ParentWording.settingsTimerLength
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsTimerLength
                     options: root.controller.timerLengthChoices.map(choice => ({value: choice, label: choice + " min"}))
                     current: root.s.timerLength
@@ -227,7 +230,7 @@ Flickable {
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsSoundItOut
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsSoundItOut
                     options: [
                         {value: "full", label: ParentWording.valueFull},
@@ -242,7 +245,7 @@ Flickable {
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsCelebration
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsCelebration
                     options: [
                         {value: "full", label: ParentWording.valueFull},
@@ -257,7 +260,7 @@ Flickable {
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsSound
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsSound
                     options: root.onOff()
                     current: root.s.sound
@@ -268,7 +271,7 @@ Flickable {
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsVibration
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsVibration
                     options: root.onOff()
                     current: root.s.vibration
@@ -279,7 +282,7 @@ Flickable {
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsShake
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsShake
                     options: root.onOff()
                     current: root.s.shake
@@ -293,7 +296,7 @@ Flickable {
                 Layout.fillWidth: true
                 title: ParentWording.settingsMotion
                 hint: ParentWording.settingsMotionHint
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsMotion
                     options: [
                         {value: "system", label: ParentWording.valueSystem},
@@ -308,7 +311,7 @@ Flickable {
                 Layout.fillWidth: true
                 title: ParentWording.settingsColour
                 hint: ParentWording.settingsColourHint
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsColour
                     options: [
                         {value: "system", label: ParentWording.valueSystem},
@@ -323,7 +326,7 @@ Flickable {
             SettingRow {
                 Layout.fillWidth: true
                 title: ParentWording.settingsTextSize
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsTextSize
                     options: [{value: 100, label: "1"}, {value: 125, label: "1.25"}, {value: 150, label: "1.5"}]
                     current: root.s.textSizePercent
@@ -336,7 +339,7 @@ Flickable {
                 Layout.fillWidth: true
                 visible: root.controller.schoolFonts.length > 0
                 title: ParentWording.settingsSchoolFont
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsSchoolFont
                     options: [{value: "", label: ParentWording.valueOff}].concat(
                         root.controller.schoolFonts.map(name => ({value: name, label: name})))
@@ -354,7 +357,7 @@ Flickable {
                 Layout.fillWidth: true
                 title: ParentWording.settingsLanguage
                 hint: ParentWording.settingsLanguageHint
-                PChoice {
+                SegmentedChoice {
                     title: ParentWording.settingsLanguage
                     options: [{value: "", label: ParentWording.valueSystem}].concat(
                         ParentWording.languageChoices)

@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "wjs/profiling.hpp"
+
 namespace wjs::app {
 
 CameraSource::CameraSource(QObject* parent) : CameraSource(make_camera_backend(), parent) {}
@@ -31,7 +33,11 @@ QStringList CameraSource::devices() const {
 }
 
 QString CameraSource::problem() const {
-    return backend_ ? backend_->problem() : QStringLiteral("no_camera");
+    return problem_code(problemKind());
+}
+
+CameraProblem CameraSource::problemKind() const {
+    return backend_ ? backend_->problem() : CameraProblem::no_camera;
 }
 
 bool CameraSource::running() const {
@@ -61,6 +67,9 @@ bool CameraSource::capture() {
     // One frame at a time: a caller that did not take the last one loses it. The
     // camera is stopped by the model as soon as it has read it.
     frame_ = std::move(*frame);
+    // A frame of the camera is a boundary in a profile, apart from the window's
+    // own frames ("UI").
+    wjs::profiling::frame_mark("Capture");
     emit captured();
     return true;
 }

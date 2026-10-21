@@ -10,6 +10,8 @@
 # docs/testing.md, "Performance tests".
 add_executable(wjs_perf_tests
     corpus.cpp
+    data_metrics.cpp
+    data_work_test.cpp
     game_work_test.cpp
     measure.cpp
     metrics.cpp

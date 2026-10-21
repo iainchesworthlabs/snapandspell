@@ -137,7 +137,7 @@ int run_check(const QString& out) {
     // the rest.
     wjs::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-        dictionary.insert(word);
+        static_cast<void>(dictionary.insert(word));
     }
     wjs::Store store = wjs::Store::in_memory();
 
@@ -276,7 +276,7 @@ int run_camera_check(const QString& out) {
 
     wjs::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-        dictionary.insert(word);
+        static_cast<void>(dictionary.insert(word));
     }
     wjs::Store store = wjs::Store::in_memory();
 
@@ -337,6 +337,11 @@ int run_camera_check(const QString& out) {
 
     // --- Capture: the frame arrives, is read, and the check screen opens -----------
     scan.capture();
+    // The read runs on the scanner's own thread: the window keeps drawing while it
+    // does, and the answer comes back through the event loop.
+    for (int i = 0; i < 400 && scan.state() == "reading"; ++i) {
+        pump(1);
+    }
     pump();
     check(scan.state() == "check", "Capture opens the check screen");
     check(scan.rows() == 4 && scan.columns() == 4, "the synthetic board is the 4x4 it is");
@@ -385,7 +390,7 @@ int run_language_check(const QString& out) {
 
         wjs::Dictionary dictionary;
         for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-            dictionary.insert(word);
+            static_cast<void>(dictionary.insert(word));
         }
         wjs::Store store = wjs::Store::in_memory();
         wjs::app::ScanModel scan;
@@ -528,7 +533,7 @@ int main(int argc, char* argv[]) {
     // Interactive: the two screens, empty, to look at.
     wjs::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-        dictionary.insert(word);
+        static_cast<void>(dictionary.insert(word));
     }
     wjs::Store store = wjs::Store::in_memory();
     wjs::app::LanguageManager language;

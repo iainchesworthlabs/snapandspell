@@ -115,19 +115,9 @@ target_compile_definitions(wjs_quick_tests PRIVATE
 set(WJS_QUICK_TEST_QML_DIR "${PROJECT_SOURCE_DIR}/src/app/qml")
 set(WJS_QUICK_TEST_QML_SOURCES "")
 
-set(WJS_QUICK_TEST_KIT_FILES
-    AppBar.qml
-    AppButton.qml
-    Feedback.qml
-    HoldButton.qml
-    Icon.qml
-    Jewel.qml
-    JewelBox.qml
-    ModeCard.qml
-    Navigation.qml
-    Theme.qml
-    TileFace.qml
-    Wordmark.qml)
+# The kit, from the one list the application and the previews use.
+include("${WJS_QUICK_TEST_QML_DIR}/kit/kit_files.cmake")
+set(WJS_QUICK_TEST_KIT_FILES ${WJS_KIT_QML_FILES})
 foreach(_file IN LISTS WJS_QUICK_TEST_KIT_FILES)
     set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/kit/${_file}"
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")
@@ -158,10 +148,11 @@ endforeach()
 
 # The kit's and the screens' singletons are singletons in this module too: a
 # pragma Singleton file is not one without this.
+foreach(_file IN LISTS WJS_KIT_QML_SINGLETONS)
+    set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/kit/${_file}"
+        PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+endforeach()
 set_source_files_properties(
-    "${WJS_QUICK_TEST_QML_DIR}/kit/Feedback.qml"
-    "${WJS_QUICK_TEST_QML_DIR}/kit/Navigation.qml"
-    "${WJS_QUICK_TEST_QML_DIR}/kit/Theme.qml"
     "${WJS_QUICK_TEST_QML_DIR}/solo/SoloWording.qml"
     "${WJS_QUICK_TEST_QML_DIR}/HomeWording.qml"
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -238,3 +229,20 @@ foreach(WJS_QUICK_TEST_FILE IN LISTS WJS_QUICK_TEST_FILES)
         TIMEOUT 300
         LABELS "system;ui;gui")
 endforeach()
+
+# The design system's guard rail over the QML sources: no pixel size, colour or
+# bare Text in a screen, no deleted names (tests/qml/check_qml_literals.cmake),
+# with an allow-list of the offences still in the tree that the screen streams
+# shrink (tests/qml/qml_lint_allowlist.cmake), and the check held to cases of its
+# own. They read sources only and need no display, so they could run on a leg
+# that does not build the application; they are here because the QML tier is.
+add_test(NAME quick.lint
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/check_qml_literals.cmake")
+add_test(NAME quick.lint.selftest
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/lint-selftest"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/test_check_qml_literals.cmake")
+set_tests_properties(quick.lint quick.lint.selftest PROPERTIES LABELS "quality;ui")

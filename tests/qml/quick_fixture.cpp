@@ -16,7 +16,7 @@ namespace {
 // 4x4 of SAT/PIN... holds a word and the tray has a jewel. TEST DATA.
 void fill_test_dictionary(wjs::Dictionary& dictionary) {
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
-        dictionary.insert(word);
+        static_cast<void>(dictionary.insert(word));
     }
 }
 

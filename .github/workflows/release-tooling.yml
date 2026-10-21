@@ -1,0 +1,122 @@
+name: Release tooling
+
+# Keeps the release pipeline honest between releases: the workflow files are
+# linted (actionlint, with ShellCheck over every `run:` block), and the scripts
+# a release is made of are exercised end to end with a throw-away key - the
+# tag checks, signing, verification, the SBOM and its schema
+# (tests/package/test_release_tools.sh). The build-and-package half of a release
+# is rehearsed by release.yml itself, weekly and on demand.
+#
+# Not a required check, and not on the merge queue: it runs only when something
+# it covers changes, and a required check that a path filter keeps from running
+# never reports, which would hold every unrelated pull request.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - ".github/**"
+      - "tools/release/**"
+      - "tools/package/**"
+      - "src/platforms/*/packaging/**"
+      - "tests/package/**"
+      - "cmake/Packaging.cmake"
+      - "cmake/Notices.cmake"
+      - "CMakeLists.txt"
+      - "vcpkg.json"
+      - "CHANGELOG.md"
+  push:
+    branches: [main, develop]
+    paths:
+      - ".github/**"
+      - "tools/release/**"
+      - "tools/package/**"
+      - "src/platforms/*/packaging/**"
+      - "tests/package/**"
+      - "cmake/Packaging.cmake"
+      - "cmake/Notices.cmake"
+      - "CMakeLists.txt"
+      - "vcpkg.json"
+      - "CHANGELOG.md"
+  workflow_dispatch:
+
+concurrency:
+  group: release-tooling-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main' }}
+
+# No job gets more than it names below.
+permissions: {}
+
+jobs:
+  lint:
+    name: Lint the workflows and release scripts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: false
+
+      - name: Install actionlint and ShellCheck (pinned)
+        run: |
+          uv venv "$RUNNER_TEMP/workflows-venv"
+          uv pip install --python "$RUNNER_TEMP/workflows-venv/bin/python" --requirement .github/requirements/workflows.txt
+          echo "$RUNNER_TEMP/workflows-venv/bin" >> "$GITHUB_PATH"
+
+      # .github/actionlint.yaml lists the newest hosted runner labels, which an
+      # older actionlint would call unknown. ShellCheck is on PATH, so actionlint
+      # runs it over each run block.
+      - name: actionlint
+        run: |
+          actionlint --version | head -n 1
+          shellcheck --version | sed -n 2p
+          actionlint
+
+      - name: ShellCheck the release scripts, the platforms' packaging scripts and the test
+        run: shellcheck -x tools/release/*.sh tests/package/*.sh src/platforms/*/packaging/*.sh
+
+  self-test:
+    name: Release tooling self-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: false
+
+      - name: Install the schema validator (pinned)
+        run: |
+          uv venv "$RUNNER_TEMP/sbom-venv"
+          uv pip install --python "$RUNNER_TEMP/sbom-venv/bin/python" --requirement .github/requirements/sbom.txt
+
+      # The CycloneDX 1.6 schema, at the commit of the specification's 1.6 tag.
+      - name: Fetch the CycloneDX 1.6 JSON Schema
+        run: |
+          set -euo pipefail
+          commit=55343ba19dee1785acf1ce9191540d5fd7b590db
+          mkdir -p "$RUNNER_TEMP/cdx-schema"
+          for file in bom-1.6.schema.json spdx.schema.json jsf-0.82.schema.json; do
+            curl --fail --silent --show-error --location \
+              --output "$RUNNER_TEMP/cdx-schema/$file" \
+              "https://raw.githubusercontent.com/CycloneDX/specification/$commit/schema/$file"
+          done
+
+      - name: Run the self-test
+        env:
+          WJS_CDX_SCHEMA_DIR: ${{ runner.temp }}/cdx-schema
+          WJS_PYTHON: ${{ runner.temp }}/sbom-venv/bin/python
+        run: tests/package/test_release_tools.sh

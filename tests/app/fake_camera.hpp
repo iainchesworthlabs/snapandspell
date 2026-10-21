@@ -27,16 +27,16 @@ public:
         return available_ ? QStringList{QStringLiteral("Fake camera")} : QStringList{};
     }
 
-    [[nodiscard]] QString problem() const override { return problem_; }
+    [[nodiscard]] CameraProblem problem() const override { return problem_; }
 
     [[nodiscard]] bool running() const override { return running_; }
 
     bool start() override {
         if (!available_) {
-            problem_ = QStringLiteral("no_camera");
+            problem_ = CameraProblem::no_camera;
             return false;
         }
-        if (!problem_.isEmpty()) {
+        if (problem_ != CameraProblem::none) {
             // A camera the person refused, or one the platform failed: the source
             // reports the code and stays stopped.
             return false;
@@ -69,21 +69,38 @@ public:
         if (videoOutput != nullptr) {
             ++previews_;
         }
+        preview_ = videoOutput;
     }
 
-    void detachPreview() override {}
+    void detachPreview() override {
+        ++detaches_;
+        preview_ = nullptr;
+    }
 
     // --- what a test says about this camera ---------------------------------
     void setAvailable(bool available) { available_ = available; }
-    void setProblem(QString problem) { problem_ = std::move(problem); }
+    void setProblem(CameraProblem problem) { problem_ = problem; }
+    // By the code QML is given, "" for none: the form the QML tests' fixture
+    // (tests/qml/quick_fixture.cpp) writes it in. An unknown code is a failure.
+    void setProblem(const QString& code) {
+        problem_ = CameraProblem::failed;
+        for (const CameraProblem problem : {CameraProblem::none, CameraProblem::no_camera,
+                                            CameraProblem::permission, CameraProblem::failed}) {
+            if (problem_code(problem) == code) {
+                problem_ = problem;
+            }
+        }
+    }
     void setFrame(wjs::scan::OwnedFrame frame) { frame_ = std::move(frame); }
     // A device that fails while running: the source's `changed` follows.
-    void fail(QString problem) {
-        problem_ = std::move(problem);
+    void fail(CameraProblem problem) {
+        problem_ = problem;
         running_ = false;
         notify();
     }
     [[nodiscard]] int previews() const { return previews_; }
+    [[nodiscard]] int detaches() const { return detaches_; }
+    [[nodiscard]] QObject* preview() const { return preview_; }
 
 private:
     void notify() {
@@ -95,9 +112,11 @@ private:
     Changed changed_;
     bool available_ = false;
     bool running_ = false;
-    QString problem_ = QStringLiteral("no_camera");
+    CameraProblem problem_ = CameraProblem::no_camera;
     std::optional<wjs::scan::OwnedFrame> frame_;
     int previews_ = 0;
+    int detaches_ = 0;
+    QObject* preview_ = nullptr;
 };
 
 }  // namespace wjs::app::test

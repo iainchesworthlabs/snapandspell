@@ -28,6 +28,10 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | --- | --- | --- |
 | `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report and the performance work budgets | yes |
 | `analysis.yml` | nightly `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
+| `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS and the ad-hoc iOS IPA, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets) |
+| `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
+| `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages from `main` once the author has enabled that ([Documentation site](#documentation-site)); only when the docs change | yes (the build; the publication needs Pages) |
+| `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change | yes |
 | `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
 | `commit-policy.yml` | no attribution in the PR title, PR body or any commit message of the PR | yes |
 | `codeql.yml` | nightly CodeQL static analysis of the C++ | no - skipped |
@@ -147,10 +151,14 @@ import beside the binary, as the application's own deploy does for its screens.
   Qt Quick application, its 3D scene prototype, the app tests, `parent.screens`,
   `scan.screens`, `camera.screens`, `parent.languages`, `scan.languages`, the eight `quick.*`
   suites, `i18n.catalogues`, `app.scene_contract` and `app.qml_lint` all run on
-  every push. The install names the modules `qttools qtmultimedia qtsensors
+  every push. The install names the modules `qtquick3d qtshadertools qtmultimedia qtsensors
   qtspeech` (see `aqt list-qt windows desktop --modules 6.12.0
-  win64_msvc2022_64`): `qttools` carries `lupdate`, `lrelease` and Qt Linguist,
-  and the last three are the application's sound, motion and speech, so this is
+  win64_msvc2022_64`): Quick 3D and its shader tools are modules of their own
+  in the 6.12 repository, and a kit without them fails the configure on
+  `Qt6Quick3D`; the
+  base kit itself carries `lupdate`, `lrelease` and Qt Linguist (from 6.12
+  `qttools` is an archive of the base package, and naming it as a module makes
+  aqtinstall fail), and the modules are the application's sound, motion and speech, so this is
   the leg that proves the real engines rather than their silent variants. The
   action's `aqtsource` input installs aqtinstall from a git commit rather than
   from PyPI, because Qt split the Windows repository per architecture from 6.11
@@ -231,7 +239,7 @@ a report for the next morning, not a blocked pull request.
 
 | Job | Runs on | What it does |
 | --- | --- | --- |
-| `clang-tidy` | ubuntu-26.04 | Configures `linux-gcc-debug` for the compile database only (no tests, no Qt application, sanitizers off, C++ module scanning off because GCC 15's `-fdeps` flags are not clang-tidy 22 arguments) and runs the pinned clang-tidy (`.github/requirements/analysis.txt`) over it with `.clang-tidy`'s checks and **warnings as errors**. The database is checked to be non-empty first, so a misconfigured run cannot pass with nothing analysed. |
+| `clang-tidy` | ubuntu-26.04 | Configures `linux-gcc-analysis` for the compile database only (Debug, no tests, no Qt application, Tracy and sanitizers off, so vcpkg installs nothing; C++ module scanning off because GCC 15's `-fdeps` flags are not clang-tidy 22 arguments) and runs the pinned clang-tidy (`.github/requirements/analysis.txt`) over it with `.clang-tidy`'s checks and **warnings as errors**. The database is checked to be non-empty first, so a misconfigured run cannot pass with nothing analysed. |
 | `MSVC /analyze` | windows-2025-vs2026 | Preset `windows-msvc-analysis` builds the library, platform layer, scanner and CLI with `/analyze /analyze:external- /W4 /WX`. The C6xxx findings are errors, so a finding is a red build; the SARIF each translation unit writes goes to **Security → Code scanning** (category `msvc-analyze`). |
 | `Sanitizers (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-debug`: the image's `clang++` builds the tree with AddressSanitizer and UBSan, and the whole ctest suite runs under them. The push legs cover GCC, AppleClang and MSVC; this is the nightly Clang build. |
 | `Analyze (C++)` | ubuntu-26.04 | `codeql.yml` runs CodeQL with the `security-extended` query suite over the lean library/platform/CLI build and uploads to code scanning. Public-only, as above. |
@@ -246,9 +254,8 @@ sanitizer runtimes the whole ctest suite without waiting for a push.
 ```sh
 # clang-tidy: the pinned wheel and the compile database
 pip install -r .github/requirements/analysis.txt
-cmake --preset linux-gcc-debug -DWJS_BUILD_TESTS=OFF -DWJS_BUILD_APP=OFF \
-  -DWJS_ENABLE_SANITIZERS=OFF -DCMAKE_CXX_SCAN_FOR_MODULES=OFF
-run-clang-tidy.py -p build/linux-gcc-debug -config-file "$PWD/.clang-tidy" \
+cmake --preset linux-gcc-analysis
+run-clang-tidy.py -p build/linux-gcc-analysis -config-file "$PWD/.clang-tidy" \
   -warnings-as-errors '*'
 
 # MSVC's analyzer: the SARIF is written beside the objects
@@ -270,8 +277,510 @@ are disabled with the reason beside each in the file. The gate is the rest of
 version is the one the disabled list was written for; Dependabot's bump is the
 moment to re-read it.
 
-A scheduled run is on the default branch (`main`). To analyse another branch,
-dispatch `analysis.yml` or `codeql.yml` on it from the Actions tab.
+A scheduled run is on the default branch (`main`), and so is the workflow it
+runs: GitHub reads a `schedule` and the `workflow_dispatch` listing only from
+the default branch. At the time of writing `main` is at the merge of PR #2,
+so it has the older `codeql.yml` and `scorecard.yml` (both have run green on
+their schedules) and **no `analysis.yml` at all**: the nightly clang-tidy, MSVC
+`/analyze` and Clang-sanitizer jobs, like the weekly release rehearsal, start
+only once `develop` has been merged to `main`.
+
+**What a scheduled run analyses is `develop`, not `main`.** A schedule runs
+`main`'s copy of the workflow on `main`'s commit, but the code worth checking
+every night is the integration branch's, so `analysis.yml` and `codeql.yml` check
+out `develop` when `github.event_name` is `schedule` (and the dispatched branch
+otherwise), and the two jobs that upload to code scanning (`MSVC /analyze`,
+CodeQL) pass `ref: refs/heads/develop` and the checked-out `sha` so the alerts
+belong to the code that was analysed. To analyse another branch, dispatch
+`analysis.yml` or `codeql.yml` on it from the Actions tab (once the workflow is on
+`main`).
+
+Every Debug preset has Tracy on, so a Debug configure on Linux has vcpkg build
+Tracy's tools for the host, which needs autotools. The composite action
+`.github/actions/linux-tracy-tools` installs them: `ci.yml`'s Linux leg and the
+nightly `Sanitizers (Linux, Clang)` job (`linux-clang-debug` is a Debug preset) use
+it before Configure. `clang-tidy` and CodeQL do not need it: they configure
+`linux-gcc-analysis`, which has Tracy off, so there is nothing to install or to
+cache, and CodeQL configures before its tracer starts regardless.
+
+## Releases
+
+`release.yml` turns a `v*` tag into a GitHub Release: Release packages built on
+hosted runners, tested, listed in a software bill of materials, checksummed,
+signed with the project's GPG key and attested. Nothing in it runs on a pull
+request or the merge queue, and none of it is a required check.
+
+### What a release holds
+
+| Platform | Built on | Packages | Holds |
+| --- | --- | --- | --- |
+| Windows x64 | `windows-2025-vs2026`, MSVC, Qt 6.12.0 | `WordJewelsSolver-<v>-win64.zip`, `WordJewelsSolver-<v>-win64.exe` (NSIS installer) | the Qt Quick application and `wjs-cli`, with Qt's runtime, plugins and QML modules |
+| Linux x64, the application | `ubuntu-26.04`, GCC, Qt 6.12.0 | `WordJewelsSolver-<v>-x86_64.AppImage` | the Qt Quick application with Qt inside it (linuxdeploy and its Qt plugin) |
+| Linux x64, the solver | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` | `wjs-cli` only |
+| macOS arm64 | `macos-26`, AppleClang, Qt 6.12.0 | `WordJewelsSolver-<v>-Darwin.dmg` | the application bundle (Qt inside it) and `wjs-cli`; signed and notarised when the Apple secrets are set |
+| iPhone / iPad (arm64) | `macos-26`, Xcode, Qt 6.12.0's iOS kit | `WordJewelsSolver-<v>-ios-adhoc.ipa`, `manifest.plist` | the application, ad-hoc signed for the devices in the provisioning profile; the manifest is the over-the-air install's ([iOS](#ios)) |
+| Any | the tagged commit | `WordJewelsSolver-<v>-source.tar.gz` | `git archive` of the tag, so `.gitattributes`' `export-ignore` decides what stays out |
+
+A prerelease's files carry its version (`...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1`, an
+rpm release `0.rc.1`): the tag's suffix reaches CPack as `WJS_PACKAGE_PRERELEASE`.
+
+and, for the release as a whole:
+
+| File | What it is |
+| --- | --- |
+| `SHA256SUMS` | SHA-256 of every file below, in `sha256sum` format |
+| `WordJewelsSolver-<v>.cdx.json` | the CycloneDX 1.6 SBOM ([below](#the-sbom)) |
+| `<file>.asc` | a detached GPG signature for every file above, `SHA256SUMS` included |
+| `KEYS` | the public signing key (convenient, not a root of trust: check its fingerprint, [below](#checking-a-download)) |
+
+Release builds have **Tracy off**: the Release presets turn it off
+(`tests/profiling/check_presets.cmake` holds that), the workflow never sets it,
+and every build job fails if `CMakeCache.txt` has it on or if a package that can
+be listed (ZIP, tar.gz, deb) holds a file with Tracy or a sanitizer runtime in
+its name.
+
+**What is not built, and why.**
+
+- **A deb or rpm of the application.** It needs a Qt 6.12 with Quick 3D that no
+  distribution packages, so such a package could only declare dependencies nobody
+  can satisfy (it used to ask for Qt 6.8). The application is the AppImage; the
+  deb and rpm are the command-line solver's.
+- **A ZIP of the macOS application, or a tarball of the Linux one.** The first
+  holds an application that is not signed; the second has no Qt in it. CPack makes
+  them (`check_package.ps1`-style checks do not need them) but the workflow does
+  not publish them.
+- **Android.** No platform section and no job: it needs Qt's Android kit, an
+  Android keystore and a platform fragment. `docs/roadmap.md` (decision D1) plans it as a
+  private build for the author's own devices, taking CountdownSolver's pipeline.
+  **iOS** is built, but only as an ad-hoc build for registered devices ([iOS](#ios));
+  releasing to a public store is a separate licensing decision (D2).
+- **Authenticode.** The Windows ZIP and installer are not Authenticode-signed
+  (that needs a code-signing certificate), so SmartScreen warns on first run. The
+  GPG signature and the attestation prove who built a file and that it is intact;
+  they do not stop that warning.
+- **macOS signing and notarisation need an Apple Developer ID**, which the
+  repository does not hold. The release workflow signs, notarises and staples the
+  disk image when six secrets exist (below), does nothing and says so when none
+  does, and fails when only some do. Until then the disk image is unsigned and
+  Gatekeeper warns.
+- **Intel macOS and Linux arm64.** No hosted runner is in the matrix for them.
+
+### The jobs
+
+| Job | Runs on | What it does |
+| --- | --- | --- |
+| `Prepare the release` | ubuntu-24.04 | Decides the mode. For a tag: `tools/release/check_release_ref.sh` requires `vMAJOR.MINOR.PATCH[-prerelease]`, the same version in `CMakeLists.txt` and `vcpkg.json`, a `## [x.y.z]` section in `CHANGELOG.md` (the release notes) and, for a final release, that the commit is on `main`. A prerelease (`v0.1.0-rc.1`) may be cut from a branch and gets generated notes if it has no changelog section. |
+| `Build ...` (4 legs: Windows, Linux solver, Linux application, macOS) | as the table | Configures the Release preset (the application on for the three legs that build it, so a missing Qt is an error and not a silent command-line-only package; Qt 6.12.0 from `install-qt-action`, the kit per host in `.github/toolchain-versions.json`), builds, runs **all** of ctest, then packages. Windows also runs the application's offscreen smoke, `tools/package/check_package.ps1` on the ZIP, and installs the NSIS installer silently and runs the installed `wjs-cli`. The Linux application leg makes the AppImage with `build_appimage.sh` and smokes it. Linux solver and macOS run `tools/release/smoke_package.sh` over every package they made; macOS then runs `verify_bundle.sh` (plist, camera text, Qt inside, no link to the build machine, offscreen start) and `sign_and_notarize.sh`. Every leg ends with `tools/release/check_release_build.ps1` (Tracy and sanitizers off, the expected packages present). |
+| `Build the iOS ad-hoc IPA` | macos-26 | A tag, or a manual run unless its `ios` input is unticked ([iOS](#ios)). Requires the five Apple secrets, installs Qt's iOS and macOS kits, imports the certificate and profile, archives and exports the IPA with Xcode, checks it and writes `manifest.plist`. |
+| `SBOM, checksums and signatures` | ubuntu-24.04 | Collects the packages, archives the source (`git archive`), writes the SBOM, writes `SHA256SUMS`, signs every file, then verifies the directory the way a user would. Uploads it as the `release-dist` artifact. |
+| `Attest provenance and SBOM` | ubuntu-24.04 | Release only. `actions/attest-build-provenance` for every file, `actions/attest-sbom` tying the SBOM to the packages. This is the only job with `id-token: write` and `attestations: write`. |
+| `Publish the release` | ubuntu-24.04 | Release only. Creates a **draft** with every file attached, publishes it, downloads it again and runs `verify_release.sh --attest` against the public release; if that fails the release is returned to a draft. The only job with `contents: write`. |
+
+A tag-triggered run uses the workflow file **at the tagged commit**, so a release
+is built by the pipeline that was reviewed with it.
+
+### Rehearsals: the dry run
+
+The same workflow, started by hand or weekly, builds, tests, packages, writes the
+SBOM, signs and verifies - and publishes and attests nothing. The files are in
+the run's `release-dist` artifact for 14 days.
+
+```sh
+gh workflow run release.yml --ref main                       # ephemeral key
+gh workflow run release.yml --ref main -f signing=repository # the real secrets
+```
+
+- `signing=ephemeral` (the default, and what the weekly run uses) signs with a
+  throw-away key made inside the run, so the pipeline is tested end to end
+  without the real key and without secrets. `KEYS` in the artifact is that key's
+  public half; check the artifact with
+  `tools/release/verify_release.sh --dir <folder> --unpinned`.
+- `signing=repository` signs with `GPG_PRIVATE_KEY` and `GPG_PASSPHRASE`, and
+  checks the key against the committed fingerprint. Run it once after setting the
+  secrets up and before the first tag: it is the test of the secrets.
+- `ios` (default true, by hand only) also builds and signs the iOS IPA with the Apple
+  secrets, which are real whatever `signing` says; untick it to rehearse the desktop
+  packages alone. The weekly run never builds iOS ([iOS](#ios)).
+
+The weekly run (Sunday 03:23 UTC) exists so that a Windows, Linux or macOS
+Release build that has quietly stopped working is found on a Sunday and not on the
+day of a release. Release builds are otherwise only exercised by this workflow
+and the `Performance` leg (Linux).
+
+**GitHub only starts a scheduled or manually dispatched workflow from the default
+branch.** The default branch is `main`, and `release.yml` is not on it until
+`develop` is merged there (the same is true of `analysis.yml`: `main` has neither
+today). A tag push is the exception: it uses the workflow file at the tagged
+commit, wherever that is.
+
+### Cutting a release
+
+1. In a release pull request (`release/<x.y.z>` into `main`): set `project(...
+   VERSION x.y.z)` in `CMakeLists.txt` and `"version"` in `vcpkg.json`; rename
+   `## [Unreleased]` in `CHANGELOG.md` to `## [x.y.z] - <date>` and put a new
+   empty `## [Unreleased]` above it.
+2. Optional, and worth doing for the first one: tag `v<x.y.z>-rc.1` on the release
+   branch. It runs the real path - the real key, the attestations, a published
+   prerelease - without making a final release. Delete the prerelease and its tag
+   when done (a tag ruleset needs an admin to do it).
+3. Merge to `main`, then tag the merge commit and push the tag:
+
+   ```sh
+   git tag -s v0.1.0 -m "WordJewelsSolver 0.1.0"   # or: git tag -a
+   git push origin v0.1.0
+   ```
+
+4. Watch the run. When it is green the release is public and has been verified
+   from the outside. A red `Publish the release` returns the release to a draft.
+
+A packaging fix after a tag is a new tag (`v0.1.1`), not a moved one: the
+`release-tags` ruleset refuses moving or deleting a `v*` tag except by an admin,
+and a moved tag would make the SBOM, signatures and attestations of the first
+one describe something that is no longer there.
+
+### What the author sets up once
+
+None of this is done by the repository, and the workflow stops, with the same
+list in its message, if any of it is missing.
+
+1. **Create the signing key** (done for the first release: fingerprint
+   `9A0D96E8944899F94B1B37B51F1A8DA4C79B19D2`, expires 2028-10-19; the public half is `.github/release-signing/KEYS`
+   and `FINGERPRINT`, and the two secrets are set). To make another, for a
+   rotation, on your own machine from a checkout, in your own terminal (it prints
+   no secret, and the output folder is outside the repository; the script refuses
+   a folder in any git working tree):
+
+   ```powershell
+   ./tools/release/new_signing_key.ps1                       # -> ~/wjs-release-key
+   ./tools/release/new_signing_key.ps1 -OutDir D:\keys\wjs -Email you@example.org -Install
+   ```
+
+   (`tools/release/new_signing_key.sh --out <dir> --email <addr> --install` is the
+   same for a POSIX shell.) It uses a temporary keyring that never touches yours,
+   makes an Ed25519 sign-only key (expires in two years, user id
+   `WordJewelsSolver Release <address>`, the address from `git config user.email`
+   unless given) protected by a random passphrase, and writes, into a folder only
+   your account can read: `private-key.asc`, `public-key.asc`,
+   `revocation-cert.asc`, `passphrase.txt`, `fingerprint.txt` and a `README.md`
+   with the commands below. It then signs and verifies a test file with the
+   exported files in fresh keyrings and shreds the temporary ones. `-Install`
+   also copies the public key and fingerprint to `.github/release-signing/`.
+   With Git for Windows' gpg (an MSYS build) the script hands gpg its home as
+   `/c/...`, which that build's agent needs.
+2. **Upload the two secrets** (done; repository secrets; `gh secret set` reads the
+   value from standard input, so these print nothing of it):
+
+   ```powershell
+   Get-Content -Raw private-key.asc | gh secret set GPG_PRIVATE_KEY --repo iainchesworthlabs/wordjewelssolver
+   Get-Content -Raw passphrase.txt  | gh secret set GPG_PASSPHRASE  --repo iainchesworthlabs/wordjewelssolver
+   ```
+
+   Then keep the private key and passphrase in your key store, the revocation
+   certificate offline, and delete the first two from the output folder.
+3. **Commit the public half** (done): `.github/release-signing/KEYS` and `FINGERPRINT`,
+   and put the fingerprint where a reader will find it independently of the
+   download: `SECURITY.md` and the README (both now carry it). The workflow refuses to sign with a key
+   whose fingerprint is not the committed one.
+4. **Apply the tag ruleset** (done, 2026-10-20): `tools/repo/apply_rulesets.ps1
+   -Only release-tags` (a dry run), then `-Apply`. It restricts `v*` tags to the
+   admin role.
+5. **Get the workflows onto `main`**: merge `develop` there. Until then nothing
+   scheduled or dispatched from this repository exists on the default branch
+   except `codeql.yml` and `scorecard.yml` (older copies).
+6. **Pin the AppImage tools** (once, on a machine you trust):
+   `src/platforms/linux/packaging/pin_linuxdeploy.sh`, then commit
+   `linuxdeploy.pins`. Until then the Linux application leg downloads linuxdeploy
+   by its release tag, prints each file's SHA-256 with a warning and carries on
+   (trust on first use); afterwards a download that differs fails the build.
+7. **Optional: macOS signing.** With an Apple Developer ID Application
+   certificate, set the six secrets `MACOS_CERTIFICATE` (base64 of the `.p12`),
+   `MACOS_CERTIFICATE_PASSWORD`, `MACOS_SIGN_IDENTITY` (`Developer ID Application:
+   Name (TEAMID)`), `NOTARY_APPLE_ID`, `NOTARY_TEAM_ID` and `NOTARY_PASSWORD` (an
+   app-specific password), e.g. `base64 -i cert.p12 | gh secret set MACOS_CERTIFICATE`.
+   Without them the disk image is unsigned (the run says so in an annotation).
+8. **iOS signing** (done 2026-10-20). Five repository secrets, from the Apple
+   developer portal: `IOS_DIST_CERTIFICATE_BASE64` and `IOS_DIST_CERTIFICATE_PASSWORD`
+   (the Apple Distribution certificate as a `.p12` with its private key, and its
+   export password), `IOS_PROVISIONING_PROFILE_BASE64` (the ad-hoc profile for
+   `org.iainchesworth.wordjewelssolver`), `APPLE_TEAM_ID` and
+   `APPLE_PROVISIONING_PROFILE_NAME` (the profile's name exactly as the portal shows
+   it). The profile lists the registered devices and expires 2027-07-16; a new device
+   or a renewal means a new profile and a new secret
+   ([Installing on my iPhone/iPad](ios-install.md#add-a-device)). The install link
+   also needs the documentation site published ([Documentation site](#documentation-site)).
+9. **Rehearse**: `gh workflow run release.yml --ref main -f signing=repository`,
+   download the `release-dist` artifact and run
+   `tools/release/verify_release.sh --dir <folder>` (it reads the committed
+   fingerprint from your checkout).
+
+Optional hardening, deliberately not required: create a `release` environment with
+required reviewers and move the two secrets into it, then add `environment: release`
+to the `sign` job, so that a tag push waits for a click before the key is used. A
+dry run would then wait too, unless the dry run is split into a job of its own.
+
+Rotating the key: run `new_signing_key.sh` again, replace the two secrets and the
+files in `.github/release-signing/`, update the fingerprint in `SECURITY.md`, and
+say so in the next release's notes. A revoked or expired key leaves the old
+releases' signatures valid as of when they were made; users who verify them later
+need the old `KEYS`, which stays in the repository history.
+
+### iOS
+
+The iPhone/iPad application is a private, ad-hoc build for the author's own devices
+(decision D1 in [the roadmap](roadmap.md)): not the App Store, not TestFlight.
+Installing it, adding a device and renewing the signing are in
+[Installing on my iPhone/iPad](ios-install.md). Here is how it is built.
+
+**What is in the tree.** A platform section, `src/platforms/ios/` (`platform.cmake`,
+its paths implementation, `packaging/Info.plist.in`, the asset catalogue with the
+icon and the launch colour, and `packaging/verify_ipa.sh`), selected by
+`cmake/Platform.cmake` before `APPLE` (the one edit the isolation rules allow); and
+the `ios-release` preset: Release, an Xcode project, `arm64-ios`, no tests, no
+`wjs-cli`, Tracy and the sanitizers off like every Release preset. The haptics are
+the desktops' shared no-op and the board reader the portable one, as the roadmap
+has it; nothing buzzes yet.
+
+**Two Qt kits.** A cross build needs Qt's iOS kit (static Qt) and a desktop Qt of
+the same version for the host tools it runs (`moc`, `rcc`, `qmlcachegen`, `qsb`,
+`lrelease`). `jurplel/install-qt-action` with `host: mac`, `target: ios`, `arch: ios`
+installs both, the second through aqtinstall's `--autodesktop` with the same
+modules, and the jobs name them `QT_ROOT_DIR` (`.../Qt/6.12.0/ios`) and
+`QT_HOST_PATH` (`.../Qt/6.12.0/macos`), which the preset reads. Checked with the
+pinned aqtinstall (`aqt list-qt mac ios`): Qt 6.12.0 has an `ios` architecture with
+all five modules the application uses (`qtquick3d qtshadertools qtmultimedia
+qtsensors qtspeech`), and the macOS desktop kit has them too. The versions are
+`.github/toolchain-versions.json`'s (`qt.kits.ios`). The iOS kit is several
+gigabytes, so the jobs do not cache it: a cache of that size would evict the
+builds that run on every push.
+
+**The deployment target is iOS 18.0** (`CMAKE_OSX_DEPLOYMENT_TARGET` in `ios-base`),
+the minimum Qt's documentation gives for 6.12. With none set, Xcode would build for
+the newest SDK and the app would refuse to install on anything older.
+
+**`ios-build.yml`: the unsigned compile check.** `iOS (device, unsigned compile)`
+configures and builds `ios-release` on `macos-26` and then looks inside the
+`.app` with `verify_ipa.sh` (identifier, executable, version, icon, camera text, launch
+screen, the data beside the executable, arm64, links only the system). It needs no
+secret. It runs on pull requests and pushes to `main`/`develop` that touch what iOS
+reads (`src/`, `cmake/`, `data/`, `assets/`, `i18n/`, the root `CMakeLists.txt`,
+presets and vcpkg manifest, the toolchain pins, the workflow itself) and by hand
+(`gh workflow run ios-build.yml --ref <branch>`). It is not a required check, for the
+reason every path-filtered workflow here is not, and because a macOS runner is billed
+at a multiple.
+
+**`release.yml`, job `Build the iOS ad-hoc IPA`.** In order:
+
+1. *Require the Apple signing secrets.* The five secrets, by name, before anything
+   is downloaded: `IOS_DIST_CERTIFICATE_BASE64`, `IOS_DIST_CERTIFICATE_PASSWORD`,
+   `IOS_PROVISIONING_PROFILE_BASE64`, `APPLE_TEAM_ID`, `APPLE_PROVISIONING_PROFILE_NAME`.
+   Any missing is a red job with one message naming them and where they come from.
+2. vcpkg (the presets' toolchain file chains to Qt's; the manifest has no dependency
+   without the tests or Tracy, so nothing is built through it), CMake and Ninja at
+   the pins, and the two Qt kits.
+3. *Import the signing certificate and the provisioning profile.* A keychain made
+   for the job (removed at the end, whatever happened), the `.p12` imported into
+   it, the profile installed under its UUID. The profile is then held to the
+   secrets: its name equals `APPLE_PROVISIONING_PROFILE_NAME`, its team is
+   `APPLE_TEAM_ID`, its App ID is `<team>.org.iainchesworth.wordjewelssolver`, it lists
+   devices (it is ad hoc) and has not expired. Only counts and names are printed.
+4. *Configure (signed):* `cmake --preset ios-release` with
+   `-DWJS_IOS_SIGNING_TEAM` and `-DWJS_IOS_SIGNING_PROFILE`, which sign the
+   application target alone (the preset turns signing off for every other Xcode
+   target: static libraries and Qt's resource targets have no bundle identifier
+   and cannot be signed).
+5. *Archive* (`xcodebuild archive`, scheme `WordJewelsSolver`) and *export*
+   (`xcodebuild -exportArchive`, an `ExportOptions.plist` with method `ad-hoc`, the
+   team, manual signing, `Apple Distribution` and the profile by name). The file is
+   `WordJewelsSolver-<v>-ios-adhoc.ipa`.
+6. *Check the IPA* with `verify_ipa.sh --signed --version <v>`: as the build check,
+   plus the signature, the embedded profile, that it names devices, that it does not
+   allow a debugger to attach and that it is for this bundle identifier.
+7. *Write the manifest* with `tools/release/make_ios_manifest.sh`: `manifest.plist`,
+   whose URL for the IPA is the release asset's, known from the tag before the release
+   exists. Its tests are in `tests/package/test_release_tools.sh`.
+8. Upload `package-ios`, and remove the keychain and the profile.
+
+`SBOM, checksums and signatures` downloads `package-*`, so the IPA and the manifest are
+in `dist/` with everything else and get the same `SHA256SUMS`, GPG signatures,
+attestations (`attest` reads `SHA256SUMS`) and SBOM (an `.ipa` counts as carrying Qt,
+like an AppImage and a disk image). `Publish the release` adds an install section to the
+notes when there is a manifest.
+
+**When it runs.** A `v*` tag builds iOS, so a release never lacks it by accident,
+and never publishes unless the iOS job passed. A manual run builds it unless its
+`ios` input is unticked. The weekly rehearsal does not: it would spend a macOS
+runner and a signing identity every Sunday. The `sign` job tolerates a skipped iOS
+job and refuses a failed one. If iOS is broken and a desktop release cannot wait, set
+the repository variable `RELEASE_WITHOUT_IOS` to `true` (`gh variable set
+RELEASE_WITHOUT_IOS --body true`): a tag then skips the job, with a warning, and the
+notes have no iOS section. Delete the variable afterwards. Dispatch a rehearsal of the iOS job before the first
+tag, because the first run is expected to fail somewhere
+([below](#what-ios-has-and-has-not-shown)).
+
+**The install page.** Safari installs an ad-hoc app from an `itms-services://` link
+to an HTTPS manifest, and a release's notes cannot carry that link (GitHub strips the
+scheme), so `docs/install-ios.html` builds it in the browser from `?tag=` (or finds the
+newest release with a `manifest.plist`). MkDocs copies a non-Markdown file in `docs/`
+into the site unchanged, so the page needs no nav entry and passes `mkdocs build
+--strict`; it is deployed with the docs, so it exists only once
+[the site is published](#documentation-site): the Pages and `PUBLISH_DOCS` steps there
+are now also what makes the install link work. The release workflow does not wait for it.
+
+#### What iOS has and has not shown
+
+Verified here, without a Mac: the platform fragment satisfies the contract
+(`platform.fragments`), the isolation check passes with the new platform in the selector,
+the presets' Tracy policy (`profiling.shipped_presets`) holds for `ios-release`, the
+manifest generator and its refusals, the workflow files (actionlint with ShellCheck) and
+the self-test of the pins (`test_release_tools.sh`: the five secrets, the kit, SHA pins,
+no secret in the compile check, one bundle identifier, the camera text equal to
+macOS's), `Info.plist.in` through `configure_file`, and the documentation build.
+Qt 6.12.0's iOS kit and its five modules exist for the pinned aqtinstall.
+
+Not verified, because nothing here can build for iOS: **every step that runs on a
+Mac.** Specifically, and in the order it is likely to fail:
+
+- the configure: vcpkg's toolchain chaining to Qt's iOS toolchain, `arm64-ios`, and
+  `find_package(Qt6)` with the host kit for `LinguistTools`;
+- the generate: `QT_DEFAULT_PLUGIN` (CountdownSolver met it on Qt 6.8.3's kit; the
+  fragment only fills a property the kit leaves empty, and nothing says 6.12 has it);
+  Xcode refusing two targets that make the same translation output (CountdownSolver's
+  `qt_add_translations` problem; this repository calls `qt_add_lrelease`, and whether
+  that does the same is unknown);
+- the compile and link: the static Qt Quick 3D, QML modules and plugins, the QML
+  type compiler's private headers on a static kit, the camera and sensors modules;
+  `-Werror` under AppleClang for iOS;
+- the bundle: the dictionary and the dice are copied beside the executable by the
+  application's existing post-build step, which assumes Xcode runs it before signing
+  and that `$<TARGET_FILE_DIR>` is the `.app`; `verify_ipa.sh` will say if not;
+- `xcodebuild archive` finding the application (it relies on the
+  `install(TARGETS ... BUNDLE DESTINATION .)` rule), then `-exportArchive`. The method
+  is spelled `ad-hoc`, the name Xcode deprecated for `release-testing`; both are
+  accepted on recent Xcode, and if `ad-hoc` is not, that is the one-word fix;
+- the keychain and profile handling (macOS tools that could not be run), the profile
+  checks (PlistBuddy key paths), and `base64 --decode` on the runner;
+- that Safari accepts the manifest at a GitHub release URL (it redirects to GitHub's
+  asset host; CountdownSolver's flow did the same and installed), the install page,
+  and the app starting on a device: Quick 3D on Metal, the shake, the camera and its
+  permission prompt, the data directory in the container.
+
+The first signed run is expected to need fixes. A red `Build the iOS ad-hoc IPA` job
+blocks a tag release (by design: a release should not quietly lack iOS), which is why
+the rehearsal comes first, and why there is `RELEASE_WITHOUT_IOS`.
+
+### The SBOM
+
+`tools/release/generate_sbom.ps1` writes a CycloneDX 1.6 document from what the
+repository already records, not from a scan of the binaries:
+
+- the application (GPL-3.0-only: it links Qt Quick 3D) and `wjs-cli`
+  (GPL-3.0-or-later), with the commit and the repository;
+- Qt by module at the version in `.github/toolchain-versions.json`, each under the
+  licence it is used under - **only if a ZIP in the release actually carries
+  `Qt6Core.dll`**; likewise the Microsoft Visual C++ runtime. The command-line
+  packages claim no Qt;
+- the data that ships: the ENABLE word list and each bundled font file, with
+  SHA-256 hashes computed from the files in the tree;
+- what only built or tested it, with `scope: excluded`: vcpkg (its commit), CMake,
+  Ninja and every port vcpkg installed, read from the `vcpkg.spdx.json` files
+  vcpkg writes (Catch2 today);
+- each release file as a `distribution` reference with its SHA-256.
+
+It states that it is incomplete for third parties (`incomplete_third_party_only`):
+Qt contains third-party code of its own, which the SPDX documents of the Qt kit
+(`sbom/*.spdx.json`) describe and this document does not repeat. The output is
+deterministic for a given tag and commit. `release-tooling.yml` validates a
+generated SBOM against the CycloneDX 1.6 JSON Schema.
+
+### Checking a download
+
+```sh
+# 1. The key. Check the fingerprint against SECURITY.md in the repository,
+#    not against the KEYS file from the same place as the download:
+gpg --show-keys --with-fingerprint KEYS
+
+# 2. Everything at once (needs gpg; add --attest with the GitHub CLI):
+tools/release/verify_release.sh --dir <folder with the files> \
+  --fingerprint <the fingerprint> [--attest --repo iainchesworthlabs/wordjewelssolver]
+# Windows: ./tools/release/verify_release.ps1 -Dir <folder> -Fingerprint <...> [-Attest -Repo ...]
+
+# 3. Or by hand:
+gpg --import KEYS
+gpg --verify SHA256SUMS.asc SHA256SUMS
+sha256sum -c SHA256SUMS            # or: shasum -a 256 -c SHA256SUMS
+gh attestation verify WordJewelsSolver-0.1.0-win64.zip --repo iainchesworthlabs/wordjewelssolver
+```
+
+`verify_release.sh` uses a private temporary keyring, stops at the first failure,
+refuses to run without an expected fingerprint (`--unpinned` skips that, and says
+so), and takes `--repo <owner/name> --tag <tag>` instead of `--dir` to download
+the release itself.
+
+### When a release run goes red
+
+| Message | Cause |
+| --- | --- |
+| `the tag ... is version X but CMakeLists.txt declares Y` | The release pull request did not change `project(VERSION)` / `vcpkg.json`, or the tag is on the wrong commit. Delete the tag (admin), fix, tag again. |
+| `CHANGELOG.md has no '## [x.y.z]' section` | Rename `[Unreleased]` in the release pull request. |
+| `... is not on origin/main` | A final release is tagged on `main`. For a try-out, use a `-rc` tag. |
+| `Release signing secrets missing` | Step one and two of "What the author sets up once". |
+| `The secret key's fingerprint is A but .github/release-signing/FINGERPRINT says B` | The wrong key was uploaded, or the public half was not committed. |
+| `GPG_PASSPHRASE does not unlock the key` | `passphrase.txt` is not the passphrase that key was made with. |
+| `WJS_ENABLE_TRACY is 'ON'` / `contains the profiler` | A Release configuration or package has Tracy in it. The presets decide; `tests/profiling/check_presets.cmake` should have failed first. |
+| `no package ending .rpm` (and similar) | CPack dropped a generator because its tool was missing at configure time. The packaging tools are installed before Configure; read the configure log's `Packaging:` line. |
+| `makensis.exe is not in ...` | The NSIS install failed. NSIS is pinned to 3.13.0 from Chocolatey. |
+
+### Not verified until it runs on GitHub
+
+Run locally on Windows: the Release build, the whole ctest suite and the ZIP package
+check (and its refusal of TracyClient, an AddressSanitizer runtime and a .pdb), the
+executable's version resource, the prerelease naming and the deb on Linux (WSL),
+CPack's refusal of a Tracy build, the SBOM against the CycloneDX schema,
+`sign_release.sh` / `verify_release.sh` and the key script. Everything below is
+written, linted (actionlint, ShellCheck) and reasoned, and has not run:
+
+- the Linux and macOS **Qt builds** (the application has only ever been built on
+  Windows), the **AppImage** (`build_appimage.sh`, linuxdeploy and its Qt plugin,
+  and the list of system libraries Qt needs on the hosted image), the macOS
+  **bundle**, `verify_bundle.sh`, **signing and notarisation** (no certificate
+  exists to try them with) and the `.dmg`;
+- the **iOS** build, signing and install: nothing in it has run, and the list of what
+  is likeliest to fail is [in the iOS section](#what-ios-has-and-has-not-shown);
+- the NSIS installer and its branding (icon, shortcuts, `Program Files` path) and
+  its silent install test;
+- `actions/attest-*`, `gh attestation verify`, `gh release create`, that GitHub
+  accepts the tag ruleset, and the Pages deployment;
+- the nightly jobs that scan `develop`, including CodeQL's `ref`/`sha` upload.
+
+The first dry run is expected to need a fix or two; that is what it is for.
+
+## Documentation site
+
+`docs.yml` builds the site (`mkdocs.yml`, `docs/`) with
+`mkdocs build --strict --config-file .github/mkdocs-ci.yml`. The CI config inherits
+`mkdocs.yml` and raises MkDocs' own checks from information to warnings, which
+`--strict` turns into failures: a link to a page, a heading or a target that does
+not exist is a red build. Pages that exist but are not in the nav stay
+information (`docs/` holds design notes that are not meant for the menu). MkDocs
+and the Material theme are pinned in `.github/requirements/docs.txt`, MkDocs below
+2.0. The job runs only when something under `docs/` or the docs tooling changes,
+so it is not a required check.
+
+Publishing is off until the author turns it on, once:
+
+```sh
+gh api -X POST repos/iainchesworthlabs/wordjewelssolver/pages -f build_type=workflow   # Pages from GitHub Actions
+gh variable set PUBLISH_DOCS --body true --repo iainchesworthlabs/wordjewelssolver
+```
+
+`docs/install-ios.html` is not a page: it is the iOS install link's page
+([iOS](#ios)), a static file that MkDocs copies into the site as it is, so it is
+deployed with the docs and the iOS install link works only once the site is published.
+
+After that a push to `main` that changes the docs deploys the site to
+`https://iainchesworthlabs.github.io/wordjewelssolver/` (`site_url` in
+`mkdocs.yml`). Until then `Publish to GitHub Pages` is skipped, not red. A build
+of a pull request is never deployed.
 
 ## Required checks and their staging
 
@@ -290,10 +799,19 @@ contexts equal the job display names above and in the two policy workflows.
 | `macOS (AppleClang)` | `ci.yml` | yes |
 | `Coverage (Linux, GCC)` | `ci.yml` | yes |
 | `Scan dependency diff` | `dependency-review.yml` | **no - staged**: added after it has reported on a pull request on the public repository (see below) |
+| `Package (Windows, Release)` | `ci.yml` | no - **candidate**: add after it has been green on a few pull requests (it is the push-time proof that a Release package is clean) |
 | `Analyze (C++)` | `codeql.yml` | no - nightly, informational |
 | `clang-tidy` | `analysis.yml` | no - nightly, informational |
 | `MSVC /analyze` | `analysis.yml` | no - nightly, informational |
 | `Sanitizers (Linux, Clang)` | `analysis.yml` | no - nightly, informational |
+
+`Build the documentation (strict)` (`docs.yml`), the two `release-tooling.yml` jobs
+and everything in `release.yml` are not required and cannot be: each is
+path-filtered or is a tag, schedule or manual run, and a required check that a
+filter keeps from running never reports, which would hold every unrelated pull
+request. `Package (Windows, Release)` runs on every push and pull request and so
+could be; it is not required yet because it is new (`.github/rulesets/*.json` are
+untouched by this work, and `tools/repo/apply_rulesets.ps1` stays a manual step).
 
 The three `analysis.yml` jobs and `Analyze (C++)` are deliberately absent from
 `.github/rulesets/*.json`: they are a nightly report, and a required check that
@@ -350,6 +868,8 @@ what a local configure checks a developer's clone against.
 | CMake and Ninja (`lukka/get-cmake`) | `cmakeVersion` / `ninjaVersion`, exact, and one the pinned action's catalog lists | By hand, with the action |
 | Qt (`jurplel/install-qt-action`) | The action's commit SHA, the Qt version, `win64_msvc2022_64`, the module list and the `aqtsource` commit, in `.github/toolchain-versions.json` | By hand: run `aqt list-qt windows desktop --modules <version> <arch>` **and** a real install before bumping, as the action's README says |
 | vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together |
+| actionlint, ShellCheck, the SBOM schema validator | `==` in `.github/requirements/workflows.txt` and `sbom.txt`; the CycloneDX schema at the commit of its `1.6` tag, in `release-tooling.yml` | Dependabot (`pip`), weekly; the schema commit by hand |
+| NSIS (the Windows installer tool) | `choco install nsis --version 3.13.0`, in `release.yml`, when the image does not carry it | By hand |
 | Runner images | The label (`ubuntu-24.04`, `ubuntu-26.04`, `windows-2025-vs2026`, `macos-26`) | By hand |
 
 The clang-tidy version is in `.github/toolchain-versions.json` as well as in
@@ -448,11 +968,14 @@ suspects, in order of likelihood:
 
 ## Not here yet
 
-The Release presets on Windows and macOS (Linux's is the `Performance` leg), Qt
-on the Linux and macOS legs (the application has only been built on Windows so
-far), the Android/iOS targets (and with them the real Qt Sensors and haptics
-backends; the desktops answer haptics with the shared no-op), and web. The
-Windows clang-cl coverage preset (`windows-clang-coverage`, with
+Qt on the push legs of Linux and macOS: `release.yml` builds the application on
+both (the Linux AppImage and the macOS bundle are its first non-Windows builds), but
+`ci.yml`'s Linux and macOS legs still build the library, CLI and scanner alone. They
+should get the kit once a rehearsal has built the application on them, so that a
+regression is red in the pull request; until then the weekly rehearsal is the only
+check on them. Also not here: Android, the iOS haptics (the desktops and iOS answer
+with the shared no-op), a run of the iOS build ([iOS](#ios) says what is unverified), and
+web. The Windows clang-cl coverage preset (`windows-clang-coverage`, with
 `coverage-unit` and `coverage-ui`) is available for a local run but is not a CI
 job: the Linux GCC job runs the same unit gate. Each remaining item is a new job
 or a flag flip, not a redesign.
@@ -461,14 +984,14 @@ SonarQube or SonarCloud is not wired: it needs a server (or a SonarCloud
 organisation), a token and a quality-gate policy, and CodeQL, clang-tidy and
 MSVC's analyzer already cover the C++ with no account to keep. The C++
 compilation-database route is the one to add if a server appears: configure the
-same lean `linux-gcc-debug` database and point the scanner at
-`build/linux-gcc-debug/compile_commands.json`.
+same lean `linux-gcc-analysis` database and point the scanner at
+`build/linux-gcc-analysis/compile_commands.json`.
 
-Packaging is now built on the Windows leg only (above). The Linux `.deb`, `.rpm`
-and `.tgz` and the macOS `.dmg` are configured and their generators are selected
-where their tools exist, but no leg has built one: the Linux legs do not install
-Qt, so the application is not in their packages, and no macOS host has built it
-at all. A manual-dispatch Linux packaging leg would be the next step, and is
-deliberately left out rather than added untested. NSIS is configured but not
-verified in CI: the Windows leg asks for `-G ZIP`, and whether the runner has
-`makensis` is not something the result depends on.
+Packaging is built by `ci.yml` on the Windows leg only (above), as a Debug
+development build, plus the `Package (Windows, Release)` job, and for real by
+`release.yml` on all three desktops ([Releases](#releases)): the Windows ZIP and
+NSIS installer, the Linux AppImage of the application and the Linux solver's ZIP,
+tar.gz, deb and rpm, and the macOS disk image. The Linux and macOS application
+builds, the AppImage, the bundle and the signing path have not yet run on GitHub.
+iOS has a platform section, an unsigned compile check and a signed ad-hoc release job,
+none of which has run ([iOS](#ios)); Android has neither.

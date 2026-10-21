@@ -2,21 +2,21 @@
 
 #include <utility>
 
+#include "qt_text.hpp"
 #include "wjs/app/sound_backend.hpp"
+#include "wjs/profiling.hpp"
 
 namespace wjs::app {
 namespace {
 
-[[nodiscard]] std::string utf8(const QString& text) {
-    const QByteArray bytes = text.toUtf8();
-    return {bytes.constData(), static_cast<std::size_t>(bytes.size())};
-}
+using wjs::app::to_utf8;
 
 }  // namespace
 
 class SoundEngine::Impl {
 public:
     SoundBackend backend;
+    SoundEngine::Output output;
     int plays = 0;
 };
 
@@ -32,9 +32,19 @@ int SoundEngine::plays() const {
     return impl_->plays;
 }
 
+void SoundEngine::setOutput(Output output) {
+    impl_->output = std::move(output);
+}
+
 void SoundEngine::play(const QString& asset, double volume) {
+    // The first play of an asset loads it, which is the long one.
+    const auto zone = wjs::profiling::zone<"sound.play">();
     ++impl_->plays;
-    impl_->backend.play(utf8(asset), volume);
+    if (impl_->output) {
+        impl_->output(asset, volume);
+    } else {
+        impl_->backend.play(to_utf8(asset), volume);
+    }
     emit played(asset, volume);
 }
 

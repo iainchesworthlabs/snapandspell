@@ -5,8 +5,10 @@
 #include <QVariantMap>
 
 #include "sound_engine.hpp"
+#include "sound_sequence_player.hpp"
 #include "speech.hpp"
 #include "wjs/feedback.hpp"
+#include "wjs/phase_data.hpp"
 
 namespace wjs::app {
 
@@ -47,7 +49,7 @@ public:
     void setSettings(const QVariantMap& settings);
 
     [[nodiscard]] int soundsPlayed() const;
-    [[nodiscard]] int utterances() const noexcept { return utterances_; }
+    [[nodiscard]] int utterances() const noexcept;
     [[nodiscard]] int hapticsRequested() const noexcept { return haptics_requested_; }
 
     // One cue from the screens or a model: "rattle", "tile", "tile-landed",
@@ -56,16 +58,36 @@ public:
     // child's game.
     Q_INVOKABLE void cue(const QString& kind, const QString& detail);
 
+    // The phase the phonics board is played in, or none. A found word of the
+    // phonics board is sounded out (docs/design/phonics.md, "Sound it out"): the
+    // library makes the steps of the word from this phase and the Sound it out
+    // setting, and the sequence player walks them. With none, or on the standard
+    // board (the settings' "board"), or for a word the phase does not hold, the
+    // word is said whole at once. Not owned; it outlives the engine.
+    void usePhase(const wjs::PhaseIndex* phase) noexcept { phase_ = phase; }
+
+    // The engines behind the cues, for a test or a tool to put its own output on
+    // (SoundEngine::setOutput, Speech::setOutput) so that nothing is heard, and
+    // the sequence's player, to give it clips and a clock of its own.
+    [[nodiscard]] SoundEngine& soundEngine() noexcept { return sound_; }
+    [[nodiscard]] Speech& speech() noexcept { return speech_; }
+    [[nodiscard]] SoundSequencePlayer& soundSequence() noexcept { return sequence_; }
+
 signals:
     void settingsChanged();
     void requestsChanged();
 
 private:
+    // Says the found word of the cue: sounded out, or whole.
+    bool sayFoundWord(const QString& word, double volume);
+
     SoundEngine sound_;
     Speech speech_;
+    SoundSequencePlayer sequence_;
+    const wjs::PhaseIndex* phase_ = nullptr;
+    bool phonics_board_ = false;
     QVariantMap settings_map_;
     wjs::FeedbackSettings settings_;
-    int utterances_ = 0;
     int haptics_requested_ = 0;
 };
 

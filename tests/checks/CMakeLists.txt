@@ -34,6 +34,8 @@ add_test(NAME package.config
     COMMAND "${CMAKE_COMMAND}"
         "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
         "-DVERSION=${PROJECT_VERSION}"
+        "-DPRERELEASE=${WJS_PACKAGE_PRERELEASE}"
+        "-DEXPECT_TRACY=${WJS_ENABLE_TRACY}"
         "-DEXPECT_CLI=${WJS_BUILD_CLI}"
         "-DEXPECT_APP=${WJS_BUILD_APP}"
         "-DEXPECT_QT_DEPLOY=${WJS_PLATFORM_QT_DEPLOY_AT_INSTALL}"
@@ -66,6 +68,80 @@ add_test(NAME profiling.zone_names
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${WJS_TESTS_DIR}/profiling/check_zone_names.cmake")
+
+# Tracy is built for any machine of its architecture: the repository's tracy port
+# (an overlay on the fork's) passes NO_ISA_EXTENSIONS, since a vcpkg cache built on
+# one hosted runner is restored on another and a -march=native tracy-capture dies
+# there with SIGILL. Reads files only, so it runs in every leg.
+add_test(NAME profiling.tracy_portable
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${WJS_TESTS_DIR}/profiling/check_tracy_port.cmake")
+
+# A trace of the program holds the names the documents say it does: the program
+# is run with the Tracy capture attached and the exported trace is read
+# (check_trace.cmake). check_zone_names reads the sources, which cannot tell a zone
+# in code that never runs, or a name chosen at run time (the scene's stage zones),
+# from one a trace has. Only a build with Tracy on has a client to capture, and the
+# capture tools are built with it (vcpkg's `profiling` feature, in
+# vcpkg_installed/<triplet>/tools/tracy); in any other build the cases report
+# themselves skipped (exit 4) with the reason. A port of its own for each, since
+# every Tracy client listens on 8086 and a capture attaches to whichever program
+# started first (docs/profiling.md, "Which program the capture attaches to").
+set(WJS_TRACY_TOOLS_DIR "")
+if(WJS_ENABLE_TRACY)
+    set(WJS_TRACY_TOOLS_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/tracy")
+endif()
+set(WJS_TRACE_TESTS "")
+if(WJS_BUILD_CLI)
+    add_test(NAME profiling.trace_cli
+        COMMAND "${CMAKE_COMMAND}"
+            -DCASE=cli
+            "-DTRACY_TOOLS=${WJS_TRACY_TOOLS_DIR}"
+            "-DPROGRAM=$<TARGET_FILE:wjs-cli>"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+            -DPORT=18086
+            "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
+            -P "${WJS_TESTS_DIR}/profiling/check_trace.cmake")
+    list(APPEND WJS_TRACE_TESTS profiling.trace_cli)
+endif()
+if(WJS_BUILD_APP)
+    add_test(NAME profiling.trace_app
+        COMMAND "${CMAKE_COMMAND}"
+            -DCASE=app
+            "-DTRACY_TOOLS=${WJS_TRACY_TOOLS_DIR}"
+            "-DPROGRAM=$<TARGET_FILE:WordJewelsSolver>"
+            "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+            -DPORT=18087
+            "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
+            -P "${WJS_TESTS_DIR}/profiling/check_trace.cmake")
+    list(APPEND WJS_TRACE_TESTS profiling.trace_app)
+endif()
+if(WJS_TRACE_TESTS)
+    # Alone: a capture needs the machine's attention for the seconds it takes to
+    # find the program, and the two use ports of their own but share a disk.
+    set_tests_properties(${WJS_TRACE_TESTS} PROPERTIES
+        SKIP_RETURN_CODE 4
+        RUN_SERIAL TRUE
+        TIMEOUT 240
+        LABELS "system;profiling")
+endif()
+
+# A leg that holds the performance tier's work budgets ran them. Every work case
+# stands aside (SKIP) in a build that is not optimised, and a skip is not a
+# failure, so a leg of Debug builds passes with the whole tier skipped. This runs
+# the work cases and fails when an optimised build (or a workflow that sets
+# WJS_REQUIRE_PERF_BUDGETS=1) ran none; in any other build it reports itself
+# skipped (exit 4) with the reason, so it is never a pass that checked nothing.
+add_test(NAME profiling.perf_budgets_ran
+    COMMAND "${CMAKE_COMMAND}"
+        "-DPERF_TESTS=$<TARGET_FILE:wjs_perf_tests>"
+        "-DEXPECT_RUN=$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,1,0>"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
+        -P "${WJS_TESTS_DIR}/profiling/check_perf_ran.cmake")
+set_tests_properties(profiling.perf_budgets_ran PROPERTIES
+    SKIP_RETURN_CODE 4
+    TIMEOUT 300)
 
 # The workflow's toolchain pins (CMake, Ninja, Qt, aqtinstall) are the ones in
 # .github/toolchain-versions.json, and the vcpkg baseline is the pinned commit.
@@ -133,7 +209,9 @@ set(WJS_QUALITY_TESTS
     notices.sections
     package.config
     platform.fragments
+    profiling.perf_budgets_ran
     profiling.shipped_presets
+    profiling.tracy_portable
     profiling.zone_names
     toolchain.versions
     toolchain.version
@@ -234,9 +312,18 @@ if(WJS_PWSH)
             "${PROJECT_SOURCE_DIR}/tools/checks/check_platform_isolation.ps1"
             -Root "${PROJECT_SOURCE_DIR}")
 
+    # The release tooling (tools/release): the tag checks, signing and
+    # verification with a throw-away key, and the SBOM. It needs bash, gpg, jq,
+    # git and pwsh; without them it skips (exit 77) rather than fails, and
+    # release-tooling.yml runs it on a runner that has them (docs/ci.md, "Releases").
+    add_test(NAME release.tooling
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${WJS_TESTS_DIR}/package/run_release_tools_test.ps1")
+    set_tests_properties(release.tooling PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+
     list(APPEND WJS_QUALITY_TESTS
         data.dice data.wordlists data.sounds data.phonics data.phonics.checker
-        platform.isolation)
+        platform.isolation release.tooling)
 endif()
 
 set_tests_properties(${WJS_QUALITY_TESTS} PROPERTIES LABELS "quality")

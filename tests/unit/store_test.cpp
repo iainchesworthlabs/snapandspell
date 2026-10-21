@@ -13,6 +13,7 @@
 #include <string_view>
 #include <vector>
 
+#include "support/test_support.hpp"
 #include "wjs/store.hpp"
 
 namespace fs = std::filesystem;
@@ -39,38 +40,10 @@ std::string seal(const std::string& body) {
     return body + "end " + hex + "\n";
 }
 
-// A directory of its own that is gone when the case ends.
-class TempDirectory {
-public:
-    TempDirectory() {
-        static int counter = 0;
-        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
-        path_ = fs::temp_directory_path() /
-                ("wjs_store_test_" + std::to_string(stamp) + "_" + std::to_string(++counter));
-        fs::create_directories(path_);
-    }
-    TempDirectory(const TempDirectory&) = delete;
-    TempDirectory& operator=(const TempDirectory&) = delete;
-    ~TempDirectory() {
-        std::error_code error;
-        fs::remove_all(path_, error);
-    }
-    [[nodiscard]] const fs::path& path() const { return path_; }
+using wjs::test::TempDirectory;
 
-private:
-    fs::path path_;
-};
-
-std::string slurp(const fs::path& file) {
-    std::ifstream in(file, std::ios::binary);
-    return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-}
-
-void spit(const fs::path& file, const std::string& text) {
-    fs::create_directories(file.parent_path());
-    std::ofstream out(file, std::ios::binary | std::ios::trunc);
-    out << text;
-}
+using wjs::test::slurp;
+using wjs::test::spit;
 
 std::set<std::string> names_in(const fs::path& directory) {
     std::set<std::string> names;
@@ -161,16 +134,16 @@ wjs::StoreData busy_data() {
     store.update_settings(settings);
 
     auto a = phonics3({"sat", "pin", "tap"}, {found("sat", 1), found("pin", 1, true)});
-    store.record(a, monday);
+    REQUIRE(store.record(a, monday).stored);
     a.finds.push_back(found("tap", 1, false, monday + 1));
-    store.record(a, monday + 1);  // cleared, a best
+    REQUIRE(store.record(a, monday + 1).stored);  // cleared, a best
 
     wjs::BoardSnapshot four;
     four.size = 4;
     four.tiles = std::string(tiles4);
     four.viable_total = 40;
     four.finds = {found("stain", 5, false, monday + 2), found("pain", 2, true, monday + 2)};
-    store.record(four, monday + 2);
+    REQUIRE(store.record(four, monday + 2).stored);
 
     REQUIRE(store.save_session(playing_session()));
     return store.data();
@@ -210,6 +183,83 @@ TEST_CASE("a store with something of everything is written and read back as it w
 TEST_CASE("the same data is the same bytes", "[store]") {
     const wjs::StoreData data = busy_data();
     CHECK(wjs::serialize_store(data) == wjs::serialize_store(data));
+}
+
+namespace {
+
+// The data of the golden file below, written out field by field.
+wjs::StoreData golden_data() {
+    wjs::StoreData data;
+    data.settings.help = wjs::HelpLevel::off;
+    data.settings.board = wjs::BoardMode::phonics;
+    data.settings.phase = "B";
+    data.settings.focus_sounds = {"ai", "ee"};
+    data.settings.board_size = 4;
+    data.settings.colour_scheme = wjs::ColourScheme::dark;
+    data.settings.solo_clock = wjs::SoloClock::count_down;
+    data.settings.solo_clock_minutes = 15;
+    data.settings.text_size_percent = 125;
+    data.stars = 12;
+    data.next_board = 4;
+    data.best = {{3, 5}, {4, 9}};
+    data.vault = {{"pin", 20738, 20739, 3, 2}, {"sat", 20738, 20738, 1, 1}};
+    data.finds = {{"sat", 1, 3, "A", 20738, false, 2}, {"pin", 3, 3, "A", 20739, true, 2}};
+    data.days = {{20738, 0, 1}, {20739, 1, 3}};
+    data.boards = {{2, 20738, 3, "A", "S,A,T/P,I,N/T,A,P", 3, {"sat", "pin", "tap"}, 2, 4, false},
+                   {3, 20739, 4, "", "S,A,T,P/I,N,S,A/T,P,I,N/A,T,S,P", 40, {}, 0, 0, false}};
+    wjs::SavedSession session;
+    session.state = wjs::SavedState::playing;
+    session.size = 3;
+    session.seed = 77;
+    wjs::BoardSnapshot board;
+    board.phase = "A";
+    board.size = 3;
+    board.tiles = "S,A,T/P,I,N/T,A,P";
+    board.viable = {"sat", "pin", "tap"};
+    board.viable_total = 3;
+    board.finds = {{"sat", false, 20739, 1}};
+    session.board = board;
+    session.lit = "pin";
+    data.session = session;
+    return data;
+}
+
+// The version 2 file of golden_data(), as it is on disk: every key spelled out
+// here, so that renaming one in the writer or the reader breaks this case
+// (and a user's file with it) instead of passing a round trip. The checksum is
+// worked out by seal(), above, from the format's description.
+const std::string golden_body =
+    "wjs-store 2\n"
+    "settings help=off board=phonics phase=B focus=ai,ee size=4 sound_it_out=full "
+    "celebration=full sound=1 vibration=1 shake=1 motion=system colour=dark timer=down "
+    "timer_minutes=15 text=125 font=- language=-\n"
+    "total stars=12 next_board=4\n"
+    "best 3 5\n"
+    "best 4 9\n"
+    "word pin 20738 20739 3 2\n"
+    "word sat 20738 20738 1 1\n"
+    "find sat 1 3 A 20738 0 2\n"
+    "find pin 3 3 A 20739 1 2\n"
+    "day 20738 0 1\n"
+    "day 20739 1 3\n"
+    "board 2 20738 3 A 0 2 4 3 S,A,T/P,I,N/T,A,P sat,pin,tap\n"
+    "board 3 20739 4 - 0 0 0 40 S,A,T,P/I,N,S,A/T,P,I,N/A,T,S,P -\n"
+    "session state=playing size=3 seed=77 lit=pin\n"
+    "sboard A 3 S,A,T/P,I,N/T,A,P 3 sat,pin,tap\n"
+    "sfind sat 0 20739 1\n";
+
+}  // namespace
+
+TEST_CASE("the version 2 file of known data is these bytes", "[store][golden]") {
+    CHECK(wjs::serialize_store(golden_data()) == seal(golden_body));
+}
+
+TEST_CASE("the version 2 file of known data is read as that data", "[store][golden]") {
+    const auto parsed = wjs::parse_store(seal(golden_body));
+
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->from_version == 2);
+    CHECK(parsed->data == golden_data());
 }
 
 TEST_CASE("the file says its version on the first line and ends with a checksum", "[store]") {
@@ -704,6 +754,68 @@ TEST_CASE("the same tiles dealt again, with fewer finds, are a new board", "[sto
     CHECK(store.data().boards.size() == 2);
 }
 
+TEST_CASE("the same tiles dealt again, with other finds, are a new board and lose none",
+          "[store][record]") {
+    auto store = wjs::Store::in_memory();
+    const auto first = store.record(board3({found("sat", 1), found("tap", 2)}), monday);
+    REQUIRE(first.stored);
+
+    // A small phase can deal the very same tiles again. The second game finds
+    // three other words: more finds than the first board had, but not the same
+    // ones, so it is not the first board sent again.
+    const auto second =
+        store.record(board3({found("nip", 1), found("pan", 1), found("pin", 3)}, 100), monday + 1);
+
+    REQUIRE(second.stored);
+    CHECK(second.board != first.board);
+    CHECK(second.stars_added == 5);
+    CHECK(second.new_words == std::vector<std::string>{"nip", "pan", "pin"});
+    CHECK(store.data().boards.size() == 2);
+    CHECK(store.data().finds.size() == 5);
+    CHECK(store.data().stars == 8);
+    CHECK(wjs::finds_on_board(store.data(), second.board).size() == 3);
+    CHECK(wjs::finds_on_board(store.data(), first.board).size() == 2);
+}
+
+TEST_CASE("the same word found on another day is not the same find sent again", "[store][record]") {
+    auto store = wjs::Store::in_memory();
+    const auto first = store.record(board3({found("sat", 1)}), monday);
+
+    // The same tiles and the same first word, a day later: a second game.
+    const auto second = store.record(
+        board3({found("sat", 1, false, monday + 1), found("tap", 1, false, monday + 1)}),
+        monday + 1);
+
+    CHECK(second.board != first.board);
+    CHECK(second.stars_added == 2);
+    CHECK(store.data().finds.size() == 3);
+}
+
+TEST_CASE("a board whose oldest finds were dropped is still the same board when sent again",
+          "[store][record][bounds]") {
+    auto store = wjs::Store::in_memory();
+    // One board with more finds than the store keeps: the oldest of them go.
+    std::vector<wjs::FoundSnapshot> finds;
+    for (std::size_t i = 0; i < wjs::max_stored_finds + 5; ++i) {
+        std::string word = "aaa";
+        word[0] = static_cast<char>('a' + i % 26);
+        word[1] = static_cast<char>('a' + (i / 26) % 26);
+        word[2] = static_cast<char>('a' + (i / 676) % 26);
+        finds.push_back(found(word, 1));
+    }
+    const auto first = store.record(board3(finds, 100000), monday);
+    REQUIRE(first.stored);
+    REQUIRE(store.data().finds.size() == wjs::max_stored_finds);
+
+    // The snapshot is sent again with one find more: the same board, one star.
+    finds.push_back(found("zzz", 1));
+    const auto again = store.record(board3(finds, 100000), monday);
+
+    CHECK(again.board == first.board);
+    CHECK(again.stars_added == 1);
+    CHECK(store.data().boards.size() == 1);
+}
+
 TEST_CASE("a board of another phase or size is another board even with the same tiles",
           "[store][record]") {
     auto store = wjs::Store::in_memory();
@@ -738,7 +850,7 @@ TEST_CASE("a find records the word, size, phase, day and whether the start tile 
 
 TEST_CASE("the finds of one board are listed in the order they were found", "[store][record]") {
     auto store = wjs::Store::in_memory();
-    store.record(board3({found("tap", 1), found("sat", 1)}, 100, 1), monday);
+    REQUIRE(store.record(board3({found("tap", 1), found("sat", 1)}, 100, 1), monday).stored);
     const auto second = store.record(board3({found("pin", 1), found("nip", 1)}, 100, 2), monday);
 
     const auto finds = wjs::finds_on_board(store.data(), second.board);
@@ -792,7 +904,7 @@ TEST_CASE("the board is kept as its tiles, one way to write them", "[store][reco
     auto snap = board3();
     snap.tiles = "s a t\np i n\nt a qu";  // another way to write a 3x3 board
 
-    store.record(snap, monday);
+    REQUIRE(store.record(snap, monday).stored);
 
     CHECK(store.data().boards.front().tiles == "S,A,T/P,I,N/T,A,QU");
 }
@@ -801,7 +913,7 @@ TEST_CASE("a word met for the first time is told once, and the vault counts the 
           "[store][record]") {
     auto store = wjs::Store::in_memory();
 
-    store.record(board3({found("sat", 1)}, 100, 1), monday);
+    REQUIRE(store.record(board3({found("sat", 1)}, 100, 1), monday).stored);
     const auto later =
         store.record(board3({found("sat", 1, true, monday + 2)}, 100, 2), monday + 2);
 
@@ -817,7 +929,8 @@ TEST_CASE("a word met for the first time is told once, and the vault counts the 
 
 TEST_CASE("the vault is kept by word", "[store][record]") {
     auto store = wjs::Store::in_memory();
-    store.record(board3({found("tap", 1), found("sat", 1), found("pin", 1)}), monday);
+    REQUIRE(
+        store.record(board3({found("tap", 1), found("sat", 1), found("pin", 1)}), monday).stored);
 
     std::vector<std::string> words;
     for (const auto& w : store.data().vault) {
@@ -829,8 +942,8 @@ TEST_CASE("the vault is kept by word", "[store][record]") {
 TEST_CASE("stars are totalled, per board and per day", "[store][record]") {
     auto store = wjs::Store::in_memory();
 
-    store.record(board3({found("sat", 1), found("stain", 5)}, 100, 1), monday);
-    store.record(board3({found("pin", 2, false, monday + 1)}, 100, 2), monday + 1);
+    REQUIRE(store.record(board3({found("sat", 1), found("stain", 5)}, 100, 1), monday).stored);
+    REQUIRE(store.record(board3({found("pin", 2, false, monday + 1)}, 100, 2), monday + 1).stored);
 
     CHECK(store.data().stars == 8);
     REQUIRE(store.data().days.size() == 2);
@@ -844,8 +957,11 @@ TEST_CASE("each find is tallied on the day it was found", "[store][record]") {
     auto store = wjs::Store::in_memory();
 
     // A board played across midnight: one find on each day.
-    store.record(board3({found("sat", 1, false, monday), found("tap", 2, false, monday + 1)}),
-                 monday + 1);
+    REQUIRE(
+        store
+            .record(board3({found("sat", 1, false, monday), found("tap", 2, false, monday + 1)}),
+                    monday + 1)
+            .stored);
 
     REQUIRE(store.data().days.size() == 2);
     CHECK(store.data().days[0].stars == 1);
@@ -857,11 +973,11 @@ TEST_CASE("a board is cleared when every word it held is found, counted on its d
           "[store][record]") {
     auto store = wjs::Store::in_memory();
 
-    store.record(board3({found("sat", 1)}, 2), monday);
+    REQUIRE(store.record(board3({found("sat", 1)}, 2), monday).stored);
     CHECK_FALSE(store.data().boards.front().cleared);
 
-    store.record(board3({found("sat", 1), found("tap", 1)}, 2), monday);
-    store.record(board3({found("sat", 1), found("tap", 1)}, 2), monday);
+    REQUIRE(store.record(board3({found("sat", 1), found("tap", 1)}, 2), monday).stored);
+    REQUIRE(store.record(board3({found("sat", 1), found("tap", 1)}, 2), monday).stored);
 
     CHECK(store.data().boards.front().cleared);
     REQUIRE(store.data().days.size() == 1);
@@ -871,9 +987,10 @@ TEST_CASE("a board is cleared when every word it held is found, counted on its d
 TEST_CASE("a board that lists its words is cleared when they are all found", "[store][record]") {
     auto store = wjs::Store::in_memory();
 
-    store.record(phonics3({"sat", "pin"}, {found("sat", 1)}), monday);
+    REQUIRE(store.record(phonics3({"sat", "pin"}, {found("sat", 1)}), monday).stored);
     CHECK_FALSE(store.data().boards.front().cleared);
-    store.record(phonics3({"sat", "pin"}, {found("sat", 1), found("pin", 1)}), monday);
+    REQUIRE(
+        store.record(phonics3({"sat", "pin"}, {found("sat", 1), found("pin", 1)}), monday).stored);
 
     CHECK(store.data().boards.front().cleared);
 }
@@ -881,7 +998,7 @@ TEST_CASE("a board that lists its words is cleared when they are all found", "[s
 TEST_CASE("a board that held no word is never cleared", "[store][record]") {
     auto store = wjs::Store::in_memory();
 
-    store.record(board3({}, 0), monday);
+    REQUIRE(store.record(board3({}, 0), monday).stored);
 
     CHECK_FALSE(store.data().boards.front().cleared);
     CHECK(store.data().days.empty());
@@ -899,7 +1016,7 @@ TEST_CASE("the first cleared board sets a best and has nothing to beat", "[store
 
 TEST_CASE("a cleared board with more stars than the best is a new best, once", "[store][record]") {
     auto store = wjs::Store::in_memory();
-    store.record(cleared3({found("sat", 1)}, 0), monday);  // best 1
+    REQUIRE(store.record(cleared3({found("sat", 1)}, 0), monday).stored);  // best 1
 
     const auto better = store.record(cleared3({found("sat", 1), found("tap", 2)}, 1), monday);
     CHECK(better.new_best);
@@ -917,7 +1034,7 @@ TEST_CASE("a cleared board with more stars than the best is a new best, once", "
 TEST_CASE("a new best is told in the moment the board is cleared and not before",
           "[store][record]") {
     auto store = wjs::Store::in_memory();
-    store.record(cleared3({found("sat", 1)}, 0), monday);
+    REQUIRE(store.record(cleared3({found("sat", 1)}, 0), monday).stored);
 
     const auto mid = store.record(board3({found("sat", 1), found("tap", 2)}, 3, 1), monday);
     CHECK_FALSE(mid.new_best);
@@ -931,7 +1048,7 @@ TEST_CASE("a new best is told in the moment the board is cleared and not before"
 
 TEST_CASE("each board size has its own best", "[store][record]") {
     auto store = wjs::Store::in_memory();
-    store.record(cleared3({found("sat", 1)}), monday);
+    REQUIRE(store.record(cleared3({found("sat", 1)}), monday).stored);
     wjs::BoardSnapshot four;
     four.size = 4;
     four.tiles = std::string(tiles4);
@@ -947,10 +1064,10 @@ TEST_CASE("each board size has its own best", "[store][record]") {
 
 TEST_CASE("a phonics board lists the words it held, a standard board does not", "[store][record]") {
     auto store = wjs::Store::in_memory();
-    store.record(phonics3({"SAT", "pin", "tap"}, {found("sat", 1)}, 1), monday);
+    REQUIRE(store.record(phonics3({"SAT", "pin", "tap"}, {found("sat", 1)}, 1), monday).stored);
     auto standard = board3({found("pin", 1)}, 100, 2);
     standard.viable = {"sat", "pin"};  // whatever the caller sends, a standard board lists none
-    store.record(standard, monday);
+    REQUIRE(store.record(standard, monday).stored);
 
     REQUIRE(store.data().boards.size() == 2);
     CHECK(store.data().boards[0].viable == std::vector<std::string>{"sat", "pin", "tap"});
@@ -966,7 +1083,7 @@ TEST_CASE("a board that holds more words than are listed lists none", "[store][r
         many.push_back("sat");
     }
 
-    store.record(phonics3(many, {}), monday);
+    REQUIRE(store.record(phonics3(many, {}), monday).stored);
 
     CHECK(store.data().boards.front().viable.empty());
     CHECK(store.data().boards.front().viable_total == static_cast<int>(many.size()));
@@ -999,7 +1116,7 @@ TEST_CASE("only the last finds are kept, and the oldest goes", "[store][bounds]"
                                     std::string(1, static_cast<char>('a' + w / 26)),
                                 1, false, monday + b));
         }
-        store.record(board3(all, 1000, b), monday + b);
+        REQUIRE(store.record(board3(all, 1000, b), monday + b).stored);
     }
 
     CHECK(store.data().finds.size() == wjs::max_stored_finds);
@@ -1009,7 +1126,8 @@ TEST_CASE("only the last finds are kept, and the oldest goes", "[store][bounds]"
 TEST_CASE("the day tallies are the last five weeks", "[store][bounds]") {
     auto store = wjs::Store::in_memory();
     for (int i = 0; i < 50; ++i) {
-        store.record(board3({found("sat", 1, false, monday + i)}, 100, i), monday + i);
+        REQUIRE(
+            store.record(board3({found("sat", 1, false, monday + i)}, 100, i), monday + i).stored);
     }
 
     REQUIRE(store.data().days.size() == wjs::max_stored_days);
@@ -1020,12 +1138,17 @@ TEST_CASE("the day tallies are the last five weeks", "[store][bounds]") {
 TEST_CASE("a day long before the others, with no room for it, is not tallied", "[store][bounds]") {
     auto store = wjs::Store::in_memory();
     for (int i = 0; i < 40; ++i) {
-        store.record(board3({found("sat", 1, false, monday + 100 + i)}, 100, i), monday + 100 + i);
+        REQUIRE(store
+                    .record(board3({found("sat", 1, false, monday + 100 + i)}, 100, i),
+                            monday + 100 + i)
+                    .stored);
     }
     const auto before = store.data().days;
 
-    store.record(board3({found("tap", 1, false, monday)}, 100, 99),
-                 monday);  // a clock that went far back
+    REQUIRE(store
+                .record(board3({found("tap", 1, false, monday)}, 100, 99),
+                        monday)  // a clock that went far back
+                .stored);
 
     CHECK(store.data().days == before);
     CHECK(store.data().stars == 41);  // the stars are still the child's
@@ -1046,7 +1169,9 @@ TEST_CASE("the vault is bounded, and gives up the word met longest ago, never th
     REQUIRE(words.size() == wjs::max_vault_words + 1);
     for (std::size_t i = 0; i < words.size(); ++i) {
         const wjs::Day day = monday + static_cast<int>(i / 100);
-        store.record(board3({found(words[i], 1, false, day)}, 100, static_cast<int>(i)), day);
+        REQUIRE(
+            store.record(board3({found(words[i], 1, false, day)}, 100, static_cast<int>(i)), day)
+                .stored);
     }
 
     CHECK(store.data().vault.size() == wjs::max_vault_words);
@@ -1076,7 +1201,7 @@ TEST_CASE("the first reset clears boards and finds and leaves stars and stickers
     auto settings = wjs::Settings{};
     settings.help = wjs::HelpLevel::off;
     store.update_settings(settings);
-    store.record(cleared3({found("sat", 1), found("stain", 5)}), monday);
+    REQUIRE(store.record(cleared3({found("sat", 1), found("stain", 5)}), monday).stored);
 
     store.reset_boards_and_finds();
 
@@ -1091,7 +1216,7 @@ TEST_CASE("the first reset clears boards and finds and leaves stars and stickers
 
 TEST_CASE("the second reset clears stars, the best and the stickers", "[store][reset]") {
     auto store = wjs::Store::in_memory();
-    store.record(cleared3({found("sat", 1)}), monday);
+    REQUIRE(store.record(cleared3({found("sat", 1)}), monday).stored);
     store.reset_boards_and_finds();
 
     store.reset_stars_and_stickers();
@@ -1269,7 +1394,7 @@ TEST_CASE("recording boards does not disturb the game in progress", "[store][res
     auto store = wjs::Store::in_memory();
     REQUIRE(store.save_session(playing_session()));
 
-    store.record(board3({found("sat", 1)}), monday);
+    REQUIRE(store.record(board3({found("sat", 1)}), monday).stored);
 
     CHECK(*store.session() == playing_session());
 }
@@ -1311,7 +1436,7 @@ TEST_CASE("a change is on disk at once, in a directory made for it", "[store][fi
     const fs::path file = dir.path() / "nested" / "store.wjs";
     auto opened = wjs::Store::open(file);
 
-    opened.store.record(board3({found("sat", 1)}), monday);
+    REQUIRE(opened.store.record(board3({found("sat", 1)}), monday).stored);
 
     REQUIRE(fs::exists(file));
     CHECK(wjs::parse_store(slurp(file)).has_value());
@@ -1324,7 +1449,8 @@ TEST_CASE("what was saved is what is opened next time", "[store][file]") {
     wjs::StoreData saved;
     {
         auto opened = wjs::Store::open(file);
-        opened.store.record(cleared3({found("sat", 1), found("pin", 1, true)}), monday);
+        REQUIRE(
+            opened.store.record(cleared3({found("sat", 1), found("pin", 1, true)}), monday).stored);
         wjs::Settings s;
         s.help = wjs::HelpLevel::off;
         s.focus_sounds = {"ai"};
@@ -1347,10 +1473,11 @@ TEST_CASE("the store writes one file and leaves nothing else behind", "[store][f
     auto opened = wjs::Store::open(file);
 
     for (int i = 0; i < 10; ++i) {
-        opened.store.record(board3({found("sat", 1)}, i % 2 == 0 ? 1 : 100, i), monday + i);
+        REQUIRE(opened.store.record(board3({found("sat", 1)}, i % 2 == 0 ? 1 : 100, i), monday + i)
+                    .stored);
     }
     opened.store.update_settings(wjs::Settings{});
-    opened.store.save_session(playing_session());
+    REQUIRE(opened.store.save_session(playing_session()));
     opened.store.reset_boards_and_finds();
 
     // No temporary, no backup, no log: the directory holds the store file.
@@ -1373,7 +1500,7 @@ TEST_CASE("a damaged file is set aside whole, and the program goes on with a new
     CHECK_FALSE(fs::exists(file));         // and out of the way of the next save
     CHECK(opened.store.persistent());
 
-    opened.store.record(board3({found("sat", 1)}), monday);
+    REQUIRE(opened.store.record(board3({found("sat", 1)}), monday).stored);
     CHECK(wjs::Store::open(file).status == wjs::LoadStatus::loaded);
     CHECK(slurp(opened.kept) == damaged);  // the new store did not touch it
 }
@@ -1520,8 +1647,160 @@ TEST_CASE("a file that cannot be opened is left alone and not written", "[store]
 
     CHECK(opened.status == wjs::LoadStatus::cannot_read);
     CHECK_FALSE(opened.store.persistent());
-    opened.store.record(board3({found("sat", 1)}), monday);
+    REQUIRE(opened.store.record(board3({found("sat", 1)}), monday).stored);
     CHECK(fs::is_directory(file));
+}
+
+TEST_CASE("an empty file is damage: set aside, and a new store begins", "[store][file]") {
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    spit(file, "");
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::unreadable);
+    REQUIRE_FALSE(opened.kept.empty());
+    CHECK(opened.kept.filename().string() == "store.wjs.unreadable");
+    CHECK(slurp(opened.kept).empty());
+    CHECK_FALSE(fs::exists(file));
+    CHECK(opened.store.persistent());
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+}
+
+TEST_CASE("a temporary file left by a stopped save is neither read nor kept", "[store][file]") {
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    const fs::path stale = dir.path() / "store.wjs.tmp";
+    const std::string whole = wjs::serialize_store(busy_data());
+    spit(file, whole);
+    spit(stale, "half a fi");
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::loaded);
+    CHECK(opened.store.data() == busy_data());
+    CHECK(slurp(file) == whole);
+
+    // The next save writes over it and leaves no temporary file behind.
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    CHECK_FALSE(fs::exists(stale));
+}
+
+TEST_CASE("a damaged file with every name for its keeping taken is left where it is",
+          "[store][file]") {
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    spit(file, "damaged");
+    spit(dir.path() / "store.wjs.unreadable", "taken");
+    for (int i = 1; i < 100; ++i) {
+        spit(dir.path() / ("store.wjs.unreadable." + std::to_string(i)), "taken");
+    }
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::unreadable);
+    CHECK(opened.kept.empty());
+    // Nothing could be moved, so nothing may be written over it.
+    CHECK_FALSE(opened.store.persistent());
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file) == "damaged");
+    CHECK(slurp(dir.path() / "store.wjs.unreadable") == "taken");
+}
+
+TEST_CASE("an older file whose copy cannot be made is read and never replaced", "[store][file]") {
+    const std::string old = seal(
+        "wjs-store 1\n"
+        "total stars=3 next_board=1\n");
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    spit(file, old);
+    spit(dir.path() / "store.wjs.v1", "taken");
+    for (int i = 1; i < 100; ++i) {
+        spit(dir.path() / ("store.wjs.v1." + std::to_string(i)), "taken");
+    }
+
+    auto opened = wjs::Store::open(file);
+
+    CHECK(opened.status == wjs::LoadStatus::migrated);
+    CHECK(opened.kept.empty());
+    CHECK(opened.store.data().stars == 3);   // it was understood
+    CHECK_FALSE(opened.store.persistent());  // and will not be written over
+    opened.store.update_settings(wjs::Settings{});
+    CHECK(slurp(file) == old);
+}
+
+TEST_CASE("a file and its keeping are named for the file's own characters", "[store][file]") {
+    // The temporary and kept names are the file's name with a suffix; a name
+    // outside the legacy code page must stay the same name.
+    const TempDirectory dir;
+    const fs::path file = dir.path() / fs::path(u8"ストア.wjs");
+
+    auto opened = wjs::Store::open(file);
+    REQUIRE(opened.status == wjs::LoadStatus::created);
+    opened.store.update_settings(wjs::Settings{});
+    REQUIRE_FALSE(opened.store.last_save_error().has_value());
+    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    // No temporary file left. (Counted, not named: the name is outside the
+    // legacy code page, and path::string() would throw for it.)
+    CHECK(std::distance(fs::directory_iterator(dir.path()), fs::directory_iterator{}) == 1);
+
+    spit(file, "damaged");
+    const auto second = wjs::Store::open(file);
+    CHECK(second.status == wjs::LoadStatus::unreadable);
+    REQUIRE_FALSE(second.kept.empty());
+    CHECK(second.kept.filename().u8string() == fs::path(u8"ストア.wjs.unreadable").u8string());
+    CHECK(slurp(second.kept) == "damaged");
+}
+
+TEST_CASE("a save that cannot swap the file in fails, leaves nothing behind and says so",
+          "[store][file]") {
+    const TempDirectory dir;
+    const fs::path file = dir.path() / "store.wjs";
+    auto opened = wjs::Store::open(file);
+    REQUIRE(opened.store.persistent());
+    // A directory with something in it where the file goes: the rename cannot
+    // replace it.
+    fs::create_directories(file);
+    spit(file / "inside", "x");
+
+    const auto saved = opened.store.save();
+
+    REQUIRE_FALSE(saved.has_value());
+    CHECK(saved.error() == wjs::SaveError::cannot_write);
+    CHECK_FALSE(fs::exists(dir.path() / "store.wjs.tmp"));
+    CHECK(slurp(file / "inside") == "x");
+}
+
+TEST_CASE("a game in progress the disk would not take is not reported as kept",
+          "[store][file][resume]") {
+    const TempDirectory dir;
+    const fs::path blocker = dir.path() / "blocked";
+    spit(blocker, "i am a file");
+    auto opened = wjs::Store::open(blocker / "store.wjs");
+    if (!opened.store.persistent()) {
+        SKIP("this system reports the blocked path as unreadable and never writes");
+    }
+
+    const bool kept = opened.store.save_session(playing_session());
+
+    CHECK_FALSE(kept);
+    REQUIRE(opened.store.last_save_error().has_value());
+    CHECK(*opened.store.last_save_error() == wjs::SaveError::cannot_write);
+    // In memory it is the game in progress all the same, for a retry.
+    CHECK(opened.store.session().has_value());
+}
+
+TEST_CASE("a game in progress the store refuses is reported as not kept", "[store][resume]") {
+    auto store = wjs::Store::in_memory();
+    wjs::SavedSession bad = playing_session();
+    bad.size = 4;  // the board is 3x3
+
+    CHECK_FALSE(store.save_session(bad));
+    CHECK_FALSE(store.session().has_value());
+    CHECK(store.save_session(playing_session()));
+    CHECK(store.save_session(std::nullopt));
 }
 
 TEST_CASE("a disk that refuses is noted and the game goes on", "[store][file]") {
@@ -1628,6 +1907,11 @@ TEST_CASE("a store at every one of its bounds is smaller than the cap", "[store]
     const std::string text = wjs::serialize_store(worst);
 
     CHECK(text.size() < wjs::max_store_bytes);
+    // The cap leaves headroom over the worst case, so that a field added to a
+    // record does not make a legitimate store "damaged" in the same release; a
+    // change that eats the headroom has to raise the cap on purpose
+    // (max_store_bytes in store.hpp says how much is there now).
+    CHECK(text.size() + 16 * 1024 <= wjs::max_store_bytes);
     // And the worst case is a store this version reads back whole.
     const auto parsed = wjs::parse_store(text);
     REQUIRE(parsed.has_value());
@@ -1656,7 +1940,7 @@ TEST_CASE("a store of a busy few months is a few tens of kilobytes at most", "[s
         for (const auto& w : viable) {
             finds.push_back(found(w, 1, random() % 2 == 0, monday + day));
         }
-        store.record(phonics3(viable, finds, day), monday + day);
+        REQUIRE(store.record(phonics3(viable, finds, day), monday + day).stored);
     }
 
     const std::string text = wjs::serialize_store(store.data());

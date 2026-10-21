@@ -51,7 +51,7 @@ const wjs::Dictionary& english() {
     static const wjs::Dictionary dictionary = [] {
         wjs::Dictionary words;
         for (const std::string_view word : {"nip", "pan", "pat", "pin", "sat", "sit", "tap"}) {
-            words.insert(word);
+            REQUIRE(words.insert(word));
         }
         return words;
     }();
@@ -364,7 +364,7 @@ TEST_CASE("a board the session dealt itself comes back through the store", "[ses
     // One word found by tracing the first the solver reports.
     const auto words = wjs::solve(*session.board(), phase_a().dictionary());
     REQUIRE_FALSE(words.empty());
-    session.trace(words.front().path, friday);
+    static_cast<void>(session.trace(words.front().path, friday));
     const wjs::SessionSnapshot before = session.snapshot();
 
     const auto saved = wjs::saved_session_of(before);
@@ -390,14 +390,14 @@ TEST_CASE("the board of a session is recorded once however often it is sent", "[
         return store.record(*snapshot, friday);
     };
 
-    session.trace(pat, friday);
+    static_cast<void>(session.trace(pat, friday));
     const auto first = send();
     CHECK(first.stored);
     CHECK(first.stars_added == 1);
     CHECK(first.new_words == std::vector<std::string>{"pat"});
     CHECK(send().stars_added == 0);  // the same board again adds nothing
 
-    session.trace(pin, friday + 1);
+    static_cast<void>(session.trace(pin, friday + 1));
     const auto second = send();
     CHECK(second.stars_added == 1);
     CHECK(second.new_words == std::vector<std::string>{"pin"});
@@ -419,7 +419,7 @@ TEST_CASE("clearing a session's board is a cleared board in the store, and a bes
     const auto send = [&] { return store.record(*wjs::snapshot_of(*session.record()), friday); };
 
     for (const wjs::FoundWord& word : wjs::solve(*session.board(), phase_a().dictionary())) {
-        session.trace(word.path, friday);
+        static_cast<void>(session.trace(word.path, friday));
         send();
     }
 
@@ -672,7 +672,7 @@ TEST_CASE("a standard board the session dealt itself comes back from its saved s
     REQUIRE(session.landed());
     const auto words = wjs::solve(*session.board(), english());
     REQUIRE_FALSE(words.empty());
-    session.trace(words.front().path, friday);
+    static_cast<void>(session.trace(words.front().path, friday));
     const wjs::SessionSnapshot before = session.snapshot();
 
     const auto saved = wjs::saved_session_of(before);
@@ -690,7 +690,7 @@ TEST_CASE("a standard board is recorded once however often it is sent, and clear
     auto store = wjs::Store::in_memory();
     const auto send = [&] { return store.record(*wjs::snapshot_of(*session.record()), friday); };
 
-    session.trace(pat, friday);
+    static_cast<void>(session.trace(pat, friday));
     const auto first = send();
     CHECK(first.stored);
     CHECK(first.stars_added == 1);
@@ -704,7 +704,7 @@ TEST_CASE("a standard board is recorded once however often it is sent, and clear
     CHECK_FALSE(store.data().boards.front().cleared);
 
     for (const wjs::FoundWord& word : wjs::solve(*session.board(), english())) {
-        session.trace(word.path, friday);
+        static_cast<void>(session.trace(word.path, friday));
         send();
     }
     REQUIRE(session.state() == SessionState::cleared);

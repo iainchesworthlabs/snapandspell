@@ -30,7 +30,7 @@ namespace wjs::app {
 // Who holds the store: the program's one store is shared with the game (so the
 // two never write the same file separately), and handed in with useStore(). A
 // program with no game yet (the stub the screens are tried in) lets this open
-// the default one (openDefaultStore()). Phase data is handed in the same way
+// a store of its own (openStore()). Phase data is handed in the same way
 // (usePhases()); with none, the dashboard has no sounds and the Phonics board
 // cannot be chosen.
 class ParentController : public QObject {
@@ -134,10 +134,6 @@ public:
     // stopped or a fixed clock is the same for all of them.
     void useClock(std::function<qint64()> now);
 
-    // The store in the default place (wjs::platform::user_data_directory()).
-    // Returns whether there was a place to keep one.
-    Q_INVOKABLE bool openDefaultStore();
-
     // The store in this file, owned by this controller.
     void openStore(const std::filesystem::path& file);
 
@@ -195,6 +191,10 @@ public:
     [[nodiscard]] QStringList focusChoices() const;
     [[nodiscard]] QStringList phases() const;
     [[nodiscard]] bool phonicsAvailable() const noexcept { return phases_ != nullptr; }
+    // No school font is bundled, so none can be chosen: the list is empty and the
+    // Settings screen hides its row. The property stays only until that row goes
+    // (SettingsScreen.qml reads its length); then it, the "schoolFont" key of
+    // setSetting() and the settings map's entry go with it.
     [[nodiscard]] QStringList schoolFonts() const { return {}; }
     [[nodiscard]] QString storeNote() const;
     [[nodiscard]] QString motion() const;

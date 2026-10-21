@@ -96,24 +96,30 @@ Vec3 toLocal(const Die& d, Vec3 p) {
 // ---- Faces and orientations ----------------------------------------------------------
 
 Upright uprightOf(Quat q) {
-    int face = 0;
+    // The face's own "up" is taken inside the loop, at the index the loop is
+    // on, and not after it by the index that was kept: MSVC's analyzer cannot
+    // carry "less than six" through the comparison and reports C28020 at an
+    // array access it is plainly inside.
+    std::size_t face = 0;
+    Vec3 faceUp = kFaceUp[0];
     double best = -kInfinity;
-    for (int f = 0; f < kFaceCount; ++f) {
-        const double up = rotate(q, kFaceNormal[static_cast<std::size_t>(f)]).z;
+    for (std::size_t f = 0; f < kFaceNormal.size(); ++f) {
+        const double up = rotate(q, kFaceNormal[f]).z;
         if (up > best) {
             best = up;
             face = f;
+            faceUp = kFaceUp[f];
         }
     }
     // Which way the face's own "up" points on the board, to the nearest side.
-    const Vec3 v = rotate(q, kFaceUp[static_cast<std::size_t>(face)]);
+    const Vec3 v = rotate(q, faceUp);
     int turns = 0;
     if (std::abs(v.x) > std::abs(v.y)) {
         turns = v.x > 0.0 ? 1 : 3;
     } else {
         turns = v.y > 0.0 ? 0 : 2;
     }
-    return {face, turns};
+    return {static_cast<int>(face), turns};
 }
 
 Quat squareTo(Quat q, int face) {
@@ -215,8 +221,43 @@ std::vector<int> leastCostAssignment(const std::vector<double>& cost, int n) {
 
 // ---- The world -----------------------------------------------------------------------
 
-World::World(const Box& box, const Tuning& tuning, std::uint32_t seed)
-    : box_(box), tuning_(tuning) {
+namespace {
+
+// `value` within [low, high], or `fallback` if it is not a number.
+double finiteWithin(double value, double low, double high, double fallback) {
+    return std::isfinite(value) ? std::clamp(value, low, high) : fallback;
+}
+
+}  // namespace
+
+Box sanitised(const Box& box) {
+    const Box rest;
+    Box out;
+    out.rows = std::clamp(box.rows, 1, kMaxBoxSide);
+    out.columns = std::clamp(box.columns, 1, kMaxBoxSide);
+    out.pitch = finiteWithin(box.pitch, kMinPitch, kMaxPitch, rest.pitch);
+    out.slack = finiteWithin(box.slack, 0.0, kMaxSlack, rest.slack);
+    out.lidHeight = finiteWithin(box.lidHeight, kMinLidHeight, kMaxLidHeight, rest.lidHeight);
+    return out;
+}
+
+Reading sanitised(const Reading& reading) {
+    const Reading rest;
+    const auto vector = [](Vec3 value, Vec3 at_rest, double limit) {
+        return Vec3{finiteWithin(value.x, -limit, limit, at_rest.x),
+                    finiteWithin(value.y, -limit, limit, at_rest.y),
+                    finiteWithin(value.z, -limit, limit, at_rest.z)};
+    };
+    Reading out;
+    out.force = vector(reading.force, rest.force, kMaxForce);
+    out.spin = vector(reading.spin, rest.spin, kMaxSpin);
+    out.spinChange = vector(reading.spinChange, rest.spinChange, kMaxSpinChange);
+    return out;
+}
+
+World::World(const Box& requested, const Tuning& tuning, std::uint32_t seed)
+    : box_(sanitised(requested)), tuning_(tuning) {
+    const Box& box = box_;
     halfWidth_ = ((box.columns - 1) * box.pitch + 1.0) / 2.0 + box.slack;
     halfDepth_ = ((box.rows - 1) * box.pitch + 1.0) / 2.0 + box.slack;
     lidZ_ = box.lidHeight;
@@ -250,12 +291,17 @@ Vec3 World::cellCentre(int cell) const {
 }
 
 void World::advance(double seconds) {
-    pending_ += seconds;
+    if (!(seconds > 0.0) || !std::isfinite(seconds)) {
+        return;
+    }
+    pending_ += std::min(seconds, kMaxAdvanceSeconds);
     const double h = tuning_.substep;
     while (pending_ >= h - 1e-12) {
         pending_ -= h;
         step(h);
     }
+    // The step is taken a hair early (the 1e-12), which can leave a hair less
+    // than nothing.
     if (pending_ < 0.0) {
         pending_ = 0.0;
     }

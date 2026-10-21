@@ -20,6 +20,8 @@ add_library(wjs_feedback STATIC
     motion_source.hpp
     sound_engine.cpp
     sound_engine.hpp
+    sound_sequence_player.cpp
+    sound_sequence_player.hpp
     speech.cpp
     speech.hpp
     "${WJS_SOUND_VARIANT_DIR}/wjs/app/sound_backend.cpp"

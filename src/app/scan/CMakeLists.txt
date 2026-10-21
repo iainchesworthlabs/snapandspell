@@ -97,7 +97,10 @@ target_include_directories(wjs_scan_ui
         "${CMAKE_CURRENT_SOURCE_DIR}"
         # scan_model.hpp includes camera_source.hpp: a consumer of the model's
         # header needs the camera's include directory too.
-        "${PROJECT_SOURCE_DIR}/src/app/camera")
+        "${PROJECT_SOURCE_DIR}/src/app/camera"
+    PRIVATE
+        # qt_text.hpp, the one place text crosses between the library and Qt.
+        "${PROJECT_SOURCE_DIR}/src/app")
 
 target_link_libraries(wjs_scan_ui
     PUBLIC
