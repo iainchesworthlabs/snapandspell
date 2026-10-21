@@ -150,6 +150,18 @@ does not carry it, so no screen shows it to the child.
 
 ## Mode B: Solo Play
 
+### What it looks like
+
+The box before the first shake, a board in play after a find, the summary card when
+a board is finished, and the same board in the dark scheme, at 900 by 620 (the
+smallest window). Captured on 2026-10-21 from the Solo Play design pass; the screens
+change, so these show the shape and not the pixels.
+
+| | |
+| --- | --- |
+| ![The closed box, the board sizes 3 to 6 and the Shake button](img/solo-box.png) | ![A 3x3 board in play: the tray, CAT found, the hint, Finish board, Clear and Done](img/solo-playing.png) |
+| ![The summary card: one star, fifteen points, the word found, Play again and Home](img/solo-summary.png) | ![The same board in the dark scheme](img/solo-playing-dark.png) |
+
 ### The flow
 
 ```text
@@ -385,8 +397,10 @@ first screen, and one that the screens made:
 
 - **Back from `assist.playing`** goes to `scan.check`, where the person came
   from, and records the board to the store on the way. **New board** is a new
-  scan: it puts the scan screen back to `scan.ready` and enters it as if from
-  home, so Back from a new round goes home and never to the board just left.
+  scan: it puts the scan screen back to `scan.ready`, and Back from that new
+  scan returns to the board that was left, not home (the board is already saved).
+  An earlier version of this page had Back go home; the shell does the other
+  (`Main.qml`), and no test drives the real route.
 - **The store record** is the standard board's form: no phase, and the count of
   the words that counted (`viable_total`) rather than a list, with each find's
   day and whether the start tile was shown. The app plays that form because the

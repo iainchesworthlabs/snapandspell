@@ -346,7 +346,7 @@ the system is made of and which rules the tests hold it to.
 - **Guard rails.** Four tests in `tests/qml` keep it so: `quick.lint` rejects a
   pixel size, a letter spacing, a hex colour, a bare `Text`, a disabled opacity,
   gold used for selection and an icon-only button outside back and close, against
-  an allow-list that may only shrink; `quick.contrast` measures about fifty
+  an allow-list that may only shrink; `quick.contrast` measures about sixty
   foreground and background token pairs in both schemes against the gates below;
   `quick.sizematrix` lays the screens out at 900x620, 900x1200, 1024x768,
   2400x1200 and at 150 % text and checks that every focusable item is at least

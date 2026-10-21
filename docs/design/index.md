@@ -107,7 +107,7 @@ uses so nothing waits.
 | 3 | **Are worlds, the mascot, the vault's art and school fonts in the MVP?** Section 12.5 does not say | Not in the MVP; R2 ([Path](path.md)) |
 | 4 | **Should the app's data be excluded from device backups?** "Air-gapped" says yes; a lost iPad would then lose the progress | Undecided |
 | 5 | **Which English?** Spelling, the voice's accent and the phonics set (the brief asks about Australian English) | The reviewer's |
-| 6 | **How should the history on `feature/product-design` be handled** for the programme names (question 66)? A fresh branch from `develop` holding the final tree needs no force-push | A fresh branch |
+| 6 | ~~How should the history on `feature/product-design` be handled for the programme names (question 66)?~~ **Done:** the repository was created from a rewritten history (roadmap G1) | Closed |
 | 7 | **Is a scoreboard against other players out for good** (question 5)? | Out |
 | 8 | **Is the order of releases right** ([Path](path.md))? | As written |
 

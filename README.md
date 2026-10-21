@@ -26,6 +26,11 @@ desktops) but it has never read a real board.
 > test that shows it and the gaps that remain, and
 > [docs/roadmap.md](docs/roadmap.md) says what comes next.
 
+A board in play, in Solo Play at its smallest window (more in
+[the game design](docs/design/game.md#what-it-looks-like)):
+
+![Solo Play: a 3x3 board with CAT found, the words tray and the actions](docs/design/img/solo-playing.png)
+
 ## What there is today
 
 | Part | Where | State |
