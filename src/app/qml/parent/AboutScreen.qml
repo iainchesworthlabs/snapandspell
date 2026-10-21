@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import WordJewelsSolver
 
 // About and privacy (docs/design/dashboard.md, "Settings"). Plain text: no link
 // to anywhere, because the application has nowhere to go. The licences have
@@ -13,47 +14,47 @@ Flickable {
     signal licencesRequested
 
     // The parent area's direction, from the shell.
-    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.enabled: Theme.rightToLeft
     LayoutMirroring.childrenInherit: true
 
     contentWidth: width
-    contentHeight: column.implicitHeight + 2 * ParentTheme.space6
+    contentHeight: column.implicitHeight + 2 * Theme.space6
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.VerticalFlick
 
     component Paragraph: Text {
         Layout.fillWidth: true
-        font.family: ParentTheme.uiFont
-        font.pixelSize: ParentTheme.sizeBody
-        color: ParentTheme.ink
+        font.family: Theme.uiFont
+        font.pixelSize: Theme.bodySize
+        color: Theme.ink
         wrapMode: Text.WordWrap
     }
 
     ColumnLayout {
         id: column
-        x: Math.max(ParentTheme.space4, (root.width - width) / 2)
-        y: ParentTheme.space6
-        width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
-        spacing: ParentTheme.space8
+        x: Math.max(Theme.space4, (root.width - width) / 2)
+        y: Theme.space6
+        width: Math.min(root.width - 2 * Theme.space4, Theme.contentWidth)
+        spacing: Theme.space8
 
         ColumnLayout {
             Layout.fillWidth: true
-            spacing: ParentTheme.space1
+            spacing: Theme.space1
             Text {
                 Layout.fillWidth: true
                 text: ParentWording.appName
-                font.family: ParentTheme.uiFont
-                font.pixelSize: ParentTheme.sizeTitle
+                font.family: Theme.uiFont
+                font.pixelSize: Theme.titleSize
                 font.weight: Font.ExtraBold
-                color: ParentTheme.ink
+                color: Theme.ink
             }
             Text {
                 Layout.fillWidth: true
                 text: ParentWording.tagline
-                font.family: ParentTheme.fontFamily
-                font.pixelSize: ParentTheme.sizeLead
-                color: ParentTheme.inkSecondary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.headingSize
+                color: Theme.inkSecondary
                 wrapMode: Text.WordWrap
             }
         }
@@ -71,11 +72,11 @@ Flickable {
                 id: details
                 objectName: "versionDetails"
                 Layout.fillWidth: true
-                Layout.topMargin: ParentTheme.space2
+                Layout.topMargin: Theme.space2
                 text: root.controller.versionDetails
-                font.family: ParentTheme.monoFont
-                font.pixelSize: ParentTheme.sizeSmall
-                color: ParentTheme.inkSecondary
+                font.family: Theme.monoFont
+                font.pixelSize: Theme.smallSize
+                color: Theme.inkSecondary
                 wrapMode: Text.WordWrap
             }
         }
@@ -84,29 +85,31 @@ Flickable {
         // scrolls there and not through this page.
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: linkColumn.implicitHeight + 2 * ParentTheme.space4
-            radius: ParentTheme.radius
-            color: ParentTheme.card
+            implicitHeight: linkColumn.implicitHeight + 2 * Theme.space4
+            radius: Theme.radius
+            color: Theme.card
             border.width: 1
-            border.color: ParentTheme.line
+            border.color: Theme.line
 
             ColumnLayout {
                 id: linkColumn
                 anchors.fill: parent
-                anchors.margins: ParentTheme.space4
-                spacing: ParentTheme.space2
+                anchors.margins: Theme.space4
+                spacing: Theme.space2
 
-                PButton {
+                AppButton {
+                    size: "min"
+                    quiet: true
                     Layout.fillWidth: true
-                    text: ParentWording.aboutLicencesLink
+                    label: ParentWording.aboutLicencesLink
                     onClicked: root.licencesRequested()
                 }
                 Text {
                     Layout.fillWidth: true
                     text: ParentWording.aboutLicencesLinkHint
-                    font.family: ParentTheme.uiFont
-                    font.pixelSize: ParentTheme.sizeSmall
-                    color: ParentTheme.inkSecondary
+                    font.family: Theme.uiFont
+                    font.pixelSize: Theme.smallSize
+                    color: Theme.inkSecondary
                     wrapMode: Text.WordWrap
                 }
             }
@@ -119,7 +122,7 @@ Flickable {
             title: ParentWording.privacyHeading
             Paragraph {
                 text: ParentWording.privacySummary
-                font.family: ParentTheme.uiFont
+                font.family: Theme.uiFont
                 font.weight: Font.DemiBold
             }
             Paragraph {

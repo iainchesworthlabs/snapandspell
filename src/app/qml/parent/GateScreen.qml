@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import WordJewelsSolver
 
 // The parental gate: one large press-and-hold target, not two far-apart
 // circles. A parent should not have to discover that a mouse on one circle and
@@ -14,7 +15,7 @@ FocusScope {
 
     required property var controller
 
-    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.enabled: Theme.rightToLeft
     LayoutMirroring.childrenInherit: true
 
     // The two virtual touches the one button puts down. Ids outside the range a
@@ -67,34 +68,34 @@ FocusScope {
 
     Rectangle {
         anchors.fill: parent
-        color: ParentTheme.page
+        color: Theme.page
     }
 
     Rectangle {
         id: card
         anchors.centerIn: parent
-        width: Math.min(parent.width - 2 * ParentTheme.space8, 560)
-        height: Math.min(parent.height - 2 * ParentTheme.space8, 440)
-        radius: ParentTheme.radius
-        color: ParentTheme.surface
+        width: Math.min(parent.width - 2 * Theme.space8, 560)
+        height: Math.min(parent.height - 2 * Theme.space8, 440)
+        radius: Theme.radius
+        color: Theme.surface
         border.width: 1
-        border.color: ParentTheme.line
+        border.color: Theme.line
 
         Column {
             id: words
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: ParentTheme.space6
-            spacing: ParentTheme.space2
+            anchors.margins: Theme.space6
+            spacing: Theme.space2
 
             Text {
                 width: parent.width
                 text: ParentWording.gateTitle
-                font.family: ParentTheme.uiFont
-                font.pixelSize: ParentTheme.sizeTitle
+                font.family: Theme.uiFont
+                font.pixelSize: Theme.titleSize
                 font.weight: Font.ExtraBold
-                color: ParentTheme.ink
+                color: Theme.ink
                 wrapMode: Text.WordWrap
                 Accessible.role: Accessible.Heading
                 Accessible.name: text
@@ -102,17 +103,17 @@ FocusScope {
             Text {
                 width: parent.width
                 text: ParentWording.gateInstruction
-                font.family: ParentTheme.uiFont
-                font.pixelSize: ParentTheme.sizeLead
-                color: ParentTheme.ink
+                font.family: Theme.uiFont
+                font.pixelSize: Theme.headingSize
+                color: Theme.ink
                 wrapMode: Text.WordWrap
             }
             Text {
                 width: parent.width
                 text: ParentWording.gateWhy
-                font.family: ParentTheme.fontFamily
-                font.pixelSize: ParentTheme.sizeSmall
-                color: ParentTheme.inkSecondary
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.smallSize
+                color: Theme.inkSecondary
                 wrapMode: Text.WordWrap
             }
         }
@@ -125,14 +126,14 @@ FocusScope {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: words.bottom
-            anchors.topMargin: ParentTheme.space6
-            anchors.leftMargin: ParentTheme.space6
-            anchors.rightMargin: ParentTheme.space6
+            anchors.topMargin: Theme.space6
+            anchors.leftMargin: Theme.space6
+            anchors.rightMargin: Theme.space6
             height: 96
-            radius: ParentTheme.radius
-            color: root.holding ? ParentTheme.accentSoft : ParentTheme.card
+            radius: Theme.radius
+            color: root.holding ? Theme.accentSoft : Theme.card
             border.width: root.holding ? 2 : 1
-            border.color: root.holding ? ParentTheme.gold : ParentTheme.outline
+            border.color: root.holding ? Theme.gold : Theme.outline
             activeFocusOnTab: true
 
             Accessible.role: Accessible.Button
@@ -157,21 +158,21 @@ FocusScope {
 
             Column {
                 anchors.centerIn: parent
-                spacing: ParentTheme.space1
+                spacing: Theme.space1
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: ParentWording.gateHoldButton
-                    font.family: ParentTheme.uiFont
-                    font.pixelSize: ParentTheme.sizeLead
+                    font.family: Theme.uiFont
+                    font.pixelSize: Theme.headingSize
                     font.weight: Font.DemiBold
-                    color: ParentTheme.ink
+                    color: Theme.ink
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: ParentWording.gateHoldHint
-                    font.family: ParentTheme.fontFamily
-                    font.pixelSize: ParentTheme.sizeSmall
-                    color: ParentTheme.inkSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.smallSize
+                    color: Theme.inkSecondary
                 }
             }
         }
@@ -183,16 +184,16 @@ FocusScope {
             anchors.left: holdTarget.left
             anchors.right: holdTarget.right
             anchors.top: holdTarget.bottom
-            anchors.topMargin: ParentTheme.space3
+            anchors.topMargin: Theme.space3
             height: 8
             radius: 4
-            color: ParentTheme.hoverWash
+            color: Theme.hoverWash
 
             Rectangle {
                 width: parent.width * Math.min(1, root.controller.gateProgress)
                 height: parent.height
                 radius: parent.radius
-                color: ParentTheme.buttonFill
+                color: Theme.buttonFill
             }
         }
 
@@ -200,12 +201,12 @@ FocusScope {
             anchors.left: holdTarget.left
             anchors.right: holdTarget.right
             anchors.top: progress.bottom
-            anchors.topMargin: ParentTheme.space2
+            anchors.topMargin: Theme.space2
             horizontalAlignment: Text.AlignHCenter
             text: ParentWording.gateKeys
-            font.family: ParentTheme.fontFamily
-            font.pixelSize: ParentTheme.sizeSmall
-            color: ParentTheme.inkSecondary
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.smallSize
+            color: Theme.inkSecondary
             wrapMode: Text.WordWrap
         }
     }
@@ -225,7 +226,7 @@ FocusScope {
 
     function layout() {
         if (field.width > 0 && field.height > 0) {
-            root.controller.layoutGate(field.width, field.height, ParentTheme.targetMin);
+            root.controller.layoutGate(field.width, field.height, Theme.targetMin);
         }
     }
 

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import WordJewelsSolver
 
 // What a parent sees (docs/design/dashboard.md, "What the dashboard shows"):
 // this week, the sounds, the vault and the best, computed on the device when
@@ -24,7 +25,7 @@ Flickable {
 
     // The parent area's direction, from the shell: the rows and their counts
     // follow it (the numbers themselves do not).
-    LayoutMirroring.enabled: ParentTheme.rightToLeft
+    LayoutMirroring.enabled: Theme.rightToLeft
     LayoutMirroring.childrenInherit: true
 
     readonly property var report: controller.dashboard
@@ -32,17 +33,17 @@ Flickable {
     readonly property bool anything: week.played || report.sounds.length > 0 || report.vault.length > 0 || report.best.length > 0
 
     contentWidth: width
-    contentHeight: column.implicitHeight + 2 * ParentTheme.space6
+    contentHeight: column.implicitHeight + 2 * Theme.space6
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     flickableDirection: Flickable.VerticalFlick
 
     ColumnLayout {
         id: column
-        x: Math.max(ParentTheme.space4, (root.width - width) / 2)
-        y: ParentTheme.space6
-        width: Math.min(root.width - 2 * ParentTheme.space4, ParentTheme.contentWidth)
-        spacing: ParentTheme.space8
+        x: Math.max(Theme.space4, (root.width - width) / 2)
+        y: Theme.space6
+        width: Math.min(root.width - 2 * Theme.space4, Theme.contentWidth)
+        spacing: Theme.space8
 
         // --- what a parent came here to do -------------------------------------
         // The adult way into the family game. The scanner is a parent's
@@ -51,48 +52,52 @@ Flickable {
         // one of the records below it.
         Rectangle {
             Layout.fillWidth: true
-            implicitHeight: welcome.implicitHeight + 2 * ParentTheme.space4
-            radius: ParentTheme.radius
-            color: ParentTheme.card
+            implicitHeight: welcome.implicitHeight + 2 * Theme.space4
+            radius: Theme.radius
+            color: Theme.card
             border.width: 1
-            border.color: ParentTheme.gold
+            border.color: Theme.gold
 
             ColumnLayout {
                 id: welcome
                 anchors.fill: parent
-                anchors.margins: ParentTheme.space4
-                spacing: ParentTheme.space2
+                anchors.margins: Theme.space4
+                spacing: Theme.space2
 
                 Text {
                     Layout.fillWidth: true
                     text: ParentWording.welcomeTitle
-                    font.family: ParentTheme.uiFont
-                    font.pixelSize: ParentTheme.sizeLead
+                    font.family: Theme.uiFont
+                    font.pixelSize: Theme.headingSize
                     font.weight: Font.ExtraBold
-                    color: ParentTheme.ink
+                    color: Theme.ink
                     Accessible.role: Accessible.Heading
                     Accessible.name: text
                 }
                 Text {
                     Layout.fillWidth: true
                     text: ParentWording.welcomeBody
-                    font.family: ParentTheme.uiFont
-                    font.pixelSize: ParentTheme.sizeBody
-                    color: ParentTheme.inkSecondary
+                    font.family: Theme.uiFont
+                    font.pixelSize: Theme.bodySize
+                    color: Theme.inkSecondary
                     wrapMode: Text.WordWrap
                 }
                 // A Flow, so the two actions share a line where there is room
                 // and stack where there is not: neither ever leaves the card.
                 Flow {
                     Layout.fillWidth: true
-                    spacing: ParentTheme.space2
-                    PButton {
-                        text: ParentWording.setUpBoard
-                        primary: true
+                    spacing: Theme.space2
+                    AppButton {
+                        size: "min"
+                        quiet: true
+                        label: ParentWording.setUpBoard
+                        variant: "primary"
                         onClicked: root.scanRequested()
                     }
-                    PButton {
-                        text: ParentWording.backToPlay
+                    AppButton {
+                        size: "min"
+                        quiet: true
+                        label: ParentWording.backToPlay
                         onClicked: root.playRequested()
                     }
                 }
@@ -103,24 +108,24 @@ Flickable {
         Rectangle {
             Layout.fillWidth: true
             visible: root.controller.storeNote.length > 0 || root.retryTried
-            implicitHeight: noteColumn.implicitHeight + 2 * ParentTheme.space3
-            radius: ParentTheme.radius
-            color: ParentTheme.note
-            border.width: ParentTheme.hair * 2
-            border.color: ParentTheme.outline
+            implicitHeight: noteColumn.implicitHeight + 2 * Theme.space3
+            radius: Theme.radius
+            color: Theme.hintCard
+            border.width: Theme.hair * 2
+            border.color: Theme.outline
 
             ColumnLayout {
                 id: noteColumn
                 anchors.fill: parent
-                anchors.margins: ParentTheme.space3
-                spacing: ParentTheme.space2
+                anchors.margins: Theme.space3
+                spacing: Theme.space2
 
                 Text {
                     id: noteText
                     Layout.fillWidth: true
                     wrapMode: Text.WordWrap
-                    font.pixelSize: ParentTheme.sizeBody
-                    color: ParentTheme.noteInk
+                    font.pixelSize: Theme.bodySize
+                    color: Theme.hintCardInk
                     text: {
                         switch (root.controller.storeNote) {
                         case "unreadable":
@@ -138,13 +143,15 @@ Flickable {
                     Layout.fillWidth: true
                     visible: root.retryTried
                     wrapMode: Text.WordWrap
-                    font.pixelSize: ParentTheme.sizeSmall
-                    color: ParentTheme.noteInk
+                    font.pixelSize: Theme.smallSize
+                    color: Theme.hintCardInk
                     text: root.retrySucceeded ? ParentWording.saved : ParentWording.saveStillNotSaved
                 }
-                PButton {
+                AppButton {
+                    size: "min"
+                    quiet: true
                     visible: root.controller.storeNote === "unsaved"
-                    text: ParentWording.retry
+                    label: ParentWording.retry
                     onClicked: {
                         root.retrySucceeded = root.controller.retrySave();
                         root.retryTried = true;
@@ -161,10 +168,10 @@ Flickable {
             Layout.fillWidth: true
             visible: root.anything
             text: ParentWording.recordsHeading
-            font.family: ParentTheme.monoFont
+            font.family: Theme.monoFont
             font.pixelSize: 11
             font.letterSpacing: 1.2
-            color: ParentTheme.accent
+            color: Theme.accent
             wrapMode: Text.WordWrap
             Accessible.role: Accessible.Heading
             Accessible.name: text
@@ -174,8 +181,8 @@ Flickable {
             Layout.fillWidth: true
             visible: !root.anything
             text: ParentWording.nothingYet
-            font.pixelSize: ParentTheme.sizeLead
-            color: ParentTheme.inkSecondary
+            font.pixelSize: Theme.headingSize
+            color: Theme.inkSecondary
             wrapMode: Text.WordWrap
         }
 
@@ -189,31 +196,31 @@ Flickable {
 
             Rectangle {
                 Layout.fillWidth: true
-                implicitHeight: weekColumn.implicitHeight + 2 * ParentTheme.space4
-                radius: ParentTheme.radius
-                color: ParentTheme.card
-                border.width: ParentTheme.hair
-                border.color: ParentTheme.line
+                implicitHeight: weekColumn.implicitHeight + 2 * Theme.space4
+                radius: Theme.radius
+                color: Theme.card
+                border.width: Theme.hair
+                border.color: Theme.line
 
                 ColumnLayout {
                     id: weekColumn
                     anchors.fill: parent
-                    anchors.margins: ParentTheme.space4
-                    spacing: ParentTheme.space1
+                    anchors.margins: Theme.space4
+                    spacing: Theme.space1
 
                     Text {
                         Layout.fillWidth: true
                         text: ParentWording.weekSentence(root.week.boardsCleared, root.week.stars, root.week.newWords)
-                        font.pixelSize: ParentTheme.sizeBody
-                        color: ParentTheme.ink
+                        font.pixelSize: Theme.bodySize
+                        color: Theme.ink
                         wrapMode: Text.WordWrap
                     }
                     Text {
                         Layout.fillWidth: true
                         visible: root.week.longestWord.length > 0
                         text: ParentWording.longestWord(root.week.longestWord)
-                        font.pixelSize: ParentTheme.sizeBody
-                        color: ParentTheme.ink
+                        font.pixelSize: Theme.bodySize
+                        color: Theme.ink
                         wrapMode: Text.WordWrap
                     }
                 }
@@ -234,23 +241,23 @@ Flickable {
                     required property var modelData
 
                     Layout.fillWidth: true
-                    implicitHeight: Math.max(ParentTheme.targetMin + 2 * ParentTheme.space2, rowText.implicitHeight + 2 * ParentTheme.space3)
-                    radius: ParentTheme.radius
-                    color: ParentTheme.card
-                    border.width: ParentTheme.hair * 2
-                    border.color: ParentTheme.hoverWash
+                    implicitHeight: Math.max(Theme.targetMin + 2 * Theme.space2, rowText.implicitHeight + 2 * Theme.space3)
+                    radius: Theme.radius
+                    color: Theme.card
+                    border.width: Theme.hair * 2
+                    border.color: Theme.hoverWash
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: ParentTheme.space3
-                        spacing: ParentTheme.space4
+                        anchors.margins: Theme.space3
+                        spacing: Theme.space4
 
                         Text {
-                            Layout.preferredWidth: ParentTheme.space12
+                            Layout.preferredWidth: Theme.space12
                             text: row.modelData.letters
-                            font.pixelSize: ParentTheme.sizeSound
+                            font.pixelSize: Theme.titleSize
                             font.bold: true
-                            color: ParentTheme.ink
+                            color: Theme.ink
                             horizontalAlignment: Text.AlignHCenter
                             Accessible.ignored: true
                         }
@@ -258,14 +265,14 @@ Flickable {
                         ColumnLayout {
                             id: rowText
                             Layout.fillWidth: true
-                            spacing: ParentTheme.space1
+                            spacing: Theme.space1
 
                             Text {
                                 Layout.fillWidth: true
                                 textFormat: Text.StyledText
                                 wrapMode: Text.WordWrap
-                                font.pixelSize: ParentTheme.sizeBody
-                                color: ParentTheme.ink
+                                font.pixelSize: Theme.bodySize
+                                color: Theme.ink
                                 text: row.modelData.boardsMet > 0
                                     ? ParentWording.soundSentence(row.modelData.letters, row.modelData.boardsMet, row.modelData.boardsFound)
                                     : ParentWording.notMetYet
@@ -274,25 +281,25 @@ Flickable {
                                 Layout.fillWidth: true
                                 visible: row.modelData.wordsUnassisted > 0
                                 wrapMode: Text.WordWrap
-                                font.pixelSize: ParentTheme.sizeSmall
-                                color: ParentTheme.inkSecondary
+                                font.pixelSize: Theme.smallSize
+                                color: Theme.inkSecondary
                                 text: ParentWording.foundWithoutStartTile(row.modelData.wordsUnassisted)
                             }
                             Text {
                                 Layout.fillWidth: true
                                 visible: row.modelData.oftenFound
                                 wrapMode: Text.WordWrap
-                                font.pixelSize: ParentTheme.sizeSmall
+                                font.pixelSize: Theme.smallSize
                                 font.bold: true
-                                color: ParentTheme.ink
+                                color: Theme.ink
                                 text: ParentWording.oftenFound
                             }
                             Text {
                                 Layout.fillWidth: true
                                 visible: row.modelData.fewWords
                                 wrapMode: Text.WordWrap
-                                font.pixelSize: ParentTheme.sizeSmall
-                                color: ParentTheme.inkSecondary
+                                font.pixelSize: Theme.smallSize
+                                color: Theme.inkSecondary
                                 text: ParentWording.fewWords
                             }
                         }
@@ -309,7 +316,7 @@ Flickable {
 
             Flow {
                 Layout.fillWidth: true
-                spacing: ParentTheme.space2
+                spacing: Theme.space2
 
                 Repeater {
                     model: root.report.vault
@@ -318,17 +325,17 @@ Flickable {
                         id: sticker
                         required property var modelData
 
-                        width: stickerText.implicitWidth + 2 * ParentTheme.space3
-                        height: ParentTheme.space8 + ParentTheme.space1
+                        width: stickerText.implicitWidth + 2 * Theme.space3
+                        height: Theme.space8 + Theme.space1
                         radius: height / 2
-                        color: ParentTheme.panel
+                        color: Theme.panel
 
                         Text {
                             id: stickerText
                             anchors.centerIn: parent
                             text: sticker.modelData.word
-                            font.pixelSize: ParentTheme.sizeBody
-                            color: ParentTheme.ink
+                            font.pixelSize: Theme.bodySize
+                            color: Theme.ink
                         }
                     }
                 }
@@ -348,8 +355,8 @@ Flickable {
                     required property var modelData
                     Layout.fillWidth: true
                     text: ParentWording.bestLine(modelData.size, modelData.stars)
-                    font.pixelSize: ParentTheme.sizeBody
-                    color: ParentTheme.ink
+                    font.pixelSize: Theme.bodySize
+                    color: Theme.ink
                     wrapMode: Text.WordWrap
                 }
             }
@@ -361,9 +368,9 @@ Flickable {
         Text {
             Layout.fillWidth: true
             text: ParentWording.privacyLine
-            font.family: ParentTheme.monoFont
-            font.pixelSize: ParentTheme.sizeSmall
-            color: ParentTheme.inkSecondary
+            font.family: Theme.monoFont
+            font.pixelSize: Theme.smallSize
+            color: Theme.inkSecondary
         }
     }
 }

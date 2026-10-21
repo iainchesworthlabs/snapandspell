@@ -20,6 +20,14 @@ TestCase {
 
     Component { id: areaComponent; ParentArea { } }
 
+    // What the shell binds from the parent's settings (Main.qml): the Text size
+    // reaches every screen through the kit's one token set.
+    Binding {
+        target: Theme
+        property: "textScale"
+        value: parentController.textScale
+    }
+
     function init() {
         // A QML warning in a test function fails it, as one outside does the
         // whole run: a screen that warned is a screen that is wrong.
@@ -55,10 +63,10 @@ TestCase {
         return texts
     }
 
-    // A PButton: a choice with a label, a checkable state and a role.
+    // An AppButton: a choice with a label, a checkable state and a role.
     function control(root, text) {
         for (const item of allItems(root)) {
-            if (item.text === text && typeof item.checkable === "boolean") {
+            if (item.label === text && typeof item.checkable === "boolean") {
                 return item
             }
         }
@@ -246,7 +254,7 @@ TestCase {
         press(control(text, "1.25"))
         compare(parentController.settings.textSizePercent, 125)
         compare(parentController.textScale, 1.25)
-        compare(ParentTheme.textScale, 1.25)
+        compare(Theme.textScale, 1.25)
 
         // The board's clock: Count down, and its minutes row appears with the
         // choices, one of which the store keeps.

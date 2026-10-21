@@ -144,13 +144,6 @@ ApplicationWindow {
         value: window.parentController.textScale
     }
 
-    // The parent area's chrome follows the same light/dark scheme as the rest.
-    Binding {
-        target: ParentTheme
-        property: "dark"
-        value: Theme.dark
-    }
-
     // The parent's Colour scheme setting: System follows the operating system,
     // Light and Dark are the person's choice for every screen's chrome.
     Binding {
