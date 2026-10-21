@@ -61,6 +61,8 @@ if(WJS_BUILD_APP)
             LABELS "system"
             TIMEOUT 150)
     endforeach()
+    # The longest of the four: started first when ctest has no timing of an earlier run.
+    set_tests_properties(system.app.smoke-headless PROPERTIES COST 20)
 endif()
 
 # The install rules are always configured (the CLI may or may not be built), so
