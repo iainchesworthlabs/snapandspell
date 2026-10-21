@@ -8,7 +8,11 @@ import WordJewelsSolver
 // the art area is anchored between the card's top and the words block, so a
 // shorter card (the minimum window height) or larger text shrinks the art and
 // the label block keeps its place at the bottom instead of the two overlapping.
-// Both cards use one title role; `primary` only changes the edge and the fill.
+// The picture is also promised a room of its own: `implicitHeight` is the art's
+// preferred height plus the words' own height, and `minimumHeight` the least
+// the art may be given (Theme.cardArtMin), so a screen that lays the card out
+// reads its height from the card and never writes a number. Both cards use one
+// title role; `primary` only changes the edge and the fill.
 //
 // The card draws the keyboard focus ring (not drawn after a tap or a click, nor
 // on the first paint of the card that holds focus from the start), and its
@@ -20,9 +24,13 @@ Rectangle {
     property string subtitle: ""
     property string actionLabel: ""
     property string eyebrow: ""
-    property string accessibleName: ""
+    // What a screen reader says: the visible title unless a screen says otherwise,
+    // so the name of the card is the words written on it.
+    property string accessibleName: root.title
     property bool primary: false
     property bool grownUp: false
+    // The least number of lines the sentence under the title is given room for.
+    property int subtitleLines: 2
     property bool pointerFocus: false
     // Focus the card was given when it was made is not announced with a ring.
     property bool quietFocus: false
@@ -32,7 +40,10 @@ Rectangle {
     default property alias art: artArea.data
     signal clicked
 
-    implicitHeight: 390
+    // The art's room above the words, and the words' own height under it.
+    readonly property real wordsBlock: words.implicitHeight + Theme.space6
+    implicitHeight: Theme.space4 + Theme.cardArt + Theme.space3 + wordsBlock
+    readonly property real minimumHeight: Theme.space4 + Theme.cardArtMin + Theme.space3 + wordsBlock
     radius: Theme.radiusLarge
     color: primary ? Theme.surface : Theme.card
     border.width: primary ? Theme.heavy : Theme.hair
@@ -41,7 +52,7 @@ Rectangle {
     focus: primary
 
     Accessible.role: Accessible.Button
-    Accessible.name: root.accessibleName.length > 0 ? root.accessibleName : root.title
+    Accessible.name: root.accessibleName
     Accessible.focusable: true
     Accessible.onPressAction: root.clicked()
 
@@ -115,16 +126,25 @@ Rectangle {
             elide: Text.ElideRight
             decorative: true
         }
-        Label {
+        // The line under the title always has room for `subtitleLines` lines, so
+        // two cards side by side start their words at the same height whichever
+        // of the two sentences wraps.
+        Item {
             width: parent.width
-            role: "body"
-            learning: true
-            text: root.subtitle
-            color: Theme.inkSecondary
-            wrapMode: Text.WordWrap
-            maximumLineCount: root.primary ? 2 : 3
-            elide: Text.ElideRight
-            decorative: true
+            height: Math.max(subtitleText.implicitHeight, root.subtitleLines * subtitleText.lineRatio * subtitleText.size)
+
+            Label {
+                id: subtitleText
+                width: parent.width
+                role: "body"
+                learning: true
+                text: root.subtitle
+                color: Theme.inkSecondary
+                wrapMode: Text.WordWrap
+                maximumLineCount: root.primary ? 2 : 3
+                elide: Text.ElideRight
+                decorative: true
+            }
         }
         Row {
             spacing: Theme.space2

@@ -1,11 +1,13 @@
 pragma Singleton
 import QtQuick
 
-// The names of home's three pictures. There is no text on the screen: a picture
-// says what it does, and these are what a screen reader hears when it is pressed
-// (docs/design/application.md, "Screens and navigation").
+// The names of home's two cards and the grown-up entry, in one place. A card's
+// title is also its accessible name, so a screen reader says what is written on
+// the card (a name that differs from the visible title makes a control that
+// cannot be found by what it says).
 QtObject {
     readonly property string soloPicture: qsTr("Play on my own")
-    readonly property string familyPicture: qsTr("Play with the family")
+    readonly property string soloEyebrow: qsTr("For children")
+    readonly property string familyPicture: qsTr("Play with a real board")
     readonly property string forGrownUps: qsTr("For grown-ups")
 }
