@@ -261,6 +261,7 @@ FocusScope {
                             learning: index % 3 !== 0
                             text: modelData
                             Layout.fillWidth: index % 3 === 2
+                            Layout.alignment: Qt.AlignBaseline
                         }
                     }
                 }
