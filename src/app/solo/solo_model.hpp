@@ -1,12 +1,14 @@
 #pragma once
 
 #include <QtQml/qqmlregistration.h>
+#include <QElapsedTimer>
 #include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
 #include <QVariantList>
 #include <memory>
+#include <span>
 
 #include "path_tracer.hpp"
 #include "solo_game.hpp"
@@ -100,6 +102,11 @@ class SoloModel : public QObject {
     // Earlier boards, newest first: rows, columns, tiles and found (as the tray's).
     Q_PROPERTY(QVariantList history READ history NOTIFY historyChanged)
 
+    // The game could not keep its progress (the store refused it, or the file
+    // could not be written). The parent area says how the store is; this tells the
+    // screens the moment it lets the game down, for a note the grown-up reads.
+    Q_PROPERTY(bool saveFailed READ saveFailed NOTIFY saveFailedChanged)
+
     // The clock the parent sets for the board: "off", "up" (how long the board
     // has been open) or "down" (the minutes left, which ends the round at zero).
     // The window hands the setting in; the screen says when it is ticking
@@ -142,6 +149,7 @@ public:
     [[nodiscard]] bool hintResolved() const { return hint_resolved_; }
     [[nodiscard]] int hintRemaining() const { return hint_remaining_; }
     [[nodiscard]] QVariantList history() const { return history_; }
+    [[nodiscard]] bool saveFailed() const noexcept { return save_failed_; }
     [[nodiscard]] QString clockMode() const;
     [[nodiscard]] int clockMinutes() const;
     [[nodiscard]] bool clockActive() const;
@@ -157,9 +165,14 @@ public:
     Q_INVOKABLE void shake();
     // The board scene says its dice are still.
     Q_INVOKABLE void sceneSettled();
-    // One second of the board's clock. The model's own timer calls this while
-    // clockActive; a test calls it so that a minute never takes a minute.
+    // One second of the board's clock. A test calls it so that a minute never
+    // takes a minute; the model's own timer measures the time that really went
+    // by (a stalled interface loses none of it) and advances the clock by that.
     Q_INVOKABLE void tickClock();
+    // The clock moves on by `milliseconds` of the time the board has been open
+    // and the screen has been active. Does nothing while the clock is off or not
+    // ticking, or once a count-down has ended.
+    void advanceClock(qint64 milliseconds);
 
     // --- making a word. Positions are in pixels from the board's top left.
     Q_INVOKABLE void setGeometry(qreal tile, qreal gap);
@@ -206,6 +219,7 @@ signals:
     void foundChanged();
     void helpChanged();
     void historyChanged();
+    void saveFailedChanged();
 
     // A path was handed in. `kind` is "word" (a viable word: `word`, `tier` and
     // `stars` say which; `again` is true when it was on the tray already), "tick"
@@ -234,6 +248,13 @@ private:
     void refreshHistory();
     void refreshHelp();
     void renewGameIfDue();
+    // What the clock shows for the time played; a changed setting keeps the time
+    // already played, and a new board (startClock) starts it again.
+    void showClock();
+    void clockTimerFired();
+    // Asks the game whether its last write went wrong, and tells the screens if
+    // that changed. Called after each call that can write.
+    void refreshSaveStatus();
     void startClock();
     [[nodiscard]] QVariantList indices(std::span<const Position> path) const;
     [[nodiscard]] QString lettersAt(Position position) const;
@@ -244,6 +265,9 @@ private:
     void markPathChanged();
     void markBoardChanged();
     void markFoundChanged();
+    // Builds the tiles, faces and up lists from the game's board if the board
+    // changed since they were.
+    void ensureBoardCaches() const;
 
     std::unique_ptr<SoloGame> game_;
     PathTracer tracer_;
@@ -251,6 +275,7 @@ private:
     bool renew_due_ = false;   // the store was edited since the game was made
     int board_version_ = 0;
     int help_tile_ = -1;
+    bool save_failed_ = false;
     int hint_level_ = 0;
     QVariantList hint_tiles_;
     bool hint_resolved_ = false;
@@ -260,7 +285,6 @@ private:
     // record; the screens show no ring until the next press lights it again.
     bool hint_hidden_ = false;
     HelpLevel help_level_ = HelpLevel::two_letters;
-    QString last_cue_tile_;
     QVariantList lit_path_;
     QVariantList history_;
     std::size_t last_path_size_ = 0;
@@ -272,6 +296,11 @@ private:
     bool clock_active_ = false;
     bool clock_expired_ = false;
     int clock_seconds_ = 0;
+    // The time the board has been open with the clock on and the screen active, in
+    // milliseconds; clock_seconds_ is what it shows. clock_since_ measures the
+    // time between two looks at it.
+    qint64 clock_elapsed_ms_ = 0;
+    QElapsedTimer clock_since_;
     QTimer clock_timer_;
 
     mutable QVariantList path_cache_;

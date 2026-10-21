@@ -7,14 +7,12 @@
 #include <utility>
 #include <vector>
 
+#include "qt_text.hpp"
 #include "wjs/board.hpp"
+#include "wjs/profiling.hpp"
 
 namespace wjs::app {
 namespace {
-
-[[nodiscard]] QString to_qstring(const std::string& text) {
-    return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size()));
-}
 
 [[nodiscard]] QString tier_name(wjs::Tier tier) {
     switch (tier) {
@@ -42,6 +40,11 @@ namespace {
     if (rows <= 0 || columns <= 0) {
         return std::nullopt;
     }
+    // A grid no larger than the library's boards: the product below cannot wrap.
+    if (rows > static_cast<int>(wjs::Board::max_dimension) ||
+        columns > static_cast<int>(wjs::Board::max_dimension)) {
+        return std::nullopt;
+    }
     const auto height = static_cast<std::size_t>(rows);
     const auto width = static_cast<std::size_t>(columns);
     if (letters.size() != static_cast<qsizetype>(height * width)) {
@@ -54,7 +57,9 @@ namespace {
         }
         for (std::size_t column = 0; column < width; ++column) {
             const QString& tile = letters.at(static_cast<qsizetype>(row * width + column));
-            if (tile.isEmpty()) {
+            // Board::parse reads a space as the next tile and a slash as the next
+            // row, so a tile holding either would make a different grid.
+            if (tile.isEmpty() || tile.contains(u' ') || tile.contains(u'/')) {
                 return std::nullopt;
             }
             if (column > 0) {
@@ -65,7 +70,8 @@ namespace {
         }
     }
     auto board = wjs::Board::parse(text);
-    if (!board) {
+    // The grid that was asked for, and no other.
+    if (!board || board->rows() != height || board->columns() != width) {
         return std::nullopt;
     }
     return std::move(*board);
@@ -203,19 +209,29 @@ void AssistModel::refreshHelp() {
 }
 
 bool AssistModel::begin(int rows, int columns, const QStringList& letters) {
+    // "Yes, play": the grown-up waits for the whole of this, which is the board's
+    // parsing, the game's making (its solve is assist.solve) and the old round's
+    // record.
+    const auto zone = wjs::profiling::zone<"assist.confirm">();
+    if (!maker_) {
+        return false;
+    }
     std::optional<wjs::Board> board = board_from(rows, columns, letters);
-    if (!board || !maker_) {
+    if (!board) {
+        return false;
+    }
+    // The new game is made first, in a local: the round that is on stays what it
+    // is if the maker cannot make one, and nothing is recorded or dropped for a
+    // board that never started.
+    std::unique_ptr<AssistGame> next = maker_(std::move(*board));
+    if (!next || next->board().rows() != static_cast<std::size_t>(rows) ||
+        next->board().columns() != static_cast<std::size_t>(columns)) {
         return false;
     }
     // A round that is on is recorded before it is replaced, so the store keeps
     // the board the family played and not only the new one.
-    if (game_) {
-        leave();
-    }
-    game_ = maker_(std::move(*board));
-    if (!game_) {
-        return false;
-    }
+    leave();
+    game_ = std::move(next);
     resetTracer();
     help_tile_ = -1;
     emit gameChanged();
@@ -228,8 +244,13 @@ bool AssistModel::begin(int rows, int columns, const QStringList& letters) {
 }
 
 void AssistModel::leave() {
-    if (game_) {
-        game_->leave();
+    if (!game_) {
+        return;
+    }
+    game_->leave();
+    if (save_failed_ != game_->saveFailed()) {
+        save_failed_ = game_->saveFailed();
+        emit saveFailedChanged();
     }
 }
 

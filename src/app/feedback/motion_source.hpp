@@ -3,6 +3,8 @@
 #include <QObject>
 #include <memory>
 
+#include "wjs/motion.hpp"
+
 namespace wjs::app {
 
 // The device's motion, from Qt Sensors when the application was built with it
@@ -45,6 +47,11 @@ public:
 
     void setActive(bool active);
     void setShakeEnabled(bool enabled);
+
+    // One sample of the device's motion: the way the sensor backend delivers each
+    // reading, and so the way a recorded trace is played through the same path
+    // (processing, availability, the shake gate) without a sensor.
+    void accept(const wjs::DeviceMotion& motion);
 
 signals:
     void availableChanged();

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "wjs/path.hpp"
 #include "wjs/profiling.hpp"

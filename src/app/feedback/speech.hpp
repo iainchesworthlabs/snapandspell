@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <functional>
 #include <memory>
 
 namespace wjs::app {
@@ -31,8 +32,15 @@ public:
     [[nodiscard]] bool available() const;
     [[nodiscard]] int utterances() const;
 
-    // The whole word, through the platform's voice. `volume` is 0 to 1.
-    void say_word(const QString& word, double volume = 1.0);
+    // The whole word, through the platform's voice. `volume` is 0 to 1. False,
+    // and nothing said, for an empty word.
+    bool say_word(const QString& word, double volume = 1.0);
+
+    // Where the voice goes instead of the platform's engine: a test that must not
+    // speak, or a tool. The utterance is still counted and reported. An empty
+    // function puts the engine back.
+    using Output = std::function<void(const QString& text, double volume)>;
+    void setOutput(Output output);
 
     // The sound-it-out sequence before a found word. The phoneme clips are the
     // reviewer's recording job and are not in the tree, so this is deliberately
@@ -41,8 +49,9 @@ public:
     // to spelling the word: letter names are not its sounds.
     void say_letter_sequence(const QString& word);
 
-    // A sentence or a picture's name, through the platform's voice.
-    void say_text(const QString& text, double volume = 1.0);
+    // A sentence or a picture's name, through the platform's voice. False, and
+    // nothing said, for an empty text.
+    bool say_text(const QString& text, double volume = 1.0);
 
     // Stops whatever is being said. Safe when nothing is.
     void stop();
@@ -51,6 +60,8 @@ signals:
     void spoken(const QString& text);
 
 private:
+    bool say(const QString& text, double volume);
+
     class Impl;
     std::unique_ptr<Impl> impl_;
 };

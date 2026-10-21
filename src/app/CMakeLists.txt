@@ -170,8 +170,6 @@ qt_add_qml_module(WordJewelsSolver
         frame_profiler.hpp
         solo/board_layout.cpp
         solo/board_layout.hpp
-        solo/fake_solo_game.cpp
-        solo/fake_solo_game.hpp
         solo/path_tracer.hpp
         solo/real_solo_game.cpp
         solo/real_solo_game.hpp
@@ -185,8 +183,8 @@ qt_add_qml_module(WordJewelsSolver
         solo/solo_layout.hpp
         solo/solo_model.cpp
         solo/solo_model.hpp
-        solver_model.cpp
-        solver_model.hpp
+        startup_failure.cpp
+        startup_failure.hpp
         system_colour_scheme.cpp
         system_colour_scheme.hpp
         system_motion.cpp
@@ -329,9 +327,9 @@ endif()
 wjs_platform_deploy_qt_runtime(WordJewelsSolver ${WJS_APP_QML_DEPLOY_DIRS})
 wjs_deploy_sanitizer_runtime(WordJewelsSolver)
 
-# The default dictionary the model looks for, and the standard board's dice the
-# game is played with: dictionaries/en.txt and dice/3x3.txt to 6x6.txt beside
-# the executable (see SolverModel::loadDefaultDictionary and SoloGameSetup).
+# The default dictionary and the standard board's dice the game is played with:
+# dictionaries/en.txt and dice/3x3.txt to 6x6.txt beside the executable (see
+# SoloGameSetup and main.cpp).
 add_custom_command(TARGET WordJewelsSolver POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:WordJewelsSolver>/dictionaries"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different

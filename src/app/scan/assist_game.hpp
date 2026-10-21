@@ -155,6 +155,12 @@ public:
 
     [[nodiscard]] bool recorded() const noexcept { return recorded_; }
 
+    // The board could not be kept: the store refused it, or its file could not be
+    // written. False until the round is left, and for a board the store has no
+    // form for (that is not a failure, the screen never confirms one). The family
+    // is told so that they know the history lacks this board.
+    [[nodiscard]] bool saveFailed() const noexcept { return save_failed_; }
+
 private:
     [[nodiscard]] wjs::WordSets words() const noexcept;
     // The tiles as Board::parse reads them: spaces between tiles, '/' between rows.
@@ -174,6 +180,7 @@ private:
     // The word whose start tile was shown and has not been found, upper-case.
     std::optional<std::string> lit_word_;
     bool recorded_ = false;
+    bool save_failed_ = false;
 };
 
 }  // namespace wjs::app

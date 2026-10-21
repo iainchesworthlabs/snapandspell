@@ -1,10 +1,14 @@
 #include "scan_model.hpp"
 
+#include <QFuture>
+#include <QPromise>
 #include <QVariantMap>
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <utility>
 
+#include "qt_text.hpp"
 #include "wjs/platform/board_reader.hpp"
 #include "wjs/platform/camera.hpp"
 #include "wjs/profiling.hpp"
@@ -20,36 +24,37 @@ namespace {
 constexpr int kFramePollMs = 100;
 constexpr int kMaxFramePolls = 40;
 
-[[nodiscard]] QString camera_code(wjs::platform::camera::CameraError error) {
+[[nodiscard]] CameraProblem camera_problem_of(wjs::platform::camera::CameraError error) {
     switch (error) {
         case wjs::platform::camera::CameraError::unavailable:
-            return QStringLiteral("unavailable");
+            return CameraProblem::unavailable;
         case wjs::platform::camera::CameraError::permission_denied:
-            return QStringLiteral("permission_denied");
+            return CameraProblem::permission_denied;
         case wjs::platform::camera::CameraError::no_such_device:
-            return QStringLiteral("no_such_device");
+            return CameraProblem::no_such_device;
         case wjs::platform::camera::CameraError::already_running:
-            return QStringLiteral("already_running");
+            return CameraProblem::already_running;
         case wjs::platform::camera::CameraError::failed:
-            return QStringLiteral("failed");
+            return CameraProblem::failed;
     }
-    return QStringLiteral("failed");
+    return CameraProblem::failed;
 }
 
-[[nodiscard]] QString read_code(wjs::scan::ReadError error) {
+[[nodiscard]] ReadProblem read_problem_of(wjs::scan::ReadError error) {
     switch (error) {
         case wjs::scan::ReadError::invalid_frame:
-            return QStringLiteral("invalid_frame");
+            return ReadProblem::invalid_frame;
         case wjs::scan::ReadError::board_not_found:
-            return QStringLiteral("board_not_found");
+            return ReadProblem::board_not_found;
         case wjs::scan::ReadError::size_not_found:
-            return QStringLiteral("size_not_found");
+            return ReadProblem::size_not_found;
         case wjs::scan::ReadError::no_letters:
-            return QStringLiteral("no_letters");
+            return ReadProblem::no_letters;
         case wjs::scan::ReadError::invalid_options:
-            return QStringLiteral("invalid_options");
+            // The caller's options, never the camera's: not a board this program can show.
+            return ReadProblem::invalid_reading;
     }
-    return QStringLiteral("board_not_found");
+    return ReadProblem::board_not_found;
 }
 
 [[nodiscard]] QString origin_name(wjs::scan::TileOrigin origin) {
@@ -66,13 +71,12 @@ constexpr int kMaxFramePolls = 40;
     return QStringLiteral("empty");
 }
 
-[[nodiscard]] QString to_qstring(const std::string& text) {
-    return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size()));
-}
-
 }  // namespace
 
 ScanModel::ScanModel(QObject* parent) : QObject(parent) {
+    reader_pool_.setMaxThreadCount(1);
+    connect(&reader_, &QFutureWatcher<ReadResult>::finished, this, &ScanModel::readFinished);
+    max_frame_polls_ = kMaxFramePolls;
     frame_timer_.setInterval(kFramePollMs);
     frame_timer_.setSingleShot(false);
     connect(&frame_timer_, &QTimer::timeout, this, &ScanModel::tryFrame);
@@ -80,6 +84,30 @@ ScanModel::ScanModel(QObject* parent) : QObject(parent) {
 
 ScanModel::~ScanModel() {
     close();
+    // A read still running is waited for: it holds nothing of this object, but the
+    // pool is a member and goes with it.
+    reader_pool_.waitForDone();
+}
+
+QString ScanModel::readProblem() const {
+    const std::string_view text = code(read_problem_);
+    return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size()));
+}
+
+void ScanModel::setFramePatience(int interval_ms, int max_polls) {
+    if (interval_ms > 0) {
+        frame_timer_.setInterval(interval_ms);
+    }
+    if (max_polls > 0) {
+        max_frame_polls_ = max_polls;
+    }
+}
+
+void ScanModel::clearReadProblem() {
+    if (read_problem_ != ReadProblem::none) {
+        read_problem_ = ReadProblem::none;
+        emit readProblemChanged();
+    }
 }
 
 QString ScanModel::state() const {
@@ -218,16 +246,23 @@ void ScanModel::setCameraSource(CameraSource* source) {
         // no camera from then on, rather than holding one QML could still ask
         // for.
         connect(camera_source_.data(), &QObject::destroyed, this, [this] {
+            // A capture that was waiting on it is not left polling a camera that
+            // is gone; the screen goes back to ready.
+            const bool was_reading = state_ == State::reading;
+            frame_timer_.stop();
             camera_source_ = nullptr;
             camera_available_ = false;
             camera_capturing_ = false;
             emit cameraChanged();
             emit cameraSourceChanged();
+            if (was_reading) {
+                setState(State::ready);
+            }
         });
     }
     camera_available_ = false;
     camera_capturing_ = false;
-    camera_problem_.clear();
+    camera_problem_ = CameraProblem::none;
     emit cameraChanged();
     emit cameraSourceChanged();
     // A source that is already running (a test handing in a fake) is described
@@ -240,19 +275,19 @@ void ScanModel::refreshCameraState() {
         return;
     }
     const bool running = camera_source_->running();
-    const QString problem = camera_source_->problem();
+    const CameraProblem problem = camera_source_->problemKind();
     bool changed = false;
     if (camera_capturing_ != running) {
         camera_capturing_ = running;
         changed = true;
     }
     if (running) {
-        if (!camera_available_ || !camera_problem_.isEmpty()) {
+        if (!camera_available_ || camera_problem_ != CameraProblem::none) {
             camera_available_ = true;
-            camera_problem_.clear();
+            camera_problem_ = CameraProblem::none;
             changed = true;
         }
-    } else if (!problem.isEmpty()) {
+    } else if (problem != CameraProblem::none) {
         if (camera_available_ || camera_problem_ != problem) {
             camera_available_ = false;
             camera_problem_ = problem;
@@ -271,7 +306,7 @@ void ScanModel::open() {
         return;
     }
     camera_available_ = false;
-    camera_problem_.clear();
+    camera_problem_ = CameraProblem::none;
     if (camera_source_) {
         // The application supplied a CameraSource: the live view and the frame
         // both come from it. It answers for a device with no camera, a refusal
@@ -281,9 +316,9 @@ void ScanModel::open() {
         camera_available_ = camera_source_->running();
         camera_capturing_ = camera_available_;
         if (!camera_available_) {
-            camera_problem_ = camera_source_->problem();
-            if (camera_problem_.isEmpty()) {
-                camera_problem_ = QStringLiteral("no_camera");
+            camera_problem_ = camera_source_->problemKind();
+            if (camera_problem_ == CameraProblem::none) {
+                camera_problem_ = CameraProblem::no_camera;
             }
         }
         emit cameraChanged();
@@ -291,14 +326,14 @@ void ScanModel::open() {
     }
     const auto devices = wjs::platform::camera::enumerate_devices();
     if (!devices) {
-        camera_problem_ = camera_code(devices.error());
+        camera_problem_ = camera_problem_of(devices.error());
         emit cameraChanged();
         return;
     }
     if (devices->empty()) {
         // Every desktop without a CameraSource: the platform interface has no
         // backend, and the screen offers the typed board.
-        camera_problem_ = QStringLiteral("unavailable");
+        camera_problem_ = CameraProblem::unavailable;
         emit cameraChanged();
         return;
     }
@@ -311,7 +346,7 @@ void ScanModel::open() {
     }
     const auto started = wjs::platform::camera::start(*chosen);
     if (!started) {
-        camera_problem_ = camera_code(started.error());
+        camera_problem_ = camera_problem_of(started.error());
         emit cameraChanged();
         return;
     }
@@ -335,20 +370,23 @@ void ScanModel::stopCamera() {
 
 void ScanModel::close() {
     stopCamera();
+    // The screen is going: a read that is under way is not waited for, and the
+    // screen is ready (and idle) for the next time it is shown.
+    if (state_ == State::reading) {
+        cancelRead();
+        setState(State::ready);
+    }
 }
 
 void ScanModel::capture() {
     if (state_ != State::ready) {
         return;
     }
-    if (!read_problem_.isEmpty()) {
-        read_problem_.clear();
-        emit readProblemChanged();
-    }
+    clearReadProblem();
     if (!camera_capturing_) {
         // No camera, or one this platform will not start: the typed board is the
         // way on, and the screen says so (cameraProblem).
-        read_problem_ = QStringLiteral("no_camera");
+        read_problem_ = ReadProblem::no_camera;
         emit readProblemChanged();
         return;
     }
@@ -361,8 +399,8 @@ void ScanModel::capture() {
 void ScanModel::tryFrame() {
     if (camera_source_) {
         if (!camera_source_->capture()) {
-            if (++frame_ticks_ > kMaxFramePolls) {
-                failed(QStringLiteral("no_frame"));
+            if (++frame_ticks_ > max_frame_polls_) {
+                failed(ReadProblem::no_frame);
             }
             return;
         }
@@ -370,48 +408,82 @@ void ScanModel::tryFrame() {
         if (!frame) {
             // The source said it had one and did not: a camera that cannot hand
             // its frame over is a failed read, not a screen left in `reading`.
-            failed(QStringLiteral("no_frame"));
+            failed(ReadProblem::no_frame);
             return;
         }
-        readFrame(*frame);
+        readFrame(std::move(*frame));
         return;
     }
 
-    const std::optional<wjs::scan::OwnedFrame> frame =
-        wjs::platform::camera::try_pop_latest_frame();
+    std::optional<wjs::scan::OwnedFrame> frame = wjs::platform::camera::try_pop_latest_frame();
     if (!frame) {
-        if (++frame_ticks_ > kMaxFramePolls) {
-            failed(QStringLiteral("no_frame"));
+        if (++frame_ticks_ > max_frame_polls_) {
+            failed(ReadProblem::no_frame);
         }
         return;
     }
-    readFrame(*frame);
+    readFrame(std::move(*frame));
 }
 
-void ScanModel::readFrame(const wjs::scan::OwnedFrame& frame) {
-    // The model's whole per-frame work: one captured frame becomes a reading or
-    // a reason why not (the camera poll that fetched it is not in here).
-    auto zone = wjs::profiling::zone<"scan.process_frame">();
+void ScanModel::readFrame(wjs::scan::OwnedFrame frame) {
     frame_timer_.stop();
     // The camera stops as soon as a frame is in hand, before the read: the
     // picture of a room is in memory, and the next one is not needed.
     stopCamera();
-    const std::expected<wjs::scan::BoardReading, wjs::scan::ReadError> reading =
-        wjs::platform::board_reader::read(frame.view());
-    // The frame is a picture of a room and a child may be in it. It is read here
-    // and gone: only the reading's letters and doubts go on to the check screen.
-    if (!reading) {
-        failed(read_code(reading.error()));
+    // The read is the model's whole per-frame work: one captured frame becomes a
+    // reading or a reason why not (the camera poll that fetched it is not in
+    // here). It runs on the reader's own thread, with a frame of its own: the
+    // task holds nothing of this object, so a model that goes first only loses
+    // the answer.
+    auto promise = std::make_shared<QPromise<ReadResult>>();
+    promise->start();
+    reader_.setFuture(promise->future());
+    reader_pool_.start([promise, frame = std::move(frame)]() mutable {
+        static thread_local const bool named = [] {
+            wjs::profiling::thread_name("scan");
+            return true;
+        }();
+        static_cast<void>(named);
+        ReadResult result;
+        {
+            auto zone = wjs::profiling::zone<"scan.process_frame">();
+            result.reading = wjs::platform::board_reader::read(frame.view());
+        }
+        // The frame is a picture of a room and a child may be in it. It is read
+        // here and gone: only the reading's letters and doubts go on to the check
+        // screen.
+        frame.pixels.clear();
+        frame.pixels.shrink_to_fit();
+        promise->addResult(std::move(result));
+        promise->finish();
+    });
+}
+
+void ScanModel::cancelRead() {
+    // The watcher forgets the future it was following: its answer, when it comes,
+    // reaches no one.
+    reader_.setFuture(QFuture<ReadResult>());
+}
+
+void ScanModel::readFinished() {
+    // The watcher also says "finished" for a future it was told to forget; that
+    // one has no answer.
+    if (state_ != State::reading || reader_.future().resultCount() < 1) {
         return;
     }
-    if (!useReading(*reading)) {
-        failed(QStringLiteral("invalid_reading"));
+    const ReadResult result = reader_.result();
+    if (!result.reading) {
+        failed(read_problem_of(result.reading.error()));
+        return;
+    }
+    if (!useReading(*result.reading)) {
+        failed(ReadProblem::invalid_reading);
     }
 }
 
-void ScanModel::failed(const QString& code) {
+void ScanModel::failed(ReadProblem problem) {
     stopCamera();
-    read_problem_ = code;
+    read_problem_ = problem;
     setState(State::ready);
     emit readProblemChanged();
     // Back on the ready screen: the camera is on again for another go.
@@ -427,10 +499,7 @@ void ScanModel::typeBoard() {
     draft_ = *empty;
     draft_from_camera_ = false;
     confirmed_.reset();
-    if (!read_problem_.isEmpty()) {
-        read_problem_.clear();
-        emit readProblemChanged();
-    }
+    clearReadProblem();
     emit draftChanged();
     emit confirmedChanged();
     setState(State::check);
@@ -441,10 +510,7 @@ void ScanModel::readAgain() {
     draft_.reset();
     draft_from_camera_ = false;
     confirmed_.reset();
-    if (!read_problem_.isEmpty()) {
-        read_problem_.clear();
-        emit readProblemChanged();
-    }
+    clearReadProblem();
     emit draftChanged();
     emit confirmedChanged();
     setState(State::ready);
@@ -460,10 +526,7 @@ bool ScanModel::useReading(const wjs::scan::BoardReading& reading) {
     draft_ = wjs::scan::BoardDraft::from_reading(reading);
     draft_from_camera_ = true;
     confirmed_.reset();
-    if (!read_problem_.isEmpty()) {
-        read_problem_.clear();
-        emit readProblemChanged();
-    }
+    clearReadProblem();
     emit draftChanged();
     emit confirmedChanged();
     setState(State::check);
@@ -558,10 +621,7 @@ void ScanModel::retryCamera() {
     }
     // A retry is a new attempt: the failed read's sentence is not about this
     // one. The camera's own answer replaces the problem when it fails again.
-    if (!read_problem_.isEmpty()) {
-        read_problem_.clear();
-        emit readProblemChanged();
-    }
+    clearReadProblem();
     // open() enumerates the devices again (or starts the supplied source again)
     // and says what the camera did; nothing is faked and nothing is kept.
     open();

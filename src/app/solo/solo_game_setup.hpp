@@ -78,7 +78,9 @@ public:
     // a new game in the box: the store holds none, or the one it holds cannot
     // come back (GameSession::restore refuses it: the other board mode, another
     // phase, a board the words no longer fit, a record no session makes), and is
-    // then cleared. Nothing is said of either to the child.
+    // then cleared. Nothing is said of either to the child. Null only if a
+    // session cannot be made at all, which open() has checked it can; the
+    // factory (make_solo_game) then plays no game rather than fail in QML.
     [[nodiscard]] std::unique_ptr<SoloGame> make();
 
     // The phase the game plays; null when no phase directory was given (the

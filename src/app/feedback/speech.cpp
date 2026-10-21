@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "wjs/profiling.hpp"
+
 #include "wjs/app/speech_backend.hpp"
 
 namespace wjs::app {
@@ -9,6 +11,7 @@ namespace wjs::app {
 class Speech::Impl {
 public:
     SpeechBackend backend;
+    Speech::Output output;
     int utterances = 0;
 };
 
@@ -24,13 +27,28 @@ int Speech::utterances() const {
     return impl_->utterances;
 }
 
-void Speech::say_word(const QString& word, double volume) {
-    if (word.isEmpty()) {
-        return;
+void Speech::setOutput(Output output) {
+    impl_->output = std::move(output);
+}
+
+bool Speech::say(const QString& text, double volume) {
+    if (text.isEmpty()) {
+        return false;
     }
+    // The first utterance makes the voice engine, which is the long one.
+    const auto zone = wjs::profiling::zone<"speech.say">();
     ++impl_->utterances;
-    impl_->backend.say(word, volume);
-    emit spoken(word);
+    if (impl_->output) {
+        impl_->output(text, volume);
+    } else {
+        impl_->backend.say(text, volume);
+    }
+    emit spoken(text);
+    return true;
+}
+
+bool Speech::say_word(const QString& word, double volume) {
+    return say(word, volume);
 }
 
 void Speech::say_letter_sequence(const QString&) {
@@ -40,13 +58,8 @@ void Speech::say_letter_sequence(const QString&) {
     // learning. When the clips exist this is where they play, before the word.
 }
 
-void Speech::say_text(const QString& text, double volume) {
-    if (text.isEmpty()) {
-        return;
-    }
-    ++impl_->utterances;
-    impl_->backend.say(text, volume);
-    emit spoken(text);
+bool Speech::say_text(const QString& text, double volume) {
+    return say(text, volume);
 }
 
 void Speech::stop() {

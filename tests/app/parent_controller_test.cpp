@@ -1,3 +1,4 @@
+#include <QMap>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
@@ -7,12 +8,16 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <optional>
 #include <string>
 
 #include "demo_data.hpp"
 #include "parent_controller.hpp"
+#include "test_support.hpp"
 #include "wjs/calendar.hpp"
+#include "wjs/scoring.hpp"
+#include "wjs/settings.hpp"
 #include "wjs/store.hpp"
 
 namespace {
@@ -22,26 +27,7 @@ using wjs::app::ParentController;
 constexpr wjs::Day friday = 20742;  // 2026-10-16
 
 // A directory of its own that is gone when the case ends.
-class TempDirectory {
-public:
-    TempDirectory() {
-        static int counter = 0;
-        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
-        path_ = std::filesystem::temp_directory_path() /
-                ("wjs_parent_test_" + std::to_string(stamp) + "_" + std::to_string(++counter));
-        std::filesystem::create_directories(path_);
-    }
-    TempDirectory(const TempDirectory&) = delete;
-    TempDirectory& operator=(const TempDirectory&) = delete;
-    ~TempDirectory() {
-        std::error_code error;
-        std::filesystem::remove_all(path_, error);
-    }
-    [[nodiscard]] const std::filesystem::path& path() const { return path_; }
-
-private:
-    std::filesystem::path path_;
-};
+using TempDirectory = wjs::app::test::TempDirectory;
 
 // A controller on the made-up play of the demo data, as of a Friday.
 struct Fixture {
@@ -226,15 +212,27 @@ TEST_CASE("a sound's row has its counts", "[app][parent][dashboard]") {
 
 TEST_CASE("the week follows the calendar the controller was given", "[app][parent][dashboard]") {
     Fixture f;
+    // A find on the Sunday before the Friday: the first day of a Sunday-first week
+    // and the last of the Monday-first week before.
+    wjs::BoardSnapshot sunday;
+    sunday.size = 3;
+    sunday.tiles = "Q Q Q/P I N/T A P";
+    sunday.viable_total = 5;
+    sunday.finds = {{"quiz", false, friday - 5, 5}};
+    static_cast<void>(f.store.record(sunday, friday - 5));
+
+    f.controller.useCalendar([] { return friday; }, 1);
     const int monday_first =
         map(f.controller.dashboard()).value("week").toMap().value("stars").toInt();
 
-    // Sunday-first: the week of the 16th starts on the 11th, which takes in no more of the demo
-    // play.
+    // Sunday-first: the week of the 16th starts on the 11th, which takes in the five
+    // stars of the Sunday's find. A calendar that ignored the first day would give
+    // the same number twice.
     f.controller.useCalendar([] { return friday; }, 7);
 
     CHECK(map(f.controller.dashboard()).value("week").toMap().value("stars").toInt() ==
-          monday_first);
+          monday_first + 5);
+    f.controller.useCalendar([] { return friday; }, 1);
     // A calendar that has moved on a week leaves this week without play.
     f.controller.useCalendar([] { return friday + 14; }, 1);
     CHECK_FALSE(map(f.controller.dashboard()).value("week").toMap().value("played").toBool());
@@ -260,7 +258,7 @@ TEST_CASE("the settings map has the table's defaults", "[app][parent][settings]"
 
     const QVariantMap s = controller.settings();
 
-    CHECK(s.value("help").toBool());
+    CHECK(s.value("help").toString() == "two");
     CHECK(s.value("board").toString() == "standard");
     CHECK(s.value("phase").toString() == "A");
     CHECK(s.value("boardSize").toInt() == 3);
@@ -662,4 +660,268 @@ TEST_CASE("the version is the project's, with the build's provenance", "[app][pa
     CHECK(details.contains(QStringLiteral("commit:")));
     CHECK(details.contains(QStringLiteral("branch:")));
     CHECK(details.contains(QStringLiteral("target:")));
+}
+
+// ---------------------------------------------------------------------------
+// Numbers from QML that are not numbers
+
+TEST_CASE("a number that is not a whole int is refused, not converted", "[app][parent][settings]") {
+    ParentController controller;
+    const QVariantMap before = controller.settings();
+
+    // Converting these to an int is undefined; they are refused before it.
+    CHECK_FALSE(controller.setSetting("boardSize", std::numeric_limits<double>::quiet_NaN()));
+    CHECK_FALSE(controller.setSetting("boardSize", std::numeric_limits<double>::infinity()));
+    CHECK_FALSE(controller.setSetting("boardSize", -std::numeric_limits<double>::infinity()));
+    CHECK_FALSE(controller.setSetting("boardSize", 1e20));
+    CHECK_FALSE(controller.setSetting("boardSize", -1e20));
+    CHECK_FALSE(controller.setSetting("timerLength", 2147483648.0));
+    CHECK_FALSE(controller.setSetting("textSizePercent", 1e300));
+    CHECK(controller.settings() == before);
+
+    // The edge of the range is still a number, and a refused one for the table.
+    CHECK_FALSE(controller.setSetting("boardSize", 2147483647.0));
+    CHECK_FALSE(controller.setSetting("boardSize", -2147483648.0));
+}
+
+// ---------------------------------------------------------------------------
+// The gate, further
+
+TEST_CASE("a finger dragged off its spot cancels the hold", "[app][parent][gate]") {
+    ParentController controller;
+    controller.layoutGate(1000.0, 700.0, 48.0);
+    const QVariantList spots = controller.gateSpots();
+    const double x0 = spots.at(0).toMap().value("x").toDouble();
+    const double y0 = spots.at(0).toMap().value("y").toDouble();
+    const double x1 = spots.at(1).toMap().value("x").toDouble();
+    const double y1 = spots.at(1).toMap().value("y").toDouble();
+
+    controller.gateTouchDown(1, x0, y0, 0);
+    controller.gateTouchDown(2, x1, y1, 0);
+    REQUIRE(controller.gateHolding());
+
+    controller.gateTouchMove(2, 5.0, 5.0, 500);
+    CHECK_FALSE(controller.gateHolding());
+    CHECK(controller.gateProgress() == 0.0);
+    controller.gateTick(5000);
+    CHECK_FALSE(controller.unlocked());
+}
+
+TEST_CASE("laying the gate out again while it is held starts the hold over",
+          "[app][parent][gate]") {
+    ParentController controller;
+    controller.layoutGate(1000.0, 700.0, 48.0);
+    const QVariantList spots = controller.gateSpots();
+    controller.gateTouchDown(1, spots.at(0).toMap().value("x").toDouble(),
+                             spots.at(0).toMap().value("y").toDouble(), 0);
+    controller.gateTouchDown(2, spots.at(1).toMap().value("x").toDouble(),
+                             spots.at(1).toMap().value("y").toDouble(), 0);
+    controller.gateTick(1000);
+    REQUIRE(controller.gateProgress() == 0.5);
+
+    int moved = 0;
+    QObject::connect(&controller, &ParentController::gateSpotsChanged, [&moved] { ++moved; });
+    controller.layoutGate(700.0, 1000.0, 48.0);
+
+    // The window turned: the spots are elsewhere and the fingers are no longer
+    // on them, so the hold is not carried over.
+    CHECK(moved == 1);
+    CHECK_FALSE(controller.gateHolding());
+    CHECK(controller.gateProgress() == 0.0);
+    CHECK_FALSE(controller.unlocked());
+}
+
+TEST_CASE("the controller reads the clock it is given, or its own", "[app][parent][gate]") {
+    ParentController controller;
+    const qint64 own = controller.now();
+    CHECK(controller.now() >= own);
+
+    qint64 fixed = 1234;
+    controller.useClock([&fixed] { return fixed; });
+    CHECK(controller.now() == 1234);
+    fixed = 99999;
+    CHECK(controller.now() == 99999);
+}
+
+// ---------------------------------------------------------------------------
+// The child-facing totals
+
+TEST_CASE("the totals the collection screen shows are the store's", "[app][parent][totals]") {
+    Fixture f;
+
+    CHECK(f.controller.lifetimeStars() == static_cast<int>(f.store.data().stars));
+    CHECK(f.controller.lifetimeStars() > 0);
+    CHECK(f.controller.lifetimeWords() == static_cast<int>(f.store.data().vault.size()));
+    CHECK(f.controller.boardsKept() == static_cast<int>(f.store.data().boards.size()));
+    CHECK(f.controller.boardsKept() > 0);
+
+    int points = 0;
+    for (const wjs::VaultWord& word : f.store.data().vault) {
+        points += wjs::word_points(word.word) * static_cast<int>(word.found);
+    }
+    CHECK(f.controller.lifetimePoints() == points);
+    CHECK(f.controller.lifetimePoints() > 0);
+
+    ParentController empty;
+    CHECK(empty.lifetimeStars() == 0);
+    CHECK(empty.lifetimePoints() == 0);
+    CHECK(empty.lifetimeWords() == 0);
+    CHECK(empty.boardsKept() == 0);
+    CHECK(empty.longestWord().isEmpty());
+    CHECK(empty.recentBoards().isEmpty());
+}
+
+TEST_CASE("the longest word is the longest, and the first alphabetically of equals",
+          "[app][parent][totals]") {
+    wjs::Store store = wjs::app::demo::empty_store();
+    ParentController controller;
+    controller.useStore(&store);
+
+    wjs::BoardSnapshot board;
+    board.size = 3;
+    board.tiles = "A A A/B B B/C C C";
+    board.viable_total = 9;
+    board.finds = {{"pint", false, friday, 4},
+                   {"plate", false, friday, 5},
+                   {"crane", false, friday, 5},
+                   {"cat", false, friday, 3}};
+    static_cast<void>(store.record(board, friday));
+    controller.refresh();
+
+    // plate and crane are both five: crane comes first.
+    CHECK(controller.longestWord().toLower() == "crane");
+}
+
+TEST_CASE("the boards kept are listed newest first, with their words and tiers",
+          "[app][parent][totals]") {
+    wjs::Store store = wjs::app::demo::empty_store();
+    ParentController controller;
+    controller.useStore(&store);
+
+    wjs::BoardSnapshot first;
+    first.size = 3;
+    first.tiles = "S A T/P I N/X Y Z";
+    first.viable_total = 4;
+    first.finds = {
+        {"sat", false, friday, 1}, {"pint", true, friday, 2}, {"paints", false, friday, 3}};
+    static_cast<void>(store.record(first, friday));
+    wjs::BoardSnapshot second;
+    second.size = 3;
+    second.tiles = "T A P/S I N/Z Y X";
+    second.viable_total = 2;
+    static_cast<void>(store.record(second, friday + 1));
+    controller.refresh();
+
+    const QVariantList boards = controller.recentBoards();
+    REQUIRE(boards.size() == 2);
+    // Newest first.
+    CHECK(boards.at(0).toMap().value("tiles").toStringList().size() == 9);
+    CHECK(boards.at(0).toMap().value("words").toList().isEmpty());
+    const QVariantMap older = boards.at(1).toMap();
+    CHECK(older.value("rows").toInt() == 3);
+    CHECK(older.value("columns").toInt() == 3);
+    const QVariantList words = older.value("words").toList();
+    REQUIRE(words.size() == 3);
+    QMap<QString, QVariantMap> by_word;
+    for (const QVariant& word : words) {
+        by_word.insert(word.toMap().value("word").toString().toLower(), word.toMap());
+    }
+    // The tier is the library's: three letters spark, four power, five and more mega.
+    CHECK(by_word.value("sat").value("tier").toString() == "spark");
+    CHECK(by_word.value("pint").value("tier").toString() == "power");
+    CHECK(by_word.value("paints").value("tier").toString() == "mega");
+    CHECK(by_word.value("pint").value("assisted").toBool());
+    CHECK_FALSE(by_word.value("sat").value("assisted").toBool());
+    CHECK(by_word.value("sat").value("points").toInt() == wjs::word_points("sat"));
+}
+
+TEST_CASE("the timer lengths on offer are the table's", "[app][parent][settings]") {
+    ParentController controller;
+
+    const QVariantList choices = controller.timerLengthChoices();
+    REQUIRE(choices.size() == static_cast<qsizetype>(wjs::solo_clock_minutes_choices.size()));
+    for (qsizetype i = 0; i < choices.size(); ++i) {
+        CHECK(choices.at(i).toInt() ==
+              wjs::solo_clock_minutes_choices[static_cast<std::size_t>(i)]);
+    }
+    CHECK(controller.soloClock() == "off");
+    CHECK(controller.soloClockMinutes() == wjs::default_solo_clock_minutes);
+}
+
+TEST_CASE("the licence notices are the installed text, or say where it is", "[app][parent]") {
+    ParentController controller;
+
+    // The app tests carry no resources, so the fallback is what is read; it names
+    // the file a person can open.
+    const QString notices = controller.licenceNotices();
+    CHECK_FALSE(notices.isEmpty());
+    CHECK(notices.contains(QStringLiteral("NOTICES.txt")));
+}
+
+TEST_CASE("a null store is not taken, and the old one stays", "[app][parent][store]") {
+    Fixture f;
+    const QVariantMap before = f.controller.settings();
+
+    f.controller.useStore(nullptr);
+
+    CHECK(f.controller.settings() == before);
+    CHECK(f.controller.boardsKept() == static_cast<int>(f.store.data().boards.size()));
+}
+
+// ---------------------------------------------------------------------------
+// A save that fails, and trying again
+
+TEST_CASE("a save that fails is said, and trying again says when it works",
+          "[app][parent][store]") {
+    const TempDirectory dir;
+    const auto folder = dir.path() / "kept";
+    ParentController controller;
+    controller.openStore(folder / "store.wjs");
+    REQUIRE(controller.storeNote().isEmpty());
+
+    // A file where the folder should be: every write after this fails.
+    {
+        std::ofstream out(folder, std::ios::binary);
+        out << "in the way";
+    }
+    int notes = 0;
+    QObject::connect(&controller, &ParentController::storeNoteChanged, [&notes] { ++notes; });
+
+    REQUIRE(controller.setSetting("boardSize", 4));
+    CHECK(controller.storeNote() == "unsaved");
+    CHECK(notes == 1);
+    // The setting took in memory, and the person is told it was not kept.
+    CHECK(controller.settings().value("boardSize").toInt() == 4);
+
+    CHECK_FALSE(controller.retrySave());
+    CHECK(controller.storeNote() == "unsaved");
+    CHECK(notes == 1);  // said once
+
+    // The obstacle goes; the next try writes, and the note goes with it.
+    std::filesystem::remove(folder);
+    CHECK(controller.retrySave());
+    CHECK(controller.storeNote().isEmpty());
+    CHECK(notes == 2);
+}
+
+TEST_CASE("a setting that is already what it is does not touch the file", "[app][parent][store]") {
+    const TempDirectory dir;
+    const auto file = dir.path() / "store.wjs";
+    ParentController controller;
+    controller.openStore(file);
+    REQUIRE(controller.setSetting("help", "start"));
+    const auto written = std::filesystem::last_write_time(file);
+    const auto size = std::filesystem::file_size(file);
+
+    // The same value again asks nothing of the disk: remove the file and see that
+    // it is not written back.
+    std::filesystem::remove(file);
+    CHECK(controller.setSetting("help", "start"));
+    CHECK_FALSE(std::filesystem::exists(file));
+
+    // A different one does.
+    CHECK(controller.setSetting("help", "off"));
+    CHECK(std::filesystem::exists(file));
+    static_cast<void>(written);
+    static_cast<void>(size);
 }

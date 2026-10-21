@@ -1,22 +1,21 @@
 #pragma once
 
+#include <QMetaObject>
 #include <QObject>
 #include <QQuickWindow>
 #include <QString>
 
-#include <array>
-#include <atomic>
-#include <cstdint>
+#include <memory>
 #include <vector>
-
-#include <QMutex>
 
 namespace wjs::app {
 
 // The frame clock of the window (docs/profiling.md, "The frame"): a frame mark
 // named "UI" at every swap, the interval between swaps as the plot
-// `ui.frame_ms`, the render thread's own time and its wait for the GUI thread,
-// and a rolling window of all of it from which a report is made.
+// `ui.frame_ms`, the frame split into what the GUI thread and the render thread
+// each spent (`ui.animate_ms`, `ui.sync_ms`, `render.record_ms`,
+// `render.frame_ms`), and a rolling window of all of it from which a report is
+// made.
 //
 // The swap is where a frame ends, so frameSwapped is connected directly: the
 // slot stamps a monotonic time and sends the mark and the plot where the frame
@@ -27,9 +26,11 @@ namespace wjs::app {
 // initialised.
 //
 // The report is what the smoke mode prints: count, mean, p50, p95, p99 and max
-// of the frame interval, the frames over 16.7 and over 33 ms, and the first
-// frame's time from the start of the process. It is measured on delivery of
-// frameSwapped, so a frame the compositor only presented late counts late.
+// of the frame interval, the frames over 16.7 and over 33 ms, the first
+// frame's time from the start of the process, and the refresh rate of the
+// screen the window is on, which is what the frame budget is held against
+// (tests/perf/budgets.hpp). It is measured on delivery of frameSwapped, so a
+// frame the compositor only presented late counts late.
 class FrameProfiler : public QObject {
     Q_OBJECT
 
@@ -51,7 +52,8 @@ public:
 
     // Records `frames` frame intervals after leaving out the first `warmup` of
     // them (the window's first frames create the scene and its textures, and
-    // are not a steady frame), then emits finished() on the GUI thread. A
+    // are not a steady frame), then emits finished() on the GUI thread. The
+    // render thread's and the GUI thread's times leave out the same frames. A
     // target of 0 -- the default -- only keeps the rolling window.
     void set_target(int frames, int warmup);
 
@@ -83,6 +85,31 @@ public:
         double sync_mean_ms = 0.0;
         double sync_p95_ms = 0.0;
         double sync_max_ms = 0.0;
+
+        // The render thread recording the scene graph's main render pass
+        // (beforeRenderPassRecording to afterRenderPassRecording): the part of
+        // render.frame_ms that is the scene's own draw calls.
+        int record_frames = 0;
+        double record_mean_ms = 0.0;
+        double record_p95_ms = 0.0;
+        double record_max_ms = 0.0;
+
+        // The GUI thread's busy time for a frame (ui.animate_ms): from the end
+        // of the last frame's synchronisation, which released it, to the end of
+        // this frame's animations and polish. The events, the animations' tick,
+        // the bindings that set off and the polish: the part of a frame that is
+        // QML, before the render thread is asked to synchronise.
+        int animate_frames = 0;
+        double animate_mean_ms = 0.0;
+        double animate_p95_ms = 0.0;
+        double animate_max_ms = 0.0;
+
+        // The refresh rate of the window's screen in Hz, 0 when it is not known
+        // (no window or no screen).
+        double refresh_hz = 0.0;
+        // And its name ("SyncMaster"), empty when not known: which of several
+        // screens the window was on is half of reading a frame time.
+        QString screen;
     };
 
     [[nodiscard]] Report report() const;
@@ -95,50 +122,17 @@ signals:
     void finished();
 
 private:
-    // A rolling window: the last kWindow values, the oldest overwritten. A
-    // frame's value is one double, so a program left running for an hour keeps
-    // the last minute or so of frames rather than growing.
-    static constexpr int kWindow = 4096;
+    // Everything the slots touch, apart from the window: shared with the
+    // connections, defined in the .cpp.
+    struct State;
 
-    struct Window {
-        std::array<double, kWindow> values{};
-        int count = 0;  // how many of the slots hold a value
-        int next = 0;   // where the next value goes
-        double first_at = 0.0;
-        double last_at = 0.0;
-
-        void push(double value, double at) noexcept;
-        void clear() noexcept;
-        [[nodiscard]] std::vector<double> in_order() const;
-    };
-
-    void on_swapped();
-    void on_scene_graph_initialized();
-    void on_frame_begin();
-    void on_frame_end();
-    void on_sync_begin();
-    void on_sync_end();
     void finish_guarded();
+    void connect_window();
+    void disconnect_window();
 
     QQuickWindow* window_ = nullptr;
-    mutable QMutex mutex_;
-    Window intervals_;
-    Window render_;
-    Window sync_;
-    bool have_previous_ = false;
-    double previous_ = 0.0;
-    double first_frame_ms_ = 0.0;
-    int measured_ = 0;
-    int warmup_remaining_ = 0;
-    int target_ = 0;
-    int warmup_ = 0;
-    bool finished_posted_ = false;
-
-    std::atomic<bool> render_thread_named_{false};
-
-    // Written and read by the render thread only.
-    double frame_begin_ = 0.0;
-    double sync_begin_ = 0.0;
+    std::shared_ptr<State> state_;
+    std::vector<QMetaObject::Connection> connections_;
 };
 
 }  // namespace wjs::app
