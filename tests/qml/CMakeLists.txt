@@ -129,11 +129,10 @@ set(WJS_QUICK_TEST_SOLO_FILES
     FlatBoard.qml
     HistorySheet.qml
     PlayingPanel.qml
+    ScrollCue.qml
     SoloBox.qml
-    SoloResting.qml
     SoloScreen.qml
-    SoloWording.qml
-    TraceLayer.qml)
+    SoloWording.qml)
 foreach(_file IN LISTS WJS_QUICK_TEST_SOLO_FILES)
     set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/solo/${_file}"
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")

@@ -123,10 +123,12 @@ GitHub's markdown renderer removes any link whose scheme is not on its short lis
 
 That is why the site matters here. MkDocs copies a file that is not Markdown into
 the site unchanged, so `docs/install-ios.html` is published with the rest of the
-docs by `docs.yml`, from `main`, behind the `PUBLISH_DOCS` variable
-([CI](ci.md#documentation-site)). Until the site is published, the link in a
-release's notes is a 404; the manifest and the `.ipa` are still release files, and
-the page is the only part that is missing. The release workflow does not wait for it.
+docs by `docs.yml` whenever `main` changes the docs ([CI](ci.md#documentation-site)):
+merging `develop` into `main` for the first release publishes the site, and the page
+with it, before the tag is cut. If the repository's Pages source has not been set
+to GitHub Actions the link in a release's notes is a 404; the manifest and the `.ipa`
+are still release files, and the page is the only part that is missing. The release
+workflow does not wait for it.
 
 The manifest's `.ipa` URL is the release asset's own
 (`https://github.com/iainchesworthlabs/wordjewelssolver/releases/download/<tag>/<file>`).
