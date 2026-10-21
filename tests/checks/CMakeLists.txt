@@ -50,6 +50,24 @@ add_test(NAME platform.fragments
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${WJS_TESTS_DIR}/platform/check_fragments.cmake")
 
+# The Android target, held together: the manifest asks for the camera and nothing
+# else (Qt's core module would add network and storage permissions at its
+# template's placeholder), the presets that build it exist as the iOS one does, the
+# CI job and the release job install the kits docs/ci.md and the pins file name, and
+# the release job reads only the four Android signing secrets. It reads files only,
+# so it runs on every host; the build itself and the package it makes are
+# .github/workflows/android-build.yml's, and what runs on a device is nobody's
+# yet. The manifest rules are held to a table of cases on throw-away manifests.
+add_test(NAME platform.android
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${WJS_TESTS_DIR}/platform/check_android.cmake")
+add_test(NAME platform.android.selftest
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/platform-android"
+        -P "${WJS_TESTS_DIR}/platform/test_check_android.cmake")
+
 # The Tracy policy: Debug builds are instrumented by default, and nothing that
 # ships has it - the *-debug and *-profiling presets turn the option on, the
 # release and coverage presets keep it off, and the manifest feature that
@@ -209,6 +227,8 @@ set(WJS_QUALITY_TESTS
     notices.sections
     package.config
     platform.fragments
+    platform.android
+    platform.android.selftest
     profiling.perf_budgets_ran
     profiling.shipped_presets
     profiling.tracy_portable

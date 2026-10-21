@@ -112,11 +112,11 @@ keytool -genkeypair -keystore "$keystore" -storetype PKCS12 \
 }
 
 # Prove it: the password written is the one that opens the store (and so the key).
-listing="$(keytool -list -v -keystore "$keystore" -storetype PKCS12 -storepass:file "$out/store-password.txt" -alias "$alias_name" 2>&1)" || {
+listing="$(keytool -J-Duser.language=en -list -v -keystore "$keystore" -storetype PKCS12 -storepass:file "$out/store-password.txt" -alias "$alias_name" 2>&1)" || {
   echo "new_android_keystore.sh: the keystore it made would not open with the password it wrote." >&2
   exit 1
 }
-sha256="$(printf '%s\n' "$listing" | sed -n 's/^ *SHA256: *//p' | head -n 1 | tr -d '\r')"
+sha256="$(printf '%s\n' "$listing" | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' | head -n 1 | tr -d '\r')"
 if [ -z "$sha256" ]; then
   echo "new_android_keystore.sh: could not read the certificate's fingerprint." >&2
   exit 1

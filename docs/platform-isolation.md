@@ -166,7 +166,8 @@ fails, with a `file:line` for each finding, on:
 4. a test of the operating system (`WIN32`, `APPLE`, `UNIX`, `LINUX`,
    `ANDROID`, `IOS`, `MINGW`, `CYGWIN`, `EMSCRIPTEN`, `CMAKE_SYSTEM_NAME`,
    `$<PLATFORM_ID:...>`) in any CMake file but `cmake/Platform.cmake`, the
-   platform fragments, any vcpkg triplet under `cmake/triplets/` (there are
+   platform fragments, the platform section's own tests (`tests/platform/*.cmake`,
+   each about one platform), any vcpkg triplet under `cmake/triplets/` (there are
    none yet) and the vcpkg overlay ports under `cmake/vcpkg-ports/` (copies of
    a third party's ports, kept as they are);
 5. any `#define` or `#undef` in first-party C++.
