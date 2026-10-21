@@ -12,13 +12,13 @@
         <location line="+99"/>
         <location line="+1"/>
         <source>My boards</source>
-        <translation>My boards</translation>
+        <translation>わたしのボード</translation>
     </message>
     <message>
         <location line="+10"/>
         <location line="+1"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>わたしの宝石</translation>
     </message>
     <message>
         <location line="+24"/>
@@ -73,7 +73,7 @@
     <message>
         <location line="+65"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
-        <translation>カメラを使うか、ボードを入力します。大人が設定し&#xa0;ます。</translation>
+        <translation>カメラを使うか、ボードを入力します。大人が設定します。</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -119,68 +119,68 @@
     <message>
         <location filename="../src/app/qml/solo/JewelsWording.qml" line="+9"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>わたしの宝石</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Back</source>
-        <translation>Back</translation>
+        <translation>もどる</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 jewel collected</source>
-        <translation>1 jewel collected</translation>
+        <translation>宝石を1こあつめました</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 jewels collected</source>
-        <translation>%1 jewels collected</translation>
+        <translation>宝石を%1こあつめました</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 point</source>
-        <translation>1 point</translation>
+        <translation>1てん</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1てん</translation>
     </message>
     <message>
         <location line="+3"/>
         <location line="+28"/>
         <source>1 word</source>
-        <translation>1 word</translation>
+        <translation>1つのことば</translation>
     </message>
     <message>
         <location line="-28"/>
         <location line="+28"/>
         <source>%1 words</source>
-        <translation>%1 words</translation>
+        <translation>%1つのことば</translation>
     </message>
     <message>
         <location line="-16"/>
         <source>This week</source>
-        <translation>This week</translation>
+        <translation>こんしゅう</translation>
     </message>
     <message>
         <location line="-3"/>
         <location line="+5"/>
         <location line="+13"/>
         <source>1 star</source>
-        <translation>1 star</translation>
+        <translation>1つのほし</translation>
     </message>
     <message>
         <location line="-24"/>
         <source>My best boards</source>
-        <translation>My best boards</translation>
+        <translation>わたしのベストボード</translation>
     </message>
     <message>
         <location line="+6"/>
         <location line="+5"/>
         <location line="+13"/>
         <source>%1 stars</source>
-        <translation>%1 stars</translation>
+        <translation>%1このほし</translation>
     </message>
     <message>
         <location line="-21"/>
@@ -190,57 +190,57 @@
     <message>
         <location line="+9"/>
         <source>1 new word</source>
-        <translation>1 new word</translation>
+        <translation>あたらしいことば 1こ</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 new words</source>
-        <translation>%1 new words</translation>
+        <translation>あたらしいことば %1こ</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Longest word: %1</source>
-        <translation>Longest word: %1</translation>
+        <translation>いちばん長いことば: %1</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>My words</source>
-        <translation>My words</translation>
+        <translation>わたしのことば</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Words you find will land here.</source>
-        <translation>Words you find will land here.</translation>
+        <translation>みつけたことばがここにならびます。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards I played</source>
-        <translation>Boards I played</translation>
+        <translation>あそんだボード</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards you finish will appear here.</source>
-        <translation>Boards you finish will appear here.</translation>
+        <translation>おわらせたボードがここにあらわれます。</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Your jewel box is waiting</source>
-        <translation>Your jewel box is waiting</translation>
+        <translation>あなたの宝石箱がまっています</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play a board and the words you find will fill this shelf.</source>
-        <translation>Play a board and the words you find will fill this shelf.</translation>
+        <translation>ボードであそぶと、みつけたことばがこのたなをうめます。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play on my own</source>
-        <translation>Play on my own</translation>
+        <translation>ひとりで遊ぶ</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hear the word</source>
-        <translation>Hear the word</translation>
+        <translation>ことばをきく</translation>
     </message>
 </context>
 <context>
@@ -318,22 +318,22 @@
     <message>
         <location line="+1"/>
         <source>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</source>
-        <translation>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</translation>
+        <translation>このたんまつにしんちょくをほぞんできませんでした。アプリがユーザーフォルダーに書きこめるか、たしかめてから「もういちど」を選んでください。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Retry</source>
-        <translation>Retry</translation>
+        <translation>もういちど</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Saved on this device.</source>
-        <translation>Saved on this device.</translation>
+        <translation>このたんまつにほぞんしました。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Still not saved. The board can still be played; progress may not last after the app closes.</source>
-        <translation>Still not saved. The board can still be played; progress may not last after the app closes.</translation>
+        <translation>まだほぞんできていません。ボードはそのままあそべますが、アプリをとじるとしんちょくがのこらないかもしれません。</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -343,32 +343,32 @@
     <message>
         <location line="+1"/>
         <source>Press and hold for two seconds.</source>
-        <translation>Press and hold for two seconds.</translation>
+        <translation>2びょうかん、おしつづけてください。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>This keeps little fingers out of the settings and the progress.</source>
-        <translation>This keeps little fingers out of the settings and the progress.</translation>
+        <translation>こどもがせっていやしんちょくにさわらないようにするためです。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>With a keyboard, hold Space or Enter for two seconds.</source>
-        <translation>With a keyboard, hold Space or Enter for two seconds.</translation>
+        <translation>キーボードでは、スペースキーまたはEnterキーを2びょうかんおしつづけてください。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hold to enter</source>
-        <translation>Hold to enter</translation>
+        <translation>おしつづけてはいる</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Keep holding until the bar is full</source>
-        <translation>Keep holding until the bar is full</translation>
+        <translation>バーがいっぱいになるまでおしつづけてください</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Open the parent area</source>
-        <translation>Open the parent area</translation>
+        <translation>おとなのエリアをひらく</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -411,7 +411,7 @@
         <location line="+3"/>
         <source>How the play is going</source>
         <extracomment>The heading over the dashboard&apos;s records (the week, the sounds, the vault, the best), marking them off from the action above them.</extracomment>
-        <translation>How the play is going</translation>
+        <translation>あそびのようす</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -545,7 +545,7 @@
         <location line="+2"/>
         <source>Phonics needs the phonics data, which is not in this build.</source>
         <extracomment>The phonics board&apos;s words, only where the build carries them.</extracomment>
-        <translation>Phonics needs the phonics data, which is not in this build.</translation>
+        <translation>フォニックスにはフォニックスのデータがひつようですが、このバージョンにはありません。</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -560,18 +560,18 @@
     <message>
         <location line="+1"/>
         <source>Timer</source>
-        <translation>Timer</translation>
+        <translation>タイマー</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</source>
-        <translation>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</translation>
+        <translation>「ふえるじかん」は、ボードをひらいてからのじかんをしめします。「へるじかん」は、ゼロになるとボードをおわります。</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Time on the board</source>
         <extracomment>How long a count-down board has, chosen in whole minutes.</extracomment>
-        <translation>Time on the board</translation>
+        <translation>ボードのもちじかん</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -678,7 +678,7 @@
         <translation>がめんのことばです。ボードとそのもじは英語のままです。</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>On</source>
         <translation>オン</translation>
     </message>
@@ -738,12 +738,12 @@
     <message>
         <location line="+1"/>
         <source>Count up</source>
-        <translation>Count up</translation>
+        <translation>ふえるじかん</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count down</source>
-        <translation>Count down</translation>
+        <translation>へるじかん</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -788,31 +788,31 @@
         <translation>けしました。</translation>
     </message>
     <message>
-        <location line="-190"/>
-        <location line="+193"/>
+        <location line="-191"/>
+        <location line="+194"/>
         <source>Licences</source>
         <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>ライセンス</translation>
     </message>
     <message>
-        <location line="-82"/>
+        <location line="-83"/>
         <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
-        <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
+        <translation>はじめのタイルがひかって、ことばのはじまりをおしえます。ゲームがみせるのは、さいだい2もじまでです。</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>A start tile</source>
         <extracomment>The help&apos;s middle level: one tile glows, and a second press hides it.</extracomment>
-        <translation>A start tile</translation>
+        <translation>はじめのタイル</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Two letters</source>
         <extracomment>The help&apos;s fullest level: the start tile, then its first two letters.</extracomment>
-        <translation>Two letters</translation>
+        <translation>2もじ</translation>
     </message>
     <message>
-        <location line="+79"/>
+        <location line="+80"/>
         <source>Privacy</source>
         <translation>プライバシー</translation>
     </message>

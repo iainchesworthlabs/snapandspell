@@ -12,13 +12,13 @@
         <location line="+99"/>
         <location line="+1"/>
         <source>My boards</source>
-        <translation>My boards</translation>
+        <translation>Mis tableros</translation>
     </message>
     <message>
         <location line="+10"/>
         <location line="+1"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>Mis joyas</translation>
     </message>
     <message>
         <location line="+24"/>
@@ -106,7 +106,7 @@
     <message>
         <location line="+1"/>
         <source>Play with a real board</source>
-        <translation>Juega con un tablero real</translation>
+        <translation>Jugar con un tablero real</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -119,68 +119,68 @@
     <message>
         <location filename="../src/app/qml/solo/JewelsWording.qml" line="+9"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>Mis joyas</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Back</source>
-        <translation>Back</translation>
+        <translation>Atrás</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 jewel collected</source>
-        <translation>1 jewel collected</translation>
+        <translation>1 joya recogida</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 jewels collected</source>
-        <translation>%1 jewels collected</translation>
+        <translation>%1 joyas recogidas</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 point</source>
-        <translation>1 point</translation>
+        <translation>1 punto</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1 puntos</translation>
     </message>
     <message>
         <location line="+3"/>
         <location line="+28"/>
         <source>1 word</source>
-        <translation>1 word</translation>
+        <translation>1 palabra</translation>
     </message>
     <message>
         <location line="-28"/>
         <location line="+28"/>
         <source>%1 words</source>
-        <translation>%1 words</translation>
+        <translation>%1 palabras</translation>
     </message>
     <message>
         <location line="-16"/>
         <source>This week</source>
-        <translation>This week</translation>
+        <translation>Esta semana</translation>
     </message>
     <message>
         <location line="-3"/>
         <location line="+5"/>
         <location line="+13"/>
         <source>1 star</source>
-        <translation>1 star</translation>
+        <translation>1 estrella</translation>
     </message>
     <message>
         <location line="-24"/>
         <source>My best boards</source>
-        <translation>My best boards</translation>
+        <translation>Mis mejores tableros</translation>
     </message>
     <message>
         <location line="+6"/>
         <location line="+5"/>
         <location line="+13"/>
         <source>%1 stars</source>
-        <translation>%1 stars</translation>
+        <translation>%1 estrellas</translation>
     </message>
     <message>
         <location line="-21"/>
@@ -190,57 +190,57 @@
     <message>
         <location line="+9"/>
         <source>1 new word</source>
-        <translation>1 new word</translation>
+        <translation>1 palabra nueva</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 new words</source>
-        <translation>%1 new words</translation>
+        <translation>%1 palabras nuevas</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Longest word: %1</source>
-        <translation>Longest word: %1</translation>
+        <translation>Palabra más larga: %1</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>My words</source>
-        <translation>My words</translation>
+        <translation>Mis palabras</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Words you find will land here.</source>
-        <translation>Words you find will land here.</translation>
+        <translation>Las palabras que encuentres aparecerán aquí.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards I played</source>
-        <translation>Boards I played</translation>
+        <translation>Tableros que jugué</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards you finish will appear here.</source>
-        <translation>Boards you finish will appear here.</translation>
+        <translation>Los tableros que termines aparecerán aquí.</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Your jewel box is waiting</source>
-        <translation>Your jewel box is waiting</translation>
+        <translation>Tu joyero te espera</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play a board and the words you find will fill this shelf.</source>
-        <translation>Play a board and the words you find will fill this shelf.</translation>
+        <translation>Juega un tablero y las palabras que encuentres llenarán este estante.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play on my own</source>
-        <translation>Play on my own</translation>
+        <translation>Jugar solo</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hear the word</source>
-        <translation>Hear the word</translation>
+        <translation>Escuchar la palabra</translation>
     </message>
 </context>
 <context>
@@ -318,22 +318,22 @@
     <message>
         <location line="+1"/>
         <source>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</source>
-        <translation>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</translation>
+        <translation>No se pudo guardar el progreso en este dispositivo. Compruebe que la aplicación puede escribir en su carpeta de usuario y elija Reintentar.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Retry</source>
-        <translation>Retry</translation>
+        <translation>Reintentar</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Saved on this device.</source>
-        <translation>Saved on this device.</translation>
+        <translation>Guardado en este dispositivo.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Still not saved. The board can still be played; progress may not last after the app closes.</source>
-        <translation>Still not saved. The board can still be played; progress may not last after the app closes.</translation>
+        <translation>Sigue sin guardarse. Aún se puede jugar el tablero; puede que el progreso no se conserve al cerrar la aplicación.</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -343,53 +343,53 @@
     <message>
         <location line="+1"/>
         <source>Press and hold for two seconds.</source>
-        <translation>Press and hold for two seconds.</translation>
+        <translation>Mantenga pulsado durante dos segundos.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>This keeps little fingers out of the settings and the progress.</source>
-        <translation>This keeps little fingers out of the settings and the progress.</translation>
+        <translation>Así los dedos pequeños se mantienen lejos de los ajustes y del progreso.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>With a keyboard, hold Space or Enter for two seconds.</source>
-        <translation>With a keyboard, hold Space or Enter for two seconds.</translation>
+        <translation>Con un teclado, mantenga pulsada la barra espaciadora o Intro durante dos segundos.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hold to enter</source>
-        <translation>Hold to enter</translation>
+        <translation>Mantener para entrar</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Keep holding until the bar is full</source>
-        <translation>Keep holding until the bar is full</translation>
+        <translation>Siga manteniendo hasta que la barra se llene</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Open the parent area</source>
-        <translation>Open the parent area</translation>
+        <translation>Abrir el área para padres</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Play with a real board</source>
         <extracomment>The graphemes of the phonics phase, and how often each has come up.</extracomment>
-        <translation>Juega con un tablero real</translation>
+        <translation>Jugar con un tablero real</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Set the tablet beside the board. A grown-up checks the letters before the child plays.</source>
-        <translation>Coloca la tableta junto al tablero. Un adulto comprueba las letras antes de que el niño juegue.</translation>
+        <translation>Coloque la tableta junto al tablero. Un adulto comprueba las letras antes de que el niño juegue.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Set up a real board</source>
-        <translation>Prepara un tablero real</translation>
+        <translation>Prepare un tablero real</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Back to play</source>
-        <translation>volver a jugar</translation>
+        <translation>Volver a jugar</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -411,7 +411,7 @@
         <location line="+3"/>
         <source>How the play is going</source>
         <extracomment>The heading over the dashboard&apos;s records (the week, the sounds, the vault, the best), marking them off from the action above them.</extracomment>
-        <translation>How the play is going</translation>
+        <translation>Cómo va el juego</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -506,7 +506,7 @@
     <message>
         <location line="+25"/>
         <source>How the game behaves for your child.</source>
-        <translation>Cómo se comporta el juego para tu hijo.</translation>
+        <translation>Cómo se comporta el juego para su hijo.</translation>
     </message>
     <message>
         <location line="+6"/>
@@ -545,7 +545,7 @@
         <location line="+2"/>
         <source>Phonics needs the phonics data, which is not in this build.</source>
         <extracomment>The phonics board&apos;s words, only where the build carries them.</extracomment>
-        <translation>Phonics needs the phonics data, which is not in this build.</translation>
+        <translation>Fónica necesita los datos de fónica, que no están en esta versión.</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -560,18 +560,18 @@
     <message>
         <location line="+1"/>
         <source>Timer</source>
-        <translation>Timer</translation>
+        <translation>Temporizador</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</source>
-        <translation>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</translation>
+        <translation>«Cuenta ascendente» muestra cuánto tiempo lleva abierto un tablero. «Cuenta atrás» termina el tablero al llegar a cero.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Time on the board</source>
         <extracomment>How long a count-down board has, chosen in whole minutes.</extracomment>
-        <translation>Time on the board</translation>
+        <translation>Tiempo en el tablero</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -678,7 +678,7 @@
         <translation>Las palabras de las pantallas. El tablero y sus letras siguen en inglés.</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>On</source>
         <translation>Activado</translation>
     </message>
@@ -738,12 +738,12 @@
     <message>
         <location line="+1"/>
         <source>Count up</source>
-        <translation>Count up</translation>
+        <translation>Cuenta ascendente</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count down</source>
-        <translation>Count down</translation>
+        <translation>Cuenta atrás</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -788,31 +788,31 @@
         <translation>Borrado.</translation>
     </message>
     <message>
-        <location line="-190"/>
-        <location line="+193"/>
+        <location line="-191"/>
+        <location line="+194"/>
         <source>Licences</source>
         <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Licencias</translation>
     </message>
     <message>
-        <location line="-82"/>
+        <location line="-83"/>
         <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
-        <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
+        <translation>La ficha de inicio brilla para mostrar dónde empieza una palabra. El juego nunca muestra más de dos letras.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>A start tile</source>
         <extracomment>The help&apos;s middle level: one tile glows, and a second press hides it.</extracomment>
-        <translation>A start tile</translation>
+        <translation>Una ficha de inicio</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Two letters</source>
         <extracomment>The help&apos;s fullest level: the start tile, then its first two letters.</extracomment>
-        <translation>Two letters</translation>
+        <translation>Dos letras</translation>
     </message>
     <message>
-        <location line="+79"/>
+        <location line="+80"/>
         <source>Privacy</source>
         <translation>Privacidad</translation>
     </message>

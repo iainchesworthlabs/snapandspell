@@ -12,13 +12,13 @@
         <location line="+99"/>
         <location line="+1"/>
         <source>My boards</source>
-        <translation>My boards</translation>
+        <translation>我的棋盘</translation>
     </message>
     <message>
         <location line="+10"/>
         <location line="+1"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>我的珠宝</translation>
     </message>
     <message>
         <location line="+24"/>
@@ -73,7 +73,7 @@
     <message>
         <location line="+65"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
-        <translation>使用摄像头，或手动输入棋盘。由成年人&#xa0;设置。</translation>
+        <translation>使用摄像头，或手动输入棋盘。由成年人设置。</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -119,68 +119,68 @@
     <message>
         <location filename="../src/app/qml/solo/JewelsWording.qml" line="+9"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>我的珠宝</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Back</source>
-        <translation>Back</translation>
+        <translation>返回</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 jewel collected</source>
-        <translation>1 jewel collected</translation>
+        <translation>收集了 1 颗珠宝</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 jewels collected</source>
-        <translation>%1 jewels collected</translation>
+        <translation>收集了 %1 颗珠宝</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 point</source>
-        <translation>1 point</translation>
+        <translation>1 分</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1 分</translation>
     </message>
     <message>
         <location line="+3"/>
         <location line="+28"/>
         <source>1 word</source>
-        <translation>1 word</translation>
+        <translation>1 个词</translation>
     </message>
     <message>
         <location line="-28"/>
         <location line="+28"/>
         <source>%1 words</source>
-        <translation>%1 words</translation>
+        <translation>%1 个词</translation>
     </message>
     <message>
         <location line="-16"/>
         <source>This week</source>
-        <translation>This week</translation>
+        <translation>本周</translation>
     </message>
     <message>
         <location line="-3"/>
         <location line="+5"/>
         <location line="+13"/>
         <source>1 star</source>
-        <translation>1 star</translation>
+        <translation>1 颗星星</translation>
     </message>
     <message>
         <location line="-24"/>
         <source>My best boards</source>
-        <translation>My best boards</translation>
+        <translation>我的最佳棋盘</translation>
     </message>
     <message>
         <location line="+6"/>
         <location line="+5"/>
         <location line="+13"/>
         <source>%1 stars</source>
-        <translation>%1 stars</translation>
+        <translation>%1 颗星星</translation>
     </message>
     <message>
         <location line="-21"/>
@@ -190,57 +190,57 @@
     <message>
         <location line="+9"/>
         <source>1 new word</source>
-        <translation>1 new word</translation>
+        <translation>1 个新词</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 new words</source>
-        <translation>%1 new words</translation>
+        <translation>%1 个新词</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Longest word: %1</source>
-        <translation>Longest word: %1</translation>
+        <translation>最长的词：%1</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>My words</source>
-        <translation>My words</translation>
+        <translation>我的词</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Words you find will land here.</source>
-        <translation>Words you find will land here.</translation>
+        <translation>你找到的词会出现在这里。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards I played</source>
-        <translation>Boards I played</translation>
+        <translation>我玩过的棋盘</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards you finish will appear here.</source>
-        <translation>Boards you finish will appear here.</translation>
+        <translation>你完成的棋盘会出现在这里。</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Your jewel box is waiting</source>
-        <translation>Your jewel box is waiting</translation>
+        <translation>你的珠宝盒在等着你</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play a board and the words you find will fill this shelf.</source>
-        <translation>Play a board and the words you find will fill this shelf.</translation>
+        <translation>玩一个棋盘，你找到的词就会摆满这个架子。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play on my own</source>
-        <translation>Play on my own</translation>
+        <translation>自己玩</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hear the word</source>
-        <translation>Hear the word</translation>
+        <translation>听这个词</translation>
     </message>
 </context>
 <context>
@@ -318,22 +318,22 @@
     <message>
         <location line="+1"/>
         <source>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</source>
-        <translation>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</translation>
+        <translation>无法在此设备上保存进度。请检查应用是否可以写入您的用户文件夹，然后选择“重试”。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Retry</source>
-        <translation>Retry</translation>
+        <translation>重试</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Saved on this device.</source>
-        <translation>Saved on this device.</translation>
+        <translation>已保存在此设备上。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Still not saved. The board can still be played; progress may not last after the app closes.</source>
-        <translation>Still not saved. The board can still be played; progress may not last after the app closes.</translation>
+        <translation>仍未保存。棋盘仍可继续玩，但应用关闭后进度可能不会保留。</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -343,32 +343,32 @@
     <message>
         <location line="+1"/>
         <source>Press and hold for two seconds.</source>
-        <translation>Press and hold for two seconds.</translation>
+        <translation>请按住两秒钟。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>This keeps little fingers out of the settings and the progress.</source>
-        <translation>This keeps little fingers out of the settings and the progress.</translation>
+        <translation>这样可以避免小手碰到设置和进度。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>With a keyboard, hold Space or Enter for two seconds.</source>
-        <translation>With a keyboard, hold Space or Enter for two seconds.</translation>
+        <translation>使用键盘时，请按住空格键或回车键两秒钟。</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hold to enter</source>
-        <translation>Hold to enter</translation>
+        <translation>按住进入</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Keep holding until the bar is full</source>
-        <translation>Keep holding until the bar is full</translation>
+        <translation>请继续按住，直到进度条填满</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Open the parent area</source>
-        <translation>Open the parent area</translation>
+        <translation>打开家长区</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -379,7 +379,7 @@
     <message>
         <location line="+1"/>
         <source>Set the tablet beside the board. A grown-up checks the letters before the child plays.</source>
-        <translation>将平板电脑放在黑板旁边。大人在孩子玩耍之前检查字母。</translation>
+        <translation>请把平板电脑放在棋盘旁边。孩子玩之前，由成年人检查字母。</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -389,7 +389,7 @@
     <message>
         <location line="+1"/>
         <source>Back to play</source>
-        <translation>返回播放</translation>
+        <translation>返回游戏</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -411,7 +411,7 @@
         <location line="+3"/>
         <source>How the play is going</source>
         <extracomment>The heading over the dashboard&apos;s records (the week, the sounds, the vault, the best), marking them off from the action above them.</extracomment>
-        <translation>How the play is going</translation>
+        <translation>游戏进展</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -545,7 +545,7 @@
         <location line="+2"/>
         <source>Phonics needs the phonics data, which is not in this build.</source>
         <extracomment>The phonics board&apos;s words, only where the build carries them.</extracomment>
-        <translation>Phonics needs the phonics data, which is not in this build.</translation>
+        <translation>自然拼读需要自然拼读数据，但此版本不包含。</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -560,18 +560,18 @@
     <message>
         <location line="+1"/>
         <source>Timer</source>
-        <translation>Timer</translation>
+        <translation>计时器</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</source>
-        <translation>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</translation>
+        <translation>“正计时”显示棋盘已打开多久；“倒计时”在到达零时结束棋盘。</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Time on the board</source>
         <extracomment>How long a count-down board has, chosen in whole minutes.</extracomment>
-        <translation>Time on the board</translation>
+        <translation>棋盘用时</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -678,7 +678,7 @@
         <translation>屏幕上的文字。棋盘及其字母保持英文。</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>On</source>
         <translation>开</translation>
     </message>
@@ -738,12 +738,12 @@
     <message>
         <location line="+1"/>
         <source>Count up</source>
-        <translation>Count up</translation>
+        <translation>正计时</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count down</source>
-        <translation>Count down</translation>
+        <translation>倒计时</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -788,31 +788,31 @@
         <translation>已清除。</translation>
     </message>
     <message>
-        <location line="-190"/>
-        <location line="+193"/>
+        <location line="-191"/>
+        <location line="+194"/>
         <source>Licences</source>
         <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>许可</translation>
     </message>
     <message>
-        <location line="-82"/>
+        <location line="-83"/>
         <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
-        <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
+        <translation>起始格会发光，显示词语从哪里开始。游戏最多只会显示两个字母。</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>A start tile</source>
         <extracomment>The help&apos;s middle level: one tile glows, and a second press hides it.</extracomment>
-        <translation>A start tile</translation>
+        <translation>起始格</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Two letters</source>
         <extracomment>The help&apos;s fullest level: the start tile, then its first two letters.</extracomment>
-        <translation>Two letters</translation>
+        <translation>两个字母</translation>
     </message>
     <message>
-        <location line="+79"/>
+        <location line="+80"/>
         <source>Privacy</source>
         <translation>隐私</translation>
     </message>

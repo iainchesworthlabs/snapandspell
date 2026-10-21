@@ -678,7 +678,7 @@
         <translation>The words on the screens. The board and its letters stay English.</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>On</source>
         <translation>On</translation>
     </message>
@@ -788,14 +788,14 @@
         <translation>Cleared.</translation>
     </message>
     <message>
-        <location line="-190"/>
-        <location line="+193"/>
+        <location line="-191"/>
+        <location line="+194"/>
         <source>Licences</source>
         <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Licences</translation>
     </message>
     <message>
-        <location line="-82"/>
+        <location line="-83"/>
         <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
         <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
     </message>
@@ -812,7 +812,7 @@
         <translation>Two letters</translation>
     </message>
     <message>
-        <location line="+79"/>
+        <location line="+80"/>
         <source>Privacy</source>
         <translation>Privacy</translation>
     </message>

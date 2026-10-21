@@ -12,13 +12,13 @@
         <location line="+99"/>
         <location line="+1"/>
         <source>My boards</source>
-        <translation>My boards</translation>
+        <translation>מײַנע ברעטער</translation>
     </message>
     <message>
         <location line="+10"/>
         <location line="+1"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>מײַנע בריליאַנטן</translation>
     </message>
     <message>
         <location line="+24"/>
@@ -119,68 +119,68 @@
     <message>
         <location filename="../src/app/qml/solo/JewelsWording.qml" line="+9"/>
         <source>My jewels</source>
-        <translation>My jewels</translation>
+        <translation>מײַנע בריליאַנטן</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Back</source>
-        <translation>Back</translation>
+        <translation>צוריק</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 jewel collected</source>
-        <translation>1 jewel collected</translation>
+        <translation>1 בריליאַנט געזאַמלט</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 jewels collected</source>
-        <translation>%1 jewels collected</translation>
+        <translation>%1 בריליאַנטן געזאַמלט</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>1 point</source>
-        <translation>1 point</translation>
+        <translation>1 פּונקט</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 points</source>
-        <translation>%1 points</translation>
+        <translation>%1 פּונקטן</translation>
     </message>
     <message>
         <location line="+3"/>
         <location line="+28"/>
         <source>1 word</source>
-        <translation>1 word</translation>
+        <translation>1 וואָרט</translation>
     </message>
     <message>
         <location line="-28"/>
         <location line="+28"/>
         <source>%1 words</source>
-        <translation>%1 words</translation>
+        <translation>%1 ווערטער</translation>
     </message>
     <message>
         <location line="-16"/>
         <source>This week</source>
-        <translation>This week</translation>
+        <translation>די וואָך</translation>
     </message>
     <message>
         <location line="-3"/>
         <location line="+5"/>
         <location line="+13"/>
         <source>1 star</source>
-        <translation>1 star</translation>
+        <translation>1 שטערן</translation>
     </message>
     <message>
         <location line="-24"/>
         <source>My best boards</source>
-        <translation>My best boards</translation>
+        <translation>מײַנע בעסטע ברעטער</translation>
     </message>
     <message>
         <location line="+6"/>
         <location line="+5"/>
         <location line="+13"/>
         <source>%1 stars</source>
-        <translation>%1 stars</translation>
+        <translation>%1 שטערנס</translation>
     </message>
     <message>
         <location line="-21"/>
@@ -190,57 +190,57 @@
     <message>
         <location line="+9"/>
         <source>1 new word</source>
-        <translation>1 new word</translation>
+        <translation>1 נײַ וואָרט</translation>
     </message>
     <message>
         <location line="+0"/>
         <source>%1 new words</source>
-        <translation>%1 new words</translation>
+        <translation>%1 נײַע ווערטער</translation>
     </message>
     <message>
         <location line="+4"/>
         <source>Longest word: %1</source>
-        <translation>Longest word: %1</translation>
+        <translation>לענגסטע וואָרט: %1</translation>
     </message>
     <message>
         <location line="+3"/>
         <source>My words</source>
-        <translation>My words</translation>
+        <translation>מײַנע ווערטער</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Words you find will land here.</source>
-        <translation>Words you find will land here.</translation>
+        <translation>ווערטער וואָס דו געפֿינסט וועלן זיך באַווײַזן דאָ.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards I played</source>
-        <translation>Boards I played</translation>
+        <translation>ברעטער וואָס איך האָב געשפּילט</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Boards you finish will appear here.</source>
-        <translation>Boards you finish will appear here.</translation>
+        <translation>ברעטער וואָס דו ענדיקסט וועלן זיך באַווײַזן דאָ.</translation>
     </message>
     <message>
         <location line="+7"/>
         <source>Your jewel box is waiting</source>
-        <translation>Your jewel box is waiting</translation>
+        <translation>דײַן בריליאַנט־קעסטל וואַרט אויף דיר</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play a board and the words you find will fill this shelf.</source>
-        <translation>Play a board and the words you find will fill this shelf.</translation>
+        <translation>שפּיל אַ ברעט און די ווערטער וואָס דו געפֿינסט וועלן פֿולן דעם פּאָליצע.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Play on my own</source>
-        <translation>Play on my own</translation>
+        <translation>שפּילן אַליין</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hear the word</source>
-        <translation>Hear the word</translation>
+        <translation>הערן דאָס וואָרט</translation>
     </message>
 </context>
 <context>
@@ -318,22 +318,22 @@
     <message>
         <location line="+1"/>
         <source>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</source>
-        <translation>Progress could not be saved on this device. Check that the app can write to your user folder, then choose Retry.</translation>
+        <translation>דער פֿאָרשריט האָט זיך ניט געלאָזט אָפּהיטן אויף דעם אַפּאַראַט. קוקט אַריבער צי דער אַפּ קען שרײַבן אין אײַער באַניצער־פּאַפּקע, און קלײַבט דעמאָלט פּרוּוו װידער.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Retry</source>
-        <translation>Retry</translation>
+        <translation>פּרוּוו װידער</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Saved on this device.</source>
-        <translation>Saved on this device.</translation>
+        <translation>אָפּגעהיט אויף דעם אַפּאַראַט.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Still not saved. The board can still be played; progress may not last after the app closes.</source>
-        <translation>Still not saved. The board can still be played; progress may not last after the app closes.</translation>
+        <translation>נאָך אַלץ ניט אָפּגעהיט. מען קען נאָך שפּילן דאָס ברעט; דער פֿאָרשריט קען זיך ניט האַלטן נאָכן פֿאַרמאַכן דעם אַפּ.</translation>
     </message>
     <message>
         <location line="+3"/>
@@ -343,32 +343,32 @@
     <message>
         <location line="+1"/>
         <source>Press and hold for two seconds.</source>
-        <translation>Press and hold for two seconds.</translation>
+        <translation>האַלט געדריקט צוויי סעקונדעס.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>This keeps little fingers out of the settings and the progress.</source>
-        <translation>This keeps little fingers out of the settings and the progress.</translation>
+        <translation>דאָס האַלט קליינע פֿינגער אַוועק פֿון די איינשטעלונגען און דעם פֿאָרשריט.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>With a keyboard, hold Space or Enter for two seconds.</source>
-        <translation>With a keyboard, hold Space or Enter for two seconds.</translation>
+        <translation>מיט אַ קלאַוויאַטור, האַלט געדריקט דעם רוים־שליסל אָדער Enter צוויי סעקונדעס.</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Hold to enter</source>
-        <translation>Hold to enter</translation>
+        <translation>האַלט צו גיין אַרײַן</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Keep holding until the bar is full</source>
-        <translation>Keep holding until the bar is full</translation>
+        <translation>האַלט ווײַטער ביז דער סטריפּ איז פֿול</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Open the parent area</source>
-        <translation>Open the parent area</translation>
+        <translation>עפֿענען דעם עלטערן־אָפּטייל</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -411,7 +411,7 @@
         <location line="+3"/>
         <source>How the play is going</source>
         <extracomment>The heading over the dashboard&apos;s records (the week, the sounds, the vault, the best), marking them off from the action above them.</extracomment>
-        <translation>How the play is going</translation>
+        <translation>ווי אַזוי גייט דער שפּיל</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -545,7 +545,7 @@
         <location line="+2"/>
         <source>Phonics needs the phonics data, which is not in this build.</source>
         <extracomment>The phonics board&apos;s words, only where the build carries them.</extracomment>
-        <translation>Phonics needs the phonics data, which is not in this build.</translation>
+        <translation>פֿאָניקס דאַרף די פֿאָניקס־דאַטן, וואָס זײַנען ניט אין דער ווערסיע.</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -560,18 +560,18 @@
     <message>
         <location line="+1"/>
         <source>Timer</source>
-        <translation>Timer</translation>
+        <translation>טײַמער</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</source>
-        <translation>Count up shows how long a board has been open. Count down ends the board when it reaches zero.</translation>
+        <translation>אויפֿצײלן װײַזט װי לאַנג דער ברעט איז אָפֿן. אַראָפּצײלן ענדיקט דעם ברעט ווען עס דערגרייכט נול.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Time on the board</source>
         <extracomment>How long a count-down board has, chosen in whole minutes.</extracomment>
-        <translation>Time on the board</translation>
+        <translation>צײַט אויפֿן ברעט</translation>
     </message>
     <message>
         <location line="+1"/>
@@ -678,7 +678,7 @@
         <translation>די ווערטער אויף די עקראַנען. דאָס ברעט און זײַנע אותיות בלײַבן ענגליש.</translation>
     </message>
     <message>
-        <location line="+17"/>
+        <location line="+18"/>
         <source>On</source>
         <translation>אָן</translation>
     </message>
@@ -738,12 +738,12 @@
     <message>
         <location line="+1"/>
         <source>Count up</source>
-        <translation>Count up</translation>
+        <translation>אויפֿצײלן</translation>
     </message>
     <message>
         <location line="+1"/>
         <source>Count down</source>
-        <translation>Count down</translation>
+        <translation>אַראָפּצײלן</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -788,31 +788,31 @@
         <translation>אויסגעמעקט.</translation>
     </message>
     <message>
-        <location line="-190"/>
-        <location line="+193"/>
+        <location line="-191"/>
+        <location line="+194"/>
         <source>Licences</source>
         <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>ליצענצן</translation>
     </message>
     <message>
-        <location line="-82"/>
+        <location line="-83"/>
         <source>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</source>
-        <translation>The start tile glows to show where a word begins. Two letters is the most the game ever shows.</translation>
+        <translation>דאָס אָנהייב־פֿעלד לײַכט כדי צו ווײַזן וווּ אַ וואָרט הייבט זיך אָן. דער שפּיל ווײַזט קיין מאָל ניט מער ווי צוויי אותיות.</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>A start tile</source>
         <extracomment>The help&apos;s middle level: one tile glows, and a second press hides it.</extracomment>
-        <translation>A start tile</translation>
+        <translation>אַן אָנהייב־פֿעלד</translation>
     </message>
     <message>
         <location line="+2"/>
         <source>Two letters</source>
         <extracomment>The help&apos;s fullest level: the start tile, then its first two letters.</extracomment>
-        <translation>Two letters</translation>
+        <translation>צוויי אותיות</translation>
     </message>
     <message>
-        <location line="+79"/>
+        <location line="+80"/>
         <source>Privacy</source>
         <translation>פּריוואַטקייט</translation>
     </message>
