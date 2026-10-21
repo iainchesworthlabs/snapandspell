@@ -749,8 +749,13 @@ board** is the default.
 
 1. The parent uses the iPad camera to snap the physical Boggle board.
 2. Local OCR processes the grid text.
-3. The engine cross-references the grid only against the curated early-reader
-   index (section 12.1).
+3. The engine cross-references the grid against the word list of the board mode
+   in force (section 12.7): the full dictionary for the standard board, which is
+   the default, and the curated early-reader index (section 12.1) for the
+   phonics board. *Amended after 12.7; this step first said "only against the
+   curated early-reader index".* A physical board cannot be seeded, so the
+   phonics board's seeding does not apply to Mode A, and until a reviewed phase
+   index exists the assistant plays the standard board's word list.
 4. The screen highlights only the starting tile of a discovered word, leaving
    the blending work to the child.
 
@@ -771,6 +776,10 @@ board** is the default.
   has not been started; the MVP includes it.
 - Mode B's phonics board offers 3x3 and 4x4, where it was designed and measured;
   the standard board offers 3x3 to 6x6 (12.7).
+- Mode A offers the same 3x3 to 6x6 on its check screen, so that a board typed in
+  can be any size the game plays (12.7). A camera reads a physical board, which
+  in practice is a 4x4, 5x5 or 6x6 set; the scanner's accuracy has been measured
+  on those three sizes, on synthetic frames only. The MVP target is the 4x4.
 - RAIN needs R, which is not a SATPIN letter, so Mode B's demonstration word is
   a Phase B word and cannot come from the Phase A index. Phase A would show the
   same effect with SATPIN-only words such as PAIN, SAINT or STAIN (question 60).

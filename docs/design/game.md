@@ -325,8 +325,9 @@ first screen:
   repository has no phase index yet (see the next point); a board played against
   one later records its words instead.
 - **The word set is the full English dictionary today.** The MVP paragraph above
-  says the confirmed board is solved against the phase index only, and no phase
-  index exists; the standard board's rule (every real word of three letters or
+  said the confirmed board is solved against the phase index only (the product
+  requirements now say the word list of the board mode in force, section 12.7),
+  and no phase index exists; the standard board's rule (every real word of three letters or
   more counts) is what the app can play, and it is the board mode the first
   release plays by default. The middle cue ("real, not today's") is therefore
   unreachable in Mode A until a phase is loaded, exactly as it is in Solo Play;
@@ -377,8 +378,10 @@ the assistant's. The steps are shown throughout: Place, Check, Play.
 
 ### Playing
 
-- The confirmed board is solved against the **phase index only** (section
-  12.4). **Fact, measured:** a real-looking 4x4 board (letters drawn by ENABLE
+- The confirmed board is solved against the word list of the board mode in
+  force (section 12.4, as amended after 12.7): the full dictionary on the
+  standard board, the phase index on the phonics board once one exists.
+  **Fact, measured, for a phase index:** a real-looking 4x4 board (letters drawn by ENABLE
   letter frequency, which is a test corpus) holds, for an index of the 68 to 122
   SATPIN words that is the likely size of a stripped Phase A, a mean of 3.2 to
   3.4 viable words, and **35% of boards hold none**. If the index were only the

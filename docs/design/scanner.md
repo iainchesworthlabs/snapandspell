@@ -540,8 +540,11 @@ renders) is built on first use, a few milliseconds.
   Multimedia variant and build it, but no leg has run it there.
 - **A child in the frame**: hands, a lid, the shake.
 - **Devices.** Every time on this page is a desktop; the iPad's is unmeasured.
-- **The 5x5 and 6x6 real boards**: the MVP scanner is 4x4 ([Board](board.md#sizes));
-  the larger sizes are read and measured here on synthetic frames only.
+- **The 5x5 and 6x6 real boards**: the MVP target is the 4x4 ([Board](board.md#sizes));
+  the check screen offers 3x3 to 6x6 (the sizes the game plays, so a typed board
+  can be any of them), the reader counts 3 to 8 and a size it counts outside the
+  offered ones is shown and can be changed, and 5x5 and 6x6 are read and measured
+  here on synthetic frames only. 3x3, 7x7 and 8x8 are not measured at all.
 - **That the thresholds transfer.** They were tuned on one synthetic split.
 - **Sample size.** 558 tiles a condition: a silent-error rate is a few tiles.
 

@@ -11,10 +11,10 @@ takes from this page is marked **MVP**; the rest is the full product.
 
 | Size | Dice | Faces | Mode B, Solo Play | Mode A, the scanner | Words of 3+ letters on a board, any dictionary word |
 | --- | --- | --- | --- | --- | --- |
-| 3x3 | 9 | 54 | **MVP**: the first board | No | 31 (10th to 90th percentile 9 to 59) |
+| 3x3 | 9 | 54 | **MVP**: the first board | Typed in only (no physical set) | 31 (10th to 90th percentile 9 to 59) |
 | 4x4 | 16 | 96 | **MVP**: the default | **MVP**: the physical board | 120 (52 to 196) |
-| 5x5 | 25 | 150 | After the MVP, where a tile fits | After the MVP | 254 (134 to 404) |
-| 6x6 | 36 | 216 | After the MVP, where a tile fits | After the MVP | 435 (262 to 617) |
+| 5x5 | 25 | 150 | After the MVP, where a tile fits | Offered; read and measured on synthetic frames only | 254 (134 to 404) |
+| 6x6 | 36 | 216 | After the MVP, where a tile fits | Offered; read and measured on synthetic frames only | 435 (262 to 617) |
 
 **Fact, measured:** the last column is from 200 boards a size, letters drawn at
 random in proportion to their counts in ENABLE, solved with the repository's
