@@ -306,6 +306,17 @@ jobs:
             cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF
           fi
 
+      # vcpkg has built whatever was missing by the end of Configure, so the
+      # cache is offered now and not only in the last step: a push to develop is
+      # where pull requests get theirs from, and its last step is an hour away.
+      # The save at the end of the job stays, for a run that ends before this
+      # one; it stores nothing when this one did.
+      - name: Save vcpkg binaries (built, before the build)
+        uses: ./.github/actions/vcpkg-cache/save
+        with:
+          triplet: ${{ matrix.triplet }}
+          restored: ${{ steps.vcpkg-cache.outputs.listing }}
+
       - name: Build
         shell: bash
         env:
@@ -325,7 +336,17 @@ jobs:
           # check need it (src/platforms/windows/platform.cmake has the same for
           # the CMake tests).
           QT_QPA_FONTDIR: ${{ runner.os == 'Windows' && 'C:\Windows\Fonts' || '' }}
-        run: ctest --preset "$CMAKE_PRESET"
+        # The Windows leg runs one test per core. Its suite is about a thousand
+        # cases that add up to 2250 s under ASan, and it ran one at a time for
+        # 37 minutes; the cases that need the machine to themselves (a
+        # stopwatch, a profiler capture on a fixed port) are RUN_SERIAL and
+        # still run alone. The Linux and macOS legs have no application and a
+        # short suite, and run as they did.
+        run: |
+          jobs=1
+          if [ "$RUNNER_OS" = Windows ]; then jobs="$(nproc)"; fi
+          echo "ctest -j $jobs"
+          ctest --preset "$CMAKE_PRESET" -j "$jobs"
 
       # The interface's catalogues are generated: lupdate regenerates them into a
       # temporary directory and the checked-in i18n/*.ts must be identical, so a
