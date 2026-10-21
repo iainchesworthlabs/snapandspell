@@ -12,8 +12,10 @@ inputs:
     description: >-
       Fewest objects compiled (cache misses) that make a run worth a new entry.
       Each entry is hundreds of megabytes of a quota the repository's other
-      caches share, and a run that compiled five files adds nothing to it.
-    default: "25"
+      caches share, and a run that compiled a few files adds nothing to it. A
+      build always misses the thirty-odd objects that include the version block
+      (it carries the commit), so this has to be well above that.
+    default: "100"
 
 runs:
   using: composite
