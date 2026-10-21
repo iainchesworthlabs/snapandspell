@@ -259,6 +259,23 @@ if(WJS_REQUIRE_REVIEWED_PHONICS)
     list(APPEND WJS_QUALITY_TESTS data.phonics.review_gate)
 endif()
 
+# The requirements matrix (docs/requirements.md and docs/requirements/): every test
+# a row cites exists under the name given, every path it cites exists, the status
+# is one of the six, an ID is used once, and the number of Implemented or Partial
+# rows with no test is the number the index states (docs/testing.md, "The
+# requirements matrix"). Text only, so it runs on every host; the second test
+# holds the first to cases on throw-away trees.
+add_test(NAME requirements.matrix
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${WJS_TESTS_DIR}/requirements/check_requirements.cmake")
+add_test(NAME requirements.matrix.selftest
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/requirements-selftest"
+        -P "${WJS_TESTS_DIR}/requirements/test_check_requirements.cmake")
+list(APPEND WJS_QUALITY_TESTS requirements.matrix requirements.matrix.selftest)
+
 # The script checks that run a PowerShell tool over the tree. No preprocessor
 # conditionals or defines, no OS headers outside the platform section, no OS
 # tests in CMake outside the selector: CI runs the isolation check as its own
