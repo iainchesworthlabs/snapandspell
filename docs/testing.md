@@ -892,6 +892,32 @@ finding aborts the test. Details, and how to turn them off, are in
 [Building](building.md#sanitizers-and-warnings). The nightly Clang leg runs the
 same suite with `clang++` ([CI](ci.md#nightly-analysis)).
 
+### Why the Windows tests set `ASAN_OPTIONS`
+
+MSVC's AddressSanitizer records a 30-frame stack for every allocation and every
+free, so that a report can say where a block was allocated and freed, and it
+unwinds each with `RtlCaptureStackBackTrace`. A test that allocates much (the
+solver, the deal, strings) spent four fifths of its time there, measured by
+sampling: a 4x4 chunk of the deal test took 18.1 s with the default and 3.7 s
+with two frames (3 frames: 7.5 s; 5: 8.8 s; 10: 9.6 s). The `windows-msvc-debug`
+test presets therefore set `ASAN_OPTIONS=malloc_context_size=2`
+(`CMakePresets.json`, the hidden preset `windows-asan`).
+
+What this does not change: every bad access, use after free, double free and
+overflow is found as before, and reported with the full stack of the access. What
+it cuts is the "allocated by" and "freed by" stacks in the report, to the
+allocating function (`operator new` and its caller, with file and line). To get
+the whole stacks for a failure, run the test again with the variable set after
+the preset's value, which wins:
+
+```sh
+ASAN_OPTIONS=malloc_context_size=30 ctest --preset windows-msvc-debug -R "the name of the test"
+```
+
+(Run the program directly, outside `ctest --preset`, and the default of 30
+applies.) `detect_stack_use_after_return`, the quarantine size, the red zone and
+`fast_unwind_on_malloc` made no difference to the time.
+
 ## Static analysis
 
 clang-tidy and MSVC's `/analyze` are not ctest entries: they are the nightly
