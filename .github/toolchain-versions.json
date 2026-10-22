@@ -10,11 +10,19 @@
       "windows": { "host": "windows", "arch": "win64_msvc2022_64", "dir": "msvc2022_64" },
       "linux": { "host": "linux", "arch": "linux_gcc_64", "dir": "gcc_64" },
       "macos": { "host": "mac", "arch": "clang_64", "dir": "macos" },
-      "ios": { "host": "mac", "arch": "ios", "dir": "ios", "hostdir": "macos" }
+      "ios": { "host": "mac", "arch": "ios", "dir": "ios", "hostdir": "macos" },
+      "android": { "host": "all_os", "arch": "android_arm64_v8a", "dir": "android_arm64_v8a", "hostdir": "gcc_64" }
     },
     "modules": "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech",
     "action": "jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125",
     "aqtsource": "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+  },
+  "android": {
+    "$comment": "What the Android build installs beside Qt's Android kit. The NDK is the one the kit is built with (its qt.toolchain.cmake names r27c, which is 27.2.12479018), not the newest the runner image carries; the platform is the newest Google Play takes as a target level; the JDK is the one Gradle needs (the runner image's). .github/workflows/android-build.yml and the android job of release.yml carry the same values, and tests/platform/check_android.cmake holds them to this file.",
+    "ndk": "27.2.12479018",
+    "platform": "android-36",
+    "build_tools": "36.0.0",
+    "jdk": "17"
   },
   "vcpkg": {
     "pin_file": "cmake/vcpkg-commit.txt"

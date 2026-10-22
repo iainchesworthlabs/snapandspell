@@ -15,7 +15,7 @@
       * Qt, by module, at the version in .github/toolchain-versions.json and
         under the licence each module is used under - but only if a ZIP in
         -PackagesDir actually carries Qt6Core.dll, or a package is an AppImage, a
-        disk image or an iOS IPA (which carry Qt by construction) (the Linux and macOS packages
+        disk image, an iOS IPA or an Android APK or AAB (which carry Qt by construction) (the Linux and macOS packages
         are command-line only today and say no Qt). Likewise the Microsoft
         Visual C++ runtime, if a ZIP carries vcruntime140.dll;
       * the data that ships: the ENABLE word list (its SHA-256 computed here,
@@ -126,10 +126,11 @@ if ($PackagesDir) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
     foreach ($file in (Get-ChildItem -LiteralPath $PackagesDir -File | Where-Object { $_.Extension -ne '.asc' -and $_.Name -ne 'SHA256SUMS' -and $_.Name -ne 'KEYS' -and $_.Name -notlike '*.cdx.json' -and $_.Name -notlike '*.spdx.json' } | Sort-Object Name)) {
         $packages += [pscustomobject]@{ Name = $file.Name; Sha256 = (Get-Sha256 $file.FullName); Size = $file.Length }
-        # An AppImage, a disk image and an iOS IPA of the application carry Qt by
-        # construction (linuxdeploy's Qt plugin, macOS's deploy script, iOS's static
-        # Qt) and are not opened here.
-        if ($file.Extension -in '.AppImage', '.dmg', '.ipa') { $hasQt = $true }
+        # An AppImage, a disk image, an iOS IPA and an Android APK or AAB of the
+        # application carry Qt by construction (linuxdeploy's Qt plugin, macOS's deploy
+        # script, iOS's static Qt, androiddeployqt's bundled libraries) and are not
+        # opened here.
+        if ($file.Extension -in '.AppImage', '.dmg', '.ipa', '.apk', '.aab') { $hasQt = $true }
         if ($file.Extension -eq '.zip') {
             $zip = [System.IO.Compression.ZipFile]::OpenRead($file.FullName)
             try {

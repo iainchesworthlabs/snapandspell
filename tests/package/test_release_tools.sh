@@ -240,7 +240,8 @@ grep -Eq '^permissions: \{\}$' "$workflow" && ok "no permissions at the top leve
 if awk '/^\s*run:/{r=1} r && /\$\{\{ *(github\.event|inputs|github\.head_ref)/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "no event or input data is interpolated into a run block"; else bad "event or input data in a run block"; fi
 grep -q 'persist-credentials: false' "$workflow" && ok "checkouts do not persist credentials" || bad "a checkout persists credentials"
 ios_secrets='IOS_DIST_CERTIFICATE_BASE64|IOS_DIST_CERTIFICATE_PASSWORD|IOS_PROVISIONING_PROFILE_BASE64|APPLE_TEAM_ID|APPLE_PROVISIONING_PROFILE_NAME'
-if grep -E 'secrets\.' "$workflow" | grep -Ev "GPG_PRIVATE_KEY|GPG_PASSPHRASE|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets" | grep -q .; then bad "release.yml uses a secret other than the GPG, macOS and iOS signing secrets"; else ok "the only secrets are the GPG signing secrets, the macOS ones and the five iOS ones"; fi
+android_secrets='ANDROID_KEYSTORE_BASE64|ANDROID_KEYSTORE_PASSWORD|ANDROID_KEY_ALIAS|ANDROID_KEY_PASSWORD'
+if grep -E 'secrets\.' "$workflow" | grep -Ev "GPG_PRIVATE_KEY|GPG_PASSPHRASE|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets" | grep -q .; then bad "release.yml uses a secret other than the GPG, macOS, iOS and Android signing secrets"; else ok "the only secrets are the GPG signing secrets, the macOS ones, the five iOS ones and the four Android ones"; fi
 
 # --- the iOS job: its secrets, its kit and what it hands to the signing job ---------
 echo "release.yml, iOS"
@@ -282,6 +283,16 @@ done
 grep -q 'NSCameraUsageDescription' "$repo/src/platforms/ios/packaging/Info.plist.in" \
   && [ "$(grep -A1 NSCameraUsageDescription "$repo/src/platforms/ios/packaging/Info.plist.in" | sed -n 2p | sed 's/^ *//')" = "$(grep -A1 NSCameraUsageDescription "$repo/src/platforms/macos/packaging/Info.plist.in" | sed -n 2p | sed 's/^ *//')" ] \
   && ok "the iOS camera usage text is the macOS one" || bad "the iOS camera usage text differs from the macOS one"
+
+# --- the Android build: the unsigned check's pins and the release job's secrets ----------
+# (tests/platform/check_android.cmake holds the rest: the kit, the NDK, the secrets by name.)
+echo "android-build.yml"
+file="$repo/.github/workflows/android-build.yml"
+grep -q "cmakeVersion: \"$cmake_pin\"" "$file" && grep -q "ninjaVersion: \"$ninja_pin\"" "$file" && grep -q "uses: $qt_action" "$file"   && ok "android-build.yml pins CMake, Ninja and the Qt action as toolchain-versions.json does" || bad "android-build.yml's toolchain pins differ from toolchain-versions.json"
+if grep -E '^\s*(-\s*)?uses:\s*[^./ ]' "$file" | grep -Ev '@[0-9a-f]{40}( |$)' | grep -q .; then bad "an action in android-build.yml is not pinned to a full commit SHA"; else ok "android-build.yml pins every action to a full commit SHA"; fi
+grep -Eq '^permissions: \{\}$' "$file" && ok "android-build.yml has no permissions at the top level" || bad "android-build.yml has top-level permissions"
+if grep -E 'secrets\.' "$file" | grep -q .; then bad "android-build.yml (the debug-signed build) uses a secret"; else ok "android-build.yml uses no secret"; fi
+grep -q 'name: package-android' "$workflow" && ok "the Android packages are uploaded as package-android, which the signing job downloads with the other packages" || bad "package-android is not uploaded by release.yml"
 
 echo
 if [ "$failures" -eq 0 ]; then

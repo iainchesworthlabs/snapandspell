@@ -42,9 +42,11 @@
 #      was "added" in the source tree and never in CMake.
 #
 #   4. NO OS TESTS IN CMAKE outside cmake/Platform.cmake, the platform
-#      fragments, the vcpkg triplets in cmake/triplets/ (a triplet is a
-#      platform's name and flags) and the vcpkg overlay ports in cmake/vcpkg-ports/
-#      (a third party's port, kept as it is): no WIN32, APPLE, ANDROID, IOS, UNIX, LINUX, MINGW, CYGWIN,
+#      fragments, the platform section's own tests in tests/platform/*.cmake (each
+#      is about one platform and cannot name it otherwise), the vcpkg triplets in
+#      cmake/triplets/ (a triplet is a platform's name and flags) and the vcpkg
+#      overlay ports in cmake/vcpkg-ports/ (a third party's port, kept as it
+#      is): no WIN32, APPLE, ANDROID, IOS, UNIX, LINUX, MINGW, CYGWIN,
 #      EMSCRIPTEN, CMAKE_SYSTEM_NAME or $<PLATFORM_ID:...>. (Compiler tests - MSVC,
 #      CXX_COMPILER_ID - are a different axis and are not matched, nor are
 #      property names such as WIN32_EXECUTABLE.)
@@ -240,11 +242,14 @@ foreach ($file in $candidates) {
     $isCMake = Test-IsCMake $file
     # A vcpkg triplet is a platform's name and flags, in a format that cannot
     # read a CMake variable (the same reason the presets and vcpkg.json carry
-    # platform names), so cmake/triplets/ is as exempt as the fragments. So is a vcpkg
+    # platform names), so cmake/triplets/ is as exempt as the fragments. So are the
+    # platform section's own tests (tests/platform/*.cmake), each about one platform.
+    # So is a vcpkg
     # overlay port (cmake/vcpkg-ports/): a copy of someone else's portfile, which tests
     # the platform to install the way that platform needs, and is not ours to rewrite.
     $isSelectorOrFragment = $relative -ieq 'cmake/Platform.cmake' -or
         $relative -match '^src/platforms/[^/]+/platform\.cmake$' -or
+        $relative -match '^tests/platform/[^/]+\.cmake$' -or
         $relative -match '^cmake/triplets/[^/]+\.cmake$' -or
         $relative -match '^cmake/vcpkg-ports/'
 

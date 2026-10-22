@@ -93,7 +93,9 @@ end of this section.
 
 - Windows, Linux and macOS desktops, with everything that differs between operating
   systems in `src/platforms` and a check that nothing else does; an iOS platform and an
-  ad-hoc build for the author's own devices (written, never run on a device).
+  ad-hoc build for the author's own devices (written, never run on a device); an Android
+  build (an APK and an AAB, built and signed on Windows and in CI jobs, never run on a
+  device).
 - CPack packages: Windows ZIP and NSIS installer (version resource, icon, shortcut),
   Linux AppImage, tar.gz, deb and rpm (the last two the command-line solver), macOS
   bundle and disk image; `NOTICES.txt` and the GPL text beside every package; a
@@ -141,7 +143,7 @@ end of this section.
 ### Known limits
 
 - No real board, camera or device has been used. The scanner is tested on drawn frames,
-  the iOS build has never run, Android does not exist, and there is no web build.
+  the iOS and Android builds have never run, and there is no web build.
 - No child has played it. Accessibility is by convention and untested with a screen reader;
   there is no live announcement of a found word.
 - The phonics board has no data (it needs a literacy reviewer), so the sound-it-out sequence

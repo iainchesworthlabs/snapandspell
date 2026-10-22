@@ -306,6 +306,48 @@
         "ios-base",
         "release"
       ]
+    },
+    {
+      "name": "android-arm64-base",
+      "hidden": true,
+      "description": "An Android tablet or phone (arm64-v8a), built from any host with Qt's Android kit (QT_ANDROID_DIR), a desktop Qt of the same version for its host tools and androiddeployqt (QT_HOST_PATH), the Android SDK (ANDROID_SDK_ROOT) and the NDK the kit was built with (ANDROID_NDK_ROOT), and a JDK 17 or later. vcpkg's toolchain is the CMAKE_TOOLCHAIN_FILE like everywhere else and chains to Qt's; the manifest has no dependency without the tests or Tracy, so vcpkg installs nothing. Tracy is off in every Android preset: its client listens on the network, and the application holds no network permission (docs/building.md, Android). The C++ module dependency scan is off: nothing here uses modules, and on a Windows host its command line, with Qt's definitions, exceeds what cmd.exe runs. `cmake --build --preset <name>` makes the package.",
+      "inherits": [
+        "base"
+      ],
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "arm64-android",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{QT_ANDROID_DIR}/lib/cmake/Qt6/qt.toolchain.cmake",
+        "QT_HOST_PATH": "$env{QT_HOST_PATH}",
+        "ANDROID_SDK_ROOT": "$env{ANDROID_SDK_ROOT}",
+        "ANDROID_NDK_ROOT": "$env{ANDROID_NDK_ROOT}",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
+        "WJS_BUILD_APP": "ON",
+        "WJS_BUILD_CLI": "OFF",
+        "WJS_BUILD_TESTS": "OFF",
+        "WJS_ENABLE_TRACY": "OFF",
+        "WJS_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
+      "name": "android-arm64-release",
+      "displayName": "Android (arm64-v8a, Release)",
+      "description": "What a release is made from. The package (`apk` or `aab` target) is unsigned unless QT_ANDROID_SIGN_APK / QT_ANDROID_SIGN_AAB are ON and the QT_ANDROID_KEYSTORE_* environment variables name the upload key (tools/release/new_android_keystore.sh makes one; docs/ci.md, Android).",
+      "inherits": [
+        "android-arm64-base",
+        "release"
+      ]
+    },
+    {
+      "name": "android-arm64-debuggable",
+      "displayName": "Android (arm64-v8a, debuggable, debug-signed)",
+      "description": "A debuggable package signed with Android's own debug key, which installs on any device that allows it. Not named *-debug: the debug presets have Tracy on by policy, and no Android build does (tests/profiling/check_presets.cmake).",
+      "inherits": [
+        "android-arm64-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "QT_ANDROID_DEPLOYMENT_TYPE": "Debug"
+      }
     }
   ],
   "buildPresets": [
@@ -323,7 +365,9 @@
     { "name": "windows-msvc-analysis", "configurePreset": "windows-msvc-analysis" },
     { "name": "linux-gcc-analysis", "configurePreset": "linux-gcc-analysis" },
     { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" },
-    { "name": "ios-release", "configurePreset": "ios-release", "configuration": "Release", "targets": ["WordJewelsSolver"] }
+    { "name": "ios-release", "configurePreset": "ios-release", "configuration": "Release", "targets": ["WordJewelsSolver"] },
+    { "name": "android-arm64-release", "configurePreset": "android-arm64-release", "targets": ["apk"] },
+    { "name": "android-arm64-debuggable", "configurePreset": "android-arm64-debuggable", "targets": ["apk"] }
   ],
   "testPresets": [
     {
