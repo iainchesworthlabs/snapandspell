@@ -59,7 +59,7 @@ jobs:
           ninjaVersion: "1.13.2"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           enable-cache: false
 
@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload the analyzer's SARIF
         if: ${{ always() && !github.event.repository.private && hashFiles('build/msvc-sarif/*.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           sarif_file: build/msvc-sarif
           category: msvc-analyze
