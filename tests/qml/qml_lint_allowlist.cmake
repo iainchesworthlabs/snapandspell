@@ -13,7 +13,6 @@
 #         -DREPORT=<out.txt> -P tests/qml/check_qml_literals.cmake
 
 set(WJS_ALLOW_PIXEL_SIZE
-    "scan/CheckScreen.qml=1"
 )
 
 set(WJS_ALLOW_LETTER_SPACING
@@ -23,9 +22,6 @@ set(WJS_ALLOW_HEX_COLOUR
 )
 
 set(WJS_ALLOW_BARE_TEXT
-    "scan/AssistScreen.qml=3"
-    "scan/CheckScreen.qml=9"
-    "scan/ScanScreen.qml=8"
     "solo/FlatBoard.qml=1"
 )
 
@@ -36,6 +32,5 @@ set(WJS_ALLOW_GOLD_SELECTION
 )
 
 set(WJS_ALLOW_ICON_ONLY
-    "scan/AssistScreen.qml=1"
 )
 

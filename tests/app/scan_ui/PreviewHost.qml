@@ -55,6 +55,21 @@ Window {
         value: host.languageManager.rightToLeft
     }
 
+    // The two settings the capture mode (--shots) varies: the colour scheme and
+    // the text size, as the parent's settings would set them.
+    property string scheme: "light"
+    property real textScale: 1.0
+    Binding {
+        target: Theme
+        property: "colourScheme"
+        value: host.scheme
+    }
+    Binding {
+        target: Theme
+        property: "textScale"
+        value: host.textScale
+    }
+
     // The check screen's "Yes, play", from a test: the confirmation, the board
     // handed to the assistant, and the screen shown.
     function play() {

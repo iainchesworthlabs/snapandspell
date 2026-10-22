@@ -1,112 +1,113 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Layouts
 import WordJewelsSolver
 
 // The Family Assistant's earlier boards, newest first, over `assist.playing`
 // (docs/design/game.md, "The panel": the same history as Solo Play's). It is the
-// child's to open on purpose; Back, the close button and a press on the scrim all
-// close it, and nothing in it can be lost or changed.
+// child's to open on purpose; Back, the close button, Escape and a press on the
+// scrim all close it, and nothing in it can be lost or changed.
+//
+// It is the kit's Sheet, which the old one was not: a heading ("Earlier
+// boards"), a 20 px radius, a scrim over the whole screen (the bar dims too: give
+// it the screen's root to fill), a focus trap and the focus handed back to the
+// button that opened it. Each board has a caption (its size and how many words
+// were found) and an empty history says so in words, with a still jewel, instead
+// of an unlabelled tray.
 //
 // The boards are the store's, as `AssistModel::history` gives them; a board in
 // play is not in the list until the round is left. The picture is BoardThumb, the
 // same one Solo Play's history uses; every sentence is ScanWording's.
-Item {
+Sheet {
     id: root
 
     required property AssistModel assist
-    property bool open: false
 
-    signal closed
+    readonly property bool hasBoards: root.assist.history.length > 0
 
-    visible: open
-    anchors.fill: parent
-    z: 20
+    title: ScanWording.earlierBoards
+    closeLabel: ScanWording.closePicker
+    maxWidth: Theme.sheetMaxWidth
+    onClose: root.open = false
 
-    function close() {
-        root.open = false;
-        root.closed();
-    }
+    // The boards, in as many columns as fit, the leftover width shared out.
+    GridView {
+        id: grid
+        visible: root.hasBoards
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.preferredHeight: Math.min(grid.contentHeight, Theme.sheetMaxHeight)
+        Layout.minimumHeight: Theme.thumbSheetCell
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        cellWidth: grid.width / Math.max(1, Math.floor(grid.width / Theme.thumbSheetCell))
+        cellHeight: Theme.thumbSheetCell + Theme.space6 + Theme.space6
+        model: root.assist.history
 
-    Keys.onEscapePressed: root.close()
-    onOpenChanged: {
-        if (open) {
-            forceActiveFocus();
-        }
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.scrim
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.close()
-        }
-    }
-
-    Rectangle {
-        id: sheet
-        readonly property real margin: Theme.space6
-        width: Math.min(root.width - 2 * margin, Theme.sheetMaxWidth)
-        height: Math.min(root.height - 2 * margin, Theme.sheetMaxHeight)
-        anchors.centerIn: parent
-        color: Theme.page
-        border.width: Theme.rule
-        border.color: Theme.outline
-
-        Accessible.role: Accessible.Pane
+        Accessible.role: Accessible.List
         Accessible.name: ScanWording.earlierBoards
 
-        AppButton {
-            id: close
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: Theme.space2
-            size: "min"
-            iconName: "close"
-            accessibleName: ScanWording.closePicker
-            onClicked: root.close()
-        }
+        delegate: Item {
+            id: thumbCell
+            required property var modelData
 
-        GridView {
-            id: grid
-            anchors.fill: parent
-            anchors.margins: Theme.space4
-            anchors.topMargin: Theme.barHeight + Theme.space4
-            clip: true
-            cellWidth: Theme.thumbSheetCell
-            cellHeight: Theme.thumbSheetCell + Theme.space6
-            model: root.assist.history
+            width: grid.cellWidth
+            height: grid.cellHeight
 
-            delegate: Item {
-                id: thumbCell
-                required property var modelData
+            Accessible.role: Accessible.ListItem
+            Accessible.name: ScanWording.historyCaption(thumbCell.modelData.rows,
+                                                        thumbCell.modelData.found.length)
 
-                width: grid.cellWidth
-                height: grid.cellHeight
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: Theme.space1
 
                 BoardThumb {
-                    anchors.centerIn: parent
-                    width: Theme.thumbSheet
-                    height: Theme.thumbSheet + jewelRow
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.preferredWidth: Theme.thumbSheet
+                    Layout.preferredHeight: Theme.thumbSheet + jewelRow
                     rows: thumbCell.modelData.rows
                     columns: thumbCell.modelData.columns
                     tiles: thumbCell.modelData.tiles
                     found: thumbCell.modelData.found
                 }
+                Label {
+                    Layout.alignment: Qt.AlignHCenter
+                    decorative: true
+                    role: "caption"
+                    text: ScanWording.historyCaption(thumbCell.modelData.rows,
+                                                     thumbCell.modelData.found.length)
+                }
             }
         }
+    }
 
-        // An empty history says nothing: a still picture of an empty tray.
-        BoardThumb {
-            visible: root.assist.history.length === 0
-            anchors.centerIn: parent
-            width: Theme.thumbSheetCell
-            height: Theme.thumbSheetCell
-            rows: 3
-            columns: 3
-            tiles: []
-            showJewels: false
+    // An empty history says what it is for.
+    ColumnLayout {
+        visible: !root.hasBoards
+        Layout.fillWidth: true
+        Layout.alignment: Qt.AlignHCenter
+        spacing: Theme.space2
+
+        Jewel {
+            Layout.alignment: Qt.AlignHCenter
+            tier: "power"
+            color: Theme.jewelDead
+            Accessible.ignored: true
+        }
+        Label {
+            Layout.fillWidth: true
+            role: "label"
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            text: ScanWording.historyEmpty
+        }
+        Label {
+            Layout.fillWidth: true
+            role: "caption"
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            text: ScanWording.historyEmptyHint
         }
     }
 }

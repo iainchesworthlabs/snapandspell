@@ -16,7 +16,9 @@ import WordJewelsSolver
 // one row at their natural width - a 244 px panel at 150% text - they stack, one
 // per line and each full width, with the primary last, instead of truncating a
 // word to "Cl...". Any further buttons go in as children and sit between the two.
-// Every button is labelled; an icon beside it is optional.
+// Every button is labelled, and a label wraps rather than being cut when its button
+// is narrower than the word (a long translation, 150% text); an icon beside it is
+// optional.
 Item {
     id: root
 
@@ -68,6 +70,7 @@ Item {
             Layout.preferredWidth: implicitWidth
             Layout.alignment: Qt.AlignVCenter
             size: root.secondarySize
+            wrap: true
             variant: "secondary"
             label: root.secondaryLabel
             iconName: root.secondaryIcon
@@ -93,6 +96,7 @@ Item {
             Layout.preferredWidth: implicitWidth
             Layout.alignment: Qt.AlignVCenter
             size: root.primarySize
+            wrap: true
             variant: root.primaryVariant
             label: root.primaryLabel
             iconName: root.primaryIcon

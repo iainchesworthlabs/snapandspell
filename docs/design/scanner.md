@@ -28,10 +28,10 @@ harness (`[.recorded]`) is tested on frames the corpus draws and has never run
 on a photograph. **Nothing here has been run on a tablet, on an iPad, on a
 photograph of real dice or in real light**; the ad-hoc iOS build is written and
 has never run on a device ([What is left](#what-is-left-for-a-real-camera-a-mac-and-an-ipad)).
-The board-size policy for the scanner is **open** (the author has not decided:
-the reader counts 3 to 8, the check screen's size picker offers 3 to 6, a typed
-board starts at 4x4 and the PRD says 4x4;
-[Mode A as built](#mode-a-as-built)).
+The board-size policy for the scanner is settled in the PRD (12.4): the MVP
+target is the 4x4, the check screen offers 3 to 6 and shows a size the reader
+counted outside them, and a typed board starts at 4x4
+([Mode A as built](#mode-a-as-built)).
 
 ## What this slice is
 
@@ -539,14 +539,16 @@ The scanner is an adult workflow.
 **The check screen.** A tile the reader doubted is ringed with a `?`; tapping a
 tile opens a picker with the reader's runners-up first, then A to Z, *Qu* and a
 box for other letters. The counted size is shown and changeable; the picker
-offers **3 to 6** (`ScanModel::sizes`), the reader counts 3 to 8, a typed board
-starts at **4x4**, and the PRD says 4x4. **The board-size policy is open: the
-author has not decided** which sizes the scanner is for, and a 7x7 or 8x8 read
-plays but is not recorded in the store (the store holds 3x3 to 6x6 squares).
+offers **3 to 6** (`ScanModel::sizes`, the sizes the game plays), the reader counts
+3 to 8, a typed board starts at **4x4**, and the MVP target is the 4x4 (PRD 12.4).
+A size the reader counted outside 3 to 6 is shown in the size choice and chosen.
+A 7x7 or 8x8 read plays but is not recorded in the store (the store holds 3x3 to
+6x6 squares).
 *Turn* is shown for a board a camera read and hidden for a typed one. *Start
-playing* does not refuse ringed tiles: it is the grown-up's statement that they
-looked, so an all-doubtful board can be played with one tap, and the silent-error
-bound is the only safety.
+playing* waits for every tile to have a letter, and with ringed tiles left it
+asks first (*Check them* or *Play anyway*); the press is still the grown-up's
+statement that they looked, so the silent-error bound and that question are the
+safety.
 
 **What the assistant does.** The confirmed board is played on a replica; the
 child traces words. Mode A is a helper and not a game: there is no scoreboard and
@@ -764,10 +766,12 @@ renders) is built on first use, a few milliseconds.
 - **Devices.** Every time on this page is a desktop; the iPad's is unmeasured.
 - **The board sizes.** The corpus draws 4x4, 5x5 and 6x6 only. The reader counts
   3 to 8, so 3x3, 7x7 and 8x8 reads are unmeasured even on synthetic frames, and
-  the 5x5 and 6x6 are measured on synthetic frames only. Which sizes the scanner
-  is for is **open**: the PRD says 4x4, the check screen's picker offers 3 to 6,
-  a typed board starts at 4x4, and the store records 3x3 to 6x6 squares
-  ([Board](board.md#sizes)); the author has not decided.
+  the 5x5 and 6x6 are measured on synthetic frames only. The sizes the scanner is
+  for are settled as follows (the PRD, 12.4, says so): the MVP target is the 4x4;
+  the check screen offers 3x3 to 6x6, the sizes the game plays (12.7), so a typed
+  board can be any of them; a size the reader counts outside those (it counts 3
+  to 8) is shown and chosen, so the grown-up can see and change it; a typed board
+  starts at 4x4 ([Board](board.md#sizes)).
 - **That the thresholds transfer.** They were tuned on one synthetic split.
 - **That a bound is a standard.** The bounds say what this corpus can tell apart
   and what the reader did on it; a silent-error bound of 1.0 to 2.0% is not a

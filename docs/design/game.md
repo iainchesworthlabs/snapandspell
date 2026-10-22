@@ -407,8 +407,9 @@ first screen, and one that the screens made:
   repository has no phase index yet (see the next point); a board played against
   one later records its words instead.
 - **The word set is the full English dictionary today.** The MVP paragraph above
-  says the confirmed board is solved against the phase index only, and no phase
-  index exists; the standard board's rule (every real word of three letters or
+  said the confirmed board is solved against the phase index only (the product
+  requirements now say the word list of the board mode in force, section 12.7),
+  and no phase index exists; the standard board's rule (every real word of three letters or
   more counts) is what the app can play, and it is the board mode the first
   release plays by default. The middle cue ("real, not today's") is therefore
   unreachable in Mode A until a phase is loaded, exactly as it is in Solo Play;
@@ -419,19 +420,22 @@ first screen, and one that the screens made:
 
 ```text
   +-----------------------------------------------------------+
-  |   Is this your board?                        [ turn ]     |
-  |                                                           |
-  |        +------+------+------+------+       4 x 4          |
-  |        |  C   |  A   |  T   |  S   |                      |
-  |        +------+------+------+------+                      |
-  |        |  O   | (R?) |  E   |  D   |   ringed: the reader  |
-  |        +------+------+------+------+   doubts this tile    |
-  |        |  ...                       |                      |
-  |        +------+------+------+------+                      |
-  |                                                           |
-  |   [ Read again ]               [      Yes, play      ]    |
+  |  < Back   Is this your board?                             |
+  |         (v) Place ---- (2) Check ---- (3) Play            |
+  |  +------+------+------+------+  | Board size             |
+  |  |  C   |  A   |  T   |  S   |  |  [3x3][4x4][5x5][6x6]  |
+  |  +------+------+------+------+  |  [ turn ]              |
+  |  |  O   | (R?) |  E   |  D   |  |  A ringed tile may be  |
+  |  +------+------+------+------+  |  wrong. Tap it to ...  |
+  |  |  ...                       |  |  [   Scan again    ]   |
+  |  +------+------+------+------+  |  [  Start playing   ]  |
   +-----------------------------------------------------------+
 ```
+
+The screen uses Solo Play's split (the replica in the leading two thirds, a
+panel in the trailing third; the replica above and the panel below in a tall
+window), so the board is the same tray at the same size on this screen and on
+the assistant's. The steps are shown throughout: Place, Check, Play.
 
 - The replica is **upright**: the real dice are turned every which way and the
   replica is not, which is itself a help to a young reader. **Turn** rotates
@@ -441,6 +445,12 @@ first screen, and one that the screens made:
   pairs (**unverified**, see [Board design](board.md#sizes)).
 - The size is counted from the picture and shown first; nothing is solved until
   the board is confirmed (question 11).
+- **Start playing** is disabled until every tile has a letter, and a blank typed
+  grid says what to do. With ringed tiles left it asks first, "Check them" or
+  "Play anyway": a wrong letter finds words that are not there, which a young
+  reader cannot tell from a real find. The press is still the grown-up's
+  statement that they looked ([Scanner](scanner.md#confirm-and-correct)).
+- The letter picker and that question are the kit's Sheet over the whole screen.
 - An OCR error would otherwise feed a wrong board to the solver (question 67),
   so **the check is never skipped in the MVP.** The reader and the data flow of
   this screen are built and measured on synthetic frames ([Scanner](scanner.md));
@@ -450,8 +460,10 @@ first screen, and one that the screens made:
 
 ### Playing
 
-- The confirmed board is solved against the **phase index only** (section
-  12.4). **Fact, measured:** a real-looking 4x4 board (letters drawn by ENABLE
+- The confirmed board is solved against the word list of the board mode in
+  force (section 12.4, as amended after 12.7): the full dictionary on the
+  standard board, the phase index on the phonics board once one exists.
+  **Fact, measured, for a phase index:** a real-looking 4x4 board (letters drawn by ENABLE
   letter frequency, which is a test corpus) holds, for an index of the 68 to 122
   SATPIN words that is the likely size of a stripped Phase A, a mean of 3.2 to
   3.4 viable words, and **35% of boards hold none**. If the index were only the

@@ -2,12 +2,15 @@ import QtQuick
 import QtTest
 import WordJewelsSolver
 import WordJewelsSolver.Scan
+import "SizeMatrix.js" as SizeMatrix
 
 // Mode A's way in (src/app/qml/scan/ScanScreen.qml and CheckScreen.qml): the
 // ready screen with no camera and the retry that looks for one, the live view a
 // running camera source shows, the typed board, a correction through the letter
-// picker, the camera-only Turn, the secondary action ("Start over" vs "Scan
-// again"), the stepper, the frame's corner brackets, and "Start playing". The
+// picker (a Sheet over the whole screen), the camera-only Turn, the secondary
+// action ("Start over" vs "Scan again"), the stepper, the frame's corner brackets,
+// "Start playing" (disabled until the board is whole, and asking first when ringed
+// tiles are left) and the typed board's helper text. The
 // models are the application's ScanModel and AssistModel; a live camera is never
 // started, because on this tree's desktops there is none and the suites are
 // headless. The camera path uses the fixture's fake source, which is a real
@@ -52,7 +55,7 @@ TestCase {
 
     function buttonNamed(root, name) {
         for (const item of allItems(root)) {
-            if (item.accessibleName === name) {
+            if (item.accessibleName === name || item.label === name) {
                 return item
             }
         }
@@ -142,9 +145,14 @@ TestCase {
         tryCompare(scanModel, "cameraProblem", "unavailable")
         const texts = textsShown(view)
         verify(texts.indexOf(ScanWording.cameraAbsent) >= 0)
-        // There is no Capture without a camera, and the typed board is the way on.
-        compare(buttonNamed(view, ScanWording.capture).visible, false)
+        // There is no Capture without a camera, and the typed board is the way on,
+        // the primary action of the screen.
+        verify(buttonNamed(view, ScanWording.capture) === null)
         verify(buttonNamed(view, ScanWording.typeBoard).visible)
+        // The frame says so with a picture as well as the sentence under it.
+        const picture = allItems(view).find(item => item.objectName === "noCameraPicture")
+        verify(picture !== undefined)
+        verify(picture.visible)
         // The camera's absence can be retried without leaving the screen: the
         // attempt re-enumerates and, with no device, says the same truth again.
         const retry = buttonNamed(view, ScanWording.tryCameraAgain)
@@ -202,6 +210,59 @@ TestCase {
         verify(texts.indexOf(ScanWording.doubtfulHint) < 0)
     }
 
+    // --- the typed board's blank grid ------------------------------------------
+    function test_aBlankTypedBoardSaysWhatToDoAndCannotStart() {
+        const view = screen()
+        scanModel.typeBoard()
+        waitForTiles(view)
+        // The blank grid has a helper sentence, and Start playing is not offered
+        // until every square has a letter.
+        verify(textsShown(view).indexOf(ScanWording.typedHint) >= 0)
+        const yes = buttonNamed(view, ScanWording.startPlaying)
+        verify(yes !== null)
+        compare(yes.enabled, false)
+
+        // One letter in, the sentence is what is still missing.
+        scanModel.setTile(0, "A")
+        verify(textsShown(view).indexOf(ScanWording.typedHint) < 0)
+        verify(textsShown(view).indexOf(ScanWording.incomplete) >= 0)
+        compare(yes.enabled, false)
+
+        // Every square: it opens, and the sentence is gone for the question.
+        fill("A")
+        compare(yes.enabled, true)
+        verify(textsShown(view).indexOf(ScanWording.incomplete) < 0)
+    }
+
+    // --- the board size ------------------------------------------------------
+    function sizeChoices(root) {
+        const group = allItems(root).find(item => item.options !== undefined && item.current !== undefined)
+        return group
+    }
+
+    function test_theSizesOfferedAreTheGamesAndASizeTheReaderCountedIsShown() {
+        const view = screen()
+        scanModel.typeBoard()
+        waitForTiles(view)
+        const group = sizeChoices(view)
+        verify(group !== undefined)
+        // 3x3 to 6x6, the sizes the game plays (PRD 12.7), and the typed board's 4x4
+        // is the one chosen.
+        compare(group.options.map(option => option.value), [3, 4, 5, 6])
+        compare(group.current, 4)
+
+        // The reader counts 3 to 8: a 7x7 it counted is shown, chosen, and can be
+        // changed, so the board never has a size the grown-up cannot see.
+        verify(scanModel.resize(7, 7))
+        wait(50)
+        compare(group.options.map(option => option.value), [3, 4, 5, 6, 7])
+        compare(group.current, 7)
+        verify(scanModel.resize(5, 5))
+        wait(50)
+        compare(group.options.map(option => option.value), [3, 4, 5, 6])
+        compare(group.current, 5)
+    }
+
     // --- the secondary action and its alignment ------------------------------
     function test_typedBoardsStartOverOnAFreshTypedBoard() {
         const view = screen()
@@ -234,14 +295,27 @@ TestCase {
         const secondary = buttonNamed(view, ScanWording.startOver)
         const primary = buttonNamed(view, ScanWording.startPlaying)
         verify(secondary !== null && primary !== null)
-        // One row, one centre line: the secondary (64 dp) is not left hanging
-        // from the top of the primary (96 dp).
-        const secondaryCentre = secondary.y + secondary.height / 2
-        const primaryCentre = primary.y + primary.height / 2
-        verify(Math.abs(secondaryCentre - primaryCentre) < 1)
-        // The pair sits at the trailing side, secondary on its leading side.
-        verify(primary.x > secondary.x)
-        verify(primary.mapToItem(view, 0, 0).x + primary.width > view.width / 2)
+        const secondaryBox = secondary.mapToItem(view, 0, 0)
+        const primaryBox = primary.mapToItem(view, 0, 0)
+        // The heights are the ladder's: 64 dp for the secondary, 96 dp for the primary.
+        compare(secondary.height, Theme.targetChild)
+        compare(primary.height, Theme.targetPrimary)
+        // One group: either a row on one centre line or a stack on one edge, never
+        // a secondary left hanging from the top of the primary.
+        const sameLine = Math.abs((secondaryBox.y + secondary.height / 2)
+                                  - (primaryBox.y + primary.height / 2)) < 1
+        const sameEdge = Math.abs((secondaryBox.x + secondary.width)
+                                  - (primaryBox.x + primary.width)) < 1
+        verify(sameLine || sameEdge)
+        // The secondary comes first in reading order, the primary last.
+        verify(primaryBox.x > secondaryBox.x || primaryBox.y > secondaryBox.y)
+        // The group is at the trailing side, 16 dp from the window's edge and from
+        // the bottom, like Solo Play's panel.
+        verify(primaryBox.x + primary.width > view.width / 2)
+        compare(view.width - (primaryBox.x + primary.width), Theme.space4)
+        // The action zone is inside the check screen, under the stepper, so it is
+        // as far from the bottom as it is from the side (the screen's own bottom).
+        verify(primaryBox.y + primary.height <= view.height - Theme.space4 + 1)
     }
 
     function test_rightToLeftKeepsTheActionsOnTheTrailingSide() {
@@ -259,7 +333,9 @@ TestCase {
         const primaryX = primary.mapToItem(view, 0, 0).x
         const secondaryX = secondary.mapToItem(view, 0, 0).x
         verify(primaryX + primary.width < view.width / 2)
-        verify(secondaryX > primaryX)
+        // Secondary first in reading order: right of the primary in a row, above it
+        // in a stack.
+        verify(secondaryX > primaryX || secondary.mapToItem(view, 0, 0).y < primary.mapToItem(view, 0, 0).y)
         // The tiles still read left to right, as the real board does.
         const first = tiles(view).find(cell => cell.row === 0 && cell.column === 0)
         const next = tiles(view).find(cell => cell.row === 0 && cell.column === 1)
@@ -280,6 +356,7 @@ TestCase {
                || !buttonNamed(view, ScanWording.startOver).visible)
         // Turn is offered for a camera-read board, and only for one.
         verify(buttonNamed(view, ScanWording.turn).visible)
+        // A camera board's actions are enabled: its tiles are all read.
         mouseClick(scanAgain, scanAgain.width / 2, scanAgain.height / 2)
 
         compare(scanModel.state, "ready")
@@ -309,19 +386,72 @@ TestCase {
     }
 
     // --- the stepper ---------------------------------------------------------
+    function steps(root) {
+        return allItems(root).filter(item => item.objectName === "stepLabel")
+    }
+
     function test_theStepperShowsPlaceCheckAndPlay() {
         const view = screen()
         compare(view.step, 1)
         let texts = textsShown(view)
-        verify(texts.indexOf("1  Place") >= 0)
-        verify(texts.indexOf("2  Check") >= 0)
-        verify(texts.indexOf("3  Play") >= 0)
+        verify(texts.indexOf(ScanWording.stepPlace) >= 0)
+        verify(texts.indexOf(ScanWording.stepCheck) >= 0)
+        verify(texts.indexOf(ScanWording.stepPlay) >= 0)
 
         scanModel.typeBoard()
         compare(view.step, 2)
         texts = textsShown(view)
-        verify(texts.indexOf("2  Check") >= 0)
-        verify(texts.indexOf("3  Play") >= 0)
+        verify(texts.indexOf(ScanWording.stepCheck) >= 0)
+        verify(texts.indexOf(ScanWording.stepPlay) >= 0)
+    }
+
+    function test_theStepperIsReadableAndMovesWithTheStep() {
+        const view = screen()
+        const labels = steps(view)
+        compare(labels.length, 3)
+        // Nothing under the 12 px floor, and the labels are the caption size.
+        for (const label of labels) {
+            verify(label.font.pixelSize >= 12)
+        }
+        const badges = allItems(view).filter(item => item.objectName === "stepBadge")
+        compare(badges.length, 3)
+        // The current step's badge is filled (accent); the one ahead is an outline.
+        compare(badges[0].color, Theme.accent)
+        compare(badges[1].color, Theme.card)
+
+        scanModel.typeBoard()
+        // Place is behind: its badge is the chosen look, a soft fill and an edge.
+        compare(badges[0].color, Theme.selectedFill)
+        compare(badges[1].color, Theme.accent)
+        // The stepper sits clear of the bar: 12 dp or more under it.
+        const stepper = allItems(view).find(item => item.names !== undefined && item.step !== undefined)
+        verify(stepper !== undefined)
+        const bar = allItems(view).find(item => item.backItem !== undefined)
+        verify(stepper.mapToItem(view, 0, 0).y >= bar.mapToItem(view, 0, bar.height).y + Theme.space3 - 1)
+    }
+
+    function frame(root) {
+        const found = allItems(root).find(item => item.aspect !== undefined && item.showWell !== undefined)
+        return found === undefined ? null : found
+    }
+
+    function test_theFrameTakesTheRoomItIsGiven() {
+        // A taller window gives a bigger frame, and no empty void is left under it:
+        // the frame's bottom is near the messages and the buttons below it.
+        const small = screen()
+        const smallFrame = frame(small)
+        verify(smallFrame !== null)
+        const smallWidth = smallFrame.width
+        small.destroy()
+        const tall = createTemporaryObject(screenComponent, testCase,
+                                         { width: 900, height: 1200, scan: scanModel,
+                                           assist: assistModel })
+        verify(tall !== null)
+        tryVerify(() => frame(tall).width > 0)
+        verify(frame(tall).height > smallFrame.height)
+        verify(frame(tall).width >= smallWidth)
+        // Not the old fixed 350 px.
+        verify(frame(tall).width > 350)
     }
 
     // --- the frame's bracket geometry ---------------------------------------
@@ -371,6 +501,85 @@ TestCase {
         compare(scanModel.complete, false)
     }
 
+    function sheetTitled(root, title) {
+        return allItems(root).find(item => item.title === title && item.maxWidth !== undefined)
+    }
+
+    function test_theSheetsFitEverySize_data() {
+        return SizeMatrix.sizes.map(size => ({
+            tag: size.w + "x" + size.h + " text " + Math.round(size.scale * 100) + "%",
+            w: size.w, h: size.h, scale: size.scale
+        }))
+    }
+
+    // Each of Mode A's two modals, open, at every size of the matrix: the dialog is
+    // inside the window, every control in it is 48 dp or more and none is cut.
+    // (The screen under a modal cannot be audited with it open: its controls are
+    // under the scrim, and the audit would count that as overlap.)
+    function test_theSheetsFitEverySize(data) {
+        Theme.textScale = data.scale
+        verify(fixture.readDoubtfulBoard())
+        const view = createTemporaryObject(screenComponent, testCase,
+                                           { width: data.w, height: data.h, scan: scanModel,
+                                             assist: assistModel })
+        verify(view !== null)
+        const check = checkScreen(view)
+        wait(150)
+
+        check.picked = 1
+        wait(100)
+        const picker = sheetTitled(view, ScanWording.pickerTitle)
+        compare(picker.open, true)
+        let found = SizeMatrix.audit(picker, Theme.targetMin)
+        compare(found.length, 0, "picker: " + found.join("\n"))
+        check.picked = -1
+
+        check.askingRinged = true
+        wait(100)
+        const question = sheetTitled(view, ScanWording.ringedTitle)
+        compare(question.open, true)
+        found = SizeMatrix.audit(question, Theme.targetMin)
+        compare(found.length, 0, "question: " + found.join("\n"))
+        check.askingRinged = false
+    }
+
+    function test_theLetterPickerIsASheetOverTheWholeScreen() {
+        const view = screen()
+        scanModel.typeBoard()
+        waitForTiles(view)
+        const check = checkScreen(view)
+        const sheet = sheetTitled(view, ScanWording.pickerTitle)
+        verify(sheet !== undefined)
+        compare(sheet.open, false)
+
+        const first = tiles(view).find(cell => cell.row === 0 && cell.column === 0)
+        mouseClick(first, first.width / 2, first.height / 2)
+        compare(check.picked, 0)
+        compare(sheet.open, true)
+        // The scrim is the screen's, not the check screen's: it starts at the top of
+        // the window, so the bar and the stepper dim with the rest.
+        compare(sheet.mapToItem(view, 0, 0).y, 0)
+        compare(sheet.height, view.height)
+        compare(sheet.width, view.width)
+        // The dialog is sized by its content and is inside the window.
+        waitForLetters(view)
+        const use = buttonNamed(view, ScanWording.useLetters)
+        verify(use !== null)
+        const useBox = use.mapToItem(view, 0, 0)
+        verify(useBox.y + use.height <= view.height)
+        // "Use these" sits on the same line as "Qu" and the field: aligned.
+        const qu = buttonNamed(view, ScanWording.pickerQu)
+        verify(qu !== null)
+        verify(Math.abs((use.mapToItem(view, 0, 0).y + use.height / 2)
+                        - (qu.mapToItem(view, 0, 0).y + qu.height / 2)) < 1)
+
+        // Escape closes it, with no letter chosen.
+        keyClick(Qt.Key_Escape)
+        compare(check.picked, -1)
+        compare(sheet.open, false)
+        compare(scanModel.letters[0], "")
+    }
+
     // --- the reader's doubts -------------------------------------------------
     function test_aDoubtfulTileIsRingedAndCanBeSettled() {
         // A reading with three tiles the reader could not trust: the check
@@ -405,21 +614,94 @@ TestCase {
     }
 
     // --- Start playing -------------------------------------------------------
-    function test_startPlayingRefusesAnIncompleteBoard() {
+    function test_startPlayingWaitsForAWholeBoard() {
         const view = screen()
         playSpy.target = view
         playSpy.clear()
         scanModel.typeBoard()
+        scanModel.setTile(0, "A")
         waitForTiles(view)
 
+        // Disabled, so it cannot be pressed to be refused: the sentence that says
+        // why is on the screen.
         const yes = buttonNamed(view, ScanWording.startPlaying)
         verify(yes !== null)
+        compare(yes.enabled, false)
         mouseClick(yes, yes.width / 2, yes.height / 2)
 
         compare(playSpy.count, 0)
         compare(assistModel.active, false)
         compare(scanModel.state, "check")
         verify(textsShown(view).indexOf(ScanWording.incomplete) >= 0)
+    }
+
+    function test_startPlayingAsksBeforeItPlaysRingedTiles() {
+        // A camera board whose three doubts are not settled: the press asks
+        // whether to check them first. "Check them" goes back to the board with
+        // nothing played; "Play anyway" is the grown-up's statement that they
+        // looked.
+        verify(fixture.readDoubtfulBoard())
+        // The tile the reader could not read at all is typed in, so the board is
+        // whole; the other two doubts stay.
+        scanModel.setTile(2, "E")
+        compare(scanModel.complete, true)
+        verify(scanModel.doubtful.length > 0)
+        const view = screen()
+        playSpy.target = view
+        playSpy.clear()
+        waitForTiles(view)
+        const check = checkScreen(view)
+
+        const yes = buttonNamed(view, ScanWording.startPlaying)
+        compare(yes.enabled, true)
+        mouseClick(yes, yes.width / 2, yes.height / 2)
+        compare(check.askingRinged, true)
+        compare(playSpy.count, 0)
+        compare(assistModel.active, false)
+        const question = sheetTitled(view, ScanWording.ringedTitle)
+        verify(question !== undefined)
+        compare(question.open, true)
+        // Over the whole screen, like the picker.
+        compare(question.mapToItem(view, 0, 0).y, 0)
+
+        const looking = buttonNamed(view, ScanWording.checkThem)
+        verify(looking !== null)
+        mouseClick(looking, looking.width / 2, looking.height / 2)
+        compare(check.askingRinged, false)
+        compare(question.open, false)
+        compare(playSpy.count, 0)
+        compare(scanModel.state, "check")
+        verify(scanModel.doubtful.length > 0)
+
+        // Escape on the question is the safe answer too.
+        mouseClick(yes, yes.width / 2, yes.height / 2)
+        compare(question.open, true)
+        keyClick(Qt.Key_Escape)
+        compare(question.open, false)
+        compare(playSpy.count, 0)
+
+        mouseClick(yes, yes.width / 2, yes.height / 2)
+        const anyway = buttonNamed(view, ScanWording.playAnyway)
+        verify(anyway !== null)
+        mouseClick(anyway, anyway.width / 2, anyway.height / 2)
+        compare(check.askingRinged, false)
+        // The board was confirmed and handed over, or the assistant said it could
+        // not start it: either way the press was answered and nothing is left open.
+        verify(playSpy.count === 1 || check.problem === "noGame")
+    }
+
+    function test_aBoardWithNoRingsStartsWithoutAsking() {
+        const view = screen()
+        playSpy.target = view
+        playSpy.clear()
+        scanModel.typeBoard()
+        fill("A")
+        waitForTiles(view)
+        const check = checkScreen(view)
+        const yes = buttonNamed(view, ScanWording.startPlaying)
+        mouseClick(yes, yes.width / 2, yes.height / 2)
+        compare(check.askingRinged, false)
+        compare(playSpy.count, 1)
     }
 
     function test_startPlayingHandsTheConfirmedBoardToTheAssistant() {

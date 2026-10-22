@@ -30,7 +30,7 @@
 <context>
     <name>AssistScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+103"/>
+        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+113"/>
         <source>Find words</source>
         <translation>找词</translation>
     </message>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+191"/>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+381"/>
         <source>Turn</source>
         <translation>转动</translation>
     </message>
@@ -904,24 +904,9 @@
 <context>
     <name>ScanScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+107"/>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+118"/>
         <source>Set up a board</source>
-        <translation>设立一个委员会</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <source>1  Place</source>
-        <translation>1 名</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>2  Check</source>
-        <translation>2 检查</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>3  Play</source>
-        <translation>3 播放</translation>
+        <translation>设置棋盘</translation>
     </message>
 </context>
 <context>
@@ -962,7 +947,7 @@
         <translation>我无法读取棋盘。请重试，或手动输入。</translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+51"/>
         <source>Is this your board?</source>
         <translation>这是您的棋盘吗？</translation>
     </message>
@@ -993,7 +978,7 @@
         <translation>无法开始棋盘。请重试。</translation>
     </message>
     <message>
-        <location line="-42"/>
+        <location line="-62"/>
         <source>No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.</source>
         <extracomment>A camera that was not found may still be there: covered, busy or plugged in after the screen opened. The retry button is the way to look again.</extracomment>
         <translation>未找到摄像头。如果此设备有摄像头，它可能被遮挡或正被其他应用使用。您可以输入您的棋盘。</translation>
@@ -1015,7 +1000,49 @@
         <translation>重试摄像头</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+3"/>
+        <source>No camera</source>
+        <extracomment>The headline of the picture shown in place of the camera&apos;s view when there is no camera.</extracomment>
+        <translation>没有摄像头</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Steps</source>
+        <translation>步骤</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Place</source>
+        <translation>摆放</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check</source>
+        <translation>检查</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play</source>
+        <translation>玩</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Step %1 of 3: %2, done</source>
+        <extracomment>A step of three, for a screen reader: &quot;Step 2 of 3: Check, you are here&quot;.</extracomment>
+        <translation>第 %1 步，共 3 步：%2，已完成</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2, you are here</source>
+        <translation>第 %1 步，共 3 步：%2，您在这里</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2</source>
+        <translation>第 %1 步，共 3 步：%2</translation>
+    </message>
+    <message>
+        <location line="+41"/>
         <source>Start over</source>
         <extracomment>A typed board&apos;s secondary action: clear it and start typing a fresh one.</extracomment>
         <translation>重新开始</translation>
@@ -1033,7 +1060,39 @@
         <translation>开始游戏</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+3"/>
+        <source>Tap a square to choose its letter. Start playing opens when every square has one.</source>
+        <extracomment>Shown over a blank typed board, so the empty grid says what to do.</extracomment>
+        <translation>点按一个格子以选择它的字母。每个格子都有字母后，才能点“开始游戏”。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Every square has a letter. Is it the board in front of you?</source>
+        <extracomment>Under the typed board once every square has a letter.</extracomment>
+        <translation>每个格子都有字母了。这是您面前的棋盘吗？</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Check the ringed tiles?</source>
+        <translation>检查带圈的格子吗？</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The reader was not sure about the tiles with a ring. Check them first, or play with the board as it is.</source>
+        <translation>读取器对带圈的格子没有把握。请先检查它们，或按现有棋盘直接开始。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check them</source>
+        <translation>先检查</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play anyway</source>
+        <translation>直接开始</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>%1 by %1 board</source>
         <translation>%1×%1 棋盘</translation>
     </message>
@@ -1105,9 +1164,48 @@
         <translation>之前的棋盘</translation>
     </message>
     <message>
+        <location line="+2"/>
+        <source>Clear</source>
+        <extracomment>Puts the path being made down.</extracomment>
+        <translation>清除</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Done</source>
+        <extracomment>Hands the path being made in as a word.</extracomment>
+        <translation>完成</translation>
+    </message>
+    <message>
         <location line="+3"/>
         <source>%1, row %2, column %3</source>
         <translation>%1，第 %2 行，第 %3 列</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1, row %2, column %3, may be wrong</source>
+        <extracomment>A tile the reader doubted, for a screen reader: the ring is a picture.</extracomment>
+        <translation>%1，第 %2 行，第 %3 列，可能有误</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Trace a word on the board and it lands here.</source>
+        <translation>在棋盘上划出一个词，它就会出现在这里。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No earlier boards yet</source>
+        <translation>还没有之前的棋盘</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A board you leave is kept here.</source>
+        <translation>您离开的棋盘会保存在这里。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 x %1, %2 found</source>
+        <extracomment>One earlier board&apos;s caption: its size and how many words were found.</extracomment>
+        <translation>%1 x %1，找到 %2 个</translation>
     </message>
     <message>
         <location line="+4"/>

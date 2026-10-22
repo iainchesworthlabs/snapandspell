@@ -525,6 +525,31 @@ TestCase {
         compare(bar.secondarySize, "min")
     }
 
+    function test_aLongLabelWrapsInAnActionBarInsteadOfBeingCut() {
+        // A long translation, or 150% text, in a narrow panel: the primary's label
+        // is wider than the panel, and the button grows to hold it on two lines.
+        const bar = createTemporaryObject(actionBarComponent, testCase,
+            { width: 200, primaryLabel: "Commencer à jouer maintenant", primaryIcon: "done",
+              secondaryLabel: "Recommencer" })
+        const buttons = buttonsIn(bar)
+        compare(buttons.length, 2)
+        for (const button of buttons) {
+            const cut = []
+            const walk = item => {
+                if (item.truncated === true) {
+                    cut.push(item.text)
+                }
+                for (const child of item.children) {
+                    walk(child)
+                }
+            }
+            walk(button)
+            compare(cut.length, 0, "cut: " + cut.join())
+            verify(button.x >= -0.5 && button.x + button.width <= 200.5, "inside: " + button.x + "+" + button.width)
+        }
+        verify(buttons[1].implicitHeight >= Theme.targetPrimary)
+    }
+
     function test_anActionBarStacksWhenItsButtonsDoNotFitOneRow() {
         const bar = createTemporaryObject(actionBarComponent, testCase,
             { width: 2000, primaryLabel: "Done", primaryIcon: "done", secondaryLabel: "Clear" })

@@ -30,7 +30,7 @@
 <context>
     <name>AssistScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+103"/>
+        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+113"/>
         <source>Find words</source>
         <translation>Buscar palabras</translation>
     </message>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+191"/>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+381"/>
         <source>Turn</source>
         <translation>Doblar</translation>
     </message>
@@ -904,24 +904,9 @@
 <context>
     <name>ScanScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+107"/>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+118"/>
         <source>Set up a board</source>
         <translation>Preparar un tablero</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <source>1  Place</source>
-        <translation>1  Colocar</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>2  Check</source>
-        <translation>2  Revisar</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>3  Play</source>
-        <translation>3  Jugar</translation>
     </message>
 </context>
 <context>
@@ -962,7 +947,7 @@
         <translation>No pude leer el tablero. Inténtalo otra vez o escríbelo.</translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+51"/>
         <source>Is this your board?</source>
         <translation>¿Es tu tablero?</translation>
     </message>
@@ -993,7 +978,7 @@
         <translation>No se pudo iniciar el tablero. Inténtalo otra vez.</translation>
     </message>
     <message>
-        <location line="-42"/>
+        <location line="-62"/>
         <source>No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.</source>
         <extracomment>A camera that was not found may still be there: covered, busy or plugged in after the screen opened. The retry button is the way to look again.</extracomment>
         <translation>No se encontró ninguna cámara. Si este dispositivo tiene una, puede estar tapada o en uso por otra aplicación. Puedes escribir tu tablero.</translation>
@@ -1015,7 +1000,49 @@
         <translation>Probar la cámara otra vez</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+3"/>
+        <source>No camera</source>
+        <extracomment>The headline of the picture shown in place of the camera&apos;s view when there is no camera.</extracomment>
+        <translation>Sin cámara</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Steps</source>
+        <translation>Pasos</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Place</source>
+        <translation>Colocar</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check</source>
+        <translation>Revisar</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play</source>
+        <translation>Jugar</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Step %1 of 3: %2, done</source>
+        <extracomment>A step of three, for a screen reader: &quot;Step 2 of 3: Check, you are here&quot;.</extracomment>
+        <translation>Paso %1 de 3: %2, hecho</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2, you are here</source>
+        <translation>Paso %1 de 3: %2, estás aquí</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2</source>
+        <translation>Paso %1 de 3: %2</translation>
+    </message>
+    <message>
+        <location line="+41"/>
         <source>Start over</source>
         <extracomment>A typed board&apos;s secondary action: clear it and start typing a fresh one.</extracomment>
         <translation>Empezar de nuevo</translation>
@@ -1033,7 +1060,39 @@
         <translation>Empezar a jugar</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+3"/>
+        <source>Tap a square to choose its letter. Start playing opens when every square has one.</source>
+        <extracomment>Shown over a blank typed board, so the empty grid says what to do.</extracomment>
+        <translation>Toca una casilla para elegir su letra. «Empezar a jugar» se activa cuando cada casilla tiene una letra.</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Every square has a letter. Is it the board in front of you?</source>
+        <extracomment>Under the typed board once every square has a letter.</extracomment>
+        <translation>Cada casilla tiene una letra. ¿Es el tablero que tienes delante?</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Check the ringed tiles?</source>
+        <translation>¿Revisar las casillas rodeadas?</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The reader was not sure about the tiles with a ring. Check them first, or play with the board as it is.</source>
+        <translation>El lector no estaba seguro de las casillas con círculo. Revísalas primero o juega con el tablero tal como está.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check them</source>
+        <translation>Revisarlas</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play anyway</source>
+        <translation>Jugar de todos modos</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>%1 by %1 board</source>
         <translation>tablero de %1 por %1</translation>
     </message>
@@ -1105,9 +1164,48 @@
         <translation>Tableros anteriores</translation>
     </message>
     <message>
+        <location line="+2"/>
+        <source>Clear</source>
+        <extracomment>Puts the path being made down.</extracomment>
+        <translation>Borrar</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Done</source>
+        <extracomment>Hands the path being made in as a word.</extracomment>
+        <translation>Listo</translation>
+    </message>
+    <message>
         <location line="+3"/>
         <source>%1, row %2, column %3</source>
         <translation>%1, fila %2, columna %3</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1, row %2, column %3, may be wrong</source>
+        <extracomment>A tile the reader doubted, for a screen reader: the ring is a picture.</extracomment>
+        <translation>%1, fila %2, columna %3, puede ser incorrecta</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Trace a word on the board and it lands here.</source>
+        <translation>Traza una palabra en el tablero y aparecerá aquí.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No earlier boards yet</source>
+        <translation>Todavía no hay tableros anteriores</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A board you leave is kept here.</source>
+        <translation>Un tablero que dejas se guarda aquí.</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 x %1, %2 found</source>
+        <extracomment>One earlier board&apos;s caption: its size and how many words were found.</extracomment>
+        <translation>%1 x %1, %2 encontradas</translation>
     </message>
     <message>
         <location line="+4"/>

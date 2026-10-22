@@ -30,7 +30,7 @@
 <context>
     <name>AssistScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+103"/>
+        <location filename="../src/app/qml/scan/AssistScreen.qml" line="+113"/>
         <source>Find words</source>
         <translation>単語を探す</translation>
     </message>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+191"/>
+        <location filename="../src/app/qml/scan/CheckScreen.qml" line="+381"/>
         <source>Turn</source>
         <translation>振り向く</translation>
     </message>
@@ -904,24 +904,9 @@
 <context>
     <name>ScanScreen</name>
     <message>
-        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+107"/>
+        <location filename="../src/app/qml/scan/ScanScreen.qml" line="+118"/>
         <source>Set up a board</source>
         <translation>ボードをセットアップする</translation>
-    </message>
-    <message>
-        <location line="+16"/>
-        <source>1  Place</source>
-        <translation>1 か所</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>2  Check</source>
-        <translation>2 チェック</translation>
-    </message>
-    <message>
-        <location line="+14"/>
-        <source>3  Play</source>
-        <translation>3 遊ぶ</translation>
     </message>
 </context>
 <context>
@@ -962,7 +947,7 @@
         <translation>ボードをよみとれませんでした。もういちどためすか、てで入力してください。</translation>
     </message>
     <message>
-        <location line="+31"/>
+        <location line="+51"/>
         <source>Is this your board?</source>
         <translation>これはあなたのボードですか？</translation>
     </message>
@@ -993,7 +978,7 @@
         <translation>ボードをはじめられませんでした。もういちどためしてください。</translation>
     </message>
     <message>
-        <location line="-42"/>
+        <location line="-62"/>
         <source>No camera was found. If this device has one, it may be covered or in use by another app. You can type in your board.</source>
         <extracomment>A camera that was not found may still be there: covered, busy or plugged in after the screen opened. The retry button is the way to look again.</extracomment>
         <translation>カメラが見つかりませんでした。この端末にカメラがある場合、おおわれているか、ほかのアプリが使用中かもしれません。ボードを入力することもできます。</translation>
@@ -1015,7 +1000,49 @@
         <translation>カメラをもういちどためす</translation>
     </message>
     <message>
-        <location line="+40"/>
+        <location line="+3"/>
+        <source>No camera</source>
+        <extracomment>The headline of the picture shown in place of the camera&apos;s view when there is no camera.</extracomment>
+        <translation>カメラがありません</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Steps</source>
+        <translation>ステップ</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Place</source>
+        <translation>おく</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check</source>
+        <translation>かくにん</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play</source>
+        <translation>遊ぶ</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Step %1 of 3: %2, done</source>
+        <extracomment>A step of three, for a screen reader: &quot;Step 2 of 3: Check, you are here&quot;.</extracomment>
+        <translation>ステップ%1/3：%2、おわりました</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2, you are here</source>
+        <translation>ステップ%1/3：%2、いまここです</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Step %1 of 3: %2</source>
+        <translation>ステップ%1/3：%2</translation>
+    </message>
+    <message>
+        <location line="+41"/>
         <source>Start over</source>
         <extracomment>A typed board&apos;s secondary action: clear it and start typing a fresh one.</extracomment>
         <translation>さいしょからやりなおす</translation>
@@ -1033,7 +1060,39 @@
         <translation>あそびをはじめる</translation>
     </message>
     <message>
-        <location line="+4"/>
+        <location line="+3"/>
+        <source>Tap a square to choose its letter. Start playing opens when every square has one.</source>
+        <extracomment>Shown over a blank typed board, so the empty grid says what to do.</extracomment>
+        <translation>マスをタップして、もじをえらびます。すべてのマスにもじがはいると「あそびをはじめる」がつかえます。</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Every square has a letter. Is it the board in front of you?</source>
+        <extracomment>Under the typed board once every square has a letter.</extracomment>
+        <translation>すべてのマスにもじがはいっています。めのまえのボードとおなじですか？</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Check the ringed tiles?</source>
+        <translation>わのついたタイルをかくにんしますか？</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>The reader was not sure about the tiles with a ring. Check them first, or play with the board as it is.</source>
+        <translation>わのついたタイルは、よみとりがたしかではありませんでした。さきにかくにんするか、このままあそびます。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Check them</source>
+        <translation>かくにんする</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Play anyway</source>
+        <translation>このままあそぶ</translation>
+    </message>
+    <message>
+        <location line="+3"/>
         <source>%1 by %1 board</source>
         <translation>%1×%1 のボード</translation>
     </message>
@@ -1105,9 +1164,48 @@
         <translation>まえのボード</translation>
     </message>
     <message>
+        <location line="+2"/>
+        <source>Clear</source>
+        <extracomment>Puts the path being made down.</extracomment>
+        <translation>けす</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Done</source>
+        <extracomment>Hands the path being made in as a word.</extracomment>
+        <translation>できた</translation>
+    </message>
+    <message>
         <location line="+3"/>
         <source>%1, row %2, column %3</source>
         <translation>%1、%2ぎょうめ、%3れつめ</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>%1, row %2, column %3, may be wrong</source>
+        <extracomment>A tile the reader doubted, for a screen reader: the ring is a picture.</extracomment>
+        <translation>%1、%2ぎょうめ、%3れつめ、まちがっているかもしれません</translation>
+    </message>
+    <message>
+        <location line="+3"/>
+        <source>Trace a word on the board and it lands here.</source>
+        <translation>ボードのうえでことばをなぞると、ここにはいります。</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>No earlier boards yet</source>
+        <translation>まえのボードはまだありません</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>A board you leave is kept here.</source>
+        <translation>おわったボードはここにほぞんされます。</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>%1 x %1, %2 found</source>
+        <extracomment>One earlier board&apos;s caption: its size and how many words were found.</extracomment>
+        <translation>%1 x %1、%2こみつけた</translation>
     </message>
     <message>
         <location line="+4"/>

@@ -12,9 +12,9 @@ build differs from a sentence, it says **As built**.
 
 | Size | Dice | Faces | Mode B, Solo Play | Mode A, the scanner | Words of 3+ letters on a board, any dictionary word |
 | --- | --- | --- | --- | --- | --- |
-| 3x3 | 9 | 54 | **MVP**: the first board (**as built**, and the default) | No | 31 (10th to 90th percentile 9 to 59) |
+| 3x3 | 9 | 54 | **MVP**: the first board (**as built**, and the default) | Typed in only (no physical set) | 31 (10th to 90th percentile 9 to 59) |
 | 4x4 | 16 | 96 | **MVP**: the design's default | **MVP**: the physical board | 120 (52 to 196) |
-| 5x5 | 25 | 150 | **As built**, on the standard board, where a tile fits (the decision of 2026-10-16, PRD 12.7) | **As built**: the reader reads 3 to 8, the picker offers 3 to 6 | 254 (134 to 404) |
+| 5x5 | 25 | 150 | **As built**, on the standard board, where a tile fits (the decision of 2026-10-16, PRD 12.7) | Offered; read and measured on synthetic frames only | 254 (134 to 404) |
 | 6x6 | 36 | 216 | The same | The same | 435 (262 to 617) |
 
 **Default size.** The design and PRD 5 say 4x4; the code and its test start a new
