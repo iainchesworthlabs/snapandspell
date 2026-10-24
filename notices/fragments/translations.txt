@@ -2,7 +2,7 @@ The interface's translations
 ----------------------------
 
 The eight Qt Linguist catalogues in apps/app/translations/ (wjs_en.ts, wjs_fr.ts, wjs_es.ts,
-wjs_de.ts, wjs_yi.ts, wjs_he.ts, wjs_zh.ts and wjs_ja.ts) are this project's own
+wjs_de.ts, wjs_yi.ts, wjs_he.ts, wjs_zh_CN.ts and wjs_ja.ts) are this project's own
 text, under the project's licence, the same as the English wording they
 translate. No third-party translation file is used, and no Qt translation
 catalogue is installed or merged: the application's own catalogue is embedded

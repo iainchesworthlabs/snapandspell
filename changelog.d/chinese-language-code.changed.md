@@ -1,0 +1,1 @@
+**The Chinese interface is named zh_CN.** The saved file moves to store format 3, which renames a saved Chinese language setting from `zh`; the file as it was is kept beside the new one as `store.wjs.v2`.

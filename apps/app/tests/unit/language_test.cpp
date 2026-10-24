@@ -207,7 +207,7 @@ TEST_CASE("the app's font chain carries every glyph of the eight sample sentence
         {"de", "Die Wörter, die ich gefunden habe, stehen hier."},
         {"yi", "די ווערטער וואָס איך האָב געפֿונען שטייען דאָ."},
         {"he", "המילים שמצאתי נמצאות כאן."},
-        {"zh", "我找到的词语都在这里。"},
+        {"zh_CN", "我找到的词语都在这里。"},
         {"ja", "見つけたことばはここにあります。"},
     };
 
@@ -256,7 +256,7 @@ TEST_CASE("Hebrew and Yiddish are right to left and the other six left to right"
     TestApplication app;
 
     CHECK(LanguageManager::languages() ==
-          QStringList{"en", "fr", "es", "de", "yi", "he", "zh", "ja"});
+          QStringList{"en", "fr", "es", "de", "yi", "he", "zh_CN", "ja"});
     for (const QString& code : LanguageManager::languages()) {
         INFO(code.toStdString());
         CHECK(LanguageManager::is_known(code));
@@ -271,6 +271,11 @@ TEST_CASE("Hebrew and Yiddish are right to left and the other six left to right"
     CHECK(LanguageManager::language_from_locale(QStringLiteral("he_IL")) == "he");
     CHECK(LanguageManager::language_from_locale(QStringLiteral("fr-CA")) == "fr");
     CHECK(LanguageManager::language_from_locale(QStringLiteral("ja")) == "ja");
+    CHECK(LanguageManager::language_from_locale(QStringLiteral("zh_CN")) == "zh_CN");
+    CHECK(LanguageManager::language_from_locale(QStringLiteral("zh-Hans-CN")) == "zh_CN");
+    CHECK(LanguageManager::language_from_locale(QStringLiteral("zh_TW")) == "zh_CN");
+    CHECK(LanguageManager::resolved(QStringLiteral("zh_cn")) == "zh_CN");
+    CHECK(LanguageManager::resolved(QStringLiteral("zh")) == "en");
     CHECK(LanguageManager::language_from_locale(QStringLiteral("tlh_QS")) == "en");
     CHECK(LanguageManager::language_from_locale(QString()) == "en");
     // No setting is the device's own language, and it is one of the eight.
