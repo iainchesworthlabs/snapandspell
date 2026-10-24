@@ -751,6 +751,20 @@ Release builds are not instrumented. `-DWJS_ENABLE_SANITIZERS=OFF` turns it all
 off for a Debug build. `linux-clang-debug` is the same flags with `clang++`, and
 is what the nightly Clang sanitizer leg builds ([CI](ci.md#nightly-analysis)).
 
+ThreadSanitizer is a separate runtime and cannot be combined with those, so it has
+its own preset, `linux-clang-tsan` (`WJS_ENABLE_TSAN`, built at `-O1` with frame
+pointers, Tracy off). It builds the solver, the scanner and the command line and
+runs their unit, integration and system tests, with `halt_on_error` and the
+suppressions in `tools/sanitizers/tsan.supp` (a reason and an issue for each
+entry). The Qt application is not built: Qt's prebuilt libraries are not
+instrumented, and TSan would report races in them that are not there.
+
+```sh
+cmake --preset linux-clang-tsan
+cmake --build --preset linux-clang-tsan
+ctest --preset linux-clang-tsan
+```
+
 ## Static analysis
 
 `clang-tidy` reads the compile database the configure step writes

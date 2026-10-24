@@ -38,6 +38,18 @@
       }
     },
     {
+      "name": "tsan",
+      "hidden": true,
+      "inherits": ["debug"],
+      "description": "ThreadSanitizer instead of AddressSanitizer and UBSan (the runtimes cannot be combined), and Tracy off. The Qt kit is prebuilt without instrumentation and would report races that are not there, so the application is not built: the solver, the scanner and the command line are, with their unit, integration and system tests.",
+      "cacheVariables": {
+        "WJS_ENABLE_SANITIZERS": "OFF",
+        "WJS_ENABLE_TSAN": "ON",
+        "WJS_ENABLE_TRACY": "OFF",
+        "WJS_BUILD_APP": "OFF"
+      }
+    },
+    {
       "name": "fastdebug",
       "hidden": true,
       "cacheVariables": {
@@ -232,6 +244,14 @@
       ]
     },
     {
+      "name": "linux-clang-tsan",
+      "displayName": "Linux (Clang, ThreadSanitizer)",
+      "inherits": [
+        "tsan",
+        "linux-clang-base"
+      ]
+    },
+    {
       "name": "macos-clang-base",
       "hidden": true,
       "inherits": [
@@ -365,6 +385,7 @@
     { "name": "windows-msvc-analysis", "configurePreset": "windows-msvc-analysis" },
     { "name": "linux-gcc-analysis", "configurePreset": "linux-gcc-analysis" },
     { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" },
+    { "name": "linux-clang-tsan", "configurePreset": "linux-clang-tsan" },
     { "name": "ios-release", "configurePreset": "ios-release", "configuration": "Release", "targets": ["WordJewelsSolver"] },
     { "name": "android-arm64-release", "configurePreset": "android-arm64-release", "targets": ["apk"] },
     { "name": "android-arm64-debuggable", "configurePreset": "android-arm64-debuggable", "targets": ["apk"] }
@@ -398,6 +419,12 @@
     { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling", "inherits": ["base"] },
     { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling", "inherits": ["base"] },
     { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug", "inherits": ["base"] },
+    {
+      "name": "linux-clang-tsan",
+      "configurePreset": "linux-clang-tsan",
+      "inherits": ["base"],
+      "environment": { "TSAN_OPTIONS": "halt_on_error=1:second_deadlock_stack=1:suppressions=${sourceDir}/tools/sanitizers/tsan.supp:$penv{TSAN_OPTIONS}" }
+    },
     {
       "name": "unit",
       "hidden": true,

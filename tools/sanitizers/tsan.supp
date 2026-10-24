@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# ThreadSanitizer suppressions. One entry per line, each with the reason and the issue that tracks it
+# above it. Empty until a report is judged to come from code outside this repository.

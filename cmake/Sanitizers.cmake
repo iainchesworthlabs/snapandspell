@@ -14,8 +14,26 @@ option(WJS_ENABLE_SANITIZERS "Enable ASan/UBSan for Debug builds" ON)
 option(WJS_SANITIZER_OPTIMIZE
     "Build first-party code with /O1 in a Debug build that has MSVC's AddressSanitizer on" ON)
 
+# ThreadSanitizer is the other runtime: it cannot be combined with AddressSanitizer,
+# so the tsan presets turn WJS_ENABLE_SANITIZERS off and this on. Built at -O1 with
+# frame pointers, as the other sanitizer builds are. Debug only, like them.
+option(WJS_ENABLE_TSAN "Enable ThreadSanitizer for Debug builds (GCC/Clang; excludes ASan/UBSan)" OFF)
+
 add_library(wjs_sanitizers INTERFACE)
 add_library(wjs::sanitizers ALIAS wjs_sanitizers)
+
+if(WJS_ENABLE_TSAN)
+    if(WJS_ENABLE_SANITIZERS)
+        message(FATAL_ERROR "WJS_ENABLE_TSAN cannot be combined with WJS_ENABLE_SANITIZERS "
+            "(ThreadSanitizer and AddressSanitizer are separate runtimes). Use a tsan preset.")
+    endif()
+    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        message(FATAL_ERROR "WJS_ENABLE_TSAN needs GCC or Clang.")
+    endif()
+    target_compile_options(wjs_sanitizers INTERFACE
+        "$<$<CONFIG:Debug>:-fsanitize=thread;-fno-omit-frame-pointer;-fno-sanitize-recover=all;-O1>")
+    target_link_options(wjs_sanitizers INTERFACE "$<$<CONFIG:Debug>:-fsanitize=thread>")
+endif()
 
 if(WJS_ENABLE_SANITIZERS)
     if(MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
