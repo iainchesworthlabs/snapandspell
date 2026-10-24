@@ -1,0 +1,4 @@
+{
+  "description": "Finds every word on a Boggle board.",
+  "topics": ["cpp", "cpp23", "cmake", "vcpkg", "qt", "qt-quick", "boggle", "word-game", "solver", "education"]
+}

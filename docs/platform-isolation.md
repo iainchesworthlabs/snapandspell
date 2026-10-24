@@ -168,8 +168,9 @@ fails, with a `file:line` for each finding, on:
    `$<PLATFORM_ID:...>`) in any CMake file but `cmake/Platform.cmake`, the
    platform fragments, the platform section's own tests (`tests/platform/*.cmake`,
    each about one platform), any vcpkg triplet under `cmake/triplets/` (there are
-   none yet) and the vcpkg overlay ports under `cmake/vcpkg-ports/` (copies of
-   a third party's ports, kept as they are);
+   none yet), the vcpkg overlay ports under `cmake/vcpkg-ports/` (copies of
+   a third party's ports, kept as they are) and the shared modules under
+   `cmake/icl/` (a copy of `icl-common-infra`'s, kept as it is);
 5. any `#define` or `#undef` in first-party C++.
 
 Run it from the repository root:
