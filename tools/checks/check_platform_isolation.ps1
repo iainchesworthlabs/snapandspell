@@ -46,7 +46,8 @@
 #      is about one platform and cannot name it otherwise), the vcpkg triplets in
 #      cmake/triplets/ (a triplet is a platform's name and flags) and the vcpkg
 #      overlay ports in cmake/vcpkg-ports/ (a third party's port, kept as it
-#      is): no WIN32, APPLE, ANDROID, IOS, UNIX, LINUX, MINGW, CYGWIN,
+#      is) and the copy of the shared modules in cmake/icl/ (icl-common-infra's,
+#      kept as it is): no WIN32, APPLE, ANDROID, IOS, UNIX, LINUX, MINGW, CYGWIN,
 #      EMSCRIPTEN, CMAKE_SYSTEM_NAME or $<PLATFORM_ID:...>. (Compiler tests - MSVC,
 #      CXX_COMPILER_ID - are a different axis and are not matched, nor are
 #      property names such as WIN32_EXECUTABLE.)
@@ -247,11 +248,14 @@ foreach ($file in $candidates) {
     # So is a vcpkg
     # overlay port (cmake/vcpkg-ports/): a copy of someone else's portfile, which tests
     # the platform to install the way that platform needs, and is not ours to rewrite.
+    # So is cmake/icl/, the copy of icl-common-infra's modules, which test the
+    # platform for every project that uses them.
     $isSelectorOrFragment = $relative -ieq 'cmake/Platform.cmake' -or
         $relative -match '^libs/platforms/[^/]+/platform\.cmake$' -or
         $relative -match '^tests/platform/[^/]+\.cmake$' -or
         $relative -match '^cmake/triplets/[^/]+\.cmake$' -or
-        $relative -match '^cmake/vcpkg-ports/'
+        $relative -match '^cmake/vcpkg-ports/' -or
+        $relative -match '^cmake/icl/'
 
     $state = [pscustomobject]@{ InBlock = $false }
     $lineNumber = 0
