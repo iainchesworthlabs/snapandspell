@@ -1,0 +1,10 @@
+/* Fonts bundled from Fontsource (SIL Open Font License, see LICENSE files) */
+@font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:400;font-display:swap;src:url('pixelify-sans-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:500;font-display:swap;src:url('pixelify-sans-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:600;font-display:swap;src:url('pixelify-sans-latin-600-normal.woff2') format('woff2')}
+@font-face{font-family:'Pixelify Sans';font-style:normal;font-weight:700;font-display:swap;src:url('pixelify-sans-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'Silkscreen';font-style:normal;font-weight:400;font-display:swap;src:url('silkscreen-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'Silkscreen';font-style:normal;font-weight:700;font-display:swap;src:url('silkscreen-latin-700-normal.woff2') format('woff2')}
+/* Andika (SIL Open Font License, see Andika-OFL.txt): the face for the dice and the words a child reads */
+@font-face{font-family:'Andika';font-style:normal;font-weight:400;font-display:swap;src:url('Andika-Regular.ttf') format('truetype')}
+@font-face{font-family:'Andika';font-style:normal;font-weight:700;font-display:swap;src:url('Andika-Bold.ttf') format('truetype')}

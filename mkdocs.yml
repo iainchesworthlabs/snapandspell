@@ -76,6 +76,7 @@ nav:
       - Dice and their faces: design/dice-and-faces.md
       - Shake prototype: design/shake-prototype.md
       - Application: design/application.md
+      - Toybox Pixel restyle: design/toybox/DESIGN.md
       - Parent dashboard: design/dashboard.md
       - The parent area as built: design/parent-area.md
       - Scanner: design/scanner.md
