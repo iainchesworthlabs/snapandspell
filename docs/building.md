@@ -751,6 +751,22 @@ Release builds are not instrumented. `-DWJS_ENABLE_SANITIZERS=OFF` turns it all
 off for a Debug build. `linux-clang-debug` is the same flags with `clang++`, and
 is what the nightly Clang sanitizer leg builds ([CI](ci.md#nightly-analysis)).
 
+## Shared CMake modules
+
+`cmake/icl/` is a copy of the modules in `icl-common-infra` (warnings with a
+helper for generated code, hardening flags, sanitizers, Tracy, coverage, the
+vcpkg and Qt finders, notices and the Qt application install). It is not edited
+here: a change goes to `icl-common-infra`, and the copy follows the commit that
+`.github/workflows/ci.yml` pins.
+
+```sh
+python3 tools/ci/repin.py --infra ../icl-common-infra --version vX.Y.Z   # move the pins and the copy
+python3 tools/ci/sync_cmake.py --infra ../icl-common-infra --check       # what CI runs
+```
+
+The build includes a module only when this project has adopted it, one at a
+time. The ones it still has of its own are in `cmake/`.
+
 ## Static analysis
 
 `clang-tidy` reads the compile database the configure step writes
