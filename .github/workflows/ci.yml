@@ -673,6 +673,7 @@ jobs:
         run: |
           mkdir -p build/coverage
           gcovr --root . --filter '.*libs/core/.*' \
+            --exclude '.*/(tests|ui-tests|bench)/.*' \
             --gcov-executable "$GCOV" \
             --object-directory build/linux-gcc-coverage \
             --exclude-throw-branches --exclude-unreachable-branches \
