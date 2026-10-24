@@ -765,6 +765,22 @@ cmake --build --preset linux-clang-tsan
 ctest --preset linux-clang-tsan
 ```
 
+## Shared CMake modules
+
+`cmake/icl/` is a copy of the modules in `icl-common-infra` (warnings with a
+helper for generated code, hardening flags, sanitizers, Tracy, coverage, the
+vcpkg and Qt finders, notices and the Qt application install). It is not edited
+here: a change goes to `icl-common-infra`, and the copy follows the commit that
+`.github/workflows/ci.yml` pins.
+
+```sh
+python3 tools/ci/repin.py --infra ../icl-common-infra --version vX.Y.Z   # move the pins and the copy
+python3 tools/ci/sync_cmake.py --infra ../icl-common-infra --check       # what CI runs
+```
+
+The build includes a module only when this project has adopted it, one at a
+time. The ones it still has of its own are in `cmake/`.
+
 ## Static analysis
 
 `clang-tidy` reads the compile database the configure step writes
