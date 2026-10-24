@@ -560,8 +560,27 @@ std::span<const MigrationStep> builtin_migrations() noexcept {
     // kept beside the new one (store.cpp), and a program before this change
     // refuses a file after it as newer_version instead of misreading a standard
     // board. A test writes a version 1 file and reads it with this list.
-    static const std::array<MigrationStep, 1> steps = {
+    //
+    // Version 3 names the interface language by its catalogue, so the Chinese
+    // of version 2 ("zh") is "zh_CN". The step rewrites the language in the
+    // settings line and nothing else; a program before this change refuses a
+    // version 3 file as newer_version instead of reading "zh_CN" as no language.
+    static const std::array<MigrationStep, 2> steps = {
         MigrationStep{1, [](RawStore&) { return true; }},
+        MigrationStep{2,
+                      [](RawStore& raw) {
+                          for (RawLine& line : raw.lines) {
+                              if (line.tag != "settings") {
+                                  continue;
+                              }
+                              for (std::string& word : line.fields) {
+                                  if (word == "language=zh") {
+                                      word = "language=zh_CN";
+                                  }
+                              }
+                          }
+                          return true;
+                      }},
     };
     return steps;
 }
