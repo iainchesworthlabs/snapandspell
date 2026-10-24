@@ -37,6 +37,7 @@ not removed.
 | [Shake prototype](shake-prototype.md) | The board scene built in Qt Quick 3D behind its seam, what it cost on one desktop, and what a 2D swap-in must keep |
 | [Application](application.md) | Screens, touch targets, type and school fonts, languages and right-to-left, the Jewel Box design system, colour, motion, accessibility, sound, privacy built in and checked, the user-study plan, Qt modules |
 | [Dashboard](dashboard.md) | The parent area: the gate, what is shown and how it is worded, settings, what is deferred |
+| [Toybox Pixel restyle](toybox/DESIGN.md) | The new look (the Snake package's Toybox Pixel style): tokens shared with Snake and the ones added here, type and why the dice stay in Andika, tile states, every screen with its mockup (`toybox/gallery.html`), the web build, languages and fonts, the decisions. **Proposal until built** |
 | [The parent area as built](parent-area.md) | The store, the gate, the dashboard's numbers, the screens and the privacy checks as built: the choices made, what each test holds, what is for the reviewer, what is not verified |
 | [Scanner](scanner.md) | Mode A's board reader: the library, the confirm-and-correct model, the camera and reader interfaces, the accuracy target and the synthetic corpus, what was measured, and what the iPad still has to do |
 | [Performance](performance.md) | Budgets, the Tracy zones, the macro-free route, the performance tier |
