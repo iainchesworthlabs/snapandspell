@@ -57,7 +57,7 @@ last three were fetched from the Qt repository and merged into the kit
 (docs/building.md, "The Qt Quick window"). The iOS kit is installed by the iOS
 CI jobs only. The application finds the three **optionally**: a contributor's kit without them
 builds the silent variants of the sound, speech and motion backends
-(`src/app/feedback`), and the game is complete, only quieter.
+(`apps/app/src/feedback`), and the game is complete, only quieter.
 
 | Module | For | In the tree | Offered under |
 | --- | --- | --- | --- |
@@ -230,13 +230,13 @@ Yiddish, Hebrew, Chinese and Japanese** (`en`, `fr`, `es`, `de`, `yi`, `he`,
 **System**, which is the device's own language when it is one of them and
 English otherwise. The setting is kept in the store with the others, so it
 survives a restart, and the language is in force before the window is built:
-`LanguageManager` (`src/app/language_manager.*`) installs the catalogue and sets
+`LanguageManager` (`apps/app/src/language_manager.*`) installs the catalogue and sets
 `QGuiApplication::setLayoutDirection` before the engine loads. A change in the
 parent area installs the new catalogue, turns the layout and calls
 `QQmlEngine::retranslate()`, so every `qsTr()` sentence on screen changes at
 once without a restart.
 
-**The catalogues.** One Qt Linguist `.ts` file per language is in `i18n/`,
+**The catalogues.** One Qt Linguist `.ts` file per language is in `apps/app/translations/`,
 generated from the QML sources with the kit's `lupdate`
 (`cmake --build <build> --target wjs_update_translations`), and `lrelease`
 compiles them at build time into `:/i18n/wjs_<code>.qm`, embedded in the
@@ -312,7 +312,7 @@ area's own theme and the scan screens) after the October 2026 human-factors
 review of the prototype, whose findings are kept in git history rather than in
 this tree (the last commit that holds it is `b1aeb44`, in
 `docs/design/ux-audit-2026-10/`). The values live
-in `src/app/qml/kit/Theme.qml` and are **not copied here**: this page says what
+in `apps/app/qml/kit/Theme.qml` and are **not copied here**: this page says what
 the system is made of and which rules the tests hold it to.
 
 - **One token source.** A screen writes no colour, size, radius or type value of
@@ -334,7 +334,7 @@ the system is made of and which rules the tests hold it to.
   control has its own fill, ink and edge, never reduced opacity, so its label
   keeps a readable contrast. A container is told from its surround by a line
   with a measured separation.
-- **Components** (`src/app/qml/kit`): `AppButton` (variants and three sizes,
+- **Components** (`apps/app/qml/kit`): `AppButton` (variants and three sizes,
   48, 64 and 96 dp, that grow with their label and wrap rather than truncate;
   a 2 px focus ring after a key press), `SegmentedChoice` (a titled group of
   radio buttons), `Card` (a title and an empty state), `Sheet` (a modal over its
@@ -412,7 +412,7 @@ keep.
 parent area can override it (Motion: System, Reduced). It is a parent's
 decision, not a child's, and it is not behind the game.
 
-**Motion as input, as built.** `MotionSource` (`src/app/feedback`, over Qt
+**Motion as input, as built.** `MotionSource` (`apps/app/src/feedback`, over Qt
 Sensors) reads the accelerometer and the gyroscope at the highest rate the
 platform lists, feeds the samples to the scene's `pushMotion(ax, ay, az, wx,
 wy, wz)` and to the pure `wjs::MotionProcessor`, and reports a real shake once
@@ -472,9 +472,9 @@ An error is never scolded (Cubeulator: "An error is not scolded"). Sounds are
 under 300 ms except the sequence and the rattle. No music.
 
 **As built.** The seam is still `Feedback.cue(kind, detail)` in the QML
-(`src/app/qml/kit/Feedback.qml`); Main.qml installs one `FeedbackEngine` on it
-(`src/app/feedback`), and the engine asks the pure policy
-`wjs::plan_cue` (`src/lib/include/wjs/feedback.hpp`) what the cue and the
+(`apps/app/qml/kit/Feedback.qml`); Main.qml installs one `FeedbackEngine` on it
+(`apps/app/src/feedback`), and the engine asks the pure policy
+`wjs::plan_cue` (`libs/core/include/wjs/feedback.hpp`) what the cue and the
 parent's settings come to. The policy is tested without a speaker: a cue, a
 settings value and a detail in, and the asset, its volume, whether the word is
 spoken and which tap of the hand is asked for.
@@ -520,7 +520,7 @@ played for "not a word".
   clips and recorded cheers replace them after the literacy review; the file
   names are the seam. The three Qt modules are optional at build time: their
   silent variants are chosen by CMake, so a kit without them still builds.
-- **Touch feedback.** `src/platforms/interfaces/wjs/platform/haptics.hpp` is the
+- **Touch feedback.** `libs/platforms/interfaces/wjs/platform/haptics.hpp` is the
   platform interface (`light`, `medium`, `double_tap`). All three desktops
   answer false through `detail/haptics_none.cpp`, and the game is unchanged:
   every haptic is paired with a sound and a picture. The Android

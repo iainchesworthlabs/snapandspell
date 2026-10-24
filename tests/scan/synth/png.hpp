@@ -3,7 +3,7 @@
 // A PNG writer for the corpus tool, so that a person can look at what the
 // generator draws. Uncompressed (stored deflate blocks), so it needs no library.
 // A test tool: the application never writes a frame, and the build check
-// scan.no_frame_files holds src/scan to it.
+// scan.no_frame_files holds libs/scan to it.
 
 #include <filesystem>
 

@@ -28,7 +28,7 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | --- | --- | --- |
 | Solver library (board, trie dictionary, scoring, depth-first search) | Done | Catch2 cases; the 3x3 reference board checked by hand |
 | `wjs-cli` | Done | Run end to end on Windows |
-| Platform isolation (`src/platforms`, one CMake selector, enforcing check) | Done | `platform.isolation` and `platform.fragments` ctests |
+| Platform isolation (`libs/platforms`, one CMake selector, enforcing check) | Done | `platform.isolation` and `platform.fragments` ctests |
 | Solo Play in Qt Quick: home, the box, the 3D shake and drop, play (tracing and tapping), the summary card, My jewels, earlier boards | Built on the Windows desktop, on the design kit; **never run on a tablet** | Quick Test suites over a stub scene and a fake game, the size matrix, the offscreen `--smoke` run in CI; driven by hand on a desktop with a GPU. Confetti, sparkle and the Mega burst are **not built** |
 | The parent area: gate, dashboard, settings, About and licences, eight languages with right-to-left | Built | Library and app tests, the wording and privacy checks, the screens run in all eight languages. The gate is one press-and-hold ([D9](#4-decisions-that-gate-the-plan)); the translations are mechanical and unreviewed |
 | Windows build (MSVC 19.51, Qt 6.12.0, `/W4 /WX`, ASan) | Verified | CI, Debug: the whole ctest, the application's smoke, a Release package job that checks the ZIP |
@@ -41,7 +41,7 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | Dice for the standard board: a set model, a roll, the project's own dice for 3x3 to 6x6 | Done | Catch2 cases, `data.dice`, boards of 300 rolls a size solved against the dictionary |
 | Phonics machinery: phase-file reader and checker, review gate, seeding, grapheme binder | Done, **on test data**. No phase file exists, and none may be added without a reviewer (G7) | Catch2 cases, `data.phonics` and `data.phonics.checker`, the gate exercised on a release build. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
 | Hints | The start-tile help is built (one, two letters or off, the parent's choice); a count of words that begin with the lit tiles follows a find | Catch2 cases and Quick tests. The nudge by category ("a 3-letter animal") is **not built** |
-| Child-appropriate lexicon | Data only: `data/lexicon/` is checked against ENABLE and **nothing in `src/` reads it** | `data.wordlists` |
+| Child-appropriate lexicon | Data only: `data/lexicon/` is checked against ENABLE and **nothing in `libs/` or `apps/` reads it** | `data.wordlists` |
 | Camera scan (Mode A) | The reader, the confirm-and-correct model, the screens and a desktop camera over Qt Multimedia are built; **no real board has been read** | Synthetic frames only; the camera backend is never constructed in a test. See [Scanner design](design/scanner.md) |
 | An English word list | ENABLE in `data/dictionaries/`; category and tier lists in `data/lexicon/` | `tools/data/check_wordlists.ps1`. The authored lists are **unreviewed** by a teacher or parent |
 
@@ -53,7 +53,7 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | Filter by syllables, difficulty, themes | Nothing | A word list with metadata: length, frequency band, syllables, phonics pattern, categories (animal, colour, shape) | M2 |
 | 3x3 or 4x4 board | `Board` accepts 1x1 to 16x16; the standard board is dice, 3x3 to 6x6 | **Built:** the project's own dice (`data/dice`) and a roll that re-rolls to a board with a word | M1 |
 | Shake, with the accelerometer | **Built:** `detect_shakes` and a motion processor, and Qt Sensors feeding them while the box is on screen; the desktops have no accelerometer, so the Shake button, Space or a drag stand in | The thresholds still have to be tuned on a device | M1 |
-| Haptic feedback | The `haptics` interface and the desktops' no-op are built | Android and iOS implementations under `src/platforms` | M1 |
+| Haptic feedback | The `haptics` interface and the desktops' no-op are built | Android and iOS implementations under `libs/platforms` | M1 |
 | Drop animation, glowing path, jewels, confetti | The 3D drop (Qt Quick 3D, behind one seam), the path ribbon and the jewels are built. **Confetti, sparkle and the Mega burst are not** | The GPL-3.0-only consequence of Quick 3D is accepted (D2, [Licensing](licensing.md)) | M1 |
 | Trace a path with loose tolerance | **Built:** `validate_path` and a pointer tracer with a snap radius and a hysteresis band | A test with small fingers on a tablet | M1 |
 | Letters speak their *phonetic sounds* | The sound-it-out sequence and its player are built; **no clip exists**, so only the word is spoken | Recorded phoneme audio. Speech synthesis says letter *names* ("see"), not sounds ("k"), so this is a recording job (D5) | M1 |
@@ -81,16 +81,16 @@ riskiest part, so it comes after there is a game worth scanning for.**
 
 ## 5. Where the new code goes
 
-The rule stays: no `#if`, no `#define`, no OS code outside `src/platforms`.
+The rule stays: no `#if`, no `#define`, no OS code outside `libs/platforms`.
 
-- **Library (`src/lib`, Qt-free, platform-free, unit-tested):** dice sets and
+- **Library (`libs/core`, Qt-free, platform-free, unit-tested):** dice sets and
   shaking; shake detection over accelerometer samples; `validate_path`; the
   lexicon and hint engine; scoring modes suited to children.
-- **Platform interfaces (`src/platforms/interfaces`, one implementation per
+- **Platform interfaces (`libs/platforms/interfaces`, one implementation per
   platform):** `haptics`, `board_reader` (Vision on iOS, OpenCV or ML Kit
   elsewhere), `camera` (Cubeulator's `interfaces/camera.hpp` is the model).
   `android` and `ios` fragments are added to the selector, two edits each.
-- **App (`src/app`, QML):** screens and animation; no game rules.
+- **App (`apps/app/src`, QML):** screens and animation; no game rules.
 
 ## 6. Milestones
 
@@ -162,7 +162,7 @@ is what each part depends on.
   grapheme data above. The MVP keeps no voice clips and no time played.
 - **No export.** The printable PDF and e-mail are outside the MVP (PRD 12.2). If
   they return, the way a PDF leaves the device on each platform (the system
-  share and print facilities, under `src/platforms`) is the first route by which
+  share and print facilities, under `libs/platforms`) is the first route by which
   a child's data would leave it, and needs the privacy review first.
 - **Phase names are generic**: Phonics Phase A and Phonics Phase B (PRD 12.1).
   Where each phonic sound sits is for the literacy review (G7).
@@ -198,7 +198,7 @@ decision, D2).
    set before starting.
 
 **Built so far (first slice), on synthetic frames only** ([Scanner design](design/scanner.md)):
-the library (steps 2 to 4 above, in `src/scan`, with no third-party dependency), the `camera`
+the library (steps 2 to 4 above, in `libs/scan`, with no third-party dependency), the `camera`
 and `board_reader` interfaces (the platform camera has no native desktop backend; the portable
 reader), the confirm-and-correct model (`BoardDraft`), a numeric target written first (item 5) and a
 synthetic corpus that holds the reader to it, work budgets in the performance tier, and the
@@ -217,7 +217,7 @@ gated by D2 (licence) and G6 (children's privacy and each store's family
 policy). Until then iPad builds stay ad-hoc, on registered devices.
 
 The iOS-specific work of M4 is the Vision-based `board_reader`, which lives
-under `src/platforms/ios` as Objective-C++ and is exercised on the iPad.
+under `libs/platforms/ios` as Objective-C++ and is exercised on the iPad.
 
 ### M6: reach
 

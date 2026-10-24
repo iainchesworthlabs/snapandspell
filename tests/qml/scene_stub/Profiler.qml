@@ -1,5 +1,5 @@
 // TEST SUPPORT, not part of the application: the scene module's Profiler
-// singleton (src/app/scene/profiler.*) with no profiler behind it.
+// singleton (apps/app/src/scene/profiler.*) with no profiler behind it.
 //
 // The screens under test call Profiler.begin()/end() around a moment, and the
 // real singleton is in WordJewelsSolver.Scene because the scene and the

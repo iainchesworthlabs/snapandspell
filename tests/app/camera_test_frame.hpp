@@ -9,7 +9,7 @@
 // A frame for the camera tests: one synthetic board from the scanner's corpus
 // (tests/scan/synth), copied into the owned frame a backend hands out. It is
 // drawn from numbers and a seed, not from a camera, and it is the same picture
-// the scanner's own tests read. Test support: nothing in src links it.
+// the scanner's own tests read. Test support: nothing in libs or apps links it.
 
 namespace wjs::app::test {
 

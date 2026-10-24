@@ -2,7 +2,7 @@ name: Android build
 
 # The Android application, built on a hosted Linux runner with Qt 6.12's Android kit
 # and the NDK that kit was built with, into a debug-signed APK, and a look inside
-# that package (src/platforms/android/packaging/verify_apk.sh: the application id,
+# that package (libs/platforms/android/packaging/verify_apk.sh: the application id,
 # the platform levels, the camera as the only permission, one architecture). The
 # APK is uploaded as an artifact: it installs on a tablet that allows apps from
 # outside the store (docs/building.md, "Android"). It needs no secret; the package
@@ -24,11 +24,12 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - "src/**"
+      - "libs/**"
+      - "apps/**"
       - "cmake/**"
       - "data/**"
       - "assets/**"
-      - "i18n/**"
+      - "apps/app/translations/**"
       - "CMakeLists.txt"
       - "CMakePresets.json"
       - "vcpkg.json"
@@ -38,11 +39,12 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - "src/**"
+      - "libs/**"
+      - "apps/**"
       - "cmake/**"
       - "data/**"
       - "assets/**"
-      - "i18n/**"
+      - "apps/app/translations/**"
       - "CMakeLists.txt"
       - "CMakePresets.json"
       - "vcpkg.json"
@@ -183,7 +185,7 @@ jobs:
           mkdir -p android-dist
           cp "$apk" "android-dist/WordJewelsSolver-$version-android-arm64-debug-signed.apk"
           ls -l android-dist
-          src/platforms/android/packaging/verify_apk.sh "android-dist/WordJewelsSolver-$version-android-arm64-debug-signed.apk" --version "$version" --signed
+          libs/platforms/android/packaging/verify_apk.sh "android-dist/WordJewelsSolver-$version-android-arm64-debug-signed.apk" --version "$version" --signed
 
       - name: Upload the APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

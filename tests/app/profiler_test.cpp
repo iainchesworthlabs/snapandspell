@@ -4,7 +4,7 @@
 
 #include "profiler.hpp"
 
-// The QML seam to the profiler (src/app/scene/profiler.cpp). It cannot be told
+// The QML seam to the profiler (apps/app/src/scene/profiler.cpp). It cannot be told
 // what a trace holds from here (a build without Tracy has nothing behind it),
 // so what is held is the one thing every build shares: that begin() and end()
 // pair, whatever the begin() was given. A begin() that opens nothing and an end()

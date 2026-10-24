@@ -11,7 +11,7 @@
 
 // What the app tests share: an application object to make inside a case, and a
 // directory of its own that is gone when the case ends. Test support: nothing in
-// src links it.
+// libs and apps link it.
 //
 // Which Qt platform a GUI application draws on is not chosen here. The CTest
 // entries of the app tests carry QT_QPA_PLATFORM=offscreen (tests/CMakeLists.txt),

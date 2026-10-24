@@ -2,7 +2,7 @@ import QtQuick
 import QtTest
 import WordJewelsSolver
 
-// Home (src/app/qml/Home.qml): one large child placard, one adult card, and the
+// Home (apps/app/qml/Home.qml): one large child placard, one adult card, and the
 // app bar's adult entry. The brief's first rule is that the child's way in is
 // the obvious one; these checks hold that shape, its keyboard focus, and the
 // reading direction, without looking for the retired family-scanner card.

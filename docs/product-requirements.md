@@ -53,7 +53,7 @@ tested in CI on Windows, and `release.yml` builds it for Linux and macOS (it has
 never run). An iOS fragment, preset and ad-hoc signing job exist and have never
 run on a device. Nothing builds for Android or the browser yet:
 `cmake/Platform.cmake` refuses those targets until each has a platform fragment
-under `src/platforms`, and the Android one is being written separately. The
+under `libs/platforms`, and the Android one is being written separately. The
 shared Qt 6.12.0 tree on the author's machine (`C:\Repos\common\qt\6.12.0`)
 has the Windows, WebAssembly (multithread) and Android kits, with Emscripten
 5.0.5 beside it; the iOS kit is installed by CI. Qt comes from there and from
@@ -432,7 +432,7 @@ These are decided elsewhere and the design has to fit them.
 
 - Licence **GPL-3.0-or-later**; see [Licensing](licensing.md).
 - Everything that differs between operating systems lives under
-  `src/platforms`, chosen only by `cmake/Platform.cmake`; no `#if` and no
+  `libs/platforms`, chosen only by `cmake/Platform.cmake`; no `#if` and no
   `#define` in portable code ([Platform isolation](platform-isolation.md)).
 - The solver library is Qt-free and platform-free, and the application is a
   thin layer over it.

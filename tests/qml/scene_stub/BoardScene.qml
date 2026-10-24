@@ -1,7 +1,7 @@
 // TEST SUPPORT, not part of the application: the board scene the Quick Test
 // suites give the Solo Play screen in place of the 3D one.
 //
-// The application's WordJewelsSolver.Scene (src/app/qml/scene) draws a View3D and
+// The application's WordJewelsSolver.Scene (apps/app/qml/scene) draws a View3D and
 // needs a display and Qt Quick 3D, so no suite can start it. This stub is the
 // same component under the same interface - the one tests/app/
 // check_scene_contract.cmake holds the 3D scene and the 2D fallback to:
@@ -17,7 +17,7 @@
 //
 // It draws nothing and knows no dice: a play is recorded in `plays`, then
 // `settled` after settleMs so the screen's own flow continues. The geometry
-// rule is the same one BoardGeometry (SoloLayout, src/app/solo/board_layout.*)
+// rule is the same one BoardGeometry (SoloLayout, apps/app/src/solo/board_layout.*)
 // applies, repeated in JavaScript because this module must not import the
 // module under test: the module under test imports this one.
 pragma ComponentBehavior: Bound

@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------
 # PlatformContract.cmake - what a platform fragment
-# (src/platforms/<name>/platform.cmake) has to declare, and the check that it
+# (libs/platforms/<name>/platform.cmake) has to declare, and the check that it
 # did. The contract itself is described at the top of cmake/Platform.cmake.
 #
 # Shared by the selector (which checks the one fragment it includes, at
@@ -110,9 +110,9 @@ function(wjs_platform_check_contract fragment platforms_dir)
         if(NOT _implemented)
             message(FATAL_ERROR
                 "${fragment} names no source that includes wjs/platform/${_header_name}. "
-                "Every interface in src/platforms/interfaces/wjs/platform/ needs one "
+                "Every interface in libs/platforms/interfaces/wjs/platform/ needs one "
                 "implementation per platform (add one, or the shared no-op under "
-                "src/platforms/detail/ and name it in the fragment).")
+                "libs/platforms/detail/ and name it in the fragment).")
         endif()
     endforeach()
 endfunction()

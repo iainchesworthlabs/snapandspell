@@ -38,7 +38,7 @@ endfunction()
 
 # ---- the files ----------------------------------------------------------------
 
-set(_dir "src/platforms/android")
+set(_dir "libs/platforms/android")
 foreach(_file IN ITEMS
         "${_dir}/platform.cmake"
         "${_dir}/paths_android.cpp"

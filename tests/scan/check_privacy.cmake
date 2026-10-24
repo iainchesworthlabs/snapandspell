@@ -13,11 +13,11 @@
 #   - no audio is captured: no audio-capture class, and no microphone permission;
 #   - nothing is sent: no network class or socket header.
 #
-# It reads what the scanner is made of: everything under src/scan, the camera and
-# board_reader files of every platform (src/platforms/interfaces/wjs/platform/camera.hpp,
+# It reads what the scanner is made of: everything under libs/scan, the camera and
+# board_reader files of every platform (libs/platforms/interfaces/wjs/platform/camera.hpp,
 # board_reader.hpp, and any camera_* or board_reader_* beside a platform's sources,
 # which includes the iOS ones when they are written), and Mode A's camera source
-# and its backends (src/app/camera, src/app/variants/camera-*), which is where the
+# and its backends (apps/app/src/camera, apps/app/src/variants/camera-*), which is where the
 # desktop's frames are taken. Lines that are // comments are skipped, so a comment
 # can say what the code must not do.
 #
@@ -31,15 +31,15 @@ if(NOT REPO_ROOT)
 endif()
 
 file(GLOB_RECURSE _scanner_sources
-    "${REPO_ROOT}/src/scan/*.cpp" "${REPO_ROOT}/src/scan/*.hpp" "${REPO_ROOT}/src/scan/*.mm")
+    "${REPO_ROOT}/libs/scan/*.cpp" "${REPO_ROOT}/libs/scan/*.hpp" "${REPO_ROOT}/libs/scan/*.mm")
 file(GLOB_RECURSE _platform_sources
-    "${REPO_ROOT}/src/platforms/*/camera_*"
-    "${REPO_ROOT}/src/platforms/*/board_reader_*"
-    "${REPO_ROOT}/src/platforms/interfaces/wjs/platform/camera.hpp"
-    "${REPO_ROOT}/src/platforms/interfaces/wjs/platform/board_reader.hpp")
+    "${REPO_ROOT}/libs/platforms/*/camera_*"
+    "${REPO_ROOT}/libs/platforms/*/board_reader_*"
+    "${REPO_ROOT}/libs/platforms/interfaces/wjs/platform/camera.hpp"
+    "${REPO_ROOT}/libs/platforms/interfaces/wjs/platform/board_reader.hpp")
 file(GLOB_RECURSE _app_camera_sources
-    "${REPO_ROOT}/src/app/camera/*"
-    "${REPO_ROOT}/src/app/variants/camera-*/*")
+    "${REPO_ROOT}/apps/app/src/camera/*"
+    "${REPO_ROOT}/apps/app/src/variants/camera-*/*")
 set(_sources ${_scanner_sources} ${_platform_sources} ${_app_camera_sources})
 list(REMOVE_DUPLICATES _sources)
 
@@ -62,8 +62,8 @@ if(NOT _sources)
     # A root with nothing to read passes every rule, which is the wrong root and not a clean
     # scanner (tests/scan/check_privacy_selftest.cmake holds this).
     message(FATAL_ERROR
-        "No scanner sources found under ${REPO_ROOT}: src/scan, the camera and board_reader "
-        "files of src/platforms and src/app/camera are where the check looks.")
+        "No scanner sources found under ${REPO_ROOT}: libs/scan, the camera and board_reader "
+        "files of libs/platforms and apps/app/src/camera are where the check looks.")
 endif()
 foreach(_source IN LISTS _sources)
     file(RELATIVE_PATH _relative "${REPO_ROOT}" "${_source}")

@@ -355,7 +355,7 @@ TEST_CASE("a read counts what it did, and a warm read allocates no pixel buffers
     const Spec spec = spec_of(Condition::upright, 4, 2);
     const Rendered& frame = fixtures::frame(spec);
 
-    // The thread's scratch pool (src/scan/src/scratch.hpp) is warmed by a first
+    // The thread's scratch pool (libs/scan/src/scratch.hpp) is warmed by a first
     // read at this size, so the counted read below is the steady state.
     (void)read_board(frame.image.view());
     reset_scan_work();

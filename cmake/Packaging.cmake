@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # Packaging.cmake - CPack. Included once, from the top-level CMakeLists.txt,
 # after every target's install() rules have been declared: the packages it makes
-# are exactly those rules (src/cli/CMakeLists.txt, src/app/CMakeLists.txt and
+# are exactly those rules (apps/cli/CMakeLists.txt, apps/app/CMakeLists.txt and
 # cmake/Notices.cmake), so nothing here lists a file a second time.
 #
 # One package, holding both programs, deliberately. A package is the two
@@ -16,7 +16,7 @@
 # A ZIP is always offered: it needs no tool beyond CPack itself, on every host
 # and as the fallback where a platform's own packager is not installed. The
 # platform's native formats are added by the platform fragment's
-# wjs_platform_configure_packaging() hook (src/platforms/<name>/platform.cmake):
+# wjs_platform_configure_packaging() hook (libs/platforms/<name>/platform.cmake):
 # NSIS on Windows only when makensis is found, DragNDrop on macOS, and TGZ/DEB/
 # RPM on Linux when their tools are there. A missing tool drops its generator
 # and says so; it never fails the configure or the build, so `cpack -G ZIP`
@@ -160,7 +160,7 @@ endif()
 # Qt 6.12 with Quick 3D, which no distribution's Qt packages are, so a Depends:
 # line naming "libqt6core6 (>= 6.8)" would install a package that fails to start,
 # and one naming 6.12 could not be installed. The application is distributed as
-# an AppImage that carries its Qt (src/platforms/linux/packaging).
+# an AppImage that carries its Qt (libs/platforms/linux/packaging).
 # ---------------------------------------------------------------------------
 if("DEB" IN_LIST CPACK_GENERATOR)
     set(CPACK_DEBIAN_PACKAGE_NAME "wordjewelssolver")
@@ -197,7 +197,7 @@ endif()
 # ---------------------------------------------------------------------------
 # DragNDrop, on macOS: the .app and the programs in a disk image with the usual
 # Applications link. The application's dictionary and dice are inside the
-# bundle (WJS_PLATFORM_INSTALL_APP_DATA_DIR, src/platforms/macos), because the
+# bundle (WJS_PLATFORM_INSTALL_APP_DATA_DIR, libs/platforms/macos), because the
 # program looks for them beside its own executable. No macOS host has built
 # the application with Qt yet, so the image itself is unverified (docs/ci.md).
 # ---------------------------------------------------------------------------

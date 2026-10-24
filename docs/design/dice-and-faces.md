@@ -183,7 +183,7 @@ reads it.
 | This page; the revised scene interface in `board.md` and the answers on dice | `docs/design` | Design |
 | `roll` returns the placements; a test that `faces[tile][up] == board tile` | Library | The session that built the dice |
 | `weights.txt`, overrides, the dealing from them, the extended check, the printed table | `tools/data`, `data/dice` | The same |
-| The scene takes faces and the up index; the atlas is one cell for each face of each die | The prototype under `src/app/prototype/shake` | The prototype session |
+| The scene takes faces and the up index; the atlas is one cell for each face of each die | The prototype under `apps/app/src/prototype/shake` | The prototype session |
 | The decoy draw for the phonics board, if B | Library, with the seeding | The library session, after the author's answer |
 | A look at the real dice's letters against the sets | The author, with the box | The author |
 

@@ -13,7 +13,7 @@
 #include "sound_sequence_player.hpp"
 #include "wjs/sound_it_out.hpp"
 
-// The player of the sound-it-out sequence (src/app/feedback/sound_sequence_player.*)
+// The player of the sound-it-out sequence (apps/app/src/feedback/sound_sequence_player.*)
 // over a fake clip player and a clock the test winds by hand: no sound is made and
 // no time passes. The steps themselves are the library's (tests/unit/
 // sound_it_out_test.cpp); here they are written out, so that what is checked is the

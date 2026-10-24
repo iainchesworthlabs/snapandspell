@@ -277,11 +277,11 @@ grep -q 'name: package-ios' "$workflow" && grep -q 'pattern: package-\*' "$workf
 if grep -E 'secrets\.' "$repo/.github/workflows/ios-build.yml" | grep -q .; then bad "ios-build.yml (the unsigned check) uses a secret"; else ok "ios-build.yml uses no secret"; fi
 # One bundle identifier everywhere (it is the App ID the profile was made for).
 bundle_id="org.iainchesworth.wordjewelssolver"
-for file in "$workflow" "$repo/src/platforms/ios/platform.cmake" "$repo/src/platforms/macos/platform.cmake" "$repo/src/platforms/ios/packaging/verify_ipa.sh"; do
+for file in "$workflow" "$repo/libs/platforms/ios/platform.cmake" "$repo/libs/platforms/macos/platform.cmake" "$repo/libs/platforms/ios/packaging/verify_ipa.sh"; do
   grep -q "$bundle_id" "$file" && ok "$(basename "$file") says $bundle_id" || bad "$(basename "$file") does not say $bundle_id"
 done
-grep -q 'NSCameraUsageDescription' "$repo/src/platforms/ios/packaging/Info.plist.in" \
-  && [ "$(grep -A1 NSCameraUsageDescription "$repo/src/platforms/ios/packaging/Info.plist.in" | sed -n 2p | sed 's/^ *//')" = "$(grep -A1 NSCameraUsageDescription "$repo/src/platforms/macos/packaging/Info.plist.in" | sed -n 2p | sed 's/^ *//')" ] \
+grep -q 'NSCameraUsageDescription' "$repo/libs/platforms/ios/packaging/Info.plist.in" \
+  && [ "$(grep -A1 NSCameraUsageDescription "$repo/libs/platforms/ios/packaging/Info.plist.in" | sed -n 2p | sed 's/^ *//')" = "$(grep -A1 NSCameraUsageDescription "$repo/libs/platforms/macos/packaging/Info.plist.in" | sed -n 2p | sed 's/^ *//')" ] \
   && ok "the iOS camera usage text is the macOS one" || bad "the iOS camera usage text differs from the macOS one"
 
 # --- the Android build: the unsigned check's pins and the release job's secrets ----------

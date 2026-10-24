@@ -62,7 +62,7 @@ end of this section.
 - The interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew,
   Chinese, Japanese), with right-to-left layouts for Hebrew and Yiddish. The
   translations are mechanical and unreviewed.
-- One design system, the Jewel Box (`src/app/qml/kit`): tokens, text roles, buttons,
+- One design system, the Jewel Box (`apps/app/qml/kit`): tokens, text roles, buttons,
   choices, cards, sheets, light and dark, text size 100, 125 or 150 %, reduced motion
   that follows the system, and tests that hold contrast, target sizes and the absence
   of hand-written values.
@@ -92,7 +92,7 @@ end of this section.
 **Platforms, packaging and releases**
 
 - Windows, Linux and macOS desktops, with everything that differs between operating
-  systems in `src/platforms` and a check that nothing else does; an iOS platform and an
+  systems in `libs/platforms` and a check that nothing else does; an iOS platform and an
   ad-hoc build for the author's own devices (written, never run on a device); an Android
   build (an APK and an AAB, built and signed on Windows and in CI jobs, never run on a
   device).
@@ -112,7 +112,7 @@ end of this section.
 - Tests in four tiers (unit, integration, system, ui) plus a quality tier of checks
   about the tree: platform isolation, privacy, packaging, translations, toolchain pins,
   profiling presets, the requirements matrix; Qt Quick Test suites for the screens; a
-  coverage gate (90 % lines, 80 % branches over `src/lib`); a performance tier of exact
+  coverage gate (90 % lines, 80 % branches over `libs/core`); a performance tier of exact
   work budgets; a smoke mode for the application.
 - Profiling with Tracy in Debug and profiling builds only (it opens a TCP port, so no
   release has it), a macro-free zone wrapper, a registry of required zones, trace checks.

@@ -394,7 +394,7 @@ jobs:
         run: cpack --preset "$PACKAGE_PRESET"
 
       # The application's own Linux package: an AppImage that carries Qt
-      # (src/platforms/linux/packaging/build_appimage.sh). The tarball CPack would
+      # (libs/platforms/linux/packaging/build_appimage.sh). The tarball CPack would
       # make of it has no Qt, so it is not made.
       - name: Package the AppImage (Linux application)
         if: matrix.leg == 'linux-app'
@@ -407,7 +407,7 @@ jobs:
         run: |
           set -euo pipefail
           package_version="$VERSION${SUFFIX:+-$SUFFIX}"
-          src/platforms/linux/packaging/build_appimage.sh \
+          libs/platforms/linux/packaging/build_appimage.sh \
             --build "build/$CMAKE_PRESET" --version "$package_version" \
             --out "build/$CMAKE_PRESET/packages" --qt-prefix "$QT_PREFIX" --smoke
 
@@ -431,7 +431,7 @@ jobs:
         run: |
           shopt -s nullglob
           for dmg in build/"$CMAKE_PRESET"/packages/*.dmg; do
-            src/platforms/macos/packaging/verify_bundle.sh "$dmg" --version "$VERSION" --smoke
+            libs/platforms/macos/packaging/verify_bundle.sh "$dmg" --version "$VERSION" --smoke
           done
 
       # Sign, notarise and staple when the six secrets exist; say so and carry on
@@ -453,9 +453,9 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           for dmg in build/"$CMAKE_PRESET"/packages/*.dmg; do
-            src/platforms/macos/packaging/sign_and_notarize.sh "$dmg"
+            libs/platforms/macos/packaging/sign_and_notarize.sh "$dmg"
             if [ -n "$MACOS_SIGN_IDENTITY" ]; then
-              src/platforms/macos/packaging/verify_bundle.sh "$dmg" --version "$VERSION" --signed
+              libs/platforms/macos/packaging/verify_bundle.sh "$dmg" --version "$VERSION" --signed
             fi
           done
 
@@ -675,7 +675,7 @@ jobs:
 
       # Unsigned for every target but the application: the preset turns signing off
       # project-wide, and the two cache variables turn it on for the application
-      # alone (src/platforms/ios/platform.cmake says why).
+      # alone (libs/platforms/ios/platform.cmake says why).
       - name: Configure (signed)
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -738,7 +738,7 @@ jobs:
       - name: Check the IPA
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-        run: src/platforms/ios/packaging/verify_ipa.sh "ios-dist/$WJS_IOS_IPA" --version "$VERSION" --signed
+        run: libs/platforms/ios/packaging/verify_ipa.sh "ios-dist/$WJS_IOS_IPA" --version "$VERSION" --signed
 
       # The manifest Safari's itms-services link reads: it names the IPA's URL as a
       # release asset, which does not exist until the publish job, so it is
@@ -940,7 +940,7 @@ jobs:
         if: steps.signing.outputs.have == 'true'
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-        run: src/platforms/android/packaging/verify_apk.sh "android-dist/$WJS_ANDROID_APK" --version "$VERSION" --release --signed
+        run: libs/platforms/android/packaging/verify_apk.sh "android-dist/$WJS_ANDROID_APK" --version "$VERSION" --release --signed
 
       - name: Upload the APK and the AAB
         if: steps.signing.outputs.have == 'true'

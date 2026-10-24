@@ -46,7 +46,7 @@ constexpr std::array<ScanFrame, 4> kScanFrames = {{
 // The exact pins of the optimised reader's work live in budgets.hpp with the
 // other thresholds (kScanBuffersAllocated, kScanCellsReadExact,
 // kScanComparisonsExact, kScanBufferReuses): the scratch pool
-// (src/scan/src/scratch.hpp) is warmed by the read before the counted ones, and
+// (libs/scan/src/scratch.hpp) is warmed by the read before the counted ones, and
 // the four frames are all the same size, so no counted read allocates a pixel
 // buffer, the height search reads its sample cells once at the winning height,
 // and the pool's hand-outs are bounded. The numbers were measured with

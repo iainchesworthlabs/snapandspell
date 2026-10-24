@@ -10,7 +10,7 @@ matrix](#the-requirements-matrix) to the tests that exist). When the window is
 built there is also a Qt Quick Test tier that drives the kit and the screens
 themselves, headless ([The interactive
 QML](#the-interactive-qml-qt-quick-test)). The unit tier is gated at 90% line
-and 80% branch coverage of `src/lib`; the scanner, the window and the platforms
+and 80% branch coverage of `libs/core`; the scanner, the window and the platforms
 are not gated ([Coverage](#coverage)). They run in CI on Windows (MSVC), Linux
 (GCC) and macOS (AppleClang). The exact number differs by leg: the Qt model,
 screen, language and Quick Test suites run only where the window is built
@@ -132,7 +132,7 @@ app and scanner suites' CTest labels (`camera`, `app`, `solo`, ...).
 | `tests/unit/dice_test.cpp` | `wjs::DiceSet`, `wjs::roll`, `wjs::roll_with_placements` | The file format (a face of several letters, commas, comments, a byte-order mark), each way a set is refused, a roll using each die once and showing one of its faces, a function of the seed, two boards pinned so a change of compiler shows; the placements: the die and face of each tile are the tile's letters, each die used once, `roll` the same board as `roll_with_placements` for 200 seeds, the same two boards pinned through it, and the placements of two seeds pinned; every face shown over many rolls |
 | `tests/unit/dice_sets_test.cpp` | `wjs::DiceSets` | A set for each side from 3 to 6 in any order, `find` for each and null for any other side; a side missing, twice or out of range refused as `wrong_count` and a set that is not a square as `not_square`; the project's `data/dice` directory read as the four sets, and a directory without them unreadable |
 | `tests/unit/dice_data_test.cpp` | The shipped dice, `data/dice` | Each size has the dice for its board and six different faces to a die with a vowel among them; for each size, 300 boards whose placements name, for every tile, the face of its die that is the tile's letters, with each die used once; the board the deal keeps is the roll of the seed it reports, die for die (so a scene is given the dice of a dealt board by `roll_with_placements(dice, dealt.seed)`); 300 boards a size rolled and solved against the dictionary hold about the words a random board does; two boards pinned, through `roll` and through `roll_with_placements`. Reads the shipped files by their path in the checkout, as the performance tier does |
-| `tests/prototype/dice_world_test.cpp`, `dice_faces_test.cpp` | The dice simulation (`wjs_dice_world`, `src/app/scene/sim`), plain C++ with no Qt, as `wjs_dice_tests` (named `unit.*`, so in the unit tier and its coverage; built where the application's scene is) | Physics worked out on paper: free fall, a box that accelerates, a spinning frame, sliding to a stop, a slope, bounce, two dice colliding, a stack, a tipped die; and what a scene needs to be true: nothing leaves the box or sinks into anything, a replay is the same replay, the guide brings every die home square and still, and a die is squared with the face asked for up, whichever way it lies |
+| `tests/prototype/dice_world_test.cpp`, `dice_faces_test.cpp` | The dice simulation (`wjs_dice_world`, `apps/app/src/scene/sim`), plain C++ with no Qt, as `wjs_dice_tests` (named `unit.*`, so in the unit tier and its coverage; built where the application's scene is) | Physics worked out on paper: free fall, a box that accelerates, a spinning frame, sliding to a stop, a slope, bounce, two dice colliding, a stack, a tipped die; and what a scene needs to be true: nothing leaves the box or sinks into anything, a replay is the same replay, the guide brings every die home square and still, and a die is squared with the face asked for up, whichever way it lies |
 | `tests/unit/paths_test.cpp` | `wjs::platform::executable_path`, `user_data_directory` | That the first names the running test program: absolute, an existing file, called `wjs_unit_tests`; that the second is an absolute path and is the same each time |
 | `tests/unit/calendar_test.cpp` | `wjs/calendar.hpp` | A date as a day (against dates counted by an independent program), the ISO weekday, the week from any first day of the week, over 800 days for each |
 | `tests/unit/settings_test.cpp` | `wjs::Settings` | The defaults are the table's (the board clock is off and the help is the last of its three steps); every value a screen offers survives; any other becomes the default for it; names, sizes, text scales and focus sounds are brought within their bounds; the board clock is off, up or down and its minutes one of the choices; the help is off, the start tile, or the start tile and two letters |
@@ -142,11 +142,11 @@ app and scanner suites' CTest labels (`camera`, `app`, `solo`, ...).
 | `tests/unit/dashboard_test.cpp` | `wjs::build_dashboard`, `focus_sound_choices` | Each count of a sound (met, found, unassisted, often found, few words) on a made-up phase; the week on either first day of the week; the vault and the best; nothing said of a week without play |
 | `tests/app/assist_game_test.cpp`, `assist_model_test.cpp` | Mode A's `AssistGame` and `AssistModel` (the typed or scanned board played as a game) | A typed board played for the words that count with one of today's not named; the standard board counting every real word with no middle state; `begin` refusing a grid that is not a board (a tile holding a space or a slash cannot change the grid's shape) and nothing starting; no maker, no round; a board that cannot be made leaving the running round as it was; a round recorded once when replaced or left, and a round not left recorded by the destructor; a tile out of range and every touch with no round doing nothing; each tile sounding its letters and a word cueing the word; a real word that is not today's ticking without a word and a string fading silently; a path traced and removed tile by tile; the start tile offered only while the parent allows it; a board the store cannot keep told once as a save failure (`[app][scan][assist]`) |
 | `tests/app/scan_model_test.cpp` | `ScanModel` (the check screen's draft and the camera's state machine) | The typed board an empty 4x4; a full grid confirms and an incomplete one does not; the reader's doubts as the tiles to ring with its other thoughts; a reading that is not a grid refused; with no camera the typed board is the way on and nothing is faked; Try camera again is a new attempt and a camera that appears is found; a frame with no board, or one the scanner cannot take, returns the screen to ready; the next capture clears the last problem; leaving while a frame is read drops the read; an index off the grid or a size that is not a board refused; the camera opened and closed only when it should be; replacing a source that is capturing stops the old one (`[app][scan]`, `[camera]`) |
-| `tests/app/startup_failure_test.cpp` | `src/app/startup_failure.*` | Each reason the program can leave for has an exit code of its own; a dialog is wanted unless a test or a headless run is in charge; a failure is told through the sink once and gives its code; the message keeps its non-ASCII text as UTF-8; the platform writes a fatal error to the error stream without a dialog (`[app][startup]`) |
+| `tests/app/startup_failure_test.cpp` | `apps/app/src/startup_failure.*` | Each reason the program can leave for has an exit code of its own; a dialog is wanted unless a test or a headless run is in charge; a failure is told through the sink once and gives its code; the message keeps its non-ASCII text as UTF-8; the platform writes a fatal error to the error stream without a dialog (`[app][startup]`) |
 | `tests/app/system_colour_scheme_test.cpp`, `system_motion_test.cpp` | `SystemColourScheme`, `SystemMotion` | The singleton starts as the system's setting is, reports a change once, and is read by name and notifies as QML needs; each makes a GUI application on Qt's offscreen platform. Built only with `WJS_BUILD_APP` |
-| `tests/app/qt_text_test.cpp` | `src/app/qt_text.hpp` | UTF-8 library text and a `QString` are the same text, a NUL inside keeps its length, a path from Qt text keeps letters the system's code page lacks (`[app][text]`) |
+| `tests/app/qt_text_test.cpp` | `apps/app/src/qt_text.hpp` | UTF-8 library text and a `QString` are the same text, a NUL inside keeps its length, a path from Qt text keeps letters the system's code page lacks (`[app][text]`) |
 | `tests/app/sound_sequence_player_test.cpp` | The feedback module's `SoundSequencePlayer` | Plays the sequence of `sound_it_out_test.cpp` with no speaker: with no clips recorded the word is said at once and the steps are told in order; clips play one after another with the gap between and the word last; a clip that is not there takes no time and no gap; the whole-word-only sequence is the word alone; a new sequence stops the one under way and the old clip says nothing more; a sequence cancelled in a gap does not go on; the volume reaches the clips and the word (`[app][feedback][sequence]`). **No clip exists**: the cases use test clips, a recorded one is gated on the literacy reviewer, and the player's `stepStarted` signal is connected to nothing in the screens, so no block lights while a word is sounded out |
-| `tests/app/frame_profiler_test.cpp` | `src/app/frame_profiler.cpp`, as `wjs_frame_profiler_tests` | The frame clock on a window that is never shown, its signals emitted by the test (the render thread's from a thread of its own): each signal adds to its own part of the report; the render and GUI threads' times leave out the warm-up; the GUI thread's frame is the time it was busy; the target is reached once and told on the GUI thread; the profiler can go while the render thread is mid-frame (`[app][frame]`) |
+| `tests/app/frame_profiler_test.cpp` | `apps/app/src/frame_profiler.cpp`, as `wjs_frame_profiler_tests` | The frame clock on a window that is never shown, its signals emitted by the test (the render thread's from a thread of its own): each signal adds to its own part of the report; the render and GUI threads' times leave out the warm-up; the GUI thread's frame is the time it was busy; the target is reached once and told on the GUI thread; the profiler can go while the render thread is mid-frame (`[app][frame]`) |
 | `tests/app/dice_sim_test.cpp`, `profiler_test.cpp` | The scene's two QML objects that take what a script gives them, in `wjs_shake_script_tests` | A script cannot make the dice's box impossible, hang or freeze the dice with the time it passes, or poison them with a reading; the profiler seam's `begin()` and `end()` always pair, named or not, and nesting past the seam's depth is balanced too (`[scene]`) |
 | `tests/app/shake_script_test.cpp`, `shake_script_check.js` | The 3D board scene's script (`ShakeScript.js`), run in Qt's own JavaScript engine | Each of a die's six sides can be put up with its letter upright; the cube's mesh (24 vertices, 12 outward triangles, a cell to each side); for the weighted, staged and reduced-motion scripts, every die of a play lands with the face the board says is up, and a die has on average 2.5 faces or more on top in a weighted play and 1.5 in a staged one (one under reduced motion, which does not tumble); a replay is the same checksum and another seed or another face up is not; another set of faces up moves no die (positions and angles equal at six times through a play); a board that is shown has its faces up at once. The same case counts the scene's work for the performance tier (`[app][scene][perf]`, below). Built only with `WJS_BUILD_APP`, as `wjs_shake_script_tests` (with `dice_sim_test.cpp` and `profiler_test.cpp`, above) |
 | `tests/app/board_layout_test.cpp` | The layout rule, `SoloLayout` | The nine reference windows of the board design: which side the board takes, the tile of each size 3x3 to 6x6 against the page's table, the inset and gap either side of 600 dp, the board centred, a size offered only at 48 dp, the object recomputing on a rotation (`[layout]`) |
@@ -159,14 +159,14 @@ app and scanner suites' CTest labels (`camera`, `app`, `solo`, ...).
 | `tests/app/check_scene_contract.cmake` | `BoardScene.qml` (the 3D scene) and `scene/fallback/BoardScene.qml` (the 2D fallback) | `app.scene_contract`: both declare the whole interface of the board scene, under the same names. The Quick Test stub scene (`tests/qml/scene_stub`) is not in the list, so it can drift from them |
 | `tests/app/run_qmllint.cmake` | The application's QML | `app.qml_lint`: no warning from `qmllint` over the application's QML, the board scene's module and Mode A's module (not the parent area's module); skipped, exit 4, if the application has not been built |
 | `tests/app/parent_controller_test.cpp` | The parent area's `ParentController` | The gate as the screens drive it, the dashboard and settings maps, every setting changed by name and every wrong value refused, the resets, what the parent is told of the store (a store in memory, in a file, unreadable or from a newer version; a save that fails, and one that is not repeated when a setting is already what it is), the totals and the kept boards the My jewels screen reads (`[totals]`; the screen itself has no test, [below](#the-interactive-qml-qt-quick-test)), and what the game is told of an edit (`[edited]`: a change, a reset, not a read or the same value). The gate cases drive the controller's **two-touch** interface; the one-press button is the screen's (`tst_parent.qml`). Built only with `WJS_BUILD_APP` |
-| `tests/app/language_test.cpp` | `LanguageManager` (`src/app/language_manager.*`), the catalogues in `i18n/`, the app's font chain | The eight catalogues are well formed, none of their messages marked `unfinished`, `vanished` or `obsolete`, no form empty, and the same messages as the English source. **That is not the same as translated**: a message left in English is a non-empty translation, and nothing counts those ([The interface's languages](#the-interfaces-languages)); every language's code, direction and fallback (Hebrew and Yiddish RTL, the rest LTR, the device's locale or English); applying a language installs its catalogue and turns the application's layout; and the eight sample sentences' glyphs are in the app's font chain (a Windows check today, skipped where the platform has no such fonts). Built only with `WJS_BUILD_APP` |
+| `tests/app/language_test.cpp` | `LanguageManager` (`apps/app/src/language_manager.*`), the catalogues in `apps/app/translations/`, the app's font chain | The eight catalogues are well formed, none of their messages marked `unfinished`, `vanished` or `obsolete`, no form empty, and the same messages as the English source. **That is not the same as translated**: a message left in English is a non-empty translation, and nothing counts those ([The interface's languages](#the-interfaces-languages)); every language's code, direction and fallback (Hebrew and Yiddish RTL, the rest LTR, the device's locale or English); applying a language installs its catalogue and turns the application's layout; and the eight sample sentences' glyphs are in the app's font chain (a Windows check today, skipped where the platform has no such fonts). Built only with `WJS_BUILD_APP` |
 | `tests/app/parent_ui/` | The parent area's screens | `parent.screens`: see below; `parent.languages`: the gate, dashboard, settings and about in all eight languages, the catalogue really applied, the bar mirrored in Hebrew and Yiddish, no QML warning |
 | `tests/app/scan_ui/` | The Family Assistant's screens | `scan.screens`: see below; `scan.languages`: the scan screen, the check screen and the assistant's panel in all eight languages, the split mirrored for RTL while the replica stays as confirmed, no QML warning |
 | `tests/system/check_cli.cmake` | `wjs-cli` as a program | `system.cli.*`: help and version, and `output-every-time` (`--version` and `--help` run 60 times each, because a flush lost at exit in a Debug build once left one run in ten with nothing printed); the README board solved from a twelve-word list (`9 words, 9 points`); `--min-length`, `--scoring rarity`, `--repeat`; a `Qu` tile; and each failure - an unknown option, a missing value, a bad length/count/scheme, no board, a ragged board (exit 3), a missing dictionary (exit 2) |
 | `tests/system/check_app.cmake` | `WordJewelsSolver` as a program | `system.app.*`: a missing word list (exit 2, the file named), a damaged store (set aside and said), `--phase` without `--phase-directory` (warned and ignored), and a headless smoke run that either reports frames (`smoke: frames=`, `ui.frame_ms`) and exits 0 or says no frame can be presented and exits 3 |
 | `tests/system/check_install.cmake` | The install rules, run | `system.install`: `cmake --install` into a throw-away prefix; the two programs, the dictionary, `LICENSE.txt` and `NOTICES.txt`; then the installed `wjs-cli` solves the README board from the installed dictionary |
 | `tests/qml/` | The kit and the screens, driven at run time | `quick.<suite>`: twelve Qt Quick Test suites (`box`, `home`, `kit`, `panel`, `parent`, `rtl`, `scan`, `theme`, `contrast`, `sizematrix` with `_audit` and `_solo`), and `quick.lint` with `quick.lint.selftest`; see [The interactive QML](#the-interactive-qml-qt-quick-test) |
-| `tests/i18n/` | `i18n/*.ts` | `i18n.catalogues`: lupdate regenerates the catalogues and the checked-in ones must be identical; skipped (exit 4) when Qt's Linguist tools are absent |
+| `tests/i18n/` | `apps/app/translations/*.ts` | `i18n.catalogues`: lupdate regenerates the catalogues and the checked-in ones must be identical; skipped (exit 4) when Qt's Linguist tools are absent |
 | `tests/notices/check_notices.cmake` | The generated `NOTICES.txt` | `notices.sections`: the project's licence, the GPL-3.0-only application, Qt's LGPL/GPL options, Quick 3D and the feedback modules Multimedia/Sensors/TextToSpeech (in a build with the application), ENABLE, the translations, the bundled light probe and feedback sounds and Catch2 are all stated, no placeholder is left, and a command-line-only build carries no Qt section |
 | `tests/package/check_package.cmake` | `CPackConfig.cmake` and the generated install scripts | `package.config`: CPack names the project, its version, its licence and a ZIP, and the install rules carry both programs, the dictionary, the dice, the notices and the licence text, with Qt's install-time deploy script where the platform uses it |
 | `tools/package/check_package.ps1` | A built tree and the package it makes | The archive's required files, `SHA256SUMS`, the packaged `wjs-cli` solving a board from its installed dictionary and the packaged window's offscreen smoke. Run by hand and by the Windows CI leg, not by ctest |
@@ -183,8 +183,8 @@ app and scanner suites' CTest labels (`camera`, `app`, `solo`, ...).
 | `tests/scan/check_privacy.cmake` | The scanner's sources and the camera and `board_reader` files | `scan.privacy`, `scan.privacy.catches_a_leak`: see [The scanner](#the-scanner) |
 | `tests/analysis/check_analysis.cmake` | `CMakePresets.json`, `.github/workflows/analysis.yml`, `codeql.yml` | `analysis.config`: the analysis presets exist with their settings, `analysis.yml` is nightly and not on a push, pull request or `merge_group`, and `codeql.yml` is nightly too |
 | `tests/profiling/check_presets.cmake` | `CMakePresets.json`, `vcpkg.json`, `cmake/Tracy.cmake` | See below: `profiling.shipped_presets` |
-| `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `src/` | See below: `profiling.zone_names` |
-| `tests/platform/check_fragments.cmake` | Every `src/platforms/*/platform.cmake` | See below: `platform.fragments` |
+| `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `libs/` and `apps/` | See below: `profiling.zone_names` |
+| `tests/platform/check_fragments.cmake` | Every `libs/platforms/*/platform.cmake` | See below: `platform.fragments` |
 | `tools/checks/check_platform_isolation.ps1` | The source tree | See below: `platform.isolation` |
 | `tools/data/check_wordlists.ps1` | `data/dictionaries` and `data/lexicon` | `data.wordlists`: lowercase a-z, sorted, unique, and every lexicon word in the dictionary |
 | `tools/data/make_dice.ps1 -Check` | `data/dice` | `data.dice`: each file is what the tool makes from the fixed Scrabble-style table, so a changed generator or a hand edit fails |
@@ -214,7 +214,7 @@ set is thirteen words written in the test, the phonics index is seven of them
 by 3 or smaller.
 
 Most cases are the design's sentences. A few pin a reading the design left open;
-each is one comparison in `src/lib/src/game_rules.cpp` and one case, so a
+each is one comparison in `libs/core/src/game_rules.cpp` and one case, so a
 different decision is a small change:
 
 | Reading | Pinned by |
@@ -300,11 +300,11 @@ below describe at length are marked "below":
 only includes the one `platform.cmake` for the platform it targets, so a typo in
 another platform's fragment (a renamed file, a hook that was never defined)
 would otherwise be found only by someone on that platform. The check includes
-every fragment under `src/platforms/`, each in a process of its own, and holds
+every fragment under `libs/platforms/`, each in a process of its own, and holds
 it to the contract in `cmake/PlatformContract.cmake`: every variable and hook
 defined, `WJS_PLATFORM_DESKTOP` either `ON` or `OFF`, every file it compiles
 present, and every interface header under
-`src/platforms/interfaces/wjs/platform/` included by one of the fragment's own
+`libs/platforms/interfaces/wjs/platform/` included by one of the fragment's own
 sources (so a new interface, haptics included, cannot link by accident). It
 also checks that `cmake/Platform.cmake` has a branch selecting each
 fragment, and that every branch has a fragment. It runs on whatever host runs
@@ -344,7 +344,7 @@ why.
 **`profiling.zone_names`** runs `tests/profiling/check_zone_names.cmake`. A
 zone's source location is a function-local static of `zone<"name">()`, so one
 name is one place and a name used twice would show the first place's file and
-line for both. It scans `src/` (and the `.qml` and `.js` sources, whose
+line for both. It scans `libs/` and `apps/` (and the `.qml` and `.js` sources, whose
 `Profiler.begin("name")` calls share the C++ namespace) and fails on a name that
 is used twice, is not `<layer>.<thing>` lower case and dotted, has a layer that
 is not in the check's registry, or is missing from the required set a trace of
@@ -355,14 +355,14 @@ trace tests ([below](#the-trace-tests)) do.
 ## The privacy and parent-area checks
 
 **`privacy.sources`** runs `tests/privacy/check_sources.cmake` over the first-party tree
-(`src/`, `cmake/`, `tests/`, the top-level CMake files, any directory that is not
+(`libs/`, `apps/`, `cmake/`, `tests/`, the top-level CMake files, any directory that is not
 third-party or documentation) and its manifests, for the rules of the first release that
 a source scan can hold ([Application design](design/application.md#privacy-built-in-and-checked)):
 no audio capture, no network class or header or URL literal or network Qt module or
 manifest permission, no export route (printing, sharing, a save dialog, the clipboard,
 a URL handed to the system, mail, a launched program), and no file written outside
-`src/lib/src/store.cpp`. A comment line is skipped; the checker, its self-test, the
-3D prototype (`src/app/prototype`, a program of its own) and the scanner's own privacy
+`libs/core/src/store.cpp`. A comment line is skipped; the checker, its self-test, the
+3D prototype (`apps/app/src/prototype`, a program of its own) and the scanner's own privacy
 checker and its deliberate leak (`tests/scan`, which name the forbidden things as data) are
 not scanned. It is a
 pattern scan, not a proof, and Qt Qml links Qt Network itself, so the rule is "no
@@ -371,7 +371,7 @@ a violation it must find and to the cases it must leave alone, so a pattern that
 matching is a failure and not a pass. Both are CMake scripts, run on every host with no
 pwsh.
 
-**`parent.wording`** holds `src/app/qml/parent/ParentWording.qml`, the one file of
+**`parent.wording`** holds `apps/app/qml/parent/ParentWording.qml`, the one file of
 sentences a parent reads, to the design (dashboard.md, "Wording"): the sentences the
 design quotes are there, none of a list of words an assessment or a gap is made of
 ("weak", "mastered", "missed", ...) is in any parent screen, and no screen has a `qsTr`
@@ -395,7 +395,7 @@ The interface is offered in eight languages, right to left and left to right
 checks below hold it. They all run in every ctest of a
 build with the window (`WJS_BUILD_APP=ON`, the Windows CI leg).
 
-- **`i18n.catalogues`** regenerates `i18n/*.ts` from the QML sources with the kit's
+- **`i18n.catalogues`** regenerates `apps/app/translations/*.ts` from the QML sources with the kit's
   `lupdate` into a temporary directory and fails when the checked-in catalogue
   differs: a `qsTr()` added, removed or moved without running the update target is
   caught. It reports itself **skipped** (exit 4) when Qt's Linguist tools are not
@@ -528,7 +528,7 @@ a warning is not merely printed.
 
 The suite is also the project's evidence that the UI exercises the code:
 `coverage-ui` runs the `ui` label under the coverage instrumentation and
-reports `src/app`, the C++ the screens bind to. The Qt Quick Test suites are
+reports `apps/app/src`, the C++ the screens bind to. The Qt Quick Test suites are
 what make most of that report real (a screen press reaches `SoloModel`,
 `ParentController`, `ScanModel` and the layout objects through the bindings),
 and the stub shells add their own flows; [Coverage](#coverage) gives the
@@ -910,7 +910,7 @@ recorded, nothing is sent). It holds four rules: file output, frame capture (no 
 class is asked to keep a picture), audio capture and network. A comment line is skipped.
 **`scan.privacy.catches_a_leak`** is the check's own test (`check_privacy_selftest.cmake`, no
 longer a `WILL_FAIL` on the check, which would pass on a syntax error in the script): there
-is a fixture tree for each rule (`privacy_fixture/src/scan/leak.cpp` opens an `ofstream`;
+is a fixture tree for each rule (`privacy_fixture/libs/scan/leak.cpp` opens an `ofstream`;
 `frame_leak`, `audio_leak` and `network_leak` each do the one thing their rule forbids), and the
 test requires the check to fail on each, to name that rule and that file and no other rule;
 it also runs it on a tree that does nothing wrong (`clean`, which has to pass and be counted)
@@ -928,7 +928,7 @@ contract is found out when a fake breaks it; the mailbox holds the latest frame,
 only while capturing; and the platform's own camera is run through the same contract; the
 board reader likewise (one that keeps it, each rule found out when broken, the platform's
 own). The iPad's camera and reader, when they are written, are one more call each. **They
-are not written:** `src/platforms/ios` has no camera or reader, so the contract has been
+are not written:** `libs/platforms/ios` has no camera or reader, so the contract has been
 run on the desktops' stubs, the portable reader and fakes only.
 
 ### The camera
@@ -1185,7 +1185,7 @@ applies.) `detect_stack_use_after_return`, the quarantine size, the red zone and
 
 The other cost under ASan is by value copies: with the sanitizer a copy of a
 24-byte vector is a call into the runtime (`__asan_memcpy`), so the dice
-simulation (`src/app/scene/sim`) passes its vectors and quaternions by reference
+simulation (`apps/app/src/scene/sim`) passes its vectors and quaternions by reference
 and writes the arithmetic of its inner loop out by component. The digests of its
 plays, which the tests compare, are the same as before.
 
@@ -1252,10 +1252,10 @@ a failing unit test, but it is still a defect report against the tree.
 ## Coverage
 
 The project's minimum standard is **90% of lines and 80% of branches** for the
-unit tier's scope, `src/lib` (`-DSCOPE=src/lib` in `cmake/Coverage.cmake`). It is
+unit tier's scope, `libs/core` (`-DSCOPE=libs/core` in `cmake/Coverage.cmake`). It is
 a gate, not a report: a change that drops either number fails CI (the required
 `Coverage (Linux, GCC)` check) and the local coverage target. **The gate covers
-the library only**: the scanner (`src/scan`), the window (`src/app`) and the
+the library only**: the scanner (`libs/scan`), the window (`apps/app/src`) and the
 platform layer are ungated, whatever their tests reach. The integration, system
 and quality tiers are not gated; the UI tier's coverage is reported separately,
 because it shows what the QML reaches rather than what the library's tests do.
@@ -1280,7 +1280,7 @@ cmake --build --preset windows-clang-coverage --target coverage-unit
 `coverage-unit` runs the `unit` label, empties this tier's counters first (so a
 previous UI run cannot raise the number), writes the report and then fails if
 the floor is missed. `coverage-ui` does the same for the `ui` label and reports
-`src/app` - the C++ the Qt Quick Test suites drive - with no floor; `coverage`
+`apps/app/src` - the C++ the Qt Quick Test suites drive - with no floor; `coverage`
 runs both, one after the other. In a build with the window, the UI report is the
 demonstration that the suite exercises the application's code through the UI,
 not only through its classes.
@@ -1311,7 +1311,7 @@ library grew, and the CI job is what holds it.
 
 The **UI report** from the same kind of run (clang-cl, 2026-10-19, before the
 screens were redesigned and before the later suites existed, and **not
-re-measured since**) covers `src/app`: 1,646 of 2,680 lines (61.4%) and 538 of
+re-measured since**) covers `apps/app/src`: 1,646 of 2,680 lines (61.4%) and 538 of
 1,115 branches (48.2%) were reached by the eight Qt Quick Test suites then and the
 two stub shells. The per-file
 table is the point: `ParentController` 78.9%, `ScanModel` 62.7%,

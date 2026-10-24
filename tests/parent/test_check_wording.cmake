@@ -13,7 +13,7 @@ if(NOT REPO_ROOT OR NOT WORK_DIR)
 endif()
 
 set(_checker "${REPO_ROOT}/tests/parent/check_wording.cmake")
-set(_real "${REPO_ROOT}/src/app/qml/parent/ParentWording.qml")
+set(_real "${REPO_ROOT}/apps/app/qml/parent/ParentWording.qml")
 file(READ "${_real}" _real_text)
 
 set(_failures "")
@@ -24,10 +24,10 @@ set(_cases 0)
 function(wjs_case label expect wording screen)
     set(_tree "${WORK_DIR}/case")
     file(REMOVE_RECURSE "${_tree}")
-    file(MAKE_DIRECTORY "${_tree}/src/app/qml/parent")
-    file(WRITE "${_tree}/src/app/qml/parent/ParentWording.qml" "${wording}")
+    file(MAKE_DIRECTORY "${_tree}/apps/app/qml/parent")
+    file(WRITE "${_tree}/apps/app/qml/parent/ParentWording.qml" "${wording}")
     if(NOT screen STREQUAL "")
-        file(WRITE "${_tree}/src/app/qml/parent/Screen.qml" "${screen}\n")
+        file(WRITE "${_tree}/apps/app/qml/parent/Screen.qml" "${screen}\n")
     endif()
 
     execute_process(

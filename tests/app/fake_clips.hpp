@@ -12,7 +12,7 @@
 
 // A clip player for the tests: no sound card, no files. The clips that exist are the
 // ones it is given; a clip that is started ends when the test says so. Test support:
-// nothing in src links it.
+// nothing in libs or apps links it.
 
 namespace wjs::app::test {
 

@@ -306,7 +306,7 @@ as the finger moves. The column below says which.
 | `board.deal` | zone | both | `GameSession::shake`, once per board | the seedings it spent on the phonics board (1 to `max_seedings`), the rolls on the standard board (1 to `max_rolls`) |
 | `board.restore` | zone | both | `GameSession::restore` | none |
 | `input.submit` | zone | both | `GameSession::trace` of two tiles or more in `playing`; not for an event that is refused or a touch of one tile | the number of tiles in the path |
-| `app.startup` | zone | both | `start()` in `src/app/main.cpp`, once: the store and everything the game is made from | none |
+| `app.startup` | zone | both | `start()` in `apps/app/src/main.cpp`, once: the store and everything the game is made from | none |
 | `app.load_qml` | zone | both | the same file, once, around the engine's properties and `loadFromModule` | none |
 | `data.load_phase` | zone | phonics | `PhaseSet::load_directory`, so a `--phase-directory` load | the words of every phase |
 | `scene.step` | zone | both | `DiceSim::advance`, once a device sample (one or two a frame) | the simulation steps that call took |
@@ -330,26 +330,26 @@ so). They are not repeated from the table above.
 
 | Layer | Zones | Where |
 | --- | --- | --- |
-| `app` | `app.fonts` | `main()` in `src/app/main.cpp`: the six bundled font files read before the first screen |
-| `assist` | `assist.confirm`, `assist.solve` | `AssistModel::begin` in `src/app/scan/assist_model.cpp` and `solve_board` in `src/app/scan/assist_game.cpp` (Mode A: the grown-up's "yes, play", which parses the board, makes the game and records the old round; the game's own solve is `assist.solve`) |
-| `board` | `board.deal_playable`, `board.parse` | `wjs::deal_playable` (`src/lib/src/deal.cpp`: the standard board's roll-until-it-holds-a-word loop) and `Board::parse` |
-| `camera` | `camera.convert_frame` | `frame_from_image` in `src/app/camera/frame_conversion.cpp`: a Qt image into the scanner's frame |
-| `cli` | `cli.run` | `src/cli/main.cpp`, around the whole run |
-| `data` | `data.load_store`, `data.save_store`, `data.build_dashboard`, `data.load_catalogue` | the store's file load and save (`src/lib/src/store.cpp`), `build_dashboard`, and `LanguageManager::install` (a translation catalogue) |
+| `app` | `app.fonts` | `main()` in `apps/app/src/main.cpp`: the six bundled font files read before the first screen |
+| `assist` | `assist.confirm`, `assist.solve` | `AssistModel::begin` in `apps/app/src/scan/assist_model.cpp` and `solve_board` in `apps/app/src/scan/assist_game.cpp` (Mode A: the grown-up's "yes, play", which parses the board, makes the game and records the old round; the game's own solve is `assist.solve`) |
+| `board` | `board.deal_playable`, `board.parse` | `wjs::deal_playable` (`libs/core/src/deal.cpp`: the standard board's roll-until-it-holds-a-word loop) and `Board::parse` |
+| `camera` | `camera.convert_frame` | `frame_from_image` in `apps/app/src/camera/frame_conversion.cpp`: a Qt image into the scanner's frame |
+| `cli` | `cli.run` | `apps/cli/src/main.cpp`, around the whole run |
+| `data` | `data.load_store`, `data.save_store`, `data.build_dashboard`, `data.load_catalogue` | the store's file load and save (`libs/core/src/store.cpp`), `build_dashboard`, and `LanguageManager::install` (a translation catalogue) |
 | `dice` | `dice.load_sets` | `DiceSets::load_directory` |
 | `feedback` | `feedback.plan`, `feedback.play` | `plan_cue` in the library (which sound, haptic and speech a cue asks for) and `FeedbackEngine::cue` in the application (the call that carries it out) |
 | `gate` | `gate.refresh` | `Gate::refresh`, the parental gate's press-and-hold |
-| `input` | `input.trace` | `src/app/solo/path_tracer.cpp`: the C++ half of a traced path (`ui.trace` is the QML half) |
+| `input` | `input.trace` | `apps/app/src/solo/path_tracer.cpp`: the C++ half of a traced path (`ui.trace` is the QML half) |
 | `motion` | `motion.push`, `shake.detect` | `MotionProcessor::push` and `detect_shakes` |
-| `parent` | `parent.edit` | `ParentController`'s one edit scope, `EditScope` in `src/app/parent/parent_controller.cpp`: every slot that changes the store is timed under this one name |
+| `parent` | `parent.edit` | `ParentController`'s one edit scope, `EditScope` in `apps/app/src/parent/parent_controller.cpp`: every slot that changes the store is timed under this one name |
 | `path` | `path.validate`, `rules.classify` | `validate_path` and `classify_path` |
 | `phonics` | `phonics.sound_it_out` | `sound_it_out_sequence`: the sequence of sounds for a word of the phase |
-| `scan` | `scan.find_board`, `scan.bright_mask`, `scan.box_blur`, `scan.find_blobs`, `scan.decode_frame`, `scan.convert_working`, `scan.warp_board`, `scan.read_tiles`, `scan.read_glyphs`, `scan.process_frame` | the stages of `wjs::scan::find_board` and of `read_board` (`src/scan/src/`); `scan.process_frame` wraps the whole `board_reader::read` in `src/app/scan/scan_model.cpp`, on the scan thread (below) |
+| `scan` | `scan.find_board`, `scan.bright_mask`, `scan.box_blur`, `scan.find_blobs`, `scan.decode_frame`, `scan.convert_working`, `scan.warp_board`, `scan.read_tiles`, `scan.read_glyphs`, `scan.process_frame` | the stages of `wjs::scan::find_board` and of `read_board` (`libs/scan/src/`); `scan.process_frame` wraps the whole `board_reader::read` in `apps/app/src/scan/scan_model.cpp`, on the scan thread (below) |
 | `session` | `session.finish` | `GameSession::make_record`: the board's record, which the store keeps and every snapshot carries |
 | `settings` | `settings.normalize` | `Settings::normalized` |
 | `solo` | `solo.path`, `solo.blocks`, `solo.history`, `solo.submit`, `solo.help`, `solo.words_with_start`, `solo.again` | `SoloModel` (path and blocks refresh, history refresh, `submitPath`) and `RealSoloGame` (`startTile`, `wordsWithStart`, `again`) |
 | `sound` | `sound.play`, `sound.sequence` | `SoundEngine::play` and `SoundSequencePlayer::start` |
-| `speech` | `speech.say` | `src/app/feedback/speech.cpp` |
+| `speech` | `speech.say` | `apps/app/src/feedback/speech.cpp` |
 | `store` | `store.serialize`, `store.parse`, `store.session_snapshot`, `store.session_record` | `serialize_store`, `parse_store`, `snapshot_of`, `record_of` |
 
 `sound.play`, `feedback.play` and `speech.say` time the call that hands a sound
@@ -407,7 +407,7 @@ the mode it is part of.
 ### The frame
 
 The **application** adds the window to that list. Its frame clock is
-`src/app/frame_profiler.cpp`: a frame mark named `UI` at every
+`apps/app/src/frame_profiler.cpp`: a frame mark named `UI` at every
 `QQuickWindow::frameSwapped`, the interval between swaps as the plot
 `ui.frame_ms`, and `ui.first_frame_ms` once, from the start of the process to
 the first frame. The frame is split into the two threads' shares:
@@ -463,7 +463,7 @@ nothing in the application is a moment without a duration.
 Tracy's API is macros, QML has no preprocessor, and the rule here is that only
 `wjs/profiling.hpp` speaks to Tracy. So the QML seam is a QML **singleton**,
 `Profiler`, in the scene's own module (`WordJewelsSolver.Scene`,
-`src/app/scene/profiler.cpp`), over a zone the wrapper can name at run time:
+`apps/app/src/scene/profiler.cpp`), over a zone the wrapper can name at run time:
 
 ```qml
 Profiler.begin("scene.prepare")
@@ -601,7 +601,7 @@ What that says:
   and at the interplay of the threaded loop with the desktop compositor on a
   mixed-refresh desktop. **Cause not found, and no change has been made.** The
   application draws its own controls (the kit), so the `Basic` style costs it
-  nothing and is the first thing to try: `src/app/main.cpp` does **not** set a
+  nothing and is the first thing to try: `apps/app/src/main.cpp` does **not** set a
   Quick Controls style (the one `QtQuick.Controls` import is `Main.qml`'s
   `ApplicationWindow`, so the platform's default style is in use), and no
   `qtquickcontrols2.conf` or style variable is set anywhere in the
@@ -708,7 +708,7 @@ functional there and the report is not the 3D scene's; the frame check skips
 that platform for the same reason. If no frame at all can be presented, the run
 says so on stderr and leaves with 3 after 20 seconds rather than hanging: it
 never reports an empty measurement as a result. The exit codes
-(`src/app/startup_failure.hpp`) are 0 for a report, 2 when the game could not be
+(`apps/app/src/startup_failure.hpp`) are 0 for a report, 2 when the game could not be
 set up (the word list, the dice or the phase directory), 3 when no frame was
 presented and 4 when the window did not load; 1 is left to the toolkit and to a
 crash. A failed start-up shows a dialog on Windows; `WJS_NO_DIALOGS=1`, or the
@@ -778,16 +778,16 @@ The repository holds no `#define` and no `#if` in first-party C++
 ([Platform isolation](platform-isolation.md)), and Tracy's API is macros. What
 its macros do is ordinary C++ in namespace `tracy`, so the wrapper calls that:
 
-- `src/lib/variants/profiling-enabled/wjs/profiling.hpp` includes Tracy and
+- `libs/core/variants/profiling-enabled/wjs/profiling.hpp` includes Tracy and
   aliases `tracy::SourceLocationData` and `tracy::ScopedZone`. `zone<"name">()`
   makes a function-local `static` `SourceLocationData` from the call site's
   `std::source_location` (a default argument is evaluated at the call) and
   returns a `ScopedZone` built in place, as Tracy's `ZoneNamedN` does with a
   `static constexpr` and a local.
-- `src/lib/variants/profiling-disabled/wjs/profiling.hpp` has the same
+- `libs/core/variants/profiling-disabled/wjs/profiling.hpp` has the same
   interface with an empty zone and empty functions.
 - CMake puts exactly one of the two directories on `wjs::lib`'s include path
-  (`cmake/Tracy.cmake`, `src/lib/CMakeLists.txt`). No source file asks which.
+  (`cmake/Tracy.cmake`, `libs/core/CMakeLists.txt`). No source file asks which.
 - `TRACY_ENABLE` and `TRACY_ON_DEMAND` are compile definitions of Tracy's own
   CMake target, which `wjs::tracy` links; they are not written in any source.
 

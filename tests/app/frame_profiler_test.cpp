@@ -10,7 +10,7 @@
 
 #include "frame_profiler.hpp"
 
-// The frame clock (src/app/frame_profiler.cpp) on a window that is never shown:
+// The frame clock (apps/app/src/frame_profiler.cpp) on a window that is never shown:
 // the signals it listens to are public, so a test emits them as the scene graph
 // does, which makes the frame, the thread it is on and the moment it ends the
 // test's. What this holds: what each signal adds to the report, and that the render

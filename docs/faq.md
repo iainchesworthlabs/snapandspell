@@ -57,7 +57,7 @@ error.
 
 **Which platforms does it run on?**
 The code is written for Windows, Linux and macOS, with the differences between
-them kept in `src/platforms`. CI builds and tests the library and `wjs-cli` on
+them kept in `libs/platforms`. CI builds and tests the library and `wjs-cli` on
 Windows (MSVC), Linux (GCC) and macOS (AppleClang); the Qt application is built and
 tested in CI on Windows, and built for Linux and macOS by the release workflow,
 which has never run. An ad-hoc iOS build for the author's own devices is written
@@ -94,7 +94,7 @@ and is never released ([Security](https://github.com/iainchesworthlabs/wordjewel
 **Can I use the library in my own program?**
 There is no install step or exported package yet, so it can only be built as
 part of this tree. Its interface is the four headers in
-`src/lib/include/wjs/`, and the [architecture](architecture.md#the-library)
+`libs/core/include/wjs/`, and the [architecture](architecture.md#the-library)
 describes them. A program that includes it is subject to the terms of the
 GPL-3.0-or-later.
 

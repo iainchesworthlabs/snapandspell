@@ -5,7 +5,7 @@
 #   cmake -DREPO_ROOT=<repository root> -P tests/profiling/check_zone_names.cmake
 #
 # A zone's source location is a function-local static of zone<"name">() (see
-# src/lib/variants/profiling-enabled/wjs/profiling.hpp), so there is one per
+# libs/core/variants/profiling-enabled/wjs/profiling.hpp), so there is one per
 # NAME: a name used at two places shows the first one's file and line, and the
 # second's call is indistinguishable from it in a trace. The names are also
 # what the CSV export and the profiler show and what any baseline reads, so
@@ -37,7 +37,7 @@
 # sources, and they take part in the shape and uniqueness checks as the other
 # QML names do.
 #
-# Scans src/ for `zone<"...">`, `plot("...")`, `frame_mark("...")`,
+# Scans libs/ and apps/ for `zone<"...">`, `plot("...")`, `frame_mark("...")`,
 # `thread_name("...")`, and the QML files for the Profiler calls. The variant
 # headers and profiling_types.hpp are skipped (they are where the calls are
 # defined, and their comments quote them), and so is every line that is a
@@ -57,7 +57,7 @@ set(_thread_shape "^[a-z][a-z0-9_-]*$")
 # The first part of every zone, plot and QML name. One line a layer, with what
 # the layer is; keep them sorted.
 set(_layer_registry
-    app        # start-up of the application: src/app/main.cpp
+    app        # start-up of the application: apps/app/src/main.cpp
     board      # making and restoring a board: roll, seed, verify, deal, parse
     camera     # converting a camera frame
     cli        # wjs-cli
@@ -73,7 +73,7 @@ set(_layer_registry
     rules      # the game rules
     scan       # reading a board from a camera frame
     scene      # the 3D board scene, C++ and QML
-    scene2d    # the 2D fallback scene kept in src/app/qml/scene/fallback: not built, so not required
+    scene2d    # the 2D fallback scene kept in apps/app/qml/scene/fallback: not built, so not required
     settings   # normalising the settings
     shake      # shake detection
     solo       # Solo Play's model
@@ -123,11 +123,12 @@ set(_threads 0)
 # --- the C++ calls ------------------------------------------------------------
 
 file(GLOB_RECURSE _sources
-    "${REPO_ROOT}/src/*.cpp" "${REPO_ROOT}/src/*.hpp" "${REPO_ROOT}/src/*.mm")
+    "${REPO_ROOT}/libs/*.cpp" "${REPO_ROOT}/libs/*.hpp" "${REPO_ROOT}/libs/*.mm"
+    "${REPO_ROOT}/apps/*.cpp" "${REPO_ROOT}/apps/*.hpp" "${REPO_ROOT}/apps/*.mm")
 
 foreach(_source IN LISTS _sources)
     file(RELATIVE_PATH _relative "${REPO_ROOT}" "${_source}")
-    if(_relative MATCHES "^src/lib/variants/" OR _relative STREQUAL "src/lib/include/wjs/profiling_types.hpp")
+    if(_relative MATCHES "^libs/core/variants/" OR _relative STREQUAL "libs/core/include/wjs/profiling_types.hpp")
         continue()
     endif()
 
@@ -189,7 +190,8 @@ endforeach()
 
 # --- the QML seam -------------------------------------------------------------
 
-file(GLOB_RECURSE _qml_sources "${REPO_ROOT}/src/*.qml" "${REPO_ROOT}/src/*.js")
+file(GLOB_RECURSE _qml_sources "${REPO_ROOT}/apps/*.qml" "${REPO_ROOT}/apps/*.js"
+    "${REPO_ROOT}/libs/*.qml" "${REPO_ROOT}/libs/*.js")
 foreach(_source IN LISTS _qml_sources)
     file(RELATIVE_PATH _relative "${REPO_ROOT}" "${_source}")
     file(STRINGS "${_source}" _lines)

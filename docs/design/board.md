@@ -268,14 +268,14 @@ and `show` is the same with or without it. What it saves is in
 [Shake prototype](shake-prototype.md#the-real-faces). The application gives the
 dealt board to `prepare` and starts the play on the next frame.
 
-**Built.** `SoloBoard` (`src/app/solo/solo_game.hpp`) carries `faces` and `up`
+**Built.** `SoloBoard` (`apps/app/src/solo/solo_game.hpp`) carries `faces` and `up`
 beside the tiles. `RealSoloGame::board()` takes them from
 `wjs::roll_with_placements` with the dealt board's seed on the standard board;
 the phonics board and the fake game carry none, and a game brought back from the
 store carries none (its board's roll seed was not kept). The scene is the QML
-module `WordJewelsSolver.Scene` (`src/app/scene`, QML in
-`src/app/qml/scene/`), and the 2D implementation of the same interface is kept
-at `src/app/qml/scene/fallback/` for D2 and is not built.
+module `WordJewelsSolver.Scene` (`apps/app/src/scene`, QML in
+`apps/app/qml/scene/`), and the 2D implementation of the same interface is kept
+at `apps/app/qml/scene/fallback/` for D2 and is not built.
 
 ### Rendered 3D, or drawn in 2D
 
@@ -313,7 +313,7 @@ what Cubeulator has. The cost comes only at a store submission, so:
 2. The scene is written in Qt Quick 3D first. **Built:** it is the QML module
    `WordJewelsSolver.Scene`, used by Solo Play. A 2D implementation of the same
    interface is kept for the fallback if D2 goes the other way
-   (`src/app/qml/scene/fallback/`, not built), and the tile, the path and the
+   (`apps/app/qml/scene/fallback/`, not built), and the tile, the path and the
    panel are 2D in both.
 3. Before any store submission D2 is decided with the interface in hand, and the
    cost of B is a rewrite of one component, not of the game.

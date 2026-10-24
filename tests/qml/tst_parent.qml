@@ -3,7 +3,7 @@ import QtTest
 import WordJewelsSolver
 import WordJewelsSolver.Parent
 
-// The parent area (src/app/qml/parent/): the gate, the dashboard, the settings
+// The parent area (apps/app/qml/parent/): the gate, the dashboard, the settings
 // and the two resets, driven through the application's own ParentController over
 // the demo data's store and phases. The gate's clock is the harness's, so two
 // seconds are two seconds however long the machine takes to draw.

@@ -8,8 +8,8 @@ end and in the [roadmap](roadmap.md).
 ## Source layout
 
 ```text
-src/
-  lib/                 wjs:: the game logic. GUI-free and OS-free
+libs/
+  core/                wjs:: the game logic. GUI-free and OS-free
     include/wjs/         board.hpp  dice.hpp  dice_sets.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp  deal.hpp
                          grapheme_binder.hpp  shake.hpp  game_rules.hpp
@@ -38,10 +38,23 @@ src/
     src/                 board_finder.cpp  confirmation.cpp  geometry.cpp
                          glyph_reader.cpp  image.cpp  reader.cpp  segment.cpp
                          stroke_font.cpp  scratch.hpp (internal)
-  cli/                 main.cpp: wjs-cli
+  platforms/           everything that differs between operating systems
+    interfaces/wjs/platform/
+                         console.hpp  paths.hpp  camera.hpp  board_reader.hpp  haptics.hpp
+                         fatal_error.hpp  window_chrome.hpp
+    detail/              what no platform differs in: camera_unavailable.cpp,
+                         board_reader_portable.cpp, haptics_none.cpp,
+                         fatal_error_stderr.cpp, window_chrome_none.cpp
+    windows/             console_windows.cpp  paths_windows.cpp  fatal_error_windows.cpp
+                         window_chrome_win.cpp  platform.cmake  packaging/
+    linux/               paths_linux.cpp  platform.cmake  packaging/ (AppImage recipe)
+    macos/               paths_macos.cpp  platform.cmake  packaging/ (bundle, signing)
+    ios/                 paths_ios.cpp  platform.cmake  packaging/ (Info.plist.in,
+                         Assets.xcassets, verify_ipa.sh): written, never run on a device
+    posix/               console_posix.cpp (shared by Linux, macOS and iOS)
+apps/
+  cli/                 src/main.cpp: wjs-cli
   app/                 the Qt Quick application (WordJewelsSolver; WJS_BUILD_APP=AUTO)
-    main.cpp             the program: options, the one store, the game's setup, the
-                         window; startup_failure.* says why it could not start
     qml/Main.qml         the window: a shell that shows the screen Navigation names
     qml/Home.qml         home (HomeWording.qml: its sentences)
     qml/kit/             Theme (the tokens), Navigation, Feedback, and the parts the
@@ -62,51 +75,40 @@ src/
     qml/parent/          ParentArea, GateScreen, DashboardScreen, SettingsScreen,
                          AboutScreen, LicencesScreen, ResetStep, Section, SettingRow,
                          and ParentWording (every sentence a parent reads)
-    camera/              CameraSource (QML element: the live view and one frame),
-                         CameraBackend (its variant seam), frame_conversion.*
-    scene/               the scene's C++ objects for QML: DiceSim (dice_sim.*), DieGeometry
-                         (die_geometry.*), the Profiler singleton (profiler.*), and sim/
-                         (the wjs_dice_world library)
-    solo/                solo_game.hpp (the port), real_solo_game.* (over the library's
-                         session), solo_game_setup.* (what it is made from),
-                         solo_game_factory.*, fake_solo_game.*, solo_model.*,
-                         path_tracer.*, board_layout.*, solo_layout.*
-    feedback/            FeedbackEngine (the one cue seam's engine), SoundEngine,
-                         Speech, MotionSource and SoundSequencePlayer (with its
-                         ClipPlayer), over the backends below
-    variants/            one directory per optional Qt module: sound-multimedia or
-                         sound-silent, speech-texttospeech or speech-silent,
-                         motion-sensors or motion-silent, camera-multimedia or
-                         camera-none (the profiling pattern; each camera variant
-                         also has its CameraPreview.qml)
-    scan/                assist_game.* (the Qt-free Mode A port and its maker),
-                         assist_model.* and scan_model.* (the QML models), CMake
-                         for the WordJewelsSolver.Scan module
-    parent/              the parent area's controller and its QML module (CMake)
-    prototype/shake/     ShakePrototype, the harness around the same scene for timing,
-                         stills and measurement (WJS_BUILD_SHAKE_PROTOTYPE)
-    language_manager.*   the interface's language and layout direction (wjs_i18n)
-    system_colour_scheme.*  whether the system is in dark mode
-    system_motion.*      whether the system asks for reduced motion
-    frame_profiler.*     the window's frame mark and plots
-  platforms/           everything that differs between operating systems
-    interfaces/wjs/platform/
-                         console.hpp  paths.hpp  camera.hpp  board_reader.hpp  haptics.hpp
-                         fatal_error.hpp  window_chrome.hpp
-    detail/              what no platform differs in: camera_unavailable.cpp,
-                         board_reader_portable.cpp, haptics_none.cpp,
-                         fatal_error_stderr.cpp, window_chrome_none.cpp
-    windows/             console_windows.cpp  paths_windows.cpp  fatal_error_windows.cpp
-                         window_chrome_win.cpp  platform.cmake  packaging/
-    linux/               paths_linux.cpp  platform.cmake  packaging/ (AppImage recipe)
-    macos/               paths_macos.cpp  platform.cmake  packaging/ (bundle, signing)
-    ios/                 paths_ios.cpp  platform.cmake  packaging/ (Info.plist.in,
-                         Assets.xcassets, verify_ipa.sh): written, never run on a device
-    posix/               console_posix.cpp (shared by Linux, macOS and iOS)
+    src/                 the application's C++ (the QML elements and models, the program itself)
+      main.cpp             the program: options, the one store, the game's setup, the
+                           window; startup_failure.* says why it could not start
+      camera/              CameraSource (QML element: the live view and one frame),
+                           CameraBackend (its variant seam), frame_conversion.*
+      scene/               the scene's C++ objects for QML: DiceSim (dice_sim.*), DieGeometry
+                           (die_geometry.*), the Profiler singleton (profiler.*), and sim/
+                           (the wjs_dice_world library)
+      solo/                solo_game.hpp (the port), real_solo_game.* (over the library's
+                           session), solo_game_setup.* (what it is made from),
+                           solo_game_factory.*, fake_solo_game.*, solo_model.*,
+                           path_tracer.*, board_layout.*, solo_layout.*
+      feedback/            FeedbackEngine (the one cue seam's engine), SoundEngine,
+                           Speech, MotionSource and SoundSequencePlayer (with its
+                           ClipPlayer), over the backends below
+      variants/            one directory per optional Qt module: sound-multimedia or
+                           sound-silent, speech-texttospeech or speech-silent,
+                           motion-sensors or motion-silent, camera-multimedia or
+                           camera-none (the profiling pattern; each camera variant
+                           also has its CameraPreview.qml)
+      scan/                assist_game.* (the Qt-free Mode A port and its maker),
+                           assist_model.* and scan_model.* (the QML models), CMake
+                           for the WordJewelsSolver.Scan module
+      parent/              the parent area's controller and its QML module (CMake)
+      prototype/shake/     ShakePrototype, the harness around the same scene for timing,
+                           stills and measurement (WJS_BUILD_SHAKE_PROTOTYPE)
+      language_manager.*   the interface's language and layout direction (wjs_i18n)
+      system_colour_scheme.*  whether the system is in dark mode
+      system_motion.*      whether the system asks for reduced motion
+      frame_profiler.*     the window's frame mark and plots
+    translations/        wjs_<code>.ts, the eight languages' catalogues
 assets/                fonts/ (Archivo, IBM Plex Mono, Andika: compiled into the program),
                        icon/, and sounds/ (the project's eight placeholder feedback WAVs)
 data/                  dice/ (3x3 to 6x6), dictionaries/en.txt (ENABLE), lexicon/
-i18n/                  wjs_<code>.ts, the eight languages' catalogues
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        CompilerWarnings.cmake, Sanitizers.cmake, Coverage.cmake,
                        Tracy.cmake, FindQt6.cmake, Vcpkg.cmake, Translations.cmake,
@@ -125,6 +127,7 @@ tools/release/, package/  the release scripts (signing, SBOM, smoke tests) and t
 tools/coverage/, lightprobe/, policy/, repo/, hooks/
                        coverage runs, the baked light probe, the commit and PR text
                        rule, repository rulesets, git hooks
+
 ```
 
 ## How the pieces depend on each other
@@ -152,7 +155,7 @@ tools/coverage/, lightprobe/, policy/, repo/, hooks/
   here.
 - **`wjs::platform`** (target `wjs_platform`, a static library) is the only
   target that includes OS headers. Its public interface is the headers in
-  `src/platforms/interfaces/`; its sources are whichever files the selected
+  `libs/platforms/interfaces/`; its sources are whichever files the selected
   platform's `platform.cmake` names. The library does not use it.
 - **`wjs::scan`** (target `wjs_scan`, a static library) finds a board in a camera
   frame and reads each die's letter. It includes no operating system header and no
@@ -242,16 +245,16 @@ measured.
 `wjs/profiling.hpp` is the one place the code asks to be timed: `zone<"name">()`,
 `frame_mark()`, `plot()`, `message()`, `thread_name()` and the run-time-named
 `RuntimeScope`, as functions and not macros. There are two files of that name
-under `src/lib/variants/`, one with Tracy behind it and one empty, and CMake puts
+under `libs/core/variants/`, one with Tracy behind it and one empty, and CMake puts
 exactly one on the include path through `wjs::profiling` (which `wjs::lib`
 carries publicly), so no source asks which it got. A Release build has the empty
 one: `WJS_ENABLE_TRACY` defaults to on for Debug and off otherwise, and no preset
 a package is built from turns it on (`profiling.shipped_presets`).
 
-The application is instrumented as well: `src/app/frame_profiler.cpp` sends the
+The application is instrumented as well: `apps/app/src/frame_profiler.cpp` sends the
 window's frame mark (`UI`), the plots `ui.frame_ms`, `ui.first_frame_ms`,
 `render.frame_ms` and `ui.sync_ms`, names the render thread, and keeps the
-rolling report the `--smoke` mode prints; `src/app/scene/profiler.cpp` is the
+rolling report the `--smoke` mode prints; `apps/app/src/scene/profiler.cpp` is the
 `Profiler` QML singleton the scene and the screens open their zones with, over
 `wjs::profiling::RuntimeScope` (a transient zone, so a name from QML carries its
 own location: function and file `QML`, line 0). Both are described in
@@ -282,7 +285,7 @@ board. `roll(dice, seed)` is the same roll returning the board alone, for a
 caller that does not draw dice. A board from `deal_standard_board` is the roll of the
 seed it reports (`DealtBoard::seed`), so `roll_with_placements(dice, dealt.seed)` gives
 the dice of a dealt board. The application does this in `RealSoloGame::board()`
-(`src/app/solo/real_solo_game.cpp`): a dealt standard board's `SoloBoard` carries
+(`apps/app/src/solo/real_solo_game.cpp`): a dealt standard board's `SoloBoard` carries
 the six faces of each tile's die and the face that is up. A standard board the
 store brought back keeps no roll seed, and the phonics board and the fake game
 are not rolls, so those carry none and the scene draws the letter on the face
@@ -428,7 +431,7 @@ it may still be going, which is what a live caller asks of a short window of the
 latest samples. A knock, turning the device over, tilting it slowly, walking and a
 gentle wave are not shakes. The numbers are starting values, tuned on synthetic
 traces and not on a device. Reading the sensor is an operating-system service and
-belongs behind an interface in `src/platforms`, which is not written.
+belongs behind an interface in `libs/platforms`, which is not written.
 
 ### Game rules
 
@@ -766,7 +769,7 @@ organisation name on every platform) and keeps `wjs::default_store_path` of it,
 falling back to `wjs::platform::user_data_directory()` only if Qt gives none, to a
 store that is never written if there is no place at all, and to the file
 `--store <file>` names when the person gives one (`open_store` in
-`src/app/main.cpp`).
+`apps/app/src/main.cpp`).
 `session_store.hpp` is the copy between the game session's `BoardRecord` and
 `SessionSnapshot` and the store's values, and does what the session's `restore()` needs on
 the way back (upper-case words in alphabetical order, the session's own tile text).
@@ -798,7 +801,7 @@ no sounds.
 
 ### The scanner
 
-`wjs::scan` (`src/scan`) reads a real board for Mode A: `read_board(frame, options)`
+`wjs::scan` (`libs/scan`) reads a real board for Mode A: `read_board(frame, options)`
 finds the board in a camera frame (the largest convex quadrilateral of a lattice of
 dice), draws it square, counts and centres the cells, and reads each cell's one
 rotated glyph by template matching against the project's own stroke font, answering a
@@ -825,7 +828,7 @@ opened) is a `std::expected<T, E>` value with a small enum for `E` and a
 
 ### The version header
 
-`src/lib/include/wjs/version.hpp.in` is configured by CMake into a generated
+`libs/core/include/wjs/version.hpp.in` is configured by CMake into a generated
 header that holds `wjs::project_version` and `wjs::target_platform` as
 `constexpr` values. That is how the version and the name of the platform reach
 the code without a macro, and why `wjs-cli --version` can print them.
@@ -833,7 +836,7 @@ the code without a macro, and why `wjs-cli --version` can print them.
 ## The platform layer
 
 An OS service the program needs is declared in a header under
-`src/platforms/interfaces/wjs/platform/`, and defined once per platform:
+`libs/platforms/interfaces/wjs/platform/`, and defined once per platform:
 
 | Interface | What it does | Windows | Linux | macOS |
 | --- | --- | --- | --- | --- |
@@ -848,7 +851,7 @@ An OS service the program needs is declared in a header under
 
 Linux, macOS and iOS share `posix/console_posix.cpp`, named by their
 `platform.cmake` files; each platform names the files in `detail/` that it does not
-replace. `src/platforms/ios` is the fragment for the ad-hoc build for the author's own
+replace. `libs/platforms/ios` is the fragment for the ad-hoc build for the author's own
 devices (`paths_ios.cpp`, `platform.cmake`, the Info.plist and asset catalogue): it
 uses the same `detail/` camera stub, portable board reader and no-op haptics as the
 desktops, and Mode A's camera is the Qt Multimedia one below. **It has never run on a
@@ -858,7 +861,7 @@ Objective-C++ in that directory, are **not written**
 There is no Android fragment: Android is in progress and not built.
 
 **The desktop camera is not behind that interface.** Mode A's live view and its
-one capture are the application's `CameraSource` (`src/app/camera`), over Qt
+one capture are the application's `CameraSource` (`apps/app/src/camera`), over Qt
 Multimedia where the kit has it and a `camera-none` backend where it does not:
 the same optional-module variant pattern as the feedback engines, selected by
 CMake with no `#if` in a source. `camera.hpp` stays for a platform whose own
@@ -868,7 +871,7 @@ is the page for the lifecycle, the RGB24 conversion and what was verified.
 
 ## The Qt Quick window
 
-`src/app` is the Qt Quick application. `WJS_BUILD_APP` is `AUTO`: it is built
+`apps/app/src` is the Qt Quick application. `WJS_BUILD_APP` is `AUTO`: it is built
 when a prebuilt Qt 6.12 is found, left out when there is none, and `ON`/`OFF`
 force that choice. It plays both modes of
 [Application design](design/application.md) and [Game design](design/game.md).
@@ -966,7 +969,7 @@ as built, what it lacks and what is untested are on
 [Scanner design](design/scanner.md#mode-a-as-built).
 
 **Feedback and motion.** Every moment is a `Feedback.cue`; `Main.qml` installs
-one `FeedbackEngine` (`src/app/feedback`) on the seam, and the engine carries
+one `FeedbackEngine` (`apps/app/src/feedback`) on the seam, and the engine carries
 the cue out as a short asset (Qt Multimedia), a whole word or a picture's name
 (the platform's Qt TextToSpeech) and a haptic pattern (the platform interface).
 The cue mapping is the library's pure `wjs::plan_cue`, and the parent's Sound,
@@ -1101,8 +1104,8 @@ next run. The size the child last chose on the box is written back to
 a run closed in the middle of a board shows the same board with the same finds.
 
 The parent area (the gate, the dashboard, the settings and the about page) is a QML
-module of its own, `WordJewelsSolver.Parent`, in `src/app/parent` (C++) and
-`src/app/qml/parent` (screens), linked by one line of `src/app/CMakeLists.txt`.
+module of its own, `WordJewelsSolver.Parent`, in `apps/app/src/parent` (C++) and
+`apps/app/qml/parent` (screens), linked by one line of `apps/app/CMakeLists.txt`.
 `ParentController` is the shape Qt Quick wants over the library's rules, plus the
 clock; `ParentArea.qml` is one screen with a controller and a `closed()` signal. The
 program makes one `Store` in `main.cpp` and shares it with the game (the setup holds it
@@ -1130,7 +1133,7 @@ display. See [The parent area as built](design/parent-area.md).
 | `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording, models and the camera source. Linked by `WordJewelsSolver` as `wjs_scan_uiplugin` |
 | `wjs_parent` | static QML module (`WordJewelsSolver.Parent`) | The parent area: the controller and the screens (the gate, the dashboard, the settings, the about page) |
 | `wjs_feedback` | static library | The sound, speech and motion engines and the sound-it-out player, over the variant backends |
-| `wjs_i18n` | static library | The interface language, the layout direction and the eight catalogues compiled from `i18n/` |
+| `wjs_i18n` | static library | The interface language, the layout direction and the eight catalogues compiled from `apps/app/translations/` |
 | `wjs_trace` | static library | `PathTracer`, the touch half of making a word, shared by Solo Play's model and the assistant's |
 | `ShakePrototype` | executable `ShakePrototype` | `WJS_BUILD_SHAKE_PROTOTYPE`, with the application built; the harness around `wjs_scene` |
 | `wjs_unit_tests` | executable | Catch2 |
@@ -1153,7 +1156,7 @@ display. See [The parent area as built](design/parent-area.md).
 - The front ends are the CLI and the Qt Quick window, for Windows, Linux and macOS
   (0.1 is those three desktops and an ad-hoc iOS build for the author's own devices,
   [D11](roadmap.md#4-decisions-that-gate-the-plan)). The iOS build is written
-  (`src/platforms/ios`, `ios-build.yml`) and has never run on a device. Android is in
+  (`libs/platforms/ios`, `ios-build.yml`) and has never run on a device. Android is in
   progress and not built; there is no web build and no phone layout. In CI the window
   is built for Windows, and for iOS as a compile check ([CI](ci.md#not-here-yet)).
 
@@ -1162,7 +1165,7 @@ display. See [The parent area as built](design/parent-area.md).
 These do not exist, and nothing in the tree stands in for them:
 
 - **A camera on a real device.** The desktop path is built: `CameraSource`
-  (`src/app/camera`) over Qt Multimedia, with a `camera-none` variant for a kit
+  (`apps/app/src/camera`) over Qt Multimedia, with a `camera-none` variant for a kit
   without the module, a live `VideoOutput` preview and one-frame capture through
   the reader. **No camera is attached to the machine it was built on**, so no
   device has been opened and no real picture has been read (the ad-hoc iOS build,
@@ -1178,7 +1181,7 @@ These do not exist, and nothing in the tree stands in for them:
   (`[.recorded]`) is tested on made frames and has never read a photograph.
 - **Phonics phase data.** The reader, the checks, the seeding, the binder, the
   shake detector, the game rules and the game session exist and are tested, and **the
-  window uses them**: `SoloGameSetup` (`src/app/solo/solo_game_setup.cpp`) loads the
+  window uses them**: `SoloGameSetup` (`apps/app/src/solo/solo_game_setup.cpp`) loads the
   word list, the dice and, given `--phase-directory`, the phases, and `RealSoloGame`
   (`real_solo_game.cpp`) plays them through `wjs::GameSession`, which calls the deal,
   the seeding, the rules and the binder. The standard board is played by default; the

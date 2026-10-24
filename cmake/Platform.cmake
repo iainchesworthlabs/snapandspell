@@ -4,7 +4,7 @@
 # This file maps the toolchain's own flags (WIN32, APPLE, UNIX) to a platform
 # name, then includes that platform's fragment:
 #
-#     src/platforms/<name>/platform.cmake
+#     libs/platforms/<name>/platform.cmake
 #
 # Everything the platform contributes - its source files, system libraries,
 # compile definitions and deployment steps - is declared in that fragment, and
@@ -13,7 +13,7 @@
 # (docs/platform-isolation.md; tools/checks/check_platform_isolation.ps1 holds
 # the source side of that in CI).
 #
-# Adding a platform is therefore two edits: a src/platforms/<name>/ directory
+# Adding a platform is therefore two edits: a libs/platforms/<name>/ directory
 # (its implementations plus a platform.cmake that fills in the contract below),
 # and one branch in the selector here.
 #
@@ -55,7 +55,7 @@
 #                                 system's Qt is loaded instead, and writing
 #                                 that script's qt.conf would misdirect it.
 #
-# Build inputs (paths are relative to src/platforms):
+# Build inputs (paths are relative to libs/platforms):
 #   WJS_PLATFORM_SOURCES          Compiled into wjs_platform: one
 #                                 implementation of every interfaces/ header.
 #   WJS_PLATFORM_LINK_LIBRARIES   System libraries wjs_platform needs.
@@ -116,21 +116,21 @@ elseif(UNIX)
     set(WJS_PLATFORM linux)
 else()
     message(FATAL_ERROR
-        "Unsupported target platform. Add src/platforms/<name>/ with a "
+        "Unsupported target platform. Add libs/platforms/<name>/ with a "
         "platform.cmake (see the contract at the top of cmake/Platform.cmake) "
         "and a branch for it in this file.")
 endif()
 
-set(WJS_PLATFORM_DIR "${PROJECT_SOURCE_DIR}/src/platforms/${WJS_PLATFORM}")
+set(WJS_PLATFORM_DIR "${PROJECT_SOURCE_DIR}/libs/platforms/${WJS_PLATFORM}")
 include("${WJS_PLATFORM_DIR}/platform.cmake")
 
 # What the version block says this binary was built for and with (the target's
 # own name, word size and compiler). Named here, in the one file that tests the
-# OS, so src/lib/CMakeLists.txt reads a plain variable.
+# OS, so libs/core/CMakeLists.txt reads a plain variable.
 set(WJS_VERSION_TARGET "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}, ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 
 # A fragment that forgets part of the contract should fail here, by name, not
 # as an empty source list or a missing-command error three files away.
 include(PlatformContract)
 wjs_platform_check_contract("${WJS_PLATFORM_DIR}/platform.cmake"
-    "${PROJECT_SOURCE_DIR}/src/platforms")
+    "${PROJECT_SOURCE_DIR}/libs/platforms")

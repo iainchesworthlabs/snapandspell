@@ -104,7 +104,7 @@ elseif(CASE MATCHES "^output-every-time-[1-4]$")
     # Debug build (AddressSanitizer and the profiler's client) the flush at exit was
     # lost about one run in ten, so --version and --help sometimes left 0 with nothing
     # printed; one run proves nothing, so each is run 60 times, which a loss of
-    # one in ten does not survive. The program flushes its output itself now (src/cli/main.cpp).
+    # one in ten does not survive. The program flushes its output itself now (apps/cli/src/main.cpp).
     # The 60 runs are four cases of 15 (output-every-time-1 to -4), so that ctest runs the
     # four at once: a run starts the program, and under the sanitizers that is the cost.
     foreach(_run RANGE 1 15)

@@ -1,10 +1,10 @@
 # Included from the top-level CMakeLists.txt after project(): reads the
-# provenance the version block (src/lib/include/wjs/version.hpp.in) states, once
+# provenance the version block (libs/core/include/wjs/version.hpp.in) states, once
 # at configure time. Sets WJS_GIT_COMMIT, WJS_GIT_DESCRIBE, WJS_GIT_BRANCH and
 # WJS_GIT_DIRTY.
 
 # ---------------------------------------------------------------------------
-# Git provenance for the version block (src/lib/include/wjs/version.hpp.in):
+# Git provenance for the version block (libs/core/include/wjs/version.hpp.in):
 # what the build was built from, read once at configure time. A tree git
 # cannot be asked (a source tarball) keeps the "unknown" defaults.
 # ---------------------------------------------------------------------------

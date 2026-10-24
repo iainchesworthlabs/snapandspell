@@ -64,9 +64,9 @@ fix it rather than silence it.
 ## Platform code: the one rule that is not about style
 
 The operating system is chosen by CMake, not by the source. Code that differs
-between systems lives in `src/platforms/<name>/`, behind a header in
-`src/platforms/interfaces/`, and the platform's `platform.cmake` names the files
-it compiles. Outside `src/platforms/` and `tests/platform/` there is:
+between systems lives in `libs/platforms/<name>/`, behind a header in
+`libs/platforms/interfaces/`, and the platform's `platform.cmake` names the files
+it compiles. Outside `libs/platforms/` and `tests/platform/` there is:
 
 - no `#if`, `#ifdef`, `#else` or `#endif`, and no `#define` or `#undef`, in any
   first-party C++;
@@ -94,7 +94,7 @@ what to do instead of an `#ifdef`, and how to add a platform.
   `clang-format` before committing, or have your editor do it on save.
 - [`.clang-tidy`](.clang-tidy) is the static-analysis configuration. Warnings in
   the compiler's own set are errors in every build.
-- Keep the library GUI-free and platform-free. Qt belongs in `src/app` and
+- Keep the library GUI-free and platform-free. Qt belongs in `apps/app/src` and
   nowhere else.
 
 ## Commits and pull requests

@@ -4,7 +4,7 @@
 
 Needs Pillow (`pip install pillow`); the result is committed, so only a person who
 changes assets/icon runs it. It writes
-src/platforms/android/packaging/res/mipmap-xxxhdpi/ic_launcher_foreground.png.
+libs/platforms/android/packaging/res/mipmap-xxxhdpi/ic_launcher_foreground.png.
 
 An adaptive icon is a 108-dp square of which the launcher shows a mask-shaped part
 (at most the middle 72 dp, and the mask may cut anything outside the middle 66 dp). The
@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "assets/icon/app.png"
 OUTPUT = (
     ROOT
-    / "src/platforms/android/packaging/res/mipmap-xxxhdpi/ic_launcher_foreground.png"
+    / "libs/platforms/android/packaging/res/mipmap-xxxhdpi/ic_launcher_foreground.png"
 )
 
 FRAME = (23, 50, 58)  # the dark frame inside the gold rim (#17323A, Theme.tray)

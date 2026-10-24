@@ -73,20 +73,20 @@ add_library(wjs_quick_tests_support STATIC
     "${PROJECT_SOURCE_DIR}/tests/app/parent_ui/demo_data.cpp"
     quick_fixture.cpp
     quick_fixture.hpp
-    "${PROJECT_SOURCE_DIR}/src/app/parent/parent_controller.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/fake_solo_game.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_factory.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/solo_model.cpp")
+    "${PROJECT_SOURCE_DIR}/apps/app/src/parent/parent_controller.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/fake_solo_game.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_game.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_game_factory.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_model.cpp")
 set_target_properties(wjs_quick_tests_support PROPERTIES AUTOMOC ON)
 target_include_directories(wjs_quick_tests_support
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${PROJECT_SOURCE_DIR}/src/app"
-        "${PROJECT_SOURCE_DIR}/src/app/camera"
-        "${PROJECT_SOURCE_DIR}/src/app/parent"
-        "${PROJECT_SOURCE_DIR}/src/app/scan"
-        "${PROJECT_SOURCE_DIR}/src/app/solo"
+        "${PROJECT_SOURCE_DIR}/apps/app/src"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/camera"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/parent"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/scan"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/solo"
         "${PROJECT_SOURCE_DIR}/tests/app/parent_ui")
 target_link_libraries(wjs_quick_tests_support
     PUBLIC
@@ -112,7 +112,7 @@ target_compile_definitions(wjs_quick_tests PRIVATE
 # Play's screens, each aliased to its own name in the module. The aliases are
 # flat (AppButton.qml, not qml/kit/AppButton.qml) so no extra directory needs a
 # qmldir; a type is named by its file's basename either way.
-set(WJS_QUICK_TEST_QML_DIR "${PROJECT_SOURCE_DIR}/src/app/qml")
+set(WJS_QUICK_TEST_QML_DIR "${PROJECT_SOURCE_DIR}/apps/app/qml")
 set(WJS_QUICK_TEST_QML_SOURCES "")
 
 # The kit, from the one list the application and the previews use.
@@ -170,9 +170,9 @@ qt_add_qml_module(wjs_quick_tests
     IMPORT_PATH "${WJS_QUICK_TEST_SCENE_IMPORT}"
     QML_FILES ${WJS_QUICK_TEST_QML_SOURCES}
     SOURCES
-        "${PROJECT_SOURCE_DIR}/src/app/solo/board_layout.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp")
+        "${PROJECT_SOURCE_DIR}/apps/app/src/solo/board_layout.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_layout.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.cpp")
 
 target_link_libraries(wjs_quick_tests
     PRIVATE

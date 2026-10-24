@@ -9,7 +9,7 @@ It is also a game and a learning aid for young children (five and six year
 olds): **Solo Play** is a Boggle-like game where the child shakes a box of dice
 and finds words, and **Mode A** reads a real board from a camera (or a typed
 board) and helps the child find its words while an adult plays. The reader that
-finds a board in a camera frame and reads its letters (`src/scan`) is tested on
+finds a board in a camera frame and reads its letters (`libs/scan`) is tested on
 **drawn frames only**: the camera backend is written (Qt Multimedia, on the
 desktops) but it has never read a real board.
 
@@ -35,13 +35,13 @@ A board in play, in Solo Play at its smallest window (more in
 
 | Part | Where | State |
 | --- | --- | --- |
-| The library: board parsing, a trie dictionary, scoring, a depth-first solver, dice and deals, the game session, the store, the parent gate and dashboard. No GUI, no operating system code | `src/lib` | Unit tested |
-| `wjs-cli`, a command-line front end | `src/cli` | Works; not covered by a test of its own |
-| Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `src/platforms` | Built and tested by CI on Windows, Linux and macOS |
-| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the end-of-board summary, My jewels and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `src/app`, `src/lib` | Built when a prebuilt Qt 6.12 is found (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI (the Linux and macOS legs build the library and the command-line solver; the release workflow builds the application on those two); installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
-| A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces, and a desktop camera over Qt Multimedia | `src/scan`, `src/app/scan`, `src/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; the camera backend is never constructed in a test and has not read a real frame; never tried on a real board ([design](docs/design/scanner.md)) |
+| The library: board parsing, a trie dictionary, scoring, a depth-first solver, dice and deals, the game session, the store, the parent gate and dashboard. No GUI, no operating system code | `libs/core` | Unit tested |
+| `wjs-cli`, a command-line front end | `apps/cli` | Works; not covered by a test of its own |
+| Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `libs/platforms` | Built and tested by CI on Windows, Linux and macOS |
+| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the end-of-board summary, My jewels and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `apps/app/src`, `libs/core` | Built when a prebuilt Qt 6.12 is found (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI (the Linux and macOS legs build the library and the command-line solver; the release workflow builds the application on those two); installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
+| A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces, and a desktop camera over Qt Multimedia | `libs/scan`, `apps/app/src/scan`, `libs/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; the camera backend is never constructed in a test and has not read a real frame; never tried on a real board ([design](docs/design/scanner.md)) |
 | Catch2 unit, scanner, app and performance tests, Quick Test suites for the QML, and the repository checks (platform isolation, privacy, packaging, translations, toolchain pins) | `tests`, `tools/checks` | Pass in CI on Windows, Linux and macOS (what each leg runs: [docs/ci.md](docs/ci.md)) |
-| An ad-hoc iOS build for the author's own devices | `src/platforms/ios`, `.github/workflows/release.yml` | Written; the signing and the install have **never run** ([docs/ios-install.md](docs/ios-install.md)) |
+| An ad-hoc iOS build for the author's own devices | `libs/platforms/ios`, `.github/workflows/release.yml` | Written; the signing and the install have **never run** ([docs/ios-install.md](docs/ios-install.md)) |
 
 The sound cues are placeholder WAVs owned by the project
 (`assets/sounds`, written by `tools/sounds/make_sounds.ps1`); the phoneme clips
@@ -167,24 +167,26 @@ scheme), the exit codes and the board format are in
 ## Layout
 
 ```text
-src/
-  lib/            wjs:: the game logic: board, dictionary, scoring, solver, dice,
+libs/
+  core/           wjs:: the game logic: board, dictionary, scoring, solver, dice,
                   the game session, the store, the parent gate, feedback policy
   scan/           wjs::scan, the board reader (camera frame to letters)
-  cli/            wjs-cli
-  app/            the Qt Quick application (WordJewelsSolver; WJS_BUILD_APP=AUTO):
-                  qml/ (kit/ is the design system), solo/, scan/, parent/,
-                  feedback/, scene/ (the 3D board)
   platforms/      everything that differs between operating systems
     interfaces/     one header per OS service (wjs/platform/*.hpp)
-    windows/ linux/ macos/ ios/ posix/
+    windows/ linux/ macos/ ios/ android/ posix/
                     implementations, and each platform's platform.cmake
+apps/
+  cli/            wjs-cli
+  app/            the Qt Quick application (WordJewelsSolver; WJS_BUILD_APP=AUTO):
+    qml/            the screens (kit/ is the design system), solo/, scan/, parent/
+    src/            the C++ behind them: solo/, scan/, parent/, feedback/, scene/
+                    (the 3D board), camera/, variants/
+    translations/   the eight interface catalogues (Qt Linguist .ts)
 cmake/            Platform.cmake (the one place the OS is chosen), Vcpkg.cmake,
                   warnings, sanitizers, coverage, Tracy, Qt discovery,
                   translations, installation and CPack (Packaging.cmake), the
                   third-party notices (Notices.cmake)
 assets/ data/     fonts and sounds; the dictionary, the dice and the word lists
-i18n/             the eight interface catalogues (Qt Linguist .ts)
 notices/
   fragments/      one plain-text section each of NOTICES.txt
   licences/       the licence texts those sections reproduce
@@ -207,7 +209,7 @@ docs/             this documentation (mkdocs-material)
 ```
 
 The operating system is a build-system decision, never a source-code one: no
-`#ifdef`, no OS header and no "which OS am I on" outside `src/platforms`. A
+`#ifdef`, no OS header and no "which OS am I on" outside `libs/platforms`. A
 check enforces it. See [docs/platform-isolation.md](docs/platform-isolation.md).
 
 ## Documentation

@@ -21,32 +21,32 @@ add_executable(wjs_app_tests
     startup_failure_test.cpp
     system_colour_scheme_test.cpp
     system_motion_test.cpp
-    "${PROJECT_SOURCE_DIR}/src/app/camera/camera_source.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/camera/frame_conversion.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/camera/camera_source.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/camera/frame_conversion.cpp"
     "${WJS_CAMERA_VARIANT_DIR}/wjs/app/camera_backend.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/parent/parent_controller.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scan/assist_game.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scan/assist_game_factory.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scan/assist_model.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scan/scan_model.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/board_layout.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/fake_solo_game.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/real_solo_game.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_factory.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/solo_game_setup.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/solo/solo_model.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/startup_failure.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/system_motion.cpp")
+    "${PROJECT_SOURCE_DIR}/apps/app/src/parent/parent_controller.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scan/assist_game.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scan/assist_game_factory.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scan/assist_model.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scan/scan_model.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/board_layout.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/fake_solo_game.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/real_solo_game.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_game.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_game_factory.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_game_setup.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_layout.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_model.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/startup_failure.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/system_motion.cpp")
 set_target_properties(wjs_app_tests PROPERTIES AUTOMOC ON)
 target_include_directories(wjs_app_tests PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/app"
-    "${PROJECT_SOURCE_DIR}/src/app/camera"
-    "${PROJECT_SOURCE_DIR}/src/app/parent"
-    "${PROJECT_SOURCE_DIR}/src/app/scan"
-    "${PROJECT_SOURCE_DIR}/src/app/solo"
+    "${PROJECT_SOURCE_DIR}/apps/app/src"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/camera"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/parent"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scan"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo"
     "${CMAKE_CURRENT_SOURCE_DIR}/parent_ui"
     "${WJS_TESTS_DIR}/scan/synth"
     "${WJS_CAMERA_VARIANT_DIR}")
@@ -56,7 +56,7 @@ target_include_directories(wjs_app_tests PRIVATE
 # (language_test.cpp).
 target_compile_definitions(wjs_app_tests PRIVATE
     "WJS_DATA_DIRECTORY=\"${PROJECT_SOURCE_DIR}/data\""
-    "WJS_I18N_DIRECTORY=\"${PROJECT_SOURCE_DIR}/i18n\"")
+    "WJS_I18N_DIRECTORY=\"${PROJECT_SOURCE_DIR}/apps/app/translations\"")
 target_link_libraries(wjs_app_tests
     PRIVATE
         wjs_feedback
@@ -115,7 +115,7 @@ catch_discover_tests(wjs_app_tests
     ADD_TAGS_AS_LABELS
     PROPERTIES ${_wjs_app_test_properties})
 
-# The 3D board scene's script (src/app/qml/scene/ShakeScript.js) in Qt's own
+# The 3D board scene's script (apps/app/qml/scene/ShakeScript.js) in Qt's own
 # JavaScript engine, so what is tested is the file the scene plays and not a
 # copy, with the dice simulation (DiceSim) it drives. The checks are in
 # shake_script_check.js. They are about the dice's faces: that a die lands with
@@ -128,15 +128,15 @@ add_executable(wjs_shake_script_tests
     dice_sim_test.cpp
     profiler_test.cpp
     shake_script_test.cpp
-    "${PROJECT_SOURCE_DIR}/src/app/scene/dice_sim.cpp"
-    "${PROJECT_SOURCE_DIR}/src/app/scene/profiler.cpp")
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scene/dice_sim.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scene/profiler.cpp")
 set_target_properties(wjs_shake_script_tests PROPERTIES AUTOMOC ON)
 target_include_directories(wjs_shake_script_tests PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/app/scene"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scene"
     # budgets.hpp: the scene's work budgets are in the tier's one file.
     "${WJS_TESTS_DIR}/perf")
 target_compile_definitions(wjs_shake_script_tests PRIVATE
-    "WJS_SHAKE_SCRIPT=\"${PROJECT_SOURCE_DIR}/src/app/qml/scene/ShakeScript.js\""
+    "WJS_SHAKE_SCRIPT=\"${PROJECT_SOURCE_DIR}/apps/app/qml/scene/ShakeScript.js\""
     "WJS_SHAKE_SCRIPT_CHECK=\"${CMAKE_CURRENT_SOURCE_DIR}/shake_script_check.js\"")
 target_link_libraries(wjs_shake_script_tests
     PRIVATE
@@ -184,15 +184,15 @@ catch_discover_tests(wjs_frame_timing_tests DISCOVERY_MODE PRE_TEST
     TEST_PREFIX "system.frame."
     PROPERTIES RUN_SERIAL TRUE TIMEOUT 240 LABELS "system;perf;gui")
 
-# The window's frame clock (src/app/frame_profiler.cpp) on a window that is
+# The window's frame clock (apps/app/src/frame_profiler.cpp) on a window that is
 # never shown: the signals it listens to are emitted by the test, from a
 # thread of its own for the render thread's. Its own binary because it needs
 # Qt Quick and a GUI application on the offscreen platform.
 add_executable(wjs_frame_profiler_tests
     frame_profiler_test.cpp
-    "${PROJECT_SOURCE_DIR}/src/app/frame_profiler.cpp")
+    "${PROJECT_SOURCE_DIR}/apps/app/src/frame_profiler.cpp")
 set_target_properties(wjs_frame_profiler_tests PROPERTIES AUTOMOC ON)
-target_include_directories(wjs_frame_profiler_tests PRIVATE "${PROJECT_SOURCE_DIR}/src/app")
+target_include_directories(wjs_frame_profiler_tests PRIVATE "${PROJECT_SOURCE_DIR}/apps/app/src")
 target_link_libraries(wjs_frame_profiler_tests
     PRIVATE
         Qt6::Core
@@ -218,15 +218,15 @@ qt_policy(SET QTP0001 NEW)
 # AppButton, SegmentedChoice), so the shell carries the kit as the module
 # WordJewelsSolver, in a library of its own as tests/qml does for its scene:
 # the shell's own module is ParentPreview.
-include("${PROJECT_SOURCE_DIR}/src/app/qml/kit/kit_files.cmake")
+include("${PROJECT_SOURCE_DIR}/apps/app/qml/kit/kit_files.cmake")
 set(WJS_PARENT_PREVIEW_KIT_SOURCES "")
 foreach(_file IN LISTS WJS_KIT_QML_FILES)
-    set_source_files_properties("${PROJECT_SOURCE_DIR}/src/app/qml/kit/${_file}"
+    set_source_files_properties("${PROJECT_SOURCE_DIR}/apps/app/qml/kit/${_file}"
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")
-    list(APPEND WJS_PARENT_PREVIEW_KIT_SOURCES "${PROJECT_SOURCE_DIR}/src/app/qml/kit/${_file}")
+    list(APPEND WJS_PARENT_PREVIEW_KIT_SOURCES "${PROJECT_SOURCE_DIR}/apps/app/qml/kit/${_file}")
 endforeach()
 foreach(_file IN LISTS WJS_KIT_QML_SINGLETONS)
-    set_source_files_properties("${PROJECT_SOURCE_DIR}/src/app/qml/kit/${_file}"
+    set_source_files_properties("${PROJECT_SOURCE_DIR}/apps/app/qml/kit/${_file}"
         PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 endforeach()
 qt_add_library(wjs_parent_preview_kit STATIC)
@@ -237,9 +237,9 @@ qt_add_qml_module(wjs_parent_preview_kit
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/parent-preview-kit/WordJewelsSolver"
     QML_FILES ${WJS_PARENT_PREVIEW_KIT_SOURCES}
     SOURCES
-        "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.hpp")
-target_include_directories(wjs_parent_preview_kit PUBLIC "${PROJECT_SOURCE_DIR}/src/app")
+        "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.hpp")
+target_include_directories(wjs_parent_preview_kit PUBLIC "${PROJECT_SOURCE_DIR}/apps/app/src")
 target_link_libraries(wjs_parent_preview_kit
     PUBLIC
         Qt6::Core
@@ -268,7 +268,7 @@ qt_add_qml_module(wjs_parent_preview
     QML_FILES parent_ui/PreviewHost.qml)
 # A console program, so that the check's findings reach the test log.
 set_target_properties(wjs_parent_preview PROPERTIES WIN32_EXECUTABLE OFF)
-target_include_directories(wjs_parent_preview PRIVATE "${PROJECT_SOURCE_DIR}/src/app/parent")
+target_include_directories(wjs_parent_preview PRIVATE "${PROJECT_SOURCE_DIR}/apps/app/src/parent")
 target_link_libraries(wjs_parent_preview
     PRIVATE
         wjs_parentplugin
@@ -290,7 +290,7 @@ wjs_platform_deploy_qt_runtime(wjs_parent_preview "${CMAKE_CURRENT_SOURCE_DIR}/p
 # a package's application reads, and fails if the resource is missing.
 wjs_add_notices_resource(wjs_parent_preview)
 # The QML compiler's generated C++ and MSVC's C4702, as for the application's
-# own QML target (src/app/CMakeLists.txt).
+# own QML target (apps/app/CMakeLists.txt).
 get_target_property(_wjs_parent_preview_sources wjs_parent_preview SOURCES)
 foreach(_wjs_source IN LISTS _wjs_parent_preview_sources)
     if(_wjs_source MATCHES "/[.]rcc/qmlcache/")
@@ -337,10 +337,10 @@ add_executable(wjs_scan_preview
     scan_ui/preview_main.cpp)
 set_target_properties(wjs_scan_preview PROPERTIES AUTOMOC ON WIN32_EXECUTABLE OFF)
 
-# The whole kit, from the one list (src/app/qml/kit/kit_files.cmake): a kit
+# The whole kit, from the one list (apps/app/qml/kit/kit_files.cmake): a kit
 # component that uses another fails to load in a preview that lacks it.
-include("${PROJECT_SOURCE_DIR}/src/app/qml/kit/kit_files.cmake")
-set(WJS_SCAN_PREVIEW_KIT_DIR "${PROJECT_SOURCE_DIR}/src/app/qml/kit")
+include("${PROJECT_SOURCE_DIR}/apps/app/qml/kit/kit_files.cmake")
+set(WJS_SCAN_PREVIEW_KIT_DIR "${PROJECT_SOURCE_DIR}/apps/app/qml/kit")
 set(WJS_SCAN_PREVIEW_KIT_FILES ${WJS_KIT_QML_FILES})
 set(WJS_SCAN_PREVIEW_KIT_SOURCES "")
 foreach(_file IN LISTS WJS_SCAN_PREVIEW_KIT_FILES)
@@ -349,10 +349,10 @@ foreach(_file IN LISTS WJS_SCAN_PREVIEW_KIT_FILES)
     list(APPEND WJS_SCAN_PREVIEW_KIT_SOURCES "${WJS_SCAN_PREVIEW_KIT_DIR}/${_file}")
 endforeach()
 # The history's pictures: the same BoardThumb Solo Play's history uses.
-set_source_files_properties("${PROJECT_SOURCE_DIR}/src/app/qml/solo/BoardThumb.qml"
+set_source_files_properties("${PROJECT_SOURCE_DIR}/apps/app/qml/solo/BoardThumb.qml"
     PROPERTIES QT_RESOURCE_ALIAS "qml/solo/BoardThumb.qml")
 list(APPEND WJS_SCAN_PREVIEW_KIT_SOURCES
-    "${PROJECT_SOURCE_DIR}/src/app/qml/solo/BoardThumb.qml")
+    "${PROJECT_SOURCE_DIR}/apps/app/qml/solo/BoardThumb.qml")
 foreach(_file IN LISTS WJS_KIT_QML_SINGLETONS)
     set_source_files_properties("${WJS_SCAN_PREVIEW_KIT_DIR}/${_file}"
         PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -367,16 +367,16 @@ qt_add_qml_module(wjs_scan_preview
         ${WJS_SCAN_PREVIEW_KIT_SOURCES}
         scan_ui/PreviewHost.qml
     SOURCES
-        "${PROJECT_SOURCE_DIR}/src/app/solo/board_layout.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/solo/solo_layout.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/system_colour_scheme.cpp"
-        "${PROJECT_SOURCE_DIR}/src/app/system_motion.cpp")
+        "${PROJECT_SOURCE_DIR}/apps/app/src/solo/board_layout.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_layout.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.cpp"
+        "${PROJECT_SOURCE_DIR}/apps/app/src/system_motion.cpp")
 
 target_include_directories(wjs_scan_preview PRIVATE
-    "${PROJECT_SOURCE_DIR}/src/app"
-    "${PROJECT_SOURCE_DIR}/src/app/camera"
-    "${PROJECT_SOURCE_DIR}/src/app/scan"
-    "${PROJECT_SOURCE_DIR}/src/app/solo"
+    "${PROJECT_SOURCE_DIR}/apps/app/src"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/camera"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/scan"
+    "${PROJECT_SOURCE_DIR}/apps/app/src/solo"
     "${WJS_TESTS_DIR}/scan/synth"
     "${WJS_CAMERA_VARIANT_DIR}")
 target_link_libraries(wjs_scan_preview
@@ -395,7 +395,7 @@ target_link_libraries(wjs_scan_preview
         wjs::sanitizers
         wjs::coverage)
 # The QML compiler's generated C++ and MSVC's C4702, as for the application's
-# own QML target (src/app/CMakeLists.txt).
+# own QML target (apps/app/CMakeLists.txt).
 get_target_property(_wjs_scan_preview_sources wjs_scan_preview SOURCES)
 foreach(_wjs_source IN LISTS _wjs_scan_preview_sources)
     if(_wjs_source MATCHES "/[.]rcc/qmlcache/")
@@ -449,7 +449,7 @@ set_tests_properties(scan.languages PROPERTIES
 # (docs/design/shake-prototype.md, "The interface"). QML has no interface type.
 add_test(NAME app.scene_contract
     COMMAND "${CMAKE_COMMAND}"
-        "-DSCENES=${PROJECT_SOURCE_DIR}/src/app/qml/scene/BoardScene.qml;${PROJECT_SOURCE_DIR}/src/app/qml/scene/fallback/BoardScene.qml"
+        "-DSCENES=${PROJECT_SOURCE_DIR}/apps/app/qml/scene/BoardScene.qml;${PROJECT_SOURCE_DIR}/apps/app/qml/scene/fallback/BoardScene.qml"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/check_scene_contract.cmake")
 set_tests_properties(app.scene_contract PROPERTIES LABELS "quality")
 
@@ -460,12 +460,12 @@ if(TARGET Qt6::qmllint)
     add_test(NAME app.qml_lint
         COMMAND "${CMAKE_COMMAND}"
             "-DQMLLINT=$<TARGET_FILE:Qt6::qmllint>"
-            "-DRESPONSE=${PROJECT_BINARY_DIR}/src/app/.rcc/qmllint/WordJewelsSolver.rsp"
-            "-DTYPES=${PROJECT_BINARY_DIR}/src/app/WordJewelsSolver/WordJewelsSolver.qmltypes"
-            "-DSCENE_RESPONSE=${PROJECT_BINARY_DIR}/src/app/scene/.rcc/qmllint/wjs_scene.rsp"
-            "-DSCENE_TYPES=${PROJECT_BINARY_DIR}/src/app/scene/WordJewelsSolver/Scene/wjs_scene.qmltypes"
-            "-DSCAN_RESPONSE=${PROJECT_BINARY_DIR}/src/app/scan/.rcc/qmllint/wjs_scan_ui.rsp"
-            "-DSCAN_TYPES=${PROJECT_BINARY_DIR}/src/app/scan/WordJewelsSolver/Scan/wjs_scan_ui.qmltypes"
+            "-DRESPONSE=${PROJECT_BINARY_DIR}/apps/app/.rcc/qmllint/WordJewelsSolver.rsp"
+            "-DTYPES=${PROJECT_BINARY_DIR}/apps/app/WordJewelsSolver/WordJewelsSolver.qmltypes"
+            "-DSCENE_RESPONSE=${PROJECT_BINARY_DIR}/apps/app/src/scene/.rcc/qmllint/wjs_scene.rsp"
+            "-DSCENE_TYPES=${PROJECT_BINARY_DIR}/apps/app/src/scene/WordJewelsSolver/Scene/wjs_scene.qmltypes"
+            "-DSCAN_RESPONSE=${PROJECT_BINARY_DIR}/apps/app/src/scan/.rcc/qmllint/wjs_scan_ui.rsp"
+            "-DSCAN_TYPES=${PROJECT_BINARY_DIR}/apps/app/src/scan/WordJewelsSolver/Scan/wjs_scan_ui.qmltypes"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/run_qmllint.cmake")
     set_tests_properties(app.qml_lint PROPERTIES SKIP_RETURN_CODE 4 LABELS "quality")
 endif()

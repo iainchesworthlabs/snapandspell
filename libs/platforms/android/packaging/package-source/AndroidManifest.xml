@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<!-- The Android application's manifest: what the program asks of the system, and
+     nothing else. It is the package source directory of the application target
+     (wjs_platform_configure_app in libs/platforms/android/platform.cmake):
+     androiddeployqt fills in the values marked INSERT from the target's properties
+     and copies this file over Qt's template. The application id is not written here:
+     Gradle takes it from the target's QT_ANDROID_PACKAGE_NAME and ignores a package
+     attribute.
+
+     PERMISSIONS: the camera, which Mode A uses to read a board, is the only one.
+     There is no network permission, no microphone permission and no storage
+     permission (the program keeps one file in its own private directory), and
+     that is held in two places:
+       - the permissions placeholder of Qt's template is deliberately NOT here. Qt's
+         core module would put its network and storage permissions at it, whatever
+         the program uses; without the placeholder androiddeployqt inserts none;
+       - tests/platform/check_android.cmake reads this file, and CI reads the
+         manifest inside the finished package (libs/platforms/android/packaging/
+         verify_apk.sh), and fails on any permission but the camera.
+     A permission added here is a change to docs/design/application.md,
+     "Privacy, built in and checked", first.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    android:installLocation="auto"
+    android:versionCode="-- %%INSERT_VERSION_CODE%% --"
+    android:versionName="-- %%INSERT_VERSION_NAME%% --">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Asking for the camera must not stop a tablet without one from installing the
+         program: Mode A offers the typed board instead (docs/design/scanner.md).
+         The same for the accelerometer, which the box's shake uses; a button does
+         the same. A touch screen is required: the game is played by touch. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="true" />
+    <!-- %%INSERT_FEATURES -->
+
+    <supports-screens
+        android:anyDensity="true"
+        android:largeScreens="true"
+        android:normalScreens="true"
+        android:smallScreens="true" />
+
+    <!-- allowBackup is off: the parent area's store would otherwise be copied to the
+         person's cloud account by Android's own backup, and nothing leaves the device
+         (docs/product-requirements.md, 12.2). -->
+    <application
+        android:name="org.qtproject.qt.android.bindings.QtApplication"
+        android:allowBackup="false"
+        android:hardwareAccelerated="true"
+        android:label="-- %%INSERT_APP_NAME%% --"
+        android:icon="-- %%INSERT_APP_ICON%% --"
+        android:theme="@style/Theme.WordJewelsSolver"
+        android:enableOnBackInvokedCallback="true">
+        <!-- Every orientation the person's rotation setting allows: the screens lay
+             themselves out from the window's size, not from the device (the same as
+             the iPad's list). -->
+        <activity
+            android:name="org.qtproject.qt.android.bindings.QtActivity"
+            android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density"
+            android:label="-- %%INSERT_APP_NAME%% --"
+            android:launchMode="singleTop"
+            android:resizeableActivity="true"
+            android:screenOrientation="fullUser"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="-- %%INSERT_APP_LIB_NAME%% --" />
+
+            <meta-data
+                android:name="android.app.arguments"
+                android:value="-- %%INSERT_APP_ARGUMENTS%% --" />
+        </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.qtprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/qtprovider_paths"/>
+        </provider>
+    </application>
+</manifest>

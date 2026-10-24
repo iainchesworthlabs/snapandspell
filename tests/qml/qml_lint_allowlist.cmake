@@ -1,5 +1,5 @@
 # The offences the QML lint (check_qml_literals.cmake) still allows, per rule and
-# per file: "path under src/app/qml=count". It is a ceiling that only goes down.
+# per file: "path under apps/app/qml=count". It is a ceiling that only goes down.
 # A screen stream that fixes its file lowers (or deletes) its own lines here; a
 # count above its line, or a file with no line, fails quick.lint. Rules are
 # described at the top of check_qml_literals.cmake. The kit (qml/kit) and the

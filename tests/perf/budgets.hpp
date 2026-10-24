@@ -514,7 +514,7 @@ inline constexpr std::uint64_t kScanCellsRead =
 inline constexpr std::uint64_t kScanComparisons =
     364'500;  // measured 291,600 (225 cells x 48 templates x 27)
 // A warm read allocates no pixel buffers at all: the whole pipeline runs on the
-// reader's thread-local scratch pool (src/scan/src/scratch.hpp); a cold first
+// reader's thread-local scratch pool (libs/scan/src/scratch.hpp); a cold first
 // read on a fresh thread allocates about ten, once. The pool's hand-outs over
 // the corpus are counted too, so a return to per-read allocation is caught both
 // ways.

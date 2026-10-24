@@ -15,7 +15,7 @@
 #include "wjs/scan/frame.hpp"
 #include "wjs/scan/reading.hpp"
 
-// The check screen's model (src/app/scan/scan_model.*): the draft a grown-up
+// The check screen's model (apps/app/src/scan/scan_model.*): the draft a grown-up
 // corrects, the reader's doubts and alternatives, the board size, the typed-board
 // fallback, where the draft came from, the camera retry, and the confirmation
 // that is the only way to a Board. The camera source's own cases are in
@@ -226,7 +226,7 @@ TEST_CASE("without a camera the typed board is the way on, and nothing is faked"
     ScanModel model;
     model.open();
     // The three desktops' camera interface answers `unavailable`
-    // (src/platforms/detail/camera_unavailable.cpp): no capture is pretended.
+    // (libs/platforms/detail/camera_unavailable.cpp): no capture is pretended.
     CHECK_FALSE(model.cameraAvailable());
     CHECK_FALSE(model.cameraCapturing());
     CHECK(model.cameraProblem() == "unavailable");

@@ -1,7 +1,7 @@
 ---
 # Static analysis for first-party code. Kept in step with the compiler warning
 # set in cmake/CompilerWarnings.cmake. The nightly analysis workflow pins
-# clang-tidy (.github/requirements/analysis.txt) and runs this file over src/
+# clang-tidy (.github/requirements/analysis.txt) and runs this file over libs/ and apps/
 # with warnings as errors (docs/ci.md, "Nightly analysis"). A bump of that pin
 # is the moment a check added in a newer clang-tidy can appear.
 #
@@ -63,7 +63,7 @@ Checks: >
   -clang-analyzer-optin.core.EnumCastOutOfRange
 
 WarningsAsErrors: ''
-HeaderFilterRegex: 'src/.*'
+HeaderFilterRegex: '(libs|apps)/.*'
 FormatStyle: file
 
 CheckOptions:

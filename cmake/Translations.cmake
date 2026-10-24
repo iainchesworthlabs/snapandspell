@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # The interface's catalogues (docs/design/application.md, "Languages").
 #
-# One Qt Linguist .ts catalogue per language in i18n/, checked in. lupdate scans
+# One Qt Linguist .ts catalogue per language in apps/app/translations/, checked in. lupdate scans
 # the QML sources (and any C++ that carries qsTr) into them; lrelease compiles
 # them into .qm files at build time, and they are embedded in the wjs_i18n
 # library's resources as :/i18n/wjs_<code>.qm, which LanguageManager loads.
@@ -14,7 +14,7 @@
 # the sources and are not edited by hand except for the translations themselves.
 #
 # The source list is explicit because the QML lives in several modules under
-# src/app/qml (the application's shell and kit, and the parent, scan and scene
+# apps/app/qml (the application's shell and kit, and the parent, scan and scene
 # modules): one directory covers them today, and a module added outside it must
 # be added here.
 # ---------------------------------------------------------------------------
@@ -27,13 +27,13 @@ get_filename_component(WJS_TRANSLATION_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOL
 set(WJS_TRANSLATION_LANGUAGES en fr es de yi he zh ja)
 
 set(WJS_TRANSLATION_SOURCES
-    src/app/qml
-    src/app/main.cpp)
+    apps/app/qml
+    apps/app/src/main.cpp)
 
 set(WJS_TS_FILES "")
 foreach(wjs_language IN LISTS WJS_TRANSLATION_LANGUAGES)
     list(APPEND WJS_TS_FILES
-        "${WJS_TRANSLATION_ROOT}/i18n/wjs_${wjs_language}.ts")
+        "${WJS_TRANSLATION_ROOT}/apps/app/translations/wjs_${wjs_language}.ts")
 endforeach()
 
 # Compile this target's languages and embed them, and add the target that
@@ -68,6 +68,6 @@ function(wjs_add_translations target)
             ${WJS_TRANSLATION_SOURCES}
             -ts ${WJS_TS_FILES}
         WORKING_DIRECTORY "${WJS_TRANSLATION_ROOT}"
-        COMMENT "Updating the interface catalogues in i18n/ from the sources"
+        COMMENT "Updating the interface catalogues in apps/app/translations/ from the sources"
         VERBATIM)
 endfunction()
