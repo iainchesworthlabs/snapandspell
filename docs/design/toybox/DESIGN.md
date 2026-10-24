@@ -169,7 +169,7 @@ The product should also be playable in a browser. What that asks of the design:
 * Layout: the desktop layout inside the page, resizable, with the same minimum. Touch and mouse both work.
 * Fonts: a browser has no system fonts, so every face for every language is bundled and subset (section 13). The first load budget is set in Stage 5 once the sizes are measured.
 * Shake: no accelerometer is assumed; the Shake button, Space and a drag are the ways in (as on a desktop).
-* Camera: only if the browser grants it; the typed board is the way on (as with no camera today). Qt Multimedia's browser support is unverified.
+* Camera: Qt's own page on Qt Multimedia for WebAssembly (<https://doc.qt.io/qt-6/qtmultimedia-wasm.html>) says camera and microphone inputs need the user's permission and a secure (https) context, and that listing the devices can take time while the permissions are asked. GitHub Pages is https. The typed board stays the way on when the browser or the person says no (as with no camera today). Not yet tried with this application.
 * Speech: `docs/design/application.md` records that a search of Qt's TextToSpeech engines found none for WebAssembly, so spoken words are silent on the web unless recorded clips are added. Unverified.
 * The 3D scene: Quick 3D runs on WebGL 2 but is large and heavy. See section 12.1, which recommends the 2D scene.
 * Build: Qt for WebAssembly, single-thread kit (GitHub Pages cannot send the headers that multithreaded Qt needs), published under `/demo/` by the docs workflow (standard section 14).
