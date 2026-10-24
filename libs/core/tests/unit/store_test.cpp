@@ -225,12 +225,12 @@ wjs::StoreData golden_data() {
     return data;
 }
 
-// The version 2 file of golden_data(), as it is on disk: every key spelled out
+// The version 3 file of golden_data(), as it is on disk: every key spelled out
 // here, so that renaming one in the writer or the reader breaks this case
 // (and a user's file with it) instead of passing a round trip. The checksum is
 // worked out by seal(), above, from the format's description.
 const std::string golden_body =
-    "wjs-store 2\n"
+    "wjs-store 3\n"
     "settings help=off board=phonics phase=B focus=ai,ee size=4 sound_it_out=full "
     "celebration=full sound=1 vibration=1 shake=1 motion=system colour=dark timer=down "
     "timer_minutes=15 text=125 font=- language=-\n"
@@ -251,22 +251,76 @@ const std::string golden_body =
 
 }  // namespace
 
-TEST_CASE("the version 2 file of known data is these bytes", "[store][golden]") {
+TEST_CASE("the version 3 file of known data is these bytes", "[store][golden]") {
     CHECK(wjs::serialize_store(golden_data()) == seal(golden_body));
 }
 
-TEST_CASE("the version 2 file of known data is read as that data", "[store][golden]") {
+TEST_CASE("the version 3 file of known data is read as that data", "[store][golden]") {
     const auto parsed = wjs::parse_store(seal(golden_body));
+
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->from_version == 3);
+    CHECK(parsed->data == golden_data());
+}
+
+TEST_CASE("the version 2 file of known data is migrated and read as that data",
+          "[store][golden][migration]") {
+    // The same lines with the version 2 header: the migration changes none of
+    // them, as the language is empty.
+    std::string body = golden_body;
+    body.replace(0, std::string{"wjs-store 3"}.size(), "wjs-store 2");
+
+    const auto parsed = wjs::parse_store(seal(body));
 
     REQUIRE(parsed.has_value());
     CHECK(parsed->from_version == 2);
     CHECK(parsed->data == golden_data());
 }
 
+TEST_CASE("the Chinese of a version 2 file is zh_CN", "[store][migration][language]") {
+    const auto parsed = wjs::parse_store(
+        seal("wjs-store 2\nsettings help=1 board=standard phase=A focus=- size=3 sound_it_out=full "
+             "celebration=full sound=1 vibration=1 shake=1 motion=system colour=system text=100 "
+             "font=- language=zh\ntotal stars=0 next_board=1\n"));
+
+    REQUIRE(parsed.has_value());
+    CHECK(parsed->from_version == 2);
+    CHECK(parsed->data.settings.language == "zh_CN");
+}
+
+TEST_CASE("a language the migration does not touch stays as it was",
+          "[store][migration][language]") {
+    for (const std::string_view code : {"ja", "he", "-"}) {
+        const auto parsed = wjs::parse_store(
+            seal("wjs-store 2\nsettings help=1 board=standard phase=A focus=- size=3 "
+                 "sound_it_out=full celebration=full sound=1 vibration=1 shake=1 motion=system "
+                 "colour=system text=100 font=- language=" +
+                 std::string{code} + "\ntotal stars=0 next_board=1\n"));
+
+        REQUIRE(parsed.has_value());
+        CHECK(parsed->data.settings.language == (code == "-" ? "" : std::string{code}));
+    }
+}
+
+TEST_CASE("a language is matched without regard to case and is kept in its own",
+          "[settings][language]") {
+    CHECK(wjs::canonical_language("zh_cn") == "zh_CN");
+    CHECK(wjs::canonical_language("ZH_CN") == "zh_CN");
+    CHECK(wjs::canonical_language("EN") == "en");
+    CHECK(wjs::canonical_language("zh").empty());
+    CHECK(wjs::canonical_language("").empty());
+
+    wjs::Settings settings;
+    settings.language = "Zh_cN";
+    CHECK(settings.normalized().language == "zh_CN");
+    settings.language = "zh";
+    CHECK(settings.normalized().language.empty());
+}
+
 TEST_CASE("the file says its version on the first line and ends with a checksum", "[store]") {
     const std::string text = wjs::serialize_store(wjs::StoreData{});
 
-    CHECK(text.starts_with("wjs-store 2\n"));
+    CHECK(text.starts_with("wjs-store 3\n"));
     const auto last_line = text.substr(text.rfind('\n', text.size() - 2) + 1);
     CHECK(last_line.starts_with("end "));
     CHECK(last_line.size() == 4 + 16 + 1);
@@ -378,7 +432,7 @@ TEST_CASE("a file bigger than the store can be is refused before it is read", "[
 
 TEST_CASE("a file from a later version is told apart and not read", "[store]") {
     // Not even its checksum is held to this version's: the rest may be anything.
-    const auto parsed = wjs::parse_store("wjs-store 3\nsome new line {}\nend nonsense\n");
+    const auto parsed = wjs::parse_store("wjs-store 4\nsome new line {}\nend nonsense\n");
 
     REQUIRE_FALSE(parsed.has_value());
     CHECK(parsed.error() == wjs::StoreError::newer_version);
@@ -696,8 +750,8 @@ TEST_CASE("migrations run in order, each on what the one before made", "[store][
 }
 
 TEST_CASE("the program's own version has no gaps in its migrations", "[store][migration]") {
-    // From 1 to store_format_version there is one step for each version. There
-    // is one version, so none: when a version 2 is added, its step is too.
+    // From 1 to store_format_version there is one step for each version: when
+    // a version 4 is added, its step is too.
     const auto steps = wjs::builtin_migrations();
     for (int from = 1; from < wjs::store_format_version; ++from) {
         CHECK(std::any_of(steps.begin(), steps.end(),
@@ -1551,7 +1605,7 @@ TEST_CASE("a file from a later version is left exactly as it is and is not writt
           "[store][file]") {
     const TempDirectory dir;
     const fs::path file = dir.path() / "store.wjs";
-    const std::string later = "wjs-store 3\nfinds are now called visits\nend 0123456789abcdef\n";
+    const std::string later = "wjs-store 4\nfinds are now called visits\nend 0123456789abcdef\n";
     spit(file, later);
 
     auto opened = wjs::Store::open(file);
@@ -1634,7 +1688,7 @@ TEST_CASE("a version 1 file is migrated to version 2 and kept beside the new one
 
     // The next save is the new version, and the older file is still the older file.
     opened.store.update_settings(wjs::Settings{});
-    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    CHECK(slurp(file).starts_with("wjs-store 3\n"));
     CHECK(slurp(opened.kept) == old);
 }
 
@@ -1666,7 +1720,7 @@ TEST_CASE("an empty file is damage: set aside, and a new store begins", "[store]
     CHECK_FALSE(fs::exists(file));
     CHECK(opened.store.persistent());
     opened.store.update_settings(wjs::Settings{});
-    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    CHECK(slurp(file).starts_with("wjs-store 3\n"));
 }
 
 TEST_CASE("a temporary file left by a stopped save is neither read nor kept", "[store][file]") {
@@ -1685,7 +1739,7 @@ TEST_CASE("a temporary file left by a stopped save is neither read nor kept", "[
 
     // The next save writes over it and leaves no temporary file behind.
     opened.store.update_settings(wjs::Settings{});
-    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    CHECK(slurp(file).starts_with("wjs-store 3\n"));
     CHECK_FALSE(fs::exists(stale));
 }
 
@@ -1742,7 +1796,7 @@ TEST_CASE("a file and its keeping are named for the file's own characters", "[st
     REQUIRE(opened.status == wjs::LoadStatus::created);
     opened.store.update_settings(wjs::Settings{});
     REQUIRE_FALSE(opened.store.last_save_error().has_value());
-    CHECK(slurp(file).starts_with("wjs-store 2\n"));
+    CHECK(slurp(file).starts_with("wjs-store 3\n"));
     // No temporary file left. (Counted, not named: the name is outside the
     // legacy code page, and path::string() would throw for it.)
     CHECK(std::distance(fs::directory_iterator(dir.path()), fs::directory_iterator{}) == 1);

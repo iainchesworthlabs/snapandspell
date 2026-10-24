@@ -88,15 +88,20 @@ enum class HelpLevel {
 [[nodiscard]] std::optional<HelpLevel> help_level_from_string(std::string_view name) noexcept;
 
 // The languages the interface is offered in, as the codes the store and the
-// screens use: English, French, Spanish, German, Yiddish, Hebrew, Chinese and
-// Japanese (docs/design/application.md, "Languages"). The board's letters,
-// the word list and the phonics data are not translated; the chrome is.
-inline constexpr std::array<std::string_view, 8> languages = {"en", "fr", "es", "de",
-                                                              "yi", "he", "zh", "ja"};
+// screens use: English, French, Spanish, German, Yiddish, Hebrew, Simplified
+// Chinese and Japanese (docs/design/application.md, "Languages"). A code is
+// the name of its catalogue (wjs_zh_CN.qm). The board's letters, the word list
+// and the phonics data are not translated; the chrome is.
+inline constexpr std::array<std::string_view, 8> languages = {"en", "fr", "es",    "de",
+                                                              "yi", "he", "zh_CN", "ja"};
 
 // Whether `code` is one of the languages above. Empty is not: it is the system's
 // language, which only the screens know.
 [[nodiscard]] bool is_valid_language(std::string_view code) noexcept;
+
+// The code in `languages` that `code` names when upper and lower case are not
+// told apart ("zh_cn" is "zh_CN"), or empty when it names none.
+[[nodiscard]] std::string_view canonical_language(std::string_view code) noexcept;
 
 // The board sizes the parent area offers as a default. The standard board plays
 // 3x3 to 6x6 and the child picks on the box; the parent's default is one of the

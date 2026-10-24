@@ -197,7 +197,7 @@ QtObject {
         {code: "de", label: "Deutsch"},
         {code: "yi", label: "ייִדיש"},
         {code: "he", label: "עברית"},
-        {code: "zh", label: "中文"},
+        {code: "zh_CN", label: "中文"},
         {code: "ja", label: "日本語"}
     ]
 

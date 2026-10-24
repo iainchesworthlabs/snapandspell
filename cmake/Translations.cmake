@@ -25,7 +25,7 @@ get_filename_component(WJS_TRANSLATION_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOL
 # English is the source language, and it has a catalogue too, so that every
 # check treats the eight alike and the completeness test compares against one of
 # them.
-set(WJS_TRANSLATION_LANGUAGES en fr es de yi he zh ja)
+set(WJS_TRANSLATION_LANGUAGES en fr es de yi he zh_CN ja)
 
 set(WJS_TRANSLATION_SOURCES
     apps/app/qml

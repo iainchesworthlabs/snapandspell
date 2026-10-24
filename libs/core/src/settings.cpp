@@ -211,6 +211,16 @@ bool is_valid_language(std::string_view code) noexcept {
     return std::find(std::begin(languages), std::end(languages), code) != std::end(languages);
 }
 
+std::string_view canonical_language(std::string_view code) noexcept {
+    const auto same = [code](std::string_view known) {
+        return known.size() == code.size() &&
+               std::equal(known.begin(), known.end(), code.begin(),
+                          [](char a, char b) { return lower(a) == lower(b); });
+    };
+    const auto found = std::find_if(std::begin(languages), std::end(languages), same);
+    return found == std::end(languages) ? std::string_view{} : *found;
+}
+
 bool is_valid_name(std::string_view name) noexcept {
     return !name.empty() && name.size() <= max_name_length &&
            std::all_of(name.begin(), name.end(), is_name_character);
@@ -263,12 +273,9 @@ Settings Settings::normalized() const {
         result.school_font.clear();
     }
 
-    // The language is one of the eight codes in lower case, or empty for the
-    // system's. The device's own language is chosen by the manager, not here.
-    std::transform(result.language.begin(), result.language.end(), result.language.begin(), lower);
-    if (!is_valid_language(result.language)) {
-        result.language.clear();
-    }
+    // The language is one of the eight codes, or empty for the system's. The
+    // device's own language is chosen by the manager, not here.
+    result.language = std::string{canonical_language(result.language)};
 
     for (std::string& tick : result.focus_sounds) {
         std::transform(tick.begin(), tick.end(), tick.begin(), lower);
