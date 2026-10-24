@@ -24,7 +24,7 @@ if(GIT_FOUND)
         set(WJS_GIT_COMMIT "${WJS_GIT_COMMIT_RAW}")
 
         execute_process(
-            COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}" describe --tags --always
+            COMMAND "${GIT_EXECUTABLE}" -C "${CMAKE_CURRENT_SOURCE_DIR}" describe --tags --always --match "v[0-9]*"
             OUTPUT_VARIABLE WJS_GIT_DESCRIBE_RAW
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
