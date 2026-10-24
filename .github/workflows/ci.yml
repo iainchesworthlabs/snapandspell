@@ -1,9 +1,9 @@
 name: CI
 
 # What each job proves, and which of them are required status checks:
-# docs/ci.md and docs/branch-protection.md. The job DISPLAY NAMES below are the
-# required-check contexts in .github/rulesets/*.json - rename one only together
-# with that file.
+# docs/ci.md and docs/branch-protection.md. The required checks are CI Status
+# and Scan dependency diff (dependency-review.yml); CI Status waits for the
+# other jobs by id, so their display names can change.
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main, develop]
-  # develop has a merge queue (.github/rulesets/merge-queue-develop.json) and
+  # develop has a merge queue (docs/branch-protection.md) and
   # this workflow produces required checks, so it has to report on the queue's
   # temporary gh-readonly-queue/... ref as well: GitHub only runs workflows
   # that opt in there, and a required check that never reports holds the entry
@@ -446,7 +446,7 @@ jobs:
   # enough. The wall-time checks are not run on a push or a pull request - a
   # shared runner is the one machine a stopwatch cannot be trusted on - but a
   # manual run (legs=perf, or all) runs them too, so that a person can look.
-  # Not a required check: the contexts in .github/rulesets/*.json are untouched.
+  # Not a required check.
   performance:
     name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - Performance (Linux, GCC)' || 'Performance (Linux, GCC)' }}
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || contains(format(',{0},', inputs.legs), ',perf,') }}
@@ -722,10 +722,10 @@ jobs:
 
   # The one check that says whether this run is good. It fails when a job it
   # waits for failed or was cancelled, and when one of them was skipped although
-  # the run should have run it. The rulesets will require this job instead of
-  # each leg by name (docs/branch-protection.md). Performance and Package are
-  # left out, as they are not required checks today. A manual run names its
-  # own legs and skips the rest, so it has no aggregate.
+  # the run should have run it. The rulesets require this job and not each
+  # leg by name (docs/branch-protection.md). Performance and Package are left
+  # out. A manual run names its own legs and skips the rest, so it has no
+  # aggregate.
   ci-status:
     name: CI Status
     if: ${{ always() && github.event_name != 'workflow_dispatch' }}

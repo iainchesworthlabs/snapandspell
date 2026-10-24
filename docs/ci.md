@@ -15,9 +15,9 @@ hooks in `tools/hooks`.
 | Rule | Kept by | Also kept locally by |
 | --- | --- | --- |
 | Builds, tests, formatting, platform isolation | the `ci.yml` jobs, as required checks | `ctest` (includes the isolation and word-list checks) |
-| Gitflow branch names | `Validate gitflow branch name`, and the `branch-names` ruleset refuses the push | `tools/hooks/pre-push` |
+| Branch names | the Policy job, and the `branch-names` ruleset refuses the push | `tools/hooks/pre-push` |
 | No attribution in commits and PR text | `Validate commit and PR text`, as a required check | `tools/hooks/commit-msg` |
-| Pull request required, no direct push, no force push | the `main-protection` and `develop-protection` rulesets | - |
+| Pull request required, no direct push, no force push | the `develop-protection` and `main-release-only` rulesets | - |
 | Merge queue in front of `develop` | the `merge-queue-develop` ruleset | - |
 
 Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
@@ -91,9 +91,8 @@ cancelled it in its last step.
 
 ## The jobs in `ci.yml`
 
-The job *display names* are the required-check contexts in
-`.github/rulesets/*.json`. They are stable on purpose; rename one only together
-with the rulesets.
+The required checks are `CI Status` and `Scan dependency diff`. The other
+job names are free to change, as `CI Status` waits for them by job id.
 
 | Job (display name) | Runs on | What a green run proves |
 | --- | --- | --- |
@@ -689,9 +688,9 @@ list in its message, if any of it is missing.
    and put the fingerprint where a reader will find it independently of the
    download: `SECURITY.md` and the README (both now carry it). The workflow refuses to sign with a key
    whose fingerprint is not the committed one.
-4. **Apply the tag ruleset** (done, 2026-10-20): `tools/repo/apply_rulesets.ps1
-   -Only release-tags` (a dry run), then `-Apply`. It restricts `v*` tags to the
-   admin role.
+4. **Apply the tag ruleset** (done, 2026-10-20; now `admin/apply.sh --only
+   rulesets` in `icl-common-infra`, see [Branch protection](branch-protection.md)).
+   It restricts `v*` tags to the owner and the release bot.
 5. **Get the workflows onto `main`**: merge `develop` there. Until then nothing
    scheduled or dispatched from this repository exists on the default branch
    except `codeql.yml` and `scorecard.yml` (older copies).
@@ -1232,8 +1231,8 @@ path-filtered or is a tag, schedule or manual run, and a required check that a
 filter keeps from running never reports, which would hold every unrelated pull
 request. `Package (Windows, Release)` runs on every push and pull request and so
 could be; it is not required yet because it is new, although it has been green on
-pushes to `develop` (it is not in `.github/rulesets/*.json`, and
-`tools/repo/apply_rulesets.ps1` stays a manual step).
+pushes to `develop` (it is not a required check, and applying the rulesets stays the owner's
+step).
 
 The three `analysis.yml` jobs and `Analyze (C++)` are deliberately absent from
 `.github/rulesets/*.json`: they are a nightly report, and a required check that
