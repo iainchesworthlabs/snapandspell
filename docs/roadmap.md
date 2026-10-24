@@ -277,8 +277,8 @@ release, and between a release and a store.
   window is built and tested in `ci.yml` on Windows only; Linux and macOS build it
   in `release.yml`, which has never run.
 - **G4 Rulesets applied.** Branch protection, the merge queue and the rule that
-  rejects any branch not named in the gitflow scheme are in `.github/rulesets`
-  and applied with `tools/repo/apply_rulesets.ps1`; they were unavailable while
+  rejects any branch not named in the scheme are the shared rulesets of
+  `icl-common-infra`, applied with its `admin/apply.sh`; they were unavailable while
   the repository was private (403 on the Free plan). See
   [Branch protection](branch-protection.md).
 - **G5 Licence decision recorded** for anything going to a store (D2).

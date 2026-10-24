@@ -15,9 +15,9 @@ hooks in `tools/hooks`.
 | Rule | Kept by | Also kept locally by |
 | --- | --- | --- |
 | Builds, tests, formatting, platform isolation | the `ci.yml` jobs, as required checks | `ctest` (includes the isolation and word-list checks) |
-| Gitflow branch names | `Validate gitflow branch name`, and the `branch-names` ruleset refuses the push | `tools/hooks/pre-push` |
+| Branch names | the Policy job, and the `branch-names` ruleset refuses the push | `tools/hooks/pre-push` |
 | No attribution in commits and PR text | `Validate commit and PR text`, as a required check | `tools/hooks/commit-msg` |
-| Pull request required, no direct push, no force push | the `main-protection` and `develop-protection` rulesets | - |
+| Pull request required, no direct push, no force push | the `develop-protection` and `main-release-only` rulesets | - |
 | Merge queue in front of `develop` | the `merge-queue-develop` ruleset | - |
 
 Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
@@ -91,9 +91,8 @@ cancelled it in its last step.
 
 ## The jobs in `ci.yml`
 
-The job *display names* are the required-check contexts in
-`.github/rulesets/*.json`. They are stable on purpose; rename one only together
-with the rulesets.
+The required checks are `CI Status` and `Scan dependency diff`. The other
+job names are free to change, as `CI Status` waits for them by job id.
 
 | Job (display name) | Runs on | What a green run proves |
 | --- | --- | --- |
@@ -105,7 +104,7 @@ with the rulesets.
 | `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. The library, platform layer, CLI and scanner are built, not the Qt application (`-DWJS_BUILD_APP=OFF`). |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. As on Linux, without the Qt application. |
 | `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit tier, and gcovr over `libs/core` **fails the job below the project's minimum standard: 90% of lines and 80% of branches**. The HTML, `summary.json` and the table in the job summary are the `coverage-report` artifact. The same gate is `coverage-unit` locally ([Testing](testing.md#coverage)). |
-| `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. **Not a required check** (it is not in `.github/rulesets/*.json`). |
+| `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. **Not a required check** (it is not a required check). |
 | `Package (Windows, Release)` | windows-2025-vs2026 | Preset `windows-msvc-release` (the Qt application on, tests off, Tracy and the sanitizers off, the same Qt kit as the Windows leg) builds, then `tools/package/check_package.ps1` makes the ZIP and proves it carries no `TracyClient`, AddressSanitizer runtime or `.pdb`, unpacks it, solves a board with the packaged `wjs-cli` and runs the packaged window's offscreen smoke, and `tools/release/check_release_build.ps1` checks the cache and the package. The ZIP and `SHA256SUMS` are the `wordjewelssolver-windows-x64` artifact (14 days). It is the push-time proof that a Release package is clean. **Not a required check yet**: a candidate once it has been green on a few pull requests (it has been green on pushes to `develop`). |
 | `CI Status` | ubuntu-24.04 | The aggregate of `Policy`, `clang-format`, `platform-isolation`, `Plan build legs`, the build-and-test legs and `Coverage`. It fails when any of them failed, was cancelled, or was skipped in a run that should have run it. The rulesets will require this job in place of the legs by name. A manual dispatch skips it. |
 
@@ -689,9 +688,9 @@ list in its message, if any of it is missing.
    and put the fingerprint where a reader will find it independently of the
    download: `SECURITY.md` and the README (both now carry it). The workflow refuses to sign with a key
    whose fingerprint is not the committed one.
-4. **Apply the tag ruleset** (done, 2026-10-20): `tools/repo/apply_rulesets.ps1
-   -Only release-tags` (a dry run), then `-Apply`. It restricts `v*` tags to the
-   admin role.
+4. **Apply the tag ruleset** (done, 2026-10-20; now `admin/apply.sh --only
+   rulesets` in `icl-common-infra`, see [Branch protection](branch-protection.md)).
+   It restricts `v*` tags to the owner and the release bot.
 5. **Get the workflows onto `main`**: merge `develop` there. Until then nothing
    scheduled or dispatched from this repository exists on the default branch
    except `codeql.yml` and `scorecard.yml` (older copies).
@@ -1232,11 +1231,11 @@ path-filtered or is a tag, schedule or manual run, and a required check that a
 filter keeps from running never reports, which would hold every unrelated pull
 request. `Package (Windows, Release)` runs on every push and pull request and so
 could be; it is not required yet because it is new, although it has been green on
-pushes to `develop` (it is not in `.github/rulesets/*.json`, and
-`tools/repo/apply_rulesets.ps1` stays a manual step).
+pushes to `develop` (it is not a required check, and applying the rulesets stays the owner's
+step).
 
 The three `analysis.yml` jobs and `Analyze (C++)` are deliberately absent from
-`.github/rulesets/*.json`: they are a nightly report, and a required check that
+the shared rulesets: they are a nightly report, and a required check that
 only reports once a day would hold every pull request.
 
 Every workflow that produces a required check also triggers on `merge_group`,
