@@ -64,7 +64,7 @@
 
 namespace wjs {
 
-inline constexpr int store_format_version = 2;
+inline constexpr int store_format_version = 3;
 
 inline constexpr std::string_view store_directory_name = "WordJewelsSolver";
 inline constexpr std::string_view store_file_name = "store.wjs";
@@ -265,9 +265,10 @@ struct MigrationStep {
     std::function<bool(RawStore&)> apply;
 };
 
-// The migrations of this program: the one step, from version 1, which let the
-// saved game in progress be a standard board (store_format.cpp says why the
-// step rewrites nothing). A test supplies its own to hold the mechanism down.
+// The migrations of this program: from version 1, which let the saved game in
+// progress be a standard board, and from version 2, which renamed the language
+// "zh" to "zh_CN" (store_format.cpp says what each step does). A test supplies
+// its own to hold the mechanism down.
 [[nodiscard]] std::span<const MigrationStep> builtin_migrations() noexcept;
 
 enum class StoreError {

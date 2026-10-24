@@ -226,7 +226,7 @@ books), no sentences in capitals.
 
 **As built:** the window is offered in **English, French, Spanish, German,
 Yiddish, Hebrew, Chinese and Japanese** (`en`, `fr`, `es`, `de`, `yi`, `he`,
-`zh`, `ja`). The Language row in the parent area offers those eight and
+`zh_CN`, `ja`). The Language row in the parent area offers those eight and
 **System**, which is the device's own language when it is one of them and
 English otherwise. The setting is kept in the store with the others, so it
 survives a restart, and the language is in force before the window is built:

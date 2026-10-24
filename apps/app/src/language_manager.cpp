@@ -29,6 +29,11 @@ namespace {
     return QString::fromLatin1(code.data(), static_cast<qsizetype>(code.size()));
 }
 
+// The code in the library's list that `code` names, whatever its case, or empty.
+[[nodiscard]] QString canonical(const QString& code) {
+    return code_text(wjs::canonical_language(code.toUtf8().toStdString()));
+}
+
 }  // namespace
 
 LanguageManager::LanguageManager(QObject* parent) : QObject(parent) {
@@ -53,9 +58,7 @@ QStringList LanguageManager::languages() {
 }
 
 bool LanguageManager::is_known(const QString& code) {
-    const QString lower = code.toLower();
-    return std::any_of(std::begin(wjs::languages), std::end(wjs::languages),
-                       [&lower](std::string_view known) { return lower == code_text(known); });
+    return !canonical(code).isEmpty();
 }
 
 bool LanguageManager::is_right_to_left(const QString& code) {
@@ -66,8 +69,21 @@ bool LanguageManager::is_right_to_left(const QString& code) {
 QString LanguageManager::language_from_locale(const QString& locale_name) {
     QString name = locale_name;
     name.replace(QLatin1Char('-'), QLatin1Char('_'));
+    // A locale that is one of the codes ("zh_CN") is that code. Any other
+    // region of a language is the code of the language ("zh_TW" has no
+    // catalogue of its own, so it is the Chinese there is; "fr_CA" is French).
+    const QString exact = canonical(name);
+    if (!exact.isEmpty()) {
+        return exact;
+    }
     const QString language = name.section(QLatin1Char('_'), 0, 0).toLower();
-    return is_known(language) ? language : QStringLiteral("en");
+    for (const std::string_view known : wjs::languages) {
+        const QString code = code_text(known);
+        if (code.section(QLatin1Char('_'), 0, 0) == language) {
+            return code;
+        }
+    }
+    return QStringLiteral("en");
 }
 
 QString LanguageManager::system_language() {
@@ -78,8 +94,8 @@ QString LanguageManager::resolved(const QString& setting) {
     if (setting.isEmpty()) {
         return system_language();
     }
-    const QString code = setting.toLower();
-    return is_known(code) ? code : QStringLiteral("en");
+    const QString code = canonical(setting);
+    return code.isEmpty() ? QStringLiteral("en") : code;
 }
 
 bool LanguageManager::rightToLeft() const {
@@ -91,8 +107,7 @@ QString LanguageManager::apply(const QString& setting) {
     // The setting the screens read back: "" for the device's own. An unknown
     // code asks for a language this program does not have, so it is English and
     // the setting is not one of the eight either: it is kept as the system's.
-    const QString wanted = setting.toLower();
-    const QString stored = is_known(wanted) ? wanted : QString();
+    const QString stored = canonical(setting);
 
     if (code == code_ && translator_) {
         if (stored != setting_) {
