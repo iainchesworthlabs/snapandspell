@@ -8,6 +8,7 @@ name: CI
 on:
   pull_request:
     branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main, develop]
   # develop has a merge queue (.github/rulesets/merge-queue-develop.json) and
@@ -50,6 +51,17 @@ env:
   VCPKG_DISABLE_METRICS: "1"
 
 jobs:
+  # The static checks that need no build, from icl-common-infra: branch name,
+  # commit and pull request text, preprocessor policy, action pinning, the
+  # changelog fragment, the vcpkg baseline and REUSE. It runs on drafts too.
+  policy:
+    name: Policy
+    if: ${{ github.event_name != 'workflow_dispatch' }}
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/policy.yml@0077552990ba3d132d2737e80cb2bcd5e1aeee31 # v0.1.12
+
   # The repository's .clang-format, one pinned release (the wheel pinned in
   # .github/requirements/lint.txt, not whatever the runner image ships, so an
   # image bump cannot change the formatting rules under an unchanged tree).
@@ -707,3 +719,23 @@ jobs:
         with:
           triplet: x64-linux
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
+
+  # The one check that says whether this run is good. It fails when a job it
+  # waits for failed or was cancelled, and when one of them was skipped although
+  # the run should have run it. The rulesets will require this job instead of
+  # each leg by name (docs/branch-protection.md). Performance and Package are
+  # left out, as they are not required checks today. A manual run names its
+  # own legs and skips the rest, so it has no aggregate.
+  ci-status:
+    name: CI Status
+    if: ${{ always() && github.event_name != 'workflow_dispatch' }}
+    needs: [policy, clang-format, platform-isolation, plan, build-and-test, coverage]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Aggregate
+        uses: iainchesworthlabs/icl-common-infra/actions/ci-status@0077552990ba3d132d2737e80cb2bcd5e1aeee31 # v0.1.12
+        with:
+          needs: ${{ toJSON(needs) }}
