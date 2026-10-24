@@ -5,7 +5,7 @@
 #   cmake -DLUPDATE=<lupdate> -DREPO_ROOT=<repository>
 #         -DWORK_DIR=<empty directory> -P tests/i18n/check_catalogues.cmake
 #
-# Copies the checked-in i18n/*.ts into WORK_DIR, runs lupdate over the same
+# Copies the checked-in apps/app/translations/*.ts into WORK_DIR, runs lupdate over the same
 # source list the update target uses, and fails when a checked-in catalogue
 # differs from the regenerated one. That is the gate for a qsTr() added without
 # its catalogue, or a source line moved without regenerating the locations.
@@ -66,12 +66,12 @@ if(NOT _result EQUAL 0)
 endif()
 
 # lupdate writes a location's filename relative to the .ts file's own directory.
-# The checked-in catalogues live in i18n/, the regenerated ones in WORK_DIR, so
-# the same source is named "../src/..." in one and "../../../src/..." in the
-# other. The path from the repository root is what is compared; everything else
-# in the line (the line number and its delta) still has to match.
+# The checked-in catalogues live in apps/app/translations/, the regenerated ones in WORK_DIR, so
+# the same source is named "../qml/..." in one and "../../../../../apps/app/qml/..." in the
+# other. The path from the application's directory is what is compared; everything
+# else in the line (the line number and its delta) still has to match.
 function(wjs_normalise_catalogue variable)
-    string(REGEX REPLACE "filename=\"[^\"]*/(src/[^\"]*)\"" "filename=\"\\1\""
+    string(REGEX REPLACE "filename=\"[^\"]*/((src|qml)/[^\"]*)\"" "filename=\"\\1\""
         _normalised "${${variable}}")
     set("${variable}" "${_normalised}" PARENT_SCOPE)
 endfunction()
@@ -97,7 +97,7 @@ if(_drift)
     string(REPLACE ";" "\n  " _report "${_drift}")
     message(FATAL_ERROR
         "The interface's catalogues are out of date:\n  ${_report}\n"
-        "They are generated from the sources (i18n/sources are listed in "
+        "They are generated from the sources (apps/app/translations/sources are listed in "
         "cmake/Translations.cmake). Regenerate and translate anything new:\n"
         "  cmake --build <build> --target wjs_update_translations")
 endif()

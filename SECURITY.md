@@ -30,7 +30,7 @@ store; the project's own code opens no network connections. So what counts is:
 - a crash, hang or memory-safety fault that a crafted board, word list, command
   line or **store file** can cause;
 - the same from a **camera frame**. A frame is untrusted input: Mode A hands the
-  camera's picture to the board reader (`src/scan`), which validates its size and
+  camera's picture to the board reader (`libs/scan`), which validates its size and
   format before it reads a pixel (a hostile frame size cannot wrap the checking
   arithmetic, and an invalid frame reads as an empty picture). The reader has been
   tested on drawn frames and on malformed ones, and has never been fuzzed or seen

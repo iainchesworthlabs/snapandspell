@@ -86,7 +86,7 @@ include(Coverage)
 include(Tracy)
 # The interface's languages (cmake/Translations.cmake): the lists lupdate scans
 # and the catalogues lrelease compiles. The function itself is called by
-# src/app once Qt's Linguist tools have been found.
+# apps/app/src once Qt's Linguist tools have been found.
 include(Translations)
 
 # ---------------------------------------------------------------------------
@@ -105,7 +105,7 @@ set(WJS_BUILD_APP "AUTO" CACHE STRING
     "Build the Qt Quick application: AUTO when Qt 6.12 is found, ON to require it, OFF to skip it")
 set_property(CACHE WJS_BUILD_APP PROPERTY STRINGS AUTO ON OFF)
 option(WJS_BUILD_TESTS "Build the unit, integration, system and UI test suites" ON)
-# The harness around the 3D board scene (src/app/prototype/shake, and
+# The harness around the 3D board scene (apps/app/src/prototype/shake, and
 # docs/design/shake-prototype.md): a window with a Shake button, a drag standing
 # in for the accelerometer and the frame timing, over the scene module the
 # application also links (WordJewelsSolver.Scene, GPL-3.0 only). A program of its
@@ -136,7 +136,7 @@ option(WJS_REQUIRE_REVIEWED_PHONICS
 # Qt, when the application is built. Found here, before any target and before
 # the notices: the third-party notice names Qt's version (cmake/Notices.cmake),
 # and imported targets are directory-scoped, so a find_package() at the top
-# level is visible to tests/ and to every module under src/app.
+# level is visible to tests/ and to every module under apps/app/src.
 # Quick3D is the board scene's, and it makes the application GPL-3.0 only: it is
 # a required component now, not the prototype's alone. LinguistTools is the
 # catalogues' (lupdate/lrelease).
@@ -188,7 +188,7 @@ unset(_wjs_qt_requirement)
 if(WJS_BUILD_APP)
     # The feedback engines' modules are optional: the application's sound,
     # speech and motion have silent variants selected by CMake when a module is
-    # absent (src/app/feedback/CMakeLists.txt), so a contributor's kit without
+    # absent (apps/app/src/feedback/CMakeLists.txt), so a contributor's kit without
     # them still configures and builds. The shared kit on the author's machine
     # has all three (docs/building.md, "The Qt Quick window").
     find_package(Qt6 6.12 QUIET OPTIONAL_COMPONENTS Multimedia Sensors TextToSpeech)
@@ -198,16 +198,16 @@ if(WJS_BUILD_APP)
     if(TARGET Qt6::Multimedia)
         set(WJS_QT_HAS_MULTIMEDIA ON)
         # Mode A's camera is a Qt Multimedia backend where the module is, and a
-        # none backend otherwise (the variant pattern; src/app/camera). The
+        # none backend otherwise (the variant pattern; apps/app/src/camera). The
         # directories are chosen here, in the scope the tests share, because
         # tests/ compiles the same source and needs the backend's path.
         set(WJS_CAMERA_VARIANT_DIR
-            "${PROJECT_SOURCE_DIR}/src/app/variants/camera-multimedia")
+            "${PROJECT_SOURCE_DIR}/apps/app/src/variants/camera-multimedia")
         set(WJS_CAMERA_PREVIEW_QML "${WJS_CAMERA_VARIANT_DIR}/CameraPreview.qml")
     else()
         set(WJS_QT_HAS_MULTIMEDIA OFF)
         set(WJS_CAMERA_VARIANT_DIR
-            "${PROJECT_SOURCE_DIR}/src/app/variants/camera-none")
+            "${PROJECT_SOURCE_DIR}/apps/app/src/variants/camera-none")
         set(WJS_CAMERA_PREVIEW_QML "${WJS_CAMERA_VARIANT_DIR}/CameraPreview.qml")
     endif()
     if(TARGET Qt6::Sensors)
@@ -235,18 +235,18 @@ wjs_write_notices()
 # Targets
 # ---------------------------------------------------------------------------
 # Everything that differs between operating systems, behind the interfaces in
-# src/platforms/interfaces. Compiled from the sources the selected platform's
+# libs/platforms/interfaces. Compiled from the sources the selected platform's
 # platform.cmake names.
-add_subdirectory(src/platforms)
+add_subdirectory(libs/platforms)
 
 # The library holds ALL of the game logic and is completely GUI-free and
 # platform-free.
-add_subdirectory(src/lib)
+add_subdirectory(libs/core)
 
 # The scanner: finds a board in a camera frame and reads its letters. Its own
 # library, so the solver library above stays free of image code, and with no
 # dependency of its own to fetch.
-add_subdirectory(src/scan)
+add_subdirectory(libs/scan)
 
 if(WJS_REQUIRE_REVIEWED_PHONICS)
     # A CMake script, so that a release build needs nothing but CMake: it holds
@@ -265,12 +265,12 @@ if(WJS_REQUIRE_REVIEWED_PHONICS)
 endif()
 
 if(WJS_BUILD_CLI)
-    add_subdirectory(src/cli)
+    add_subdirectory(apps/cli)
 endif()
 
 # The application is a thin Qt Quick layer over the library.
 if(WJS_BUILD_APP)
-    add_subdirectory(src/app)
+    add_subdirectory(apps/app)
 elseif(WJS_BUILD_SHAKE_PROTOTYPE)
     message(WARNING
         "WJS_BUILD_SHAKE_PROTOTYPE needs WJS_BUILD_APP=ON and a Qt 6.12 kit; "
@@ -283,8 +283,8 @@ if(WJS_BUILD_TESTS)
 endif()
 
 # ---------------------------------------------------------------------------
-# CPack. Included after every install() rule has been declared - in src/cli,
-# src/app and cmake/Notices.cmake - because the packages it makes are exactly
+# CPack. Included after every install() rule has been declared - in apps/cli,
+# apps/app/src and cmake/Notices.cmake - because the packages it makes are exactly
 # those rules.
 # ---------------------------------------------------------------------------
 include(Packaging)

@@ -288,7 +288,7 @@ if ($withApplication -and $IsWindows) {
     # Multimedia backend plugin: when the window links the module, the package
     # must carry both, or the scan screen starts and cannot show a preview. The
     # Qt deploy scripts copy the plugins and the QML module because the
-    # application imports QtMultimedia (src/app/camera/CameraImport.qml).
+    # application imports QtMultimedia (apps/app/src/camera/CameraImport.qml).
     if (Test-Path -LiteralPath (Join-Path $buildDirectory "bin/Qt6Multimedia$qtSuffix.dll")) {
         $requiredDirectories += @('plugins/multimedia', 'qml/QtMultimedia')
     }

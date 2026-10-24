@@ -161,11 +161,11 @@ endif()
 # install-time deploy copies only when the application's own QML import scan
 # names the module. The scan's input list is written at configure time, so this
 # holds the camera's deployment hint without packaging anything
-# (src/app/camera/CameraImport.qml says why the hint exists); the archive check
+# (apps/app/src/camera/CameraImport.qml says why the hint exists); the archive check
 # (`tools/package/check_package.ps1`) then requires both directories in the
 # package itself.
 if(EXPECT_MULTIMEDIA)
-    set(_import_scan "${BUILD_DIR}/src/app/.qt/qml_imports/WordJewelsSolver_build.rsp")
+    set(_import_scan "${BUILD_DIR}/apps/app/.qt/qml_imports/WordJewelsSolver_build.rsp")
     if(NOT EXISTS "${_import_scan}")
         list(APPEND _failures
             "the application's QML import scan input is missing: ${_import_scan}")
@@ -175,7 +175,7 @@ if(EXPECT_MULTIMEDIA)
         if(_camera_import EQUAL -1)
             list(APPEND _failures
                 "the application's QML import scan does not read the camera's "
-                "QtMultimedia hint (src/app/camera/CameraImport.qml), so an "
+                "QtMultimedia hint (apps/app/src/camera/CameraImport.qml), so an "
                 "installed camera's live view would find no qml/QtMultimedia")
         endif()
     endif()

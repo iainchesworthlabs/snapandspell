@@ -3,8 +3,8 @@
 The board scene of [Board](board.md#the-shake-and-the-drop), built in Qt Quick 3D
 behind its one-component seam, what it cost on one desktop, and the harness it was
 measured with. It is the scene the application plays: the QML module
-`WordJewelsSolver.Scene` (in `src/app/scene`, with its QML in
-`src/app/qml/scene`) is linked by both `WordJewelsSolver` and the harness,
+`WordJewelsSolver.Scene` (in `apps/app/src/scene`, with its QML in
+`apps/app/qml/scene`) is linked by both `WordJewelsSolver` and the harness,
 `ShakePrototype`. The harness is still a program of its own, for timing, stills
 and the physics that are not a game screen.
 
@@ -19,7 +19,7 @@ still the estimate [Performance](performance.md#budgets) already makes.
 module and so is GPL-3.0 only; `ShakePrototype` links it too. The decision stands
 as the author made it on 2026-10-16: the MVP is a private build, and D2 is taken
 before any store, with the seam in hand. The 2D implementation of the same
-interface is kept at `src/app/qml/scene/fallback/` and is not built.
+interface is kept at `apps/app/qml/scene/fallback/` and is not built.
 
 ## Deploy
 
@@ -28,7 +28,7 @@ Before the application linked Quick 3D itself, `windeployqt` already copied
 directory, because it copies the QML debugger's
 `qmltooling\qmldbg_quick3dprofiler.dll`, which depends on it. The plugin loads
 only when QML debugging is switched on, but it was in the folder that would
-ship. `src/platforms/windows/platform.cmake` now passes
+ship. `libs/platforms/windows/platform.cmake` now passes
 `windeployqt --skip-plugin-types qmltooling`: the whole debugger plugin type is
 left out, so no program gets the Quick 3D profiler plugin, and a program that
 does not link Quick 3D no longer gets `Qt6Quick3DUtils` through it. A program
@@ -42,12 +42,12 @@ qmltooling` for every program this function deploys.
 
 | Part | Where | What it is |
 | --- | --- | --- |
-| The scene | `src/app/qml/scene/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die, a letter atlas, a baked light probe. Draws the poses the script gives it. It is the application's, in the QML module `WordJewelsSolver.Scene` (`src/app/scene/CMakeLists.txt`) |
-| The script | `src/app/qml/scene/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or the simulated dice. Keeps the clock, the stages, the box, the lid and the camera. Plain JavaScript, no QML and no renderer |
-| The dice | `src/app/scene/sim/` (the `wjs_dice_world` library), `dice_sim.*`, `die_geometry.*` | Rigid cubes in a box, simulated from first principles by sequential impulses, in about 1,400 lines of plain C++ with no Qt, and two thin objects over it for QML: the simulation, and the mesh of a bevelled die whose six letters each turn a quarter turn at a time. Tested without a window by `tests/prototype/dice_world_test.cpp` |
-| The faces | `src/app/qml/scene/FaceAtlas.qml`, `src/app/qml/scene/Die.qml` | One texture for the board's dice, a block of 3 x 2 cells for each, a cell to a face; each die's cube samples its own block. A dead jewel is a die of six cells of four facets, drawn once and shared. The scene holds two atlases, so that a board can be drawn ahead (`prepare`) |
-| The harness | `src/app/prototype/shake/qml/ShakeWindow.qml`, `frame_stats.*`, `dice_roller.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, the library's dice roll (`DiceRoller`, which links `wjs::lib` and embeds `data/dice`), and the timing and measurement runs. It imports the scene module and creates the same `BoardScene` the application plays |
-| The probe | `tools/lightprobe`, `src/app/qml/scene/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
+| The scene | `apps/app/qml/scene/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die, a letter atlas, a baked light probe. Draws the poses the script gives it. It is the application's, in the QML module `WordJewelsSolver.Scene` (`apps/app/src/scene/CMakeLists.txt`) |
+| The script | `apps/app/qml/scene/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or the simulated dice. Keeps the clock, the stages, the box, the lid and the camera. Plain JavaScript, no QML and no renderer |
+| The dice | `apps/app/src/scene/sim/` (the `wjs_dice_world` library), `dice_sim.*`, `die_geometry.*` | Rigid cubes in a box, simulated from first principles by sequential impulses, in about 1,400 lines of plain C++ with no Qt, and two thin objects over it for QML: the simulation, and the mesh of a bevelled die whose six letters each turn a quarter turn at a time. Tested without a window by `tests/prototype/dice_world_test.cpp` |
+| The faces | `apps/app/qml/scene/FaceAtlas.qml`, `apps/app/qml/scene/Die.qml` | One texture for the board's dice, a block of 3 x 2 cells for each, a cell to a face; each die's cube samples its own block. A dead jewel is a die of six cells of four facets, drawn once and shared. The scene holds two atlases, so that a board can be drawn ahead (`prepare`) |
+| The harness | `apps/app/src/prototype/shake/qml/ShakeWindow.qml`, `frame_stats.*`, `dice_roller.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, the library's dice roll (`DiceRoller`, which links `wjs::lib` and embeds `data/dice`), and the timing and measurement runs. It imports the scene module and creates the same `BoardScene` the application plays |
+| The probe | `tools/lightprobe`, `apps/app/qml/scene/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
 
 It is behind `-DWJS_BUILD_SHAKE_PROTOTYPE=ON`, off by default. The application no
 longer needs an option of its own: with `WJS_BUILD_APP=AUTO` and a Qt 6.12 kit
@@ -959,7 +959,7 @@ What a 2D `BoardScene` has to keep:
 1. **The same name and members**, from the same module. QML has no interface
    type, so the contract is the list and a test that checks the files
    (`app.scene_contract`). The implementation kept for this is
-   `src/app/qml/scene/fallback/BoardScene.qml` (with its `SceneDie.qml` and
+   `apps/app/qml/scene/fallback/BoardScene.qml` (with its `SceneDie.qml` and
    `SceneScript.js`), and it is not built. To swap it in, its file and the module
    the build lists are changed, not a preprocessor test.
 2. **The same script, and the same dice.** `ShakeScript.js` has no renderer

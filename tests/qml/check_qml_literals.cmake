@@ -4,7 +4,7 @@
 #
 #   cmake -DREPO_ROOT=<repository> [-DREPORT=<file>] -P tests/qml/check_qml_literals.cmake
 #
-# It scans src/app/qml/**.qml (the 3D scene in qml/scene is exempt: it is drawn
+# It scans apps/app/qml/**.qml (the 3D scene in qml/scene is exempt: it is drawn
 # into textures and reads its colours from Theme by hand) and counts, per file:
 #
 #   PIXEL_SIZE        font.pixelSize / font.pointSize set to a number
@@ -37,7 +37,7 @@ if(NOT ALLOWLIST)
     set(ALLOWLIST "${REPO_ROOT}/tests/qml/qml_lint_allowlist.cmake")
 endif()
 
-set(_qml_root "${REPO_ROOT}/src/app/qml")
+set(_qml_root "${REPO_ROOT}/apps/app/qml")
 include("${ALLOWLIST}")
 
 set(WJS_LINT_RULES PIXEL_SIZE LETTER_SPACING HEX_COLOUR BARE_TEXT DISABLED_OPACITY GOLD_SELECTION ICON_ONLY)

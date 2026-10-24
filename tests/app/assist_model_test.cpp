@@ -19,7 +19,7 @@
 #include "wjs/settings.hpp"
 #include "wjs/store.hpp"
 
-// The Family Assistant's model (src/app/scan/assist_model.*): what the screen
+// The Family Assistant's model (apps/app/src/scan/assist_model.*): what the screen
 // binds to over a confirmed board. The game's rules are AssistGame's case
 // (assist_game_test.cpp); this holds down what the model adds: the refusals of
 // begin(), that a round is never lost to a board that cannot start, recording on

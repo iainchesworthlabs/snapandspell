@@ -16,7 +16,7 @@ built, what the author decided, and what is still open.
 
 ## What was built
 
-All of it is in `src/lib`, with Catch2 tests, no operating system code and no
+All of it is in `libs/core`, with Catch2 tests, no operating system code and no
 phonics content. Details are in [Architecture](../architecture.md) and
 [Testing](../testing.md).
 

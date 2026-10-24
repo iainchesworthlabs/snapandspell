@@ -248,7 +248,7 @@ set(WJS_QUALITY_TESTS
     parent.wording.selftest)
 
 if(WJS_BUILD_APP)
-    # The catalogues in i18n/ are what lupdate makes from the QML sources now:
+    # The catalogues in apps/app/translations/ are what lupdate makes from the QML sources now:
     # a qsTr() added (or a line moved) without regenerating them is a failure.
     # It needs the kit's lupdate, so it reports itself skipped (exit 4) when Qt's
     # Linguist tools were not found (docs/ci.md, "The interface's languages").

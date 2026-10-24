@@ -3,7 +3,7 @@
 #
 # Holds the phonics phase files under data/phonics to the rules the
 # application relies on (docs/testing.md, "Phonics data"). It reads the same
-# format as src/lib/src/phase_data.cpp and applies the same checks, so a file
+# format as libs/core/src/phase_data.cpp and applies the same checks, so a file
 # that passes here loads there.
 #
 #   data/phonics/phase-<x>.graphemes.txt   one grapheme and a sound a line:

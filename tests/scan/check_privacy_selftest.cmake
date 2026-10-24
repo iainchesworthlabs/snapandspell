@@ -53,13 +53,13 @@ function(expect_leak name rule file_fragment)
     set(_problems "${_problems}${found}" PARENT_SCOPE)
 endfunction()
 
-# `privacy_fixture` itself holds the file-output tree (src/scan/leak.cpp), whose path
+# `privacy_fixture` itself holds the file-output tree (libs/scan/leak.cpp), whose path
 # tests/privacy/test_check_sources.cmake also names.
 run_check("${FIXTURES}" code text)
 if(code EQUAL 0)
     string(APPEND _problems "file output: the check passed a tree that writes a file\n")
 endif()
-string(FIND "${text}" "src/scan/leak.cpp" at)
+string(FIND "${text}" "libs/scan/leak.cpp" at)
 string(FIND "${text}" ": file output: " rule_at)
 if(at EQUAL -1 OR rule_at EQUAL -1)
     string(APPEND _problems "file output: the failure does not name leak.cpp and the rule:\n${text}\n")
@@ -71,9 +71,9 @@ foreach(other IN ITEMS "frame capture" "audio capture" "network")
     endif()
 endforeach()
 
-expect_leak(audio_leak "audio capture" "src/app/camera/microphone.cpp")
-expect_leak(network_leak "network" "src/platforms/windows/camera_upload.cpp")
-expect_leak(frame_leak "frame capture" "src/app/variants/camera-fixture/saver.cpp")
+expect_leak(audio_leak "audio capture" "apps/app/src/camera/microphone.cpp")
+expect_leak(network_leak "network" "libs/platforms/windows/camera_upload.cpp")
+expect_leak(frame_leak "frame capture" "apps/app/src/variants/camera-fixture/saver.cpp")
 
 # A tree that does nothing wrong passes, and is counted.
 run_check("${FIXTURES}/clean" code text)

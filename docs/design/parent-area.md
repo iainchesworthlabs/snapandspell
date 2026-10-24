@@ -24,14 +24,14 @@ ends the board). It is a setting behind the gate; the store keeps no duration.
 | The gate | `wjs/parent_gate.hpp`, `parent_gate.cpp` | No |
 | The copy between the game session's values and the store's | `wjs/session_store.hpp`, `session_store.cpp` | No |
 | The dashboard's numbers, the focus sounds | `wjs/dashboard.hpp`, `dashboard.cpp` | No |
-| Where the file goes | `wjs::platform::user_data_directory()`, one definition per platform under `src/platforms` | No |
-| The controller: gate events, dashboard and settings as maps, the resets, the clock | `src/app/parent/parent_controller.*` | Yes |
-| The screens | `src/app/qml/parent/*.qml`, a QML module `WordJewelsSolver.Parent` | Yes |
-| Every sentence a parent reads | `src/app/qml/parent/ParentWording.qml` | Yes |
+| Where the file goes | `wjs::platform::user_data_directory()`, one definition per platform under `libs/platforms` | No |
+| The controller: gate events, dashboard and settings as maps, the resets, the clock | `apps/app/src/parent/parent_controller.*` | Yes |
+| The screens | `apps/app/qml/parent/*.qml`, a QML module `WordJewelsSolver.Parent` | Yes |
+| Every sentence a parent reads | `apps/app/qml/parent/ParentWording.qml` | Yes |
 | A stub shell to try the screens in | `tests/app/parent_ui` (test support, not part of the application) | Yes |
 
 The library stays Qt-free and OS-free. The module is linked into the application
-by one line in `src/app/CMakeLists.txt`.
+by one line in `apps/app/CMakeLists.txt`.
 
 ## Integration
 
@@ -90,7 +90,7 @@ The parent area is routed from the Solo Play window, on one store.
 - **Motion: System follows the system.** Reduced forces reduced motion on
   (`controller.reducedMotion`: the parent chose it). System is not a choice for or
   against, so it comes to whatever the operating system asks for: `SystemMotion`
-  (`src/app/system_motion.*`, beside `SystemColourScheme`) is a QML singleton over
+  (`apps/app/src/system_motion.*`, beside `SystemColourScheme`) is a QML singleton over
   `QAccessibilityHints::motionPreference`, which Qt 6.12 has, with a `reduced`
   property that notifies (QML does not get the change notification of
   `Qt.styleHints`, which is why it is a wrapper). `Main.qml` binds
@@ -110,7 +110,7 @@ The parent area is routed from the Solo Play window, on one store.
   own size alone, and `Theme.qml` says so. Reading it would be a platform service
   (the Windows text scale factor, Android's font scale, iOS's preferred content size
   category, GNOME's text scaling factor are the ones we know of; none has been
-  tried here) behind an interface under `src/platforms`, as the user data directory
+  tried here) behind an interface under `libs/platforms`, as the user data directory
   is; that is its own piece of work.
 
 ## The store
@@ -335,7 +335,7 @@ D12, to confirm) and **Time on the board** (D8) is off, count up, or a count-dow
   phoneme clip exists; **Phase** is read once at the start of the run.
 - **Language** is one of the eight codes or System (the device's own when it is one
   of the eight, English otherwise). It is applied at once by `LanguageManager`
-  (`src/app/language_manager.*`), which installs the catalogue, calls
+  (`apps/app/src/language_manager.*`), which installs the catalogue, calls
   `QQmlEngine::retranslate()` and turns the layout around for Hebrew and Yiddish;
   the board and its letters stay as they are (application.md, "Languages,
   right-to-left and fonts").
@@ -353,7 +353,7 @@ checked now:
 | --- | --- | --- |
 | No audio recording | A scan of first-party source and manifests for the capture classes, calls and permission strings | `privacy.sources` |
 | No network capability | The same scan for the network classes and headers, a URL literal in code, the Qt modules whose job is the network, the manifest permissions | `privacy.sources` |
-| Zero export | The same scan for printing, sharing, saving through a dialog, the clipboard, a URL handed to the system, mail, a launched program, and any file written outside `src/lib/src/store.cpp` | `privacy.sources` |
+| Zero export | The same scan for printing, sharing, saving through a dialog, the clipboard, a URL handed to the system, mail, a launched program, and any file written outside `libs/core/src/store.cpp` | `privacy.sources` |
 | The checks themselves | Cases on throw-away trees: each rule finds its violation and leaves alone a comment, the store's own source, the prototype, a name inside a longer word | `privacy.sources.selftest` |
 | Local store | Round trip, migration, damage, newer version, nothing left in the directory | the `[store]` cases of `wjs_unit_tests` |
 | Store size cap | The worst case the bounds allow is under the cap and reads back; a file over it is refused; a busy few months is under 32 KiB | the `[bounds]` cases |
@@ -367,7 +367,7 @@ page once listed it as checked; it is neither built nor checked). It would need 
 directly (its base class is declared there), which is exactly what `network.modules`
 forbids, so it is a decision for the author and the UI session (Qt Qml links Qt Network
 itself, so "no capability and no use" is the rule, not "no module"). The scan does not
-cover `src/app/prototype/` (a program of its own for trying the 3D board, which writes
+cover `apps/app/src/prototype/` (a program of its own for trying the 3D board, which writes
 its frames to disk) nor `tools/` and `docs/`.
 
 ## For the literacy reviewer

@@ -37,7 +37,7 @@
 #include "wjs/solver.hpp"
 #include "wjs/store.hpp"
 
-// The Solo Play port over the library's session (src/app/solo/real_solo_game.*):
+// The Solo Play port over the library's session (apps/app/src/solo/real_solo_game.*):
 // a table of the mapping, run against a tiny phase written here. The session's own
 // rules are tested in tests/unit/game_session_test.cpp; what is held down here is
 // that each call of the port is the call of the session it is meant to be, that

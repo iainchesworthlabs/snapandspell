@@ -1,6 +1,6 @@
 # lightprobe
 
-Makes `src/app/qml/scene/lightprobe/sky.ktx`, the board scene's light probe (see
+Makes `apps/app/qml/scene/lightprobe/sky.ktx`, the board scene's light probe (see
 [the shake prototype](../../docs/design/shake-prototype.md)).
 
 ## What the file is
@@ -27,7 +27,7 @@ build:
 ```sh
 cmake -S tools/lightprobe -B build/lightprobe -DCMAKE_PREFIX_PATH=<Qt prefix>
 cmake --build build/lightprobe --config Release
-build/lightprobe/bake_probe src/app/qml/scene/lightprobe/sky.ktx 128
+build/lightprobe/bake_probe apps/app/qml/scene/lightprobe/sky.ktx 128
 ```
 
 It needs a Qt with `Quick3DIblBaker` (the Windows, macOS and Linux desktop

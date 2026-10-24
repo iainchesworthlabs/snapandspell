@@ -106,7 +106,7 @@ with a check is what makes it safe to defer them.
 | Desktop: macOS, Linux, Windows | The fragments exist; packaging is built and checked on Windows, and the Qt window in CI and the packaged window on macOS and Linux remain (roadmap M6) |
 | Web (WebAssembly) | An Emscripten fragment; threads need cross-origin isolation headers; no shake sensor assumed; speech unverified |
 
-**Why fourth.** Each is a platform fragment under `src/platforms` and a CI
+**Why fourth.** Each is a platform fragment under `libs/platforms` and a CI
 leg, not a design change: the layout, the interfaces (`haptics`, `board_reader`,
 `camera`, `sensors`, `speech`) and the privacy checks are written to cover all of
 them.
@@ -151,7 +151,7 @@ additions, not rewrites. They cost little now.
 | **The word set is a dictionary object**; R1 passes the phase index, the open mode passes ENABLE | R3's open dictionary is a different argument |
 | **Themes are token sets**; no colour or size is written into a screen | R2's worlds, R2's school fonts and dark mode are token swaps |
 | **The store is versioned** and migrated; finds record the phase and whether the start tile was used | R2's report and R3's rungs read old data |
-| **Platform needs are interfaces** under `src/platforms/interfaces` with a no-op where a platform has none | R4 adds a fragment per platform; nothing else changes |
+| **Platform needs are interfaces** under `libs/platforms/interfaces` with a no-op where a platform has none | R4 adds a fragment per platform; nothing else changes |
 | **Frame and work budgets are tests from the start** ([Performance](performance.md)) | Each release inherits the gate rather than adding it |
 | **The privacy checks are in CI from R1** ([Application](application.md#privacy-built-in-and-checked)) | Every later release is held to the frozen rules without a new effort |
 | **No text is drawn into pictures and no phrase is typed into code** | Languages and re-recordings are a data change |

@@ -4,7 +4,7 @@ import WordJewelsSolver
 import WordJewelsSolver.Scan
 import "SizeMatrix.js" as SizeMatrix
 
-// Mode A's way in (src/app/qml/scan/ScanScreen.qml and CheckScreen.qml): the
+// Mode A's way in (apps/app/qml/scan/ScanScreen.qml and CheckScreen.qml): the
 // ready screen with no camera and the retry that looks for one, the live view a
 // running camera source shows, the typed board, a correction through the letter
 // picker (a Sheet over the whole screen), the camera-only Turn, the secondary

@@ -2,7 +2,7 @@ import QtQuick
 import QtTest
 import WordJewelsSolver
 
-// The panel of solo.playing (src/app/qml/solo/PlayingPanel.qml): the tray of
+// The panel of solo.playing (apps/app/qml/solo/PlayingPanel.qml): the tray of
 // words found, the hint, and Done while a tapped path waits. The model is the
 // application's SoloModel over the fake game, so the words, tiers and stars are
 // the design's test data and the panel is the screen's own file.

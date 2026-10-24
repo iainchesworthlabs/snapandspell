@@ -104,7 +104,7 @@ to be confirmed on the first device.
 | A touch to a lit tile | 2 frames | Proposal |
 | A touch to its letter's sound | 100 ms | Proposal; audio latency is unmeasured and differs by platform |
 | Launch to `home` drawn | 2 s | Cubeulator proposes 2 s on a desktop; the same figure is proposed here. Reported by every smoke run (`ui.first_frame_ms`, 576 to 852 ms in optimised builds on the desktop), **not held by a test** |
-| Full dictionary load (standard board: before its first board) | 1 s. **Not built: off the UI thread, with `home` usable meanwhile.** The load is synchronous, in `start()` in `src/app/main.cpp` before the QML engine exists, so nothing is drawn until it ends | Estimate 0.2 to 0.34 s on a tablet from 66 to 68 ms at 3 to 5 times a desktop core. **Reported only:** the time is held as a ratio to a calibration workload (5.0), opt-in and run in no CI leg; no test holds the 1 s |
+| Full dictionary load (standard board: before its first board) | 1 s. **Not built: off the UI thread, with `home` usable meanwhile.** The load is synchronous, in `start()` in `apps/app/src/main.cpp` before the QML engine exists, so nothing is drawn until it ends | Estimate 0.2 to 0.34 s on a tablet from 66 to 68 ms at 3 to 5 times a desktop core. **Reported only:** the time is held as a ratio to a calibration workload (5.0), opt-in and run in no CI leg; no test holds the 1 s |
 | Phase index load (phonics board) | 10 ms | Hundreds of words. Measured at about 1 ms for the 249-word test phase as a directory (and 0.4 ms for 7 words); held as work (bytes, words, graphemes) and a ratio, [below](#what-the-screens-wait-on) |
 | Seeding a board (**phonics** only) | 10 ms typical, 50 ms worst | Up to 20 verifications at 0.02 to 0.5 ms (measured, desktop); the guided fill is up to 7 ms on a 6x6 (measured, desktop). Re-measured by the tier's corpus: [The game rows](#the-game-rows) |
 | Making a standard board (**standard**, the default) | 50 ms | A roll of dice and one solve; the solve is the cost (worst measured 0.85 ms on a 6x6 of random letters; the dice's worst solves are in [The game rows](#the-game-rows)). The session's whole deal, measured: 0.05 ms on a 3x3 to 0.67 ms on a 6x6 |
@@ -189,7 +189,7 @@ which were read from source and not compiled here.
 
 The design, following Cubeulator's seam:
 
-1. `src/lib/variants/profiling-enabled/wjs/profiling.hpp` includes Tracy and
+1. `libs/core/variants/profiling-enabled/wjs/profiling.hpp` includes Tracy and
    aliases the stand-ins to `tracy::SourceLocationData` and `tracy::ScopedZone`;
    `profiling-disabled/` defines an empty zone class. CMake puts one directory
    on the include path. **No first-party file has a `#define` or an `#if`.**
@@ -704,7 +704,7 @@ steady-state frames, and a person measures launch on the device as before.
 **Built, and measured 2026-10-19 to 21** (a Release build of the application, on
 the Windows 11 desktop above, which has two screens at different rates: see
 [the frame on a desktop with two screens](../profiling.md#the-frame-on-a-desktop-with-two-screens)). The frame clock
-(`src/app/frame_profiler.cpp`, [Profiling](../profiling.md#the-frame)) keeps a
+(`apps/app/src/frame_profiler.cpp`, [Profiling](../profiling.md#the-frame)) keeps a
 rolling window of the frames the window swapped, and `--smoke` prints it. The
 budgets are the design's table's own, held against **the refresh rate of the
 screen the window is on** (the report carries `refresh_hz` and `screen`), and the
@@ -753,7 +753,7 @@ support it. The desktop has two screens, and the window had landed on the
 - On the 59.95 Hz screen, switching the Quick Controls style to Basic, the basic or
   windows render loop, or an OpenGL or Direct3D 12 backend puts the application back
   at the screen's rate; Vulkan does not. **The cause is not found.** The Basic style
-  is not set in `src/app/main.cpp` (the shake prototype's `main.cpp` sets it), and
+  is not set in `apps/app/src/main.cpp` (the shake prototype's `main.cpp` sets it), and
   nothing has been changed. The table, the method and the other rows are in
   [Profiling](../profiling.md#the-frame-on-a-desktop-with-two-screens).
 - The budget was re-expressed after that, as the display's period plus room (above)

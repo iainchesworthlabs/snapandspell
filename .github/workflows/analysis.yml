@@ -32,7 +32,7 @@ jobs:
   # clang-tidy reads the compile database the configure step writes; it does not
   # need the objects, so the job configures and stops. The lean configure keeps
   # the tests and the Qt application out: .clang-tidy's HeaderFilterRegex is
-  # src/, and a test-only finding would otherwise be reported against code the
+  # libs/ and apps/, and a test-only finding would otherwise be reported against code the
   # gate does not cover. Warnings are errors, so a clean run is the gate.
   clang-tidy:
     name: clang-tidy

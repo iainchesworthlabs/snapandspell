@@ -78,14 +78,14 @@ jobs:
           "$RUNNER_TEMP/lint-venv/bin/clang-format" --version
 
       # Any difference is a failure; --dry-run --Werror reports file:line.
-      - name: Check formatting (src/ and tests/)
+      - name: Check formatting (libs/, apps/ and tests/)
         shell: bash
         run: |
-          mapfile -d '' files < <(find src tests -type f \( \
+          mapfile -d '' files < <(find libs apps tests -type f \( \
             -name '*.cpp' -o -name '*.hpp' -o -name '*.h' -o -name '*.cc' -o -name '*.hh' \
             -o -name '*.cxx' -o -name '*.hxx' -o -name '*.inl' -o -name '*.ipp' \) -print0)
           if [ "${#files[@]}" -eq 0 ]; then
-            echo "::error::no C++ sources found under src/ and tests/"
+            echo "::error::no C++ sources found under libs/, apps/ and tests/"
             exit 1
           fi
           echo "checking ${#files[@]} file(s) with $(clang-format --version)"
@@ -96,7 +96,7 @@ jobs:
 
   # The no-#ifdef rule (docs/platform-isolation.md): the operating system is a
   # CMake decision, so no platform code, OS header or runtime OS test may sit
-  # outside src/platforms. Cheap, fast and deliberately not behind the build
+  # outside libs/platforms. Cheap, fast and deliberately not behind the build
   # legs, so a violation is reported even while a porting leg is red.
   platform-isolation:
     name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - platform-isolation' || 'platform-isolation' }}
@@ -343,7 +343,7 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           # The offscreen plugin draws text with the fonts in this directory and
           # finds none of its own on Windows: the screen checks and the glyph
-          # check need it (src/platforms/windows/platform.cmake has the same for
+          # check need it (libs/platforms/windows/platform.cmake has the same for
           # the CMake tests).
           QT_QPA_FONTDIR: ${{ runner.os == 'Windows' && 'C:\Windows\Fonts' || '' }}
         # Every leg runs one test per core. The Windows suite is about a thousand
@@ -357,7 +357,7 @@ jobs:
           ctest --preset "$CMAKE_PRESET" -j "$jobs"
 
       # The interface's catalogues are generated: lupdate regenerates them into a
-      # temporary directory and the checked-in i18n/*.ts must be identical, so a
+      # temporary directory and the checked-in apps/app/translations/*.ts must be identical, so a
       # qsTr() added without regenerating them fails the Windows leg. It is
       # already in ctest above; this step names the gate. The base kit
       # installed above means lupdate is there, so a missing catalogue is a red
@@ -590,7 +590,7 @@ jobs:
           triplet: x64-windows
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
-  # Line and branch coverage of the unit tier (src/lib), gated at the project's
+  # Line and branch coverage of the unit tier (libs/core), gated at the project's
   # minimum standard: 90% of lines and 80% of branches. The same gate is the
   # `coverage-unit` build target locally (tools/coverage/run_coverage.cmake);
   # this job runs the unit label and then gcovr directly, so the report is also
@@ -665,14 +665,14 @@ jobs:
       # atomically, which is what normally prevents it.
       #
       # --fail-under-line / --fail-under-branch are the gate. The scope is
-      # src/lib: the game logic the unit tier owns. The scanner and the window's
+      # libs/core: the game logic the unit tier owns. The scanner and the window's
       # model have their own integration tiers, and the UI tier's report is
       # `coverage-ui` (docs/testing.md, "Coverage").
       - name: Coverage report and gate (90% lines, 80% branches)
         shell: bash
         run: |
           mkdir -p build/coverage
-          gcovr --root . --filter '.*src/lib/.*' \
+          gcovr --root . --filter '.*libs/core/.*' \
             --gcov-executable "$GCOV" \
             --object-directory build/linux-gcc-coverage \
             --exclude-throw-branches --exclude-unreachable-branches \
@@ -687,7 +687,7 @@ jobs:
         if: ${{ always() && hashFiles('build/coverage/summary.json') != '' }}
         shell: bash
         run: |
-          jq -r '"### Coverage of src/lib from the unit tier (gate 90% lines / 80% branches)\n\n| | covered | total | percent |\n|---|---|---|---|\n| lines | \(.line_covered // 0) | \(.line_total // 0) | \(.line_percent // 0) |\n| branches | \(.branch_covered // 0) | \(.branch_total // 0) | \(.branch_percent // 0) |"' \
+          jq -r '"### Coverage of libs/core from the unit tier (gate 90% lines / 80% branches)\n\n| | covered | total | percent |\n|---|---|---|---|\n| lines | \(.line_covered // 0) | \(.line_total // 0) | \(.line_percent // 0) |\n| branches | \(.branch_covered // 0) | \(.branch_total // 0) | \(.branch_percent // 0) |"' \
             build/coverage/summary.json >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report

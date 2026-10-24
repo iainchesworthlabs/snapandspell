@@ -1,4 +1,4 @@
-// The dice simulation (src/app/scene/sim) against physics that can be
+// The dice simulation (apps/app/src/scene/sim) against physics that can be
 // worked out on paper: free fall, a box that accelerates, a spinning frame, a
 // die that slides to a stop, one that bounces, two that collide, a stack, a
 // tipped die; and against the things a scene needs to be true: nothing leaves

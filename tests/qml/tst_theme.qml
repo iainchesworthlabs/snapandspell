@@ -2,7 +2,7 @@ import QtQuick
 import QtTest
 import WordJewelsSolver
 
-// The kit's tokens (src/app/qml/kit/Theme.qml): the values the design's placeholders
+// The kit's tokens (apps/app/qml/kit/Theme.qml): the values the design's placeholders
 // pin, the three things the person or the system chooses, and the two the
 // application multiplies or cuts - text scale and reduced motion. A screen writes
 // no token of its own, so these are the whole of what a screen's colour and time
@@ -147,7 +147,7 @@ TestCase {
     }
 
     // The tray outset never exceeds the board area's inset minus the rim when it
-    // is given that inset (src/app/solo/board_layout.cpp: 12 small, 24 roomy).
+    // is given that inset (apps/app/src/solo/board_layout.cpp: 12 small, 24 roomy).
     function test_theTrayFitsInsideTheBoardAreasInset() {
         compare(Theme.trayOutset(100), Math.max(Theme.trayInsetMin, 100 * Theme.trayInsetShare))
         compare(Theme.trayOutset(300), 24)

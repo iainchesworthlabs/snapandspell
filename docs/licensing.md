@@ -66,8 +66,8 @@ unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
 
 | Component | Licence | Role | In a build you distribute |
 | --- | --- | --- | --- |
-| WordJewelsSolver (`src/`, `tests/`, `tools/`, `cmake/`, `docs/`) | GPL-3.0-or-later [V] | This project | Yes |
-| `i18n/*.ts` (the interface's catalogues) | GPL-3.0-or-later, the project's own text [V] | The eight languages' wording | Yes, compiled into the application |
+| WordJewelsSolver (`libs/`, `apps/`, `tests/`, `tools/`, `cmake/`, `docs/`) | GPL-3.0-or-later [V] | This project | Yes |
+| `apps/app/translations/*.ts` (the interface's catalogues) | GPL-3.0-or-later, the project's own text [V] | The eight languages' wording | Yes, compiled into the application |
 | vcpkg (the labs' fork, a separate clone found through `VCPKG_ROOT`) | MIT, Copyright Microsoft Corporation [V: `LICENSE.txt` in the vcpkg clone] | Fetches and builds dependencies | No: a build tool |
 | vcpkg helper ports `vcpkg-cmake`, `vcpkg-cmake-config` | MIT [V: installed `share/*/copyright`] | Build helpers | No |
 | Catch2 3.15.3 | BSL-1.0 [V: installed `share/catch2/copyright`] | The test framework (`tests` vcpkg feature) | No: tests only |
@@ -225,7 +225,7 @@ the OFL text and its notice recorded here, and the file added to the resource
 and the font family list. It is not in the tree today, so it has no entry in the
 inventory.
 
-**The interface's translations** (`i18n/*.ts`) are this project's own text, under
+**The interface's translations** (`apps/app/translations/*.ts`) are this project's own text, under
 the project's licence, like the English wording they translate. No third-party
 translation file is used. Qt supplies the catalogue mechanism (`QTranslator`,
 `lupdate`, `lrelease`) but no translated strings of its own; the Qt translation
@@ -233,7 +233,7 @@ catalogues (`qtbase_*.qm` and friends) are **not** installed or merged.
 
 ## Camera input and letter recognition
 
-Both are built (`src/scan`) and add **no third-party code beyond Qt**: the desktops'
+Both are built (`libs/scan`) and add **no third-party code beyond Qt**: the desktops'
 camera backend is Qt Multimedia (already recorded above), and the reader is the
 project's own C++23 over a byte buffer, matching glyphs against the project's own stroke
 font (a drawing of the project's, not a typeface of anyone's), with no trained model and

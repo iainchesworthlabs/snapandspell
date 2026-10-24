@@ -9,7 +9,7 @@ Bundled assets
   project and licensed with it. They are compiled into the application's
   resources as :/sounds/<name>.wav, so no file of them is installed.
 
-- The board scene's light probe, src/app/qml/scene/lightprobe/sky.ktx, is the
+- The board scene's light probe, apps/app/qml/scene/lightprobe/sky.ktx, is the
   project's own: it is baked by tools/lightprobe from the sky the scene would
   otherwise make at run time, and it is not third-party artwork. It is compiled
   into the application's resources, so no file of it is installed.

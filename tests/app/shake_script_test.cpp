@@ -13,7 +13,7 @@
 #include "budgets.hpp"
 #include "dice_sim.hpp"
 
-// The board scene's script (src/app/qml/scene/ShakeScript.js) in Qt's own
+// The board scene's script (apps/app/qml/scene/ShakeScript.js) in Qt's own
 // JavaScript engine, so what is tested is the file the scene plays and not a copy,
 // with the dice simulation (DiceSim) it drives. The checks are in
 // shake_script_check.js. They are about the dice's faces: that a die lands with

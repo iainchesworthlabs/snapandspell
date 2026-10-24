@@ -239,7 +239,7 @@ else()
             --root "${SOURCE_DIR}"
             # gcovr matches --filter against the absolute source path, not the
             # path relative to --root (checked with 7.2 and the pinned 8.6): a
-            # bare 'src/lib/.*' excludes everything. The leading .* is what
+            # bare 'libs/core/.*' excludes everything. The leading .* is what
             # makes the checkout prefix match.
             --filter ".*${SCOPE}/.*"
             --object-directory "${BUILD_DIR}"

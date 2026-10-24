@@ -24,7 +24,7 @@ a board from the camera, though the reader has only been tested on drawn frames.
 
 ## What works today
 
-- **A library** (`src/lib`) that parses a board, holds a dictionary as a trie,
+- **A library** (`libs/core`) that parses a board, holds a dictionary as a trie,
   scores words and finds every word on the board with a depth-first search. It
   has no GUI and no operating system code.
 - **`wjs-cli`**, a command-line front end to the library: give it a board and a
@@ -38,10 +38,10 @@ a board from the camera, though the reader has only been tested on drawn frames.
   the interface in eight languages, and Mode A: a camera or typed board that the
   grown-up confirms, and a helper that lights a start tile. It is a shell over
   the same library.
-- **A board reader** (`src/scan`) that finds a board in a camera frame and reads
+- **A board reader** (`libs/scan`) that finds a board in a camera frame and reads
   its letters, with a confirm-and-correct step so the solver only sees a
   confirmed board. Tested on drawn frames.
-- **A platform layer** (`src/platforms`) holding the little that differs
+- **A platform layer** (`libs/platforms`) holding the little that differs
   between Windows, Linux, macOS and iOS, and a check that nothing else does. See
   [Platform isolation](platform-isolation.md).
 
@@ -127,7 +127,7 @@ rarity.
   words with no points.
 - **`rarity`**: the scheme of the original 2013 program. A word scores the mean
   of 100 divided by the percentage frequency of each of its letters in English
-  (from a table in `src/lib/src/scoring.cpp`), truncated to a whole number, so a
+  (from a table in `libs/core/src/scoring.cpp`), truncated to a whole number, so a
   word of rare letters beats a word of common ones.
 
 ### Exit codes

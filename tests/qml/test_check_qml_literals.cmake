@@ -16,15 +16,15 @@ set(_checker "${REPO_ROOT}/tests/qml/check_qml_literals.cmake")
 set(_failures "")
 set(_cases 0)
 
-# A tree holding one QML file at `path` (under src/app/qml) with `content`,
+# A tree holding one QML file at `path` (under apps/app/qml) with `content`,
 # checked against an allow-list of `allow`. `expect` is a text the report must
 # contain, or CLEAN.
 function(wjs_case label expect path content allow)
     set(_tree "${WORK_DIR}/case")
     file(REMOVE_RECURSE "${_tree}")
-    get_filename_component(_dir "${_tree}/src/app/qml/${path}" DIRECTORY)
+    get_filename_component(_dir "${_tree}/apps/app/qml/${path}" DIRECTORY)
     file(MAKE_DIRECTORY "${_dir}")
-    file(WRITE "${_tree}/src/app/qml/${path}" "${content}\n")
+    file(WRITE "${_tree}/apps/app/qml/${path}" "${content}\n")
     file(WRITE "${_tree}/allow.cmake" "${allow}\n")
 
     execute_process(

@@ -5,7 +5,7 @@
 #   cmake -DREPO_ROOT=<repository root> -P tests/parent/check_wording.cmake
 #
 # Every sentence of the parent area's screens is in one file,
-# src/app/qml/parent/ParentWording.qml, so that the literacy reviewer reads one
+# apps/app/qml/parent/ParentWording.qml, so that the literacy reviewer reads one
 # place (the wording is a proposal for that review, gate G7). This holds that
 # file to three things:
 #
@@ -24,7 +24,7 @@ if(NOT REPO_ROOT)
     message(FATAL_ERROR "Pass -DREPO_ROOT=<repository root>.")
 endif()
 
-set(_directory "${REPO_ROOT}/src/app/qml/parent")
+set(_directory "${REPO_ROOT}/apps/app/qml/parent")
 set(_wording "${_directory}/ParentWording.qml")
 if(NOT EXISTS "${_wording}")
     message(FATAL_ERROR "${_wording} does not exist.")

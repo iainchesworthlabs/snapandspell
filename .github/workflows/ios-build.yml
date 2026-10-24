@@ -2,7 +2,7 @@ name: iOS build
 
 # An unsigned compile check of the application for an iPhone/iPad: Qt 6.12's iOS
 # kit, the `ios-release` preset, and a look inside the .app Xcode made
-# (src/platforms/ios/packaging/verify_ipa.sh). It needs no Apple account and no
+# (libs/platforms/ios/packaging/verify_ipa.sh). It needs no Apple account and no
 # secret; the signed ad-hoc IPA is the `ios` job of release.yml (docs/ci.md,
 # "iOS").
 #
@@ -16,11 +16,12 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - "src/**"
+      - "libs/**"
+      - "apps/**"
       - "cmake/**"
       - "data/**"
       - "assets/**"
-      - "i18n/**"
+      - "apps/app/translations/**"
       - "CMakeLists.txt"
       - "CMakePresets.json"
       - "vcpkg.json"
@@ -30,11 +31,12 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - "src/**"
+      - "libs/**"
+      - "apps/**"
       - "cmake/**"
       - "data/**"
       - "assets/**"
-      - "i18n/**"
+      - "apps/app/translations/**"
       - "CMakeLists.txt"
       - "CMakePresets.json"
       - "vcpkg.json"
@@ -130,4 +132,4 @@ jobs:
           set -euo pipefail
           app="$(find build/ios-release -name WordJewelsSolver.app -type d | head -n 1)"
           [ -n "$app" ] || { echo "::error::no WordJewelsSolver.app under build/ios-release"; exit 1; }
-          src/platforms/ios/packaging/verify_ipa.sh "$app"
+          libs/platforms/ios/packaging/verify_ipa.sh "$app"

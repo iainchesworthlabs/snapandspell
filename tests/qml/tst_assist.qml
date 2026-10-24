@@ -3,7 +3,7 @@ import QtTest
 import WordJewelsSolver
 import WordJewelsSolver.Scan
 
-// The Family Assistant's screen (src/app/qml/scan/AssistScreen.qml and
+// The Family Assistant's screen (apps/app/qml/scan/AssistScreen.qml and
 // AssistBoard.qml): the board as Solo Play's object (the kit's tray with its gold
 // rim, cream dice, the path under the letters), the panel's titled card and its
 // empty state, the words found as 48 dp rows, the one help and its ring, the

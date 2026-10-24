@@ -18,7 +18,7 @@ on:
       - ".github/**"
       - "tools/release/**"
       - "tools/package/**"
-      - "src/platforms/*/packaging/**"
+      - "libs/platforms/*/packaging/**"
       - "tests/package/**"
       - "cmake/Packaging.cmake"
       - "cmake/Notices.cmake"
@@ -31,7 +31,7 @@ on:
       - ".github/**"
       - "tools/release/**"
       - "tools/package/**"
-      - "src/platforms/*/packaging/**"
+      - "libs/platforms/*/packaging/**"
       - "tests/package/**"
       - "cmake/Packaging.cmake"
       - "cmake/Notices.cmake"
@@ -80,7 +80,7 @@ jobs:
           actionlint
 
       - name: ShellCheck the release scripts, the platforms' packaging scripts and the test
-        run: shellcheck -x tools/release/*.sh tests/package/*.sh src/platforms/*/packaging/*.sh
+        run: shellcheck -x tools/release/*.sh tests/package/*.sh libs/platforms/*/packaging/*.sh
 
   self-test:
     name: Release tooling self-test

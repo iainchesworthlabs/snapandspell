@@ -191,7 +191,7 @@ C++23 is required, with compiler extensions off, for every target.
 
 The window is the game of [Application design](design/application.md) in Qt Quick,
 over the library: Solo Play, the Family Assistant that reads a board with the camera,
-and the parent area (`src/app`; [Architecture](architecture.md#the-qt-quick-window)). Its target is
+and the parent area (`apps/app/src`; [Architecture](architecture.md#the-qt-quick-window)). Its target is
 `WordJewelsSolver`, the program it makes (`WordJewelsSolver.exe` on Windows,
 where it is a GUI-subsystem program with no console window; an application
 bundle on macOS). `WJS_BUILD_APP` is `AUTO`, so the window is built whenever a
@@ -231,11 +231,11 @@ PyPI aqtinstall, because Qt 6.11+ split the Windows repository per architecture
 ([CI](ci.md#toolchain-choices)).
 
 The three feedback backends are chosen the way `wjs/profiling.hpp` is
-(docs/profiling.md): one directory under `src/app/variants/` goes on the include
+(docs/profiling.md): one directory under `apps/app/src/variants/` goes on the include
 path, every variant has the same header and interface, and no source asks
-whether the module is there. The camera uses the same pattern: `src/app/camera`
+whether the module is there. The camera uses the same pattern: `apps/app/src/camera`
 holds `CameraSource` (the QML element the screen binds to), `CameraBackend` (the
-seam) and the frame conversion, and `src/app/variants/camera-multimedia` or
+seam) and the frame conversion, and `apps/app/src/variants/camera-multimedia` or
 `camera-none` supplies the backend. Where the kit has Qt Multimedia, the ready
 screen shows a live `VideoOutput` and Capture reads one frame; where it does
 not, the same screen says there is no camera and the typed board is the way on.
@@ -315,12 +315,12 @@ the file the parent area keeps its settings in and the game keeps its finds in.
 The window is offered in English, French, Spanish, German, Yiddish, Hebrew,
 Chinese and Japanese, and Hebrew and Yiddish read right to left
 ([Application design](design/application.md#languages-right-to-left-and-fonts)).
-One Qt Linguist catalogue per language is checked in under `i18n/`
-(`wjs_en.ts` … `wjs_ja.ts`), and `src/app/language_manager.*` loads the compiled
+One Qt Linguist catalogue per language is checked in under `apps/app/translations/`
+(`wjs_en.ts` … `wjs_ja.ts`), and `apps/app/src/language_manager.*` loads the compiled
 one from the application's resources as `:/i18n/wjs_<code>.qm`.
 
 `lrelease` runs at build time, as part of building the window: each `.ts` is
-compiled into `build/<preset>/src/app/i18n/` and embedded in the `wjs_i18n`
+compiled into `build/<preset>/apps/app/i18n/` and embedded in the `wjs_i18n`
 library. Nothing has to be done by hand for a normal build.
 
 After adding, changing or moving a `qsTr()` string, regenerate the catalogues
@@ -331,7 +331,7 @@ cmake --build --preset windows-msvc-debug --target wjs_update_translations
 ```
 
 That target runs the kit's `lupdate` over the source list in
-`cmake/Translations.cmake` and rewrites every `i18n/*.ts`; the translations
+`cmake/Translations.cmake` and rewrites every `apps/app/translations/*.ts`; the translations
 already there are kept, and a new message is written as `type="unfinished"`
 until a person fills it in. Qt Linguist (in the same package as `lupdate`) opens a
 `.ts` for translating. The test `i18n.catalogues` regenerates the catalogues
@@ -395,7 +395,7 @@ export VCPKG_ROOT=...            # as for any preset
 
 cmake --preset ios-release       # an Xcode project in build/ios-release/
 cmake --build --preset ios-release   # unsigned: compiles for a device
-src/platforms/ios/packaging/verify_ipa.sh "$(find build/ios-release -name WordJewelsSolver.app -type d | head -n 1)"
+libs/platforms/ios/packaging/verify_ipa.sh "$(find build/ios-release -name WordJewelsSolver.app -type d | head -n 1)"
 ```
 
 (`aqt` is the pinned one: `.github/toolchain-versions.json`, `qt.aqtsource`.) The
@@ -460,13 +460,13 @@ here, where the kits were already in the shared tree.)
 ```sh
 cmake --preset android-arm64-debuggable            # build/android-arm64-debuggable/
 cmake --build --preset android-arm64-debuggable    # the apk target: a debug-signed APK
-src/platforms/android/packaging/verify_apk.sh \
-    build/android-arm64-debuggable/src/app/android-build/build/outputs/apk/debug/android-build-debug.apk --signed
-adb install -r build/android-arm64-debuggable/src/app/android-build/build/outputs/apk/debug/android-build-debug.apk
+libs/platforms/android/packaging/verify_apk.sh \
+    build/android-arm64-debuggable/apps/app/android-build/build/outputs/apk/debug/android-build-debug.apk --signed
+adb install -r build/android-arm64-debuggable/apps/app/android-build/build/outputs/apk/debug/android-build-debug.apk
 ```
 
 (`verify_apk.sh` finds `aapt2` and `apksigner` in the SDK's newest build-tools.) The package is
-under the target's directory, `build/<preset>/src/app/android-build/build/outputs/`.
+under the target's directory, `build/<preset>/apps/app/android-build/build/outputs/`.
 `android-arm64-release` is the same with Release and an unsigned APK
 (`.../apk/release/android-build-release-unsigned.apk`, which no device installs); `--target
 aab` makes the bundle (`.../bundle/release/android-build-release.aab`). The presets turn the
@@ -518,7 +518,7 @@ and the configure says which it will make. A ZIP is always offered.
 | `dpkg-deb` and `dpkg-shlibdeps` | the `.deb` (command-line solver only) | Linux, in `dpkg-dev` |
 | `rpmbuild` | the `.rpm` (command-line solver only) | Linux, in `rpm` |
 | `hdiutil` | the `.dmg` | macOS, part of the system |
-| `linuxdeploy` and its Qt plugin | the `.AppImage` (the application, with Qt inside) | Linux; `src/platforms/linux/packaging/build_appimage.sh` fetches them, pinned |
+| `linuxdeploy` and its Qt plugin | the `.AppImage` (the application, with Qt inside) | Linux; `libs/platforms/linux/packaging/build_appimage.sh` fetches them, pinned |
 
 ```sh
 # Windows, from the same Developer PowerShell the build used
@@ -580,7 +580,7 @@ WordJewelsSolver-0.1.0-win64/
 ```
 
 The installed window is self-contained on Windows: Qt's own install-time deploy
-script (`qt_generate_deploy_qml_app_script`, `src/app/CMakeLists.txt`) copies the
+script (`qt_generate_deploy_qml_app_script`, `apps/app/CMakeLists.txt`) copies the
 runtime beside the program, and the plugins and QML modules one level above it,
 with the `qt.conf` that points there. The camera adds Qt Multimedia to that
 tree: `plugins/multimedia/*` (the platform's capture backend) and
@@ -659,13 +659,13 @@ tools/release/smoke_package.sh build/linux-gcc-release/packages/*.{zip,tar.gz,de
 # Linux, the application, as an AppImage (QT_ROOT_DIR names a Qt 6.12 kit)
 cmake --preset linux-gcc-release
 cmake --build --preset linux-gcc-release
-src/platforms/linux/packaging/build_appimage.sh --build build/linux-gcc-release   --version 0.1.0 --out build/linux-gcc-release/packages --qt-prefix "$QT_ROOT_DIR" --smoke
+libs/platforms/linux/packaging/build_appimage.sh --build build/linux-gcc-release   --version 0.1.0 --out build/linux-gcc-release/packages --qt-prefix "$QT_ROOT_DIR" --smoke
 
 # macOS, the application bundle in a disk image
 cmake --preset macos-clang-release
 cmake --build --preset macos-clang-release
 cpack --preset package-macos-clang-release
-src/platforms/macos/packaging/verify_bundle.sh build/macos-clang-release/packages/*.dmg --smoke
+libs/platforms/macos/packaging/verify_bundle.sh build/macos-clang-release/packages/*.dmg --smoke
 ```
 
 The Release presets turn the application on, Tracy and the sanitizers off, and
@@ -771,7 +771,7 @@ runs the same command over every translation unit in the database.
 
 The formatting job runs the repository's `.clang-format` with one pinned release
 (`.github/requirements/lint.txt`, in a virtual environment: there is none on the PATH)
-as `clang-format --dry-run --Werror` over every C++ file under `src/` and `tests/`;
+as `clang-format --dry-run --Werror` over every C++ file under `libs/`, `apps/` and `tests/`;
 use the same release before a push.
 
 MSVC's analyzer is part of the compile, under the `windows-msvc-analysis`
@@ -807,11 +807,11 @@ cmake --build --preset linux-gcc-coverage --target coverage-unit
 cmake --build --preset windows-clang-coverage --target coverage-unit
 ```
 
-- `coverage-unit` runs the `unit` tier and gates `src/lib` at **90% of lines and
+- `coverage-unit` runs the `unit` tier and gates `libs/core` at **90% of lines and
   80% of branches** (the project's minimum standard). Below either floor the
   build fails and names the report.
 - `coverage-ui` runs the `ui` tier (the Qt Quick Test suites) and reports
-  `src/app`, the C++ the QML reaches; it has no floor.
+  `apps/app/src`, the C++ the QML reaches; it has no floor.
 - `coverage` runs both.
 
 The reports are under `build/<preset>/coverage/<tier>/` (`summary.json`,

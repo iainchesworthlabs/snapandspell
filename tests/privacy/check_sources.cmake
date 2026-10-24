@@ -15,7 +15,7 @@
 #             modules whose job is the network, the manifest permissions
 #   export    printing, sharing, saving through a dialog, the clipboard, a URL
 #             handed to the system, launching another program, and any write to
-#             a file outside the store (src/lib/src/store.cpp is the one place)
+#             a file outside the store (libs/core/src/store.cpp is the one place)
 #
 # What it does not do, and why: it is a pattern scan, not a proof. Qt Qml and Qt
 # Quick link Qt Network themselves, so "no Qt Network in the binary" cannot be
@@ -134,7 +134,7 @@ wjs_rule(export.system SRC WORD
 # The store is the one file the application writes: its source is the one place
 # that opens a file for writing or changes the file system.
 wjs_rule(export.write NOSTORE WORD
-    "The application writes one file, the store, and only src/lib/src/store.cpp opens it"
+    "The application writes one file, the store, and only libs/core/src/store.cpp opens it"
     "std::ofstream" "std::fstream" "std::wofstream" "_wfopen" "freopen" "QFile::WriteOnly"
     "QIODevice::WriteOnly" "QIODevice::Append" "QIODevice::ReadWrite" "QIODeviceBase::WriteOnly"
     "QIODeviceBase::Append" "QIODeviceBase::ReadWrite" "QTextStream"
@@ -143,7 +143,7 @@ wjs_rule(export.write NOSTORE WORD
     "std::filesystem::create_directory" "std::filesystem::create_symlink"
     "std::filesystem::resize_file" "std::filesystem::permissions")
 wjs_rule(export.fopen NOSTORE NONE
-    "The application writes one file, the store, and only src/lib/src/store.cpp opens it"
+    "The application writes one file, the store, and only libs/core/src/store.cpp opens it"
     "fopen[(][^)]*\"[wa+]")
 
 # --- which files ---------------------------------------------------------------
@@ -176,15 +176,15 @@ list(APPEND _files ${_top})
 list(REMOVE_DUPLICATES _files)
 
 # The checker and its self-test name every forbidden thing: not scanned. Nor is
-# src/app/prototype/, which is a program of its own for trying the 3D board
+# apps/app/src/prototype/, which is a program of its own for trying the 3D board
 # (docs/design/shake-prototype.md), never part of the application, and writes
 # its frames to disk to look at them. Nor are the scanner's own privacy checker and
 # its deliberate leak (tests/scan): the checker names what the scanner must not do
 # as patterns, as this one does, and the fixture is the leak it must catch.
 list(FILTER _files EXCLUDE REGEX
-    "^(tests/privacy|src/app/prototype|tests/scan/privacy_fixture)/|^tests/scan/check_privacy[.]cmake$")
+    "^(tests/privacy|apps/app/src/prototype|tests/scan/privacy_fixture)/|^tests/scan/check_privacy[.]cmake$")
 
-set(_store_source "src/lib/src/store.cpp")
+set(_store_source "libs/core/src/store.cpp")
 
 # --- the scan ------------------------------------------------------------------
 
@@ -213,10 +213,10 @@ foreach(_file IN LISTS _files)
 
     foreach(_index RANGE 1 ${_rule_count})
         set(_scope "${_rule_${_index}_scope}")
-        if(_scope STREQUAL "SRC" AND NOT _file MATCHES "^src/")
+        if(_scope STREQUAL "SRC" AND NOT _file MATCHES "^(libs|apps)/")
             continue()
         endif()
-        if(_scope STREQUAL "NOSTORE" AND (NOT _file MATCHES "^src/" OR _file STREQUAL _store_source))
+        if(_scope STREQUAL "NOSTORE" AND (NOT _file MATCHES "^(libs|apps)/" OR _file STREQUAL _store_source))
             continue()
         endif()
         if(_scope STREQUAL "CODE" AND (_extension MATCHES "^[.](cmake|json|xml|plist|in|entitlements)$" OR

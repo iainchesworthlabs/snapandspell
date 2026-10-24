@@ -15,7 +15,7 @@
 #include "wjs/session_store.hpp"
 #include "wjs/store.hpp"
 
-// The Family Assistant's port (src/app/scan/assist_game.*): a typed board, as the
+// The Family Assistant's port (apps/app/src/scan/assist_game.*): a typed board, as the
 // check screen makes one, through BoardDraft::confirm() to AssistGame. It holds
 // down what a traced path is on a board that counts a few words (a viable word, a
 // real word that is not today's and a string of letters), the start-tile help,

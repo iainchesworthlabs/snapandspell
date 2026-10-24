@@ -4,7 +4,7 @@
 
 Needs Pillow (`pip install pillow`); the result is committed, so only a person who
 changes assets/icon runs it. It writes
-src/platforms/ios/packaging/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png.
+libs/platforms/ios/packaging/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png.
 
 iOS wants one square 1024-pixel picture with no transparency and rounds the
 corners itself. assets/icon/app.png is already a rounded tile with transparent
@@ -21,7 +21,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "assets/icon/app.png"
-OUTPUT = ROOT / "src/platforms/ios/packaging/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
+OUTPUT = ROOT / "libs/platforms/ios/packaging/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
 
 FRAME = (23, 50, 58)  # the dark frame inside the gold rim (#17323A, Theme.tray)
 INSET = 56  # pixels of the 512-pixel tile to drop: the rim and its rounded corners

@@ -81,10 +81,10 @@ endif()
 # The report targets. They are only defined in an instrumented build: a report
 # made from a build without counters would show zero everywhere.
 #
-#   coverage-unit   runs the `unit` label, then reports and gates src/lib on
+#   coverage-unit   runs the `unit` label, then reports and gates libs/core on
 #                   90% lines / 80% branches (WJS_COVERAGE_MIN_*).
 #   coverage-ui     runs the `ui` label (the Qt Quick Test suites and the two
-#                   stub shells), then reports src/app - the C++ the QML drives.
+#                   stub shells), then reports apps/app/src - the C++ the QML drives.
 #   coverage        both, one after the other.
 #
 # Each target runs the tests itself, with a profile directory of its own, so the
@@ -170,11 +170,11 @@ function(wjs_add_coverage_targets)
                 ${_wjs_coverage_common}
                 "-DTIER=unit"
                 "-DLABEL=unit"
-                "-DSCOPE=src/lib"
+                "-DSCOPE=libs/core"
                 "-DEXECUTABLE=${_wjs_unit_executable}"
                 -P "${PROJECT_SOURCE_DIR}/tools/coverage/run_coverage.cmake"
             USES_TERMINAL
-            COMMENT "Coverage: unit tier over src/lib (gate ${WJS_COVERAGE_MIN_LINE} percent lines / ${WJS_COVERAGE_MIN_BRANCH} percent branches)")
+            COMMENT "Coverage: unit tier over libs/core (gate ${WJS_COVERAGE_MIN_LINE} percent lines / ${WJS_COVERAGE_MIN_BRANCH} percent branches)")
         add_dependencies(coverage-unit wjs_unit_tests)
         if(TARGET wjs_dice_tests)
             # The dice simulation's cases carry the unit label too, when the
@@ -190,13 +190,13 @@ function(wjs_add_coverage_targets)
                 ${_wjs_coverage_common}
                 "-DTIER=ui"
                 "-DLABEL=ui"
-                "-DSCOPE=src/app"
+                "-DSCOPE=apps/app/src"
                 "-DEXECUTABLE=${_wjs_ui_executable}"
                 "-DMIN_LINE=0"
                 "-DMIN_BRANCH=0"
                 -P "${PROJECT_SOURCE_DIR}/tools/coverage/run_coverage.cmake"
             USES_TERMINAL
-            COMMENT "Coverage: the Qt Quick Test suites over src/app")
+            COMMENT "Coverage: the Qt Quick Test suites over apps/app/src")
         add_dependencies(coverage-ui wjs_quick_tests)
         # The `ui` label also runs the two stub shells, and the Qt Quick Test
         # suites need the QML modules the application's own windeployqt run

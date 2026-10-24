@@ -2,7 +2,7 @@ import QtQuick
 import QtTest
 import WordJewelsSolver
 
-// The kit's components (src/app/qml/kit/) as they are used, not as they are
+// The kit's components (apps/app/qml/kit/) as they are used, not as they are
 // drawn: AppButton's three target sizes and its release-inside rule, HoldButton's
 // hold, TileFace's two states, the Jewel's tier sizes, the Icon's pictures and
 // the Feedback seam's cues. Nothing here reads a pixel: a state is a property,

@@ -2,7 +2,7 @@ import QtQuick
 import QtTest
 import WordJewelsSolver
 
-// solo.box (src/app/qml/solo/SoloScreen.qml and SoloBox.qml): the board-size
+// solo.box (apps/app/qml/solo/SoloScreen.qml and SoloBox.qml): the board-size
 // choice, the Shake button and Space. The screen is the application's own; the
 // 3D board scene it imports is replaced by the harness's stub (tests/qml/
 // scene_stub), which records the play(board, seed) a shake hands it and settles

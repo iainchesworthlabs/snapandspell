@@ -97,13 +97,13 @@ with the rulesets.
 
 | Job (display name) | Runs on | What a green run proves |
 | --- | --- | --- |
-| `clang-format` | ubuntu-24.04 | Every `.cpp`/`.hpp` (and sibling extensions) under `src/` and `tests/` is exactly what the repository's `.clang-format` produces, with one pinned clang-format release (`.github/requirements/lint.txt`). Any difference fails; the log names file and line. |
-| `platform-isolation` | ubuntu-24.04 | `tools/checks/check_platform_isolation.ps1`: no preprocessor conditional, no OS header or OS-querying API outside `src/platforms/`, no OS test in CMake outside the selector, no `#define`, every platform source wired. Fast, and deliberately not behind the build legs. |
+| `clang-format` | ubuntu-24.04 | Every `.cpp`/`.hpp` (and sibling extensions) under `libs/`, `apps/` and `tests/` is exactly what the repository's `.clang-format` produces, with one pinned clang-format release (`.github/requirements/lint.txt`). Any difference fails; the log names file and line. |
+| `platform-isolation` | ubuntu-24.04 | `tools/checks/check_platform_isolation.ps1`: no preprocessor conditional, no OS header or OS-querying API outside `libs/platforms/`, no OS test in CMake outside the selector, no `#define`, every platform source wired. Fast, and deliberately not behind the build legs. |
 | `Plan build legs` | ubuntu-24.04 | The legs a manual dispatch named exist (an unknown name fails here, with the list). The three build legs do **not** wait for this job - they pick themselves from the same input - so it gates nothing; it stays a required check because the rulesets name it. |
 | `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes (one test per core on every leg; the cases that need the machine alone are `RUN_SERIAL`). Its objects come from a compiler cache ([below](#the-compiler-cache-windows)). The leg also builds the Qt application and the scene prototype, runs the application's offscreen smoke, and packages its Debug build as a **development** ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64-debug-dev` artifact: Tracy and the ASan runtime are in it by design; the package that ships is the `Package (Windows, Release)` job's). |
 | `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. The library, platform layer, CLI and scanner are built, not the Qt application (`-DWJS_BUILD_APP=OFF`). |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. As on Linux, without the Qt application. |
-| `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit tier, and gcovr over `src/lib` **fails the job below the project's minimum standard: 90% of lines and 80% of branches**. The HTML, `summary.json` and the table in the job summary are the `coverage-report` artifact. The same gate is `coverage-unit` locally ([Testing](testing.md#coverage)). |
+| `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit tier, and gcovr over `libs/core` **fails the job below the project's minimum standard: 90% of lines and 80% of branches**. The HTML, `summary.json` and the table in the job summary are the `coverage-report` artifact. The same gate is `coverage-unit` locally ([Testing](testing.md#coverage)). |
 | `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. **Not a required check** (it is not in `.github/rulesets/*.json`). |
 | `Package (Windows, Release)` | windows-2025-vs2026 | Preset `windows-msvc-release` (the Qt application on, tests off, Tracy and the sanitizers off, the same Qt kit as the Windows leg) builds, then `tools/package/check_package.ps1` makes the ZIP and proves it carries no `TracyClient`, AddressSanitizer runtime or `.pdb`, unpacks it, solves a board with the packaged `wjs-cli` and runs the packaged window's offscreen smoke, and `tools/release/check_release_build.ps1` checks the cache and the package. The ZIP and `SHA256SUMS` are the `wordjewelssolver-windows-x64` artifact (14 days). It is the push-time proof that a Release package is clean. **Not a required check yet**: a candidate once it has been green on a few pull requests (it has been green on pushes to `develop`). |
 
@@ -118,7 +118,7 @@ the `quality` label:
 
 - `platform.fragments`: every platform fragment satisfies the platform
   contract, on whichever host this is, including that every interface header in
-  `src/platforms/interfaces` has an implementation in the fragment's sources.
+  `libs/platforms/interfaces` has an implementation in the fragment's sources.
 - `platform.isolation`: the same script as the `platform-isolation` job; it
   needs `pwsh`, which every hosted image has.
 - `profiling.shipped_presets` (no preset that ships has Tracy in it),
@@ -186,7 +186,7 @@ catalogues is checked for completeness, the QML screens are loaded in all eight
 (including Hebrew and Yiddish, with the layout mirrored), the glyph check runs
 on the platform's fonts, and `i18n.catalogues` regenerates the catalogues with
 the kit's `lupdate` and fails when a checked-in one differs. The last is the
-drift gate: a `qsTr()` added without regenerating `i18n/*.ts` is a red leg, not
+drift gate: a `qsTr()` added without regenerating `apps/app/translations/*.ts` is a red leg, not
 a silent untranslated string. It is a ctest, so it skips itself (exit 4) on a
 machine without Qt's Linguist tools, but the Windows leg installs them (below).
 
@@ -244,7 +244,7 @@ import beside the binary, as the application's own deploy does for its screens.
   there, and the iOS jobs install Qt's iOS kit; of those only the unsigned iOS
   compile has run ([below](#not-verified-until-it-runs-on-github)).
   `QT_QPA_PLATFORM=offscreen` lets the screens run on a runner with no display.
-- **The feedback and camera modules are optional.** `src/app` finds Multimedia,
+- **The feedback and camera modules are optional.** `apps/app/src` finds Multimedia,
   Sensors and TextToSpeech with `OPTIONAL_COMPONENTS` and selects a silent
   backend for a missing one (the variant pattern), so a contributor's kit still
   configures and builds; the camera uses the same choice, with a `camera-none`
@@ -696,7 +696,7 @@ list in its message, if any of it is missing.
 6. **Pin the AppImage tools** (done: `linuxdeploy.pins` records the SHA-256 of
    linuxdeploy and of its Qt plugin, so a download that differs fails the build).
    To bump one, change the tag in its URL, set its hash to `PENDING` and run
-   `src/platforms/linux/packaging/pin_linuxdeploy.sh` on a machine you trust, then
+   `libs/platforms/linux/packaging/pin_linuxdeploy.sh` on a machine you trust, then
    commit the result; while a hash is `PENDING` the build downloads by tag, prints
    the hash with a warning and carries on (trust on first use). The AppImage
    recipe itself has never run.
@@ -739,7 +739,7 @@ The iPhone/iPad application is a private, ad-hoc build for the author's own devi
 Installing it, adding a device and renewing the signing are in
 [Installing on my iPhone/iPad](ios-install.md). Here is how it is built.
 
-**What is in the tree.** A platform section, `src/platforms/ios/` (`platform.cmake`,
+**What is in the tree.** A platform section, `libs/platforms/ios/` (`platform.cmake`,
 its paths implementation, `packaging/Info.plist.in`, the asset catalogue with the
 icon and the launch colour, and `packaging/verify_ipa.sh`), selected by
 `cmake/Platform.cmake` before `APPLE` (the one edit the isolation rules allow); and
@@ -771,7 +771,7 @@ configures and builds `ios-release` on `macos-26` and then looks inside the
 screen, the data beside the executable, arm64, links only the system). It needs no
 secret, and has run green on pull requests and on pushes to `develop` since
 2026-10-21, in about a quarter of an hour. It runs on pull requests and pushes to `main`/`develop` that touch what iOS
-reads (`src/`, `cmake/`, `data/`, `assets/`, `i18n/`, the root `CMakeLists.txt`,
+reads (`libs/`, `apps/`, `cmake/`, `data/`, `assets/`, the root `CMakeLists.txt`,
 presets and vcpkg manifest, the toolchain pins, the `vcpkg-setup` action, the workflow itself) and by hand
 (`gh workflow run ios-build.yml --ref <branch>`). It is not a required check, for the
 reason every path-filtered workflow here is not, and because a macOS runner is billed
@@ -888,7 +888,7 @@ Bundle), which is what Google Play takes if a Play listing is ever made. Buildin
 locally is in [Building, Android](building.md#android); here is how CI and the release
 make it.
 
-**What is in the tree.** A platform section, `src/platforms/android/` (`platform.cmake`,
+**What is in the tree.** A platform section, `libs/platforms/android/` (`platform.cmake`,
 the paths and fatal-error implementations, and `packaging/`: the manifest and resources
 Qt packs, and `verify_apk.sh`), selected by `cmake/Platform.cmake` before `UNIX` (the NDK's
 toolchain sets `UNIX` too); the presets `android-arm64-release` and
@@ -1360,7 +1360,7 @@ an entry was saved.
 | CMake and Ninja (`lukka/get-cmake`) | `cmakeVersion` / `ninjaVersion`, exact, and one the pinned action's catalog lists | By hand, with the action |
 | Qt (`jurplel/install-qt-action`) | The action's commit SHA, the Qt version, the kit per host (`win64_msvc2022_64`, `linux_gcc_64`, `clang_64`, the iOS kit), the module list (`qtquick3d qtshadertools qtmultimedia qtsensors qtspeech`) and the `aqtsource` commit, in `.github/toolchain-versions.json` | By hand: run `aqt list-qt windows desktop --modules <version> <arch>` **and** a real install before bumping, as the action's README says |
 | vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline`; `tracy` is overridden to one version, and built from the overlay port in `cmake/vcpkg-ports` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together; the overlay moves with the override, by hand |
-| linuxdeploy and its Qt plugin (the AppImage tools) | A release tag and a SHA-256 each, in `src/platforms/linux/packaging/linuxdeploy.pins` | By hand, with `pin_linuxdeploy.sh` |
+| linuxdeploy and its Qt plugin (the AppImage tools) | A release tag and a SHA-256 each, in `libs/platforms/linux/packaging/linuxdeploy.pins` | By hand, with `pin_linuxdeploy.sh` |
 | actionlint, ShellCheck, the SBOM schema validator | `==` in `.github/requirements/workflows.txt` and `sbom.txt`; the CycloneDX schema at the commit of its `1.6` tag, in `release-tooling.yml` | Dependabot (`pip`), weekly; the schema commit by hand |
 | NSIS (the Windows installer tool) | `choco install nsis --version 3.13.0`, in `release.yml`, when the image does not carry it | By hand |
 | ccache (the Windows compiler cache) | The release zip's version and SHA-256, in `.github/actions/ccache/setup/action.yml` (the digest GitHub lists for the asset) | By hand |
@@ -1441,8 +1441,8 @@ likelihood:
 1. **Warnings as errors** on a compiler version nobody has tried: `-Werror`
    with `-Wconversion`, `-Wsign-conversion`, `-Wold-style-cast` and friends
    will say exactly which line.
-2. **A platform source on a changed image** (`src/platforms/linux`,
-   `src/platforms/macos`): they compile on every push, so the leg's log names
+2. **A platform source on a changed image** (`libs/platforms/linux`,
+   `libs/platforms/macos`): they compile on every push, so the leg's log names
    the line, and the usual cause is a runner image that moved to a newer SDK.
 3. **The sanitizer runtime**: ASan/UBSan on the hosted image (on Windows, the
    ASan runtime DLL that `wjs_deploy_sanitizer_runtime` copies next to the

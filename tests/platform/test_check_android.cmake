@@ -15,7 +15,7 @@ endif()
 
 include("${REPO_ROOT}/tests/platform/android_manifest.cmake")
 
-set(_real "${REPO_ROOT}/src/platforms/android/packaging/package-source/AndroidManifest.xml")
+set(_real "${REPO_ROOT}/libs/platforms/android/packaging/package-source/AndroidManifest.xml")
 file(READ "${_real}" _manifest)
 string(REPLACE "\r\n" "\n" _manifest "${_manifest}")
 

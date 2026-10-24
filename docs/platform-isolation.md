@@ -2,14 +2,14 @@
 
 > **Principle.** The operating system is a CMake decision, not a source-code
 > one. Everything that differs between platforms lives in
-> `src/platforms/<name>/`, behind a header in `src/platforms/interfaces/`, and
+> `libs/platforms/<name>/`, behind a header in `libs/platforms/interfaces/`, and
 > the platform's own `platform.cmake` says which of those files are compiled and
 > what they link against. Shared code - everything else - does not know which
 > platforms exist: no `#ifdef`, no OS header, no runtime "which OS am I on".
 
-Adding a platform is therefore two edits: a new `src/platforms/<name>/`
+Adding a platform is therefore two edits: a new `libs/platforms/<name>/`
 directory, and one branch in the selector, `cmake/Platform.cmake`. Nothing in
-`src/lib`, the Qt window, the tests or any other CMake file needs to learn the
+`libs/core`, the Qt window, the tests or any other CMake file needs to learn the
 platform's name.
 
 This is a rule for every contributor, and it is enforced by a check (see
@@ -19,7 +19,7 @@ This is a rule for every contributor, and it is enforced by a check (see
 ## The layout
 
 ```text
-src/platforms/
+libs/platforms/
   interfaces/wjs/platform/   what the program needs from a platform: one header each
     console.hpp  paths.hpp  camera.hpp  board_reader.hpp
   windows/ linux/ macos/ ios/
@@ -49,23 +49,23 @@ leaves `detail/` out; the isolation check has never needed a `platform.cmake` in
 `cmake/Platform.cmake` is the **only** CMake file that tests `WIN32`, `APPLE` or
 `UNIX`, and `IOS`, which it tests first because an iOS build is an Apple build
 too (`ANDROID` and `EMSCRIPTEN` it turns into an error saying that they are not
-targets yet). It maps them to a platform name, includes `src/platforms/<name>/platform.cmake`, and then checks that the
+targets yet). It maps them to a platform name, includes `libs/platforms/<name>/platform.cmake`, and then checks that the
 fragment filled in the whole contract (`cmake/PlatformContract.cmake`). Every
 other CMake file reads what the fragment declared:
 
 | What | Declared as | Read by |
 | --- | --- | --- |
-| Source files compiled into `wjs_platform` (relative to `src/platforms`) | `WJS_PLATFORM_SOURCES` | `src/platforms/CMakeLists.txt` |
-| System libraries `wjs_platform` links | `WJS_PLATFORM_LINK_LIBRARIES` | `src/platforms/CMakeLists.txt` |
-| Compile definitions, for `wjs_platform` only (Windows: `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE`) | `WJS_PLATFORM_COMPILE_DEFINITIONS` | `src/platforms/CMakeLists.txt` |
-| The name in the version block (`Windows`, `Linux`, `macOS`) | `WJS_PLATFORM_DISPLAY_NAME` | `src/lib` (generated `version.hpp`), the configure summary |
+| Source files compiled into `wjs_platform` (relative to `libs/platforms`) | `WJS_PLATFORM_SOURCES` | `libs/platforms/CMakeLists.txt` |
+| System libraries `wjs_platform` links | `WJS_PLATFORM_LINK_LIBRARIES` | `libs/platforms/CMakeLists.txt` |
+| Compile definitions, for `wjs_platform` only (Windows: `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE`) | `WJS_PLATFORM_COMPILE_DEFINITIONS` | `libs/platforms/CMakeLists.txt` |
+| The name in the version block (`Windows`, `Linux`, `macOS`) | `WJS_PLATFORM_DISPLAY_NAME` | `libs/core` (generated `version.hpp`), the configure summary |
 | Whether this is a desktop (CPack installers exist; `OFF` on iOS, whose application Xcode archives and exports) | `WJS_PLATFORM_DESKTOP` | `cmake/Packaging.cmake` (no CPack configuration where it is `OFF`) |
 | Where an installed Qt lives | `WJS_PLATFORM_QT_SEARCH_ROOTS`, `WJS_PLATFORM_QT_ARCH_DIRS` | `cmake/FindQt6.cmake` |
 | `NAME=value` entries a Qt Quick test needs to run without a display, besides `QT_QPA_PLATFORM=offscreen` (`""` for none) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` | `tests/CMakeLists.txt` |
-| Where the application's dictionary and dice go, relative to the install prefix (the bindir, or `Contents/MacOS` in a bundle) | `WJS_PLATFORM_INSTALL_APP_DATA_DIR` | `src/app/CMakeLists.txt`, `cmake/Notices.cmake` |
-| Whether an installed application carries Qt's runtime (Windows and macOS) or loads the system's (Linux) | `WJS_PLATFORM_QT_DEPLOY_AT_INSTALL` | `src/app/CMakeLists.txt` |
-| What makes the Qt application a program of this desktop (no console window on Windows, a bundle on macOS) | `wjs_platform_configure_app(<target>)` | `src/app/CMakeLists.txt` |
-| Qt's runtime beside a program, including the QML modules in `<qml_dir>` (`windeployqt` on Windows) | `wjs_platform_deploy_qt_runtime(<target> <qml_dir>)` | `src/app/CMakeLists.txt`, `tests/CMakeLists.txt` |
+| Where the application's dictionary and dice go, relative to the install prefix (the bindir, or `Contents/MacOS` in a bundle) | `WJS_PLATFORM_INSTALL_APP_DATA_DIR` | `apps/app/CMakeLists.txt`, `cmake/Notices.cmake` |
+| Whether an installed application carries Qt's runtime (Windows and macOS) or loads the system's (Linux) | `WJS_PLATFORM_QT_DEPLOY_AT_INSTALL` | `apps/app/CMakeLists.txt` |
+| What makes the Qt application a program of this desktop (no console window on Windows, a bundle on macOS) | `wjs_platform_configure_app(<target>)` | `apps/app/CMakeLists.txt` |
+| Qt's runtime beside a program, including the QML modules in `<qml_dir>` (`windeployqt` on Windows) | `wjs_platform_deploy_qt_runtime(<target> <qml_dir>)` | `apps/app/CMakeLists.txt`, `tests/CMakeLists.txt` |
 | This platform's CPack generators, added to `CPACK_GENERATOR` when their tools are found | `wjs_platform_configure_packaging()` | `cmake/Packaging.cmake` |
 
 The full contract is the header comment of `cmake/Platform.cmake`. A fragment
@@ -78,7 +78,7 @@ they stay in `cmake/CompilerWarnings.cmake`, `Sanitizers.cmake` and
 
 ## Adding a platform
 
-1. Create `src/platforms/<name>/` with one implementation of each interface
+1. Create `libs/platforms/<name>/` with one implementation of each interface
    (`console_<name>.cpp`, `paths_<name>.cpp`; use a `posix/` file where the
    implementation is the same) and a `platform.cmake` that fills in the
    contract. Copy the closest existing platform's and change what differs.
@@ -112,14 +112,14 @@ The cases already in the tree:
 | A program with no console window on Windows, a bundle on macOS | The `wjs_platform_configure_app` hook in each fragment |
 | Where to find Qt on each system | `WJS_PLATFORM_QT_SEARCH_ROOTS` in each fragment, read by `cmake/FindQt6.cmake` |
 | Copying Qt's DLLs beside the program on Windows | The `wjs_platform_deploy_qt_runtime` hook; Linux and macOS define it as a no-op |
-| A profiler whose API is macros (Tracy) | Two `wjs/profiling.hpp` under `src/lib/variants/`, one calling Tracy's functions and one empty; CMake puts one directory on the include path. [Profiling](profiling.md) |
+| A profiler whose API is macros (Tracy) | Two `wjs/profiling.hpp` under `libs/core/variants/`, one calling Tracy's functions and one empty; CMake puts one directory on the include path. [Profiling](profiling.md) |
 | Whether a build is optimised, or has coverage or Tracy in it, for the performance tests | `WJS_PERF_OPTIMISED` and the like, compile definitions CMake passes to `wjs_perf_tests`, read as `constexpr bool` in `tests/perf/perf_build.hpp` |
 
 ## Rules
 
 **Do**
 
-- Declare what the program needs from the OS in `src/platforms/interfaces/`, in
+- Declare what the program needs from the OS in `libs/platforms/interfaces/`, in
   `namespace wjs::platform`, with a comment saying that there is one definition
   per platform.
 - Implement it once per platform, and list each file in the `platform.cmake` of
@@ -132,13 +132,13 @@ The cases already in the tree:
 **Don't**
 
 - Add `#if`, `#ifdef`, `#ifndef`, `#elif`, `#else` or `#endif` anywhere in
-  first-party C++ (`src/`, `tests/`, `tools/`), platform directories included.
+  first-party C++ (`libs/`, `apps/`, `tests/`, `tools/`), platform directories included.
   They are already selected by CMake.
 - Add `#define` or `#undef` there either. Use `constexpr`, an inline function or
   a template; a value the build has to hand the program arrives as a compile
   definition or a generated header. `#include` and `#pragma once` are fine.
 - Include an OS header (`<windows.h>`, `<unistd.h>`, `<sys/...>`, the Apple
-  frameworks, `<mach-o/dyld.h>`, `<emscripten.h>`) outside `src/platforms/` and
+  frameworks, `<mach-o/dyld.h>`, `<emscripten.h>`) outside `libs/platforms/` and
   `tests/platform/`.
 - Ask the OS what it is at run time (`QSysInfo`, `QOperatingSystemVersion`,
   `Q_OS_*`, `platformName()`, QML's `Qt.platform`) outside the platform section.
@@ -153,11 +153,11 @@ The cases already in the tree:
 its own as well, so a violation shows even while a platform's build is red. It
 fails, with a `file:line` for each finding, on:
 
-1. any preprocessor conditional in first-party C++ (`src/`, `tests/`, `tools/`),
+1. any preprocessor conditional in first-party C++ (`libs/`, `apps/`, `tests/`, `tools/`),
    deliberately broader than "no OS macros": an `#if 0` or a feature `#ifdef`
    counts too. The platform directories are not exempt;
 2. an OS header, or an OS-querying API (`QSysInfo`, `Q_OS_*`, `platformName()`,
-   `Qt.platform`, ...), outside `src/platforms/` and `tests/platform/`. QML and
+   `Qt.platform`, ...), outside `libs/platforms/` and `tests/platform/`. QML and
    JavaScript files are scanned for the APIs too;
 3. a platform directory without a `platform.cmake`, or a translation unit
    (`.cpp`, `.cc`, `.cxx` or `.mm`) in one that no `platform.cmake` names
@@ -179,7 +179,7 @@ pwsh ./tools/checks/check_platform_isolation.ps1
 ```
 
 It exits 0 when clean, 1 when it found violations, and 2 when it was started
-somewhere that has no `src/platforms/`. A finding is also printed as a GitHub
+somewhere that has no `libs/platforms/`. A finding is also printed as a GitHub
 Actions annotation, so on a pull request it lands on the line.
 
 What it scans: `src`, `tests`, `tools` and `cmake`, and the top-level
@@ -199,7 +199,7 @@ The CMake side has its own check, the `platform.fragments` test
 exercised only on their own machines. The test includes every fragment it
 finds, each in a process of its own, and holds it to the contract: every
 variable and hook defined, every file it compiles present, every interface
-header under `src/platforms/interfaces/wjs/platform/` included by one of those
+header under `libs/platforms/interfaces/wjs/platform/` included by one of those
 files (so the haptics interface, for one, cannot be declared and left
 unimplemented), and a branch in the selector for it (and the other way: a
 branch with no fragment behind it). It runs wherever the tests run, so a typo

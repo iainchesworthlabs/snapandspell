@@ -3,7 +3,7 @@
 #include "wjs/platform/haptics.hpp"
 
 // The haptics interface, as the three desktops answer it
-// (src/platforms/detail/haptics_none.cpp): every pattern is a call the platform
+// (libs/platforms/detail/haptics_none.cpp): every pattern is a call the platform
 // accepts, it never blocks, and there is no haptic engine, so every answer is
 // false and the game carries on with its sound and its picture.
 //

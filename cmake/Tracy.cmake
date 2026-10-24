@@ -4,7 +4,7 @@
 # Defines an INTERFACE target `wjs::tracy` that, when WJS_ENABLE_TRACY is on,
 # links Tracy's client library. The profiling calls the sources make
 # (wjs/profiling.hpp) are one of two headers with the same path under
-# src/lib/variants/; src/lib/CMakeLists.txt puts exactly one of them on
+# libs/core/variants/; libs/core/CMakeLists.txt puts exactly one of them on
 # wjs::lib's include path, chosen by this option and not by an #if, so every
 # instrumented call site compiles unchanged either way. The disabled variant
 # holds empty functions: a build without Tracy pays nothing for the
@@ -41,9 +41,9 @@ add_library(wjs::tracy ALIAS wjs_tracy)
 
 # Which wjs/profiling.hpp wjs::lib's users see.
 if(WJS_ENABLE_TRACY)
-    set(WJS_PROFILING_VARIANT_DIR "${PROJECT_SOURCE_DIR}/src/lib/variants/profiling-enabled")
+    set(WJS_PROFILING_VARIANT_DIR "${PROJECT_SOURCE_DIR}/libs/core/variants/profiling-enabled")
 else()
-    set(WJS_PROFILING_VARIANT_DIR "${PROJECT_SOURCE_DIR}/src/lib/variants/profiling-disabled")
+    set(WJS_PROFILING_VARIANT_DIR "${PROJECT_SOURCE_DIR}/libs/core/variants/profiling-disabled")
 endif()
 
 if(WJS_ENABLE_TRACY)
@@ -89,7 +89,7 @@ endif()
 add_library(wjs_profiling INTERFACE)
 add_library(wjs::profiling ALIAS wjs_profiling)
 target_include_directories(wjs_profiling INTERFACE
-    "${PROJECT_SOURCE_DIR}/src/lib/include"
+    "${PROJECT_SOURCE_DIR}/libs/core/include"
     "${PROJECT_BINARY_DIR}/generated"
     "${WJS_PROFILING_VARIANT_DIR}")
 target_link_libraries(wjs_profiling INTERFACE wjs::tracy)
