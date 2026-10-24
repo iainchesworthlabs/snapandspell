@@ -5,7 +5,7 @@
 # worse than none, and it is the build's review gate. Each case builds a
 # throw-away repository root (a small dictionary and some phonics files), runs
 # the checker over it and looks at the exit code and what it said. The cases
-# are the ones tests/unit/phase_data_test.cpp holds the library's reader to, so
+# are the ones libs/core/tests/unit/phase_data_test.cpp holds the library's reader to, so
 # the two implementations are held to the same table.
 #
 # TEST DATA. The words, graphemes and sounds below are written for this test:

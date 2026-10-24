@@ -13,7 +13,7 @@ namespace wjs {
 //
 // A solve counts its visits as it walks (one add to a member of the search)
 // and writes them here once, as it ends, so the thread-local costs one add per
-// solve and nothing per visit. The performance tests (tests/perf,
+// solve and nothing per visit. The performance tests (libs/core/bench,
 // docs/testing.md "Performance tests") reset it, make a call and read it;
 // nothing in the application does.
 struct SolveWork {

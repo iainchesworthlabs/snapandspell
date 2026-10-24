@@ -335,7 +335,7 @@ jobs:
 
       # The test preset errors out when no test is found, so an empty suite
       # cannot pass. The offscreen platform lets the Qt Quick screens run on a
-      # runner with no display (tests/app).
+      # runner with no display (apps/app/tests/unit).
       - name: Test
         shell: bash
         env:
@@ -427,7 +427,7 @@ jobs:
           triplet: ${{ env.WJS_TRIPLET }}
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
-  # The performance tier's work budgets (tests/perf; docs/testing.md,
+  # The performance tier's work budgets (libs/core/bench; docs/testing.md,
   # "Performance tests"), which the Debug legs above skip: they are counts, the
   # same on every compiler, but only an optimised build runs them in seconds,
   # and this is the one leg that builds a Release preset. One compiler is

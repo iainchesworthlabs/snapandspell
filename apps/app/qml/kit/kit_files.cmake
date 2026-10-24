@@ -1,5 +1,5 @@
 # The kit's QML files, in one place. The application's QML module, the Qt Quick
-# Test module (tests/qml), the scan preview and the parent preview (tests/) each
+# Test module (apps/app/ui-tests), the scan preview and the parent preview (tests/) each
 # embed the kit, and a kit component that uses another (AppButton uses Label,
 # FocusRing and Icon) fails to load in any of them that lacks it; with one list
 # a new component is added once.

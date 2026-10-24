@@ -13,7 +13,7 @@ namespace wjs::scan {
 // long before a stopwatch notices, and a count names what grew.
 //
 // A read adds its figures as it goes (an add a stage, nothing a pixel), the
-// performance tests (tests/perf, docs/testing.md "Performance tests") reset it,
+// performance tests (libs/core/bench, docs/testing.md "Performance tests") reset it,
 // make a call and read it, and nothing in the application does.
 struct ScanWork {
     // Calls to read_board that got as far as the pixels.

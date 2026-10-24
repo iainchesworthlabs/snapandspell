@@ -190,7 +190,7 @@ drift gate: a `qsTr()` added without regenerating `apps/app/translations/*.ts` i
 a silent untranslated string. It is a ctest, so it skips itself (exit 4) on a
 machine without Qt's Linguist tools, but the Windows leg installs them (below).
 
-The same leg runs **the interactive QML at run time**: the `quick.*` suites, one per `tests/qml/tst_*.qml`
+The same leg runs **the interactive QML at run time**: the `quick.*` suites, one per `apps/app/ui-tests/tst_*.qml`
 ([Testing](testing.md#the-interactive-qml-qt-quick-test)), start
 `wjs_quick_tests` once each under `QT_QPA_PLATFORM=offscreen`, with Qt's
 software renderer and no display, and a Qt warning fails the suite. They are

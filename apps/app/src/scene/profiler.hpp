@@ -60,7 +60,7 @@ public:
     // A discrete moment: a zero-length zone named `name`.
     Q_INVOKABLE void mark(const QString& name);
 
-    // How many begin() calls have no end() yet, in any build (tests/app/
+    // How many begin() calls have no end() yet, in any build (apps/app/tests/unit/
     // profiler_test.cpp holds the balance on it): the stack's depth, and the
     // calls past it.
     [[nodiscard]] std::size_t open_count() const noexcept { return depth_ + overflow_; }

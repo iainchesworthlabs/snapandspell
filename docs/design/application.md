@@ -293,11 +293,11 @@ Windows check today (docs/testing.md). **Recorded:** run on Windows on
 accents, Hebrew, Yiddish, Chinese and Japanese).
 
 **Checked by.** A catalogue-completeness and direction test
-(`tests/app/language_test.cpp`: every language has a catalogue with the same
+(`apps/app/tests/unit/language_test.cpp`: every language has a catalogue with the same
 messages and none unfinished or vanished, Hebrew and Yiddish are right to
 left and the rest left to right, a catalogue is really installed, the font chain
 carries each language's sample); a QML right-to-left suite
-(`tests/qml/tst_rtl.qml`: the chrome mirrors and the board does not); the
+(`apps/app/ui-tests/tst_rtl.qml`: the chrome mirrors and the board does not); the
 `i18n.catalogues` drift check, which regenerates the catalogues with `lupdate`
 and fails on any difference (skipped where `lupdate` is absent); and the screens
 checks of the parent and scan areas in all eight languages. **Not checked:** a
@@ -343,7 +343,7 @@ the system is made of and which rules the tests hold it to.
   `AppBar` (way back, title, tabs), `BoardTray`, `JewelBox`, `ModeCard`,
   `Wordmark`, `Icon`, `Label`, `Eyebrow`, `FocusRing`. Icon-only buttons are
   allowed for back and close only.
-- **Guard rails.** Four tests in `tests/qml` keep it so: `quick.lint` rejects a
+- **Guard rails.** Four tests in `apps/app/ui-tests` keep it so: `quick.lint` rejects a
   pixel size, a letter spacing, a hex colour, a bare `Text`, a disabled opacity,
   gold used for selection and an icon-only button outside back and close, against
   an allow-list that may only shrink; `quick.contrast` measures about sixty
@@ -360,7 +360,7 @@ the system is made of and which rules the tests hold it to.
 ## Colour and contrast
 
 The gates are WCAG 2.x relative-luminance ratios, and they are **enforced by
-`tests/qml/tst_contrast.qml` from the live tokens in both schemes**, so this page
+`apps/app/ui-tests/tst_contrast.qml` from the live tokens in both schemes**, so this page
 carries no table of colours (the palette it once tabulated was replaced, and a
 table would be stale again with the next token change):
 

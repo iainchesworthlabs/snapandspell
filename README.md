@@ -190,10 +190,13 @@ assets/ data/     fonts and sounds; the dictionary, the dice and the word lists
 notices/
   fragments/      one plain-text section each of NOTICES.txt
   licences/       the licence texts those sections reproduce
-tests/            unit/ (library), scan/, app/ (the application's models), qml/
-                  (Quick Test), perf/ (work budgets), system/, checks/ (the
-                  quality tier's registrations) and the topic directories the
-                  checks read (platform/, privacy/, package/, notices/, ...)
+tests/            the repository's own checks: system/, checks/ (the quality
+                  tier's registrations) and the topic directories the checks read
+                  (platform/, privacy/, package/, notices/, ...)
+                  The tests of the code are beside it: libs/core/tests/unit,
+                  libs/core/bench (work budgets), libs/scan/tests,
+                  apps/app/tests/unit (the application's models and the stub
+                  shells), apps/app/tests/prototype, apps/app/ui-tests (Quick Test)
 tools/
   checks/         check_platform_isolation.ps1
   coverage/ data/ the coverage gate; the word-list, dice and phonics checks

@@ -6,7 +6,7 @@
 #
 # Every case of the performance tier's work budgets stands aside (SKIP) in a
 # build that is not optimised, because the counts are the same in every build and
-# a Debug run is much longer (tests/perf/check.hpp). A skipped case is not a
+# a Debug run is much longer (libs/core/bench/check.hpp). A skipped case is not a
 # failed one, so a leg whose every build is Debug passes with the whole tier
 # skipped, and ctest says "100% passed". This is the check that notices: it runs
 # the work cases, and counts those that did not skip.

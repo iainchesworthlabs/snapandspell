@@ -6,7 +6,7 @@
 //
 // The conditions are upright, angled, loose and glare. --sheet writes one contact
 // sheet of the four conditions, a 4x4 board of each at a third of the size, and
-// nothing else. The frames are drawn from numbers and a seed (tests/scan/synth), so
+// nothing else. The frames are drawn from numbers and a seed (libs/scan/tests/synth), so
 // the same command writes the same files anywhere. It is a test tool: the
 // application never writes a frame (docs/design/scanner.md, "Privacy").
 

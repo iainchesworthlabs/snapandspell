@@ -4,53 +4,63 @@
 find_package(Catch2 3 CONFIG REQUIRED)
 include(Catch)
 
-# The tree's own root, for the directories that read a sibling's files (the
-# application tests include the perf tier's budgets and the scanner's corpus;
-# the repo checks run the scripts in the topic directories).
+# The repository checks (system, quality) stay here, in the topic directories. The
+# tests of a library or an application live beside it: libs/core/tests/unit,
+# libs/core/bench (the performance tier), libs/scan/tests, apps/app/tests/unit,
+# apps/app/tests/prototype and apps/app/ui-tests. This file adds them in the order
+# they need (Catch2 and the variables below are shared), each with a build
+# directory that mirrors its source directory.
 set(WJS_TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
-# A source archive (git archive) leaves tests/perf out (.gitattributes), and the
+# A source archive (git archive) leaves libs/core/bench out (.gitattributes), and the
 # application's tests include its budgets: that tree builds without tests.
-if(NOT EXISTS "${WJS_TESTS_DIR}/perf/CMakeLists.txt")
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/libs/core/bench/CMakeLists.txt")
     message(FATAL_ERROR
-        "tests/perf is missing, as it is in a source archive. Configure with "
+        "libs/core/bench is missing, as it is in a source archive. Configure with "
         "-DWJS_BUILD_TESTS=OFF to build the program without the test suites.")
 endif()
 
+# add_subdirectory for a test directory outside this one: the build directory
+# mirrors the source directory. A macro, so that what a directory sets for its
+# parent reaches this scope.
+macro(wjs_add_tests relative)
+    add_subdirectory("${PROJECT_SOURCE_DIR}/${relative}" "${PROJECT_BINARY_DIR}/${relative}")
+endmacro()
+
 # Unit tier: wjs_unit_tests.
-add_subdirectory(unit)
+wjs_add_tests(libs/core/tests/unit)
 
 # The scanner: its library, the camera and board_reader interfaces, and the
 # synthetic corpus that holds it to its accuracy target. Before the directories
 # that link wjs_scan_synth.
-add_subdirectory(scan)
+wjs_add_tests(libs/scan/tests)
 
 # Performance tier: work budgets and a few relative timings (wjs_perf_tests).
-add_subdirectory(perf)
+wjs_add_tests(libs/core/bench)
 
 # The shake prototype's dice simulation, when the prototype is built.
-add_subdirectory(prototype)
+wjs_add_tests(apps/app/tests/prototype)
 
 if(WJS_BUILD_APP)
     # The application's model tier, the scene script, the window's frame budget
     # and the two stub shells the screens are checked in. Qt is only here when
     # the application is.
-    add_subdirectory(app)
+    wjs_add_tests(apps/app/tests/unit)
 
     # The interactive QML at run time: Qt Quick Test suites, one ctest entry
     # each, under the offscreen platform (docs/testing.md, "The interactive
     # QML"). Its own directory scope, not only for tidiness: a QML module's
     # generated qrc is named after its URI and written to the directory scope's
-    # build directory, and the scan preview in tests/app builds a module of the
+    # build directory, and the scan preview in apps/app/tests/unit builds a module of the
     # same URI (measured: "Module "WordJewelsSolver" contains no type named
     # "PreviewHost"" when the two shared a scope).
     #
     # The QML under test aliases the kit and Solo Play files under qml/kit/ and
     # qml/solo/ into the module. Qt's policy QTP0004 (a qmldir for every such
     # directory) is NEW; its previous behaviour is deprecated. Set here, in the
-    # scope the directory inherits, as it is in tests/app for the preview.
+    # scope the directory inherits, as it is in apps/app/tests/unit for the preview.
     qt_policy(SET QTP0004 NEW)
-    add_subdirectory(qml)
+    wjs_add_tests(apps/app/ui-tests)
 endif()
 
 # The system tier: the command-line solver, the window's start-up contract and

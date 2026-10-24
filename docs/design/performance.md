@@ -5,7 +5,7 @@ from [product requirements](../product-requirements.md) section 8 and modelled
 on Cubeulator's [performance](https://github.com/iainchesworthlabs/cubeulator/blob/main/docs/performance.md)
 and [profiling](https://github.com/iainchesworthlabs/cubeulator/blob/main/docs/profiling.md)
 documents and its
-[`tests/perf`](https://github.com/iainchesworthlabs/cubeulator/tree/main/tests/perf).
+[`libs/core/bench`](https://github.com/iainchesworthlabs/cubeulator/tree/main/tests/perf).
 Proposals unless marked **Fact**.
 
 **Status.** The macro-free wrapper, the profiling build (on by default in
@@ -291,10 +291,10 @@ would carry the build (version, commit, dirty); nothing sets it yet.
 
 ## The performance tier
 
-Modelled on Cubeulator's `tests/perf`: its own binary, `wjs_perf_tests`, linked
+Modelled on Cubeulator's `libs/core/bench`: its own binary, `wjs_perf_tests`, linked
 against `wjs::lib` and the scanner with its synthetic corpus (no Qt, no window), every
 threshold in one file,
-`tests/perf/budgets.hpp`. **Two halves, and the split is the design.**
+`libs/core/bench/budgets.hpp`. **Two halves, and the split is the design.**
 | | Holds | Exact? | Runs |
 | --- | --- | --- | --- |
 | **Work budgets** | What the code *does*: visits, words, tries, trie nodes | Yes, on every machine and compiler | In every plain `ctest` of an optimised build; **skipped in a Debug build**, and so in the three required CI legs |
@@ -346,7 +346,7 @@ check**, and the release workflow's Release build. Three more pieces:
 
 ### Work budgets
 
-**Built:** every row is in `tests/perf/budgets.hpp` with the figure it is a
+**Built:** every row is in `libs/core/bench/budgets.hpp` with the figure it is a
 quarter above (rounded up to three significant figures for the game rows).
 Every metric names the **board mode** it is for. The standard board is the
 default, so its work comes first: the solve, the dictionary and the dice are the
@@ -397,7 +397,7 @@ was added for it and what it measured. **Built, and measured 2026-10-16** (a
 Release build, MSVC 19.51, the Windows 11 desktop above; the counts are exact on
 every machine, the milliseconds are this machine's, taken by a throw-away
 program that is not committed). The cases are in
-`tests/perf/game_work_test.cpp` and carry the tags `[standard]` or `[phonics]`.
+`libs/core/bench/game_work_test.cpp` and carry the tags `[standard]` or `[phonics]`.
 
 **Standard board (the default).** `wjs::roll` of the project's dice
 (`data/dice/<n>x<n>.txt`, the shipped files) with the seeds of the random
@@ -490,7 +490,7 @@ back and the order the binder documents, with nothing the library counts.
 holds three to five words, up to five seedings (`SessionOptions::max_seedings`).
 The corpus is the same test phase and the sizes the first release plays: 100
 sessions each of 3x3 and 4x4, seeded `7919 * i + n`, each dealt, played to the
-`resting` state (the C++ state; the resting screen was not built) and restored once (`tests/perf/game_work_test.cpp`, tag
+`resting` state (the C++ state; the resting screen was not built) and restored once (`libs/core/bench/game_work_test.cpp`, tag
 `[session]`). The zones are `board.deal` (the seedings it spent),
 `input.submit` (the length of the path traced) and `board.restore`.
 
@@ -535,11 +535,11 @@ solves the roll, and rolls again, with the next seed of its stream, until the bo
 holds a word, up to 20 rolls (`SessionOptions::max_rolls`). It lands no range of
 words. The corpus is the dice rows' seeds, 100 sessions each of 3x3, 4x4, 5x5 and 6x6,
 seeded `7919 * i + n`, each dealt, played to the `resting` state (the C++ state; a
-find for every word of the dictionary on the board) and restored once (`tests/perf/game_work_test.cpp`,
+find for every word of the dictionary on the board) and restored once (`libs/core/bench/game_work_test.cpp`,
 tags `[session][standard]`). The zones are `board.deal` (the rolls it made),
 `input.submit` and `board.restore`, as for the phonics board.
 
-The columns are what `tests/perf/budgets.hpp` asserts today (`kStandardSessionBudgets`):
+The columns are what `libs/core/bench/budgets.hpp` asserts today (`kStandardSessionBudgets`):
 ceilings for the rolls and the visits, and the **exact** words of the dictionary on
 the 100 boards, which are the current dice's.
 
@@ -599,8 +599,8 @@ things that are not a search: the store that is rewritten whole after every find
 the dashboard a parent opens, the phase directory read at start-up, and the path a
 finger hands in. The library keeps no counter for them as it does for the solver,
 so the work held is what can be counted from outside and does not depend on the
-compiler: bytes, records, rows and words, in `tests/perf/data_work_test.cpp` and
-`tests/perf/data_metrics.cpp`, with the figures in `tests/perf/budgets.hpp`
+compiler: bytes, records, rows and words, in `libs/core/bench/data_work_test.cpp` and
+`libs/core/bench/data_metrics.cpp`, with the figures in `libs/core/bench/budgets.hpp`
 (`kStoreBudgets`, `kStoreHeaviestBytes`, `kDashboardBudget`, `kPhaseLoadBudget`).
 Every case carries its board mode, and skips in a build that is not optimised.
 
@@ -632,8 +632,8 @@ measurement behind the 10 ms row of the [budgets](#budgets).
 which is the same in every configuration; the frames and the timing are the
 [shake prototype](../design/shake-prototype.md)'s). The 3D board scene's work
 that can be counted without a window is held the same way as the solver's: a
-count, exact, in `tests/perf/budgets.hpp`, measured by
-`tests/app/shake_script_test.cpp` over the scene's own script
+count, exact, in `libs/core/bench/budgets.hpp`, measured by
+`apps/app/tests/unit/shake_script_test.cpp` over the scene's own script
 (`ShakeScript.js`) and dice simulation (`DiceSim`). The case carries the `perf`
 tag and runs with the scene's script tests, in every build: it is one play, not
 the tier's corpus.
@@ -719,7 +719,7 @@ debug, Tracy or coverage build and the `offscreen` platform.
 | `frame.over33` | 0 | The same, counted: no frame in the measured window is over it |
 
 A report with no refresh rate is held to 60 Hz. The check is
-`tests/app/frame_timing_test.cpp`: it runs `WordJewelsSolver --smoke 240` in a
+`apps/app/tests/unit/frame_timing_test.cpp`: it runs `WordJewelsSolver --smoke 240` in a
 child process, reads the report's `smoke: key=value` line, requires 240 frames and
 a first frame, and compares the four numbers above. A second case, always run,
 checks the arithmetic of the budget for 60, 100 and 144 Hz and for a refresh rate
@@ -800,7 +800,7 @@ per visit, is a factor of several, which these absorb.
 
 Not every budget is in `wjs_perf_tests`. It is not the frame time of the
 application's window (held opt-in, with the window and Qt, by
-`tests/app/frame_timing_test.cpp`: [The window's frames](#the-windows-frames)),
+`apps/app/tests/unit/frame_timing_test.cpp`: [The window's frames](#the-windows-frames)),
 the start of a sound, the speed of the OCR (it is held, as work and as ratios), the dictionary load being off the UI thread (it is not),
 or a launch (the frame clock's `ui.first_frame_ms` reports it, but no budget
 holds it yet). The load's time is held as a ratio (5.0, opt-in, in no CI leg),

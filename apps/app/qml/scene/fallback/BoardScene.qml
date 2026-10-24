@@ -13,7 +13,7 @@ import "SceneScript.js" as Script
 // implementation is swapped in"). It is NOT built: the application's scene is
 // ../BoardScene.qml, the 3D one, in the same module. It carries the same name and
 // members so a build can pick this file instead, and
-// tests/app/check_scene_contract.cmake holds it to the same list.
+// apps/app/tests/unit/check_scene_contract.cmake holds it to the same list.
 //
 //   play(board, seed)   shake, lid, drop, settle, for board = { rows, columns, tiles,
 //                       faces, up }; while busy it restarts

@@ -98,6 +98,15 @@ file(GLOB_RECURSE _scope_sources
     "${SOURCE_DIR}/${SCOPE}/*.cc"
     "${SOURCE_DIR}/${SCOPE}/*.hpp"
     "${SOURCE_DIR}/${SCOPE}/*.h")
+# The tests and benchmarks beside the code are not part of what is measured.
+set(_scope_production "")
+foreach(_source IN LISTS _scope_sources)
+    file(RELATIVE_PATH _relative "${SOURCE_DIR}" "${_source}")
+    if(NOT _relative MATCHES "/(tests|ui-tests|bench)/")
+        list(APPEND _scope_production "${_source}")
+    endif()
+endforeach()
+set(_scope_sources ${_scope_production})
 list(SORT _scope_sources)
 if(NOT _scope_sources)
     message(FATAL_ERROR "coverage: no sources under ${SOURCE_DIR}/${SCOPE}")
@@ -242,6 +251,7 @@ else()
             # bare 'libs/core/.*' excludes everything. The leading .* is what
             # makes the checkout prefix match.
             --filter ".*${SCOPE}/.*"
+            --exclude ".*/(tests|ui-tests|bench)/.*"
             --object-directory "${BUILD_DIR}"
             ${_gcov_args}
             --exclude-throw-branches

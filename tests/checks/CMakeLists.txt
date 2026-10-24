@@ -9,7 +9,7 @@
 # tests/privacy, ...), by path from WJS_TESTS_DIR; the registrations are here so
 # that the whole tier, and the one list of what carries the label, is in one
 # file. (app.scene_contract and app.qml_lint are the same tier, registered in
-# tests/app because they read what that build generates.)
+# apps/app/tests/unit because they read what that build generates.)
 # ---------------------------------------------------------------------------
 
 # The third-party notices (cmake/Notices.cmake): every section a package must

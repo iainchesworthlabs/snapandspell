@@ -30,10 +30,10 @@ tools/hooks/* text eol=lf
 # What a source archive (git archive, the release's source tarball) leaves out:
 # the repository's own automation, the design review material and the
 # performance tier. A tree cut this way builds with -DWJS_BUILD_TESTS=OFF;
-# tests/CMakeLists.txt says so when it finds tests/perf missing.
+# tests/CMakeLists.txt says so when it finds libs/core/bench missing.
 /.github export-ignore
 /docs/design export-ignore
-/tests/perf export-ignore
+/libs/core/bench export-ignore
 
 # The vcpkg overlay ports are patched with git apply, which wants the bytes the patch was made from.
 cmake/vcpkg-ports/** -text

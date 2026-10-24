@@ -114,9 +114,12 @@ cmake/                 Platform.cmake (selector), PlatformContract.cmake,
                        Tracy.cmake, FindQt6.cmake, Vcpkg.cmake, Translations.cmake,
                        Packaging.cmake, PackagePreflight.cmake, Notices.cmake,
                        GitProvenance.cmake
-tests/                 unit/  app/ (parent_ui/, scan_ui/)  qml/  scan/  perf/  platform/
-                       profiling/  privacy/  parent/  prototype/  checks/  system/
-                       i18n/  notices/  package/  requirements/  toolchain/  analysis/
+tests/                 the repository's own checks: system/  checks/  platform/  profiling/
+                       privacy/  parent/  i18n/  notices/  package/  requirements/
+                       toolchain/  analysis/
+                       (the code's tests are beside it: libs/core/tests/unit, libs/core/bench,
+                       libs/scan/tests, apps/app/tests/unit (parent_ui/, scan_ui/),
+                       apps/app/tests/prototype, apps/app/ui-tests)
 tools/checks/          check_platform_isolation.ps1
 tools/scan/            render_corpus.cpp: wjs_scan_render, writes the synthetic corpus
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
@@ -446,7 +449,7 @@ On the **standard board**, a roll of dice, `active` is the full dictionary
 itself (`WordSets::standard`): the dictionary is ENABLE and **the standard board
 has no block list**, so any ENABLE word can be shown to the child and said aloud
 (the accepted risk of the MVP, [MVP library](design/mvp-library.md#accepted-risk-the-full-dictionary-and-what-a-child-is-shown),
-pinned by a test in `tests/unit/game_rules_test.cpp`; D7 in the
+pinned by a test in `libs/core/tests/unit/game_rules_test.cpp`; D7 in the
 [roadmap](roadmap.md#4-decisions-that-gate-the-plan)). "No unsuitable word is
 ever shown or read" is therefore true of the phonics board only. On the
 **phonics board**, the parent's switch,
@@ -1004,7 +1007,7 @@ is on.
 `wjs::GameSession`, and `make_solo_game()` in `solo/solo_game_factory.cpp` is still
 the one place that decides which game is played. It answers with the maker the
 program installed (`ScopedSoloGameMaker`, in `main.cpp`), and with the fake when
-there is none. The mapping, which `tests/app/real_solo_game_test.cpp` holds down:
+there is none. The mapping, which `apps/app/tests/unit/real_solo_game_test.cpp` holds down:
 
 | Port | Session | And the store |
 | --- | --- | --- |
@@ -1117,7 +1120,7 @@ from the box by the corner button and closed back to where it came from, and bin
 size: Reduced forces reduced motion on and System follows the operating system's
 (`SystemMotion`, over Qt's `QAccessibilityHints`), while the system's text size is not
 read (Qt 6.12 does not expose it). The gate is the parent area's own. Its tests are in
-`wjs_app_tests`, and a stub shell (`tests/app/parent_ui`) draws the screens without a
+`wjs_app_tests`, and a stub shell (`apps/app/tests/unit/parent_ui`) draws the screens without a
 display. See [The parent area as built](design/parent-area.md).
 
 ## Build targets
@@ -1144,7 +1147,7 @@ display. See [The parent area as built](design/parent-area.md).
 | `wjs_scan_preview` | executable | Mode A's screens in a stub shell; with `--check` the offscreen `scan.screens`, with `--camera` the camera's live view and capture `camera.screens` (a fake source and a synthetic frame). Test tool; not part of the application |
 | `wjs::tracy` | interface library | Tracy's client when `WJS_ENABLE_TRACY` is on, otherwise nothing |
 | `wjs_app_tests` | executable | Catch2, with `WJS_BUILD_APP` |
-| `wjs_quick_tests` | executable | Qt Quick Test: the QML suites in `tests/qml`, with `WJS_BUILD_APP` |
+| `wjs_quick_tests` | executable | Qt Quick Test: the QML suites in `apps/app/ui-tests`, with `WJS_BUILD_APP` |
 | `wjs::warnings`, `wjs::sanitizers`, `wjs::coverage` | interface libraries | Flags, linked into every first-party target |
 
 ## Limits of what exists

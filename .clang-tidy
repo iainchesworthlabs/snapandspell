@@ -63,7 +63,7 @@ Checks: >
   -clang-analyzer-optin.core.EnumCastOutOfRange
 
 WarningsAsErrors: ''
-HeaderFilterRegex: '(libs|apps)/.*'
+HeaderFilterRegex: '(libs|apps)/[^/]+/(include|src)/.*'
 FormatStyle: file
 
 CheckOptions:

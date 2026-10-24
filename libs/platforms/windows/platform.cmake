@@ -80,7 +80,7 @@ function(wjs_platform_deploy_qt_runtime target qml_dir)
     endif()
 
     # qoffscreen is the platform plugin that runs without a display, which the
-    # checks of the Qt Quick screens need (tests/app/parent_ui).
+    # checks of the Qt Quick screens need (apps/app/tests/unit/parent_ui).
     #
     # --skip-plugin-types qmltooling keeps the QML debugger plugins out of the
     # deploy directory. One of them, qmldbg_quick3dprofiler, is the GPL-3.0-only
