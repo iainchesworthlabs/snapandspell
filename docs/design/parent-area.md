@@ -28,7 +28,7 @@ ends the board). It is a setting behind the gate; the store keeps no duration.
 | The controller: gate events, dashboard and settings as maps, the resets, the clock | `apps/app/src/parent/parent_controller.*` | Yes |
 | The screens | `apps/app/qml/parent/*.qml`, a QML module `WordJewelsSolver.Parent` | Yes |
 | Every sentence a parent reads | `apps/app/qml/parent/ParentWording.qml` | Yes |
-| A stub shell to try the screens in | `tests/app/parent_ui` (test support, not part of the application) | Yes |
+| A stub shell to try the screens in | `apps/app/tests/unit/parent_ui` (test support, not part of the application) | Yes |
 
 The library stays Qt-free and OS-free. The module is linked into the application
 by one line in `apps/app/CMakeLists.txt`.

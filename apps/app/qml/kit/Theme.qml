@@ -7,13 +7,13 @@ import WordJewelsSolver
 // house UI face, IBM Plex Mono the label face, Andika the learning face (dice
 // letters and words). Every screen, the parent area included, reads these
 // tokens; a screen writes no colour, size or type value of its own. The lint
-// test in tests/qml keeps it so (tst files `lint` and `contrast`).
+// test in apps/app/ui-tests keeps it so (tst files `lint` and `contrast`).
 //
 // Light and dark are chosen by the parent's Colour scheme setting, or by the
 // system when that is System. The board is the one object that stays warm in
 // both: its tray, dice and gold rim are the physical toy on the table.
 //
-// Colour rules, held by tests/qml/tst_contrast.qml against the design's gates
+// Colour rules, held by apps/app/ui-tests/tst_contrast.qml against the design's gates
 // (text 4.5, large text 3, non-text 3):
 //   * Emerald (`accent`) is the one action colour. Selection is `selectedFill`
 //     with an `accent` edge and a check mark - never colour alone, never gold.

@@ -29,7 +29,7 @@ namespace wjs::app {
 // of the frame interval, the frames over 16.7 and over 33 ms, the first
 // frame's time from the start of the process, and the refresh rate of the
 // screen the window is on, which is what the frame budget is held against
-// (tests/perf/budgets.hpp). It is measured on delivery of frameSwapped, so a
+// (libs/core/bench/budgets.hpp). It is measured on delivery of frameSwapped, so a
 // frame the compositor only presented late counts late.
 class FrameProfiler : public QObject {
     Q_OBJECT

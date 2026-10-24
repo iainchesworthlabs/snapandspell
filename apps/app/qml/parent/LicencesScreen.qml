@@ -77,7 +77,7 @@ Flickable {
                 Label {
                     id: noticeText
                     // The wording check leaves this one text alone
-                    // (tests/app/parent_ui/preview_main.cpp): it is quoted
+                    // (apps/app/tests/unit/parent_ui/preview_main.cpp): it is quoted
                     // legal text, not a sentence about a child.
                     objectName: "licenceNotices"
                     width: notices.width

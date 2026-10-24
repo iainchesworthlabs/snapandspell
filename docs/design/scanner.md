@@ -64,7 +64,7 @@ Three rules hold the shape of it:
    conversion to `Board`. The only way from a reading to a `Board` is
    `BoardDraft::confirm()`, which a grown-up's *Start playing* (the design's *Yes, play*) calls (game design:
    "the check is never skipped in the MVP"). `static_assert`s in
-   `tests/scan/scan_confirmation_test.cpp` hold this at compile time.
+   `libs/scan/tests/scan_confirmation_test.cpp` hold this at compile time.
 2. **A doubt is data, not a message.** Each tile carries a confidence, its
    runners-up and a `doubtful` flag; what the screen does with them (a ring and
    a `?`, [board design](board.md#the-tile)) is the UI's. Nothing in
@@ -97,7 +97,7 @@ error first, the cost of doubt second, and the plain accuracy third.
 **Rotation is counted.** The reader numbers the board's corners from the one
 whose first edge runs nearest to +x, so the grid it returns may be a quarter turn
 of the board as it lies (the check screen has a *Turn* control for the rest).
-The judge (`tests/scan/synth/evaluate.cpp`) now takes the turn from the
+The judge (`libs/scan/tests/synth/evaluate.cpp`) now takes the turn from the
 **corners** (`expected_quarters`, written from that rule and not by calling the
 reader's own geometry) and judges every tile against the truth in that turn. It
 used to take whichever of the four turns of the truth matched best, which scored
@@ -115,7 +115,7 @@ after the first run on the split they were then held against
 ([History](#history-the-first-limits)). A bound set that way says the reader
 passes, not that it generalises. So the limits are **derived by a rule** from
 one split and **held against another** that nothing was chosen from. The rule
-is in `tests/scan/scan_corpus_test.cpp`:
+is in `libs/scan/tests/scan_corpus_test.cpp`:
 
 - The reader is developed on the **tuning** split. The counts it gives (frames,
   frames found, tiles, correct, flagged, silent, offered, per condition) are
@@ -221,7 +221,7 @@ number it is held to was read says the reader passes, not that it generalises.
 **Recorded camera frames show a child and a room. They are never committed**
 (`.gitignore` already excludes `/tests/data/captures/` and `/docs/evidence/`;
 [Licensing](../licensing.md#camera-input-and-letter-recognition)). What is in the
-repository is **synthetic**: a generator in `tests/scan/synth` that draws a
+repository is **synthetic**: a generator in `libs/scan/tests/synth` that draws a
 board of dice from numbers and a seed, and nothing else. It is a test library, not
 the application: nothing in `src` links it.
 
@@ -270,7 +270,7 @@ derived and fixed, and its first reading is the one reported under
 tuning split alone. `WJS_SCAN_SPLIT=test` or `=heldout` tells a hidden diagnostic
 to read another split, and reading the heldout one with a tool **is looking at
 it**: if it steers a change, the split is retired and a new base seed taken
-(`seed_of` in `tests/scan/synth/scene.cpp`). That is a convention: nothing but
+(`seed_of` in `libs/scan/tests/synth/scene.cpp`). That is a convention: nothing but
 that sentence and review stops a tool reading it.
 
 Each condition has 24 boards in a split (12 of 4x4, 6 of 5x5, 6 of 6x6), 558
@@ -299,7 +299,7 @@ generator is a test tool and its PNG writer is in `tests/`.
 ### Recorded frames, outside the tree
 
 The real measurement is on real photographs, and the repository cannot hold
-them. `tests/scan` has a hidden case, `[.recorded]`, that reads frames from the
+them. `libs/scan/tests` has a hidden case, `[.recorded]`, that reads frames from the
 directory in `WJS_SCAN_RECORDED_DIR` (binary PGM, grey, with a `<name>.txt`
 beside each holding the true board in the board text format) and prints the same
 five numbers. It skips when the variable is unset, as
@@ -413,10 +413,10 @@ platform fragments name the files). The camera hands out frames the way Cubeulat
 does, a single-slot mailbox: the latest frame not yet taken, or none. The UI
 session decides when the camera is on (only in `scan.ready`,
 [Game](game.md#the-mvp-one-capture)); the interface only provides it. Cases in
-`tests/scan/scan_platform_test.cpp` hold any implementation of either to its
+`libs/scan/tests/scan_platform_test.cpp` hold any implementation of either to its
 contract without naming a platform, so the iOS ones are held to the same once
 they are written. The contract is **positive**, not only a list of ways to fail
-(`tests/scan/platform_contract.hpp`): each rule is a function that returns the
+(`libs/scan/tests/platform_contract.hpp`): each rule is a function that returns the
 violations, so that a camera that keeps the rules is shown to, a fake that breaks
 each rule is shown to be caught (the contract is not vacuous), and the platform's
 own camera and board reader are held to it (today the always-unavailable desktop
@@ -587,7 +587,7 @@ child's room.
 
 | Rule | In the build | Checked by |
 | --- | --- | --- |
-| Frames are processed on the device and **not kept** | `Frame` is a view; an `OwnedFrame` is a buffer in memory with no save. Nothing under `libs/scan`, in the camera and `board_reader` files, or in Mode A's `CameraSource`/backend includes a file or stream header or calls a file API; the multimedia backend has no `ImageCapture`, no recorder and no writer | `scan.privacy` (`tests/scan/check_privacy.cmake`), run in every `ctest`: fails on a file-output facility in those files, which now includes `apps/app/src/camera` and both `apps/app/src/variants/camera-*` |
+| Frames are processed on the device and **not kept** | `Frame` is a view; an `OwnedFrame` is a buffer in memory with no save. Nothing under `libs/scan`, in the camera and `board_reader` files, or in Mode A's `CameraSource`/backend includes a file or stream header or calls a file API; the multimedia backend has no `ImageCapture`, no recorder and no writer | `scan.privacy` (`libs/scan/tests/check_privacy.cmake`), run in every `ctest`: fails on a file-output facility in those files, which now includes `apps/app/src/camera` and both `apps/app/src/variants/camera-*` |
 | No audio input | The camera interface has no audio and `start` takes a video device; the Qt Multimedia backend creates only a video `QCamera`/`QMediaCaptureSession`; the iOS notes above forbid an audio input | The same scan fails on an audio-capture class or a microphone usage string, which would also cover `camera_ios.mm` when it is written |
 | No network | The library includes no network header | The same scan fails on a network class or socket header |
 | No export | No share, print or save | The file scan above |
@@ -596,7 +596,7 @@ child's room.
 The scan holds four rules, named in its findings: **file output**, **frame
 capture** (an image-capture or buffer class, or a save of an image), **audio
 capture** and **network**. `scan.privacy.catches_a_leak` is the check's own test
-(`tests/scan/check_privacy_selftest.cmake`): it runs the scan on a fixture tree
+(`libs/scan/tests/check_privacy_selftest.cmake`): it runs the scan on a fixture tree
 for **each rule**, which does exactly one thing that rule forbids, and requires
 the scan to fail, to name that rule and that file and no other rule; it also runs
 it on a clean tree, which must pass and be counted, and on an empty one, which
@@ -606,7 +606,7 @@ a parser: a leak through an API the patterns do not list passes. A recorded fram
 can be read only by the `[.recorded]` test, from outside the tree, and only when
 the person who recorded it sets the variable.
 
-The comments in `camera.hpp` and `tests/scan/synth/png.hpp` cite a check named
+The comments in `camera.hpp` and `libs/scan/tests/synth/png.hpp` cite a check named
 `scan.no_frame_files`. No such check exists: the one that holds this is
 `scan.privacy`, and those comments are stale.
 
@@ -619,7 +619,7 @@ screen. The library carries the usual counters and zones:
   working picture and the warps, the blobs and die candidates, the cells read, the
   template comparisons and the pixel buffers allocated (and the most any one read
   took), as `wjs/solver_work.hpp` does for the solver.
-- `tests/perf` holds **work budgets** for four fixed frames and opt-in
+- `libs/core/bench` holds **work budgets** for four fixed frames and opt-in
   **wall-time** ratios (rows `scan.*` and `time.read.*`; see
   [Testing](../testing.md#performance-tests)). A change that reads each cell at
   four times the angles, or allocates a buffer a row, fails a count before a
@@ -643,7 +643,7 @@ last said is CI's record and not this page's), and the Debug legs under the
 sanitizers run the smoke subset only ([Where it runs](#where-it-runs)). The first
 slice of the reader was also built with GCC 15.2 in the CI image and read the
 splits of that time to the same numbers digit for digit; the figures below are
-from the MSVC Release run recorded in `tests/scan/scan_corpus_test.cpp`.
+from the MSVC Release run recorded in `libs/scan/tests/scan_corpus_test.cpp`.
 **Not measured:** a tablet, an iPad, a real camera (the desktop's Qt Multimedia
 path is built, but this machine has no camera), real dice, real light. **The
 accuracy on real dice is not demonstrated.**

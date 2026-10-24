@@ -179,10 +179,10 @@ list(REMOVE_DUPLICATES _files)
 # apps/app/src/prototype/, which is a program of its own for trying the 3D board
 # (docs/design/shake-prototype.md), never part of the application, and writes
 # its frames to disk to look at them. Nor are the scanner's own privacy checker and
-# its deliberate leak (tests/scan): the checker names what the scanner must not do
+# its deliberate leak (libs/scan/tests): the checker names what the scanner must not do
 # as patterns, as this one does, and the fixture is the leak it must catch.
 list(FILTER _files EXCLUDE REGEX
-    "^(tests/privacy|apps/app/src/prototype|tests/scan/privacy_fixture)/|^tests/scan/check_privacy[.]cmake$")
+    "^(tests/privacy|apps/app/src/prototype|libs/scan/tests/privacy_fixture)/|^libs/scan/tests/check_privacy[.]cmake$")
 
 set(_store_source "libs/core/src/store.cpp")
 
@@ -213,10 +213,16 @@ foreach(_file IN LISTS _files)
 
     foreach(_index RANGE 1 ${_rule_count})
         set(_scope "${_rule_${_index}_scope}")
-        if(_scope STREQUAL "SRC" AND NOT _file MATCHES "^(libs|apps)/")
+        # Production code is what the SRC and NOSTORE rules cover: libs/ and apps/,
+        # not the tests and benchmarks beside it.
+        set(_production FALSE)
+        if(_file MATCHES "^(libs|apps)/" AND NOT _file MATCHES "/(tests|ui-tests|bench)/")
+            set(_production TRUE)
+        endif()
+        if(_scope STREQUAL "SRC" AND NOT _production)
             continue()
         endif()
-        if(_scope STREQUAL "NOSTORE" AND (NOT _file MATCHES "^(libs|apps)/" OR _file STREQUAL _store_source))
+        if(_scope STREQUAL "NOSTORE" AND (NOT _production OR _file STREQUAL _store_source))
             continue()
         endif()
         if(_scope STREQUAL "CODE" AND (_extension MATCHES "^[.](cmake|json|xml|plist|in|entitlements)$" OR

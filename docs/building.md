@@ -909,7 +909,7 @@ the build placed beside them.
 - **vcpkg fails building Tracy's tools on Linux** (`dbus`, `libxcrypt`, `libsystemd`,
   missing `autoreconf`): the autotools are not installed, see
   [Dependencies](#dependencies); or turn Tracy off with `-DWJS_ENABLE_TRACY=OFF`.
-- **"tests/perf is missing, as it is in a source archive"**: a `git archive` leaves the
+- **"libs/core/bench is missing, as it is in a source archive"**: a `git archive` leaves the
   test tree out; configure with `-DWJS_BUILD_TESTS=OFF`.
 - **A test fails to compile with an ambiguous symbol under MSVC**: a constant named
   like a `<cmath>` function (`tan`, `sin`, `log`) in test code. Rename it.

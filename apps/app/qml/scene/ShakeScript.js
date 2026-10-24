@@ -92,7 +92,7 @@ function smooth(u) {
 // is on it, one cell each, laid out as the board is (three cells across and two
 // down for each die). A cell with letters is drawn as a glyph; a cell with none
 // is the jewel's. FaceAtlas.qml makes an item for each of these; the scene's
-// work budget counts them (tests/app/shake_script_test.cpp), which is why the
+// work budget counts them (apps/app/tests/unit/shake_script_test.cpp), which is why the
 // layout is here and not in the item: it is the scene's, and it is testable
 // without a window.
 //

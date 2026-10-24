@@ -390,7 +390,7 @@ would leave the device, started by a parent. The roadmap's privacy constraints
 `profiling` presets; a vcpkg feature; never a release preset or a package), runs in on-demand mode so an idle instrumented build does
 no work, and is instrumented through the camera thread, the Qt Quick frame and
 the solver. Its documents give budgets (a 33 ms camera frame, a 16.7 ms UI
-frame at 60 Hz), and its `tests/perf` tier holds two kinds of threshold: a
+frame at 60 Hz), and its `libs/core/bench` tier holds two kinds of threshold: a
 *work* budget counted exactly (search nodes visited), which can be tight, and a
 *time* budget set as a ratio to a calibration workload, which is deliberately
 loose so a busy machine never fails it.

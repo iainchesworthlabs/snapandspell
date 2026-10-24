@@ -44,7 +44,7 @@ qmltooling` for every program this function deploys.
 | --- | --- | --- |
 | The scene | `apps/app/qml/scene/BoardScene.qml` | The component: a `View3D`, the box, the lid, one `Model` for each die, a letter atlas, a baked light probe. Draws the poses the script gives it. It is the application's, in the QML module `WordJewelsSolver.Scene` (`apps/app/src/scene/CMakeLists.txt`) |
 | The script | `apps/app/qml/scene/ShakeScript.js` | The shake, lid and landing as a function of the board, the seed and the time, in two ways: prescribed curves (staged) or the simulated dice. Keeps the clock, the stages, the box, the lid and the camera. Plain JavaScript, no QML and no renderer |
-| The dice | `apps/app/src/scene/sim/` (the `wjs_dice_world` library), `dice_sim.*`, `die_geometry.*` | Rigid cubes in a box, simulated from first principles by sequential impulses, in about 1,400 lines of plain C++ with no Qt, and two thin objects over it for QML: the simulation, and the mesh of a bevelled die whose six letters each turn a quarter turn at a time. Tested without a window by `tests/prototype/dice_world_test.cpp` |
+| The dice | `apps/app/src/scene/sim/` (the `wjs_dice_world` library), `dice_sim.*`, `die_geometry.*` | Rigid cubes in a box, simulated from first principles by sequential impulses, in about 1,400 lines of plain C++ with no Qt, and two thin objects over it for QML: the simulation, and the mesh of a bevelled die whose six letters each turn a quarter turn at a time. Tested without a window by `apps/app/tests/prototype/dice_world_test.cpp` |
 | The faces | `apps/app/qml/scene/FaceAtlas.qml`, `apps/app/qml/scene/Die.qml` | One texture for the board's dice, a block of 3 x 2 cells for each, a cell to a face; each die's cube samples its own block. A dead jewel is a die of six cells of four facets, drawn once and shared. The scene holds two atlases, so that a board can be drawn ahead (`prepare`) |
 | The harness | `apps/app/src/prototype/shake/qml/ShakeWindow.qml`, `frame_stats.*`, `dice_roller.*`, `main.cpp` | A window with a Shake button, a mouse drag standing in for the accelerometer, a reduced-motion switch, a 2D tile layer over the scene, the library's dice roll (`DiceRoller`, which links `wjs::lib` and embeds `data/dice`), and the timing and measurement runs. It imports the scene module and creates the same `BoardScene` the application plays |
 | The probe | `tools/lightprobe`, `apps/app/qml/scene/lightprobe/sky.ktx` | Qt's procedural sky prefiltered in advance (128 x 128 texels a face, 1 MB), made by Cubeulator's tool over the same sky |
@@ -55,7 +55,7 @@ found (or with `ON`), it links Quick 3D and the scene module, so its binary is
 GPL-3.0 only. The scene has no game rules in it: a face
 is an opaque string and `""` is a jewel (a dead jewel is a die of six). Its
 script is also run by a ctest case when the application is built
-(`tests/app/shake_script_test.cpp`), against the application's copy of the file.
+(`apps/app/tests/unit/shake_script_test.cpp`), against the application's copy of the file.
 
 ### The interface
 
@@ -226,7 +226,7 @@ screen at 60 Hz sees it (a tile is the die's edge):
 ### The dice, checked against paper
 
 The simulation is validated by what can be worked out on paper, in
-`tests/prototype/dice_world_test.cpp` (20 cases, 1,746 checks, 2.5 s, run by
+`apps/app/tests/prototype/dice_world_test.cpp` (20 cases, 1,746 checks, 2.5 s, run by
 `ctest` with the rest when the option is on), and the numbers below are what
 those cases measure, with identical dice (the 15% variety off) and no air:
 
@@ -323,7 +323,7 @@ one it lands on, and what the turn passes between). The same checks, on six
 boards (3x3 and 4x4, three seeds each) and the three scripts, are the ctest
 case "the shake script lands each die on the face the roll says and tumbles the
 others"; it fails if the up face is ignored. The simulation's own are in
-`tests/prototype/dice_faces_test.cpp`.
+`apps/app/tests/prototype/dice_faces_test.cpp`.
 
 **What it does not do.** The opposite faces of a die are the cube's arrangement,
 not the die's (the library says which six letters a die has and nothing about

@@ -124,7 +124,7 @@ wjs_case("a block comment" CLEAN "libs/core/src/ok.cpp"
 wjs_case("a CMake comment" CLEAN "apps/app/CMakeLists.txt" "# Qt6::Network is not linked here.\nadd_library(a a.cpp)")
 wjs_case("the store's own source writes its file" CLEAN "libs/core/src/store.cpp"
     "std::ofstream out(path);\nstd::filesystem::rename(a, b);\nstd::filesystem::create_directories(d);")
-wjs_case("a test may write a temporary file" CLEAN "tests/unit/x_test.cpp" "std::ofstream out(path);")
+wjs_case("a test may write a temporary file" CLEAN "libs/core/tests/unit/x_test.cpp" "std::ofstream out(path);")
 wjs_case("a camera session is not an audio input" CLEAN "apps/app/src/camera.cpp" "QMediaCaptureSession session;")
 wjs_case("a URL in build metadata" CLEAN "CMakeLists.txt"
     "project(X HOMEPAGE_URL \"https://example.com/x\")")
@@ -133,9 +133,9 @@ wjs_case("a name inside a longer word" CLEAN "libs/core/src/ok.cpp"
     "int MyQNetworkAccessManagerish = 0; int nQAudioInputs = 1; int popen_count = 2;")
 wjs_case("Qt Qml and Qt Quick are fine" CLEAN "apps/app/CMakeLists.txt"
     "target_link_libraries(app PRIVATE Qt6::Qml Qt6::Quick)")
-wjs_case("the scanner's privacy checker names what it forbids" CLEAN "tests/scan/check_privacy.cmake"
+wjs_case("the scanner's privacy checker names what it forbids" CLEAN "libs/scan/tests/check_privacy.cmake"
     "\"network|QNetworkAccessManager|QTcpSocket\" \"audio capture|QAudioInput\"")
-wjs_case("the scanner's deliberate leak" CLEAN "tests/scan/privacy_fixture/libs/scan/leak.cpp"
+wjs_case("the scanner's deliberate leak" CLEAN "libs/scan/tests/privacy_fixture/libs/scan/leak.cpp"
     "QNetworkAccessManager manager; QAudioInput input;")
 wjs_case("the prototype is a program of its own" CLEAN "apps/app/src/prototype/shake/frames.cpp"
     "file.open(QIODevice::WriteOnly);")

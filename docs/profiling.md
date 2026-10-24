@@ -211,7 +211,7 @@ five seconds to attach *before* it loads anything, so `app.startup`,
 `app.load_qml` and the store's load are in the capture; the wait is not part of
 any number. The report the run prints (`build/smoke.txt` here) is the window's
 frames read without a profiler, which is what the frame budget is held on
-(tests/app/frame_timing_test.cpp).
+(apps/app/tests/unit/frame_timing_test.cpp).
 
 Interactively, run the `tracy-profiler` GUI of the same version (a release from
 <https://github.com/wolfpld/tracy/releases>, or built from that tag), press
@@ -443,13 +443,13 @@ only under its own mutex until the destructor says otherwise. So the profiler
 may be destroyed while the render thread is inside a frame, and no frame is
 handled after the destructor returns (the first version asserted "Called object
 is not of the correct type (class destructor may have already run)" in a stress
-test of exactly that; `tests/app/frame_profiler_test.cpp` keeps it).
+test of exactly that; `apps/app/tests/unit/frame_profiler_test.cpp` keeps it).
 
 The frame clock keeps a rolling window of the last 4,096 intervals and their
 report: count, mean, p50, p95, p99, max, the frames over 16.7 and over 33 ms,
 the first frame's time, and the **refresh rate and name of the screen the window
 is on**, which the budget is held against. `--smoke` prints it (below); the frame budget is
-held on it (tests/app/frame_timing_test.cpp,
+held on it (apps/app/tests/unit/frame_timing_test.cpp,
 [performance design](design/performance.md#budgets)). A trace has the same
 numbers under `ui.frame_ms` and `render.frame_ms`.
 
@@ -540,8 +540,8 @@ ui.animate_ms: 240 frames, mean 0.60, p95 1.05, max 1.37 ms (the GUI thread busy
 ```
 
 The first line is the one a machine reads: `key=value`, no spaces in a value.
-`tests/app/frame_timing_test.cpp` holds the frame budget on it, against **the
-refresh rate of the screen the window was on** (`refresh_hz`; tests/perf/
+`apps/app/tests/unit/frame_timing_test.cpp` holds the frame budget on it, against **the
+refresh rate of the screen the window was on** (`refresh_hz`; libs/core/bench/
 budgets.hpp, "The window's frame"): `p50_ms` within one period and 0.3 ms
 (16.97 ms at 60 Hz, 10.3 ms at 100 Hz), `p95_ms` within one period and 2 ms,
 `max_ms <= 33.0` and `over33 == 0`. A fixed 17 ms is right for a 60 Hz screen

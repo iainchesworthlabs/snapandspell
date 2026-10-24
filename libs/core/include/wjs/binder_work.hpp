@@ -15,7 +15,7 @@ namespace wjs {
 //
 // A bind counts its comparisons in a local and writes them here once, as it
 // ends, so the thread-local costs one add per bind and nothing per comparison.
-// The performance tests (tests/perf, docs/testing.md "Performance tests") reset
+// The performance tests (libs/core/bench, docs/testing.md "Performance tests") reset
 // it, make a call and read it; nothing in the application does.
 struct BindWork {
     // Calls to bind() on this thread since the last reset (the overload that

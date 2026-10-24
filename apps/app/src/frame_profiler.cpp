@@ -494,7 +494,7 @@ QString FrameProfiler::report_text() const {
                      : 0.0;
 
     QString text;
-    // The one line a machine reads (tests/app/frame_timing_test.cpp and the
+    // The one line a machine reads (apps/app/tests/unit/frame_timing_test.cpp and the
     // capture recipes): key=value, no spaces in a value. New keys go at the
     // end; a reader finds a key by name.
     text += QStringLiteral(
