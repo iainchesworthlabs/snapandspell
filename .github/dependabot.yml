@@ -19,7 +19,7 @@ version: 2
 # in the workflows, or the compilers; docs/ci.md lists those pins.
 #
 # Every PR targets develop: gitflow only lets release/hotfix/support branches
-# (or develop itself) open a PR against main. branch-name-check.yml and the
+# (or develop itself) open a PR against main. The shared Policy job and the
 # branch-names ruleset allow the dependabot/* prefix, which is not
 # configurable.
 #

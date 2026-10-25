@@ -349,6 +349,12 @@ if(WJS_PWSH)
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/test_check_phonics.ps1")
 
+    # The local commit-msg hook's text policy, held to a table of cases: a
+    # policy that passes everything is worse than none.
+    add_test(NAME policy.text
+        COMMAND "${WJS_PWSH}" -NoProfile -File
+            "${PROJECT_SOURCE_DIR}/tools/policy/test_check_text_policy.ps1")
+
     add_test(NAME platform.isolation
         COMMAND "${WJS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/checks/check_platform_isolation.ps1"
@@ -368,7 +374,7 @@ if(WJS_PWSH)
 
     list(APPEND WJS_QUALITY_TESTS
         data.dice data.wordlists data.sounds data.phonics data.phonics.checker
-        platform.isolation release.tooling)
+        policy.text platform.isolation release.tooling)
 endif()
 
 set_tests_properties(${WJS_QUALITY_TESTS} PROPERTIES LABELS "quality")

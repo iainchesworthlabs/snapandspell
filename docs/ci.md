@@ -16,7 +16,7 @@ hooks in `tools/hooks`.
 | --- | --- | --- |
 | Builds, tests, formatting, platform isolation | the `ci.yml` jobs, as required checks | `ctest` (includes the isolation and word-list checks) |
 | Branch names | the Policy job, and the `branch-names` ruleset refuses the push | `tools/hooks/pre-push` |
-| No attribution in commits and PR text | `Validate commit and PR text`, as a required check | `tools/hooks/commit-msg` |
+| No attribution in commits and PR text | the Policy job | `tools/hooks/commit-msg` |
 | Pull request required, no direct push, no force push | the `develop-protection` and `main-release-only` rulesets | - |
 | Merge queue in front of `develop` | the `merge-queue-develop` ruleset | - |
 
@@ -26,15 +26,13 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 
 | Workflow | Purpose | Runs on a private copy? |
 | --- | --- | --- |
-| `ci.yml` | `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report, the performance work budgets and a Release package check on Windows; by hand, the profiling builds too | yes |
+| `ci.yml` | the shared Policy job, `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report, the performance work budgets, ThreadSanitizer and a Release package check on Windows; which of them run depends on the event ([What runs when](#what-runs-when)); by hand, the profiling builds too | yes |
 | `analysis.yml` | nightly, on `develop`: `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
 | `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS the ad-hoc iOS IPA and, when its signing secrets are set, the signed Android APK and AAB, source archive, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
 | `android-build.yml` | the debug-signed Android APK, built and looked inside, only when what Android reads changes; no secret, not required ([Android](#android)) | yes |
 | `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
 | `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages on every push to `main` that changes the docs ([Documentation site](#documentation-site)) | yes (the build; the publication needs Pages) |
 | `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change (anything under `.github/`, `tools/release`, `tools/package`, a platform's `packaging/`, `tests/package`, the packaging CMake, the version files) | yes |
-| `branch-name-check.yml` | gitflow branch naming; the source/target pairing | yes |
-| `commit-policy.yml` | no attribution in the PR title, PR body or any commit message of the PR | yes |
 | `codeql.yml` | nightly CodeQL static analysis of the C++ | no - skipped |
 | `dependency-review.yml` | fails a PR that adds a moderate-or-worse vulnerable dependency | no - skipped |
 | `scorecard.yml` | OpenSSF Scorecard score and badge: on a push to `main`, weekly (Monday 04:00 UTC) and when branch protection changes | no - skipped |
@@ -70,7 +68,7 @@ GitHub's default. The limits, by workflow:
 | `ci.yml` | `clang-format`, `platform-isolation` | 10 each |
 | `ci.yml` | `Plan build legs` | 5 |
 | `ci.yml` | the build-and-test legs: `Windows (MSVC)`, `Linux (GCC)`, `macOS (AppleClang)` and the dispatch-only profiling legs | **75** |
-| `ci.yml` | `Performance (Linux, GCC)`, `Coverage (Linux, GCC)` | 45 each |
+| `ci.yml` | `Performance (Linux, GCC)`, `Coverage (Linux, GCC)`, `ThreadSanitizer (Linux, Clang)` | 45 each |
 | `ci.yml` | `Package (Windows, Release)` | 60 |
 | `analysis.yml` | `clang-tidy` / `MSVC /analyze` / `Sanitizers (Linux, Clang)` | 30 / 60 / 45 |
 | `codeql.yml` | `Analyze (C++)` | 60 |
@@ -81,13 +79,16 @@ GitHub's default. The limits, by workflow:
 | `docs.yml` | `Build the documentation (strict)`, `Publish to GitHub Pages` | 10 each |
 | `release-tooling.yml` | `Lint the workflows and release scripts` / `Release tooling self-test` | 10 / 15 |
 | `scorecard.yml` | `Analyze` | 15 |
-| `dependency-review.yml`, `commit-policy.yml` | `Scan dependency diff`, `Validate commit and PR text` | 10 each |
-| `branch-name-check.yml` | `Validate gitflow branch name` | 5 |
+| `dependency-review.yml` | `Scan dependency diff` | 10 |
 
 The 75 minutes of the build-and-test legs is the Windows leg's: it builds the
 application and its prototype with the sanitizers on and then runs about a
 thousand tests, which takes about 40 minutes on a hosted runner; 45 minutes once
 cancelled it in its last step.
+
+Every `ctest` call in `ci.yml` also has `--timeout 900`, the default for a test
+that sets none of its own, so one hung test fails within 15 minutes and is
+named in the log, not found after the job limit.
 
 ## The jobs in `ci.yml`
 
@@ -100,14 +101,38 @@ job names are free to change, as `CI Status` waits for them by job id.
 | `Vendored CMake modules` | ubuntu-24.04 | `cmake/icl/` is the copy of the modules in `icl-common-infra` at the commit `ci.yml` pins (`cmake/icl/SOURCE` names it). A bump of the pin fails here until `python3 tools/ci/repin.py --infra ../icl-common-infra --version vX.Y.Z` has been run. Not run by a manual dispatch. |
 | `clang-format` | ubuntu-24.04 | Every `.cpp`/`.hpp` (and sibling extensions) under `libs/`, `apps/` and `tests/` is exactly what the repository's `.clang-format` produces, with one pinned clang-format release (`.github/requirements/lint.txt`). Any difference fails; the log names file and line. |
 | `platform-isolation` | ubuntu-24.04 | `tools/checks/check_platform_isolation.ps1`: no preprocessor conditional, no OS header or OS-querying API outside `libs/platforms/`, no OS test in CMake outside the selector, no `#define`, every platform source wired. Fast, and deliberately not behind the build legs. |
-| `Plan build legs` | ubuntu-24.04 | The legs a manual dispatch named exist (an unknown name fails here, with the list). The three build legs do **not** wait for this job - they pick themselves from the same input - so it gates nothing; it stays a required check because the rulesets name it. |
+| `Plan build legs` | ubuntu-24.04 | `tools/ci/plan.py` (its tests run first) reads the changed paths with the shared `plan_gate.py` and `.github/ci/plan.json` and decides which of the jobs below run ([What runs when](#what-runs-when)). An unknown leg name in a manual run fails here, with the list. The build, coverage, performance, package and TSan jobs wait for it. |
 | `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes (one test per core on every leg; the cases that need the machine alone are `RUN_SERIAL`). Its objects come from a compiler cache ([below](#the-compiler-cache-windows)). The leg also builds the Qt application and the scene prototype, runs the application's offscreen smoke, and packages its Debug build as a **development** ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64-debug-dev` artifact: Tracy and the ASan runtime are in it by design; the package that ships is the `Package (Windows, Release)` job's). |
 | `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. The library, platform layer, CLI and scanner are built, not the Qt application (`-DWJS_BUILD_APP=OFF`). |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. As on Linux, without the Qt application. |
 | `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit tier, and gcovr over `libs/core` **fails the job below the project's minimum standard: 90% of lines and 80% of branches**. The HTML, `summary.json` and the table in the job summary are the `coverage-report` artifact. The same gate is `coverage-unit` locally ([Testing](testing.md#coverage)). |
-| `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. **Not a required check** (it is not a required check). |
-| `Package (Windows, Release)` | windows-2025-vs2026 | Preset `windows-msvc-release` (the Qt application on, tests off, Tracy and the sanitizers off, the same Qt kit as the Windows leg) builds, then `tools/package/check_package.ps1` makes the ZIP and proves it carries no `TracyClient`, AddressSanitizer runtime or `.pdb`, unpacks it, solves a board with the packaged `wjs-cli` and runs the packaged window's offscreen smoke, and `tools/release/check_release_build.ps1` checks the cache and the package. The ZIP and `SHA256SUMS` are the `wordjewelssolver-windows-x64` artifact (14 days). It is the push-time proof that a Release package is clean. **Not a required check yet**: a candidate once it has been green on a few pull requests (it has been green on pushes to `develop`). |
-| `CI Status` | ubuntu-24.04 | The aggregate of `Policy`, `Vendored CMake modules`, `clang-format`, `platform-isolation`, `Plan build legs`, the build-and-test legs and `Coverage`. It fails when any of them failed, was cancelled, or was skipped in a run that should have run it. The rulesets will require this job in place of the legs by name. A manual dispatch skips it. |
+| `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. In the merge queue and on a push; `CI Status` holds the run to it when the plan asked for it. |
+| `Package (Windows, Release)` | windows-2025-vs2026 | Preset `windows-msvc-release` (the Qt application on, tests off, Tracy and the sanitizers off, the same Qt kit as the Windows leg) builds, then `tools/package/check_package.ps1` makes the ZIP and proves it carries no `TracyClient`, AddressSanitizer runtime or `.pdb`, unpacks it, solves a board with the packaged `wjs-cli` and runs the packaged window's offscreen smoke, and `tools/release/check_release_build.ps1` checks the cache and the package. The ZIP and `SHA256SUMS` are the `wordjewelssolver-windows-x64` artifact (14 days). It is the proof, in the merge queue and on a push, that a Release package is clean. |
+| `ThreadSanitizer (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-tsan` (`-O1`, Tracy off, the Qt application not built) builds the solver, the scanner and the command line and runs their unit, integration and system tests with `halt_on_error` and the suppressions in `tools/sanitizers/tsan.supp`. The image's Clang and its sanitizer runtime are used, as in `analysis.yml`. In the merge queue and on a push. |
+| `CI Status` | ubuntu-24.04 | The aggregate of every job above. It fails when any of them failed, was cancelled, or was skipped although the plan asked for it. The rulesets require this job in place of the legs by name. A manual dispatch skips it. |
+
+### What runs when
+
+`Plan build legs` chooses from the event and the changed paths. `Policy`,
+`Vendored CMake modules`, `clang-format` and `platform-isolation` always run,
+drafts included.
+
+| Event | Build and test | Also |
+| --- | --- | --- |
+| Draft pull request | none | |
+| Pull request that changes only documentation, the changelog fragments, issue and PR templates, or files no build reads (`CODEOWNERS`, `dependabot.yml`, `REUSE.toml`, the hooks) | none | |
+| Pull request that changes anything else | Linux (GCC) | Coverage |
+| Pull request with the `deep` label | all three desktop legs | Coverage, performance, package, TSan |
+| Merge queue entry, same rule for what changed | Linux and Windows; macOS too when the change touches `libs/platforms`, `cmake/`, the top-level CMake and manifest files or the workflows | Coverage, performance, package, TSan |
+| Push to `develop` or `main`, same rule | all three desktop legs | Coverage, performance, package, TSan |
+| Manual run | the legs named in `legs` (default `all`) | `tsan` is a leg name; the profiling legs run only by name |
+
+A path that `.github/ci/plan.json` does not list, a diff that cannot be read
+and a change to the workflows or `tools/ci` all count as "can alter the build".
+Run `gh workflow run ci.yml --ref <branch>` (or add the `deep` label) before
+queueing a change to threads, the standard library, platform code or CMake, so
+the Windows and macOS legs are not first seen in the queue. A pull request
+marked ready runs again with the full pull request rule.
 
 What a build-and-test leg's ctest contains: the four tiers of
 [Testing](testing.md#the-tiers) - the unit suite, the integration suite (the
@@ -470,28 +495,11 @@ are disabled with the reason beside each in the file. The gate is the rest of
 version is the one the disabled list was written for; Dependabot's bump is the
 moment to re-read it.
 
-A scheduled run is on the default branch (`main`), and so is the workflow it
-runs: GitHub reads a `schedule` and the `workflow_dispatch` listing only from
-the default branch. Checked on 2026-10-22, `main` is at the merge of PR #2: its
-`.github/workflows` holds older copies of `branch-name-check.yml`, `ci.yml`,
-`codeql.yml`, `commit-policy.yml`, `dependency-review.yml` and `scorecard.yml`,
-and none of `analysis.yml`, `docs.yml`, `ios-build.yml`, `release-tooling.yml` or
-`release.yml`. The old `codeql.yml` and `scorecard.yml` have run green on their
-schedules. The nightly clang-tidy, MSVC `/analyze` and Clang-sanitizer jobs, the
-weekly release rehearsal and the publication of the documentation therefore
-start only once `develop` has been merged to `main`, and until then none of them
-can be started by hand from the Actions tab either: `analysis.yml` and
-`release.yml` have never run on GitHub.
-
-**What a scheduled run analyses is `develop`, not `main`.** A schedule runs
-`main`'s copy of the workflow on `main`'s commit, but the code worth checking
-every night is the integration branch's, so `analysis.yml` and `codeql.yml` check
-out `develop` when `github.event_name` is `schedule` (and the dispatched branch
-otherwise), and the two jobs that upload to code scanning (`MSVC /analyze`,
-CodeQL) pass `ref: refs/heads/develop` and the checked-out `sha` so the alerts
-belong to the code that was analysed. To analyse another branch, dispatch
-`analysis.yml` or `codeql.yml` on it from the Actions tab (once the workflow is on
-`main`).
+A scheduled run, and the workflow it runs, is read from the default branch,
+`develop`. The two jobs that upload to code scanning (`MSVC /analyze`, CodeQL)
+pass `ref` and the checked-out `sha`, so the alerts belong to the code that was
+analysed. To analyse another branch, dispatch `analysis.yml` or `codeql.yml` on
+it from the Actions tab.
 
 Every Debug preset has Tracy on, so a Debug configure on Linux has vcpkg build
 Tracy's tools for the host, which needs autotools. The composite action
@@ -1201,39 +1209,25 @@ deployed.
 
 ## Required checks and their staging
 
-The same list is required on `develop` and `main` once the rulesets apply. The
-contexts equal the job display names above and in the two policy workflows.
+The rulesets from `icl-common-infra` require two checks on `develop`: `CI Status`
+and `Scan dependency diff` (`dependency-review.yml`). `CI Status` waits for the
+jobs of `ci.yml` by id, so a leg can be renamed or added without touching the
+ruleset. The other jobs are not required by name:
 
-| Check (context) | Workflow | In the rulesets from day one? |
+| Job | Workflow | Reached through |
 | --- | --- | --- |
-| `Validate gitflow branch name` | `branch-name-check.yml` | yes |
-| `Validate commit and PR text` | `commit-policy.yml` | yes |
-| `clang-format` | `ci.yml` | yes |
-| `platform-isolation` | `ci.yml` | yes |
-| `Plan build legs` | `ci.yml` | yes |
-| `Windows (MSVC)` | `ci.yml` | yes |
-| `Linux (GCC)` | `ci.yml` | yes |
-| `macOS (AppleClang)` | `ci.yml` | yes |
-| `Coverage (Linux, GCC)` | `ci.yml` | yes |
-| `Scan dependency diff` | `dependency-review.yml` | **no - staged**: added after it has reported on a pull request on the public repository (see below) |
-| `Package (Windows, Release)` | `ci.yml` | no - **candidate**: add after it has been green on a few pull requests (it is the push-time proof that a Release package is clean) |
-| `Performance (Linux, GCC)` | `ci.yml` | no - not required |
-| `iOS (device, unsigned compile)` | `ios-build.yml` | no - path-filtered, and a macOS minute is billed at a multiple |
-| `Android (arm64-v8a, debug-signed APK)` | `android-build.yml` | no - path-filtered, and the Qt kits are a download of several gigabytes |
-| `Analyze (C++)` | `codeql.yml` | no - nightly, informational |
-| `clang-tidy` | `analysis.yml` | no - nightly, informational |
-| `MSVC /analyze` | `analysis.yml` | no - nightly, informational |
-| `Sanitizers (Linux, Clang)` | `analysis.yml` | no - nightly, informational |
+| `Policy`, `Vendored CMake modules`, `clang-format`, `platform-isolation`, `Plan build legs` | `ci.yml` | `CI Status` |
+| `Windows (MSVC)`, `Linux (GCC)`, `macOS (AppleClang)`, `Coverage (Linux, GCC)`, `Performance (Linux, GCC)`, `ThreadSanitizer (Linux, Clang)`, `Package (Windows, Release)` | `ci.yml` | `CI Status`, when the plan asked for the job |
+| `iOS (device, unsigned compile)` | `ios-build.yml` | not required: path-filtered, and a macOS minute is billed at a multiple |
+| `Android (arm64-v8a, debug-signed APK)` | `android-build.yml` | not required: path-filtered, and the Qt kits are a download of several gigabytes |
+| `Analyze (C++)`, `clang-tidy`, `MSVC /analyze`, `Sanitizers (Linux, Clang)` | `codeql.yml`, `analysis.yml` | not required: nightly, informational |
 
 `Build the documentation (strict)` (`docs.yml`), the two `release-tooling.yml` jobs,
 `iOS (device, unsigned compile)` and everything in `release.yml` are not required and
 cannot be: each is
 path-filtered or is a tag, schedule or manual run, and a required check that a
 filter keeps from running never reports, which would hold every unrelated pull
-request. `Package (Windows, Release)` runs on every push and pull request and so
-could be; it is not required yet because it is new, although it has been green on
-pushes to `develop` (it is not a required check, and applying the rulesets stays the owner's
-step).
+request.
 
 The three `analysis.yml` jobs and `Analyze (C++)` are deliberately absent from
 the shared rulesets: they are a nightly report, and a required check that
@@ -1242,9 +1236,7 @@ only reports once a day would hold every pull request.
 Every workflow that produces a required check also triggers on `merge_group`,
 because the merge queue evaluates the required checks on its temporary
 `gh-readonly-queue/...` ref and GitHub only runs workflows that opt in there.
-`branch-name-check.yml` and `commit-policy.yml` skip their job on a queue entry
-(there is no head branch name, title or body of its own; a skipped job counts
-as a pass for a required check). A workflow that produces **no** required
+A workflow that produces **no** required
 check must not carry `merge_group`, or every queue entry burns a run of it for
 nothing: that is why `analysis.yml` and `codeql.yml` do not have it.
 
@@ -1389,12 +1381,13 @@ carry *no attribution of any kind*:
 
 **Where it is applied.**
 
-- `commit-policy.yml` (job `Validate commit and PR text`) runs
-  `tools/policy/check_text_policy.ps1` over the PR title, the PR body and
-  *every* commit message in the PR range (`base..head`). It first runs
-  `tools/policy/test_check_text_policy.ps1`, which proves the script still
-  rejects what it must, so a broken pattern cannot quietly pass everything.
-- `tools/hooks/commit-msg` applies it to the message being committed.
+- The Policy job of `ci.yml` runs the shared text policy from
+  `icl-common-infra` over the PR title, the PR body and *every* commit message
+  in the PR range.
+- `tools/hooks/commit-msg` applies `tools/policy/check_text_policy.ps1` to the
+  message being committed. `tools/policy/test_check_text_policy.ps1` (ctest
+  `policy.text`) proves the script still rejects what it must, so a broken
+  pattern cannot quietly pass everything.
 
 **The script.** `check_text_policy.ps1` takes text as `-Text`, `-Path` or
 stdin and exits `0` (clean), `1` (violations) or `2` (bad invocation). Each
@@ -1421,8 +1414,8 @@ git config core.hooksPath tools/hooks
 
 | Hook | Does | If `pwsh` is missing |
 | --- | --- | --- |
-| `commit-msg` | Runs the text policy over the message; refuses the commit on a violation. | Says so and lets the commit through - the pull request check applies the same rule. |
-| `pre-push` | Refuses to push any branch whose name is not `main`, `develop` or `feature/`, `bugfix/`, `release/`, `hotfix/`, `support/` plus a name. Tags and branch *deletions* are not checked (deleting is how a bad name is removed). | Not needed: it is pure `sh`. |
+| `commit-msg` | Runs the text policy over the message; refuses the commit on a violation. | Says so and lets the commit through - the Policy job applies the same rule. |
+| `pre-push` | Refuses to push any branch whose name is not `main`, `develop` or `feature/`, `bugfix/`, `docs/`, `chore/`, `agent/` or `release/` plus a name. Tags and branch *deletions* are not checked (deleting is how a bad name is removed). | Not needed: it is pure `sh`. |
 
 Both can be bypassed with `--no-verify`; they are a faster place to be told,
 not the enforcement. The enforcement is the pull request checks and, once
