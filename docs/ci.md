@@ -112,6 +112,7 @@ job names are free to change, as `CI Status` waits for them by job id.
 | `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. In the merge queue and on a push; `CI Status` holds the run to it when the plan asked for it. |
 | `Package (Windows, Release)` | windows-2025-vs2026 | Preset `windows-msvc-release` (the Qt application on, tests off, Tracy and the sanitizers off, the same Qt kit as the Windows leg) builds, then `tools/package/check_package.ps1` makes the ZIP and proves it carries no `TracyClient`, AddressSanitizer runtime or `.pdb`, unpacks it, solves a board with the packaged `wjs-cli` and runs the packaged window's offscreen smoke, and `tools/release/check_release_build.ps1` checks the cache and the package. The ZIP and `SHA256SUMS` are the `wordjewelssolver-windows-x64` artifact (14 days). It is the proof, in the merge queue and on a push, that a Release package is clean. |
 | `ThreadSanitizer (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-tsan` (`-O1`, Tracy off, the Qt application not built) builds the solver, the scanner and the command line and runs their unit, integration and system tests with `halt_on_error` and the suppressions in `tools/sanitizers/tsan.supp`. The image's Clang and its sanitizer runtime are used, as in `analysis.yml`. In the merge queue and on a push. |
+| `Update the quality history` | ubuntu-24.04 | Only on a push to `develop`, after `Coverage (Linux, GCC)` passed: writes the coverage badges and trend to the `quality-history` branch ([Quality history](#quality-history)). Not part of `CI Status`. |
 | `CI Status` | ubuntu-24.04 | The aggregate of every job above. It fails when any of them failed, was cancelled, or was skipped although the plan asked for it. The rulesets require this job in place of the legs by name. A manual dispatch skips it. |
 
 ### What runs when
@@ -228,6 +229,26 @@ ordinary ctest entries (label `gui`), so they are part of the leg's `ctest`
 like every other test: there is nothing extra to run. Their target's
 `windeployqt` step deploys the `QtTest` QML module and the modules the suites
 import beside the binary, as the application's own deploy does for its screens.
+
+### Quality history
+
+On every push to `develop` the `Update the quality history` job of `ci.yml` writes the figures of the
+coverage job that just ran to the `quality-history` branch (standard decision D11), using the gcovr
+report the job uploaded as `coverage-report` and `coverage_gate.py` from icl-common-infra to measure it,
+so a badge and the gate are the same arithmetic. `tools/ci/quality_history.py` writes:
+
+| File | What it is |
+| --- | --- |
+| `coverage-line.json`, `coverage-branch.json` | shields.io endpoint badges (statements and branches of all the components in `tools/coverage-floors.json`); the README shows them with `https://img.shields.io/endpoint?url=...` |
+| `coverage.json` | the latest figures, overall and for each component, with the commit and the date |
+| `history.jsonl` | one line a commit, newest last, the last 500 kept |
+
+The branch is created by the first run and nobody edits it by hand. It is a branch name the
+`branch-names` ruleset allows and no other ruleset covers, which is why the job's `GITHUB_TOKEN` (the one
+`contents: write` in the file) can push it. The job is not part of `CI Status` and not a required check:
+a failure leaves the badges a commit behind. Performance figures are not on the branch yet. The script is
+this repository's; it takes the gate as an argument so that it can move to icl-common-infra when a second
+repository wants it.
 
 ### Toolchain choices
 

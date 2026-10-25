@@ -177,7 +177,7 @@ jobs:
       - name: Check out the shared scripts
         uses: iainchesworthlabs/icl-common-infra/actions/checkout-infra@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
       - name: Test the planner
-        run: python3 -m unittest tools/ci/test_plan.py
+        run: python3 -m unittest tools/ci/test_plan.py tools/ci/test_quality_history.py
       - name: Plan
         id: plan
         shell: bash
@@ -835,6 +835,67 @@ jobs:
         with:
           triplet: x64-linux
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
+
+  # The figures behind the coverage badges and their trend, on the `quality-history` branch
+  # (docs/ci.md, "Quality history"): written from the report the coverage job just measured, so a badge
+  # and the gate cannot disagree. Only for a push to develop, and not part of CI Status: a failure here
+  # leaves a badge a commit behind and blocks nothing. It is the one job with a write token, and the
+  # token can write this branch only because nothing else protects it.
+  quality-history:
+    name: Update the quality history
+    needs: [plan, coverage]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/develop' && needs.coverage.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: quality-history
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the shared scripts
+        uses: iainchesworthlabs/icl-common-infra/actions/checkout-infra@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+
+      - name: Download the coverage report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-report
+          path: coverage-report
+
+      # The branch is cloned if it exists and started empty if it does not. The token reaches git only
+      # through the environment of this step.
+      - name: Write and push the history
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          remote="https://x-access-token:${GITHUB_TOKEN}@github.com/${REPOSITORY}.git"
+          history="$RUNNER_TEMP/quality-history"
+          if git ls-remote --exit-code --heads "$remote" quality-history >/dev/null 2>&1; then
+            git clone --quiet --branch quality-history --depth 1 "$remote" "$history"
+          else
+            git init --quiet --initial-branch quality-history "$history"
+            git -C "$history" remote add origin "$remote"
+          fi
+          python3 tools/ci/quality_history.py --gate .icl-infra/scripts/coverage_gate.py \
+            --report coverage-report/coverage.json --floors tools/coverage-floors.json \
+            --out "$history" --sha "$SHA"
+          cd "$history"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet --signoff -m "Coverage at ${SHA:0:12}"
+          git push --quiet origin HEAD:quality-history
 
   # The one check that says whether this run is good. It fails when a job it
   # waits for failed or was cancelled, and when one of them was skipped although
