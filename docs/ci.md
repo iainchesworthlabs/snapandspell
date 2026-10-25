@@ -33,7 +33,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
 | `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages on every push to `main` that changes the docs ([Documentation site](#documentation-site)) | yes (the build; the publication needs Pages) |
 | `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change (anything under `.github/`, `tools/release`, `tools/package`, a platform's `packaging/`, `tests/package`, the packaging CMake, the version files) | yes |
-| `codeql.yml` | nightly CodeQL static analysis of the C++ | no - skipped |
+| `codeql.yml` | nightly CodeQL static analysis of the C++, a call of the shared `codeql.yml` of icl-common-infra | no - skipped |
 | `dependency-review.yml` | fails a PR that adds a moderate-or-worse vulnerable dependency | no - skipped |
 | `scorecard.yml` | OpenSSF Scorecard score and badge: on a push to `main`, weekly (Monday 04:00 UTC) and when branch protection changes | no - skipped |
 | `zizmor.yml` | static analysis of the workflows and composite actions (zizmor, from `icl-common-infra`); fails on medium severity and above; on a pull request that touches `.github/` and nightly; not required | yes |
@@ -73,7 +73,7 @@ GitHub's default. The limits, by workflow:
 | `ci.yml` | `Performance (Linux, GCC)`, `Coverage (Linux, GCC)`, `ThreadSanitizer (Linux, Clang)` | 45 each |
 | `ci.yml` | `Package (Windows, Release)` | 60 |
 | `analysis.yml` | `clang-tidy` / `MSVC /analyze` / `Sanitizers (Linux, Clang)` | 30 / 60 / 45 |
-| `codeql.yml` | `Analyze (C++)` | 60 |
+| `codeql.yml` | `CodeQL / Analyze (cpp)` (the shared workflow's job) | 90 |
 | `release.yml` | `Prepare the release` / the four `Build ...` legs / `Build the iOS ad-hoc IPA` / `Build the signed Android packages` | 10 / 90 / 120 / 120 |
 | `release.yml` | `SBOM, checksums and signatures` / `Attest provenance and SBOM` / `Publish the release` | 20 / 10 / 20 |
 | `ios-build.yml` | `iOS (device, unsigned compile)` | 90 |
@@ -463,7 +463,7 @@ a report for the next morning, not a blocked pull request.
 | `clang-tidy` | ubuntu-26.04 | Configures `linux-gcc-analysis` for the compile database only (Debug, no tests, no Qt application, Tracy and sanitizers off, so vcpkg installs nothing; C++ module scanning off because GCC 15's `-fdeps` flags are not clang-tidy 22 arguments) and runs the pinned clang-tidy (`.github/requirements/analysis.txt`) over it with `.clang-tidy`'s checks and **warnings as errors**. The database is checked to be non-empty first, so a misconfigured run cannot pass with nothing analysed. |
 | `MSVC /analyze` | windows-2025-vs2026 | Preset `windows-msvc-analysis` builds the library, platform layer, scanner and CLI with `/analyze /analyze:external- /W4 /WX`. The C6xxx findings are errors, so a finding is a red build; the SARIF each translation unit writes goes to **Security → Code scanning** (category `msvc-analyze`). |
 | `Sanitizers (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-debug`: the image's `clang++` builds the tree with AddressSanitizer and UBSan, and the whole ctest suite runs under them. The push legs cover GCC, AppleClang and MSVC; this is the nightly Clang build. |
-| `Analyze (C++)` | ubuntu-26.04 | `codeql.yml` runs CodeQL with the `security-extended` query suite over the lean library/platform/CLI build and uploads to code scanning. Public-only, as above. |
+| `CodeQL / Analyze (cpp)` | ubuntu-26.04 | `codeql.yml` calls the shared CodeQL workflow of icl-common-infra with the `security-extended` query suite over the lean library/platform/CLI build (`linux-gcc-analysis`) and uploads to code scanning. A failed analysis opens or updates one `nightly-analysis` issue. Public-only, as above. |
 
 The push legs already run ASan and UBSan: `linux-gcc-debug` (GCC),
 `macos-clang-debug` (AppleClang) and `windows-msvc-debug` (MSVC's ASan). The
@@ -499,9 +499,10 @@ version is the one the disabled list was written for; Dependabot's bump is the
 moment to re-read it.
 
 A scheduled run, and the workflow it runs, is read from the default branch,
-`develop`. The two jobs that upload to code scanning (`MSVC /analyze`, CodeQL)
-pass `ref` and the checked-out `sha`, so the alerts belong to the code that was
-analysed. To analyse another branch, dispatch `analysis.yml` or `codeql.yml` on
+`develop`. `MSVC /analyze` uploads to code scanning with `ref` and the
+checked-out `sha`, so its alerts belong to the code that was analysed; CodeQL
+needs neither, because the default branch is `develop` and its scheduled run
+analyses `develop`'s own commit. To analyse another branch, dispatch `analysis.yml` or `codeql.yml` on
 it from the Actions tab.
 
 Every Debug preset has Tracy on, so a Debug configure on Linux has vcpkg build
@@ -514,7 +515,8 @@ buildable are cached by the vcpkg binary cache, and built without ISA extensions
 `Package (Windows, Release)`, `clang-tidy` and CodeQL do not need it: they
 configure presets with Tracy off (`linux-gcc-release`, `linux-gcc-coverage`,
 `windows-msvc-release`, `linux-gcc-analysis`), so there is nothing to install or
-to cache, and CodeQL configures before its tracer starts regardless.
+to cache (the shared CodeQL workflow configures under the tracer, which costs nothing
+with Tracy off).
 
 ## Releases
 
@@ -898,7 +900,7 @@ ruleset. The other jobs are not required by name:
 | `Windows (MSVC)`, `Linux (GCC)`, `macOS (AppleClang)`, `Coverage (Linux, GCC)`, `Performance (Linux, GCC)`, `ThreadSanitizer (Linux, Clang)`, `Package (Windows, Release)` | `ci.yml` | `CI Status`, when the plan asked for the job |
 | `iOS (device, unsigned compile)` | `ios-build.yml` | not required: path-filtered, and a macOS minute is billed at a multiple |
 | `Android (arm64-v8a, debug-signed APK)` | `android-build.yml` | not required: path-filtered, and the Qt kits are a download of several gigabytes |
-| `Analyze (C++)`, `clang-tidy`, `MSVC /analyze`, `Sanitizers (Linux, Clang)` | `codeql.yml`, `analysis.yml` | not required: nightly, informational |
+| `CodeQL / Analyze (cpp)`, `clang-tidy`, `MSVC /analyze`, `Sanitizers (Linux, Clang)` | `codeql.yml`, `analysis.yml` | not required: nightly, informational |
 
 `Build the documentation (strict)` (`docs.yml`), the two `release-tooling.yml` jobs,
 `iOS (device, unsigned compile)` and everything in `release.yml` are not required and
@@ -907,7 +909,7 @@ path-filtered or is a tag, schedule or manual run, and a required check that a
 filter keeps from running never reports, which would hold every unrelated pull
 request.
 
-The three `analysis.yml` jobs and `Analyze (C++)` are deliberately absent from
+The three `analysis.yml` jobs and `CodeQL / Analyze (cpp)` are deliberately absent from
 the shared rulesets: they are a nightly report, and a required check that
 only reports once a day would hold every pull request.
 

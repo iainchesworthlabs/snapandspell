@@ -1,13 +1,17 @@
 name: CodeQL
 
-# Static analysis (C++), nightly. Public-only: code scanning of a private
-# repository needs a paid plan, so the job is skipped - not red - while the
-# repository is private, and starts running the day it is made public
-# (docs/ci.md, "Public-only workflows"). It is not a required check.
+# Static analysis (C++), nightly: the shared codeql.yml of icl-common-infra, which
+# installs the toolchain, builds the preset below under CodeQL's tracer and opens or
+# updates one `nightly-analysis` issue when the analysis fails.
 #
-# Not on a push or a pull request: CodeQL's build and analysis are slower than
-# the push legs, and its findings are a review queue rather than a merge gate.
-# A person can still dispatch it on any branch from the Actions tab.
+# Public-only: code scanning of a private repository needs a paid plan, so the job is
+# skipped - not red - while the repository is private (docs/ci.md, "Public-only
+# workflows"). It is not a required check.
+#
+# Not on a push or a pull request: CodeQL's build and analysis are slower than the
+# push legs, and its findings are a review queue rather than a merge gate. A person
+# can still dispatch it on any branch from the Actions tab. A schedule runs the
+# workflow file of the default branch, which is develop.
 
 on:
   schedule:
@@ -18,70 +22,30 @@ on:
 
 concurrency:
   group: codeql-${{ github.workflow }}-${{ github.ref }}
-  # A push to develop or main finishes; everything else is superseded.
+  # A run on develop or main finishes; everything else is superseded.
   cancel-in-progress: ${{ github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main' }}
 
 permissions: {}
 
 jobs:
-  analyze:
-    name: Analyze (C++)
+  codeql:
+    name: CodeQL
     if: ${{ !github.event.repository.private }}
-    runs-on: ubuntu-26.04
-    timeout-minutes: 60
     permissions:
       security-events: write
       contents: read
-
-    steps:
-      # A schedule runs the workflow file of the default branch (main) on main's
-      # commit; the code worth analysing every night is the integration branch's.
-      # A manual run analyses the branch it was started on.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
-          persist-credentials: false
-
-      - name: Record the commit that is analysed
-        id: analysed
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      # Sets VCPKG_ROOT for the presets - see ci.yml.
-      - name: Set up vcpkg
-        uses: ./.github/actions/vcpkg-setup
-
-      - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
-        with:
-          cmakeVersion: "4.4.2"
-          ninjaVersion: "1.13.2"
-
+      issues: write
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/codeql.yml@dd980dbe9d40a468cedf651de91bb429a4bbb10f # v0.1.16
+    with:
+      runner: '["ubuntu-26.04"]'
       # The lean build (the linux-gcc-analysis preset): the library, the platform
-      # section, the scanner and the CLI, with no tests, no Qt application, Tracy
-      # off (so vcpkg installs nothing) and the sanitizers off - CodeQL's build
-      # tracer sets its own LD_PRELOAD for the whole build step, which collides
-      # with ASan needing to be first in the preload chain, and a static analysis
-      # gets nothing from them. Configure is before the tracer: it compiles
-      # nothing of ours, and the build below is what CodeQL has to see.
-      - name: Configure (library, platform, scanner and CLI only)
-        run: cmake --preset linux-gcc-analysis
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
-        with:
-          languages: cpp
-          build-mode: manual
-          # The nightly run can afford the larger suite: default plus the
-          # security queries that are not in the default suite.
-          queries: security-extended
-
-      - name: Build
-        run: cmake --build --preset linux-gcc-analysis
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
-        with:
-          category: "/language:cpp"
-          # The workflow runs on main's ref; the code analysed is what was checked out.
-          ref: ${{ github.event_name == 'schedule' && 'refs/heads/develop' || github.ref }}
-          sha: ${{ steps.analysed.outputs.sha }}
+      # section, the scanner and the CLI, with no tests, no Qt application, Tracy off
+      # and the sanitizers off - CodeQL's build tracer sets its own LD_PRELOAD for the
+      # whole build step, which collides with ASan needing to be first in the preload
+      # chain, and a static analysis gets nothing from them. The nightly run can afford
+      # the larger suite: default plus the security queries not in the default suite. Qt is left out:
+      # the preset builds no Qt code.
+      languages: >-
+        [
+          {"language": "cpp", "build_mode": "manual", "preset": "linux-gcc-analysis", "vcpkg": true, "queries": "security-extended", "skip_qt": true}
+        ]
