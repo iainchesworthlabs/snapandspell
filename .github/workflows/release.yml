@@ -326,6 +326,24 @@ jobs:
             build/"$CMAKE_PRESET"/bin/WordJewelsSolver --smoke 60
           fi
 
+      # Authenticode, behind the repository variable SIGN_WINDOWS (docs/releasing.md,
+      # "Windows signing"): false (the default) leaves the programs as built, test signs
+      # them with the leaf certificate of the owner's personal CA, production is not yet
+      # chosen and fails. The two programs are signed where they are built, so the ZIP and
+      # the installer carry the signed files; the files keep their names, and the packages
+      # take the suffix below.
+      - name: Sign the programs (Windows)
+        if: matrix.leg == 'windows'
+        uses: iainchesworthlabs/icl-common-infra/actions/sign-windows@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+        with:
+          mode: ${{ vars.SIGN_WINDOWS || 'false' }}
+          files: |
+            build/${{ matrix.preset }}/bin/WordJewelsSolver.exe
+            build/${{ matrix.preset }}/bin/wjs-cli.exe
+          rename: "false"
+          pfx-base64: ${{ secrets.WIN_TESTSIGN_PFX_BASE64 }}
+          pfx-password: ${{ secrets.WIN_TESTSIGN_PFX_PASSWORD }}
+
       # The ZIP, from the script a developer runs too: it checks the contents,
       # forbids a TracyClient, AddressSanitizer runtime or .pdb, unpacks it, solves a
       # board with the packaged wjs-cli and runs the packaged window offscreen
@@ -370,6 +388,49 @@ jobs:
           if (Test-Path -LiteralPath $uninstaller) {
             Start-Process -FilePath $uninstaller -ArgumentList '/S', "_?=$target" -Wait | Out-Null
           }
+
+      # The installer carries the signature of its own (Authenticode, same mode as above) and
+      # the name that says so: -unsigned, -testsigned or, for production, none. The ZIP gets
+      # the same suffix, so a download says what it is without opening it.
+      - name: Find the Windows packages
+        if: matrix.leg == 'windows'
+        id: windows-packages
+        shell: pwsh
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $packages = Join-Path $PWD "build/$env:CMAKE_PRESET/packages"
+          $installer = @(Get-ChildItem $packages -Filter *.exe)
+          $zip = @(Get-ChildItem $packages -Filter *.zip)
+          if ($installer.Count -ne 1) { throw "expected one installer in $packages, found $($installer.Count)" }
+          if ($zip.Count -ne 1) { throw "expected one ZIP in $packages, found $($zip.Count)" }
+          "installer=$($installer[0].FullName)" >> $env:GITHUB_OUTPUT
+          "zip=$($zip[0].FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Sign and name the installer (Windows)
+        if: matrix.leg == 'windows'
+        id: sign-installer
+        uses: iainchesworthlabs/icl-common-infra/actions/sign-windows@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+        with:
+          mode: ${{ vars.SIGN_WINDOWS || 'false' }}
+          files: ${{ steps.windows-packages.outputs.installer }}
+          pfx-base64: ${{ secrets.WIN_TESTSIGN_PFX_BASE64 }}
+          pfx-password: ${{ secrets.WIN_TESTSIGN_PFX_PASSWORD }}
+
+      - name: Name the ZIP like the installer (Windows)
+        if: matrix.leg == 'windows'
+        shell: pwsh
+        env:
+          ZIP: ${{ steps.windows-packages.outputs.zip }}
+          SUFFIX: ${{ steps.sign-installer.outputs.suffix }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:SUFFIX -eq '') { Write-Host 'No suffix: the ZIP keeps its name.'; exit 0 }
+          $item = Get-Item -LiteralPath $env:ZIP
+          $renamed = Join-Path $item.DirectoryName ($item.BaseName + $env:SUFFIX + $item.Extension)
+          Move-Item -LiteralPath $item.FullName -Destination $renamed
+          Write-Host "ZIP: $($item.Name) -> $(Split-Path $renamed -Leaf)"
 
       # Linux, command line: ZIP, tar.gz, .deb and .rpm. macOS: ZIP and disk image
       # (the ZIP is made but not published: its application would be unsigned).
