@@ -1,6 +1,8 @@
 # WordJewelsSolver
 
 [![CI](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/ci.yml)
+[![Coverage: statements](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworthlabs%2Fwordjewelssolver%2Fquality-history%2Fcoverage-line.json)](docs/ci.md#quality-history)
+[![Coverage: branches](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworthlabs%2Fwordjewelssolver%2Fquality-history%2Fcoverage-branch.json)](docs/ci.md#quality-history)
 [![CodeQL](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/codeql.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/codeql.yml)
 [![zizmor](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/zizmor.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/zizmor.yml)
 [![Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworthlabs/wordjewelssolver/badge)](https://securityscorecards.dev/viewer/?uri=github.com/iainchesworthlabs/wordjewelssolver)
