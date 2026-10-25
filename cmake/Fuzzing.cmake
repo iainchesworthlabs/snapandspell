@@ -28,7 +28,7 @@ if(WJS_ENABLE_FUZZING)
     foreach(_wjs_other IN ITEMS WJS_ENABLE_SANITIZERS WJS_ENABLE_TSAN WJS_ENABLE_TRACY WJS_ENABLE_COVERAGE
                                 WJS_ENABLE_HARDENING)
         if(${_wjs_other})
-            message(FATAL_ERROR "WJS_ENABLE_FUZZING and ${_wjs_other} cannot both be on. Use the linux-fuzz preset.")
+            message(FATAL_ERROR "WJS_ENABLE_FUZZING and ${_wjs_other} cannot both be on. Use the fuzz preset.")
         endif()
     endforeach()
     unset(_wjs_other)
