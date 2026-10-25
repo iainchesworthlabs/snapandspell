@@ -9,9 +9,9 @@ the documents themselves (one of them holds [the requirements
 matrix](#the-requirements-matrix) to the tests that exist). When the window is
 built there is also a Qt Quick Test tier that drives the kit and the screens
 themselves, headless ([The interactive
-QML](#the-interactive-qml-qt-quick-test)). The unit tier is gated at 90% line
-and 80% branch coverage of `libs/core`; the scanner, the window and the platforms
-are not gated ([Coverage](#coverage)). They run in CI on Windows (MSVC), Linux
+QML](#the-interactive-qml-qt-quick-test)). The library, the scanner, the platform
+layer and the command line are gated per component on the unit, integration and
+system tiers together; the window is not ([Coverage](#coverage)). They run in CI on Windows (MSVC), Linux
 (GCC) and macOS (AppleClang). The exact number differs by leg: the Qt model,
 screen, language and Quick Test suites run only where the window is built
 (Windows so far), and the 32 performance work cases and the five scanner
@@ -1251,14 +1251,17 @@ a failing unit test, but it is still a defect report against the tree.
 
 ## Coverage
 
-The project's minimum standard is **90% of lines and 80% of branches** for the
-unit tier's scope, `libs/core` (`-DSCOPE=libs/core` in `cmake/Coverage.cmake`). It is
-a gate, not a report: a change that drops either number fails CI (the required
-`Coverage (Linux, GCC)` check) and the local coverage target. **The gate covers
-the library only**: the scanner (`libs/scan`), the window (`apps/app/src`) and the
-platform layer are ungated, whatever their tests reach. The integration, system
-and quality tiers are not gated; the UI tier's coverage is reported separately,
-because it shows what the QML reaches rather than what the library's tests do.
+The gate in CI is per component, from `tools/coverage-floors.json`: each of `libs/core`,
+`libs/scan`, `libs/platforms` and `apps/cli` has a minimum for lines and for branches (the default is
+90% and 80%). The figures are the unit, integration and system tiers together, measured by gcovr on
+`Coverage (Linux, GCC)`. A change that drops a component under its floor fails CI. A file in no
+component also fails, so new code cannot sit outside the table. A figure more than a point above
+its floor is printed as a hint to raise the floor: a floor only goes up, in a pull request of its own.
+
+The window (`apps/app/src`) is not gated: its C++ is built only where Qt is installed, and the UI
+tier's coverage is reported separately (`coverage-ui`), because it shows what the QML reaches rather
+than what the library's tests do. The local `coverage-unit` target keeps the older single gate of
+90% and 80% on `libs/core` for the unit tier alone.
 
 Two instrumentations, chosen by the compiler:
 
