@@ -21,6 +21,7 @@ target_compile_definitions(wjs_platform PRIVATE ${WJS_PLATFORM_COMPILE_DEFINITIO
 target_link_libraries(wjs_platform
     PRIVATE
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage
         ${WJS_PLATFORM_LINK_LIBRARIES})

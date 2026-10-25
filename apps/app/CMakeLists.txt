@@ -24,6 +24,7 @@ target_link_libraries(wjs_i18n
         Qt6::Gui
     PRIVATE
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)
 wjs_add_translations(wjs_i18n)
@@ -47,6 +48,7 @@ target_link_libraries(wjs_trace
         wjs::lib
     PRIVATE
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)
 
@@ -308,6 +310,7 @@ target_link_libraries(WordJewelsSolver
         Qt6::QuickShapes
         Qt6::Quick3D
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)
 

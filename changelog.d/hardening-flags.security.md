@@ -1,0 +1,1 @@
+**The program is built with the standard hardening flags.** A stack protector, fortified library calls, a position-independent executable with read-only relocations and immediate binding, and control-flow protection are now on in every release build, on Windows with `/GS /guard:cf /sdl`.

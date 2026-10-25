@@ -94,5 +94,6 @@ target_link_libraries(wjs_scene
         # module does not link the library, so it carries the interface itself.
         wjs::profiling
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)
