@@ -36,6 +36,8 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | `codeql.yml` | nightly CodeQL static analysis of the C++ | no - skipped |
 | `dependency-review.yml` | fails a PR that adds a moderate-or-worse vulnerable dependency | no - skipped |
 | `scorecard.yml` | OpenSSF Scorecard score and badge: on a push to `main`, weekly (Monday 04:00 UTC) and when branch protection changes | no - skipped |
+| `zizmor.yml` | static analysis of the workflows and composite actions (zizmor, from `icl-common-infra`); fails on medium severity and above; on a pull request that touches `.github/` and nightly; not required | yes |
+| `dependabot-auto-merge.yml` | enables auto-merge on Dependabot's non-major updates of Actions and CI tooling, using the Dependabot secret `MERGE_QUEUE_TOKEN`; vcpkg and major updates stay for a person | no |
 | Dependabot (`.github/dependabot.yml`) | Actions pins, the pinned CI tooling, the vcpkg baseline | yes |
 
 Every workflow declares `permissions: {}` at the top and gives each job only
@@ -76,9 +78,10 @@ GitHub's default. The limits, by workflow:
 | `release.yml` | `SBOM, checksums and signatures` / `Attest provenance and SBOM` / `Publish the release` | 20 / 10 / 20 |
 | `ios-build.yml` | `iOS (device, unsigned compile)` | 90 |
 | `android-build.yml` | `Android (arm64-v8a, debug-signed APK)` | 90 |
-| `docs.yml` | `Build the documentation (strict)`, `Publish to GitHub Pages` | 10 each |
+| `docs.yml` | `Build the documentation (strict)`, `Publish to GitHub Pages` | 20 / 10 (the shared workflows') |
 | `release-tooling.yml` | `Lint the workflows and release scripts` / `Release tooling self-test` | 10 / 15 |
 | `scorecard.yml` | `Analyze` | 15 |
+| `zizmor.yml` / `dependabot-auto-merge.yml` | `zizmor` / `Enable auto-merge` | 15 / 5 (the shared workflows') |
 | `dependency-review.yml` | `Scan dependency diff` | 10 |
 
 The 75 minutes of the build-and-test legs is the Windows leg's: it builds the
@@ -1178,9 +1181,9 @@ The first dry run is expected to need a fix or two; that is what it is for.
 
 ## Documentation site
 
-`docs.yml` builds the site (`mkdocs.yml`, `docs/`) with
-`mkdocs build --strict --config-file .github/mkdocs-ci.yml`. The CI config inherits
-`mkdocs.yml` and raises MkDocs' own checks from information to warnings, which
+`docs.yml` calls the shared `docs.yml` and `docs-deploy.yml` of
+`icl-common-infra`. The build is `mkdocs build --strict`; the `validation` block
+of `mkdocs.yml` raises MkDocs' own checks from information to warnings, which
 `--strict` turns into failures: a link to a page, a heading or a target that does
 not exist is a red build. Pages that exist but are not in the nav stay
 information (`docs/` holds design notes that are not meant for the menu). MkDocs
@@ -1188,24 +1191,16 @@ and the Material theme are pinned in `.github/requirements/docs.txt`, MkDocs bel
 2.0. The job runs only when something under `docs/` or the docs tooling changes,
 so it is not a required check.
 
-Publishing needs one setting, once, that a workflow cannot make for itself: the
-repository's Pages source is "GitHub Actions" (Settings, Pages; or
-`gh api -X POST repos/iainchesworthlabs/wordjewelssolver/pages -f build_type=workflow`).
-That is done (the repository's Pages are set to build from a workflow). Nothing else is
-switched on or off: the deploy job runs on every push to `main` that changes what the
-workflow's `paths` list, and `docs.yml` is not on `main` yet, so nothing is published yet.
+The repository's Pages source is "GitHub Actions" (`admin/apply.sh` sets it). A
+push to `main` that changes the docs deploys the site.
 
 `docs/install-ios.html` is not a page: it is the iOS install link's page
 ([iOS](#ios)), a static file that MkDocs copies into the site as it is, so it is
 deployed with the docs and the iOS install link works only once the site is published.
 
-A push to `main` that changes the docs deploys the site to
-`https://iainchesworthlabs.github.io/wordjewelssolver/` (`site_url` in
-`mkdocs.yml`), so the merge of `develop` into `main` that precedes the first release
-is what makes the site, and the install page, exist: by the time a tag is cut they
-are there. (Until the Pages source is set, `Publish to GitHub Pages` is red with
-GitHub's message that Pages is not enabled.) A build of a pull request is never
-deployed.
+The site is at `https://iainchesworthlabs.github.io/wordjewelssolver/` (`site_url`
+in `mkdocs.yml`). The release that fast-forwards `main` is what first makes it, and
+the install page, exist. A build of a pull request is never deployed.
 
 ## Required checks and their staging
 

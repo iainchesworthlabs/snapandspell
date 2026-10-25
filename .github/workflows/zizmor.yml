@@ -1,0 +1,27 @@
+name: zizmor
+
+# Static analysis of the workflows and composite actions, from icl-common-infra
+# (zizmor.yml there): template injection, unpinned actions, excessive
+# permissions, persisted credentials. It fails on findings of medium severity
+# and above. Runs on a pull request that touches .github/ and nightly, so a new
+# rule in a zizmor release is seen within a day. Not a required check: a path
+# filter would keep it from reporting on other pull requests.
+
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - ".github/**"
+  schedule:
+    # 03:23 UTC, after analysis.yml (02:17) and codeql.yml (02:47).
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  zizmor:
+    name: zizmor
+    permissions:
+      contents: read
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/zizmor.yml@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13

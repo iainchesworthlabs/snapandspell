@@ -124,7 +124,7 @@ what to do instead of an `#ifdef`, and how to add a platform.
   test names the rows that point at a test that is gone.
 - Documentation is built strictly in CI (a broken link or heading is a red build).
   To check before you push: `pip install -r .github/requirements/docs.txt` and
-  `mkdocs build --strict --config-file .github/mkdocs-ci.yml`.
+  `mkdocs build --strict`.
 - Do not commit a word list whose source and licence are not recorded in
   `data/README.md` (see
   [docs/licensing.md](docs/licensing.md#the-word-list)), a picture of a person,
