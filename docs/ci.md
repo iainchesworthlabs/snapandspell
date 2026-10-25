@@ -498,7 +498,9 @@ sanitizer runtimes the whole ctest suite without waiting for a push.
 
 `osv-scanner.yml` calls the reusable workflow of `google/osv-scanner-action` (pinned to a commit, as every
 action is) over `-r ./` each night, and on a dispatch of any branch. It reads what OSV-Scanner knows how to
-read: the pinned Python tools of the CI jobs (`.github/requirements/*.txt`), and any lockfile that is added.
+read: the pinned Python tools of the CI jobs, each file of `.github/requirements/` named in the workflow
+(the scanner only recognises a file called `requirements.txt` by itself, so a new file has to be added to
+`scan-args`), and any lockfile that is added.
 **vcpkg manifests are not a format it reads**, so the C++ dependencies are covered by
 `dependency-review.yml` on a pull request that changes them (a moderate or worse advisory blocks the pull
 request), and by the SBOM of a release. A finding fails the run, is uploaded to Security, Code scanning

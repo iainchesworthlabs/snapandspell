@@ -1,8 +1,7 @@
 name: OSV-Scanner
 
 # Known vulnerabilities in what the repository pins, from the OSV database: the Python tools of
-# the CI jobs (.github/requirements/*.txt) and anything else OSV-Scanner reads a lockfile or
-# manifest from. vcpkg manifests are not a format it reads; the vcpkg dependencies are held by
+# the CI jobs (.github/requirements/*.txt, each named below) and any lockfile OSV-Scanner finds. vcpkg manifests are not a format it reads; the vcpkg dependencies are held by
 # dependency-review.yml on a pull request that changes them (docs/ci.md, "Known vulnerabilities").
 #
 # Nightly, and by hand. A finding fails the run, goes to Security > Code scanning as SARIF and, on
@@ -33,7 +32,17 @@ jobs:
       security-events: write
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
     with:
+      # OSV-Scanner reads a file named requirements.txt and no other, so each pinned file of
+      # .github/requirements is named, with the parser to read it by. A new one is added here;
+      # tools/ci/test_osv_requirements.py holds the list to the directory. -r ./ still finds a lockfile
+      # added later.
       scan-args: |-
+        --lockfile=requirements.txt:.github/requirements/analysis.txt
+        --lockfile=requirements.txt:.github/requirements/coverage.txt
+        --lockfile=requirements.txt:.github/requirements/docs.txt
+        --lockfile=requirements.txt:.github/requirements/lint.txt
+        --lockfile=requirements.txt:.github/requirements/sbom.txt
+        --lockfile=requirements.txt:.github/requirements/workflows.txt
         -r
         ./
       fail-on-vuln: true
