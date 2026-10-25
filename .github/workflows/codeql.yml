@@ -35,7 +35,7 @@ jobs:
       security-events: write
       contents: read
       issues: write
-    uses: iainchesworthlabs/icl-common-infra/.github/workflows/codeql.yml@3f7b790dd0737ea62f54a3eb046ac8ce05d125c6 # v0.1.15
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/codeql.yml@dd980dbe9d40a468cedf651de91bb429a4bbb10f # v0.1.16
     with:
       runner: '["ubuntu-26.04"]'
       # The lean build (the linux-gcc-analysis preset): the library, the platform
@@ -43,8 +43,9 @@ jobs:
       # and the sanitizers off - CodeQL's build tracer sets its own LD_PRELOAD for the
       # whole build step, which collides with ASan needing to be first in the preload
       # chain, and a static analysis gets nothing from them. The nightly run can afford
-      # the larger suite: default plus the security queries not in the default suite.
+      # the larger suite: default plus the security queries not in the default suite. Qt is left out:
+      # the preset builds no Qt code.
       languages: >-
         [
-          {"language": "cpp", "build_mode": "manual", "preset": "linux-gcc-analysis", "vcpkg": true, "queries": "security-extended"}
+          {"language": "cpp", "build_mode": "manual", "preset": "linux-gcc-analysis", "vcpkg": true, "queries": "security-extended", "skip_qt": true}
         ]
