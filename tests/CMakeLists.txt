@@ -49,6 +49,8 @@ if(WJS_BUILD_APP)
     # Whether Qt Multimedia has a backend here, before the directories whose
     # camera cases skip without one.
     wjs_add_tests(apps/app/tests/media)
+    # The house faces, for the test programs that start Qt Quick.
+    wjs_add_tests(apps/app/tests/fonts)
     wjs_add_tests(apps/app/tests/unit)
 
     # The interactive QML at run time: Qt Quick Test suites, one ctest entry

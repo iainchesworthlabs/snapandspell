@@ -554,6 +554,17 @@ Not tested anywhere, so that no row above is read as covering it:
   board, reduced motion at screen level, and a screen reader (only the kit's
   components are asserted to carry names and roles) have no QML test.
 
+### The house fonts in the QML tests
+
+The Quick Test harness and the two stub shells (`wjs_scan_preview`, `wjs_parent_preview`) register Archivo,
+IBM Plex Mono and Andika from `assets/fonts` before a screen is loaded (`wjs_test_fonts`,
+`apps/app/tests/fonts`), as the application does from its resource. Without them a screen is laid out in
+whatever the machine has: every label has another width, so a layout assertion (the action zone's sizes,
+the frame's room) measures the fallback and fails on a machine whose fallback differs from the
+author's, and on macOS Qt warns that it is replacing the missing "Archivo", which a run that treats a
+warning as a failure cannot pass. The glyph check of `language_test.cpp` does not load them: it asks what
+the platform's own fonts cover, and skips on a machine with none.
+
 ### Camera tests without a media backend
 
 The live view is a `VideoOutput`, and a `VideoOutput` needs a Qt Multimedia backend. Where the

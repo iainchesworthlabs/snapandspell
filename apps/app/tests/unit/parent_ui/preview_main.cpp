@@ -36,6 +36,7 @@
 #include "demo_data.hpp"
 #include "language_manager.hpp"
 #include "parent_controller.hpp"
+#include "test_fonts.hpp"
 #include "wjs/calendar.hpp"
 
 namespace {
@@ -549,6 +550,8 @@ int main(int argc, char* argv[]) {
         qInstallMessageHandler(message_handler);
     }
     QGuiApplication application(argc, argv);
+    // The faces the screens name, as the application registers them before its engine loads.
+    static_cast<void>(wjs::app::test::load_house_fonts());
 
     if (is_check) {
         const int first = run_check(out);

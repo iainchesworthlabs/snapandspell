@@ -280,6 +280,7 @@ target_link_libraries(wjs_parent_preview
         wjs_parentplugin
         wjs_parent_preview_kit
         wjs_parent_preview_kitplugin
+        wjs_test_fonts
         wjs_i18n
         wjs::lib
         Qt6::Core
@@ -393,6 +394,7 @@ target_link_libraries(wjs_scan_preview
         wjs_scan_uiplugin
         wjs_scan_synth
         wjs_media_probe
+        wjs_test_fonts
         wjs_i18n
         wjs_trace
         wjs::lib
