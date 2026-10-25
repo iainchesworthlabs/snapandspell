@@ -37,6 +37,10 @@ TestCase {
     property var subjects: []
     property var sizes: SizeMatrix.sizes
     property var knownIssues: []
+    // Indexes of subjects that cannot be made on this machine, and why (a live camera view with
+    // no Qt Multimedia backend): their rows are skipped, the others run.
+    property var skipSubjects: []
+    property string skipReason: ""
     // Time for a layout to settle after a resize or a scale change.
     property int settle: 50
 
@@ -76,6 +80,9 @@ TestCase {
     }
 
     function test_matrix(data) {
+        if (root.skipSubjects.indexOf(data.subject) >= 0) {
+            skip(root.skipReason);
+        }
         Theme.textScale = data.scale;
         stage.width = data.w;
         stage.height = data.h;

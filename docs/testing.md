@@ -554,6 +554,24 @@ Not tested anywhere, so that no row above is read as covering it:
   board, reduced motion at screen level, and a screen reader (only the kit's
   components are asserted to carry names and roles) have no QML test.
 
+### Camera tests without a media backend
+
+The live view is a `VideoOutput`, and a `VideoOutput` needs a Qt Multimedia backend. Where the
+backend plugin cannot load (a system library it links is missing) Qt prints "No QtMultimedia backends
+found" and creates no sink, so every test that shows the live view would fail for a reason that has
+nothing to do with the screens. `wjs_media_probe` (`apps/app/tests/media`) asks
+`QMediaFormat` whether the backend can decode anything, once per process:
+
+- `camera.screens` returns 77 and CTest reports it as skipped;
+- `quick.scan` skips `test_aRunningCameraShowsThePreviewAndOffersCapture` and `quick.sizematrix_scan`
+  skips the rows of subject 1, through `fixture.mediaBackendAvailable`; the other cases run.
+
+A kit built without Qt Multimedia answers "no backend" and does not register `camera.screens`. The
+Linux application leg of `release.yml` installs the libraries the FFmpeg backend looks for
+(`libpipewire-0.3-0t64`, `libva2`, `libva-x11-2`, `libva-drm2`), so there the cases run: Qt warns once per
+library it cannot load, and a suite that fails on a warning fails on that. The probe prints those
+messages itself, once, and does not count them against whichever case happened to ask first.
+
 ## Performance tests
 
 `wjs_perf_tests` is a binary of its own, linked against `wjs::lib` and nothing
@@ -942,7 +960,7 @@ must not be needed to prove the state machine, and no live picture may be faked.
 | `apps/app/tests/unit/camera_backend_test.cpp` (only where the kit has Qt Multimedia, `[app][camera][backend]`) | The Qt Multimedia backend built headless: the camera's frames are forwarded into the preview item's own sink; an item with no sink, or a sink destroyed, is not written to; the backend attaches a preview, replaces it and lets it go; a refused camera is a permission problem, said once, and does not start; a camera not yet asked about asks and waits for the answer, and an answer that comes after a stop does not start it; with nothing to capture it is safe to stop and to read |
 | `apps/app/tests/unit/scan_model_test.cpp` (`wjs_app_tests`, `[app][scan][camera]`) | `ScanModel` and a camera source that fails, never delivers a frame or is replaced: see the row in [What there is](#what-there-is) |
 | `apps/app/tests/unit/camera_video_frame_test.cpp` (only where the kit has Qt Multimedia) | A `QVideoFrame` made from a picture goes through `QVideoFrame::toImage()` and the shared conversion to the same RGB24 frame — the backend's step, without a device |
-| `camera.screens` (`apps/app/tests/unit/scan_ui`, only where the kit has Qt Multimedia) | The real `ScanScreen` and `ScanModel` in the offscreen stub shell with a fake source and one synthetic board: the live `VideoOutput` is created and shown, Capture is offered, the frame reaches the check screen, and the camera stops. The no-camera check (`scan.screens`) is the other path |
+| `camera.screens` (`apps/app/tests/unit/scan_ui`, only where the kit has Qt Multimedia) | The real `ScanScreen` and `ScanModel` in the offscreen stub shell with a fake source and one synthetic board: the live `VideoOutput` is created and shown, Capture is offered, the frame reaches the check screen, and the camera stops. The no-camera check (`scan.screens`) is the other path. Skipped (exit 77) where Qt Multimedia has no backend on the machine ([Camera tests without a media backend](#camera-tests-without-a-media-backend)) |
 | `quick.scan` (`apps/app/ui-tests/tst_scan.qml`) | The same preview on and no-preview path through the QML suite, with `fixture.useCamera()` supplying a fake source; the window is offscreen and no device is opened |
 
 The tests never use a device and never write a frame: the fake backend returns

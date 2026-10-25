@@ -45,6 +45,10 @@ if(WJS_BUILD_APP)
     # The application's model tier, the scene script, the window's frame budget
     # and the two stub shells the screens are checked in. Qt is only here when
     # the application is.
+    #
+    # Whether Qt Multimedia has a backend here, before the directories whose
+    # camera cases skip without one.
+    wjs_add_tests(apps/app/tests/media)
     wjs_add_tests(apps/app/tests/unit)
 
     # The interactive QML at run time: Qt Quick Test suites, one ctest entry

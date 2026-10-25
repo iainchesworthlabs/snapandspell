@@ -171,6 +171,10 @@ TestCase {
 
     // --- scan.ready with a camera -------------------------------------------
     function test_aRunningCameraShowsThePreviewAndOffersCapture() {
+        // The live view is a VideoOutput, which needs a Qt Multimedia backend.
+        if (!fixture.mediaBackendAvailable) {
+            skip("Qt Multimedia has no backend on this machine")
+        }
         // A fake source, not a device: the preview is created, so the QML path
         // that a camera would take is the one a headless run drives. The frame
         // it would hand over is not needed to show the live view.
