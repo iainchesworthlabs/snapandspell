@@ -56,6 +56,8 @@ nav:
   - How it works:
       - Architecture: architecture.md
       - Platform isolation: platform-isolation.md
+      - Languages: i18n.md
+      - Security and threat model: security.md
   - Project:
       - Product requirements: product-requirements.md
       - Roadmap: roadmap.md

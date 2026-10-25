@@ -1,7 +1,13 @@
 # WordJewelsSolver
 
+[![CI](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/codeql.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/codeql.yml)
+[![zizmor](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/zizmor.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/zizmor.yml)
+[![Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworthlabs/wordjewelssolver/badge)](https://securityscorecards.dev/viewer/?uri=github.com/iainchesworthlabs/wordjewelssolver)
+[![Docs](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/docs.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/docs.yml)
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-blue)](docs/architecture.md)
 [![License: GPL v3+](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20iOS-lightgrey)
 
 Finds every word on a Boggle board.
 
