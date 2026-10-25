@@ -1,0 +1,4 @@
+cat
+care
+tar
+ore

@@ -49,6 +49,7 @@ nav:
       - Building: building.md
       - Testing: testing.md
       - Profiling: profiling.md
+      - Fuzzing: fuzzing.md
       - CI: ci.md
       - Releasing: releasing.md
       - Branch protection: branch-protection.md

@@ -53,3 +53,6 @@ target_link_libraries(wjs_lib
         wjs::hardening
         wjs::sanitizers
         wjs::coverage)
+if(WJS_ENABLE_FUZZING)
+    add_subdirectory(fuzz)
+endif()

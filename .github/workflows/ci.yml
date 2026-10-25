@@ -29,7 +29,7 @@ on:
       legs:
         description: >-
           Comma-separated legs to run, no spaces: clang-format,
-          platform-isolation, windows, linux, macos, coverage, perf, package, tsan - or "all".
+          platform-isolation, windows, linux, macos, coverage, perf, package, tsan, fuzz - or "all".
           The dedicated profiling builds (optimised, for Tracy numbers) are
           never part of "all": name them - profiling (all three),
           profiling-windows, profiling-linux or profiling-macos. The debug
@@ -167,6 +167,7 @@ jobs:
       package: ${{ steps.plan.outputs.package }}
       coverage: ${{ steps.plan.outputs.coverage }}
       tsan: ${{ steps.plan.outputs.tsan }}
+      fuzz: ${{ steps.plan.outputs.fuzz }}
       expected: ${{ steps.plan.outputs.expected }}
     steps:
       # Full history, because the planner diffs the base against the head.
@@ -613,6 +614,56 @@ jobs:
           triplet: x64-linux
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
+  # The libFuzzer harnesses of libs/core/fuzz and libs/scan/fuzz (docs/fuzzing.md), each run once over
+  # its seed corpus and the inputs that once crashed it (`-runs=0`): a few seconds once built, and the
+  # parsers are shown not to crash on any of them. The fuzzing itself is fuzz.yml. Built with the
+  # image's Clang and its libFuzzer runtime (the linux-fuzz preset: no Qt, no tests, nothing from vcpkg).
+  fuzz-regress:
+    name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - Fuzz regression (Linux, Clang)' || 'Fuzz regression (Linux, Clang)' }}
+    needs: plan
+    if: ${{ needs.plan.outputs.fuzz == 'true' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      # libFuzzer is in the sanitizer runtime package of the Clang that is installed.
+      - name: Ensure Clang and its sanitizer runtime
+        shell: bash
+        run: |
+          if ! command -v clang++ >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y clang
+          fi
+          major="$(clang++ -dumpversion | cut -d. -f1)"
+          if ! dpkg -s "libclang-rt-${major}-dev" >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y "libclang-rt-${major}-dev"
+          fi
+          clang++ --version | head -n 1
+
+      - name: Configure
+        run: cmake --preset linux-fuzz
+
+      - name: Build
+        run: cmake --build --preset linux-fuzz
+
+      - name: Replay the corpus and the past crashes
+        run: ctest --preset linux-fuzz -j "$(nproc)" --timeout 120
+
   # The package that ships, on Windows: the Release preset (the Qt application on,
   # Tracy and the sanitizers off), packaged and checked the way the release
   # workflow will - a ZIP that carries no TracyClient, AddressSanitizer runtime or
@@ -905,7 +956,7 @@ jobs:
   ci-status:
     name: CI Status
     if: ${{ always() && github.event_name != 'workflow_dispatch' }}
-    needs: [policy, icl-cmake, clang-format, platform-isolation, plan, build-and-test, performance, package-windows, coverage, tsan]
+    needs: [policy, icl-cmake, clang-format, platform-isolation, plan, build-and-test, performance, package-windows, coverage, tsan, fuzz-regress]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
