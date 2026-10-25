@@ -1,0 +1,27 @@
+{
+  "docs": [
+    "docs/**", "*.md", "mkdocs.yml", "LICENSE", "LICENSES/**", "notices/**", "changelog.d/**",
+    "CHANGELOG.md", ".github/ISSUE_TEMPLATE/**", ".github/PULL_REQUEST_TEMPLATE*"
+  ],
+  "no_build": [
+    ".github/CODEOWNERS", ".github/dependabot.yml", ".github/repo-settings.json", "REUSE.toml",
+    ".editorconfig", ".gitignore", ".gitattributes", "tools/hooks/**", "tools/policy/**"
+  ],
+  "build": [
+    "libs/**", "apps/**", "tests/**", "tools/**", "data/**", "assets/**", "cmake/**",
+    "CMakeLists.txt", "CMakePresets.json", "vcpkg.json", "vcpkg-configuration.json",
+    ".clang-format", ".clang-tidy", ".github/requirements/**"
+  ],
+  "gui": [
+    "apps/app/**", "cmake/**", "CMakeLists.txt", "CMakePresets.json", "vcpkg.json",
+    "vcpkg-configuration.json", "assets/**"
+  ],
+  "machinery": [
+    ".github/workflows/**", ".github/actions/**", ".github/ci/**", ".github/toolchain-versions.json",
+    "tools/ci/**"
+  ],
+  "platform": [
+    "libs/platforms/**", "cmake/**", "CMakeLists.txt", "CMakePresets.json", "vcpkg.json",
+    "vcpkg-configuration.json", "apps/app/CMakeLists.txt"
+  ]
+}

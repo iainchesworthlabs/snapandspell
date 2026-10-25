@@ -4,9 +4,8 @@
 # commit-msg hook: the commit message carries no attribution of any kind.
 #
 # Runs tools/policy/check_text_policy.ps1 over the message git is about to
-# record - the same script, and the same rule, that the "Validate commit and PR
-# text" check applies to every commit of a pull request
-# (docs/ci.md, "Commit and PR text policy").
+# record - the same rule that the Policy job applies to every commit of a pull
+# request (docs/ci.md, "Commit and PR text policy").
 #
 # Install once per clone:
 #   git config core.hooksPath tools/hooks

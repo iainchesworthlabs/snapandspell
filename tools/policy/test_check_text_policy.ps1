@@ -3,8 +3,7 @@
 #requires -Version 7.0
 #
 # Self-test for check_text_policy.ps1: a text policy that silently passes
-# everything is worse than none, so CI (commit-policy.yml) runs this before it
-# trusts the policy with a pull request.
+# everything is worse than none, so ctest (policy.text) runs this.
 #
 # Every sample that must FAIL is built here at run time from fragments, so this
 # file contains none of the names or phrases the policy forbids (the last case

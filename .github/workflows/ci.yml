@@ -29,7 +29,7 @@ on:
       legs:
         description: >-
           Comma-separated legs to run, no spaces: clang-format,
-          platform-isolation, windows, linux, macos, coverage, perf, package - or "all".
+          platform-isolation, windows, linux, macos, coverage, perf, package, tsan - or "all".
           The dedicated profiling builds (optimised, for Tracy numbers) are
           never part of "all": name them - profiling (all three),
           profiling-windows, profiling-linux or profiling-macos. The debug
@@ -147,36 +147,51 @@ jobs:
         shell: pwsh
         run: ./tools/checks/check_platform_isolation.ps1 -Root $PWD
 
-  # Checks the legs a manual dispatch names (an unknown name fails the run
-  # rather than running nothing). The legs themselves do not wait for this job:
-  # they pick themselves from the same input (build-and-test below). It is a
-  # required check, so it stays, and it is a job of its own so that a bad name
-  # is a red check with a message.
+  # Decides what the rest of the run builds (docs/ci.md, "What runs when"). The
+  # changed paths and the event give the legs: a pull request builds Linux and
+  # coverage, the merge queue adds Windows, performance, package and TSan (and
+  # macOS for platform code, CMake and the workflows), a push to develop runs
+  # everything, and a draft or a documentation-only change runs the static
+  # checks alone. The `deep` label runs everything. A manual run names its legs
+  # (an unknown name is a red check with a message). The job is a required
+  # input of CI Status: the legs it asked for must have run.
   plan:
     name: Plan build legs
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    permissions: {}
+    permissions:
+      contents: read
+    outputs:
+      legs: ${{ steps.plan.outputs.legs }}
+      performance: ${{ steps.plan.outputs.performance }}
+      package: ${{ steps.plan.outputs.package }}
+      coverage: ${{ steps.plan.outputs.coverage }}
+      tsan: ${{ steps.plan.outputs.tsan }}
+      expected: ${{ steps.plan.outputs.expected }}
     steps:
-      - name: Check the named legs
+      # Full history, because the planner diffs the base against the head.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the shared scripts
+        uses: iainchesworthlabs/icl-common-infra/actions/checkout-infra@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+      - name: Test the planner
+        run: python3 -m unittest tools/ci/test_plan.py
+      - name: Plan
+        id: plan
         shell: bash
         env:
-          LEGS: ${{ github.event_name == 'workflow_dispatch' && inputs.legs || 'all' }}
+          EVENT: ${{ github.event_name }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+          LEGS: ${{ inputs.legs }}
         run: |
-          case "$LEGS" in
-            *[[:space:]]*)
-              echo "::error::legs must be comma-separated with no spaces: '$LEGS'"
-              exit 1 ;;
-          esac
-          for leg in ${LEGS//,/ }; do
-            case "$leg" in
-              all|clang-format|platform-isolation|windows|linux|macos|coverage|perf|package) ;;
-              profiling|profiling-windows|profiling-linux|profiling-macos) ;;
-              *) echo "::error::unknown leg '$leg' (clang-format, platform-isolation, windows, linux, macos, coverage, perf, package, profiling, profiling-windows, profiling-linux, profiling-macos, all)"
-                 exit 1 ;;
-            esac
-          done
-          echo "legs: $LEGS"
+          python3 tools/ci/plan.py --gate .icl-infra/scripts/plan_gate.py --config .github/ci/plan.json \
+            --event "$EVENT" --draft "$DRAFT" --labels "$LABELS" --base "$BASE" --head "$HEAD" \
+            --legs "$LEGS" --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
 
   # Configure, build and test one preset per desktop platform. The Debug
   # presets turn on the sanitizers, Tracy (on by default for Debug builds:
@@ -186,13 +201,8 @@ jobs:
   # the compiler has it).
   build-and-test:
     name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - ' || '' }}${{ fromJSON('{"windows":"Windows (MSVC)","linux":"Linux (GCC)","macos":"macOS (AppleClang)","profiling-windows":"Profiling (Windows, MSVC)","profiling-linux":"Profiling (Linux, GCC)","profiling-macos":"Profiling (macOS, AppleClang)"}')[matrix.leg] }}
-    # No `needs: plan`. The legs used to wait for it, and a job that takes three
-    # seconds still waits for a runner like any other: on a busy day the Windows
-    # leg began half an hour after the run did, behind a three-second job, while
-    # the ungated release package job began after one minute. A push, pull
-    # request or queue run always gets the first three legs; a dispatch picks
-    # from its `legs` input, here and in the matrix's `exclude` below.
-    if: ${{ (github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',windows,')) || (github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',linux,')) || (github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',macos,')) || (github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-windows,'))) || (github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-linux,'))) || (github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-macos,'))) }}
+    needs: plan
+    if: ${{ needs.plan.outputs.legs != '[]' }}
     runs-on: ${{ fromJSON('{"windows":"windows-2025-vs2026","linux":"ubuntu-26.04","macos":"macos-26","profiling-windows":"windows-2025-vs2026","profiling-linux":"ubuntu-26.04","profiling-macos":"macos-26"}')[matrix.leg] }}
     # The Windows leg builds the application and its prototype with the
     # sanitizers on and then runs about a thousand tests; on a hosted runner
@@ -209,19 +219,15 @@ jobs:
       matrix:
         # One desktop leg per platform, each on its own default compiler: MSVC
         # on the VS 2026 image, the image's g++ on Ubuntu, AppleClang (Xcode) on
-        # the Apple-silicon macOS image. The runner, the preset and the vcpkg
-        # triplet (which names the binary cache) of each are looked up from the
-        # leg's name, above and in the job's `env`, and are not carried in the
-        # matrix: an `include` entry would bring back a leg that `exclude`
-        # dropped. The profiling presets (RelWithDebInfo with Tracy:
+        # the Apple-silicon macOS image. The plan job chooses the legs of this
+        # run (a pull request gets Linux, the queue adds Windows, a push has all
+        # three); the runner, the preset and the vcpkg triplet (which names the
+        # binary cache) of each are looked up from the leg's name, above and in
+        # the job's `env`. The profiling presets (RelWithDebInfo with Tracy:
         # docs/profiling.md) are the same three platforms and run only when a
         # dispatch names them: the client opens a network port and the vcpkg
-        # tools take a while to build, so a push does not pay for them as well
-        # as for the debug legs, which are instrumented by default.
-        leg: [windows, linux, macos, profiling-windows, profiling-linux, profiling-macos]
-        # The legs this run does not want. The list always ends in a leg that
-        # matches nothing, so that it is valid JSON whatever was dropped.
-        exclude: ${{ fromJSON(format('[{0}{1}{2}{3}{4}{5}{{"leg":"none"}}]', !(github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',windows,')) && '{"leg":"windows"},' || '', !(github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',linux,')) && '{"leg":"linux"},' || '', !(github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || inputs.legs == '' || contains(format(',{0},', inputs.legs), ',macos,')) && '{"leg":"macos"},' || '', !(github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-windows,'))) && '{"leg":"profiling-windows"},' || '', !(github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-linux,'))) && '{"leg":"profiling-linux"},' || '', !(github.event_name == 'workflow_dispatch' && (contains(format(',{0},', inputs.legs), ',profiling,') || contains(format(',{0},', inputs.legs), ',profiling-macos,'))) && '{"leg":"profiling-macos"},' || '')) }}
+        # tools take a while to build.
+        leg: ${{ fromJSON(needs.plan.outputs.legs) }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -328,9 +334,10 @@ jobs:
         shell: bash
         env:
           CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          LEG: ${{ matrix.leg }}
           QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
         run: |
-          if [ "${{ matrix.leg }}" = "windows" ]; then
+          if [ "$LEG" = "windows" ]; then
             # /Z7 puts the debug information in the objects, which is what
             # ccache can store (a shared .pdb it cannot).
             cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
@@ -385,7 +392,7 @@ jobs:
         run: |
           jobs="$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN)"
           echo "ctest -j $jobs"
-          ctest --preset "$CMAKE_PRESET" -j "$jobs"
+          ctest --preset "$CMAKE_PRESET" -j "$jobs" --timeout 900
 
       # The interface's catalogues are generated: lupdate regenerates them into a
       # temporary directory and the checked-in apps/app/translations/*.ts must be identical, so a
@@ -468,7 +475,8 @@ jobs:
   # Not a required check.
   performance:
     name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - Performance (Linux, GCC)' || 'Performance (Linux, GCC)' }}
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || contains(format(',{0},', inputs.legs), ',perf,') }}
+    needs: plan
+    if: ${{ needs.plan.outputs.performance == 'true' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
@@ -505,13 +513,85 @@ jobs:
       # tests, the two repository checks and the work budgets. The wall-time
       # cases skip themselves (WJS_PERF_TIMING is not set).
       - name: Test
-        run: ctest --preset linux-gcc-release -j "$(nproc)"
+        run: ctest --preset linux-gcc-release -j "$(nproc)" --timeout 900
 
       # Only by hand: the *-perf test preset sets WJS_PERF_TIMING and selects
       # the perf label, and the timing cases run alone (RUN_SERIAL).
       - name: Wall-time checks (manual runs only)
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: ctest --preset linux-gcc-perf
+
+      # Saved even when a later step fails - see build-and-test.
+      - name: Save vcpkg binaries
+        if: ${{ always() }}
+        uses: ./.github/actions/vcpkg-cache/save
+        with:
+          triplet: x64-linux
+          restored: ${{ steps.vcpkg-cache.outputs.listing }}
+
+  # ThreadSanitizer on the solver, the scanner and the command line, with Clang
+  # (the linux-clang-tsan preset, which a developer runs the same way:
+  # docs/building.md). The Qt application is not built: Qt's prebuilt libraries
+  # are not instrumented. The merge queue and every push run it; a pull request
+  # runs it with the `deep` label.
+  tsan:
+    name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - ThreadSanitizer (Linux, Clang)' || 'ThreadSanitizer (Linux, Clang)' }}
+    needs: plan
+    if: ${{ needs.plan.outputs.tsan == 'true' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      # The ABI hash covers the compiler, so this leg builds its own archives
+      # beside the GCC ones.
+      - name: Restore vcpkg binaries
+        id: vcpkg-cache
+        uses: ./.github/actions/vcpkg-cache/restore
+        with:
+          triplet: x64-linux
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      # The image's Clang and its sanitizer runtime (a separate package, as in
+      # analysis.yml). A kernel with a high ASLR entropy makes older TSan
+      # runtimes abort at start-up; a lower value is harmless where it is not
+      # needed, and the step does not fail where the setting is missing.
+      - name: Ensure Clang and its sanitizer runtime
+        shell: bash
+        run: |
+          if ! command -v clang++ >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y clang
+          fi
+          major="$(clang++ -dumpversion | cut -d. -f1)"
+          if ! dpkg -s "libclang-rt-${major}-dev" >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y "libclang-rt-${major}-dev"
+          fi
+          clang++ --version | head -n 1
+          sudo sysctl -w vm.mmap_rnd_bits=28 || true
+
+      - name: Configure
+        run: cmake --preset linux-clang-tsan
+
+      - name: Build
+        run: cmake --build --preset linux-clang-tsan
+
+      # halt_on_error and the suppressions file are in the test preset.
+      - name: Test
+        run: ctest --preset linux-clang-tsan -j "$(nproc)" --timeout 900
 
       # Saved even when a later step fails - see build-and-test.
       - name: Save vcpkg binaries
@@ -531,7 +611,8 @@ jobs:
   # build). Not a required check.
   package-windows:
     name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - Package (Windows, Release)' || 'Package (Windows, Release)' }}
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || contains(format(',{0},', inputs.legs), ',package,') }}
+    needs: plan
+    if: ${{ needs.plan.outputs.package == 'true' }}
     runs-on: windows-2025-vs2026
     timeout-minutes: 60
     permissions:
@@ -629,7 +710,8 @@ jobs:
   # not a flaky test: the unit suite has just passed.
   coverage:
     name: ${{ github.event_name == 'workflow_dispatch' && 'dispatch - Coverage (Linux, GCC)' || 'Coverage (Linux, GCC)' }}
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.legs == 'all' || contains(format(',{0},', inputs.legs), ',coverage,') }}
+    needs: plan
+    if: ${{ needs.plan.outputs.coverage == 'true' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
@@ -688,7 +770,7 @@ jobs:
         run: cmake --build --preset linux-gcc-coverage
 
       - name: Unit tier (the tier the coverage gate measures)
-        run: ctest --preset linux-gcc-coverage -L unit -j "$(nproc)"
+        run: ctest --preset linux-gcc-coverage -L unit -j "$(nproc)" --timeout 900
 
       # --gcov-ignore-parse-errors ...warn_once_per_file: a counter gcov reads
       # back negative (gcc bug 68080) is taken as zero and named once, rather
@@ -741,14 +823,13 @@ jobs:
 
   # The one check that says whether this run is good. It fails when a job it
   # waits for failed or was cancelled, and when one of them was skipped although
-  # the run should have run it. The rulesets require this job and not each
-  # leg by name (docs/branch-protection.md). Performance and Package are left
-  # out. A manual run names its own legs and skips the rest, so it has no
-  # aggregate.
+  # the plan asked for it (`expected`, from the plan job). The rulesets require
+  # this job and not each leg by name (docs/branch-protection.md). A manual run
+  # names its own legs and skips the rest, so it has no aggregate.
   ci-status:
     name: CI Status
     if: ${{ always() && github.event_name != 'workflow_dispatch' }}
-    needs: [policy, icl-cmake, clang-format, platform-isolation, plan, build-and-test, coverage]
+    needs: [policy, icl-cmake, clang-format, platform-isolation, plan, build-and-test, performance, package-windows, coverage, tsan]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -758,3 +839,4 @@ jobs:
         uses: iainchesworthlabs/icl-common-infra/actions/ci-status@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
         with:
           needs: ${{ toJSON(needs) }}
+          expected: ${{ needs.plan.outputs.expected }}

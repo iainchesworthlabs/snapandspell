@@ -19,9 +19,8 @@
 # therefore passes the same check it applies (the self-test runs it over
 # itself).
 #
-# Where it runs: CI (.github/workflows/commit-policy.yml, over the PR title,
-# the PR body and every commit message in the PR range) and locally
-# (tools/hooks/commit-msg, over the message being committed).
+# Where it runs: locally (tools/hooks/commit-msg, over the message being
+# committed). CI applies the shared policy from icl-common-infra (the Policy job).
 #
 # Usage:
 #   check_text_policy.ps1 -Text <string>... [-Label <name>]
