@@ -30,6 +30,12 @@
 #                                 Android, whose package is made by Qt's
 #                                 androiddeployqt, so no CPack configuration is
 #                                 written.
+#   WJS_PLATFORM_EXECUTABLE_FORMAT
+#                                 The format of the platform's programs: elf
+#                                 (Linux, Android), pe (Windows) or mach-o
+#                                 (macOS, iOS). The tests that read a built
+#                                 program back with a format's own tool are
+#                                 registered where it is elf.
 #   WJS_PLATFORM_QT_SEARCH_ROOTS, WJS_PLATFORM_QT_ARCH_DIRS
 #                                 Where cmake/FindQt6.cmake looks for an
 #                                 aqtinstall-style Qt when none is on

@@ -20,6 +20,7 @@ set(WJS_PLATFORM_DISPLAY_NAME "Android")
 
 # No installers and no command-line program: the package is made by androiddeployqt.
 set(WJS_PLATFORM_DESKTOP OFF)
+set(WJS_PLATFORM_EXECUTABLE_FORMAT "elf")
 
 # An Android build is never `cmake --install`ed, and the program does not look for
 # its data beside an executable the way a desktop one does: paths_android.cpp unpacks

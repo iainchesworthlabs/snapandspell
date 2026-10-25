@@ -31,6 +31,17 @@ file, the phonics phase files, the word list and the dice file. The store is ver
 atomically and capped in size, and a damaged or newer file is refused without overwriting the good one.
 Fuzz harnesses for the readers (standard section 6.6) are planned and do not exist yet.
 
+## Hardening
+
+The libraries, the command line and the application are built with `icl::hardening` from
+icl-common-infra (`cmake/Hardening.cmake`, option `WJS_ENABLE_HARDENING`, on in every preset). With GCC and
+Clang that is `-fstack-protector-strong`, `_FORTIFY_SOURCE=3` outside Debug, `-fcf-protection=full` on x86-64,
+position-independent code and `-Wl,-z,relro,-z,now` (not on Apple platforms); with MSVC it is `/GS /guard:cf /sdl`
+and `/GUARD:CF /DYNAMICBASE /NXCOMPAT /CETCOMPAT`. The test executables do not carry it. On Linux the test
+`hardening.binary` reads the built command line back with `readelf` (PIE, `GNU_RELRO`, `BIND_NOW`, a stack
+protector in the code) and the game library for the control-flow note, so a flag that a compiler ignored fails
+a build and not a review. The Windows and Apple flags have no such check yet.
+
 ## Supply chain
 
 - Every workflow action is pinned to a full commit SHA, with the shared checks and `zizmor` run on

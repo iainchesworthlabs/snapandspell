@@ -377,4 +377,23 @@ if(WJS_PWSH)
         policy.text platform.isolation release.tooling)
 endif()
 
+# What the hardening flags (cmake/Hardening.cmake) did to the built command line, read back
+# from the ELF file: PIE, relro with immediate binding, a stack protector and, on x86-64,
+# the control-flow protection note (read from the game library: the linker drops the note from
+# a program when a startup file of the distribution lacks it). Where programs are ELF files
+# (WJS_PLATFORM_EXECUTABLE_FORMAT) and readelf is there to ask.
+if(WJS_ENABLE_HARDENING AND WJS_BUILD_CLI AND WJS_PLATFORM_EXECUTABLE_FORMAT STREQUAL "elf")
+    find_program(WJS_READELF NAMES readelf)
+    if(WJS_READELF)
+        add_test(NAME hardening.binary
+            COMMAND "${CMAKE_COMMAND}"
+                "-DPROGRAM=$<TARGET_FILE:wjs-cli>"
+                "-DREADELF=${WJS_READELF}"
+                "-DARCH=${CMAKE_SYSTEM_PROCESSOR}"
+                "-DARCHIVE=$<TARGET_FILE:wjs_lib>"
+                -P "${WJS_TESTS_DIR}/hardening/check_binary.cmake")
+        list(APPEND WJS_QUALITY_TESTS hardening.binary)
+    endif()
+endif()
+
 set_tests_properties(${WJS_QUALITY_TESTS} PROPERTIES LABELS "quality")

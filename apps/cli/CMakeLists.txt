@@ -7,6 +7,7 @@ target_link_libraries(wjs-cli
         wjs::lib
         wjs::platform
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)
 

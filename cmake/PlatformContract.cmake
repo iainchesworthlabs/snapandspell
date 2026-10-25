@@ -15,6 +15,7 @@ include_guard(GLOBAL)
 set(WJS_PLATFORM_CONTRACT_VARIABLES
     WJS_PLATFORM_DISPLAY_NAME
     WJS_PLATFORM_DESKTOP
+    WJS_PLATFORM_EXECUTABLE_FORMAT
     WJS_PLATFORM_QT_SEARCH_ROOTS
     WJS_PLATFORM_QT_ARCH_DIRS
     WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT
@@ -33,6 +34,7 @@ set(WJS_PLATFORM_CONTRACT_HOOKS
 #   - every contract variable is defined (an empty string is a definition);
 #   - every hook exists;
 #   - WJS_PLATFORM_DESKTOP is ON or OFF;
+#   - WJS_PLATFORM_EXECUTABLE_FORMAT is elf, pe or mach-o;
 #   - every file the fragment compiles exists under <platforms_dir>.
 # `fragment` only names it in the message.
 function(wjs_platform_check_contract fragment platforms_dir)
@@ -57,6 +59,12 @@ function(wjs_platform_check_contract fragment platforms_dir)
         message(FATAL_ERROR
             "${fragment}: WJS_PLATFORM_DESKTOP must be ON or OFF, not "
             "'${WJS_PLATFORM_DESKTOP}'.")
+    endif()
+
+    if(NOT WJS_PLATFORM_EXECUTABLE_FORMAT MATCHES "^(elf|pe|mach-o)$")
+        message(FATAL_ERROR
+            "${fragment}: WJS_PLATFORM_EXECUTABLE_FORMAT must be elf, pe or mach-o, "
+            "not '${WJS_PLATFORM_EXECUTABLE_FORMAT}'.")
     endif()
 
     # An empty one would install the application's dictionary into the install

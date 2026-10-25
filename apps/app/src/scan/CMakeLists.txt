@@ -120,6 +120,7 @@ target_link_libraries(wjs_scan_ui
     PRIVATE
         wjs_trace
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)
 

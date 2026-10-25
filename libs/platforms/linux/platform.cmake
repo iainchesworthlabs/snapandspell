@@ -4,6 +4,7 @@
 
 set(WJS_PLATFORM_DISPLAY_NAME "Linux")
 set(WJS_PLATFORM_DESKTOP ON)
+set(WJS_PLATFORM_EXECUTABLE_FORMAT "elf")
 
 # The application looks for its dictionary and dice beside its own executable,
 # and an installed executable is in the bindir.

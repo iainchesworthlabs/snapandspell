@@ -21,5 +21,6 @@ target_link_libraries(wjs_scan
         wjs::lib
     PRIVATE
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)

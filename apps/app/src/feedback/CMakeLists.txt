@@ -45,6 +45,7 @@ target_link_libraries(wjs_feedback
     PRIVATE
         wjs::platform
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)
 

@@ -89,5 +89,6 @@ target_link_libraries(wjs_parent
         Qt6::Quick
     PRIVATE
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)

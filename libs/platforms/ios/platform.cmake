@@ -15,6 +15,7 @@ set(WJS_PLATFORM_DISPLAY_NAME "iOS")
 # application is built by Xcode, not packaged by CPack: the ad-hoc IPA comes
 # from `xcodebuild archive` and `-exportArchive` (release.yml).
 set(WJS_PLATFORM_DESKTOP OFF)
+set(WJS_PLATFORM_EXECUTABLE_FORMAT "mach-o")
 
 # An iOS bundle is flat: the executable, Info.plist and the data are side by
 # side in WordJewelsSolver.app, and the application looks for its dictionary and

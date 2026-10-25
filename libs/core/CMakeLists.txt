@@ -50,5 +50,6 @@ target_link_libraries(wjs_lib
         wjs::profiling
     PRIVATE
         wjs::warnings
+        wjs::hardening
         wjs::sanitizers
         wjs::coverage)
