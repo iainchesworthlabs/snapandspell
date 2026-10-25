@@ -1,0 +1,53 @@
+name: OSV-Scanner
+
+# Known vulnerabilities in what the repository pins, from the OSV database: the Python tools of
+# the CI jobs (.github/requirements/*.txt) and anything else OSV-Scanner reads a lockfile or
+# manifest from. vcpkg manifests are not a format it reads; the vcpkg dependencies are held by
+# dependency-review.yml on a pull request that changes them (docs/ci.md, "Known vulnerabilities").
+#
+# Nightly, and by hand. A finding fails the run, goes to Security > Code scanning as SARIF and, on
+# the schedule, opens or updates one `nightly-analysis` issue. Not a required check: it is not on a
+# pull request or the merge queue, so it could not report on one.
+
+on:
+  schedule:
+    # 04:17 UTC: after CodeQL (02:47) and the fuzzers (03:47), clear of the weekly release
+    # rehearsal (Sunday 03:23) and Scorecard (Monday 04:00).
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: osv-scanner-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  scan:
+    name: OSV-Scanner
+    # The reusable workflow checks out the default branch on a schedule and the branch it was started on
+    # by hand; it asks for exactly these three permissions.
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+    with:
+      scan-args: |-
+        -r
+        ./
+      fail-on-vuln: true
+
+  report:
+    name: Report a failed scan
+    needs: scan
+    if: ${{ always() && needs.scan.result == 'failure' && github.event_name == 'schedule' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: iainchesworthlabs/icl-common-infra/actions/report-nightly-failure@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+        with:
+          engine: OSV-Scanner
+          detail: The scan found a vulnerability in a pinned dependency, or failed to run. Open the run, or Security > Code scanning, bump the pin, or dismiss the alert with a justification.

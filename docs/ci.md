@@ -28,6 +28,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | --- | --- | --- |
 | `ci.yml` | the shared Policy job, `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report, the performance work budgets, ThreadSanitizer and a Release package check on Windows; which of them run depends on the event ([What runs when](#what-runs-when)); by hand, the profiling builds too | yes |
 | `fuzz.yml` | the libFuzzer harnesses of the readers ([Fuzzing](fuzzing.md)): 60 seconds a target on a push to `develop`, 10 minutes a target nightly (03:47 UTC) with the corpus kept between runs; a nightly crash opens the `nightly-analysis` issue; not required | yes |
+| `osv-scanner.yml` | nightly (04:17 UTC) and by hand: OSV-Scanner over the repository's lockfiles and manifests ([Known vulnerabilities](#known-vulnerabilities)); a finding fails the run, goes to code scanning and opens the `nightly-analysis` issue; not required | no - skipped (the SARIF upload needs code scanning) |
 | `analysis.yml` | nightly, on `develop`: `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
 | `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS the ad-hoc iOS IPA and, when its signing secrets are set, the signed Android APK and AAB, source archive and SBOM, then the shared publish job (checksums, GPG signatures, attestations, a GitHub Release, `main`); by hand or weekly: the packages without publishing ([Releasing](releasing.md)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
 | `android-build.yml` | the debug-signed Android APK, built and looked inside, only when what Android reads changes; no secret, not required ([Android](#android)) | yes |
@@ -471,6 +472,17 @@ The push legs already run ASan and UBSan: `linux-gcc-debug` (GCC),
 `macos-clang-debug` (AppleClang) and `windows-msvc-debug` (MSVC's ASan). The
 nightly Clang leg is the fourth compiler, and the one that gives Clang's
 sanitizer runtimes the whole ctest suite without waiting for a push.
+
+### Known vulnerabilities
+
+`osv-scanner.yml` calls the reusable workflow of `google/osv-scanner-action` (pinned to a commit, as every
+action is) over `-r ./` each night, and on a dispatch of any branch. It reads what OSV-Scanner knows how to
+read: the pinned Python tools of the CI jobs (`.github/requirements/*.txt`), and any lockfile that is added.
+**vcpkg manifests are not a format it reads**, so the C++ dependencies are covered by
+`dependency-review.yml` on a pull request that changes them (a moderate or worse advisory blocks the pull
+request), and by the SBOM of a release. A finding fails the run, is uploaded to Security, Code scanning
+as SARIF, and on the schedule opens or updates the `nightly-analysis` issue. It is not a required check.
+To silence a finding that does not apply, dismiss the alert with a reason; to fix one, bump the pin.
 
 ### Running the same analysis locally
 
