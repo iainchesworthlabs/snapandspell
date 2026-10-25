@@ -6,7 +6,7 @@
 All notable changes to this project are documented in this file, in the
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. This project
 adheres to [Semantic Versioning](https://semver.org/). Release notes are the
-section of the version released (`tools/release/changelog_section.sh`); the
+section of the version released (assembled from `changelog.d/` by `changelog_tool.py` in `icl-common-infra`); the
 detail of how and why is in the git history and the pull requests.
 
 ## [Unreleased]
@@ -101,10 +101,10 @@ end of this section.
   bundle and disk image; `NOTICES.txt` and the GPL text beside every package; a
   Release package is checked for Tracy, sanitizer runtimes and debug symbols.
 - A release pipeline (`release.yml`): Release builds of every package, an SBOM
-  (CycloneDX 1.6), `SHA256SUMS`, GPG signatures, build-provenance attestations, a source
-  archive, a rehearsal mode, and `tools/release/verify_release.*` to check a download
-  (the key's fingerprint is in [SECURITY.md](SECURITY.md#verifying-a-release)). **It
-  has not run on GitHub yet.**
+  (CycloneDX 1.6), `SHA512SUMS`, GPG signatures with the organisation's key,
+  build-provenance attestations, a source archive and a rehearsal mode
+  (the key's fingerprint and how to check a download are in
+  [SECURITY.md](SECURITY.md#verifying-a-release)). **It has not run on GitHub yet.**
 - A documentation site built strictly by `docs.yml` and published from `main`.
 
 **Quality**

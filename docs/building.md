@@ -677,18 +677,15 @@ and solves a board with the dictionary it carries. For the NSIS installer,
 install NSIS before configuring (`makensis` is found at configure time), then
 `cpack -G NSIS --config build/windows-msvc-release/CPackConfig.cmake`.
 
-The SBOM, the checksums and the signatures of a release directory:
+The SBOM of a release directory:
 
 ```sh
 pwsh tools/release/generate_sbom.ps1 -Tag v0.1.0 -PackagesDir dist -Output dist/WordJewelsSolver-0.1.0.cdx.json
-tools/release/sign_release.sh --dist dist --ephemeral   # a throw-away key; the real one is CI's
-tools/release/verify_release.sh --dir dist --unpinned
 ```
 
-With `--ephemeral` nothing needs a secret and the signatures verify only
-against the `KEYS` that run wrote beside them. The real key, the secrets and the
-fingerprint are set up once, by the author ([CI](ci.md#what-the-author-sets-up-once));
-users check a download as in [CI](ci.md#checking-a-download). Packages are
+The checksums and signatures are made by the release workflow with the organisation's key; the
+author's set-up is in [Releasing](releasing.md#what-the-author-sets-up-once), and users check a download as
+in [Releasing](releasing.md#checking-a-download). Packages are
 named after the project version (`0.1.0`), and a prerelease's files carry its
 identifier (`-DWJS_PACKAGE_PRERELEASE=rc.1`, which `release.yml` passes from a
 `v0.1.0-rc.1` tag: `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1`, an rpm release `0.rc.1`),

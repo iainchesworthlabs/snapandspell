@@ -57,29 +57,33 @@ details: the advisory is where that is agreed.
 ## Verifying a release
 
 Releases are signed. Every file attached to a release has a detached GPG
-signature (`.asc`), and `SHA256SUMS` lists them all. The signing key is:
+signature (`.asc`), and `SHA512SUMS` lists them all. The signing key belongs to
+the organisation:
 
 ```text
-WordJewelsSolver Release <iain.chesworth@gmail.com>
-Ed25519, created 2026-10-20, expires 2028-10-19
-Fingerprint: 9A0D 96E8 9448 99F9 4B1B  37B5 1F1A 8DA4 C79B 19D2
-             (9A0D96E8944899F94B1B37B51F1A8DA4C79B19D2)
+Iain Chesworth Labs Releases <iain.chesworth@gmail.com>
+Ed25519, created 2026-10-22, expires 2028-10-21
+Fingerprint: FD13 CB8C AC83 1664 8CD9  74D0 8149 254C 4189 4DBE
+             (FD13CB8CAC8316648CD974D08149254C41894DBE)
 ```
 
 Trust the fingerprint above, which you are reading in the repository, and not a
 key file that arrives with a download: a signature checked against a key from
 the same place as the file proves only that the two agree. The public key is
-`.github/release-signing/KEYS` in this repository. To check a download, follow
-[docs/ci.md, "Checking a download"](docs/ci.md#checking-a-download); in short:
+[`docs/signing-key.asc`](docs/signing-key.asc). To check a download, with the
+files in one folder:
 
 ```sh
-tools/release/verify_release.sh --dir <folder with the files> --fingerprint 9A0D96E8944899F94B1B37B51F1A8DA4C79B19D2
+gpg --import docs/signing-key.asc
+gpg --fingerprint FD13CB8CAC8316648CD974D08149254C41894DBE   # compare with the line above
+gpg --verify SHA512SUMS.asc SHA512SUMS
+sha512sum -c SHA512SUMS
 ```
 
 Builds also carry GitHub build-provenance attestations
 (`gh attestation verify <file> --repo iainchesworthlabs/wordjewelssolver`) and a
 CycloneDX software bill of materials. If this key is ever replaced or revoked,
-this section changes in the same commit that changes `KEYS`.
+this section changes in the same commit that changes `docs/signing-key.asc`.
 
 ## Supported versions
 

@@ -6,7 +6,7 @@
     Run tests/package/test_release_tools.sh where a POSIX shell and its tools exist.
 
 .DESCRIPTION
-    The self-test of the release tooling needs bash, gpg, jq, git and pwsh. This
+    The self-test of the release tooling needs bash, jq, git and pwsh. This
     wrapper is what ctest runs (release.tooling): it finds a bash that is really
     a shell (on Windows, Git for Windows' - not the WSL launcher in System32,
     which a PATH lookup can find first), and exits 77, which the test declares
@@ -45,7 +45,7 @@ $path = if ($IsWindows) { $script.Replace([string][char]92, '/') } else { $scrip
 & $bash $path
 $code = $LASTEXITCODE
 if ($code -eq 2) {
-    Write-Host 'SKIP: a tool the self-test needs (gpg, jq, git or pwsh) is not available'
+    Write-Host 'SKIP: a tool the self-test needs (jq, git or pwsh) is not available'
     exit 77
 }
 exit $code

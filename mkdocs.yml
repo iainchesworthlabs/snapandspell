@@ -50,6 +50,7 @@ nav:
       - Testing: testing.md
       - Profiling: profiling.md
       - CI: ci.md
+      - Releasing: releasing.md
       - Branch protection: branch-protection.md
       - Installing on my iPhone/iPad: ios-install.md
   - How it works:

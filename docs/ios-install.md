@@ -53,7 +53,7 @@ its data.
 
 A manual run builds and signs the IPA exactly as a tag would, and publishes nothing.
 GitHub lists a manual run only for a workflow that is on the default branch, so this
-works once `develop` has been merged to `main` ([CI](ci.md#what-the-author-sets-up-once)):
+works once the workflow is on the default branch, `develop` ([Releasing](releasing.md#rehearsal)):
 
 ```sh
 gh workflow run release.yml --ref main -f signing=ephemeral -f ios=true
@@ -62,7 +62,7 @@ gh workflow run release.yml --ref main -f signing=ephemeral -f ios=true
 Read the `Build the iOS ad-hoc IPA` job. It stops at the first step if one of the five
 secrets is missing and says which, and then checks the provisioning profile against
 the secrets before building (its name, its team, the App ID, that it lists devices,
-that it has not expired). The IPA of a rehearsal is in the `release-dist` artifact,
+that it has not expired). The IPA of a rehearsal is in the `package-ios` artifact,
 but its install link would point at a release that does not exist, so a rehearsal
 proves the build and the signing, not the install. The install is proved by the first
 tag, a `-rc` one.
@@ -91,7 +91,7 @@ registered will never install on it.
    If you made a new profile instead of editing the old one and gave it another name,
    set `APPLE_PROVISIONING_PROFILE_NAME` to match; the build refuses a profile whose
    name differs from the secret and says so.
-4. Cut a release (a patch tag, [CI](ci.md#cutting-a-release)) or rehearse as above to
+4. Cut a release (a patch tag, [Releasing](releasing.md#cutting-a-release)) or rehearse as above to
    check the new profile. Install from the new release's page.
 
 ## When the signing runs out

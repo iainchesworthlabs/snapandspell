@@ -6,15 +6,15 @@
 #
 #   tests/package/test_release_tools.sh
 #
-# Covers: the tag/version/changelog/main checks, the changelog section, signing
-# and verification round trips with a throw-away key (good, tampered, wrong
-# fingerprint, missing and wrong secrets), the SBOM's structure, and that
-# release.yml stays within the repository's workflow rules (pinned actions,
-# toolchain pins equal to .github/toolchain-versions.json, no Tracy on, no
-# ${{ }} in a run block). Run in CI by .github/workflows/release-tooling.yml.
+# Covers: the tag and version checks, the SBOM's structure, the committed public
+# release key, and that release.yml stays within the repository's workflow rules
+# (pinned actions, toolchain pins equal to .github/toolchain-versions.json, no
+# Tracy on, no ${{ }} in a run block). Signing and publishing are the shared
+# workflow's, tested in icl-common-infra. Run in CI by
+# .github/workflows/release-tooling.yml.
 #
-# Needs bash, gpg, git, jq and pwsh (7+). Everything it makes is in a temporary
-# directory, including every key; nothing leaves the machine.
+# Needs bash, git, jq and pwsh (7+); gpg is used for the key check when present.
+# Everything it makes is in a temporary directory; nothing leaves the machine.
 # shellcheck disable=SC2015,SC2012  # `A && ok || bad` is deliberate: ok cannot fail
 set -uo pipefail
 
@@ -37,7 +37,7 @@ expect_output() {  # description pattern  (against the last command's output)
   if grep -Eq -- "$2" "$work/out.txt"; then ok "$1"; else bad "$1 (no match for '$2' in: $(head -c 300 "$work/out.txt"))"; fi
 }
 
-for tool in gpg git jq pwsh; do
+for tool in git jq pwsh; do
   command -v "$tool" >/dev/null 2>&1 || { echo "test_release_tools.sh: $tool is needed" >&2; exit 2; }
 done
 
@@ -47,99 +47,43 @@ fixture="$work/fixture"
 mkdir -p "$fixture"
 printf 'project(WordJewelsSolver\n    VERSION 1.2.3\n    LANGUAGES CXX)\n' > "$fixture/CMakeLists.txt"
 printf '{\n  "name": "x",\n  "version": "1.2.3"\n}\n' > "$fixture/vcpkg.json"
-printf '# Changelog\n\n## [Unreleased]\n\n- next\n\n## [1.2.3] - 2026-01-01\n\n### Added\n\n- a thing\n\n## [1.2.2]\n\n- older\n' > "$fixture/CHANGELOG.md"
 (
   cd "$fixture" || exit 1
   git init -q -b main . && git -c user.name=t -c user.email=t@example.invalid add -A \
     && git -c user.name=t -c user.email=t@example.invalid commit -q -m "a"
 ) >/dev/null 2>&1
 main_sha="$(git -C "$fixture" rev-parse HEAD)"
-git -C "$fixture" checkout -q -b side
-printf 'x\n' > "$fixture/side.txt"
-git -C "$fixture" add side.txt
-git -C "$fixture" -c user.name=t -c user.email=t@example.invalid commit -q -m "b"
-side_sha="$(git -C "$fixture" rev-parse HEAD)"
-git -C "$fixture" checkout -q main
 
-ref() { "$tools/check_release_ref.sh" --root "$fixture" --main-ref main "$@"; }
-expect_status "v1.2.3 on main is a release" 0 ref --tag v1.2.3 --sha "$main_sha"
+ref() { "$tools/check_release_ref.sh" --root "$fixture" "$@"; }
+expect_status "v1.2.3 is a release" 0 ref --tag v1.2.3
 expect_output "  and reports prerelease=false" '^prerelease=false$'
-expect_status "v1.2.3-rc.1 on a side branch is a prerelease" 0 ref --tag v1.2.3-rc.1 --sha "$side_sha"
+expect_status "v1.2.3-rc.1 is a prerelease" 0 ref --tag v1.2.3-rc.1
 expect_output "  and reports prerelease=true" '^prerelease=true$'
 expect_output "  and reports its suffix" '^suffix=rc\.1$'
-expect_status "v1.2.3 off main is refused" 1 ref --tag v1.2.3 --sha "$side_sha"
-expect_output "  and says it must be on main" 'not on main'
-expect_status "a tag that disagrees with CMakeLists.txt is refused" 1 ref --tag v1.2.4 --sha "$main_sha"
+expect_status "a tag that disagrees with CMakeLists.txt is refused" 1 ref --tag v1.2.4
 expect_output "  and names both versions" 'declares 1\.2\.3'
-expect_status "a tag without the v is refused" 1 ref --tag 1.2.3 --sha "$main_sha"
-expect_status "a leading zero is refused" 1 ref --tag v01.2.3 --sha "$main_sha"
-expect_status "a bare prerelease dash is refused" 1 ref --tag v1.2.3- --sha "$main_sha"
+expect_status "a tag without the v is refused" 1 ref --tag 1.2.3
+expect_status "a leading zero is refused" 1 ref --tag v01.2.3
+expect_status "a bare prerelease dash is refused" 1 ref --tag v1.2.3-
 expect_status "a dry run takes its version from the tree" 0 ref --dry-run dryrun.9
 expect_output "  and its stand-in tag is a prerelease" '^tag=v1\.2\.3-dryrun\.9$'
 printf '{\n  "version": "9.9.9"\n}\n' > "$fixture/vcpkg.json"
-expect_status "a vcpkg.json version that disagrees is refused" 1 ref --tag v1.2.3 --sha "$main_sha"
+expect_status "a vcpkg.json version that disagrees is refused" 1 ref --tag v1.2.3
 printf '{\n  "version": "1.2.3"\n}\n' > "$fixture/vcpkg.json"
-printf '# Changelog\n\n## [Unreleased]\n' > "$fixture/CHANGELOG.md"
-expect_status "a final release with no changelog section is refused" 1 ref --tag v1.2.3 --sha "$main_sha"
-expect_status "a prerelease with no changelog section is allowed" 0 ref --tag v1.2.3-rc.1 --sha "$main_sha"
 
-echo "changelog_section.sh"
-printf '# C\r\n\r\n## [Unreleased]\r\n\r\nx\r\n\r\n## [1.0.0] - d\r\n\r\n### Added\r\n\r\n- a\r\n\r\n## [0.9.0]\r\n\r\nold\r\n' > "$work/changelog.md"
-section="$("$tools/changelog_section.sh" 1.0.0 "$work/changelog.md")"
-if [ "$section" = "$(printf '### Added\n\n- a')" ]; then ok "extracts one section, trims it, ignores CRLF"; else bad "section was: $section"; fi
-expect_status "a missing section fails" 1 "$tools/changelog_section.sh" 7.7.7 "$work/changelog.md"
-
-# --- signing and verification ---------------------------------------------------
-echo "sign_release.sh and verify_release.sh"
-dist="$work/dist"
-mkdir -p "$dist"
-printf 'one\n' > "$dist/WordJewelsSolver-1.2.3-win64.zip"
-printf 'two\n' > "$dist/wordjewelssolver_1.2.3_amd64.deb"
-
-expect_status "an ephemeral rehearsal signs and verifies" 0 "$tools/sign_release.sh" --dist "$dist" --ephemeral
-[ -f "$dist/SHA256SUMS.asc" ] && [ -f "$dist/KEYS" ] && ok "  SHA256SUMS.asc and KEYS are written" || bad "  SHA256SUMS.asc or KEYS missing"
-[ "$(ls "$dist"/*.asc | wc -l)" -eq 3 ] && ok "  every file and SHA256SUMS has a signature" || bad "  expected three .asc files"
-expect_status "the user's check accepts it, unpinned" 0 "$tools/verify_release.sh" --dir "$dist" --unpinned
-# Outside a checkout there is no committed fingerprint to fall back on (inside
-# this one there is), so the script is run from a copy.
-mkdir -p "$work/loose/tools/release"
-cp "$tools/verify_release.sh" "$work/loose/tools/release/"
-expect_status "the user's check refuses it without a pin" 1 "$work/loose/tools/release/verify_release.sh" --dir "$dist"
-expect_output "  and says to pass a fingerprint" 'Pass --fingerprint'
-expect_status "the user's check refuses the wrong fingerprint" 1 "$tools/verify_release.sh" --dir "$dist" --fingerprint 0000000000000000000000000000000000000000
-cp -r "$dist" "$work/dist-tampered"
-printf 'evil\n' > "$work/dist-tampered/WordJewelsSolver-1.2.3-win64.zip"
-expect_status "a tampered file is caught" 1 "$tools/verify_release.sh" --dir "$work/dist-tampered" --unpinned
-cp -r "$dist" "$work/dist-sums"
-printf '%064d  injected.zip\n' 0 >> "$work/dist-sums/SHA256SUMS"
-expect_status "an edited SHA256SUMS is caught by its signature" 1 "$tools/verify_release.sh" --dir "$work/dist-sums" --unpinned
-
-# A real-key flow with a throw-away key made by the same script the author runs.
-printf 'throw-away-passphrase' > "$work/pass.txt"
-"$tools/new_signing_key.sh" --out "$work/key" --passphrase-file "$work/pass.txt" --expire 1d >/dev/null 2>&1
-if [ -s "$work/key/private-key.asc" ] && [ -s "$work/key/public-key.asc" ] && [ -s "$work/key/fingerprint.txt" ] && [ -s "$work/key/revocation-cert.asc" ]; then
-  ok "new_signing_key.sh writes the key, the public key, the fingerprint and a revocation certificate"
+# --- the committed public release key ------------------------------------------------
+# Every signature of a release is checked against docs/signing-key.asc by the shared
+# workflow; the fingerprint a reader trusts is the one in SECURITY.md.
+echo "docs/signing-key.asc"
+key="$repo/docs/signing-key.asc"
+if head -n 1 "$key" | grep -q 'BEGIN PGP PUBLIC KEY BLOCK' && ! grep -q 'PRIVATE KEY' "$key"; then ok "it is a public key block and holds no private key"; else bad "docs/signing-key.asc is not a public key block, or holds a private key"; fi
+if command -v gpg >/dev/null 2>&1; then
+  mkdir -m 700 "$work/gnupg"
+  fingerprint="$(GNUPGHOME="$work/gnupg" gpg --batch --quiet --show-keys --with-colons "$key" 2>/dev/null | awk -F: '/^fpr:/ {print $10; exit}')"
+  if [ -n "$fingerprint" ] && grep -q "$fingerprint" "$repo/SECURITY.md" && grep -q "$fingerprint" "$repo/README.md"; then ok "SECURITY.md and the README quote its fingerprint"; else bad "the fingerprint of docs/signing-key.asc ($fingerprint) is not in SECURITY.md and the README"; fi
 else
-  bad "new_signing_key.sh left out a file: $(ls "$work/key" 2>&1 | tr '\n' ' ')"
+  echo "  skip  the fingerprint check (no gpg)"
 fi
-mkdir -p "$work/keys"
-cp "$work/key/public-key.asc" "$work/keys/KEYS"; cp "$work/key/fingerprint.txt" "$work/keys/FINGERPRINT"
-fingerprint="$(tr -d "[:space:]" < "$work/key/fingerprint.txt")"
-private_key="$(cat "$work/key/private-key.asc")"
-
-dist2="$work/dist2"
-mkdir -p "$dist2"
-printf 'three\n' > "$dist2/a.zip"
-expect_status "missing secrets stop with exit 3" 3 "$tools/sign_release.sh" --dist "$dist2" --keys-dir "$work/keys"
-expect_output "  and say how to fix it" 'new_signing_key'
-expect_status "a wrong passphrase stops with exit 3" 3 env GPG_PRIVATE_KEY="$private_key" GPG_PASSPHRASE=wrong "$tools/sign_release.sh" --dist "$dist2" --keys-dir "$work/keys"
-mkdir -p "$work/keys-other"
-cp "$work/key/public-key.asc" "$work/keys-other/KEYS"
-printf '0000000000000000000000000000000000000000\n' > "$work/keys-other/FINGERPRINT"
-expect_status "a key that is not the committed one stops with exit 3" 3 env GPG_PRIVATE_KEY="$private_key" GPG_PASSPHRASE=throw-away-passphrase "$tools/sign_release.sh" --dist "$dist2" --keys-dir "$work/keys-other"
-expect_output "  and names both fingerprints" 'fingerprint is'
-expect_status "the right secrets sign" 0 env GPG_PRIVATE_KEY="$private_key" GPG_PASSPHRASE=throw-away-passphrase "$tools/sign_release.sh" --dist "$dist2" --keys-dir "$work/keys"
-expect_status "and verify against the pinned fingerprint" 0 "$tools/verify_release.sh" --dir "$dist2" --fingerprint "$fingerprint"
 
 # --- the SBOM ---------------------------------------------------------------------
 echo "generate_sbom.ps1"
@@ -236,15 +180,20 @@ if grep -E '^\s*(-\s*)?uses:\s*[^./ ]' "$workflow" | grep -Ev '@[0-9a-f]{40}( |$
 else
   ok "every action is pinned to a full commit SHA"
 fi
+if grep -q 'release-publish.yml@[0-9a-f]\{40\} # v' "$workflow" && grep -q 'artifact-pattern: "package-\*"' "$workflow" && grep -q 'public-key: docs/signing-key.asc' "$workflow" && grep -q 'generate-sbom: false' "$workflow"; then
+  ok "Publish is the shared release workflow, pinned, over package-* and docs/signing-key.asc"
+else
+  bad "release.yml does not call the shared release-publish.yml as expected"
+fi
 grep -q 'WJS_ENABLE_TRACY' "$workflow" && bad "release.yml mentions WJS_ENABLE_TRACY; the presets decide" || ok "release.yml leaves Tracy to the presets"
 grep -Eq '^permissions: \{\}$' "$workflow" && ok "no permissions at the top level" || bad "release.yml has top-level permissions"
 if awk '/^\s*run:/{r=1} r && /\$\{\{ *(github\.event|inputs|github\.head_ref)/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "no event or input data is interpolated into a run block"; else bad "event or input data in a run block"; fi
 grep -q 'persist-credentials: false' "$workflow" && ok "checkouts do not persist credentials" || bad "a checkout persists credentials"
 ios_secrets='IOS_DIST_CERTIFICATE_BASE64|IOS_DIST_CERTIFICATE_PASSWORD|IOS_PROVISIONING_PROFILE_BASE64|APPLE_TEAM_ID|APPLE_PROVISIONING_PROFILE_NAME'
 android_secrets='ANDROID_KEYSTORE_BASE64|ANDROID_KEYSTORE_PASSWORD|ANDROID_KEY_ALIAS|ANDROID_KEY_PASSWORD'
-if grep -E 'secrets\.' "$workflow" | grep -Ev "GPG_PRIVATE_KEY|GPG_PASSPHRASE|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets" | grep -q .; then bad "release.yml uses a secret other than the GPG, macOS, iOS and Android signing secrets"; else ok "the only secrets are the GPG signing secrets, the macOS ones, the five iOS ones and the four Android ones"; fi
+if grep -E 'secrets\.' "$workflow" | grep -Ev "REPO_GPG_PRIVATE_KEY|REPO_GPG_PASSPHRASE|RELEASE_BOT_APP_ID|RELEASE_BOT_PRIVATE_KEY|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets" | grep -q .; then bad "release.yml uses a secret other than the organisation's release secrets and the macOS, iOS and Android signing secrets"; else ok "the only secrets are the organisation's four release secrets, the macOS ones, the five iOS ones and the four Android ones"; fi
 
-# --- the iOS job: its secrets, its kit and what it hands to the signing job ---------
+# --- the iOS job: its secrets, its kit and what it hands to the assemble job ---------
 echo "release.yml, iOS"
 for secret in IOS_DIST_CERTIFICATE_BASE64 IOS_DIST_CERTIFICATE_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 APPLE_TEAM_ID APPLE_PROVISIONING_PROFILE_NAME; do
   if [ "$(grep -c "secrets\.$secret" "$workflow")" -ge 2 ] && grep -q "\[ -n \"\$$secret\" \] || missing=" "$workflow"; then
@@ -274,7 +223,7 @@ for file in "$workflow" "$repo/.github/workflows/ios-build.yml"; do
   if grep -E '^\s*(-\s*)?uses:\s*[^./ ]' "$file" | grep -Ev '@[0-9a-f]{40}( |$)' | grep -q .; then bad "an action in $name is not pinned to a full commit SHA"; else ok "$name pins every action to a full commit SHA"; fi
   grep -Eq '^permissions: \{\}$' "$file" && ok "$name has no permissions at the top level" || bad "$name has top-level permissions"
 done
-grep -q 'name: package-ios' "$workflow" && grep -q 'pattern: package-\*' "$workflow" && ok "the IPA and its manifest are uploaded as package-ios, which the signing job downloads with the other packages" || bad "package-ios is not uploaded, or the signing job does not take package-*"
+grep -q 'name: package-ios' "$workflow" && grep -q 'pattern: package-\*' "$workflow" && ok "the IPA and its manifest are uploaded as package-ios, which the assemble job downloads with the other packages" || bad "package-ios is not uploaded, or the assemble job does not take package-*"
 if grep -E 'secrets\.' "$repo/.github/workflows/ios-build.yml" | grep -q .; then bad "ios-build.yml (the unsigned check) uses a secret"; else ok "ios-build.yml uses no secret"; fi
 # One bundle identifier everywhere (it is the App ID the profile was made for).
 bundle_id="org.iainchesworth.wordjewelssolver"
@@ -293,7 +242,7 @@ grep -q "cmakeVersion: \"$cmake_pin\"" "$file" && grep -q "ninjaVersion: \"$ninj
 if grep -E '^\s*(-\s*)?uses:\s*[^./ ]' "$file" | grep -Ev '@[0-9a-f]{40}( |$)' | grep -q .; then bad "an action in android-build.yml is not pinned to a full commit SHA"; else ok "android-build.yml pins every action to a full commit SHA"; fi
 grep -Eq '^permissions: \{\}$' "$file" && ok "android-build.yml has no permissions at the top level" || bad "android-build.yml has top-level permissions"
 if grep -E 'secrets\.' "$file" | grep -q .; then bad "android-build.yml (the debug-signed build) uses a secret"; else ok "android-build.yml uses no secret"; fi
-grep -q 'name: package-android' "$workflow" && ok "the Android packages are uploaded as package-android, which the signing job downloads with the other packages" || bad "package-android is not uploaded by release.yml"
+grep -q 'name: package-android' "$workflow" && ok "the Android packages are uploaded as package-android, which the assemble job downloads with the other packages" || bad "package-android is not uploaded by release.yml"
 
 echo
 if [ "$failures" -eq 0 ]; then

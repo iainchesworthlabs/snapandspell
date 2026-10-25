@@ -28,7 +28,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | --- | --- | --- |
 | `ci.yml` | the shared Policy job, `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report, the performance work budgets, ThreadSanitizer and a Release package check on Windows; which of them run depends on the event ([What runs when](#what-runs-when)); by hand, the profiling builds too | yes |
 | `analysis.yml` | nightly, on `develop`: `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
-| `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS the ad-hoc iOS IPA and, when its signing secrets are set, the signed Android APK and AAB, source archive, SBOM, checksums, GPG signatures, attestations, a GitHub Release; by hand or weekly: the same without publishing ([Releases](#releases)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
+| `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS the ad-hoc iOS IPA and, when its signing secrets are set, the signed Android APK and AAB, source archive and SBOM, then the shared publish job (checksums, GPG signatures, attestations, a GitHub Release, `main`); by hand or weekly: the packages without publishing ([Releasing](releasing.md)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
 | `android-build.yml` | the debug-signed Android APK, built and looked inside, only when what Android reads changes; no secret, not required ([Android](#android)) | yes |
 | `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
 | `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages on every push to `main` that changes the docs ([Documentation site](#documentation-site)) | yes (the build; the publication needs Pages) |
@@ -515,232 +515,10 @@ to cache, and CodeQL configures before its tracer starts regardless.
 
 ## Releases
 
-`release.yml` turns a `v*` tag into a GitHub Release: Release packages built on
-hosted runners, tested, listed in a software bill of materials, checksummed,
-signed with the project's GPG key and attested. Nothing in it runs on a pull
-request or the merge queue, and none of it is a required check.
-
-### What a release holds
-
-| Platform | Built on | Packages | Holds |
-| --- | --- | --- | --- |
-| Windows x64 | `windows-2025-vs2026`, MSVC, Qt 6.12.0 | `WordJewelsSolver-<v>-win64.zip`, `WordJewelsSolver-<v>-win64.exe` (NSIS installer) | the Qt Quick application and `wjs-cli`, with Qt's runtime, plugins and QML modules |
-| Linux x64, the application | `ubuntu-26.04`, GCC, Qt 6.12.0 | `WordJewelsSolver-<v>-x86_64.AppImage` | the Qt Quick application with Qt inside it (linuxdeploy and its Qt plugin) |
-| Linux x64, the solver | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` | `wjs-cli` only |
-| macOS arm64 | `macos-26`, AppleClang, Qt 6.12.0 | `WordJewelsSolver-<v>-Darwin.dmg` | the application bundle (Qt inside it) and `wjs-cli`; signed and notarised when the Apple secrets are set |
-| iPhone / iPad (arm64) | `macos-26`, Xcode, Qt 6.12.0's iOS kit | `WordJewelsSolver-<v>-ios-adhoc.ipa`, `manifest.plist` | the application, ad-hoc signed for the devices in the provisioning profile; the manifest is the over-the-air install's ([iOS](#ios)) |
-| Any | the tagged commit | `WordJewelsSolver-<v>-source.tar.gz` | `git archive` of the tag, so `.gitattributes`' `export-ignore` decides what stays out |
-
-A prerelease's files carry its version (`...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1`, an
-rpm release `0.rc.1`): the tag's suffix reaches CPack as `WJS_PACKAGE_PRERELEASE`.
-
-and, for the release as a whole:
-
-| File | What it is |
-| --- | --- |
-| `SHA256SUMS` | SHA-256 of every file below, in `sha256sum` format |
-| `WordJewelsSolver-<v>.cdx.json` | the CycloneDX 1.6 SBOM ([below](#the-sbom)) |
-| `<file>.asc` | a detached GPG signature for every file above, `SHA256SUMS` included |
-| `KEYS` | the public signing key (convenient, not a root of trust: check its fingerprint, [below](#checking-a-download)) |
-
-Release builds have **Tracy off**: the Release presets turn it off
-(`tests/profiling/check_presets.cmake` holds that), the workflow never sets it,
-and every build job fails if `CMakeCache.txt` has it on or if a package that can
-be listed (ZIP, tar.gz, deb) holds a file with Tracy or a sanitizer runtime in
-its name.
-
-**What is not built, and why.**
-
-- **A deb or rpm of the application.** It needs a Qt 6.12 with Quick 3D that no
-  distribution packages, so such a package could only declare dependencies nobody
-  can satisfy (it used to ask for Qt 6.8). The application is the AppImage; the
-  deb and rpm are the command-line solver's.
-- **A ZIP of the macOS application, or a tarball of the Linux one.** The first
-  holds an application that is not signed; the second has no Qt in it. CPack makes
-  them (`check_package.ps1`-style checks do not need them) but the workflow does
-  not publish them.
-- **Android.** No platform section and no job in this tree
-  (`cmake/Platform.cmake` refuses it): it is in progress on a separate branch
-  and is not built here, so nothing on this page applies to it yet. [Decision
-  D11](roadmap.md#4-decisions-that-gate-the-plan) makes 0.1 the three desktops
-  and an ad-hoc iOS build for the author's own devices; Android, once it lands,
-  is a private build for the author's own devices (D1). **iOS** is written, but
-  only as an ad-hoc build for registered devices ([iOS](#ios)), and it has never
-  run on a device; releasing to a public store is a separate licensing decision
-  (D2).
-- **Authenticode.** The Windows ZIP and installer are not Authenticode-signed
-  (that needs a code-signing certificate), so SmartScreen warns on first run. The
-  GPG signature and the attestation prove who built a file and that it is intact;
-  they do not stop that warning.
-- **macOS signing and notarisation need an Apple Developer ID**, which the
-  repository does not hold. The release workflow signs, notarises and staples the
-  disk image when six secrets exist (below), does nothing and says so when none
-  does, and fails when only some do. Until then the disk image is unsigned and
-  Gatekeeper warns.
-- **Intel macOS and Linux arm64.** No hosted runner is in the matrix for them.
-
-### The jobs
-
-| Job | Runs on | What it does |
-| --- | --- | --- |
-| `Prepare the release` | ubuntu-24.04 | Decides the mode. For a tag: `tools/release/check_release_ref.sh` requires `vMAJOR.MINOR.PATCH[-prerelease]`, the same version in `CMakeLists.txt` and `vcpkg.json`, a `## [x.y.z]` section in `CHANGELOG.md` (the release notes) and, for a final release, that the commit is on `main`. A prerelease (`v0.1.0-rc.1`) may be cut from a branch and gets generated notes if it has no changelog section. |
-| `Build ...` (4 legs: Windows, Linux solver, Linux application, macOS) | as the table | Configures the Release preset (the application on for the three legs that build it, so a missing Qt is an error and not a silent command-line-only package; Qt 6.12.0 from `install-qt-action`, the kit per host in `.github/toolchain-versions.json`), builds, runs **all** of ctest, then packages. The Windows and Linux application legs run the application's offscreen smoke on the build tree first. Windows also runs `tools/package/check_package.ps1` on the ZIP, and installs the NSIS installer silently and runs the installed `wjs-cli`. The Linux application leg makes the AppImage with `build_appimage.sh` and smokes it. Linux solver and macOS run `tools/release/smoke_package.sh` over every package they made; macOS then runs `verify_bundle.sh` (plist, camera text, Qt inside, no link to the build machine, offscreen start) and `sign_and_notarize.sh`. Every leg ends with `tools/release/check_release_build.ps1` (Tracy and sanitizers off, the expected packages present). |
-| `Build the iOS ad-hoc IPA` | macos-26 | A tag, or a manual run unless its `ios` input is unticked ([iOS](#ios)). Requires the five Apple secrets, installs Qt's iOS and macOS kits, imports the certificate and profile, archives and exports the IPA with Xcode, checks it and writes `manifest.plist`. |
-| `SBOM, checksums and signatures` | ubuntu-24.04 | Collects the packages, archives the source (`git archive`), writes the SBOM, writes `SHA256SUMS`, signs every file, then verifies the directory the way a user would. Uploads it as the `release-dist` artifact. |
-| `Attest provenance and SBOM` | ubuntu-24.04 | Release only. `actions/attest-build-provenance` for every file, `actions/attest-sbom` tying the SBOM to the packages. This is the only job with `id-token: write` and `attestations: write`. |
-| `Publish the release` | ubuntu-24.04 | Release only. Creates a **draft** with every file attached, publishes it, downloads it again and runs `verify_release.sh --attest` against the public release; if that fails the release is returned to a draft. The only job with `contents: write`. |
-
-A tag-triggered run uses the workflow file **at the tagged commit**, so a release
-is built by the pipeline that was reviewed with it.
-
-### Rehearsals: the dry run
-
-The same workflow, started by hand or weekly, builds, tests, packages, writes the
-SBOM, signs and verifies - and publishes and attests nothing. The files are in
-the run's `release-dist` artifact for 14 days.
-
-```sh
-gh workflow run release.yml --ref main                       # ephemeral key
-gh workflow run release.yml --ref main -f signing=repository # the real secrets
-```
-
-- `signing=ephemeral` (the default, and what the weekly run uses) signs with a
-  throw-away key made inside the run, so the pipeline is tested end to end
-  without the real key and without secrets. `KEYS` in the artifact is that key's
-  public half; check the artifact with
-  `tools/release/verify_release.sh --dir <folder> --unpinned`.
-- `signing=repository` signs with `GPG_PRIVATE_KEY` and `GPG_PASSPHRASE`, and
-  checks the key against the committed fingerprint. Run it once after setting the
-  secrets up and before the first tag: it is the test of the secrets.
-- `ios` (default true, by hand only) also builds and signs the iOS IPA with the Apple
-  secrets, which are real whatever `signing` says; untick it to rehearse the desktop
-  packages alone. The weekly run never builds iOS ([iOS](#ios)).
-
-The weekly run (Sunday 03:23 UTC) exists so that a Windows, Linux or macOS
-Release build that has quietly stopped working is found on a Sunday and not on the
-day of a release. Release builds are otherwise only exercised by this workflow
-and the `Performance` leg (Linux).
-
-**GitHub only starts a scheduled or manually dispatched workflow from the default
-branch.** The default branch is `main`, and `release.yml` is not on it until
-`develop` is merged there (the same is true of `analysis.yml`: `main` has neither
-today). A tag push is the exception: it uses the workflow file at the tagged
-commit, wherever that is.
-
-### Cutting a release
-
-1. In a release pull request (`release/<x.y.z>` into `main`): set `project(...
-   VERSION x.y.z)` in `CMakeLists.txt` and `"version"` in `vcpkg.json`; give
-   the version's section in `CHANGELOG.md` its date (`## [x.y.z] - <date>`; for 0.1.0
-   the section `## [0.1.0] - unreleased` already exists, with a short `## [Unreleased]`
-   above it) and, for a later release, rename `## [Unreleased]` and put a new empty
-   one above it.
-2. Optional, and worth doing for the first one: tag `v<x.y.z>-rc.1` on the release
-   branch. It runs the real path - the real key, the attestations, a published
-   prerelease - without making a final release. Delete the prerelease and its tag
-   when done (a tag ruleset needs an admin to do it).
-3. Merge to `main`, then tag the merge commit and push the tag:
-
-   ```sh
-   git tag -s v0.1.0 -m "WordJewelsSolver 0.1.0"   # or: git tag -a
-   git push origin v0.1.0
-   ```
-
-4. Watch the run. When it is green the release is public and has been verified
-   from the outside. A red `Publish the release` returns the release to a draft.
-
-A packaging fix after a tag is a new tag (`v0.1.1`), not a moved one: the
-`release-tags` ruleset refuses moving or deleting a `v*` tag except by an admin,
-and a moved tag would make the SBOM, signatures and attestations of the first
-one describe something that is no longer there.
-
-### What the author sets up once
-
-None of this is done by the repository, and the workflow stops, with the same
-list in its message, if any of it is missing.
-
-1. **Create the signing key** (done for the first release: fingerprint
-   `9A0D96E8944899F94B1B37B51F1A8DA4C79B19D2`, expires 2028-10-19; the public half is `.github/release-signing/KEYS`
-   and `FINGERPRINT`, and the two secrets are set). To make another, for a
-   rotation, on your own machine from a checkout, in your own terminal (it prints
-   no secret, and the output folder is outside the repository; the script refuses
-   a folder in any git working tree):
-
-   ```powershell
-   ./tools/release/new_signing_key.ps1                       # -> ~/wjs-release-key
-   ./tools/release/new_signing_key.ps1 -OutDir D:\keys\wjs -Email you@example.org -Install
-   ```
-
-   (`tools/release/new_signing_key.sh --out <dir> --email <addr> --install` is the
-   same for a POSIX shell.) It uses a temporary keyring that never touches yours,
-   makes an Ed25519 sign-only key (expires in two years, user id
-   `WordJewelsSolver Release <address>`, the address from `git config user.email`
-   unless given) protected by a random passphrase, and writes, into a folder only
-   your account can read: `private-key.asc`, `public-key.asc`,
-   `revocation-cert.asc`, `passphrase.txt`, `fingerprint.txt` and a `README.md`
-   with the commands below. It then signs and verifies a test file with the
-   exported files in fresh keyrings and shreds the temporary ones. `-Install`
-   also copies the public key and fingerprint to `.github/release-signing/`.
-   With Git for Windows' gpg (an MSYS build) the script hands gpg its home as
-   `/c/...`, which that build's agent needs.
-2. **Upload the two secrets** (done; repository secrets; `gh secret set` reads the
-   value from standard input, so these print nothing of it):
-
-   ```powershell
-   Get-Content -Raw private-key.asc | gh secret set GPG_PRIVATE_KEY --repo iainchesworthlabs/wordjewelssolver
-   Get-Content -Raw passphrase.txt  | gh secret set GPG_PASSPHRASE  --repo iainchesworthlabs/wordjewelssolver
-   ```
-
-   Then keep the private key and passphrase in your key store, the revocation
-   certificate offline, and delete the first two from the output folder.
-3. **Commit the public half** (done): `.github/release-signing/KEYS` and `FINGERPRINT`,
-   and put the fingerprint where a reader will find it independently of the
-   download: `SECURITY.md` and the README (both now carry it). The workflow refuses to sign with a key
-   whose fingerprint is not the committed one.
-4. **Apply the tag ruleset** (done, 2026-10-20; now `admin/apply.sh --only
-   rulesets` in `icl-common-infra`, see [Branch protection](branch-protection.md)).
-   It restricts `v*` tags to the owner and the release bot.
-5. **Get the workflows onto `main`**: merge `develop` there. Until then nothing
-   scheduled or dispatched from this repository exists on the default branch
-   except `codeql.yml` and `scorecard.yml` (older copies).
-6. **Pin the AppImage tools** (done: `linuxdeploy.pins` records the SHA-256 of
-   linuxdeploy and of its Qt plugin, so a download that differs fails the build).
-   To bump one, change the tag in its URL, set its hash to `PENDING` and run
-   `libs/platforms/linux/packaging/pin_linuxdeploy.sh` on a machine you trust, then
-   commit the result; while a hash is `PENDING` the build downloads by tag, prints
-   the hash with a warning and carries on (trust on first use). The AppImage
-   recipe itself has never run.
-7. **Optional: macOS signing.** With an Apple Developer ID Application
-   certificate, set the six secrets `MACOS_CERTIFICATE` (base64 of the `.p12`),
-   `MACOS_CERTIFICATE_PASSWORD`, `MACOS_SIGN_IDENTITY` (`Developer ID Application:
-   Name (TEAMID)`), `NOTARY_APPLE_ID`, `NOTARY_TEAM_ID` and `NOTARY_PASSWORD` (an
-   app-specific password), e.g. `base64 -i cert.p12 | gh secret set MACOS_CERTIFICATE`.
-   Without them the disk image is unsigned (the run says so in an annotation).
-8. **iOS signing** (done 2026-10-20). Five repository secrets, from the Apple
-   developer portal: `IOS_DIST_CERTIFICATE_BASE64` and `IOS_DIST_CERTIFICATE_PASSWORD`
-   (the Apple Distribution certificate as a `.p12` with its private key, and its
-   export password), `IOS_PROVISIONING_PROFILE_BASE64` (the ad-hoc profile for
-   `org.iainchesworth.wordjewelssolver`), `APPLE_TEAM_ID` and
-   `APPLE_PROVISIONING_PROFILE_NAME` (the profile's name exactly as the portal shows
-   it). The profile lists the registered devices and expires 2027-07-16; a new device
-   or a renewal means a new profile and a new secret
-   ([Installing on my iPhone/iPad](ios-install.md#add-a-device)). The install link
-   also needs the documentation site published ([Documentation site](#documentation-site)).
-9. **Rehearse**: `gh workflow run release.yml --ref main -f signing=repository`,
-   download the `release-dist` artifact and run
-   `tools/release/verify_release.sh --dir <folder>` (it reads the committed
-   fingerprint from your checkout).
-
-Optional hardening, deliberately not required: create a `release` environment with
-required reviewers and move the two secrets into it, then add `environment: release`
-to the `sign` job, so that a tag push waits for a click before the key is used. A
-dry run would then wait too, unless the dry run is split into a job of its own.
-
-Rotating the key: run `new_signing_key.sh` again, replace the two secrets and the
-files in `.github/release-signing/`, update the fingerprint in `SECURITY.md`, and
-say so in the next release's notes. A revoked or expired key leaves the old
-releases' signatures valid as of when they were made; users who verify them later
-need the old `KEYS`, which stays in the repository history.
+`release.yml` builds and packages on a `v*` tag, and the shared release workflow of
+`icl-common-infra` signs, attests and publishes. How to cut a release, what it holds, the one-time set-up, how
+to check a download and what turns a run red are in [Releasing](releasing.md). The two sections that follow are
+the mobile builds.
 
 ### iOS
 
@@ -819,16 +597,15 @@ at a multiple.
    exists. Its tests are in `tests/package/test_release_tools.sh`.
 8. Upload `package-ios`, and remove the keychain and the profile.
 
-`SBOM, checksums and signatures` downloads `package-*`, so the IPA and the manifest are
-in `dist/` with everything else and get the same `SHA256SUMS`, GPG signatures,
-attestations (`attest` reads `SHA256SUMS`) and SBOM (an `.ipa` counts as carrying Qt,
-like an AppImage and a disk image). `Publish the release` adds an install section to the
-notes when there is a manifest.
+`Source archive and SBOM` downloads `package-*`, so the IPA and the manifest get the same
+checksums, GPG signatures, attestations and SBOM entry as everything else (an `.ipa` counts as
+carrying Qt, like an AppImage and a disk image). `Add the install notes` adds an install section
+to the notes when there is a manifest.
 
 **When it runs.** A `v*` tag builds iOS, so a release never lacks it by accident,
 and never publishes unless the iOS job passed. A manual run builds it unless its
 `ios` input is unticked. The weekly rehearsal does not: it would spend a macOS
-runner and a signing identity every Sunday. The `sign` job tolerates a skipped iOS
+runner and a signing identity every Sunday. The `assemble` job tolerates a skipped iOS
 job and refuses a failed one. If iOS is broken and a desktop release cannot wait, set
 the repository variable `RELEASE_WITHOUT_IOS` to `true` (`gh variable set
 RELEASE_WITHOUT_IOS --body true`): a tag then skips the job, with a warning, and the
@@ -1003,14 +780,13 @@ author's upload key, in four repository secrets. In order:
    debuggable and not signed with the debug key.
 6. Upload `package-android`.
 
-`SBOM, checksums and signatures` downloads `package-*`, so the APK and AAB are in `dist/` with
-everything else and get the same `SHA256SUMS`, GPG signatures, attestations and SBOM entry (an
-`.apk` and an `.aab` count as carrying Qt, like an AppImage). `Publish the release` adds an
-install note when there is an APK.
+`Source archive and SBOM` downloads `package-*`, so the APK and AAB get the same checksums, GPG
+signatures, attestations and SBOM entry as everything else (an `.apk` and an `.aab` count as
+carrying Qt, like an AppImage). `Add the install notes` adds an install note when there is an APK.
 
 **When it runs.** A `v*` tag and a manual run (unless its `android` input is unticked). The
 weekly rehearsal does not (it would download several gigabytes of Qt kits every Sunday). The
-`sign` job accepts a skipped Android job, which is also what a run without the secrets
+`assemble` job accepts a skipped Android job, which is also what a run without the secrets
 looks like, and refuses a failed one.
 
 #### What the author does once for Android
@@ -1082,99 +858,6 @@ or open the file on the tablet), the window and Home, Solo Play (shake, the box,
 camera prompt and Mode A, rotation and split-screen, the parent area and that its progress
 survives closing the app from the recents list, the settings *App info → Permissions* (the camera
 alone, no network access listed), and uninstall.
-
-### The SBOM
-
-`tools/release/generate_sbom.ps1` writes a CycloneDX 1.6 document from what the
-repository already records, not from a scan of the binaries:
-
-- the application (GPL-3.0-only: it links Qt Quick 3D) and `wjs-cli`
-  (GPL-3.0-or-later), with the commit and the repository;
-- Qt by module at the version in `.github/toolchain-versions.json`, each under the
-  licence it is used under - **only if a ZIP in the release actually carries
-  `Qt6Core.dll`, or a package is an AppImage, a disk image or an iOS IPA** (which
-  carry Qt by construction); likewise the Microsoft Visual C++ runtime, from a
-  ZIP that carries `vcruntime140.dll`. The command-line
-  packages claim no Qt;
-- the data that ships: the ENABLE word list and each bundled font file, with
-  SHA-256 hashes computed from the files in the tree;
-- what only built or tested it, with `scope: excluded`: vcpkg (its commit), CMake,
-  Ninja and every port vcpkg installed, read from the `vcpkg.spdx.json` files
-  vcpkg writes (Catch2 today);
-- each release file as a `distribution` reference with its SHA-256.
-
-It states that it is incomplete for third parties (`incomplete_third_party_only`):
-Qt contains third-party code of its own, which the SPDX documents of the Qt kit
-(`sbom/*.spdx.json`) describe and this document does not repeat. The output is
-deterministic for a given tag and commit. `release-tooling.yml` validates a
-generated SBOM against the CycloneDX 1.6 JSON Schema.
-
-### Checking a download
-
-```sh
-# 1. The key. Check the fingerprint against SECURITY.md in the repository,
-#    not against the KEYS file from the same place as the download:
-gpg --show-keys --with-fingerprint KEYS
-
-# 2. Everything at once (needs gpg; add --attest with the GitHub CLI):
-tools/release/verify_release.sh --dir <folder with the files> \
-  --fingerprint <the fingerprint> [--attest --repo iainchesworthlabs/wordjewelssolver]
-# Windows: ./tools/release/verify_release.ps1 -Dir <folder> -Fingerprint <...> [-Attest -Repo ...]
-
-# 3. Or by hand:
-gpg --import KEYS
-gpg --verify SHA256SUMS.asc SHA256SUMS
-sha256sum -c SHA256SUMS            # or: shasum -a 256 -c SHA256SUMS
-gh attestation verify WordJewelsSolver-0.1.0-win64.zip --repo iainchesworthlabs/wordjewelssolver
-```
-
-`verify_release.sh` uses a private temporary keyring, stops at the first failure,
-refuses to run without an expected fingerprint (`--unpinned` skips that, and says
-so), and takes `--repo <owner/name> --tag <tag>` instead of `--dir` to download
-the release itself.
-
-### When a release run goes red
-
-| Message | Cause |
-| --- | --- |
-| `the tag ... is version X but CMakeLists.txt declares Y` | The release pull request did not change `project(VERSION)` / `vcpkg.json`, or the tag is on the wrong commit. Delete the tag (admin), fix, tag again. |
-| `CHANGELOG.md has no '## [x.y.z]' section` | Rename `[Unreleased]` in the release pull request. |
-| `... is not on origin/main` | A final release is tagged on `main`. For a try-out, use a `-rc` tag. |
-| `Release signing secrets missing` | Step one and two of "What the author sets up once". |
-| `The secret key's fingerprint is A but .github/release-signing/FINGERPRINT says B` | The wrong key was uploaded, or the public half was not committed. |
-| `GPG_PASSPHRASE does not unlock the key` | `passphrase.txt` is not the passphrase that key was made with. |
-| `WJS_ENABLE_TRACY is 'ON'` / `contains the profiler` | A Release configuration or package has Tracy in it. The presets decide; `tests/profiling/check_presets.cmake` should have failed first. |
-| `no package ending .rpm` (and similar) | CPack dropped a generator because its tool was missing at configure time. The packaging tools are installed before Configure; read the configure log's `Packaging:` line. |
-| `makensis.exe is not in ...` | The NSIS install failed. NSIS is pinned to 3.13.0 from Chocolatey. |
-
-### Not verified until it runs on GitHub
-
-Run locally on Windows: the Release build, the whole ctest suite and the ZIP package
-check (and its refusal of TracyClient, an AddressSanitizer runtime and a .pdb), the
-executable's version resource, the prerelease naming and the deb on Linux (WSL),
-CPack's refusal of a Tracy build, the SBOM against the CycloneDX schema,
-`sign_release.sh` / `verify_release.sh` and the key script. Run on GitHub already:
-the push legs; `Package (Windows, Release)` (the Release build and the ZIP check, green
-on pushes to `develop`); `ios-build.yml` (the unsigned iOS compile); `release-tooling.yml`;
-and the `docs.yml` build. `release.yml` has never run: it is not on the default branch, and
-no `v*` tag exists. Everything below is
-written, linted (actionlint, ShellCheck) and reasoned, and has not run:
-
-- the Linux and macOS desktop **Qt builds** (the desktop application has only ever been
-  built on Windows), the **AppImage** (`build_appimage.sh`, linuxdeploy and its Qt plugin,
-  and the list of system libraries Qt needs on the hosted image), the macOS
-  **bundle**, `verify_bundle.sh`, **signing and notarisation** (no certificate
-  exists to try them with) and the `.dmg`;
-- the **iOS** signing, archive, export and install, and the application on a device: only
-  the unsigned compile has run, and the list of what is likeliest to fail is [in the iOS
-  section](#what-ios-has-and-has-not-shown);
-- the NSIS installer and its branding (icon, shortcuts, `Program Files` path) and
-  its silent install test;
-- `actions/attest-*`, `gh attestation verify`, `gh release create`, that GitHub
-  accepts the tag ruleset, and the Pages deployment;
-- the nightly jobs that scan `develop`, including CodeQL's `ref`/`sha` upload.
-
-The first dry run is expected to need a fix or two; that is what it is for.
 
 ## Documentation site
 

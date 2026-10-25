@@ -1,23 +1,20 @@
 name: Release
 
-# Builds the Release packages on hosted runners, tests them, writes the SBOM and
-# the checksums, signs them with the project's GPG key, attests where they were
-# built, and publishes a GitHub Release. The whole of it - what each step proves,
-# what the author has to set up once, and how a user checks a download - is in
-# docs/ci.md ("Releases"). In short:
+# Builds the Release packages on hosted runners, tests them, writes the source
+# archive and the SBOM, and hands the files to the shared release workflow of
+# icl-common-infra, which writes the checksums, signs them with the
+# organisation's GPG key, attests where they were built, publishes a GitHub
+# Release and fast-forwards main. What each step proves, and what the author
+# does once, is in docs/releasing.md. In short:
 #
-#   v* tag pushed        a real release: build, test, package, SBOM, checksums,
-#                        GPG signatures with the repository key, attestations,
-#                        draft release, publish, verify what was published.
-#   workflow_dispatch    a rehearsal that publishes nothing. signing=ephemeral
-#                        (default) signs with a throw-away key made for the run,
-#                        so the pipeline is tested end to end without the real
-#                        key; signing=repository uses the real secrets, to check
-#                        them before a tag does.
+#   v* tag pushed        a real release: build, test, package, source archive,
+#                        SBOM, then the shared Publish job (it waits for the
+#                        owner's approval in the `release` environment).
+#   workflow_dispatch    a rehearsal that publishes and signs nothing. The
+#                        packages are the run's artifacts for 14 days.
 #   schedule (weekly)    the same rehearsal, so a release does not meet a broken
 #                        Windows/Linux/macOS Release build for the first time on
-#                        the day. GitHub runs a schedule from the DEFAULT branch
-#                        (main) only. It does not build iOS: that needs a macOS
+#                        the day. It does not build iOS: that needs a macOS
 #                        runner and the Apple signing secrets, so it runs on a tag
 #                        and on a manual dispatch (the `ios` input). Nor does it
 #                        build Android (a download of several gigabytes of Qt kits),
@@ -37,14 +34,6 @@ on:
     - cron: "23 3 * * 0"
   workflow_dispatch:
     inputs:
-      signing:
-        description: >-
-          Which key signs a manual run (nothing is published either way):
-          ephemeral = a throw-away key made for the run, no secrets needed;
-          repository = the real GPG_PRIVATE_KEY / GPG_PASSPHRASE secrets.
-        type: choice
-        options: [ephemeral, repository]
-        default: ephemeral
       ios:
         description: >-
           Also build and sign the iOS ad-hoc IPA, with the Apple signing secrets
@@ -75,8 +64,9 @@ env:
 
 jobs:
   # Decides what this run is and refuses a tag that cannot be a release: its
-  # shape, its version against CMakeLists.txt and vcpkg.json, its CHANGELOG
-  # section, and that a final release is on main (tools/release/check_release_ref.sh).
+  # shape and its version against CMakeLists.txt and vcpkg.json
+  # (tools/release/check_release_ref.sh). That the commit is on develop and that the
+  # release has notes are checked by the shared Publish job, before anything is signed.
   prepare:
     name: Prepare the release
     runs-on: ubuntu-24.04
@@ -85,7 +75,6 @@ jobs:
       contents: read
     outputs:
       mode: ${{ steps.plan.outputs.mode }}
-      signing: ${{ steps.plan.outputs.signing }}
       tag: ${{ steps.plan.outputs.tag }}
       version: ${{ steps.plan.outputs.version }}
       prerelease: ${{ steps.plan.outputs.prerelease }}
@@ -106,12 +95,10 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
-          SIGNING_INPUT: ${{ inputs.signing }}
           IOS_INPUT: ${{ inputs.ios }}
           ANDROID_INPUT: ${{ inputs.android }}
           RELEASE_WITHOUT_IOS: ${{ vars.RELEASE_WITHOUT_IOS }}
           RUN_NUMBER: ${{ github.run_number }}
-          SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = push ] && [ "$REF_TYPE" = tag ]; then
@@ -125,20 +112,17 @@ jobs:
             fi
             {
               echo "mode=release"
-              echo "signing=repository"
               echo "ios=$ios"
               echo "android=true"
             } >> "$GITHUB_OUTPUT"
-            tools/release/check_release_ref.sh --tag "$REF_NAME" --sha "$SHA"
+            tools/release/check_release_ref.sh --tag "$REF_NAME"
           else
-            signing="${SIGNING_INPUT:-ephemeral}"
             ios=false
             android=false
             if [ "$EVENT_NAME" = workflow_dispatch ] && [ "$IOS_INPUT" != false ]; then ios=true; fi
             if [ "$EVENT_NAME" = workflow_dispatch ] && [ "$ANDROID_INPUT" != false ]; then android=true; fi
             {
               echo "mode=dry-run"
-              echo "signing=$signing"
               echo "ios=$ios"
               echo "android=$android"
             } >> "$GITHUB_OUTPUT"
@@ -526,9 +510,9 @@ jobs:
   # The iPhone/iPad application as an ad-hoc IPA: archived and exported by Xcode on
   # a macOS runner with the Apple Distribution certificate and the ad-hoc
   # provisioning profile (repository secrets), and a manifest.plist for the
-  # over-the-air install (docs/ios-install.md). Both go to `sign` with the other
-  # packages, so they get the same checksums, GPG signatures, attestation and SBOM
-  # entry as every other file.
+  # over-the-air install (docs/ios-install.md). Both go to `assemble` and then to
+  # Publish with the other packages, so they get the same checksums, GPG
+  # signatures, attestation and SBOM entry as every other file.
   #
   # An ad-hoc build installs only on the devices the profile lists. A tag always
   # builds it; a manual run does unless its `ios` input is unticked; the weekly
@@ -770,8 +754,9 @@ jobs:
           rm -f "$RUNNER_TEMP/dist.p12" "$RUNNER_TEMP/wjs.mobileprovision" "$RUNNER_TEMP/profile.plist"
 
   # The Android application, as an APK and an AAB signed with the author's upload
-  # key (repository secrets), which go to `sign` with the other packages and get the
-  # same checksums, GPG signatures, attestation and SBOM entry as every other file.
+  # key (repository secrets), which go to `assemble` and then to Publish with the
+  # other packages and get the same checksums, GPG signatures, attestation and SBOM
+  # entry as every other file.
   # The APK installs on a tablet that allows apps from outside the store; the AAB is
   # what Google Play takes later (docs/ci.md, "Android").
   #
@@ -956,13 +941,13 @@ jobs:
         if: ${{ always() }}
         run: rm -f "$RUNNER_TEMP/wjs-upload.p12"
 
-  # The SBOM, the checksums and the signatures, in one directory that is both
-  # what a release publishes and what a rehearsal leaves for inspection. The iOS
-  # and Android jobs may have been left out of a rehearsal (skipped), and Android does
-  # nothing without its secrets; a build that failed, or an iOS or Android job that
-  # failed, stops here.
-  sign:
-    name: SBOM, checksums and signatures
+  # The source archive and the SBOM, which describe the packages the build jobs
+  # made. The iOS and Android jobs may have been left out of a rehearsal
+  # (skipped), and Android does nothing without its secrets; a build that failed,
+  # or an iOS or Android job that failed, stops here. A rehearsal ends here: the
+  # files are the run's artifacts.
+  assemble:
+    name: Source archive and SBOM
     needs: [prepare, build, ios, android]
     if: ${{ !cancelled() && needs.build.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.ios.result) && contains(fromJSON('["success","skipped"]'), needs.android.result) }}
     runs-on: ubuntu-24.04
@@ -998,9 +983,10 @@ jobs:
           set -euo pipefail
           version="${TAG#v}"
           prefix="WordJewelsSolver-${version}-source"
-          git archive --format=tar --prefix="$prefix/" HEAD | gzip -n -9 > "dist/${prefix}.tar.gz"
-          tar -tzf "dist/${prefix}.tar.gz" | grep -qx "$prefix/CMakeLists.txt"
-          ls -l "dist/${prefix}.tar.gz"
+          mkdir -p extras
+          git archive --format=tar --prefix="$prefix/" HEAD | gzip -n -9 > "extras/${prefix}.tar.gz"
+          tar -tzf "extras/${prefix}.tar.gz" | grep -qx "$prefix/CMakeLists.txt"
+          ls -l "extras/${prefix}.tar.gz"
 
       - name: Generate the SBOM (CycloneDX 1.6)
         shell: pwsh
@@ -1012,188 +998,96 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $version = $env:TAG.Substring(1)
           ./tools/release/generate_sbom.ps1 -Tag $env:TAG -Commit $env:COMMIT -Repository $env:REPOSITORY `
-            -PackagesDir dist -VcpkgSpdxDir sbom-inputs -Output "dist/WordJewelsSolver-$version.cdx.json"
-
-      # The failure a missing secret gets is its own step and its own message,
-      # before anything is signed: sign_release.sh says the same thing, but
-      # this is the line a person reads first in the run's summary.
-      - name: Require the signing secrets (repository key)
-        if: needs.prepare.outputs.signing == 'repository'
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        run: |
-          missing=""
-          [ -n "$GPG_PRIVATE_KEY" ] || missing="$missing GPG_PRIVATE_KEY"
-          [ -n "$GPG_PASSPHRASE" ] || missing="$missing GPG_PASSPHRASE"
-          if [ -n "$missing" ]; then
-            echo "::error title=Release signing secrets missing::Repository secret(s) not set:$missing. Run tools/release/new_signing_key.sh (or .ps1) on your own machine and follow what it prints (gh secret set ...; commit .github/release-signing). To rehearse without the key, dispatch this workflow with signing=ephemeral. docs/ci.md, 'Releases'."
-            exit 1
-          fi
-
-      - name: Checksums and signatures (repository key)
-        if: needs.prepare.outputs.signing == 'repository'
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        run: tools/release/sign_release.sh --dist dist --keys-dir .github/release-signing
-
-      - name: Checksums and signatures (ephemeral key, rehearsal only)
-        if: needs.prepare.outputs.signing == 'ephemeral'
-        run: tools/release/sign_release.sh --dist dist --ephemeral
-
-      # The way a user would, from the files alone: the key against the
-      # committed fingerprint (read from this checkout), every signature, every
-      # checksum. A rehearsal's ephemeral key has no published fingerprint.
-      - name: Verify the signed directory
-        env:
-          SIGNING: ${{ needs.prepare.outputs.signing }}
-        run: |
-          if [ "$SIGNING" = ephemeral ]; then
-            tools/release/verify_release.sh --dir dist --unpinned
-          else
-            tools/release/verify_release.sh --dir dist
-          fi
+            -PackagesDir dist -VcpkgSpdxDir sbom-inputs -Output "extras/WordJewelsSolver-$version.cdx.json"
 
       - name: Summarise
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
           MODE: ${{ needs.prepare.outputs.mode }}
-          SIGNING: ${{ needs.prepare.outputs.signing }}
         run: |
           {
-            echo "### Release files ($TAG, $MODE, signing: $SIGNING)"
+            echo "### Release files ($TAG, $MODE)"
             echo
             echo '```text'
-            cat dist/SHA256SUMS
+            (cd dist && ls -l) | sed 's/^/  /'
+            (cd extras && ls -l) | sed 's/^/  /'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload the signed release files
+      # Named package-* so that the shared Publish job collects it with the
+      # packages.
+      - name: Upload the source archive and the SBOM
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: release-dist
-          path: dist/
+          name: package-extras
+          path: extras/
           if-no-files-found: error
           retention-days: 14
 
-  # Build-provenance attestations: a signed statement from GitHub's Sigstore
-  # instance that this workflow, at this commit, built these exact files, and a
-  # second one tying the SBOM to the packages. Real releases only: a rehearsal's
-  # files are never published, and an attestation is a public record.
-  attest:
-    name: Attest provenance and SBOM
+  # The shared half of a release (icl-common-infra, release-publish.yml): the tag
+  # is a semver tag on develop and the release has notes; SHA-512 sums; a detached
+  # signature for every file with the organisation's key, checked against
+  # docs/signing-key.asc; build-provenance attestations; the GitHub Release; and,
+  # for a final release, the fast-forward of main by the release bot. It runs in
+  # the `release` environment, so the owner approves each release. The SBOM is the
+  # project's own (assemble), so the shared one is off.
+  publish:
+    name: Publish
     if: needs.prepare.outputs.mode == 'release'
-    needs: [prepare, sign]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    needs: [prepare, assemble]
     permissions:
-      contents: read
+      contents: write
       id-token: write
       attestations: write
-    steps:
-      - name: Download the signed release files
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: release-dist
-          path: dist
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/release-publish.yml@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+    with:
+      artifact-pattern: "package-*"
+      generate-sbom: false
+      public-key: docs/signing-key.asc
+      title: WordJewelsSolver ${{ github.ref_name }}
+    secrets:
+      REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
+      REPO_GPG_PASSPHRASE: ${{ secrets.REPO_GPG_PASSPHRASE }}
+      RELEASE_BOT_APP_ID: ${{ secrets.RELEASE_BOT_APP_ID }}
+      RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
 
-      - name: Attest the build provenance of every file
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-checksums: dist/SHA256SUMS
-
-      # The SBOM describes the packages, so it is attested for them and not for
-      # itself.
-      - name: List the packages
-        run: grep -v 'cdx\.json$' dist/SHA256SUMS > packages.sha256
-
-      - name: Attest the SBOM for the packages
-        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
-        with:
-          subject-checksums: packages.sha256
-          sbom-path: dist/WordJewelsSolver-${{ needs.prepare.outputs.version }}.cdx.json
-
-  # The release itself: a draft with every file attached, published only after
-  # that, then checked from the public side - signatures, checksums and
-  # attestations - and put back to a draft if any of it fails.
-  publish:
-    name: Publish the release
-    if: needs.prepare.outputs.mode == 'release'
-    needs: [prepare, attest]
+  # What only this project's release has: the install sections for the iPhone/iPad
+  # and Android files, added to the notes the shared job wrote. GitHub's
+  # release-notes renderer drops itms-services:// links, so the iOS link is to a
+  # page (docs/install-ios.html, on the documentation site) that makes the real
+  # one; it works only if that site is published.
+  install-notes:
+    name: Add the install notes
+    needs: [prepare, publish]
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ needs.prepare.outputs.tag }}
-      VERSION: ${{ needs.prepare.outputs.version }}
-      PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Download the signed release files
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: release-dist
-          path: dist
-
-      - name: Write the release notes
+      - name: Append the sections the release needs
+        shell: bash
         run: |
           set -euo pipefail
-          fingerprint="$(tr -d '[:space:]' < .github/release-signing/FINGERPRINT)"
-          {
-            if tools/release/changelog_section.sh "$VERSION" CHANGELOG.md 2>/dev/null; then :; else
-              echo "Release candidate $TAG. No changelog section yet."
-            fi
-            echo
-            echo "### Verifying this release"
-            echo
-            echo "Every file is listed in \`SHA256SUMS\`, and every file has a detached GPG signature (\`.asc\`). The signing key's fingerprint is"
-            echo
-            echo "    $fingerprint"
-            echo
-            echo "- Check it against the fingerprint in SECURITY.md in the repository, not against \`KEYS\` from this page."
-            echo "- Then: \`tools/release/verify_release.sh --dir <folder with these files> --fingerprint $fingerprint\`, or by hand: \`gpg --import KEYS\`, \`gpg --verify SHA256SUMS.asc SHA256SUMS\`, \`sha256sum -c SHA256SUMS\`."
-            echo "- Build provenance: \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`."
-            echo "- \`*.cdx.json\` is the CycloneDX software bill of materials."
-            # GitHub's release-notes renderer drops itms-services:// links, so the
-            # link is to a page (docs/install-ios.html, on the documentation site)
-            # that makes the real one. It works only if that site is published.
-            if [ -f dist/manifest.plist ]; then
-              pages="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
+          assets="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          if grep -qx 'manifest.plist' <<< "$assets"; then
+            pages="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+            {
               echo
               echo "### Installing on an iPhone or iPad"
               echo
               echo "The \`.ipa\` is an ad-hoc build: it installs only on a device registered in its provisioning profile. On such a device, open this page in Safari and tap Install: $pages/install-ios.html?tag=$TAG. How it works, and how to add a device: $pages/ios-install/."
-            fi
-            if ls dist/*-android-arm64.apk >/dev/null 2>&1; then
+            } >> notes.md
+          fi
+          if grep -q -- '-android-arm64\.apk$' <<< "$assets"; then
+            {
               echo
               echo "### Installing on an Android tablet or phone"
               echo
               echo "The \`-android-arm64.apk\` installs on an arm64 device that allows apps from outside the store (an app from your browser or file manager: the setting is per app, in the device's settings). It asks for the camera and nothing else. The \`.aab\` is the same program as an Android App Bundle, for Google Play."
-            fi
-          } > notes.md
-
-      - name: Create the draft release and attach everything
-        run: |
-          set -euo pipefail
-          flags=(--draft --verify-tag --title "WordJewelsSolver $TAG" --notes-file notes.md)
-          if [ "$PRERELEASE" = true ]; then flags+=(--prerelease); else flags+=(--latest); fi
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" "${flags[@]}" dist/*
-
-      - name: Publish
-        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false
-
-      # What a user downloads, checked as a user would, including the
-      # attestations. If it fails the release goes back to a draft so that it is
-      # not left public and unverifiable.
-      - name: Verify the published release
-        run: tools/release/verify_release.sh --repo "$GITHUB_REPOSITORY" --tag "$TAG" --attest
-
-      - name: Return the release to a draft if it did not verify
-        if: ${{ failure() }}
-        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=true || true
+            } >> notes.md
+          fi
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
