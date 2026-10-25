@@ -83,3 +83,18 @@ nav:
       - Scanner: design/scanner.md
       - Performance: design/performance.md
       - From the MVP to the full product: design/path.md
+
+# `mkdocs build --strict` (CI, and locally) turns these into failures: a link to
+# a page that does not exist, a link to a heading that does not, a link the site
+# cannot resolve and an absolute link. Pages that exist but are not in the nav
+# stay information: docs/ has design notes that are not meant to be in the menu.
+validation:
+  nav:
+    omitted_files: info
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn

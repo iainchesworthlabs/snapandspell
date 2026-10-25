@@ -106,13 +106,18 @@ what to do instead of an `#ifdef`, and how to add a platform.
   CI check reads every commit of a pull request (`docs/ci.md` describes it), and
   a `commit-msg` hook runs a similar script on your machine, if you want to be
   told before you push.
-- To turn the hooks on (`commit-msg` for the commit text, `pre-push` for the
-  branch name), run this once per clone. The `commit-msg` hook needs PowerShell
-  7; without it, it says so and lets the commit through, and CI still checks:
+- To turn the hooks on (`pre-commit` for the formatting of staged C++, `commit-msg`
+  for the commit text, `pre-push` for the branch name), run this once per clone.
+  `pre-commit` needs `clang-format` and `commit-msg` needs PowerShell 7; without
+  them, they say so and let the commit through, and CI still checks:
 
   ```sh
   git config core.hooksPath tools/hooks
   ```
+
+- Before you push, `python3 tools/ci/precheck.py` runs the pull request gate's
+  static checks on your commits (it needs a clone of `icl-common-infra` beside
+  this one, or `ICL_INFRA` set) and prints what the gate will build.
 
 - Keep pull requests focused. A bug fix does not need an unrelated refactor
   riding along with it.
@@ -124,7 +129,7 @@ what to do instead of an `#ifdef`, and how to add a platform.
   test names the rows that point at a test that is gone.
 - Documentation is built strictly in CI (a broken link or heading is a red build).
   To check before you push: `pip install -r .github/requirements/docs.txt` and
-  `mkdocs build --strict --config-file .github/mkdocs-ci.yml`.
+  `mkdocs build --strict`.
 - Do not commit a word list whose source and licence are not recorded in
   `data/README.md` (see
   [docs/licensing.md](docs/licensing.md#the-word-list)), a picture of a person,
