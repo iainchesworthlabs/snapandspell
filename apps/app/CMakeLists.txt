@@ -185,6 +185,9 @@ qt_add_qml_module(WordJewelsSolver
         src/system_motion.cpp
         src/system_motion.hpp)
 
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(WordJewelsSolver)
+
 # The type compiler's generated C++ reads Qt's private headers (cmake/FindQt6.cmake).
 wjs_enable_qmltc_private_headers(WordJewelsSolver)
 

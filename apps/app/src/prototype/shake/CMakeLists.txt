@@ -37,6 +37,9 @@ qt_add_qml_module(ShakePrototype
         frame_stats.cpp
         frame_stats.hpp)
 
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(ShakePrototype)
+
 target_link_libraries(ShakePrototype
     PRIVATE
         wjs_sceneplugin

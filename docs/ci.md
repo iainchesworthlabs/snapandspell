@@ -106,7 +106,7 @@ job names are free to change, as `CI Status` waits for them by job id.
 | `platform-isolation` | ubuntu-24.04 | `tools/checks/check_platform_isolation.ps1`: no preprocessor conditional, no OS header or OS-querying API outside `libs/platforms/`, no OS test in CMake outside the selector, no `#define`, every platform source wired. Fast, and deliberately not behind the build legs. |
 | `Plan build legs` | ubuntu-24.04 | `tools/ci/plan.py` (its tests run first) reads the changed paths with the shared `plan_gate.py` and `.github/ci/plan.json` and decides which of the jobs below run ([What runs when](#what-runs-when)). An unknown leg name in a manual run fails here, with the list. The build, coverage, performance, package and TSan jobs wait for it. |
 | `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes (one test per core on every leg; the cases that need the machine alone are `RUN_SERIAL`). Its objects come from a compiler cache ([below](#the-compiler-cache-windows)). The leg also builds the Qt application and the scene prototype, runs the application's offscreen smoke, and packages its Debug build as a **development** ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64-debug-dev` artifact: Tracy and the ASan runtime are in it by design; the package that ships is the `Package (Windows, Release)` job's). |
-| `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: the image's default `g++` builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. The library, platform layer, CLI and scanner are built, not the Qt application (`-DWJS_BUILD_APP=OFF`). |
+| `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: GCC 16 (`setup-gcc`; a pre-release snapshot until Ubuntu packages the release, which counts as meeting the floor) builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. The library, platform layer, CLI and scanner are built, not the Qt application (`-DWJS_BUILD_APP=OFF`). |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. As on Linux, without the Qt application. |
 | `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit tier, and gcovr over `libs/core` **fails the job below the project's minimum standard: 90% of lines and 80% of branches**. The HTML, `summary.json` and the table in the job summary are the `coverage-report` artifact. The same gate is `coverage-unit` locally ([Testing](testing.md#coverage)). |
 | `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. In the merge queue and on a push; `CI Status` holds the run to it when the plan asked for it. |
@@ -1029,6 +1029,7 @@ an entry was saved.
 | --- | --- | --- |
 | Every GitHub Action, and the composite actions in `.github/actions` | A full commit SHA, version in a trailing comment | Dependabot, weekly, grouped, 7-day cooldown |
 | clang-format, gcovr, clang-tidy | `==` in `.github/requirements/*.txt` | Dependabot (`pip`), weekly |
+| GCC (the Linux GCC jobs) | The major version in `.github/toolchain-versions.json` (`gcc`), installed by `setup-gcc` from `icl-common-infra`; the exact version is printed at the start of each leg | By hand |
 | CMake and Ninja (`lukka/get-cmake`) | `cmakeVersion` / `ninjaVersion`, exact, and one the pinned action's catalog lists | By hand, with the action |
 | Qt (`jurplel/install-qt-action`) | The action's commit SHA, the Qt version, the kit per host (`win64_msvc2022_64`, `linux_gcc_64`, `clang_64`, the iOS kit), the module list (`qtquick3d qtshadertools qtmultimedia qtsensors qtspeech`) and the `aqtsource` commit, in `.github/toolchain-versions.json` | By hand: run `aqt list-qt windows desktop --modules <version> <arch>` **and** a real install before bumping, as the action's README says |
 | vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline`; `tracy` is overridden to one version, and built from the overlay port in `cmake/vcpkg-ports` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together; the overlay moves with the override, by hand |
@@ -1042,8 +1043,8 @@ The clang-tidy version is in `.github/toolchain-versions.json` as well as in
 the requirements file; the `toolchain.versions` ctest holds the two together,
 and reads the CMake and Ninja pins out of both `ci.yml` and `analysis.yml`.
 
-Not pinned: the compilers (each is what its image ships; the MSVC analyzer is
-that image's `cl.exe`, and the Clang sanitizer leg is its `clang++`), and
+Not pinned: the other compilers (each is what its image ships; MSVC and its analyzer are
+that image's `cl.exe`, AppleClang is Xcode's, and the Clang sanitizer legs use the image's `clang++`), and
 anything an image provides (`pwsh`, `jq`, `git`).
 
 ## Commit and PR text policy

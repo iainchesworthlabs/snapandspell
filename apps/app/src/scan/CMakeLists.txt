@@ -83,6 +83,9 @@ qt_add_qml_module(wjs_scan_ui
         scan_model.hpp
         ${WJS_CAMERA_SOURCES})
 
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(wjs_scan_ui)
+
 # The C++ the QML compiler writes for this module's files is built with the
 # target's warnings as errors, and MSVC's code generator reports C4702
 # (unreachable code) from inside Qt's own headers while compiling it. The
