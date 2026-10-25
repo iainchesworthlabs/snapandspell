@@ -769,40 +769,39 @@ jobs:
       - name: Build
         run: cmake --build --preset linux-gcc-coverage
 
-      - name: Unit tier (the tier the coverage gate measures)
-        run: ctest --preset linux-gcc-coverage -L unit -j "$(nproc)" --timeout 900
+      # Every tier except the ones that need a window, a camera or a quiet machine: the
+      # unit, integration and system tiers of the library, the scanner and the command
+      # line. The window's own tiers are not built here (-DWJS_BUILD_APP=OFF).
+      - name: Tests (unit, integration and system tiers)
+        run: ctest --preset linux-gcc-coverage -LE "gui|perf|camera" -j "$(nproc)" --timeout 900
 
       # --gcov-ignore-parse-errors ...warn_once_per_file: a counter gcov reads
       # back negative (gcc bug 68080) is taken as zero and named once, rather
       # than aborting the report. The coverage preset already updates counters
       # atomically, which is what normally prevents it.
-      #
-      # --fail-under-line / --fail-under-branch are the gate. The scope is
-      # libs/core: the game logic the unit tier owns. The scanner and the window's
-      # model have their own integration tiers, and the UI tier's report is
-      # `coverage-ui` (docs/testing.md, "Coverage").
-      - name: Coverage report and gate (90% lines, 80% branches)
+      - name: Coverage report
         shell: bash
         run: |
           mkdir -p build/coverage
-          gcovr --root . --filter '.*libs/core/.*' \
-            --exclude '.*/(tests|ui-tests|bench)/.*' \
+          gcovr --root . --filter '.*libs/.*' --filter '.*apps/.*' \
+            --exclude '.*/(tests|ui-tests|bench)/.*' --exclude '.*build/.*' \
             --gcov-executable "$GCOV" \
             --object-directory build/linux-gcc-coverage \
             --exclude-throw-branches --exclude-unreachable-branches \
             --gcov-ignore-errors=no_working_dir_found \
             --gcov-ignore-parse-errors negative_hits.warn_once_per_file \
-            --fail-under-line 90 --fail-under-branch 80 \
             --print-summary \
-            --html-details build/coverage/index.html \
-            --json-summary build/coverage/summary.json --json-summary-pretty
+            --json build/coverage/coverage.json \
+            --html-details build/coverage/index.html
 
-      - name: Summarise coverage
-        if: ${{ always() && hashFiles('build/coverage/summary.json') != '' }}
-        shell: bash
-        run: |
-          jq -r '"### Coverage of libs/core from the unit tier (gate 90% lines / 80% branches)\n\n| | covered | total | percent |\n|---|---|---|---|\n| lines | \(.line_covered // 0) | \(.line_total // 0) | \(.line_percent // 0) |\n| branches | \(.branch_covered // 0) | \(.branch_total // 0) | \(.branch_percent // 0) |"' \
-            build/coverage/summary.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Check out the shared scripts
+        uses: iainchesworthlabs/icl-common-infra/actions/checkout-infra@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+
+      # The floors are in tools/coverage-floors.json, one per component. A file in no
+      # component fails the gate, so new code cannot sit outside the table. A figure
+      # more than a point above its floor is a hint to raise the floor.
+      - name: Coverage gate
+        run: python3 .icl-infra/scripts/coverage_gate.py --report build/coverage/coverage.json --floors tools/coverage-floors.json --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
         if: always()
