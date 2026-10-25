@@ -5,7 +5,7 @@
   "description": "Finds every word on a Boggle board.",
   "homepage": "https://github.com/iainchesworthlabs/wordjewelssolver",
   "license": "GPL-3.0-or-later",
-  "builtin-baseline": "2750401336fb7c95f6619657a46a7e798661341c",
+  "builtin-baseline": "9eec002df1cd109f8f104cd966a763daf9751489",
   "overrides": [
     {
       "name": "tracy",
