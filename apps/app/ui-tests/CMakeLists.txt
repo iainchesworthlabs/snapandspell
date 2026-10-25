@@ -94,6 +94,7 @@ target_include_directories(wjs_quick_tests_support
 target_link_libraries(wjs_quick_tests_support
     PUBLIC
         wjs_media_probe
+        wjs_test_fonts
         wjs_i18n
         wjs_trace
         wjs::lib

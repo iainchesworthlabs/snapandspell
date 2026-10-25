@@ -44,6 +44,7 @@
 #include "language_manager.hpp"
 #include "media_probe.hpp"
 #include "scan_model.hpp"
+#include "test_fonts.hpp"
 #include "wjs/board.hpp"
 #include "wjs/calendar.hpp"
 #include "wjs/dictionary.hpp"
@@ -709,6 +710,8 @@ int main(int argc, char* argv[]) {
         qInstallMessageHandler(message_handler);
     }
     QGuiApplication application(argc, argv);
+    // The faces the screens name, as the application registers them before its engine loads.
+    static_cast<void>(wjs::app::test::load_house_fonts());
 
     if (is_check) {
         const int result = run_check(out);

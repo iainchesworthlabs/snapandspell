@@ -9,6 +9,7 @@
 #include "camera_source.hpp"
 #include "fake_solo_game.hpp"
 #include "media_probe.hpp"
+#include "test_fonts.hpp"
 #include "wjs/scan/reading.hpp"
 
 namespace {
@@ -29,6 +30,8 @@ QuickFixture::QuickFixture(QObject* parent) : QObject(parent) {}
 QuickFixture::~QuickFixture() = default;
 
 void QuickFixture::applicationAvailable() {
+    // The faces the screens name, as the application registers them before its engine loads.
+    static_cast<void>(wjs::app::test::load_house_fonts());
     // One manager for the run: apply() swaps the installed catalogue, and a
     // manager destroyed with a translator still installed would leave it behind
     // for every later suite. reset() applies English again.

@@ -92,11 +92,14 @@ for required in \
 done
 echo "    Qt: frameworks, the cocoa platform plugin and the QML modules are in the bundle"
 
-# No link to anything that exists only on the build machine.
+# No link to anything that exists only on the build machine. A path inside the bundle being checked
+# is not one, however it is spelled: a plugin's own install name, or a link to a sibling, can be
+# the path of the file where it was found (/var/... or its resolved /private/var/...).
 bad=0
+bundle_root="$(cd "$app" && pwd -P)"
 while IFS= read -r file; do
   if file "$file" | grep -q 'Mach-O'; then
-    leaks="$(otool -L "$file" | tail -n +2 | awk '{print $1}' | grep -Ev '^(@rpath/|@executable_path/|@loader_path/|/System/|/usr/lib/)' || true)"
+    leaks="$(otool -L "$file" | tail -n +2 | awk '{print $1}' | grep -Ev '^(@rpath/|@executable_path/|@loader_path/|/System/|/usr/lib/)' | grep -Fv -e "$app/" -e "$bundle_root/" || true)"
     if [ -n "$leaks" ]; then
       echo "    $file links outside the system and the bundle:" >&2
       echo "$leaks" | while IFS= read -r leak; do echo "        $leak" >&2; done
