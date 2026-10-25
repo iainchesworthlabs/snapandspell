@@ -1,0 +1,25 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# pre-commit hook: the staged C++ files are formatted as .clang-format says.
+#
+# Without clang-format on PATH it says so and lets the commit through; the
+# clang-format job in CI reads the same files with the pinned release
+# (.github/requirements/lint.txt).
+#
+# Install once per clone:
+#   git config core.hooksPath tools/hooks
+
+files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.cpp' '*.hpp' '*.h' '*.cc' '*.hh' '*.cxx' '*.hxx' '*.inl' '*.ipp')
+[ -n "$files" ] || exit 0
+
+if ! command -v clang-format >/dev/null 2>&1; then
+    echo "pre-commit: clang-format is not installed, so the staged C++ was not checked (CI will)." >&2
+    exit 0
+fi
+
+# shellcheck disable=SC2086  # the file names have no spaces in this repository
+if ! clang-format --dry-run --Werror $files; then
+    echo "pre-commit: formatting differs from .clang-format. Run: clang-format -i <file>, then stage it again." >&2
+    exit 1
+fi
