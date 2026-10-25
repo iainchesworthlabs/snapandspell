@@ -35,7 +35,7 @@ that is no longer there.
 
 | Platform | Built on | Packages |
 | --- | --- | --- |
-| Windows x64 | `windows-2025-vs2026`, MSVC, Qt 6.12.0 | `WordJewelsSolver-<v>-win64.zip`, `...-win64.exe` (NSIS installer): the application and `wjs-cli` |
+| Windows x64 | `windows-2025-vs2026`, MSVC, Qt 6.12.0 | `WordJewelsSolver-<v>-win64<s>.zip`, `...-win64<s>.exe` (NSIS installer): the application and `wjs-cli`. `<s>` is `-unsigned`, `-testsigned` or nothing ([Windows signing](#windows-signing)) |
 | Linux x64, the application | `ubuntu-26.04`, GCC, Qt 6.12.0 | `WordJewelsSolver-<v>-x86_64.AppImage`, with Qt inside |
 | Linux x64, the solver | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` of `wjs-cli` only |
 | macOS arm64 | `macos-26`, AppleClang, Qt 6.12.0 | `WordJewelsSolver-<v>-Darwin.dmg`: the application bundle and `wjs-cli`; signed and notarised when the Apple secrets are set |
@@ -52,9 +52,9 @@ holds that), and every build job fails if `CMakeCache.txt` has it on or a packag
 file with Tracy or a sanitizer runtime in its name.
 
 Not built: a deb or rpm of the application (it needs a Qt 6.12 that no distribution packages; the
-AppImage is the application), Authenticode signing of the Windows files (SmartScreen warns on first
-run; the GPG signature and the attestation prove who built a file), Intel macOS and Linux arm64 (no
-hosted runner in the matrix). Releasing to a public store is a separate licensing decision (D2).
+AppImage is the application), a production Authenticode signature on the Windows files (SmartScreen
+warns on first run; the GPG signature and the attestation prove who built a file; see
+[Windows signing](#windows-signing)), Intel macOS and Linux arm64 (no hosted runner in the matrix). Releasing to a public store is a separate licensing decision (D2).
 
 ## The jobs
 
@@ -109,6 +109,25 @@ This repository adds:
   URL, set its hash to `PENDING` and run `libs/platforms/linux/packaging/pin_linuxdeploy.sh` on a machine
   you trust.
 
+## Windows signing
+
+The Windows leg signs behind the repository variable `SIGN_WINDOWS` (standard section 13, D17), with the
+shared `sign-windows` action of icl-common-infra:
+
+| `SIGN_WINDOWS` | What the leg does | Package names |
+| --- | --- | --- |
+| `false` (the default; unset counts as `false`) | nothing is signed | `...-win64-unsigned.zip`, `...-win64-unsigned.exe` |
+| `test` | `WordJewelsSolver.exe` and `wjs-cli.exe` are signed where they are built, so the ZIP and the installer carry the signed files; the installer is signed too; every signature has an RFC 3161 timestamp | `...-win64-testsigned.zip`, `...-win64-testsigned.exe` |
+| `production` | the action fails until a signing service is chosen and wired (D17, open) | none |
+
+`test` needs the organisation secrets `WIN_TESTSIGN_PFX_BASE64` and `WIN_TESTSIGN_PFX_PASSWORD`: the
+leaf certificate of the owner's personal CA, never the CA's key. It is trusted only on a machine that has
+the CA's root installed, so the release notes must say that a `-testsigned` file is a test signature
+([test signing](https://github.com/iainchesworthlabs/icl-common-infra/blob/develop/docs/test-signing.md)).
+Qt's own DLLs in the ZIP and the installer are not re-signed. A rehearsal signs and names the files the
+same way, so the mode can be tried with a dispatch before a tag. Changing the variable is the owner's
+(Settings, Secrets and variables, Actions, Variables).
+
 ## Checking a download
 
 With the files in one folder:
@@ -118,7 +137,7 @@ gpg --import docs/signing-key.asc
 gpg --fingerprint FD13CB8CAC8316648CD974D08149254C41894DBE   # compare with SECURITY.md
 gpg --verify SHA512SUMS.asc SHA512SUMS
 sha512sum -c SHA512SUMS
-gh attestation verify WordJewelsSolver-0.1.0-win64.zip --repo iainchesworthlabs/wordjewelssolver
+gh attestation verify WordJewelsSolver-0.1.0-win64-unsigned.zip --repo iainchesworthlabs/wordjewelssolver
 ```
 
 ## The SBOM

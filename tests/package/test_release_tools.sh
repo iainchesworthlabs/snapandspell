@@ -191,7 +191,16 @@ if awk '/^\s*run:/{r=1} r && /\$\{\{ *(github\.event|inputs|github\.head_ref)/ {
 grep -q 'persist-credentials: false' "$workflow" && ok "checkouts do not persist credentials" || bad "a checkout persists credentials"
 ios_secrets='IOS_DIST_CERTIFICATE_BASE64|IOS_DIST_CERTIFICATE_PASSWORD|IOS_PROVISIONING_PROFILE_BASE64|APPLE_TEAM_ID|APPLE_PROVISIONING_PROFILE_NAME'
 android_secrets='ANDROID_KEYSTORE_BASE64|ANDROID_KEYSTORE_PASSWORD|ANDROID_KEY_ALIAS|ANDROID_KEY_PASSWORD'
-if grep -E 'secrets\.' "$workflow" | grep -Ev "REPO_GPG_PRIVATE_KEY|REPO_GPG_PASSPHRASE|RELEASE_BOT_APP_ID|RELEASE_BOT_PRIVATE_KEY|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets" | grep -q .; then bad "release.yml uses a secret other than the organisation's release secrets and the macOS, iOS and Android signing secrets"; else ok "the only secrets are the organisation's four release secrets, the macOS ones, the five iOS ones and the four Android ones"; fi
+windows_secrets='WIN_TESTSIGN_PFX_BASE64|WIN_TESTSIGN_PFX_PASSWORD'
+if grep -E 'secrets\.' "$workflow" | grep -Ev "REPO_GPG_PRIVATE_KEY|REPO_GPG_PASSPHRASE|RELEASE_BOT_APP_ID|RELEASE_BOT_PRIVATE_KEY|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets|$windows_secrets" | grep -q .; then bad "release.yml uses a secret other than the organisation's release secrets and the macOS, iOS, Android and Windows signing secrets"; else ok "the only secrets are the organisation's four release secrets, the macOS ones, the five iOS ones, the four Android ones and the two Windows test-signing ones"; fi
+# Windows signing (docs/releasing.md, "Windows signing"): the test-signing certificate reaches the
+# shared sign-windows action and nothing else, and every use of the mode is the repository variable,
+# read as false when it is unset.
+if awk '/^[ \t]*- /{u=""} /^[ \t]*(-[ \t]*)?uses:/{u=$0} /secrets\.WIN_TESTSIGN/ && u !~ /actions\/sign-windows@[0-9a-f][0-9a-f]*/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "the Windows test-signing secrets go only to the sign-windows action"; else bad "a Windows test-signing secret is used outside the sign-windows action"; fi
+sign_uses="$(grep -c 'actions/sign-windows@' "$workflow" || true)"
+# shellcheck disable=SC2016 # the ${{ }} is the workflow's expression, searched for as text
+sign_modes="$(grep -Fc 'mode: ${{ vars.SIGN_WINDOWS || '"'"'false'"'"' }}' "$workflow" || true)"
+if [ "$sign_uses" -ge 1 ] && [ "$sign_uses" = "$sign_modes" ]; then ok "every sign-windows step takes its mode from SIGN_WINDOWS, false when unset"; else bad "a sign-windows step does not take its mode from vars.SIGN_WINDOWS || 'false' ($sign_uses steps, $sign_modes with the mode)"; fi
 
 # --- the iOS job: its secrets, its kit and what it hands to the assemble job ---------
 echo "release.yml, iOS"

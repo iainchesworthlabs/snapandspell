@@ -1,0 +1,1 @@
+**The Windows files say whether they are signed.** The ZIP and the installer are named `...-win64-unsigned` or `...-win64-testsigned`, and with a test signature the two programs and the installer carry an Authenticode signature that only a machine trusting the test CA accepts. Nothing is signed until the repository variable `SIGN_WINDOWS` is set to `test`.
