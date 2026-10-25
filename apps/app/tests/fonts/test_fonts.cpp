@@ -2,7 +2,9 @@
 #include "test_fonts.hpp"
 
 #include <QDir>
+#include <QFont>
 #include <QFontDatabase>
+#include <QGuiApplication>
 #include <QString>
 #include <QtLogging>
 #include <array>
@@ -24,6 +26,7 @@ bool load_house_fonts() {
                 all = false;
             }
         }
+        QGuiApplication::setFont(QFont(QStringLiteral("Archivo")));
         return all;
     }();
     return loaded;
