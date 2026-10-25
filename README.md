@@ -241,11 +241,10 @@ Pages source is set ([docs/ci.md](docs/ci.md#documentation-site)).
 
 ## Verifying a release
 
-Release files are signed with a GPG key whose fingerprint is
-`9A0D96E8944899F94B1B37B51F1A8DA4C79B19D2` (expires 2028-10-19), and carry a `SHA256SUMS` file, a software bill of
+Release files are signed with the organisation's GPG key, whose fingerprint is
+`FD13CB8CAC8316648CD974D08149254C41894DBE` (expires 2028-10-21), and carry a `SHA512SUMS` file, a software bill of
 materials and build-provenance attestations. How to check a download:
-[SECURITY.md](SECURITY.md#verifying-a-release) and
-[docs/ci.md](docs/ci.md#checking-a-download).
+[SECURITY.md](SECURITY.md#verifying-a-release).
 
 ## Contributing
 

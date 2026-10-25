@@ -1203,6 +1203,6 @@ These do not exist, and nothing in the tree stands in for them:
   and checks a ZIP ([Building](building.md#packaging)) and `release.yml` is written to
   make the installer, an AppImage, command-line packages and a macOS disk image, but it
   has never run, and the application has only been built on Windows in CI
-  ([CI](ci.md#not-verified-until-it-runs-on-github)).
+  ([Releasing](releasing.md#not-verified-until-it-runs-on-github)).
 
 The [roadmap](roadmap.md) has the plan and its order.

@@ -761,7 +761,7 @@ renders) is built on first use, a few milliseconds.
   permission prompt have not been seen. The application has only been built on
   Windows in CI: Linux and macOS compile the same Qt Multimedia variant only in
   the release workflow, which has never run
-  ([CI](../ci.md#not-verified-until-it-runs-on-github)).
+  ([Releasing](../releasing.md#not-verified-until-it-runs-on-github)).
 - **A child in the frame**: hands, a lid, the shake.
 - **Devices.** Every time on this page is a desktop; the iPad's is unmeasured.
 - **The board sizes.** The corpus draws 4x4, 5x5 and 6x6 only. The reader counts

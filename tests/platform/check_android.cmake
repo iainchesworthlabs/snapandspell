@@ -216,10 +216,10 @@ _read(".github/workflows/release.yml" _release_workflow)
 
 # The release workflow's Android job: from its name to the next job's comment.
 string(FIND "${_release_workflow}" "\n  android:\n" _job_start)
-string(FIND "${_release_workflow}" "\n  sign:\n" _job_end)
+string(FIND "${_release_workflow}" "\n  assemble:\n" _job_end)
 set(_release_job "")
 if(_job_start EQUAL -1 OR _job_end EQUAL -1 OR _job_end LESS _job_start)
-    _fail("release.yml has no android job before the sign job")
+    _fail("release.yml has no android job before the assemble job")
 else()
     math(EXPR _job_length "${_job_end} - ${_job_start}")
     string(SUBSTRING "${_release_workflow}" ${_job_start} ${_job_length} _release_job)
@@ -317,15 +317,15 @@ if(NOT "${_release_job}" STREQUAL "")
         endif()
     endforeach()
 
-    # The package family the signing job collects, and its dependence on this job.
+    # The package family the assemble job collects, and its dependence on this job.
     if(NOT _release_workflow MATCHES "pattern: package-[*]")
-        _fail("release.yml's signing job does not download package-*")
+        _fail("release.yml's assemble job does not download package-*")
     endif()
     if(NOT _release_workflow MATCHES "needs: [[]prepare, build, ios, android[]]")
-        _fail("release.yml's sign job does not wait for the android job")
+        _fail("release.yml's assemble job does not wait for the android job")
     endif()
     if(NOT _release_workflow MATCHES "contains[(]fromJSON[(]'[[]\"success\",\"skipped\"[]]'[)], needs[.]android[.]result[)]")
-        _fail("release.yml's sign job does not accept a skipped android job")
+        _fail("release.yml's assemble job does not accept a skipped android job")
     endif()
     # A skipped or secret-less run must not fail the release: the job's own check is
     # what says so, and it exits non-zero only for a partial set.
