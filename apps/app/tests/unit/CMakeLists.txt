@@ -392,6 +392,7 @@ target_link_libraries(wjs_scan_preview
     PRIVATE
         wjs_scan_uiplugin
         wjs_scan_synth
+        wjs_media_probe
         wjs_i18n
         wjs_trace
         wjs::lib
@@ -435,7 +436,10 @@ set_tests_properties(scan.screens PROPERTIES
 if(WJS_QT_HAS_MULTIMEDIA)
     add_test(NAME camera.screens
         COMMAND wjs_scan_preview --camera --out "${CMAKE_CURRENT_BINARY_DIR}/camera-screens")
+    # Exit 77 is "Qt Multimedia has no backend on this machine" (tests/media/media_probe.hpp): a
+    # skip, not a failure.
     set_tests_properties(camera.screens PROPERTIES
+        SKIP_RETURN_CODE 77
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
         TIMEOUT 180
         LABELS "system;ui;camera;gui")

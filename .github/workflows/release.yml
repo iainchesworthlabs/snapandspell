@@ -264,7 +264,10 @@ jobs:
       # renderer for the offscreen smoke, the X, font and D-Bus libraries its
       # platform plugin links, and the validators the AppImage recipe uses. The
       # list is Qt's documented one for Linux; it is unmeasured on the hosted image
-      # (docs/ci.md, "Releases").
+      # (docs/ci.md, "Releases"). The last line is what Qt Multimedia's FFmpeg backend looks
+      # for at run time (PipeWire, and VA-API for the hardware decoders): without it Qt
+      # warns once per library that it could not load it, and the QML suites that show the
+      # camera's live view fail on a warning.
       - name: Install what Qt needs (Linux, application)
         if: matrix.leg == 'linux-app'
         run: |
@@ -276,6 +279,7 @@ jobs:
             libxcb-xinerama0 libxcb-xkb1 libxcb-shape0 libxcb-randr0 libxcb-shm0 libxcb-sync1 \
             libxcb-xfixes0 libx11-xcb1 libxi6 libsm6 libice6 libxrender1 \
             libpulse-dev libasound2-dev libwayland-client0 \
+            libpipewire-0.3-0t64 libva2 libva-x11-2 libva-drm2 \
             desktop-file-utils appstream file
 
       - name: Configure

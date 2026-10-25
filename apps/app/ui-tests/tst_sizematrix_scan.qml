@@ -20,6 +20,9 @@ SizeMatrixCase {
     name: "SizeMatrixScan"
     subjects: [readyComponent, cameraComponent, typedComponent, readComponent, assistComponent,
                assistFoundComponent]
+    // Subject 1 is the live view, a VideoOutput.
+    skipSubjects: fixture.mediaBackendAvailable ? [] : [1]
+    skipReason: "Qt Multimedia has no backend on this machine"
 
     readonly property var board: ["S", "A", "T", "X", "P", "I", "N", "X",
                                   "X", "X", "X", "X", "X", "X", "X", "X"]

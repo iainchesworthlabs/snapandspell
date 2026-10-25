@@ -93,6 +93,7 @@ target_include_directories(wjs_quick_tests_support
         "${PROJECT_SOURCE_DIR}/apps/app/tests/unit/parent_ui")
 target_link_libraries(wjs_quick_tests_support
     PUBLIC
+        wjs_media_probe
         wjs_i18n
         wjs_trace
         wjs::lib

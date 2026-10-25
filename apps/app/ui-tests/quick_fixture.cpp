@@ -8,6 +8,7 @@
 #include "assist_game.hpp"
 #include "camera_source.hpp"
 #include "fake_solo_game.hpp"
+#include "media_probe.hpp"
 #include "wjs/scan/reading.hpp"
 
 namespace {
@@ -138,6 +139,10 @@ bool QuickFixture::readDoubtfulBoard() {
     reading.tiles[3].confidence = 0.5;
     reading.tiles[3].doubtful = true;
     return scan_->useReading(reading);
+}
+
+bool QuickFixture::mediaBackendAvailable() const {
+    return wjs::app::test::mediaBackendAvailable();
 }
 
 void QuickFixture::useCamera() {

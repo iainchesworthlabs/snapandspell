@@ -55,6 +55,10 @@ class CameraSource;
 class QuickFixture final : public QObject {
     Q_OBJECT
 
+    // Whether Qt Multimedia has a backend on this machine (tests/media/media_probe.hpp). A suite
+    // that shows the camera's live view skips its camera cases where it has none.
+    Q_PROPERTY(bool mediaBackendAvailable READ mediaBackendAvailable CONSTANT)
+
 public:
     explicit QuickFixture(QObject* parent = nullptr);
     ~QuickFixture() override;
@@ -91,6 +95,8 @@ public:
     // fake's frames are made up or absent. A suite that does not call this gets
     // the no-camera screen, as the program on a desktop with no webcam does.
     Q_INVOKABLE void useCamera();
+
+    [[nodiscard]] bool mediaBackendAvailable() const;
 
 private:
     // Everything one parent area is made of: the store, the phase data and the

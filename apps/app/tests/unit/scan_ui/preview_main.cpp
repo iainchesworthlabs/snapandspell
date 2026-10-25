@@ -42,6 +42,7 @@
 #include "assist_model.hpp"
 #include "camera_source.hpp"
 #include "language_manager.hpp"
+#include "media_probe.hpp"
 #include "scan_model.hpp"
 #include "wjs/board.hpp"
 #include "wjs/calendar.hpp"
@@ -730,6 +731,14 @@ int main(int argc, char* argv[]) {
         return result;
     }
     if (is_camera) {
+        // The live view is a VideoOutput, which needs a Qt Multimedia backend. Without one the
+        // screens are not what is wrong, so this is a skip: exit 77, which the CTest entry reads
+        // as one (apps/app/tests/unit/CMakeLists.txt).
+        if (!wjs::app::test::mediaBackendAvailable()) {
+            std::fprintf(stderr,
+                         "camera screens: skipped, Qt Multimedia has no backend on this machine\n");
+            return 77;
+        }
         const int result = run_camera_check(out);
         std::fprintf(stderr, result == 0 ? "camera screens: ok\n" : "camera screens: FAILED\n");
         return result;
