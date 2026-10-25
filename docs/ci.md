@@ -272,7 +272,7 @@ import beside the binary, as the application's own deploy does for its screens.
   built only on Windows. `release.yml` installs the Linux and macOS kits
   (`qt.kits` in `.github/toolchain-versions.json`) for its first builds of it
   there, and the iOS jobs install Qt's iOS kit; of those only the unsigned iOS
-  compile has run ([below](#not-verified-until-it-runs-on-github)).
+  compile has run ([Releasing](releasing.md#not-verified-until-it-runs-on-github)).
   `QT_QPA_PLATFORM=offscreen` lets the screens run on a runner with no display.
 - **The feedback and camera modules are optional.** `apps/app/src` finds Multimedia,
   Sensors and TextToSpeech with `OPTIONAL_COMPONENTS` and selects a silent
