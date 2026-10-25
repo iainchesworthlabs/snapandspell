@@ -562,8 +562,11 @@ IBM Plex Mono and Andika from `assets/fonts` before a screen is loaded (`wjs_tes
 whatever the machine has: every label has another width, so a layout assertion (the action zone's sizes,
 the frame's room) measures the fallback and fails on a machine whose fallback differs from the
 author's, and on macOS Qt warns that it is replacing the missing "Archivo", which a run that treats a
-warning as a failure cannot pass. The glyph check of `language_test.cpp` does not load them: it asks what
-the platform's own fonts cover, and skips on a machine with none.
+warning as a failure cannot pass. Archivo is also made the application's default font: a Text that names
+no family takes the platform theme's, the offscreen platform's is the generic "Sans Serif", macOS has no
+such family and Qt warns again ('missing font family "Sans Serif"'); the Cocoa platform of the real
+application supplies a system font, so only the tests need it. The glyph check of `language_test.cpp` does
+not load them: it asks what the platform's own fonts cover, and skips on a machine with none.
 
 ### Camera tests without a media backend
 
