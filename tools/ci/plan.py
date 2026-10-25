@@ -8,7 +8,8 @@
 The changed paths and the scope (build, gui, docs only) come from plan_gate.py in
 icl-common-infra. This script turns the scope and the event into the jobs to run:
 
-    pull request   Linux GCC and coverage, when the change can alter the build or the tests
+    pull request   Linux GCC, coverage and the fuzz regression replay, when the change can alter the build
+                   or the tests
     merge queue    the same, plus Windows, performance, package and TSan; macOS when the change
                    touches platform code, CMake or the gate itself
     push           every leg
@@ -19,7 +20,7 @@ icl-common-infra. This script turns the scope and the event into the jobs to run
 A diff that cannot be read, an empty diff and an unrecognised path all mean "build everything".
 
 It prints key=value lines for $GITHUB_OUTPUT: legs (a JSON list for the build-and-test matrix),
-performance, package, coverage, tsan (true or false) and expected (job id to whether the plan
+performance, package, coverage, tsan, fuzz (true or false) and expected (job id to whether the plan
 asked for it, which the CI Status job holds the run to).
 """
 
@@ -34,14 +35,20 @@ from pathlib import Path
 
 DESKTOP = ["linux", "windows", "macos"]
 PROFILING = ["profiling-windows", "profiling-linux", "profiling-macos"]
-OTHER = ["performance", "package", "coverage", "tsan"]
+OTHER = ["performance", "package", "coverage", "tsan", "fuzz"]
 DISPATCH_NAMES = (
-    ["all", "clang-format", "platform-isolation", "windows", "linux", "macos", "coverage", "perf", "package", "tsan"]
+    ["all", "clang-format", "platform-isolation", "windows", "linux", "macos", "coverage", "perf", "package", "tsan", "fuzz"]
     + ["profiling"]
     + PROFILING
 )
 # The job ids of ci.yml that the plan decides.
-JOB_IDS = {"performance": "performance", "package": "package-windows", "coverage": "coverage", "tsan": "tsan"}
+JOB_IDS = {
+    "performance": "performance",
+    "package": "package-windows",
+    "coverage": "coverage",
+    "tsan": "tsan",
+    "fuzz": "fuzz-regress",
+}
 
 
 def load_gate(path: str):
@@ -69,12 +76,20 @@ def changed_paths(base: str, head: str) -> list[str] | None:
 
 
 def empty() -> dict:
-    return {"legs": [], "performance": False, "package": False, "coverage": False, "tsan": False, "reason": ""}
+    return {
+        "legs": [],
+        "performance": False,
+        "package": False,
+        "coverage": False,
+        "tsan": False,
+        "fuzz": False,
+        "reason": "",
+    }
 
 
 def everything(reason: str) -> dict:
     plan = empty()
-    plan.update(legs=list(DESKTOP), performance=True, package=True, coverage=True, tsan=True, reason=reason)
+    plan.update(legs=list(DESKTOP), performance=True, package=True, coverage=True, tsan=True, fuzz=True, reason=reason)
     return plan
 
 
@@ -95,6 +110,7 @@ def dispatch(legs: str) -> dict:
     plan["package"] = everything_named or "package" in wanted
     plan["coverage"] = everything_named or "coverage" in wanted
     plan["tsan"] = everything_named or "tsan" in wanted
+    plan["fuzz"] = everything_named or "fuzz" in wanted
     plan["reason"] = f"manual run: {legs or 'all'}"
     return plan
 
@@ -120,7 +136,7 @@ def decide(event: str, *, draft: bool, labels: list[str], paths: list[str] | Non
     reason = scope["reason"] or "a build path changed"
     if event == "pull_request":
         plan = empty()
-        plan.update(legs=["linux"], coverage=True, reason=reason)
+        plan.update(legs=["linux"], coverage=True, fuzz=True, reason=reason)
         return plan
     if event == "merge_group":
         platform = (

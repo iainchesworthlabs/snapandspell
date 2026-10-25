@@ -1,0 +1,3 @@
+# phase: A
+sat   s a t
+cake  c a_ k _e

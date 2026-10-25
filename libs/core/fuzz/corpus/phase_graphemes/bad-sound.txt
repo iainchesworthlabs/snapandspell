@@ -1,0 +1,2 @@
+# phase: A
+a    t1  clip:c1

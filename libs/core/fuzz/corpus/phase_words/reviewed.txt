@@ -1,0 +1,9 @@
+# phase: A
+# reviewed-by: A. Reviewer
+# reviewed-on: 2026-10-01
+# source: a hand-made seed for the fuzzer, not teaching data
+cake  c a_ k _e
+pot   p o:2 t
+rain  r ai n
+sat   s a t
+the   tricky

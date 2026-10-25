@@ -1,0 +1,17 @@
+wjs-store 3
+settings help=off board=phonics phase=B focus=ai,ee size=4 sound_it_out=full celebration=full sound=1 vibration=1 shake=1 motion=system colour=dark timer=down timer_minutes=15 text=125 font=- language=-
+total stars=12 next_board=4
+best 3 5
+best 4 9
+word pin 20738 20739 3 2
+word sat 20738 20738 1 1
+find sat 1 3 A 20738 0 2
+find pin 3 3 A 20739 1 2
+day 20738 0 1
+day 20739 1 3
+board 2 20738 3 A 0 2 4 3 S,A,T/P,I,N/T,A,P sat,pin,tap
+board 3 20739 4 - 0 0 0 40 S,A,T,P/I,N,S,A/T,P,I,N/A,T,S,P -
+session state=playing size=3 seed=77 lit=pin
+sboard A 3 S,A,T/P,I,N/T,A,P 3 sat,pin,tap
+sfind sat 0 20739 1
+end 1bbb7ede6b6b7780

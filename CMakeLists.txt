@@ -85,6 +85,7 @@ include(Hardening)
 include(Sanitizers)
 include(Coverage)
 include(Tracy)
+include(Fuzzing)
 # The interface's languages (cmake/Translations.cmake): the lists lupdate scans
 # and the catalogues lrelease compiles. The function itself is called by
 # apps/app/src once Qt's Linguist tools have been found.
@@ -235,6 +236,12 @@ wjs_write_notices()
 # ---------------------------------------------------------------------------
 # Targets
 # ---------------------------------------------------------------------------
+# The tests the libraries register themselves (the fuzz regression replays, libs/<lib>/fuzz) need
+# CTest on before their directories are added; the suites in tests/ come last.
+if(WJS_BUILD_TESTS OR WJS_ENABLE_FUZZING)
+    enable_testing()
+endif()
+
 # Everything that differs between operating systems, behind the interfaces in
 # libs/platforms/interfaces. Compiled from the sources the selected platform's
 # platform.cmake names.
@@ -279,7 +286,6 @@ elseif(WJS_BUILD_SHAKE_PROTOTYPE)
 endif()
 
 if(WJS_BUILD_TESTS)
-    enable_testing()
     add_subdirectory(tests)
 endif()
 
