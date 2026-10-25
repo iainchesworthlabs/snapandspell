@@ -1,0 +1,4 @@
+wjs-store 2
+settings help=1 board=standard phase=A focus=- size=3 sound_it_out=full celebration=full sound=1 vibration=1 shake=1 motion=system colour=system text=100 font=- language=zh
+total stars=0 next_board=1
+end f515e0edfad82d27

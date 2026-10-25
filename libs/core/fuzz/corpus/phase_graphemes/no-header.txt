@@ -1,0 +1,12 @@
+a    /t1/  clip:c1
+a_e  /t2/  clip:c2
+ai   /t3/  clip:c3
+c    /t4/  clip:c4
+k    /t5/  clip:c5
+n    /t6/  clip:c6
+o    /tb/  clip:cb
+o    /tc/  clip:cc
+p    /t7/  clip:c7
+r    /t8/  clip:c8
+s    /t9/  clip:c9
+t    /ta/  clip:ca

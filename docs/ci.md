@@ -27,6 +27,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | Workflow | Purpose | Runs on a private copy? |
 | --- | --- | --- |
 | `ci.yml` | the shared Policy job, `clang-format`, `platform-isolation`, the Windows / Linux / macOS build-and-test legs, a coverage report, the performance work budgets, ThreadSanitizer and a Release package check on Windows; which of them run depends on the event ([What runs when](#what-runs-when)); by hand, the profiling builds too | yes |
+| `fuzz.yml` | the libFuzzer harnesses of the readers ([Fuzzing](fuzzing.md)): 60 seconds a target on a push to `develop`, 10 minutes a target nightly (03:47 UTC) with the corpus kept between runs; a nightly crash opens the `nightly-analysis` issue; not required | yes |
 | `analysis.yml` | nightly, on `develop`: `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
 | `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS the ad-hoc iOS IPA and, when its signing secrets are set, the signed Android APK and AAB, source archive and SBOM, then the shared publish job (checksums, GPG signatures, attestations, a GitHub Release, `main`); by hand or weekly: the packages without publishing ([Releasing](releasing.md)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
 | `android-build.yml` | the debug-signed Android APK, built and looked inside, only when what Android reads changes; no secret, not required ([Android](#android)) | yes |
@@ -112,6 +113,7 @@ job names are free to change, as `CI Status` waits for them by job id.
 | `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. In the merge queue and on a push; `CI Status` holds the run to it when the plan asked for it. |
 | `Package (Windows, Release)` | windows-2025-vs2026 | Preset `windows-msvc-release` (the Qt application on, tests off, Tracy and the sanitizers off, the same Qt kit as the Windows leg) builds, then `tools/package/check_package.ps1` makes the ZIP and proves it carries no `TracyClient`, AddressSanitizer runtime or `.pdb`, unpacks it, solves a board with the packaged `wjs-cli` and runs the packaged window's offscreen smoke, and `tools/release/check_release_build.ps1` checks the cache and the package. The ZIP and `SHA256SUMS` are the `wordjewelssolver-windows-x64` artifact (14 days). It is the proof, in the merge queue and on a push, that a Release package is clean. |
 | `ThreadSanitizer (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-tsan` (`-O1`, Tracy off, the Qt application not built) builds the solver, the scanner and the command line and runs their unit, integration and system tests with `halt_on_error` and the suppressions in `tools/sanitizers/tsan.supp`. The image's Clang and its sanitizer runtime are used, as in `analysis.yml`. In the merge queue and on a push. |
+| `Fuzz regression (Linux, Clang)` | ubuntu-26.04 | Preset `linux-fuzz` (Clang, libFuzzer, AddressSanitizer and UBSan, the libraries and the harnesses only) builds the harnesses of `libs/core/fuzz` and `libs/scan/fuzz` and `ctest --preset linux-fuzz` replays each over its seed corpus and the inputs that once crashed it, in seconds. In every pull request that builds, the merge queue and on a push. |
 | `CI Status` | ubuntu-24.04 | The aggregate of every job above. It fails when any of them failed, was cancelled, or was skipped although the plan asked for it. The rulesets require this job in place of the legs by name. A manual dispatch skips it. |
 
 ### What runs when
@@ -124,11 +126,11 @@ drafts included.
 | --- | --- | --- |
 | Draft pull request | none | |
 | Pull request that changes only documentation, the changelog fragments, issue and PR templates, or files no build reads (`CODEOWNERS`, `dependabot.yml`, `REUSE.toml`, the hooks) | none | |
-| Pull request that changes anything else | Linux (GCC) | Coverage |
-| Pull request with the `deep` label | all three desktop legs | Coverage, performance, package, TSan |
-| Merge queue entry, same rule for what changed | Linux and Windows; macOS too when the change touches `libs/platforms`, `cmake/`, the top-level CMake and manifest files or the workflows | Coverage, performance, package, TSan |
-| Push to `develop` or `main`, same rule | all three desktop legs | Coverage, performance, package, TSan |
-| Manual run | the legs named in `legs` (default `all`) | `tsan` is a leg name; the profiling legs run only by name |
+| Pull request that changes anything else | Linux (GCC) | Coverage, fuzz regression |
+| Pull request with the `deep` label | all three desktop legs | Coverage, fuzz regression, performance, package, TSan |
+| Merge queue entry, same rule for what changed | Linux and Windows; macOS too when the change touches `libs/platforms`, `cmake/`, the top-level CMake and manifest files or the workflows | Coverage, fuzz regression, performance, package, TSan |
+| Push to `develop` or `main`, same rule | all three desktop legs | Coverage, fuzz regression, performance, package, TSan |
+| Manual run | the legs named in `legs` (default `all`) | `tsan` and `fuzz` are leg names; the profiling legs run only by name |
 
 A path that `.github/ci/plan.json` does not list, a diff that cannot be read
 and a change to the workflows or `tools/ci` all count as "can alter the build".
@@ -897,7 +899,7 @@ ruleset. The other jobs are not required by name:
 | Job | Workflow | Reached through |
 | --- | --- | --- |
 | `Policy`, `Vendored CMake modules`, `clang-format`, `platform-isolation`, `Plan build legs` | `ci.yml` | `CI Status` |
-| `Windows (MSVC)`, `Linux (GCC)`, `macOS (AppleClang)`, `Coverage (Linux, GCC)`, `Performance (Linux, GCC)`, `ThreadSanitizer (Linux, Clang)`, `Package (Windows, Release)` | `ci.yml` | `CI Status`, when the plan asked for the job |
+| `Windows (MSVC)`, `Linux (GCC)`, `macOS (AppleClang)`, `Coverage (Linux, GCC)`, `Performance (Linux, GCC)`, `ThreadSanitizer (Linux, Clang)`, `Fuzz regression (Linux, Clang)`, `Package (Windows, Release)` | `ci.yml` | `CI Status`, when the plan asked for the job |
 | `iOS (device, unsigned compile)` | `ios-build.yml` | not required: path-filtered, and a macOS minute is billed at a multiple |
 | `Android (arm64-v8a, debug-signed APK)` | `android-build.yml` | not required: path-filtered, and the Qt kits are a download of several gigabytes |
 | `CodeQL / Analyze (cpp)`, `clang-tidy`, `MSVC /analyze`, `Sanitizers (Linux, Clang)` | `codeql.yml`, `analysis.yml` | not required: nightly, informational |

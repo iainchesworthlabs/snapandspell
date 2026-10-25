@@ -169,6 +169,7 @@ point scoring; the options of `wjs-cli` have no equivalent in it.
 | [Building](building.md) | Requirements, presets, options, vcpkg and Qt, platform notes |
 | [Testing](testing.md) | The suites and checks, sanitizers, coverage, the performance tests |
 | [Profiling](profiling.md) | Profiling with Tracy: building, capturing, reading a trace |
+| [Fuzzing](fuzzing.md) | The libFuzzer harnesses of the readers: running them, the corpus, what CI does |
 | [Architecture](architecture.md) | The library and the platform layer |
 | [Platform isolation](platform-isolation.md) | The rule about operating system code, and its check |
 | [Licensing](licensing.md) | The licence, the dependencies, the word-list question |

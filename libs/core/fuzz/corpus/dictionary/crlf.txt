@@ -1,0 +1,3 @@
+cat
+care
+tar

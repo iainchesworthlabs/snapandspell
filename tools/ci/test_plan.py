@@ -36,23 +36,23 @@ class PlanTest(unittest.TestCase):
     def test_pull_request_builds_linux_and_coverage(self):
         plan = self.decide("pull_request", ["libs/core/src/solver.cpp"])
         self.assertEqual(plan["legs"], ["linux"])
-        self.assertTrue(plan["coverage"])
+        self.assertTrue(plan["coverage"] and plan["fuzz"])
         self.assertFalse(plan["tsan"] or plan["performance"] or plan["package"])
 
     def test_draft_runs_nothing(self):
         plan = self.decide("pull_request", ["libs/core/src/solver.cpp"], draft=True)
         self.assertEqual(plan["legs"], [])
-        self.assertFalse(plan["coverage"])
+        self.assertFalse(plan["coverage"] or plan["fuzz"])
 
     def test_deep_label_runs_everything_even_on_a_draft(self):
         plan = self.decide("pull_request", ["docs/ci.md"], draft=True, labels=["deep"])
         self.assertEqual(plan["legs"], planner.DESKTOP)
-        self.assertTrue(plan["tsan"] and plan["performance"] and plan["package"] and plan["coverage"])
+        self.assertTrue(plan["tsan"] and plan["performance"] and plan["package"] and plan["coverage"] and plan["fuzz"])
 
     def test_queue_adds_windows_but_not_macos(self):
         plan = self.decide("merge_group", ["libs/core/src/solver.cpp"])
         self.assertEqual(plan["legs"], ["linux", "windows"])
-        self.assertTrue(plan["tsan"] and plan["performance"] and plan["package"] and plan["coverage"])
+        self.assertTrue(plan["tsan"] and plan["performance"] and plan["package"] and plan["coverage"] and plan["fuzz"])
 
     def test_queue_adds_macos_for_platform_code_cmake_and_the_gate(self):
         for path in ("libs/platforms/macos/foo.cpp", "cmake/Warnings.cmake", "CMakeLists.txt", ".github/workflows/ci.yml"):
@@ -74,13 +74,14 @@ class PlanTest(unittest.TestCase):
     def test_dispatch_all(self):
         plan = planner.dispatch("all")
         self.assertEqual(plan["legs"], planner.DESKTOP)
-        self.assertTrue(plan["tsan"] and plan["performance"] and plan["package"] and plan["coverage"])
+        self.assertTrue(plan["tsan"] and plan["performance"] and plan["package"] and plan["coverage"] and plan["fuzz"])
 
     def test_dispatch_names_and_profiling(self):
         plan = planner.dispatch("macos,tsan")
         self.assertEqual(plan["legs"], ["macos"])
         self.assertTrue(plan["tsan"])
-        self.assertFalse(plan["performance"] or plan["package"] or plan["coverage"])
+        self.assertFalse(plan["performance"] or plan["package"] or plan["coverage"] or plan["fuzz"])
+        self.assertTrue(planner.dispatch("fuzz")["fuzz"])
         self.assertEqual(planner.dispatch("profiling")["legs"], planner.PROFILING)
         self.assertEqual(planner.dispatch("profiling-linux")["legs"], ["profiling-linux"])
         self.assertEqual(planner.dispatch("all")["legs"], planner.DESKTOP)
@@ -94,7 +95,14 @@ class PlanTest(unittest.TestCase):
         plan = self.decide("merge_group", ["libs/core/src/solver.cpp"])
         self.assertEqual(
             planner.expected(plan),
-            {"build-and-test": True, "performance": True, "package-windows": True, "coverage": True, "tsan": True},
+            {
+                "build-and-test": True,
+                "performance": True,
+                "package-windows": True,
+                "coverage": True,
+                "tsan": True,
+                "fuzz-regress": True,
+            },
         )
         self.assertFalse(any(planner.expected(self.decide("pull_request", ["docs/a.md"])).values()))
 
