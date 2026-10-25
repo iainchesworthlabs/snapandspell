@@ -1,7 +1,7 @@
 # Pinned tooling for the documentation build (.github/workflows/docs.yml) and for
 # local use:
 #   pip install -r .github/requirements/docs.txt
-#   mkdocs build --strict --config-file .github/mkdocs-ci.yml
+#   mkdocs build --strict
 # mkdocs is held at 1.x on purpose: Material for MkDocs says MkDocs 2.0 will
 # break its theme and plugin system. Dependabot's pip ecosystem for
 # /.github/requirements keeps these current, and a major MkDocs bump is its own

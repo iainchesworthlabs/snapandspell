@@ -22,7 +22,7 @@ runs:
       env:
         CCACHE_VERSION: "4.14.1"
         CCACHE_SHA256: 6219f3865ca59aec41ee4b678df171d5d35855ecb2b6dbbbd20690b3a68af7b4
-      run: |
+      run: | # zizmor: ignore[github-env] the path is under RUNNER_TEMP and the archive is checked against the pinned digest
         $ErrorActionPreference = 'Stop'
         $name = "ccache-$env:CCACHE_VERSION-windows-x86_64"
         $zip = Join-Path $env:RUNNER_TEMP "$name.zip"

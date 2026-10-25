@@ -1,20 +1,18 @@
 name: Docs
 
-# Builds the documentation site (mkdocs.yml, docs/) as strictly as the site can
-# be built, and publishes it to GitHub Pages from main. The strictness is
-# .github/mkdocs-ci.yml: a link to a page or a heading that does not exist is a
-# red build, not a dead link on the site.
+# Builds the documentation site (mkdocs.yml, docs/) with `mkdocs build --strict`
+# and publishes it to GitHub Pages from main. Both steps are the shared
+# workflows of icl-common-infra (docs.yml and docs-deploy.yml). The strictness
+# is the `validation` block of mkdocs.yml: a link to a page or a heading that
+# does not exist is a red build, not a dead link on the site.
 #
 # Not a required check, and not on the merge queue: it runs only when the
 # documentation changes, and a check that a path filter keeps from running never
 # reports, which would hold every unrelated pull request.
 #
-# A push to main publishes the site, so merging develop to main for a release is
+# A push to main publishes the site, so the release that fast-forwards main is
 # what makes it exist, and the iOS install page (docs/install-ios.html) with it.
-# The one thing that cannot be done from here is setting the repository's Pages
-# source to "GitHub Actions", once, in its settings (docs/ci.md, "Documentation
-# site"); until that is done the deploy job fails with GitHub's own message saying
-# so.
+# The repository's Pages source is "GitHub Actions" (admin/apply.sh sets it).
 
 on:
   pull_request:
@@ -22,7 +20,6 @@ on:
     paths:
       - "docs/**"
       - "mkdocs.yml"
-      - ".github/mkdocs-ci.yml"
       - ".github/requirements/docs.txt"
       - ".github/workflows/docs.yml"
   push:
@@ -30,7 +27,6 @@ on:
     paths:
       - "docs/**"
       - "mkdocs.yml"
-      - ".github/mkdocs-ci.yml"
       - ".github/requirements/docs.txt"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
@@ -46,50 +42,18 @@ permissions: {}
 jobs:
   build:
     name: Build the documentation (strict)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
-        with:
-          enable-cache: false
-
-      - name: Install mkdocs (pinned)
-        run: |
-          uv venv "$RUNNER_TEMP/docs-venv"
-          uv pip install --python "$RUNNER_TEMP/docs-venv/bin/python" --requirement .github/requirements/docs.txt
-          echo "$RUNNER_TEMP/docs-venv/bin" >> "$GITHUB_PATH"
-
-      - name: mkdocs build --strict
-        run: mkdocs build --strict --config-file .github/mkdocs-ci.yml
-
-      # Only a build of main is published; the artifact is made on any push to
-      # main or manual run so that the deploy job has nothing else to do.
-      - name: Package the site for Pages
-        if: ${{ github.event_name != 'pull_request' }}
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: site
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/docs.yml@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+    with:
+      requirements: .github/requirements/docs.txt
+      upload: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
 
   deploy:
     name: Publish to GitHub Pages
     if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
     needs: build
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/docs-deploy.yml@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13

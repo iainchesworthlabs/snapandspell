@@ -18,7 +18,7 @@ runs:
       shell: bash
       env:
         VCPKG_REPOSITORY: ${{ inputs.repository }}
-      run: |
+      run: | # zizmor: ignore[github-env] VCPKG_ROOT is built from RUNNER_TEMP and a literal suffix
         set -euo pipefail
         pin="$(tr -d '[:space:]' < "$GITHUB_WORKSPACE/cmake/vcpkg-commit.txt")"
         root="$RUNNER_TEMP/vcpkg"
