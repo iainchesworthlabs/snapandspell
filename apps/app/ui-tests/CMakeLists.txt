@@ -60,6 +60,9 @@ qt_add_qml_module(wjs_quick_test_scene
     QML_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/scene_stub/BoardScene.qml"
         "${CMAKE_CURRENT_SOURCE_DIR}/scene_stub/Profiler.qml")
+
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(wjs_quick_test_scene)
 target_link_libraries(wjs_quick_test_scene PUBLIC Qt6::Qml Qt6::Quick)
 
 # The models the screens bind to, and the fixture that hands them to a suite, in
@@ -173,6 +176,9 @@ qt_add_qml_module(wjs_quick_tests
         "${PROJECT_SOURCE_DIR}/apps/app/src/solo/board_layout.cpp"
         "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_layout.cpp"
         "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.cpp")
+
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(wjs_quick_tests)
 
 target_link_libraries(wjs_quick_tests
     PRIVATE

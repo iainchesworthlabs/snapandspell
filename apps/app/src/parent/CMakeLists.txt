@@ -70,6 +70,9 @@ qt_add_qml_module(wjs_parent
         parent_controller.cpp
         parent_controller.hpp)
 
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(wjs_parent)
+
 target_include_directories(wjs_parent
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"

@@ -304,6 +304,14 @@ jobs:
         with:
           preset: ${{ env.WJS_PRESET }}
 
+      # GCC 16, the floor in the standard, from the pin in .github/toolchain-versions.json.
+      # Ubuntu 26.04 carries it as a pre-release snapshot until the release is
+      # packaged; the toolchain step below prints the exact version. The presets name
+      # `g++`, which the action makes this compiler.
+      - name: Install GCC (Linux)
+        if: runner.os == 'Linux'
+        uses: iainchesworthlabs/icl-common-infra/actions/setup-gcc@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+
       # What the leg actually built with, in the log: the first thing to read
       # when a compiler-specific failure shows up.
       - name: Show the toolchain
@@ -496,6 +504,10 @@ jobs:
         uses: ./.github/actions/vcpkg-cache/restore
         with:
           triplet: x64-linux
+
+      # GCC 16, as in build-and-test.
+      - name: Install GCC
+        uses: iainchesworthlabs/icl-common-infra/actions/setup-gcc@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
 
       - name: Install CMake 4 + Ninja
         uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
@@ -731,6 +743,10 @@ jobs:
         uses: ./.github/actions/vcpkg-cache/restore
         with:
           triplet: x64-linux
+
+      # GCC 16, as in build-and-test.
+      - name: Install GCC
+        uses: iainchesworthlabs/icl-common-infra/actions/setup-gcc@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
 
       - name: Install CMake 4 + Ninja
         uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4

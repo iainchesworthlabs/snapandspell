@@ -239,6 +239,9 @@ qt_add_qml_module(wjs_parent_preview_kit
     SOURCES
         "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.cpp"
         "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.hpp")
+
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(wjs_parent_preview_kit)
 target_include_directories(wjs_parent_preview_kit PUBLIC "${PROJECT_SOURCE_DIR}/apps/app/src")
 target_link_libraries(wjs_parent_preview_kit
     PUBLIC
@@ -266,6 +269,9 @@ qt_add_qml_module(wjs_parent_preview
     URI ParentPreview
     VERSION 1.0
     QML_FILES parent_ui/PreviewHost.qml)
+
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(wjs_parent_preview)
 # A console program, so that the check's findings reach the test log.
 set_target_properties(wjs_parent_preview PROPERTIES WIN32_EXECUTABLE OFF)
 target_include_directories(wjs_parent_preview PRIVATE "${PROJECT_SOURCE_DIR}/apps/app/src/parent")
@@ -371,6 +377,9 @@ qt_add_qml_module(wjs_scan_preview
         "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_layout.cpp"
         "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.cpp"
         "${PROJECT_SOURCE_DIR}/apps/app/src/system_motion.cpp")
+
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(wjs_scan_preview)
 
 target_include_directories(wjs_scan_preview PRIVATE
     "${PROJECT_SOURCE_DIR}/apps/app/src"

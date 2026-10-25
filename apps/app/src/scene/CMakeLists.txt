@@ -63,6 +63,9 @@ qt_add_qml_module(wjs_scene
         profiler.cpp
         profiler.hpp)
 
+# GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
+icl_relax_generated_warnings(wjs_scene)
+
 target_include_directories(wjs_scene PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # The C++ the QML compiler writes is built with the target's warnings as errors,
