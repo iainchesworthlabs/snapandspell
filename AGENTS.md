@@ -9,6 +9,8 @@ hand will also find it a short list of what the checks expect; [CONTRIBUTING.md]
   lower-case slug with hyphens. Never commit to `develop` or `main` directly.
 - Commit with `git commit -s`. Write the subject in the imperative, 72 characters or fewer, and the body as a plain
   description of what changed and why.
+- Before pushing, commit and run `python3 tools/ci/precheck.py`. It runs the pull request gate's static checks on your
+  commits and says what the gate will build.
 - Open pull requests against `develop`. Fill in the pull request template. Squash merge through the merge queue is the
   only method.
 - Build and test with the presets in `CMakePresets.json` (`linux-gcc-debug`, `windows-msvc-debug`,
