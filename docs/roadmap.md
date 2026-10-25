@@ -241,7 +241,7 @@ The same application on the other targets named in the brief.
 
 ### Cross-cutting
 
-Fuzz the board parser and dictionary loader; raise the coverage gate beyond its
+Raise the coverage gate beyond its
 90% line / 80% branch baseline (the gate itself is in place: `coverage-unit`,
 the CI job and `coverage-ui`); a macro-free route through Tracy's runtime
 source-location API is built and settled (the integration uses CMake-selected

@@ -252,6 +252,25 @@
       ]
     },
     {
+      "name": "linux-fuzz",
+      "displayName": "Linux (Clang, libFuzzer harnesses)",
+      "description": "Builds the libraries and the libFuzzer harnesses only (libs/<lib>/fuzz), with AddressSanitizer and UBSan; ctest --preset linux-fuzz replays the seed corpus and the past crashes. Debug, so the standard library's assertions are on; no Tracy, no Qt application, no tests, and no hardening flags (a fortified libc call bypasses AddressSanitizer).",
+      "inherits": [
+        "linux-clang-base",
+        "debug"
+      ],
+      "cacheVariables": {
+        "WJS_ENABLE_FUZZING": "ON",
+        "WJS_ENABLE_SANITIZERS": "OFF",
+        "WJS_ENABLE_TRACY": "OFF",
+        "WJS_ENABLE_HARDENING": "OFF",
+        "WJS_BUILD_APP": "OFF",
+        "WJS_BUILD_CLI": "OFF",
+        "WJS_BUILD_TESTS": "OFF",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF"
+      }
+    },
+    {
       "name": "macos-clang-base",
       "hidden": true,
       "inherits": [
@@ -386,6 +405,7 @@
     { "name": "linux-gcc-analysis", "configurePreset": "linux-gcc-analysis" },
     { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" },
     { "name": "linux-clang-tsan", "configurePreset": "linux-clang-tsan" },
+    { "name": "linux-fuzz", "configurePreset": "linux-fuzz" },
     { "name": "ios-release", "configurePreset": "ios-release", "configuration": "Release", "targets": ["WordJewelsSolver"] },
     { "name": "android-arm64-release", "configurePreset": "android-arm64-release", "targets": ["apk"] },
     { "name": "android-arm64-debuggable", "configurePreset": "android-arm64-debuggable", "targets": ["apk"] }
@@ -419,6 +439,12 @@
     { "name": "linux-gcc-profiling", "configurePreset": "linux-gcc-profiling", "inherits": ["base"] },
     { "name": "macos-clang-profiling", "configurePreset": "macos-clang-profiling", "inherits": ["base"] },
     { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug", "inherits": ["base"] },
+    {
+      "name": "linux-fuzz",
+      "configurePreset": "linux-fuzz",
+      "inherits": ["base"],
+      "filter": { "include": { "label": "fuzz" } }
+    },
     {
       "name": "linux-clang-tsan",
       "configurePreset": "linux-clang-tsan",

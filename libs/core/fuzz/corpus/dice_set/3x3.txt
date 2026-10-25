@@ -1,0 +1,23 @@
+# dice for a 3x3 board: 9 dice of 6 faces, one a line
+# made-by: tools/data/make_dice.ps1
+# table: Scrabble-style English tile frequencies, the 100-tile English counts
+#   (98 letter tiles; the two blanks are not faces). These are published English
+#   letter counts, not a copied printed die set:
+#   A9 B2 C2 D4 E12 F2 G3 H2 I9 J1 K1 L4 M2 N6 O8 P2 Q1 R6 S4 T6 U4 V2 W2 X1 Y2 Z1
+# method: the project's own dice. Six different letters to a die, drawn without
+#   replacement in proportion to the table; a die is dealt again unless it has one
+#   to three vowels and at most one of J K Q V X Z. A set is dealt again unless
+#   30% to 40% of its faces are vowels and S is at most 8% of them.
+#   Q is the tile QU. Faces of a die are in ordinal letter order. Each size has
+#   its own seed and its own dice: the 3x3 is not a window on the 4x4.
+# prng: 32-bit LCG, state = state * 1664525 + 1013904223 mod 2^32; a draw below n is (state >> 8) mod n
+# seed: 86870
+E G L M S T
+A D E H I R
+D E N O QU Y
+A L N O T W
+A E H N O S
+A D E K L N
+A B E I N R
+C F P R T U
+C D F I M U

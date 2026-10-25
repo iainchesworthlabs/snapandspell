@@ -29,12 +29,14 @@ in [Application design](design/application.md#privacy-built-in-and-checked) and
 The program reads files that a person or another program may have written: the board text, the store
 file, the phonics phase files, the word list and the dice file. The store is versioned, written
 atomically and capped in size, and a damaged or newer file is refused without overwriting the good one.
-Fuzz harnesses for the readers (standard section 6.6) are planned and do not exist yet.
+Each of these readers, and the scanner's reading of a camera frame, has a libFuzzer harness
+([Fuzzing](fuzzing.md)); the pull request gate replays the seeds and the inputs that once crashed one, and
+`fuzz.yml` fuzzes on a push to `develop` and every night. The command line's argument parser has none yet.
 
 ## Hardening
 
 The libraries, the command line and the application are built with `icl::hardening` from
-icl-common-infra (`cmake/Hardening.cmake`, option `WJS_ENABLE_HARDENING`, on in every preset). With GCC and
+icl-common-infra (`cmake/Hardening.cmake`, option `WJS_ENABLE_HARDENING`, on in every preset but the fuzzing one). With GCC and
 Clang that is `-fstack-protector-strong`, `_FORTIFY_SOURCE=3` outside Debug, `-fcf-protection=full` on x86-64,
 position-independent code and `-Wl,-z,relro,-z,now` (not on Apple platforms); with MSVC it is `/GS /guard:cf /sdl`
 and `/GUARD:CF /DYNAMICBASE /NXCOMPAT /CETCOMPAT`. The test executables do not carry it. On Linux the test
