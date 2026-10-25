@@ -302,7 +302,7 @@ another platform's fragment (a renamed file, a hook that was never defined)
 would otherwise be found only by someone on that platform. The check includes
 every fragment under `libs/platforms/`, each in a process of its own, and holds
 it to the contract in `cmake/PlatformContract.cmake`: every variable and hook
-defined, `WJS_PLATFORM_DESKTOP` either `ON` or `OFF`, every file it compiles
+defined, `WJS_PLATFORM_DESKTOP` either `ON` or `OFF`, `WJS_PLATFORM_EXECUTABLE_FORMAT` one of `elf`, `pe` and `mach-o`, every file it compiles
 present, and every interface header under
 `libs/platforms/interfaces/wjs/platform/` included by one of the fragment's own
 sources (so a new interface, haptics included, cannot link by accident). It

@@ -380,9 +380,9 @@ endif()
 # What the hardening flags (cmake/Hardening.cmake) did to the built command line, read back
 # from the ELF file: PIE, relro with immediate binding, a stack protector and, on x86-64,
 # the control-flow protection note (read from the game library: the linker drops the note from
-# a program when a startup file of the distribution lacks it). Linux only: the other platforms
-# have no readelf to ask.
-if(WJS_ENABLE_HARDENING AND WJS_BUILD_CLI AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+# a program when a startup file of the distribution lacks it). Where programs are ELF files
+# (WJS_PLATFORM_EXECUTABLE_FORMAT) and readelf is there to ask.
+if(WJS_ENABLE_HARDENING AND WJS_BUILD_CLI AND WJS_PLATFORM_EXECUTABLE_FORMAT STREQUAL "elf")
     find_program(WJS_READELF NAMES readelf)
     if(WJS_READELF)
         add_test(NAME hardening.binary
