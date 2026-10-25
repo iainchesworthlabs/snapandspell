@@ -1051,7 +1051,9 @@ jobs:
           prefix="WordJewelsSolver-${version}-source"
           mkdir -p extras
           git archive --format=tar --prefix="$prefix/" HEAD | gzip -n -9 > "extras/${prefix}.tar.gz"
-          tar -tzf "extras/${prefix}.tar.gz" | grep -qx "$prefix/CMakeLists.txt"
+          # No -q: grep -q leaves at the first match, and tar, still listing, is then written to a closed
+          # pipe ("tar: stdout: write error", exit 2), which pipefail makes the step's failure.
+          tar -tzf "extras/${prefix}.tar.gz" | grep -x "$prefix/CMakeLists.txt" > /dev/null
           ls -l "extras/${prefix}.tar.gz"
 
       - name: Generate the SBOM (CycloneDX 1.6)
