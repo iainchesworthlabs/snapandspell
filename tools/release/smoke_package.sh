@@ -61,7 +61,9 @@ for package in "$@"; do
       check_tree "$work" ;;
     *.rpm)
       { command -v rpm2cpio >/dev/null 2>&1 && command -v cpio >/dev/null 2>&1; } || fail "rpm2cpio and cpio are needed to open $name"
-      (cd "$work" && rpm2cpio "$package" | cpio -idm --quiet)
+      # rpm2cpio reads the package from where the script was started, so a relative path is
+      # still right; only cpio runs in the work directory.
+      rpm2cpio "$package" | (cd "$work" && cpio -idm --quiet)
       check_tree "$work" ;;
     *.dmg)
       command -v hdiutil >/dev/null 2>&1 || fail "hdiutil is needed to open $name (macOS only)"
