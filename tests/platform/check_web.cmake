@@ -44,7 +44,7 @@ foreach(_file IN ITEMS
         "${_dir}/fatal_error_web.cpp"
         "${_dir}/qml_plugins_web.cpp"
         "${_dir}/packaging/index.html.in"
-        "${_dir}/packaging/wjs-boot.js"
+        "${_dir}/packaging/sns-boot.js"
         "${_dir}/packaging/manifest.webmanifest.in"
         "${_dir}/packaging/verify_web.sh"
         "${_dir}/packaging/smoke_web.sh"
@@ -60,10 +60,10 @@ endforeach()
 
 _read("${_dir}/platform.cmake" _fragment)
 foreach(_pair IN ITEMS
-        "WJS_PLATFORM_EXECUTABLE_FORMAT|wasm"
-        "WJS_PLATFORM_DESKTOP|OFF"
-        "WJS_PLATFORM_QT_DEPLOY_AT_INSTALL|OFF"
-        "WJS_PLATFORM_QT_ARCH_DIRS|wasm_singlethread")
+        "SNS_PLATFORM_EXECUTABLE_FORMAT|wasm"
+        "SNS_PLATFORM_DESKTOP|OFF"
+        "SNS_PLATFORM_QT_DEPLOY_AT_INSTALL|OFF"
+        "SNS_PLATFORM_QT_ARCH_DIRS|wasm_singlethread")
     string(REPLACE "|" ";" _parts "${_pair}")
     list(GET _parts 0 _name)
     list(GET _parts 1 _value)
@@ -76,8 +76,8 @@ endforeach()
 if(_fragment MATCHES "wasm_multithread")
     _fail("platform.cmake names the multithreaded kit; a page needs cross-origin isolation headers to use it")
 endif()
-if(_fragment MATCHES "WJS_ENABLE_TRACY")
-    _fail("platform.cmake mentions WJS_ENABLE_TRACY; the preset keeps Tracy off")
+if(_fragment MATCHES "SNS_ENABLE_TRACY")
+    _fail("platform.cmake mentions SNS_ENABLE_TRACY; the preset keeps Tracy off")
 endif()
 if(_fragment MATCHES "Quick3D|quick3d")
     _fail("platform.cmake mentions Quick 3D; the web build draws the 2D scene")
@@ -86,29 +86,29 @@ endif()
 # ---- the persistent directory has one name ----------------------------------------
 
 set(_persist "")
-if(_fragment MATCHES "set[(]WJS_WEB_PERSISTENT_DIR \"([^\"]+)\"[)]")
+if(_fragment MATCHES "set[(]SNS_WEB_PERSISTENT_DIR \"([^\"]+)\"[)]")
     set(_persist "${CMAKE_MATCH_1}")
 else()
-    _fail("platform.cmake does not set WJS_WEB_PERSISTENT_DIR")
+    _fail("platform.cmake does not set SNS_WEB_PERSISTENT_DIR")
 endif()
 _read("${_dir}/paths_web.cpp" _paths)
 if(NOT _paths MATCHES "persistent_directory = \"([^\"]+)\"" OR NOT CMAKE_MATCH_1 STREQUAL _persist)
     _fail("paths_web.cpp's persistent_directory is not '${_persist}', which platform.cmake mounts")
 endif()
-_read("${_dir}/packaging/wjs-boot.js" _boot)
+_read("${_dir}/packaging/sns-boot.js" _boot)
 if(NOT _boot MATCHES "PERSIST_DIR = '([^']+)'" OR NOT CMAKE_MATCH_1 STREQUAL _persist)
-    _fail("wjs-boot.js's PERSIST_DIR is not '${_persist}', which platform.cmake names")
+    _fail("sns-boot.js's PERSIST_DIR is not '${_persist}', which platform.cmake names")
 endif()
 # The environment variable that makes Qt keep its per-user data below it.
 if(NOT _boot MATCHES "XDG_DATA_HOME: PERSIST_DIR")
-    _fail("wjs-boot.js does not point XDG_DATA_HOME at PERSIST_DIR, so the store would not be kept")
+    _fail("sns-boot.js does not point XDG_DATA_HOME at PERSIST_DIR, so the store would not be kept")
 endif()
 # The program has to export what the boot script uses.
 if(NOT _fragment MATCHES "QT_WASM_EXTRA_EXPORTED_METHODS \"ENV\"")
-    _fail("platform.cmake does not export ENV, which wjs-boot.js sets XDG_DATA_HOME on")
+    _fail("platform.cmake does not export ENV, which sns-boot.js sets XDG_DATA_HOME on")
 endif()
 if(NOT _fragment MATCHES "-lidbfs[.]js")
-    _fail("platform.cmake does not link idbfs, which wjs-boot.js mounts")
+    _fail("platform.cmake does not link idbfs, which sns-boot.js mounts")
 endif()
 # The page's policy allows no eval, which embind's call stubs need unless the program is linked without
 # dynamic execution; and it allows connections to the page's own site only.
@@ -126,7 +126,7 @@ endif()
 # ---- every QML module the application imports is linked in -----------------------------
 
 # <module imported by the QML> -> <the plugin class qml_plugins_web.cpp imports and the CMake target
-# platform.cmake links>. A module that is the project's own (WordJewelsSolver and its submodules) is
+# platform.cmake links>. A module that is the project's own (SnapAndSpell and its submodules) is
 # named by its class; QtQuick.Controls brings its Basic style and the implementation modules.
 set(_modules
     "QtQml|QtQmlPlugin|Qt6::qmlplugin"
@@ -140,9 +140,9 @@ set(_modules
     "QtQuick.Controls.impl|QtQuickControls2ImplPlugin|Qt6::qtquickcontrols2implplugin"
     "QtQuick.Controls.Basic|QtQuickControls2BasicStylePlugin|Qt6::qtquickcontrols2basicstyleplugin"
     "QtQuick.Controls.Basic.impl|QtQuickControls2BasicStyleImplPlugin|Qt6::qtquickcontrols2basicstyleimplplugin"
-    "WordJewelsSolver.Parent|WordJewelsSolver_ParentPlugin|"
-    "WordJewelsSolver.Scan|WordJewelsSolver_ScanPlugin|"
-    "WordJewelsSolver.Scene|WordJewelsSolver_ScenePlugin|")
+    "SnapAndSpell.Parent|SnapAndSpell_ParentPlugin|"
+    "SnapAndSpell.Scan|SnapAndSpell_ScanPlugin|"
+    "SnapAndSpell.Scene|SnapAndSpell_ScenePlugin|")
 _read("${_dir}/qml_plugins_web.cpp" _plugins)
 set(_known_modules "")
 foreach(_entry IN LISTS _modules)
@@ -185,7 +185,7 @@ foreach(_qml IN LISTS _qml_files)
 endforeach()
 list(REMOVE_DUPLICATES _shipped_imports)
 foreach(_imported IN LISTS _shipped_imports)
-    if(_imported STREQUAL "WordJewelsSolver")
+    if(_imported STREQUAL "SnapAndSpell")
         continue()  # the application's own module, registered by the program
     endif()
     if(NOT _imported IN_LIST _known_modules)
@@ -232,12 +232,12 @@ if(DEFINED _INDEX_web-base)
     endif()
     foreach(_pair IN ITEMS
             "VCPKG_TARGET_TRIPLET=wasm32-emscripten"
-            "WJS_BUILD_APP=ON"
-            "WJS_BUILD_CLI=OFF"
-            "WJS_BUILD_TESTS=OFF"
-            "WJS_ENABLE_TRACY=OFF"
-            "WJS_ENABLE_SANITIZERS=OFF"
-            "WJS_ENABLE_HARDENING=OFF")
+            "SNS_BUILD_APP=ON"
+            "SNS_BUILD_CLI=OFF"
+            "SNS_BUILD_TESTS=OFF"
+            "SNS_ENABLE_TRACY=OFF"
+            "SNS_ENABLE_SANITIZERS=OFF"
+            "SNS_ENABLE_HARDENING=OFF")
         string(FIND "${_pair}" "=" _equals)
         string(SUBSTRING "${_pair}" 0 ${_equals} _key)
         math(EXPR _start "${_equals} + 1")
@@ -280,8 +280,8 @@ foreach(_i RANGE 0 ${_build_last})
 endforeach()
 if(NOT "web-release" IN_LIST _build_presets)
     _fail("CMakePresets.json has no build preset 'web-release'")
-elseif(NOT "${_BUILD_TARGETS_web-release}" MATCHES "WordJewelsSolver")
-    _fail("the build preset 'web-release' does not build the WordJewelsSolver target")
+elseif(NOT "${_BUILD_TARGETS_web-release}" MATCHES "SnapAndSpell")
+    _fail("the build preset 'web-release' does not build the SnapAndSpell target")
 endif()
 
 # ---- the pins ------------------------------------------------------------------------

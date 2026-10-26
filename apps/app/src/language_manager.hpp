@@ -8,7 +8,7 @@
 
 class QTranslator;
 
-namespace wjs::app {
+namespace sns::app {
 
 // The interface's language, in one place: the catalogue installed on the
 // application, the layout direction and the code the screens read
@@ -22,7 +22,7 @@ namespace wjs::app {
 // by whoever owns the engine, through `languageChanged` (main.cpp connects it to
 // `QQmlEngine::retranslate`).
 //
-// The catalogues are the `:/i18n/wjs_<code>.qm` resources built from `i18n/`.
+// The catalogues are the `:/i18n/sns_<code>.qm` resources built from `i18n/`.
 // The board, the dice letters and the word list are never translated: the game
 // is an English word game and the chrome around it is what changes.
 class LanguageManager : public QObject {
@@ -39,7 +39,7 @@ public:
     explicit LanguageManager(QObject* parent = nullptr);
     ~LanguageManager() override;
 
-    // The eight codes, in the order the store and `wjs::languages` have them.
+    // The eight codes, in the order the store and `sns::languages` have them.
     [[nodiscard]] static QStringList languages();
     [[nodiscard]] static bool is_known(const QString& code);
     // Hebrew and Yiddish, and nothing else, are right to left.
@@ -73,4 +73,4 @@ private:
     std::unique_ptr<QTranslator> translator_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

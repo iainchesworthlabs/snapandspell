@@ -1,14 +1,14 @@
 # Playing in a browser
 
-Word Jewels Solver builds to WebAssembly: the same program, drawn by Qt Quick into a page. This page says
+Snap and Spell builds to WebAssembly: the same program, drawn by Qt Quick into a page. This page says
 what the web build is, what it does not have, how it keeps what a child has done, and what is needed to
 put the game on a web address. How it is built is in [Building](building.md#web) and how CI checks it is in
 [CI](ci.md#web).
 
 ## What it is
 
-- **One page and four files.** `index.html`, a boot script (`wjs-boot.js`), Qt's loader (`qtloader.js`) and the
-  program (`WordJewelsSolver.js` and `WordJewelsSolver.wasm`), with an icon and a manifest. It is a directory of
+- **One page and four files.** `index.html`, a boot script (`sns-boot.js`), Qt's loader (`qtloader.js`) and the
+  program (`SnapAndSpell.js` and `SnapAndSpell.wasm`), with an icon and a manifest. It is a directory of
   static files: any web server serves it, over HTTP or HTTPS, from the root or from a folder.
 - **The whole game.** Solo Play with the 2D board scene, the parent area and its settings, My jewels, the
   history, the languages, and Mode A's screens, which tell a browser has no camera and offer typing the board.
@@ -46,7 +46,7 @@ web build's author and not yet confirmed by the owner (a loader of the project's
 ## What it keeps, and where
 
 The program's one file, its store (the child's words and stars and the grown-ups' settings), is written to
-`/persist` in the program's own file system. `wjs-boot.js` makes `/persist` a directory of the browser's
+`/persist` in the program's own file system. `sns-boot.js` makes `/persist` a directory of the browser's
 **IndexedDB** before the program starts, reads what an earlier visit left there, and writes it back every
 four seconds and when the page is hidden or closed. So:
 
@@ -59,7 +59,7 @@ four seconds and when the page is hidden or closed. So:
 
 ## Putting it on an address
 
-The build makes the directory `build/web-release/web-bundle/` and CI zips it as `WordJewelsSolver-<version>-web.zip`
+The build makes the directory `build/web-release/web-bundle/` and CI zips it as `SnapAndSpell-<version>-web.zip`
 (the `web-bundle` artifact of the [Web build](ci.md#web) workflow). Three ways to host it, and what each
 needs:
 

@@ -25,7 +25,7 @@ set(_header "| ID | Requirement | Status | Implemented in | Demonstrated by | No
 # One tree: a source file, a test file, an index stating `untested`, and one
 # requirements page made of `rows` (each a full table line) with `verified` as its
 # verification line. `expect` is a text the report must contain, or CLEAN.
-function(wjs_case label expect untested verified rows)
+function(sns_case label expect untested verified rows)
     set(_tree "${WORK_DIR}/case")
     file(REMOVE_RECURSE "${_tree}")
     file(MAKE_DIRECTORY "${_tree}/docs/requirements" "${_tree}/src" "${_tree}/tests")
@@ -63,31 +63,31 @@ endfunction()
 
 set(_good_row "| R-THG-01 | It works | Implemented | `src/thing.cpp` | `tests/thing_test.cpp::the thing; with a semicolon and [brackets]` | n |")
 
-wjs_case("a row whose test exists" CLEAN 0 "${_verified}" "${_good_row}")
-wjs_case("two references in one cell" CLEAN 0 "${_verified}"
+sns_case("a row whose test exists" CLEAN 0 "${_verified}" "${_good_row}")
+sns_case("two references in one cell" CLEAN 0 "${_verified}"
     "| R-THG-01, R-THG-02 | It works | Partial | `src/thing.cpp` | `tests/thing_test.cpp::another case`<br>`tests/thing_test.cpp::the thing; with a semicolon and [brackets]` | n |")
-wjs_case("a row with no test, counted" CLEAN 1 "${_verified}"
+sns_case("a row with no test, counted" CLEAN 1 "${_verified}"
     "| R-THG-01 | It works | Implemented | `src/thing.cpp` | — | n |")
-wjs_case("a deferred row needs no test" CLEAN 0 "${_verified}"
+sns_case("a deferred row needs no test" CLEAN 0 "${_verified}"
     "| R-THG-01 | Later | Deferred | — | — | n |")
-wjs_case("a test that is gone" "not in tests/thing_test.cpp" 0 "${_verified}"
+sns_case("a test that is gone" "not in tests/thing_test.cpp" 0 "${_verified}"
     "| R-THG-01 | It works | Implemented | `src/thing.cpp` | `tests/thing_test.cpp::the thing was renamed` | n |")
-wjs_case("a test file that is gone" "does not exist" 0 "${_verified}"
+sns_case("a test file that is gone" "does not exist" 0 "${_verified}"
     "| R-THG-01 | It works | Implemented | `src/thing.cpp` | `tests/other_test.cpp::another case` | n |")
-wjs_case("a status that is not one" "status 'Done'" 0 "${_verified}"
+sns_case("a status that is not one" "status 'Done'" 0 "${_verified}"
     "| R-THG-01 | It works | Done | `src/thing.cpp` | `tests/thing_test.cpp::another case` | n |")
-wjs_case("an ID twice" "appears twice" 0 "${_verified}"
+sns_case("an ID twice" "appears twice" 0 "${_verified}"
     "${_good_row}\n| R-THG-01 | Again | Implemented | `src/thing.cpp` | `tests/thing_test.cpp::another case` | n |")
-wjs_case("an ID that is not one" "is not an ID" 0 "${_verified}"
+sns_case("an ID that is not one" "is not an ID" 0 "${_verified}"
     "| R-1 | It works | Implemented | `src/thing.cpp` | `tests/thing_test.cpp::another case` | n |")
-wjs_case("an implemented-in path that is gone" "which does not exist" 0 "${_verified}"
+sns_case("an implemented-in path that is gone" "which does not exist" 0 "${_verified}"
     "| R-THG-01 | It works | Implemented | `src/gone.cpp` | `tests/thing_test.cpp::another case` | n |")
-wjs_case("a page without its verification" "Verified at" 0 "Nothing here." "${_good_row}")
-wjs_case("an untested count that grew" "have no test" 0 "${_verified}"
+sns_case("a page without its verification" "Verified at" 0 "Nothing here." "${_good_row}")
+sns_case("an untested count that grew" "have no test" 0 "${_verified}"
     "| R-THG-01 | It works | Implemented | `src/thing.cpp` | — | n |")
-wjs_case("an untested count that was not lowered" "have no test" 3 "${_verified}"
+sns_case("an untested count that was not lowered" "have no test" 3 "${_verified}"
     "| R-THG-01 | It works | Implemented | `src/thing.cpp` | `tests/thing_test.cpp::another case` | n |")
-wjs_case("a row that is not six cells" "not six cells" 0 "${_verified}"
+sns_case("a row that is not six cells" "not six cells" 0 "${_verified}"
     "| R-THG-01 | It works | Implemented |")
 
 if(_failures)

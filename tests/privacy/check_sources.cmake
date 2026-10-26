@@ -43,12 +43,12 @@ set(_after "($|[^A-Za-z0-9_])")
 
 set(_rule_count 0)
 
-# wjs_rule(<id> <scope> <boundary> <advice> <name>...)
+# sns_rule(<id> <scope> <boundary> <advice> <name>...)
 #   scope: ALL, SRC (src/ only), NOSTORE (src/ except the store's source) or
 #          CODE (source code, not build files, manifests or metadata)
 #   boundary: WORD (the name is not part of a longer identifier) or NONE (the
 #             name ends in punctuation, and what follows is not for the rule)
-function(wjs_rule id scope boundary advice)
+function(sns_rule id scope boundary advice)
     set(_alternatives "")
     foreach(_name IN LISTS ARGN)
         if(_alternatives)
@@ -70,7 +70,7 @@ function(wjs_rule id scope boundary advice)
 endfunction()
 
 # --- audio: nothing records sound -------------------------------------------
-wjs_rule(audio.capture ALL WORD
+sns_rule(audio.capture ALL WORD
     "No audio is recorded (12.2): sound is output only"
     "QAudioSource" "QAudioInput" "QMediaRecorder" "QAudioRecorder" "setAudioInput" "audioInput"
     "AudioInput" "MediaRecorder"
@@ -78,12 +78,12 @@ wjs_rule(audio.capture ALL WORD
     "waveInOpen" "IAudioCaptureClient" "snd_pcm_open" "pa_simple_new" "ma_device_type_capture"
     "AudioRecord" "RECORD_AUDIO" "NSMicrophoneUsageDescription" "device.audio-input")
 # getUserMedia is how a page asks for a camera; asking for audio is the rule.
-wjs_rule(audio.web ALL WORD
+sns_rule(audio.web ALL WORD
     "A page may ask for a camera, never for audio"
     "audio[ ]*:[ ]*true")
 
 # --- network: no capability, no use ------------------------------------------
-wjs_rule(network.classes ALL WORD
+sns_rule(network.classes ALL WORD
     "No network capability (12.2): no network class is used"
     "QNetworkAccessManager" "QNetworkRequest" "QNetworkReply" "QNetworkProxy"
     "QNetworkInformation" "QNetworkInterface" "QTcpSocket" "QTcpServer" "QUdpSocket"
@@ -91,15 +91,15 @@ wjs_rule(network.classes ALL WORD
     "QDnsLookup" "QHostInfo" "QHostAddress" "QLocalSocket" "QNetworkDatagram"
     "QtNetwork" "XMLHttpRequest" "WebSocket" "EventSource"
     "libcurl" "curl_easy_init" "WSAStartup" "getaddrinfo" "gethostbyname")
-wjs_rule(network.headers ALL WORD
+sns_rule(network.headers ALL WORD
     "No network header is included"
     "sys/socket.h" "netinet/in.h" "arpa/inet.h" "netdb.h" "winsock2.h" "ws2tcpip.h"
     "QtNetwork/[A-Za-z]+")
 # A URL in code is a place to go to. A URL in a comment is prose and skipped.
-wjs_rule(network.url CODE NONE
+sns_rule(network.url CODE NONE
     "No URL literal in code: the application has nowhere to go"
     "\"https?://")
-wjs_rule(network.modules ALL WORD
+sns_rule(network.modules ALL WORD
     "No Qt module whose job is the network is linked or found"
     "Qt6::Network" "Qt6::NetworkAuth" "Qt6::WebSockets" "Qt6::WebEngine[A-Za-z]*" "Qt6::WebView"
     "Qt6::HttpServer" "Qt6::Bluetooth" "Qt6::Nfc" "Qt6::Positioning"
@@ -110,31 +110,31 @@ wjs_rule(network.modules ALL WORD
 # the platform-isolation check (docs/platform-isolation.md), and this is not one.
 string(CONCAT _permission "andro" "id.permission.")
 string(CONCAT _entitlement "com.ap" "ple.security.")
-wjs_rule(network.manifest ALL WORD
+sns_rule(network.manifest ALL WORD
     "No network permission or entitlement in a manifest or property list"
     "${_permission}INTERNET" "${_permission}ACCESS_NETWORK_STATE" "${_permission}ACCESS_WIFI_STATE"
     "${_entitlement}network.client" "${_entitlement}network.server" "NSAllowsArbitraryLoads")
 
 # --- export: nothing leaves the device ---------------------------------------
-wjs_rule(export.share ALL WORD
+sns_rule(export.share ALL WORD
     "Zero export (12.2): no share sheet, print, mail, clipboard or file-save dialog"
     "QPrinter" "QPrintDialog" "QPrintPreviewDialog" "QPdfWriter" "QFileDialog" "QDesktopServices"
     "QClipboard" "QDrag" "QShareSheet" "QSaveFile"
     "UIActivityViewController" "NSSharingService" "UIPrintInteractionController" "ACTION_SEND"
     "FileDialog" "FolderDialog" "QtQuick.Dialogs" "Qt.labs.platform" "Qt.openUrlExternally"
     "ShellExecute" "ShellExecuteW")
-wjs_rule(export.mail ALL NONE
+sns_rule(export.mail ALL NONE
     "Zero export (12.2): no mail"
     "mailto:")
-wjs_rule(export.launch SRC WORD
+sns_rule(export.launch SRC WORD
     "No other program is started from the application"
     "QProcess" "CreateProcess" "CreateProcessW" "popen" "execv" "execvp" "posix_spawn")
-wjs_rule(export.system SRC WORD
+sns_rule(export.system SRC WORD
     "No other program is started from the application"
     "std::system")
 # The store is the one file the application writes: its source is the one place
 # that opens a file for writing or changes the file system.
-wjs_rule(export.write NOSTORE WORD
+sns_rule(export.write NOSTORE WORD
     "The application writes one file, the store, and only libs/core/src/store.cpp opens it"
     "std::ofstream" "std::fstream" "std::wofstream" "_wfopen" "freopen" "QFile::WriteOnly"
     "QIODevice::WriteOnly" "QIODevice::Append" "QIODevice::ReadWrite" "QIODeviceBase::WriteOnly"
@@ -143,7 +143,7 @@ wjs_rule(export.write NOSTORE WORD
     "std::filesystem::remove" "std::filesystem::remove_all" "std::filesystem::create_directories"
     "std::filesystem::create_directory" "std::filesystem::create_symlink"
     "std::filesystem::resize_file" "std::filesystem::permissions")
-wjs_rule(export.fopen NOSTORE NONE
+sns_rule(export.fopen NOSTORE NONE
     "The application writes one file, the store, and only libs/core/src/store.cpp opens it"
     "fopen[(][^)]*\"[wa+]")
 

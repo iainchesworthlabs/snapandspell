@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "name": "wordjewelssolver",
+  "name": "snapandspell",
   "version": "0.1.0",
   "description": "Finds every word on a Boggle board.",
   "homepage": "https://github.com/iainchesworthlabs/wordjewelssolver",
@@ -23,7 +23,7 @@
       ]
     },
     "profiling": {
-      "description": "Tracy profiler instrumentation (WJS_ENABLE_TRACY). Opt-in and never part of a shipped build: the profiling presets turn it on, so a normal build never pulls it in",
+      "description": "Tracy profiler instrumentation (SNS_ENABLE_TRACY). Opt-in and never part of a shipped build: the profiling presets turn it on, so a normal build never pulls it in",
       "dependencies": [
         {
           "name": "tracy",

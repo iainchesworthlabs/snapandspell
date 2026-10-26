@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The child's own collection, reached from home. It is where the weekly stars,
 // the words and the earlier boards live, so the play panel can be about the

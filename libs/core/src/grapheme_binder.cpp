@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/grapheme_binder.hpp"
+#include "sns/grapheme_binder.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -7,10 +7,10 @@
 #include <utility>
 
 #include "ascii.hpp"
-#include "wjs/binder_work.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/binder_work.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 using ascii::lower;
@@ -98,4 +98,4 @@ std::vector<GraphemeBinder::Block> GraphemeBinder::bind(const Board& board,
     return bind(tiles);
 }
 
-}  // namespace wjs
+}  // namespace sns

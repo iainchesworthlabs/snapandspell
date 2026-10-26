@@ -19,10 +19,10 @@
 #   3. runs linuxdeploy with its Qt plugin over the AppDir, which finds the Qt
 #      libraries, plugins and QML modules the program needs by reading the program
 #      and the application's QML, and writes
-#      <out>/WordJewelsSolver-<version>-x86_64.AppImage;
+#      <out>/SnapAndSpell-<version>-x86_64.AppImage;
 #   4. with --smoke, runs that AppImage's `--smoke 10` offscreen.
 #
-# The AppImage holds the window; wjs-cli is in the tar.gz/ZIP/deb/rpm of the
+# The AppImage holds the window; sns-cli is in the tar.gz/ZIP/deb/rpm of the
 # command-line package. Needs a Linux host with the Qt kit and the libraries Qt
 # itself needs (docs/ci.md, "Releases"). Unverified until the release rehearsal
 # runs it: nothing here has been built on a machine with a Qt kit for Linux.
@@ -57,7 +57,7 @@ fi
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/../../../.." && pwd)"
-id="org.iainchesworth.wordjewelssolver"
+id="com.iainchesworthlabs.snapandspell"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 [ -n "$tools" ] || tools="$work/tools"
@@ -121,7 +121,7 @@ export PATH="$tools:$PATH"
 (
   cd "$work"
   "$tools/linuxdeploy-x86_64.AppImage" --appdir "$appdir" \
-    --executable "$appdir/usr/bin/WordJewelsSolver" \
+    --executable "$appdir/usr/bin/SnapAndSpell" \
     --desktop-file "$appdir/usr/share/applications/$id.desktop" \
     --icon-file "$appdir/usr/share/icons/hicolor/512x512/apps/$id.png" \
     --plugin qt --output appimage
@@ -129,7 +129,7 @@ export PATH="$tools:$PATH"
 
 built="$(find "$work" -maxdepth 1 -name '*.AppImage' | head -n 1)"
 [ -n "$built" ] || { echo "build_appimage.sh: linuxdeploy wrote no AppImage" >&2; exit 1; }
-final="$out/WordJewelsSolver-$version-x86_64.AppImage"
+final="$out/SnapAndSpell-$version-x86_64.AppImage"
 mv "$built" "$final"
 chmod +x "$final"
 echo "==> $final ($(du -h "$final" | cut -f1))"

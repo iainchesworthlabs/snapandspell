@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 import "SizeMatrix.js" as SizeMatrix
 
 // The size matrix's audit held to cases: it must find the things it is there to

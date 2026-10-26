@@ -4,7 +4,7 @@
 #
 # The install rules as a system: install the built tree into a throw-away
 # prefix, check the layout a package promises (the programs, the dictionary, the
-# licence and the third-party notices), and run the installed wjs-cli from that
+# licence and the third-party notices), and run the installed sns-cli from that
 # prefix so the installed dictionary is the one it reads.
 #
 # `package.config` reads the generated scripts; this runs them. Both are wanted:
@@ -18,7 +18,7 @@
 #   -DRUNTIME_DIR=<the build's bin directory>
 #
 # RUNTIME_DIR is put on PATH for the installed program. A Debug build links the
-# sanitizer runtime and CMake's wjs_deploy_sanitizer_runtime copies it beside the
+# sanitizer runtime and CMake's sns_deploy_sanitizer_runtime copies it beside the
 # build's programs, not into the install prefix; the installed program is being
 # checked for its layout and its data, not for carrying a development runtime.
 # ---------------------------------------------------------------------------
@@ -59,12 +59,12 @@ function(expect_file path what)
 endfunction()
 
 set(_bin "${_prefix}/bin")
-set(_cli "${_bin}/wjs-cli${EXE_SUFFIX}")
+set(_cli "${_bin}/sns-cli${EXE_SUFFIX}")
 # The application is an ordinary executable in the bindir on Windows and Linux
 # and a bundle on macOS; the platform fragment names the directory its data and
 # executable share, and tests/CMakeLists.txt passes it, so there is no OS test
 # here.
-set(_app "${_bin}/WordJewelsSolver${EXE_SUFFIX}")
+set(_app "${_bin}/SnapAndSpell${EXE_SUFFIX}")
 if(DEFINED APP_RELATIVE AND NOT "${APP_RELATIVE}" STREQUAL "")
     set(_app "${_prefix}/${APP_RELATIVE}")
 endif()
@@ -105,17 +105,17 @@ if(EXPECT_CLI)
         TIMEOUT 60)
     if(NOT _cli_code EQUAL 0)
         message(FATAL_ERROR
-            "system.install: the installed wjs-cli failed (exit ${_cli_code})\n"
+            "system.install: the installed sns-cli failed (exit ${_cli_code})\n"
             "stdout:\n${_cli_out}\nstderr:\n${_cli_err}")
     endif()
     if(NOT _cli_out MATCHES "[0-9]+ words, [0-9]+ points")
         message(FATAL_ERROR
-            "system.install: the installed wjs-cli printed no summary\n${_cli_out}")
+            "system.install: the installed sns-cli printed no summary\n${_cli_out}")
     endif()
     string(FIND "${_cli_out}" "CARE" _care)
     if(_care EQUAL -1)
         message(FATAL_ERROR
-            "system.install: the installed wjs-cli did not find CARE from the "
+            "system.install: the installed sns-cli did not find CARE from the "
             "installed dictionary\n${_cli_out}")
     endif()
 endif()

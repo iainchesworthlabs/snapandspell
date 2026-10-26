@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scan/confirmation.hpp"
+#include "sns/scan/confirmation.hpp"
 
 #include <algorithm>
 #include <utility>
 
-namespace wjs::scan {
+namespace sns::scan {
 
 std::string_view to_string(DraftError error) noexcept {
     switch (error) {
@@ -232,4 +232,4 @@ std::expected<Board, DraftError> BoardDraft::confirm() const {
     return std::move(*board);
 }
 
-}  // namespace wjs::scan
+}  // namespace sns::scan

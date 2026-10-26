@@ -3,11 +3,11 @@
 
 #include <utility>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-#include "wjs/app/speech_backend.hpp"
+#include "sns/app/speech_backend.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 class Speech::Impl {
 public:
@@ -37,7 +37,7 @@ bool Speech::say(const QString& text, double volume) {
         return false;
     }
     // The first utterance makes the voice engine, which is the long one.
-    const auto zone = wjs::profiling::zone<"speech.say">();
+    const auto zone = sns::profiling::zone<"speech.say">();
     ++impl_->utterances;
     if (impl_->output) {
         impl_->output(text, volume);
@@ -60,4 +60,4 @@ void Speech::stop() {
     impl_->backend.stop();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

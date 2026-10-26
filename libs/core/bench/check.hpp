@@ -12,7 +12,7 @@
 #include "metrics.hpp"
 #include "perf_build.hpp"
 
-namespace wjs::perf {
+namespace sns::perf {
 
 // Ends the case as skipped (not failed) in a build that is not optimised: the
 // corpus there is much longer, and the counts it would check are the same ones
@@ -39,7 +39,7 @@ inline void skip_unless_timing_wanted() {
     }
     if (!timing_requested()) {
         SKIP(
-            "wall-time checks are opt-in: set WJS_PERF_TIMING=1, or run the *-perf test "
+            "wall-time checks are opt-in: set SNS_PERF_TIMING=1, or run the *-perf test "
             "preset (docs/testing.md, \"Performance tests\")");
     }
 }
@@ -60,4 +60,4 @@ inline void check_within_budget(const std::vector<Metric>& metrics) {
     }
 }
 
-}  // namespace wjs::perf
+}  // namespace sns::perf

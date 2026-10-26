@@ -6,7 +6,7 @@
 
 #include "solo_game.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // How a game is made, for the program to say. The model that the screens bind to
 // is made by the QML engine and takes no arguments, so it asks make_solo_game();
@@ -33,4 +33,4 @@ public:
 // decides. See solo_game.hpp.
 [[nodiscard]] std::unique_ptr<SoloGame> make_solo_game();
 
-}  // namespace wjs::app
+}  // namespace sns::app

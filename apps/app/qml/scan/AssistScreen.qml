@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // assist.playing (docs/design/game.md, "Playing"): the confirmed board in the
 // leading two-thirds and the panel in the trailing third, the same split rule as

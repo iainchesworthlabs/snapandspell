@@ -5,10 +5,10 @@
 #include <cmath>
 #include <utility>
 
-#include "wjs/path.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/path.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 [[nodiscard]] double distance(Point a, Point b) noexcept {
@@ -33,13 +33,13 @@ void PathTracer::setGeometry(double tile, double gap) {
     gap_ = gap >= 0 ? gap : 0;
 }
 
-Point PathTracer::centre(wjs::Position position) const noexcept {
+Point PathTracer::centre(sns::Position position) const noexcept {
     const double pitch = tile_ + gap_;
     return {static_cast<double>(position.column) * pitch + tile_ / 2,
             static_cast<double>(position.row) * pitch + tile_ / 2};
 }
 
-bool PathTracer::usable(wjs::Position position) const {
+bool PathTracer::usable(sns::Position position) const {
     if (position.row >= rows_ || position.column >= columns_) {
         return false;
     }
@@ -47,21 +47,21 @@ bool PathTracer::usable(wjs::Position position) const {
     return usable_.empty() || (index < usable_.size() && usable_[index]);
 }
 
-bool PathTracer::used(wjs::Position position) const {
+bool PathTracer::used(sns::Position position) const {
     return std::ranges::find(path_, position) != path_.end();
 }
 
-bool PathTracer::joins(wjs::Position position) const {
+bool PathTracer::joins(sns::Position position) const {
     return !path_.empty() && usable(position) && !used(position) &&
-           wjs::are_neighbours(path_.back(), position);
+           sns::are_neighbours(path_.back(), position);
 }
 
-std::optional<wjs::Position> PathTracer::nearest(Point at, double within) const {
-    std::optional<wjs::Position> best;
+std::optional<sns::Position> PathTracer::nearest(Point at, double within) const {
+    std::optional<sns::Position> best;
     double best_distance = within * tile_;
     for (std::size_t row = 0; row < rows_; ++row) {
         for (std::size_t column = 0; column < columns_; ++column) {
-            const wjs::Position position{row, column};
+            const sns::Position position{row, column};
             if (!usable(position)) {
                 continue;
             }
@@ -117,7 +117,7 @@ bool PathTracer::step(Point at) {
     const double stay = tolerance_.stay * tile_;
 
     if (path_.size() >= 2) {
-        const wjs::Position previous = path_[path_.size() - 2];
+        const sns::Position previous = path_[path_.size() - 2];
         if (distance(at, centre(previous)) <= hit && distance(at, centre(path_.back())) > stay) {
             path_.pop_back();
             moved_ = true;
@@ -125,7 +125,7 @@ bool PathTracer::step(Point at) {
         }
     }
 
-    std::optional<wjs::Position> best;
+    std::optional<sns::Position> best;
     double best_distance = hit;
     for (int dr = -1; dr <= 1; ++dr) {
         for (int dc = -1; dc <= 1; ++dc) {
@@ -136,7 +136,7 @@ bool PathTracer::step(Point at) {
             if ((dr < 0 && last.row == 0) || (dc < 0 && last.column == 0)) {
                 continue;
             }
-            const wjs::Position candidate{
+            const sns::Position candidate{
                 static_cast<std::size_t>(static_cast<long long>(last.row) + dr),
                 static_cast<std::size_t>(static_cast<long long>(last.column) + dc)};
             if (!joins(candidate)) {
@@ -164,7 +164,7 @@ PathTracer::Event PathTracer::move(Point at) {
     // One zone per pointer event, not per walked step: a move is the input
     // path's per-event work (the hit tests below, and the path display the
     // change triggers in QML). It nests inside the QML seam's `ui.trace`.
-    auto zone = wjs::profiling::zone<"input.trace">();
+    auto zone = sns::profiling::zone<"input.trace">();
     bool changed = false;
     const double length = distance(last_point_, at);
     const double step_length = std::max(tolerance_.step * tile_, 1e-6);
@@ -201,7 +201,7 @@ PathTracer::Event PathTracer::release(Point at, bool inside) {
     return press_on_last_ ? Event::submit : Event::none;
 }
 
-PathTracer::Event PathTracer::tap(wjs::Position position) {
+PathTracer::Event PathTracer::tap(sns::Position position) {
     if (!usable(position)) {
         return Event::none;
     }
@@ -246,4 +246,4 @@ PathTracer::Event PathTracer::clear() {
     return Event::cancelled;
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

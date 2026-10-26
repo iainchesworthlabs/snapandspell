@@ -8,7 +8,7 @@
 #include <optional>
 
 #include "camera_problem.hpp"
-#include "wjs/scan/frame.hpp"
+#include "sns/scan/frame.hpp"
 
 // What a camera has to do for Mode A, behind the seam the screens and the model
 // use. The interface exists for the same reason the feedback engines' backends do
@@ -32,7 +32,7 @@
 
 class QObject;
 
-namespace wjs::app {
+namespace sns::app {
 
 class CameraBackend {
 public:
@@ -77,7 +77,7 @@ public:
     // The newest frame, converted to the scanner's layout (RGB24, packed rows),
     // or nothing if none has arrived since the last call. The backend keeps no
     // copy: what is returned is the caller's to read and forget.
-    [[nodiscard]] virtual std::optional<wjs::scan::OwnedFrame> capture() = 0;
+    [[nodiscard]] virtual std::optional<sns::scan::OwnedFrame> capture() = 0;
 
     // Shows the camera in a QML VideoOutput, without this header naming Qt
     // Multimedia: the multimedia backend reads the item's "videoSink" (which the
@@ -94,4 +94,4 @@ public:
 // directory CMake selected (apps/app/CMakeLists.txt).
 [[nodiscard]] std::unique_ptr<CameraBackend> make_camera_backend();
 
-}  // namespace wjs::app
+}  // namespace sns::app

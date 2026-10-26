@@ -8,26 +8,26 @@
 #include <thread>
 #include <vector>
 
+#include "sns/board.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/solver.hpp"
+#include "sns/solver_work.hpp"
 #include "support/test_support.hpp"
-#include "wjs/board.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/solver.hpp"
-#include "wjs/solver_work.hpp"
 
 namespace {
 
-using wjs::test::board_of;
-using wjs::test::dictionary_of;
+using sns::test::board_of;
+using sns::test::dictionary_of;
 
-wjs::Dictionary make_dictionary(std::initializer_list<std::string_view> words) {
+sns::Dictionary make_dictionary(std::initializer_list<std::string_view> words) {
     return dictionary_of(words);
 }
 
-wjs::Board make_board(std::string_view text) {
+sns::Board make_board(std::string_view text) {
     return board_of(text);
 }
 
-std::vector<std::string> words_of(const std::vector<wjs::FoundWord>& found) {
+std::vector<std::string> words_of(const std::vector<sns::FoundWord>& found) {
     std::vector<std::string> words;
     for (const auto& entry : found) {
         words.push_back(entry.word);
@@ -50,7 +50,7 @@ TEST_CASE("a word is found only if its letters touch", "[solver]") {
     const auto dictionary = make_dictionary(
         {"CAT", "CAR", "CARE", "ARE", "TAR", "TEA", "DOG", "COD", "ROD", "CATS", "REST", "AT"});
 
-    const auto found = wjs::solve(board, dictionary);
+    const auto found = sns::solve(board, dictionary);
 
     // Highest score first, then longest, then alphabetical; AT is below the
     // default minimum of three letters.
@@ -69,7 +69,7 @@ TEST_CASE("the words come highest score first, then the longer, then alphabetica
     const auto board = make_board("STA/ERL/DNO");
     const auto dictionary = make_dictionary({"TAR", "RED", "ARE", "STAR", "STARE", "STARED"});
 
-    const auto found = wjs::solve(board, dictionary);
+    const auto found = sns::solve(board, dictionary);
 
     const std::vector<std::string> expected = {"STARED", "STARE", "STAR", "ARE", "RED", "TAR"};
     CHECK(words_of(found) == expected);
@@ -84,10 +84,10 @@ TEST_CASE("the words come highest score first, then the longer, then alphabetica
 TEST_CASE("the order holds in the other scheme too: scores never rise down the list", "[solver]") {
     const auto board = make_board("STA/ERL/DNO");
     const auto dictionary = make_dictionary({"TAR", "RED", "ARE", "STAR", "STARE", "STARED"});
-    wjs::SolveOptions options;
-    options.scoring = wjs::ScoringScheme::letter_rarity;
+    sns::SolveOptions options;
+    options.scoring = sns::ScoringScheme::letter_rarity;
 
-    const auto found = wjs::solve(board, dictionary, options);
+    const auto found = sns::solve(board, dictionary, options);
 
     REQUIRE(found.size() == 6U);
     for (std::size_t i = 1; i < found.size(); ++i) {
@@ -103,9 +103,9 @@ TEST_CASE("the minimum length can be lowered", "[solver]") {
     const auto board = make_board("CAT/ORE/DGS");
     const auto dictionary = make_dictionary({"CAT", "AT"});
 
-    wjs::SolveOptions options;
+    sns::SolveOptions options;
     options.min_length = 2;
-    const auto found = wjs::solve(board, dictionary, options);
+    const auto found = sns::solve(board, dictionary, options);
 
     const std::vector<std::string> expected = {"CAT", "AT"};
     CHECK(words_of(found) == expected);
@@ -115,10 +115,10 @@ TEST_CASE("each word reports the tiles that spell it", "[solver]") {
     const auto board = make_board("CAT/ORE/DGS");
     const auto dictionary = make_dictionary({"CARE"});
 
-    const auto found = wjs::solve(board, dictionary);
+    const auto found = sns::solve(board, dictionary);
 
     REQUIRE(found.size() == 1U);
-    const std::vector<wjs::Position> expected = {{0, 0}, {0, 1}, {1, 1}, {1, 2}};
+    const std::vector<sns::Position> expected = {{0, 0}, {0, 1}, {1, 1}, {1, 2}};
     CHECK(found.front().path == expected);
     CHECK(found.front().score == 1);
 }
@@ -127,7 +127,7 @@ TEST_CASE("a tile is not used twice in one word", "[solver]") {
     const auto board = make_board("AB/CD");
     const auto dictionary = make_dictionary({"ABA", "ABC"});
 
-    const auto found = wjs::solve(board, dictionary);
+    const auto found = sns::solve(board, dictionary);
 
     const std::vector<std::string> expected = {"ABC"};
     CHECK(words_of(found) == expected);
@@ -137,7 +137,7 @@ TEST_CASE("a word that can be traced several ways is reported once", "[solver]")
     const auto board = make_board("AA/AA");
     const auto dictionary = make_dictionary({"AAA"});
 
-    const auto found = wjs::solve(board, dictionary);
+    const auto found = sns::solve(board, dictionary);
 
     CHECK(found.size() == 1U);
 }
@@ -146,7 +146,7 @@ TEST_CASE("the Qu tile spends two letters of the word on one tile", "[solver]") 
     const auto board = make_board("Qu I T");
     const auto dictionary = make_dictionary({"QUIT", "QIT"});
 
-    const auto found = wjs::solve(board, dictionary);
+    const auto found = sns::solve(board, dictionary);
 
     REQUIRE(found.size() == 1U);
     CHECK(found.front().word == "QUIT");
@@ -158,9 +158,9 @@ TEST_CASE("the scoring scheme is applied to what is found", "[solver]") {
     const auto board = make_board("CAT/ORE/DGS");
     const auto dictionary = make_dictionary({"CAT"});
 
-    wjs::SolveOptions options;
-    options.scoring = wjs::ScoringScheme::letter_rarity;
-    const auto found = wjs::solve(board, dictionary, options);
+    sns::SolveOptions options;
+    options.scoring = sns::ScoringScheme::letter_rarity;
+    const auto found = sns::solve(board, dictionary, options);
 
     REQUIRE(found.size() == 1U);
     // (100/2.71 + 100/8.12 + 100/9.10) / 3 = 20.07, truncated.
@@ -170,7 +170,7 @@ TEST_CASE("the scoring scheme is applied to what is found", "[solver]") {
 TEST_CASE("an empty dictionary finds nothing", "[solver]") {
     const auto board = make_board("CAT/ORE/DGS");
 
-    CHECK(wjs::solve(board, wjs::Dictionary{}).empty());
+    CHECK(sns::solve(board, sns::Dictionary{}).empty());
 }
 
 // The work counter (solver_work.hpp) that libs/core/bench's budgets are held on. A
@@ -178,46 +178,46 @@ TEST_CASE("an empty dictionary finds nothing", "[solver]") {
 TEST_CASE("the solver tallies the visits of each solve on this thread", "[solver]") {
     const auto board = make_board("AB");
     const auto dictionary = make_dictionary({"AB"});
-    wjs::SolveOptions two_letters;
+    sns::SolveOptions two_letters;
     two_letters.min_length = 2;
 
-    wjs::reset_solve_work();
-    CHECK(wjs::solve_work().solves == 0U);
+    sns::reset_solve_work();
+    CHECK(sns::solve_work().solves == 0U);
 
     // Start on A: A is in the trie (1 visit), then B from A (2). Start on B:
     // no word begins with B, so the step is refused and is not a visit.
-    const auto found = wjs::solve(board, dictionary, two_letters);
+    const auto found = sns::solve(board, dictionary, two_letters);
     REQUIRE(found.size() == 1U);
-    CHECK(wjs::solve_work().solves == 1U);
-    CHECK(wjs::solve_work().visits == 2U);
-    CHECK(wjs::solve_work().largest == 2U);
+    CHECK(sns::solve_work().solves == 1U);
+    CHECK(sns::solve_work().visits == 2U);
+    CHECK(sns::solve_work().largest == 2U);
 
     // A second solve adds to the totals; the largest is a maximum, not a sum.
-    (void)wjs::solve(make_board("A"), dictionary, two_letters);
-    CHECK(wjs::solve_work().solves == 2U);
-    CHECK(wjs::solve_work().visits == 3U);
-    CHECK(wjs::solve_work().largest == 2U);
+    (void)sns::solve(make_board("A"), dictionary, two_letters);
+    CHECK(sns::solve_work().solves == 2U);
+    CHECK(sns::solve_work().visits == 3U);
+    CHECK(sns::solve_work().largest == 2U);
 
-    wjs::reset_solve_work();
-    CHECK(wjs::solve_work().solves == 0U);
-    CHECK(wjs::solve_work().visits == 0U);
-    CHECK(wjs::solve_work().largest == 0U);
+    sns::reset_solve_work();
+    CHECK(sns::solve_work().solves == 0U);
+    CHECK(sns::solve_work().visits == 0U);
+    CHECK(sns::solve_work().largest == 0U);
 }
 
 TEST_CASE("the solver's tally belongs to the thread that solved", "[solver]") {
     const auto board = make_board("AB");
     const auto dictionary = make_dictionary({"AB"});
 
-    wjs::reset_solve_work();
+    sns::reset_solve_work();
     std::uint64_t solved_there = 0;
     std::thread worker([&] {
-        (void)wjs::solve(board, dictionary);
-        solved_there = wjs::solve_work().solves;
+        (void)sns::solve(board, dictionary);
+        solved_there = sns::solve_work().solves;
     });
     worker.join();
 
     CHECK(solved_there == 1U);
-    CHECK(wjs::solve_work().solves == 0U);
+    CHECK(sns::solve_work().solves == 0U);
 }
 
 TEST_CASE("a tile of three letters spends all three on one visit", "[solver]") {
@@ -226,14 +226,14 @@ TEST_CASE("a tile of three letters spends all three on one visit", "[solver]") {
     const auto board = make_board("QUI T");
     const auto dictionary = make_dictionary({"QUIT", "QIT"});
 
-    wjs::reset_solve_work();
-    const auto found = wjs::solve(board, dictionary);
+    sns::reset_solve_work();
+    const auto found = sns::solve(board, dictionary);
 
     REQUIRE(found.size() == 1U);
     CHECK(found.front().word == "QUIT");
-    CHECK(found.front().path == std::vector<wjs::Position>{{0, 0}, {0, 1}});
+    CHECK(found.front().path == std::vector<sns::Position>{{0, 0}, {0, 1}});
     CHECK(found.front().score == 1);
-    CHECK(wjs::solve_work().visits == 2U);
+    CHECK(sns::solve_work().visits == 2U);
 }
 
 TEST_CASE("a word may use every tile of the board", "[solver]") {
@@ -244,16 +244,16 @@ TEST_CASE("a word may use every tile of the board", "[solver]") {
     const auto board = make_board("ABCD/HGFE/IJKL/PONM");
     const auto dictionary = make_dictionary({"ABCDEFGHIJKLMNOP"});
 
-    wjs::reset_solve_work();
-    const auto found = wjs::solve(board, dictionary);
+    sns::reset_solve_work();
+    const auto found = sns::solve(board, dictionary);
 
     REQUIRE(found.size() == 1U);
     CHECK(found.front().word == "ABCDEFGHIJKLMNOP");
-    const std::vector<wjs::Position> expected = {
+    const std::vector<sns::Position> expected = {
         {0, 0}, {0, 1}, {0, 2}, {0, 3}, {1, 3}, {1, 2}, {1, 1}, {1, 0},
         {2, 0}, {2, 1}, {2, 2}, {2, 3}, {3, 3}, {3, 2}, {3, 1}, {3, 0},
     };
     CHECK(found.front().path == expected);
     CHECK(found.front().score == 11);
-    CHECK(wjs::solve_work().visits == 16U);
+    CHECK(sns::solve_work().visits == 16U);
 }

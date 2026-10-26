@@ -36,7 +36,7 @@ Each of these readers, and the scanner's reading of a camera frame, has a libFuz
 ## Hardening
 
 The libraries, the command line and the application are built with `icl::hardening` from
-icl-common-infra (`cmake/Hardening.cmake`, option `WJS_ENABLE_HARDENING`, on in every preset but the fuzzing one). With GCC and
+icl-common-infra (`cmake/Hardening.cmake`, option `SNS_ENABLE_HARDENING`, on in every preset but the fuzzing one). With GCC and
 Clang that is `-fstack-protector-strong`, `_FORTIFY_SOURCE=3` outside Debug, `-fcf-protection=full` on x86-64,
 position-independent code and `-Wl,-z,relro,-z,now` (not on Apple platforms); with MSVC it is `/GS /guard:cf /sdl`
 and `/GUARD:CF /DYNAMICBASE /NXCOMPAT /CETCOMPAT`. The test executables do not carry it. On Linux the test

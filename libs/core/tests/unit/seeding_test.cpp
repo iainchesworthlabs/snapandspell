@@ -9,13 +9,13 @@
 #include <utility>
 #include <vector>
 
+#include "sns/board.hpp"
+#include "sns/dashboard.hpp"
+#include "sns/path.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/seeding.hpp"
+#include "sns/solver.hpp"
 #include "support/test_support.hpp"
-#include "wjs/board.hpp"
-#include "wjs/dashboard.hpp"
-#include "wjs/path.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/seeding.hpp"
-#include "wjs/solver.hpp"
 
 // TEST DATA. A phase of eleven words written for these tests, with
 // placeholder sounds. It is not a phase of the application and not content for
@@ -52,48 +52,48 @@ constexpr std::string_view test_words_b =
     "saint  s ai n t\n"
     "stain  s t ai n\n";
 
-wjs::Dictionary english() {
-    return wjs::test::dictionary_of(
+sns::Dictionary english() {
+    return sns::test::dictionary_of(
         {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain"});
 }
 
 // The phase set of the test data: A, then B which adds the "ai" grapheme.
-wjs::PhaseSet make_set() {
+sns::PhaseSet make_set() {
     const auto read_graphemes = [](std::string_view text, std::string_view name) {
         std::istringstream in{std::string(text)};
-        auto parsed = wjs::parse_graphemes(in, name);
+        auto parsed = sns::parse_graphemes(in, name);
         REQUIRE(parsed.has_value());
         return *parsed;
     };
     const auto read_words = [](std::string_view text, std::string_view name) {
         std::istringstream in{std::string(text)};
-        auto parsed = wjs::parse_words(in, name);
+        auto parsed = sns::parse_words(in, name);
         REQUIRE(parsed.has_value());
         return *parsed;
     };
-    const std::vector<wjs::GraphemesFile> graphemes = {read_graphemes(test_graphemes, "a.g"),
+    const std::vector<sns::GraphemesFile> graphemes = {read_graphemes(test_graphemes, "a.g"),
                                                        read_graphemes(test_graphemes_b, "b.g")};
-    const std::vector<wjs::WordsFile> words = {read_words(test_words, "a.w"),
+    const std::vector<sns::WordsFile> words = {read_words(test_words, "a.w"),
                                                read_words(test_words_b, "b.w")};
-    auto built = wjs::PhaseSet::build(graphemes, words, english());
+    auto built = sns::PhaseSet::build(graphemes, words, english());
     REQUIRE(built.has_value());
     return *std::move(built);
 }
 
 // The board as text, for comparing two boards: the tiles run together.
-std::string text_of(const wjs::Board& board) {
-    return wjs::test::text_of(board, "");
+std::string text_of(const sns::Board& board) {
+    return sns::test::text_of(board, "");
 }
 
-wjs::SeededBoard seed(const wjs::PhaseIndex& index, const wjs::SeedOptions& options,
-                      std::uint32_t seed_value, const wjs::RecentTargets& recent = {}) {
-    auto seeded = wjs::seed_board(index, options, recent, seed_value);
+sns::SeededBoard seed(const sns::PhaseIndex& index, const sns::SeedOptions& options,
+                      std::uint32_t seed_value, const sns::RecentTargets& recent = {}) {
+    auto seeded = sns::seed_board(index, options, recent, seed_value);
     REQUIRE(seeded.has_value());
     return *std::move(seeded);
 }
 
-wjs::SeedOptions options_for(std::size_t size, std::size_t dead) {
-    wjs::SeedOptions options;
+sns::SeedOptions options_for(std::size_t size, std::size_t dead) {
+    sns::SeedOptions options;
     options.size = size;
     options.dead_cells = dead;
     options.dead_letter = 'X';
@@ -167,7 +167,7 @@ TEST_CASE("every board holds its targets and a count of words in range", "[seedi
             CHECK(board.targets.size() <= 3);
             for (const auto& target : board.targets) {
                 REQUIRE(index.find_word(target) != nullptr);
-                const bool found = std::ranges::any_of(board.viable, [&](const wjs::FoundWord& f) {
+                const bool found = std::ranges::any_of(board.viable, [&](const sns::FoundWord& f) {
                     std::string lower = f.word;
                     std::ranges::transform(lower, lower.begin(),
                                            [](char c) { return static_cast<char>(c - 'A' + 'a'); });
@@ -179,12 +179,12 @@ TEST_CASE("every board holds its targets and a count of words in range", "[seedi
             // Every viable word is a word of the phase, and each can be traced.
             for (const auto& found : board.viable) {
                 CHECK(index.find_word(found.word) != nullptr);
-                CHECK(wjs::validate_path(board.board, found.path) == found.word);
+                CHECK(sns::validate_path(board.board, found.path) == found.word);
             }
 
             // The count is what the solver says, and it is in the range unless
             // this is the reported fallback.
-            const auto solved = wjs::solve(board.board, index.dictionary());
+            const auto solved = sns::solve(board.board, index.dictionary());
             CHECK(solved.size() == board.viable.size());
             if (!board.fallback) {
                 CHECK(board.viable.size() >= options.min_viable);
@@ -212,8 +212,8 @@ TEST_CASE("dead jewels carry a letter no word uses and take no part in a word", 
                 if (dead) {
                     ++dead_tiles;
                 }
-                const bool listed = std::ranges::any_of(board.dead, [&](const wjs::Position& p) {
-                    return p == wjs::Position{row, column};
+                const bool listed = std::ranges::any_of(board.dead, [&](const sns::Position& p) {
+                    return p == sns::Position{row, column};
                 });
                 CHECK(dead == listed);
                 if (!dead) {
@@ -304,7 +304,7 @@ TEST_CASE("changing filler tiles one at a time keeps every guarantee", "[seeding
             CHECK(board.viable.size() >= options.min_viable);
             CHECK(board.viable.size() <= options.max_viable);
         }
-        CHECK(wjs::solve(board.board, index.dictionary()).size() == board.viable.size());
+        CHECK(sns::solve(board.board, index.dictionary()).size() == board.viable.size());
     }
 }
 
@@ -334,7 +334,7 @@ TEST_CASE("targets prefer words with a focus sound", "[seeding]") {
         for (const auto& target : board.targets) {
             const auto* word = index.find_word(target);
             REQUIRE(word != nullptr);
-            CHECK(std::ranges::any_of(word->graphemes, [](const wjs::WordGrapheme& grapheme) {
+            CHECK(std::ranges::any_of(word->graphemes, [](const sns::WordGrapheme& grapheme) {
                 return grapheme.letters == "ai";
             }));
         }
@@ -390,7 +390,7 @@ TEST_CASE("every focus sound the dashboard offers is one that seeding honours", 
     const auto set = make_set();
     for (const char* phase : {"A", "B"}) {
         const auto& index = *set.find(phase);
-        for (const std::string& letters : wjs::focus_sound_choices(index)) {
+        for (const std::string& letters : sns::focus_sound_choices(index)) {
             auto options = options_for(4, 4);
             options.focus_sounds = {letters};
             INFO("phase " << phase << ", tick " << letters);
@@ -399,7 +399,7 @@ TEST_CASE("every focus sound the dashboard offers is one that seeding honours", 
             std::size_t words_with = 0;
             for (const auto& word : index.words()) {
                 words_with += std::ranges::any_of(word.graphemes,
-                                                  [&](const wjs::WordGrapheme& grapheme) {
+                                                  [&](const sns::WordGrapheme& grapheme) {
                                                       return grapheme.letters == letters;
                                                   })
                                   ? 1U
@@ -419,7 +419,7 @@ TEST_CASE("recent targets are avoided while there are others", "[seeding]") {
 
     // Four of the seven words were targets lately: the targets, two or three,
     // come from the other three.
-    wjs::RecentTargets recent;
+    sns::RecentTargets recent;
     recent.record({"nip", "pan", "pat", "pin"});
     const std::set<std::string> fresh = {"sat", "sit", "tap"};
 
@@ -436,7 +436,7 @@ TEST_CASE("recent targets are avoided while there are others", "[seeding]") {
 TEST_CASE("recent targets are used again when there is nothing else", "[seeding]") {
     const auto set = make_set();
     const auto& index = *set.find("A");
-    wjs::RecentTargets recent;
+    sns::RecentTargets recent;
     recent.record({"nip", "pan", "pat", "pin", "sat", "sit", "tap"});
 
     const auto board = seed(index, options_for(4, 4), 9, recent);
@@ -491,64 +491,64 @@ TEST_CASE("the filler can be a chosen set of letters", "[seeding]") {
 TEST_CASE("options that cannot make a board are refused with a reason", "[seeding]") {
     const auto set = make_set();
     const auto& index = *set.find("B");
-    const wjs::RecentTargets recent;
+    const sns::RecentTargets recent;
 
-    const auto error_of = [&](const wjs::SeedOptions& options) {
-        const auto result = wjs::seed_board(index, options, recent, 1);
+    const auto error_of = [&](const sns::SeedOptions& options) {
+        const auto result = sns::seed_board(index, options, recent, 1);
         REQUIRE_FALSE(result.has_value());
         return result.error();
     };
 
     SECTION("no tiles") {
         auto options = options_for(0, 0);
-        CHECK(error_of(options) == wjs::SeedError::bad_size);
+        CHECK(error_of(options) == sns::SeedError::bad_size);
     }
 
     SECTION("a board larger than the library's") {
         auto options = options_for(17, 0);
-        CHECK(error_of(options) == wjs::SeedError::bad_size);
+        CHECK(error_of(options) == sns::SeedError::bad_size);
     }
 
     SECTION("a board too small for any word") {
         auto options = options_for(1, 0);
-        CHECK(error_of(options) == wjs::SeedError::empty_index);
+        CHECK(error_of(options) == sns::SeedError::empty_index);
     }
 
     SECTION("a range with its ends the wrong way round") {
         auto options = options_for(3, 0);
         options.min_viable = 5;
         options.max_viable = 3;
-        CHECK(error_of(options) == wjs::SeedError::bad_range);
+        CHECK(error_of(options) == sns::SeedError::bad_range);
     }
 
     SECTION("no tries") {
         auto options = options_for(3, 0);
         options.max_tries = 0;
-        CHECK(error_of(options) == wjs::SeedError::bad_range);
+        CHECK(error_of(options) == sns::SeedError::bad_range);
     }
 
     SECTION("a dead letter the phase uses") {
         auto options = options_for(3, 2);
         options.dead_letter = 'S';
-        CHECK(error_of(options) == wjs::SeedError::bad_dead_letter);
+        CHECK(error_of(options) == sns::SeedError::bad_dead_letter);
     }
 
     SECTION("a dead letter that is not a letter") {
         auto options = options_for(3, 2);
         options.dead_letter = '7';
-        CHECK(error_of(options) == wjs::SeedError::bad_dead_letter);
+        CHECK(error_of(options) == sns::SeedError::bad_dead_letter);
     }
 
     SECTION("a filler that holds the dead letter") {
         auto options = options_for(3, 2);
         options.filler = "AINX";
-        CHECK(error_of(options) == wjs::SeedError::bad_filler);
+        CHECK(error_of(options) == sns::SeedError::bad_filler);
     }
 
     SECTION("a filler that is not letters") {
         auto options = options_for(3, 0);
         options.filler = "A1";
-        CHECK(error_of(options) == wjs::SeedError::bad_filler);
+        CHECK(error_of(options) == sns::SeedError::bad_filler);
     }
 }
 
@@ -558,11 +558,11 @@ TEST_CASE("a dead letter that is never used need not be a good one", "[seeding]"
     auto options = options_for(3, 0);
     options.dead_letter = 'S';
 
-    CHECK(wjs::seed_board(*set.find("B"), options, {}, 1).has_value());
+    CHECK(sns::seed_board(*set.find("B"), options, {}, 1).has_value());
 }
 
 TEST_CASE("the recent targets remember the last boards only", "[seeding]") {
-    wjs::RecentTargets recent(2);
+    sns::RecentTargets recent(2);
 
     recent.record({"sat", "sit"});
     recent.record({"tap"});
@@ -580,9 +580,9 @@ TEST_CASE("the recent targets remember the last boards only", "[seeding]") {
 
 TEST_CASE("each seeding error has a message", "[seeding]") {
     for (const auto error :
-         {wjs::SeedError::bad_size, wjs::SeedError::bad_range, wjs::SeedError::empty_index,
-          wjs::SeedError::bad_dead_letter, wjs::SeedError::bad_filler}) {
-        CHECK_FALSE(wjs::to_string(error).empty());
+         {sns::SeedError::bad_size, sns::SeedError::bad_range, sns::SeedError::empty_index,
+          sns::SeedError::bad_dead_letter, sns::SeedError::bad_filler}) {
+        CHECK_FALSE(sns::to_string(error).empty());
     }
 }
 
@@ -623,10 +623,10 @@ TEST_CASE("a limit shorter than any word leaves nothing to plant", "[seeding]") 
     auto options = options_for(4, 0);
     options.max_target_letters = 2;
 
-    const auto result = wjs::seed_board(*set.find("B"), options, {}, 1);
+    const auto result = sns::seed_board(*set.find("B"), options, {}, 1);
 
     REQUIRE_FALSE(result.has_value());
-    CHECK(result.error() == wjs::SeedError::empty_index);
+    CHECK(result.error() == sns::SeedError::empty_index);
 }
 
 TEST_CASE("a guided fill keeps the count within the range and the words apart",
@@ -650,7 +650,7 @@ TEST_CASE("a guided fill keeps the count within the range and the words apart",
             CHECK(board.viable.size() <= options.max_viable);
         }
         CHECK(board.targets.size() >= options.min_viable);
-        CHECK(wjs::solve(board.board, index.dictionary()).size() == board.viable.size());
+        CHECK(sns::solve(board.board, index.dictionary()).size() == board.viable.size());
 
         // The dead jewels listed are the tiles with the dead letter, and there may
         // be more than were asked for (none were).
@@ -659,8 +659,8 @@ TEST_CASE("a guided fill keeps the count within the range and the words apart",
             for (std::size_t column = 0; column < 4; ++column) {
                 const bool dead = board.board.tile({row, column}) == "X";
                 dead_tiles += dead ? 1U : 0U;
-                const bool listed = std::ranges::any_of(board.dead, [&](const wjs::Position& p) {
-                    return p == wjs::Position{row, column};
+                const bool listed = std::ranges::any_of(board.dead, [&](const sns::Position& p) {
+                    return p == sns::Position{row, column};
                 });
                 CHECK(dead == listed);
             }
@@ -711,10 +711,10 @@ TEST_CASE("a guided fill needs a dead letter that the phase does not use", "[see
     options.guided_fill = true;
     options.dead_letter = 'S';
 
-    const auto result = wjs::seed_board(*set.find("B"), options, {}, 1);
+    const auto result = sns::seed_board(*set.find("B"), options, {}, 1);
 
     REQUIRE_FALSE(result.has_value());
-    CHECK(result.error() == wjs::SeedError::bad_dead_letter);
+    CHECK(result.error() == sns::SeedError::bad_dead_letter);
 }
 
 TEST_CASE("a guided fill with letters outside the phase leaves no dead jewel",
@@ -741,7 +741,7 @@ TEST_CASE("the phonics board options keep one letter out and let the rest in",
     const auto set = make_set();
     const auto& index = *set.find("B");
 
-    const auto options = wjs::phonics_board_options(index, 4);
+    const auto options = sns::phonics_board_options(index, 4);
 
     REQUIRE(options.has_value());
     CHECK(options->size == 4);
@@ -759,7 +759,7 @@ TEST_CASE("the dead jewels are listed in row order when the planted words are al
           "[seeding][guided]") {
     const auto set = make_set();
     const auto& index = *set.find("B");
-    auto options = wjs::phonics_board_options(index, 3);
+    auto options = sns::phonics_board_options(index, 3);
     REQUIRE(options.has_value());
     // One word is wanted, and any word may be planted: PAINT holds PAIN, which
     // is two words already, and a fill cannot take a word away. That planting is
@@ -775,7 +775,7 @@ TEST_CASE("the dead jewels are listed in row order when the planted words are al
 
         INFO("seed " << seed_value);
         CHECK(
-            std::ranges::is_sorted(board.dead, [](const wjs::Position& a, const wjs::Position& b) {
+            std::ranges::is_sorted(board.dead, [](const sns::Position& a, const sns::Position& b) {
                 return a.row != b.row ? a.row < b.row : a.column < b.column;
             }));
         if (!board.dead.empty()) {
@@ -788,7 +788,7 @@ TEST_CASE("the dead jewels are listed in row order when the planted words are al
 TEST_CASE("a phonics board has the phase's letters first and no dead jewels", "[seeding][guided]") {
     const auto set = make_set();
     const auto& index = *set.find("B");
-    const auto options = wjs::phonics_board_options(index, 4);
+    const auto options = sns::phonics_board_options(index, 4);
     REQUIRE(options.has_value());
 
     std::size_t fallbacks = 0;
@@ -831,17 +831,17 @@ TEST_CASE("a phase that uses every letter has none to keep out", "[seeding][guid
     }
     std::istringstream graphemes_in(graphemes);
     std::istringstream words_in("# phase: A\nabc  a b c\n");
-    const auto parsed_graphemes = wjs::parse_graphemes(graphemes_in, "g");
-    const auto parsed_words = wjs::parse_words(words_in, "w");
+    const auto parsed_graphemes = sns::parse_graphemes(graphemes_in, "g");
+    const auto parsed_words = sns::parse_words(words_in, "w");
     REQUIRE(parsed_graphemes.has_value());
     REQUIRE(parsed_words.has_value());
-    wjs::Dictionary dictionary;
+    sns::Dictionary dictionary;
     REQUIRE(dictionary.insert("abc"));
-    const auto built = wjs::PhaseSet::build({*parsed_graphemes}, {*parsed_words}, dictionary);
+    const auto built = sns::PhaseSet::build({*parsed_graphemes}, {*parsed_words}, dictionary);
     REQUIRE(built.has_value());
 
-    const auto options = wjs::phonics_board_options(*built->find("A"), 4);
+    const auto options = sns::phonics_board_options(*built->find("A"), 4);
 
     REQUIRE_FALSE(options.has_value());
-    CHECK(options.error() == wjs::SeedError::bad_dead_letter);
+    CHECK(options.error() == sns::SeedError::bad_dead_letter);
 }

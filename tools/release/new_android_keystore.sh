@@ -13,7 +13,7 @@
 #      the app) under one random password. A PKCS12 store has one password for the
 #      store and the key (keytool refuses a different key password), so
 #      ANDROID_KEY_PASSWORD is the same value as ANDROID_KEYSTORE_PASSWORD;
-#   2. writes, into --out (default ~/wjs-android-keystore, mode 700; never inside a git
+#   2. writes, into --out (default ~/sns-android-keystore, mode 700; never inside a git
 #      work tree):
 #        upload-keystore.p12         the keystore
 #        upload-keystore.p12.base64  the same, base64 on one line -> ANDROID_KEYSTORE_BASE64
@@ -33,9 +33,9 @@
 # before deleting the files.
 set -euo pipefail
 
-out="$HOME/wjs-android-keystore"
-alias_name="wjs-upload"
-dname="CN=WordJewelsSolver upload key, O=Iain Chesworth Labs"
+out="$HOME/sns-android-keystore"
+alias_name="sns-upload"
+dname="CN=SnapAndSpell upload key, O=Iain Chesworth Labs"
 validity=9125
 repo="iainchesworthlabs/wordjewelssolver"
 
@@ -77,7 +77,7 @@ out="$(cd "$out" && pwd)"
 # Secrets must never be where a commit can pick them up.
 if [[ "$out/" == "$repo_root"/* ]] || [ "$(git -C "$out" rev-parse --is-inside-work-tree 2>/dev/null)" = true ]; then
   rmdir "$out" 2>/dev/null || true
-  echo "new_android_keystore.sh: $out is inside a git working tree. Choose a folder that is not under version control (the default is ~/wjs-android-keystore)." >&2
+  echo "new_android_keystore.sh: $out is inside a git working tree. Choose a folder that is not under version control (the default is ~/sns-android-keystore)." >&2
   exit 1
 fi
 

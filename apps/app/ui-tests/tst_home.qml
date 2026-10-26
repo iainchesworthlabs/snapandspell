@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 
 // Home (apps/app/qml/Home.qml): one large child placard, one adult card, and the
 // app bar's adult entry. The brief's first rule is that the child's way in is

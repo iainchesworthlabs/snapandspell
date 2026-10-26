@@ -44,12 +44,12 @@
 #include "language_manager.hpp"
 #include "media_probe.hpp"
 #include "scan_model.hpp"
+#include "sns/board.hpp"
+#include "sns/calendar.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/scan/reading.hpp"
+#include "sns/store.hpp"
 #include "test_fonts.hpp"
-#include "wjs/board.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/scan/reading.hpp"
-#include "wjs/store.hpp"
 
 namespace {
 
@@ -136,22 +136,22 @@ void save(QQuickWindow* window, const QString& directory, const QString& name) {
 }
 
 int run_check(const QString& out) {
-    const wjs::Day today = wjs::day_from_civil(2026, 10, 19);
+    const sns::Day today = sns::day_from_civil(2026, 10, 19);
 
     // A board the check walks through: SAT across the top, PIN below it, X for
     // the rest.
-    wjs::Dictionary dictionary;
+    sns::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
         static_cast<void>(dictionary.insert(word));
     }
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
 
-    wjs::app::LanguageManager language;
+    sns::app::LanguageManager language;
     language.apply(QStringLiteral("en"));
 
-    wjs::app::ScanModel scan;
-    wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
-        return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
+    sns::app::ScanModel scan;
+    sns::app::AssistModel assist([&dictionary, &store](sns::Board board) {
+        return std::make_unique<sns::app::AssistGame>(std::move(board), dictionary, store,
                                                       [] { return today; });
     });
 
@@ -161,7 +161,7 @@ int run_check(const QString& out) {
         {QStringLiteral("assist"), QVariant::fromValue(&assist)},
         {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
     });
-    engine.loadFromModule("WordJewelsSolver", "PreviewHost");
+    engine.loadFromModule("SnapAndSpell", "PreviewHost");
     if (engine.rootObjects().isEmpty()) {
         std::fprintf(stderr, "The stub shell did not load.\n");
         return 1;
@@ -277,30 +277,30 @@ int run_check(const QString& out) {
 // VideoOutput of the build's Qt Multimedia, the Capture is the application's
 // button, and the frame goes through the same reader the program uses.
 int run_camera_check(const QString& out) {
-    const wjs::Day today = wjs::day_from_civil(2026, 10, 19);
+    const sns::Day today = sns::day_from_civil(2026, 10, 19);
 
-    wjs::Dictionary dictionary;
+    sns::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
         static_cast<void>(dictionary.insert(word));
     }
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
 
-    wjs::app::LanguageManager language;
+    sns::app::LanguageManager language;
     language.apply(QStringLiteral("en"));
 
     // The fake backend is a camera with no device: it is available, it starts,
     // and it holds one frame. Set on the model the way Main.qml sets the camera
     // it makes. TEST DATA: a synthetic frame, never a photograph.
-    auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+    auto backend = std::make_unique<sns::app::test::FakeCameraBackend>();
     backend->setAvailable(true);
     backend->setProblem(QString());
-    backend->setFrame(wjs::app::test::synthetic_board_frame());
-    wjs::app::CameraSource camera(std::move(backend));
+    backend->setFrame(sns::app::test::synthetic_board_frame());
+    sns::app::CameraSource camera(std::move(backend));
 
-    wjs::app::ScanModel scan;
+    sns::app::ScanModel scan;
     scan.setCameraSource(&camera);
-    wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
-        return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
+    sns::app::AssistModel assist([&dictionary, &store](sns::Board board) {
+        return std::make_unique<sns::app::AssistGame>(std::move(board), dictionary, store,
                                                       [] { return today; });
     });
 
@@ -310,7 +310,7 @@ int run_camera_check(const QString& out) {
         {QStringLiteral("assist"), QVariant::fromValue(&assist)},
         {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
     });
-    engine.loadFromModule("WordJewelsSolver", "PreviewHost");
+    engine.loadFromModule("SnapAndSpell", "PreviewHost");
     if (engine.rootObjects().isEmpty()) {
         std::fprintf(stderr, "The stub shell did not load.\n");
         return 1;
@@ -379,13 +379,13 @@ int run_camera_check(const QString& out) {
 // screen's title is the translated one, and for the seven it is not the English),
 // and the split and the bar follow the direction while the board does not.
 int run_language_check(const QString& out) {
-    const wjs::Day today = wjs::day_from_civil(2026, 10, 19);
+    const sns::Day today = sns::day_from_civil(2026, 10, 19);
     QSet<QString> english;
 
-    for (const QString& code : wjs::app::LanguageManager::languages()) {
+    for (const QString& code : sns::app::LanguageManager::languages()) {
         const int warnings_before = g_warnings;
 
-        wjs::app::LanguageManager language;
+        sns::app::LanguageManager language;
         language.apply(code);
         const bool right_to_left = language.rightToLeft();
         check(language.code() == code, "the language in force is " + code);
@@ -393,26 +393,26 @@ int run_language_check(const QString& out) {
                   (right_to_left ? Qt::RightToLeft : Qt::LeftToRight),
               "the application's layout direction follows the language: " + code);
 
-        wjs::Dictionary dictionary;
+        sns::Dictionary dictionary;
         for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
             static_cast<void>(dictionary.insert(word));
         }
-        wjs::Store store = wjs::Store::in_memory();
-        wjs::app::ScanModel scan;
-        wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
-            return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
+        sns::Store store = sns::Store::in_memory();
+        sns::app::ScanModel scan;
+        sns::app::AssistModel assist([&dictionary, &store](sns::Board board) {
+            return std::make_unique<sns::app::AssistGame>(std::move(board), dictionary, store,
                                                           [] { return today; });
         });
 
         QQmlApplicationEngine engine;
-        QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+        QObject::connect(&language, &sns::app::LanguageManager::languageChanged, &engine,
                          &QQmlEngine::retranslate);
         engine.setInitialProperties({
             {QStringLiteral("scan"), QVariant::fromValue(&scan)},
             {QStringLiteral("assist"), QVariant::fromValue(&assist)},
             {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
         });
-        engine.loadFromModule("WordJewelsSolver", "PreviewHost");
+        engine.loadFromModule("SnapAndSpell", "PreviewHost");
         if (engine.rootObjects().isEmpty()) {
             check(false, "the stub shell loads in " + code);
             continue;
@@ -534,7 +534,7 @@ struct ShotSetup {
 // "<setup>-<screen>": the images the design pass is judged by, before and after.
 // TEST DATA: a made-up board and words; nothing here is content for a child.
 int run_shots(const QString& out) {
-    const wjs::Day today = wjs::day_from_civil(2026, 10, 19);
+    const sns::Day today = sns::day_from_civil(2026, 10, 19);
     const ShotSetup setups[] = {
         {"d1100x700-light", 1100, 700, "light", 1.0},
         {"d1100x700-dark", 1100, 700, "dark", 1.0},
@@ -547,28 +547,28 @@ int run_shots(const QString& out) {
     };
 
     for (const ShotSetup& setup : setups) {
-        wjs::Dictionary dictionary;
+        sns::Dictionary dictionary;
         for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
             static_cast<void>(dictionary.insert(word));
         }
-        wjs::Store store = wjs::Store::in_memory();
-        wjs::app::LanguageManager language;
+        sns::Store store = sns::Store::in_memory();
+        sns::app::LanguageManager language;
         language.apply(QStringLiteral("en"));
 
         // A camera that is there, for the ready screen's live view; the no-camera
         // screen is the same models with no source (the second pass below).
         for (const bool with_camera : {false, true}) {
-            auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+            auto backend = std::make_unique<sns::app::test::FakeCameraBackend>();
             backend->setAvailable(true);
             backend->setProblem(QString());
-            wjs::app::CameraSource camera(std::move(backend));
+            sns::app::CameraSource camera(std::move(backend));
 
-            wjs::app::ScanModel scan;
+            sns::app::ScanModel scan;
             if (with_camera) {
                 scan.setCameraSource(&camera);
             }
-            wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
-                return std::make_unique<wjs::app::AssistGame>(std::move(board), dictionary, store,
+            sns::app::AssistModel assist([&dictionary, &store](sns::Board board) {
+                return std::make_unique<sns::app::AssistGame>(std::move(board), dictionary, store,
                                                               [] { return today; });
             });
             QQmlApplicationEngine engine;
@@ -579,7 +579,7 @@ int run_shots(const QString& out) {
                 {QStringLiteral("scheme"), QString::fromLatin1(setup.scheme)},
                 {QStringLiteral("textScale"), setup.scale},
             });
-            engine.loadFromModule("WordJewelsSolver", "PreviewHost");
+            engine.loadFromModule("SnapAndSpell", "PreviewHost");
             if (engine.rootObjects().isEmpty()) {
                 check(false, "the stub shell loads");
                 continue;
@@ -608,7 +608,7 @@ int run_shots(const QString& out) {
             save(window, out, prefix + "check-empty");
 
             // A reading with doubts: the ringed tiles and the hint under the board.
-            wjs::scan::BoardReading reading;
+            sns::scan::BoardReading reading;
             reading.rows = 3;
             reading.columns = 3;
             reading.tiles.resize(9);
@@ -711,7 +711,7 @@ int main(int argc, char* argv[]) {
     }
     QGuiApplication application(argc, argv);
     // The faces the screens name, as the application registers them before its engine loads.
-    static_cast<void>(wjs::app::test::load_house_fonts());
+    static_cast<void>(sns::app::test::load_house_fonts());
 
     if (is_check) {
         const int result = run_check(out);
@@ -737,7 +737,7 @@ int main(int argc, char* argv[]) {
         // The live view is a VideoOutput, which needs a Qt Multimedia backend. Without one the
         // screens are not what is wrong, so this is a skip: exit 77, which the CTest entry reads
         // as one (apps/app/tests/unit/CMakeLists.txt).
-        if (!wjs::app::test::mediaBackendAvailable()) {
+        if (!sns::app::test::mediaBackendAvailable()) {
             std::fprintf(stderr,
                          "camera screens: skipped, Qt Multimedia has no backend on this machine\n");
             return 77;
@@ -753,17 +753,17 @@ int main(int argc, char* argv[]) {
     }
 
     // Interactive: the two screens, empty, to look at.
-    wjs::Dictionary dictionary;
+    sns::Dictionary dictionary;
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
         static_cast<void>(dictionary.insert(word));
     }
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::app::LanguageManager language;
+    sns::Store store = sns::Store::in_memory();
+    sns::app::LanguageManager language;
     language.apply(QString());
-    wjs::app::ScanModel scan;
-    wjs::app::AssistModel assist([&dictionary, &store](wjs::Board board) {
-        return std::make_unique<wjs::app::AssistGame>(
-            std::move(board), dictionary, store, [] { return wjs::day_from_civil(2026, 10, 19); });
+    sns::app::ScanModel scan;
+    sns::app::AssistModel assist([&dictionary, &store](sns::Board board) {
+        return std::make_unique<sns::app::AssistGame>(
+            std::move(board), dictionary, store, [] { return sns::day_from_civil(2026, 10, 19); });
     });
     QQmlApplicationEngine engine;
     engine.setInitialProperties({
@@ -771,7 +771,7 @@ int main(int argc, char* argv[]) {
         {QStringLiteral("assist"), QVariant::fromValue(&assist)},
         {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
     });
-    engine.loadFromModule("WordJewelsSolver", "PreviewHost");
+    engine.loadFromModule("SnapAndSpell", "PreviewHost");
     if (engine.rootObjects().isEmpty()) {
         return 1;
     }

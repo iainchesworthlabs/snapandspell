@@ -8,23 +8,23 @@
 #include <QString>
 #include <filesystem>
 
-#include "wjs/platform/paths.hpp"
+#include "sns/platform/paths.hpp"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 namespace {
 
-// The resource tree the data was compiled into (wjs_platform_configure_app in
-// platform.cmake, WJS_ANDROID_DATA_RESOURCE_PREFIX): dictionaries/en.txt and
+// The resource tree the data was compiled into (sns_platform_configure_app in
+// platform.cmake, SNS_ANDROID_DATA_RESOURCE_PREFIX): dictionaries/en.txt and
 // dice/3x3.txt to 6x6.txt, the files a desktop build copies beside its executable.
-constexpr auto resource_root = ":/wjs-android-data";
+constexpr auto resource_root = ":/sns-android-data";
 
 // The directory below the application's private storage the data is unpacked into.
 constexpr auto data_directory_name = "program-data";
 
 // The name the "executable" has in the unpacked directory. Only its directory is ever
 // used: the program looks for `dictionaries/` and `dice/` beside it.
-constexpr auto executable_name = "WordJewelsSolver";
+constexpr auto executable_name = "SnapAndSpell";
 
 [[nodiscard]] bool same_content(const QString& installed, QFile& packed) {
     QFile current{installed};
@@ -89,4 +89,4 @@ std::filesystem::path user_data_directory() {
     return std::filesystem::path{base.toStdString()};
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

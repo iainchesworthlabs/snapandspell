@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/dice_sets.hpp"
+#include "sns/dice_sets.hpp"
 
 #include <algorithm>
 #include <string>
 #include <utility>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 std::expected<DiceSets, DiceError> DiceSets::make(std::vector<DiceSet> sets) {
     constexpr std::size_t count = largest_side - smallest_side + 1;
@@ -66,4 +66,4 @@ const DiceSet* DiceSets::find(std::size_t side) const noexcept {
     return &sets_[side - smallest_side];
 }
 
-}  // namespace wjs
+}  // namespace sns

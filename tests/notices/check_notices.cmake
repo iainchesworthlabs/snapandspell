@@ -36,7 +36,7 @@ endif()
 
 # The header names the version, and the project's own licence is stated.
 set(_required
-    "Word Jewels Solver ${VERSION}"
+    "Snap and Spell ${VERSION}"
     "notices for the"
     "GNU General Public License"
     "Catch2"
@@ -48,7 +48,7 @@ set(_required
 
 if(EXPECT_CLI)
     list(APPEND _required
-        "wjs-cli"
+        "sns-cli"
         "GPL-3.0-or-later")
 endif()
 

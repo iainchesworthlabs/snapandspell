@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 
 // The board scene (apps/app/qml/solo/BoardScene.qml) as it is, not the stub: the pixel theatre of the
 // shake and the drop. It plays the stages in order, says each die has landed once and the board is

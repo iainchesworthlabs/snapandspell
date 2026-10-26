@@ -39,7 +39,7 @@ done
 [ -f "$apk" ] || { echo "verify_apk.sh: $apk is not a file" >&2; exit 2; }
 
 application_id="com.iainchesworthlabs.snapandspell"
-library="lib/arm64-v8a/libWordJewelsSolver_arm64-v8a.so"
+library="lib/arm64-v8a/libSnapAndSpell_arm64-v8a.so"
 
 # aapt2 and apksigner: on PATH, or the newest build-tools of the SDK.
 find_tool() {

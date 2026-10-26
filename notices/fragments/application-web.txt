@@ -1,7 +1,7 @@
-WordJewelsSolver, the web program
+SnapAndSpell, the web program
 ---------------------------------
 
-WordJewelsSolver.wasm, with the page and scripts around it, is the application
+SnapAndSpell.wasm, with the page and scripts around it, is the application
 built for a web browser (docs/web.md in the source). Its source files are under
 the GNU General Public License, version 3 or (at your option) any later version.
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma ComponentBehavior: Bound
 import QtQuick
-import WordJewelsSolver
-import WordJewelsSolver.Scene
+import SnapAndSpell
+import SnapAndSpell.Scene
 import "SceneScript.js" as Script
 
 // THE board scene (docs/design/board.md, "The shake and the drop"): given a finished board and a seed,

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for taking a look at WordJewelsSolver. This guide is short: it is meant
+Thanks for taking a look at SnapAndSpell. This guide is short: it is meant
 to save you a round trip on the handful of things that are not obvious from the
 code.
 
@@ -40,7 +40,7 @@ options. The short version, on Windows:
 
 ```sh
 git clone https://github.com/iainchesworthlabs/wordjewelssolver
-cd wordjewelssolver
+cd snapandspell
 # VCPKG_ROOT must point at a clone of the labs' vcpkg fork (docs/building.md)
 cmake --preset windows-msvc-debug
 cmake --build --preset windows-msvc-debug

@@ -25,18 +25,18 @@
 #include "fake_solo_game.hpp"
 #include "parent_controller.hpp"
 #include "real_solo_game.hpp"
+#include "sns/board.hpp"
+#include "sns/calendar.hpp"
+#include "sns/dice_sets.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/game_session.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/session_store.hpp"
+#include "sns/solver.hpp"
+#include "sns/store.hpp"
 #include "solo_game_factory.hpp"
 #include "solo_game_setup.hpp"
 #include "solo_model.hpp"
-#include "wjs/board.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/dice_sets.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/game_session.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/session_store.hpp"
-#include "wjs/solver.hpp"
-#include "wjs/store.hpp"
 
 // The Solo Play port over the library's session (apps/app/src/solo/real_solo_game.*):
 // a table of the mapping, run against a tiny phase written here. The session's own
@@ -54,13 +54,13 @@
 
 namespace {
 
-using wjs::BoardSize;
-using wjs::Position;
-using wjs::SessionState;
-using wjs::app::RealSoloGame;
-using wjs::app::SoloState;
-using wjs::app::WordKind;
-using wjs::app::WordTier;
+using sns::BoardSize;
+using sns::Position;
+using sns::SessionState;
+using sns::app::RealSoloGame;
+using sns::app::SoloState;
+using sns::app::WordKind;
+using sns::app::WordTier;
 
 constexpr std::string_view graphemes_a =
     "# phase: A\n"
@@ -93,9 +93,9 @@ constexpr std::array<std::string_view, 9> extra_words = {"tip", "pit", "nap", "a
 constexpr std::array<std::string_view, 11> phase_words = {
     "nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain"};
 
-const wjs::Dictionary& english() {
-    static const wjs::Dictionary dictionary = [] {
-        wjs::Dictionary words;
+const sns::Dictionary& english() {
+    static const sns::Dictionary dictionary = [] {
+        sns::Dictionary words;
         for (const std::string_view word : phase_words) {
             REQUIRE(words.insert(word));
         }
@@ -107,22 +107,22 @@ const wjs::Dictionary& english() {
     return dictionary;
 }
 
-const wjs::PhaseSet& phases() {
-    static const wjs::PhaseSet set = [] {
+const sns::PhaseSet& phases() {
+    static const sns::PhaseSet set = [] {
         const auto graphemes = [](std::string_view text, std::string_view name) {
             std::istringstream in{std::string(text)};
-            auto parsed = wjs::parse_graphemes(in, name);
+            auto parsed = sns::parse_graphemes(in, name);
             REQUIRE(parsed.has_value());
             return *parsed;
         };
         const auto words = [](std::string_view text, std::string_view name) {
             std::istringstream in{std::string(text)};
-            auto parsed = wjs::parse_words(in, name);
+            auto parsed = sns::parse_words(in, name);
             REQUIRE(parsed.has_value());
             return *parsed;
         };
         auto built =
-            wjs::PhaseSet::build({graphemes(graphemes_a, "a.g"), graphemes(graphemes_b, "b.g")},
+            sns::PhaseSet::build({graphemes(graphemes_a, "a.g"), graphemes(graphemes_b, "b.g")},
                                  {words(words_a, "a.w"), words(words_b, "b.w")}, english());
         REQUIRE(built.has_value());
         return *std::move(built);
@@ -130,14 +130,14 @@ const wjs::PhaseSet& phases() {
     return set;
 }
 
-const wjs::PhaseIndex& phase_a() {
+const sns::PhaseIndex& phase_a() {
     return *phases().find("A");
 }
-const wjs::PhaseIndex& phase_b() {
+const sns::PhaseIndex& phase_b() {
     return *phases().find("B");
 }
 
-constexpr wjs::Day today = wjs::day_from_civil(2026, 10, 16);
+constexpr sns::Day today = sns::day_from_civil(2026, 10, 16);
 const auto device_day = [] { return today; };
 
 using Path = std::vector<Position>;
@@ -168,18 +168,18 @@ const Path apart{{0, 0}, {0, 2}};        // not touching: not a path
 const Path one_tile{{0, 0}};             // a touch to hear a letter
 
 // The options of a phonics session: the game under test plays that board.
-wjs::SessionOptions phonics(wjs::SessionOptions options = {}) {
-    options.mode = wjs::BoardMode::phonics;
+sns::SessionOptions phonics(sns::SessionOptions options = {}) {
+    options.mode = sns::BoardMode::phonics;
     return options;
 }
 
-wjs::SessionData data_of(const wjs::PhaseIndex& phase) {
+sns::SessionData data_of(const sns::PhaseIndex& phase) {
     return {.dictionary = english(), .phase = &phase};
 }
 
-wjs::BoardRecord hand_record(std::string_view phase, std::vector<wjs::Find> finds = {}) {
-    wjs::BoardRecord record;
-    record.mode = wjs::BoardMode::phonics;
+sns::BoardRecord hand_record(std::string_view phase, std::vector<sns::Find> finds = {}) {
+    sns::BoardRecord record;
+    record.mode = sns::BoardMode::phonics;
     record.phase = std::string(phase);
     record.size = BoardSize::three;
     record.tiles = std::string(hand_tiles);
@@ -190,38 +190,38 @@ wjs::BoardRecord hand_record(std::string_view phase, std::vector<wjs::Find> find
     return record;
 }
 
-wjs::Find jewel(std::string word) {
+sns::Find jewel(std::string word) {
     return {.word = std::move(word), .assisted = false, .when = today};
 }
 
-const wjs::PhaseIndex& phase_named(std::string_view name) {
+const sns::PhaseIndex& phase_named(std::string_view name) {
     return name == "A" ? phase_a() : phase_b();
 }
 
 // A session playing the hand board of `phase`, with `finds` already in its tray.
-wjs::GameSession hand_session(std::string_view phase, std::vector<wjs::Find> finds = {},
-                              const wjs::SessionOptions& options = {}) {
-    wjs::SessionSnapshot snapshot;
+sns::GameSession hand_session(std::string_view phase, std::vector<sns::Find> finds = {},
+                              const sns::SessionOptions& options = {}) {
+    sns::SessionSnapshot snapshot;
     snapshot.state = SessionState::playing;
-    snapshot.mode = wjs::BoardMode::phonics;
+    snapshot.mode = sns::BoardMode::phonics;
     snapshot.size = BoardSize::three;
     snapshot.seed = 77;
     snapshot.board = hand_record(phase, std::move(finds));
     auto restored =
-        wjs::GameSession::restore(snapshot, data_of(phase_named(phase)), phonics(options));
+        sns::GameSession::restore(snapshot, data_of(phase_named(phase)), phonics(options));
     REQUIRE(restored.has_value());
     return *std::move(restored);
 }
 
-wjs::GameSession dealing_session(const wjs::SessionOptions& options = {}) {
-    auto created = wjs::GameSession::create(data_of(phase_a()), phonics(options));
+sns::GameSession dealing_session(const sns::SessionOptions& options = {}) {
+    auto created = sns::GameSession::create(data_of(phase_a()), phonics(options));
     REQUIRE(created.has_value());
     return *std::move(created);
 }
 
 // A session that has dealt a board of its own and is in `state`.
-wjs::GameSession reach(SessionState state) {
-    wjs::GameSession session = dealing_session();
+sns::GameSession reach(SessionState state) {
+    sns::GameSession session = dealing_session();
     if (state == SessionState::box) {
         return session;
     }
@@ -237,7 +237,7 @@ wjs::GameSession reach(SessionState state) {
     if (state == SessionState::playing) {
         return session;
     }
-    for (const wjs::FoundWord& word : wjs::solve(*session.board(), phase_a().dictionary())) {
+    for (const sns::FoundWord& word : sns::solve(*session.board(), phase_a().dictionary())) {
         static_cast<void>(session.trace(word.path, today));
     }
     REQUIRE(session.state() == SessionState::cleared);
@@ -250,16 +250,16 @@ wjs::GameSession reach(SessionState state) {
 
 // A game over a store of its own.
 struct Table {
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
     RealSoloGame game;
 
     // The hand board of `phase`, in play.
-    explicit Table(std::string_view phase, std::vector<wjs::Find> finds = {}, bool help = true)
+    explicit Table(std::string_view phase, std::vector<sns::Find> finds = {}, bool help = true)
         : game(hand_session(phase, std::move(finds)), help, &phase_named(phase), store,
                device_day) {}
 
     // A session already made, over phase A.
-    explicit Table(wjs::GameSession session)
+    explicit Table(sns::GameSession session)
         : game(std::move(session), true, &phase_a(), store, device_day) {}
 };
 
@@ -269,7 +269,7 @@ std::string lower_case(std::string text) {
     return text;
 }
 
-std::vector<std::string> words_of(const std::vector<wjs::app::SoloFound>& found) {
+std::vector<std::string> words_of(const std::vector<sns::app::SoloFound>& found) {
     std::vector<std::string> words;
     for (const auto& entry : found) {
         words.push_back(entry.word);
@@ -282,8 +282,8 @@ std::vector<std::string> words_of(const std::vector<wjs::app::SoloFound>& found)
 // --- the box -----------------------------------------------------------------
 
 TEST_CASE("a new game is the closed box with the options' size and help", "[app][real]") {
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::SessionOptions options;
+    sns::Store store = sns::Store::in_memory();
+    sns::SessionOptions options;
     options.size = BoardSize::four;
     options.help = false;
     auto made = RealSoloGame::create(data_of(phase_a()), store, phonics(options), device_day);
@@ -303,13 +303,13 @@ TEST_CASE("a new game is the closed box with the options' size and help", "[app]
 }
 
 TEST_CASE("a session that cannot be made is the session's error", "[app][real]") {
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::SessionOptions options;
+    sns::Store store = sns::Store::in_memory();
+    sns::SessionOptions options;
     options.min_viable = 6;
     options.max_viable = 2;
     const auto made = RealSoloGame::create(data_of(phase_a()), store, phonics(options), device_day);
     REQUIRE_FALSE(made.has_value());
-    CHECK(made.error() == wjs::SessionError::bad_options);
+    CHECK(made.error() == sns::SessionError::bad_options);
 }
 
 TEST_CASE("the size is chosen in the box and nowhere else", "[app][real]") {
@@ -340,7 +340,7 @@ TEST_CASE("the shake deals the board before anything moves, and settled lands it
     REQUIRE(board.tiles.size() == 9);
     // The scene's board is the session's, with a dead jewel as "" and the seed of
     // the seeding that made it.
-    const wjs::Board* dealt = game.session().board();
+    const sns::Board* dealt = game.session().board();
     REQUIRE(dealt != nullptr);
     const auto dead = game.session().dead_tiles();
     for (std::size_t row = 0; row < 3; ++row) {
@@ -361,7 +361,7 @@ TEST_CASE("the shake deals the board before anything moves, and settled lands it
 
 TEST_CASE("settled is the session's still and landed, whichever it is waiting for", "[app][real]") {
     {
-        wjs::GameSession session = reach(SessionState::dropping);
+        sns::GameSession session = reach(SessionState::dropping);
         Table table(std::move(session));
         REQUIRE(table.game.state() == SoloState::dropping);
         table.game.settled();
@@ -384,14 +384,14 @@ TEST_CASE("a shake that deals no board answers false and stays in the box", "[ap
     const std::string graphemes =
         "# phase: A\na  /x/  clip:a\nb  /x/  clip:b\nc  /x/  clip:c\nd  /x/  clip:d\n";
     const std::string words = "# phase: A\nabcd  a b c d\n";
-    wjs::Dictionary dictionary;
+    sns::Dictionary dictionary;
     REQUIRE(dictionary.insert("abcd"));
     std::istringstream graphemes_in{graphemes};
     std::istringstream words_in{words};
-    const auto built = wjs::PhaseSet::build({*wjs::parse_graphemes(graphemes_in, "g")},
-                                            {*wjs::parse_words(words_in, "w")}, dictionary);
+    const auto built = sns::PhaseSet::build({*sns::parse_graphemes(graphemes_in, "g")},
+                                            {*sns::parse_words(words_in, "w")}, dictionary);
     REQUIRE(built.has_value());
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
     auto made = RealSoloGame::create({.dictionary = dictionary, .phase = built->find("A")}, store,
                                      phonics(), device_day);
     REQUIRE(made.has_value());
@@ -415,12 +415,12 @@ TEST_CASE("every state of the session is the port's, by the design's names", "[a
         Row{SessionState::resting, SoloState::resting},
     };
     for (const Row& row : rows) {
-        INFO(wjs::to_string(row.session));
+        INFO(sns::to_string(row.session));
         Table table(reach(row.session));
         CHECK(table.game.state() == row.solo);
         // The screens' ids are the design's without the prefix.
-        CHECK("solo." + std::string(wjs::app::to_string(row.solo)) ==
-              std::string(wjs::to_string(row.session)));
+        CHECK("solo." + std::string(sns::app::to_string(row.solo)) ==
+              std::string(sns::to_string(row.session)));
     }
 }
 
@@ -537,7 +537,7 @@ TEST_CASE("each find is handed to the store with the day", "[app][real]") {
     Table table("A");
     REQUIRE(table.game.submit(pat).kind == WordKind::viable);
 
-    const wjs::StoreData& data = table.store.data();
+    const sns::StoreData& data = table.store.data();
     REQUIRE(data.boards.size() == 1);
     CHECK(data.boards[0].phase == "A");
     CHECK(data.boards[0].size == 3);
@@ -558,9 +558,9 @@ TEST_CASE("each find is handed to the store with the day", "[app][real]") {
 
 TEST_CASE("a clear that beats the best of its size is the new best, once, on the last word",
           "[app][real]") {
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
     // An earlier board of this size, cleared for one star: the best to beat.
-    wjs::BoardSnapshot earlier;
+    sns::BoardSnapshot earlier;
     earlier.phase = "B";
     earlier.size = 3;
     earlier.tiles = "X Y Z/X Y Z/X Y Z";
@@ -583,8 +583,8 @@ TEST_CASE("a clear that beats the best of its size is the new best, once, on the
 }
 
 TEST_CASE("a sticker is for the first time a word is found on this device", "[app][real]") {
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::BoardSnapshot earlier;
+    sns::Store store = sns::Store::in_memory();
+    sns::BoardSnapshot earlier;
     earlier.phase = "B";
     earlier.size = 3;
     earlier.tiles = "X Y Z/X Y Z/X Y Z";
@@ -614,7 +614,7 @@ TEST_CASE("the lid hands the board left to the store, found or not", "[app][real
         CHECK(table.game.board().tiles.size() == 9);
 
         // Another board, left at once.
-        wjs::Store& store = table.store;
+        sns::Store& store = table.store;
         RealSoloGame second(hand_session("B"), true, &phase_b(), store, device_day);
         second.lidOn();
         CHECK(second.state() == SoloState::box);
@@ -645,7 +645,7 @@ TEST_CASE("the lid hands the board left to the store, found or not", "[app][real
 }
 
 TEST_CASE("the history is the store's boards, newest first, with their finds", "[app][real]") {
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
     {
         RealSoloGame first(hand_session("A"), true, &phase_a(), store, device_day);
         first.submit(pat);
@@ -712,8 +712,8 @@ TEST_CASE("the start tile is the session's, lit until its word is found", "[app]
 }
 
 TEST_CASE("with the parent's help switch off there is no start tile", "[app][real]") {
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::SessionOptions options;
+    sns::Store store = sns::Store::in_memory();
+    sns::SessionOptions options;
     options.help = false;
     RealSoloGame game(hand_session("A", {}, options), false, &phase_a(), store, device_day);
 
@@ -754,9 +754,9 @@ TEST_CASE("the application plays no game until it is told what to play", "[app][
     {
         // Not the tests' stand-in, which no program plays: a box that cannot be
         // shaken, so a model made without a game never pretends to play one.
-        const auto none = wjs::app::make_solo_game();
+        const auto none = sns::app::make_solo_game();
         REQUIRE(none != nullptr);
-        CHECK(dynamic_cast<wjs::app::FakeSoloGame*>(none.get()) == nullptr);
+        CHECK(dynamic_cast<sns::app::FakeSoloGame*>(none.get()) == nullptr);
         CHECK(none->state() == SoloState::box);
         CHECK_FALSE(none->shake());
         CHECK(none->state() == SoloState::box);
@@ -765,17 +765,17 @@ TEST_CASE("the application plays no game until it is told what to play", "[app][
         CHECK(none->history().empty());
     }
 
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
     {
-        const wjs::app::ScopedSoloGameMaker installed([&store] {
+        const sns::app::ScopedSoloGameMaker installed([&store] {
             return std::make_unique<RealSoloGame>(hand_session("A"), true, &phase_a(), store,
                                                   device_day);
         });
-        const auto game = wjs::app::make_solo_game();
+        const auto game = sns::app::make_solo_game();
         CHECK(dynamic_cast<RealSoloGame*>(game.get()) != nullptr);
         CHECK(game->state() == SoloState::playing);
     }
-    const auto after = wjs::app::make_solo_game();
+    const auto after = sns::app::make_solo_game();
     CHECK(dynamic_cast<RealSoloGame*>(after.get()) == nullptr);
     CHECK(after->state() == SoloState::box);
 }
@@ -790,7 +790,7 @@ public:
         static int counter = 0;
         const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
         path_ = std::filesystem::temp_directory_path() /
-                ("wjs_solo_setup_test_" + std::to_string(stamp) + "_" + std::to_string(++counter));
+                ("sns_solo_setup_test_" + std::to_string(stamp) + "_" + std::to_string(++counter));
         std::filesystem::create_directories(path_);
     }
     TempDirectory(const TempDirectory&) = delete;
@@ -841,8 +841,8 @@ void write_data(const TempDirectory& directory) {
     write_dice(directory);
 }
 
-wjs::app::SoloGameOptions options_in(const TempDirectory& directory) {
-    wjs::app::SoloGameOptions options;
+sns::app::SoloGameOptions options_in(const TempDirectory& directory) {
+    sns::app::SoloGameOptions options;
     options.phase_directory = directory.path() / "phonics";
     options.dictionary = directory.path() / "en.txt";
     options.dice_directory = directory.path() / "dice";
@@ -857,8 +857,8 @@ TEST_CASE("the setup loads a phase from a directory and makes a game from it", "
     const TempDirectory directory;
     write_data(directory);
 
-    wjs::Store store = wjs::Store::in_memory();
-    auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
+    sns::Store store = sns::Store::in_memory();
+    auto opened = sns::app::SoloGameSetup::open(options_in(directory), store);
     REQUIRE(opened.has_value());
     auto& setup = **opened;
 
@@ -883,15 +883,15 @@ TEST_CASE("the setup loads a phase from a directory and makes a game from it", "
 TEST_CASE("the setup makes each game from the parent's settings", "[app][real]") {
     const TempDirectory directory;
     write_data(directory);
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::Settings settings = store.settings();
-    settings.help = wjs::HelpLevel::off;
+    sns::Store store = sns::Store::in_memory();
+    sns::Settings settings = store.settings();
+    settings.help = sns::HelpLevel::off;
     settings.board_size = 4;
     settings.phase = "B";
     store.update_settings(settings);
 
     auto options = options_in(directory);
-    auto opened = wjs::app::SoloGameSetup::open(options, store);
+    auto opened = sns::app::SoloGameSetup::open(options, store);
     REQUIRE(opened.has_value());
     REQUIRE((*opened)->phase() != nullptr);
     CHECK((*opened)->phase()->phase() == "B");
@@ -902,7 +902,7 @@ TEST_CASE("the setup makes each game from the parent's settings", "[app][real]")
 
     // A phase named on the command line wins over the settings.
     options.phase = "A";
-    auto named = wjs::app::SoloGameSetup::open(options, store);
+    auto named = sns::app::SoloGameSetup::open(options, store);
     REQUIRE(named.has_value());
     CHECK((*named)->phase()->phase() == "A");
 }
@@ -911,11 +911,11 @@ TEST_CASE("a game made by the setup writes its finds to the store's file", "[app
     const TempDirectory directory;
     write_data(directory);
     const auto options = options_in(directory);
-    const auto file = directory.path() / "kept" / "store.wjs";
+    const auto file = directory.path() / "kept" / "store.sns";
 
     {
-        auto kept = wjs::Store::open(file);
-        auto opened = wjs::app::SoloGameSetup::open(options, kept.store);
+        auto kept = sns::Store::open(file);
+        auto opened = sns::app::SoloGameSetup::open(options, kept.store);
         REQUIRE(opened.has_value());
         const auto game = (*opened)->make();
         REQUIRE(game->shake());
@@ -923,16 +923,16 @@ TEST_CASE("a game made by the setup writes its finds to the store's file", "[app
         // Every word the solver finds on the dealt board, traced along its path.
         const auto* real = dynamic_cast<RealSoloGame*>(game.get());
         REQUIRE(real != nullptr);
-        const auto solved = wjs::solve(*real->session().board(), english());
+        const auto solved = sns::solve(*real->session().board(), english());
         REQUIRE_FALSE(solved.empty());
         CHECK(game->submit(solved.front().path).kind == WordKind::viable);
         game->lidOn();
     }
 
     // The next run reads the board back from the file.
-    auto kept = wjs::Store::open(file);
-    CHECK(kept.status == wjs::LoadStatus::loaded);
-    auto reopened = wjs::app::SoloGameSetup::open(options, kept.store);
+    auto kept = sns::Store::open(file);
+    CHECK(kept.status == sns::LoadStatus::loaded);
+    auto reopened = sns::app::SoloGameSetup::open(options, kept.store);
     REQUIRE(reopened.has_value());
     const auto game = (*reopened)->make();
     const auto history = game->history();
@@ -944,14 +944,14 @@ TEST_CASE("a phase the settings name that the directory lacks falls back to the 
           "[app][real]") {
     const TempDirectory directory;
     write_data(directory);
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::Settings settings = store.settings();
+    sns::Store store = sns::Store::in_memory();
+    sns::Settings settings = store.settings();
     settings.phase = "Z";  // chosen once, from files that have since changed
     store.update_settings(settings);
 
     auto options = options_in(directory);
     options.phase.clear();  // nothing asked on the command line
-    const auto opened = wjs::app::SoloGameSetup::open(options, store);
+    const auto opened = sns::app::SoloGameSetup::open(options, store);
 
     // The program starts, on the first phase it has, and does not stay out of the
     // game for a stale setting; a phase asked for by name that is not there is
@@ -965,12 +965,12 @@ TEST_CASE("the setup says why it cannot load", "[app][real]") {
     using Catch::Matchers::ContainsSubstring;
     const TempDirectory directory;
     write_data(directory);
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
 
     SECTION("no word list") {
         auto options = options_in(directory);
         options.dictionary = directory.path() / "missing.txt";
-        const auto opened = wjs::app::SoloGameSetup::open(options, store);
+        const auto opened = sns::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("could not be read"));
         CHECK_THAT(opened.error(), ContainsSubstring("--dictionary"));
@@ -978,27 +978,27 @@ TEST_CASE("the setup says why it cannot load", "[app][real]") {
     SECTION("no calendar") {
         auto options = options_in(directory);
         options.today = nullptr;
-        const auto opened = wjs::app::SoloGameSetup::open(options, store);
+        const auto opened = sns::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("calendar"));
     }
     SECTION("no phase directory") {
         auto options = options_in(directory);
         options.phase_directory = directory.path() / "nowhere";
-        const auto opened = wjs::app::SoloGameSetup::open(options, store);
+        const auto opened = sns::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("no such directory"));
     }
     SECTION("a file with a problem names it") {
         write(directory.path() / "phonics" / "phase-a.words.txt", "# phase: A\npat  p a x\n");
-        const auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
+        const auto opened = sns::app::SoloGameSetup::open(options_in(directory), store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("phase-a.words.txt"));
     }
     SECTION("a phase that is not there") {
         auto options = options_in(directory);
         options.phase = "Z";
-        const auto opened = wjs::app::SoloGameSetup::open(options, store);
+        const auto opened = sns::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("no phase Z"));
         CHECK_THAT(opened.error(), ContainsSubstring("A B"));
@@ -1023,14 +1023,14 @@ TEST_CASE("the setup says why it cannot load", "[app][real]") {
         write(every.path() / "phonics" / "phase-a.words.txt", words);
         write(every.path() / "en.txt", list);
         write_dice(every);
-        const auto opened = wjs::app::SoloGameSetup::open(options_in(every), store);
+        const auto opened = sns::app::SoloGameSetup::open(options_in(every), store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("cannot be played"));
     }
     SECTION("no dice") {
         auto options = options_in(directory);
         options.dice_directory = directory.path() / "nowhere";
-        const auto opened = wjs::app::SoloGameSetup::open(options, store);
+        const auto opened = sns::app::SoloGameSetup::open(options, store);
         REQUIRE_FALSE(opened.has_value());
         CHECK_THAT(opened.error(), ContainsSubstring("dice"));
     }
@@ -1041,7 +1041,7 @@ TEST_CASE("the setup says why it cannot load", "[app][real]") {
 TEST_CASE("the parent area on the game's store sees what the game recorded",
           "[app][real][parent]") {
     Table table("A");
-    wjs::app::ParentController controller;
+    sns::app::ParentController controller;
     controller.useCalendar(device_day, 1);
     controller.useStore(&table.store);
     controller.usePhases(&phases());
@@ -1065,11 +1065,11 @@ TEST_CASE("a setting the parent changes is what the setup makes the next game fr
           "[app][real][parent]") {
     const TempDirectory directory;
     write_data(directory);
-    wjs::Store store = wjs::Store::in_memory();
-    auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
+    sns::Store store = sns::Store::in_memory();
+    auto opened = sns::app::SoloGameSetup::open(options_in(directory), store);
     REQUIRE(opened.has_value());
     auto& setup = **opened;
-    wjs::app::ParentController controller;
+    sns::app::ParentController controller;
     controller.useStore(&store);
     controller.usePhases(&setup.phases());
 
@@ -1091,19 +1091,19 @@ TEST_CASE("a setting the parent changes is what the setup makes the next game fr
 TEST_CASE("a sound the parent ticked is a sound the boards are dealt for", "[app][real][parent]") {
     const TempDirectory directory;
     write_data(directory);
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
 
     // What a run before this one left in the store: the phonics board over phase A,
     // with "n" ticked. The settings keep a ticked sound as its letters, which is the
     // string the library's seeding matches a grapheme on (the slashed sound matches
     // nothing), so this is the whole path of a tick: store, setup, session, board.
     // NIP, PAN and PIN are the words with "n" in this phase.
-    wjs::Settings settings = store.settings();
-    settings.board = wjs::BoardMode::phonics;
+    sns::Settings settings = store.settings();
+    settings.board = sns::BoardMode::phonics;
     settings.phase = "A";
     settings.focus_sounds = {"n"};
     store.update_settings(settings);
-    auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
+    auto opened = sns::app::SoloGameSetup::open(options_in(directory), store);
     REQUIRE(opened.has_value());
 
     auto game = (*opened)->make();
@@ -1131,20 +1131,20 @@ TEST_CASE("a change in the parent area is the box's next game, through the model
           "[app][real][parent]") {
     const TempDirectory directory;
     write_data(directory);
-    wjs::Store store = wjs::Store::in_memory();
-    auto opened = wjs::app::SoloGameSetup::open(options_in(directory), store);
+    sns::Store store = sns::Store::in_memory();
+    auto opened = sns::app::SoloGameSetup::open(options_in(directory), store);
     REQUIRE(opened.has_value());
     auto& setup = **opened;
 
     // The program's wiring: the maker is the setup's, and the shell tells the model
     // what the controller says (Main.qml's Connections).
-    const wjs::app::ScopedSoloGameMaker installed([&setup] { return setup.make(); });
-    wjs::app::SoloModel model;
-    wjs::app::ParentController controller;
+    const sns::app::ScopedSoloGameMaker installed([&setup] { return setup.make(); });
+    sns::app::SoloModel model;
+    sns::app::ParentController controller;
     controller.useStore(&store);
     controller.usePhases(&setup.phases());
-    QObject::connect(&controller, &wjs::app::ParentController::storeEdited, &model,
-                     &wjs::app::SoloModel::storeEdited);
+    QObject::connect(&controller, &sns::app::ParentController::storeEdited, &model,
+                     &sns::app::SoloModel::storeEdited);
     REQUIRE(model.state() == "box");
     CHECK(model.helpAllowed());
 
@@ -1159,11 +1159,11 @@ TEST_CASE("a change in the parent area is the box's next game, through the model
 TEST_CASE("the store keeps the game in progress after each change", "[app][real]") {
     Table table("A");
     RealSoloGame& game = table.game;
-    const std::optional<wjs::SavedSession>& saved = table.store.session();
+    const std::optional<sns::SavedSession>& saved = table.store.session();
 
     // A board on the table with nothing found.
     REQUIRE(saved.has_value());
-    CHECK(saved->state == wjs::SavedState::playing);
+    CHECK(saved->state == sns::SavedState::playing);
     CHECK(saved->size == 3);
     REQUIRE(saved->board.has_value());
     CHECK(saved->board->phase == "A");
@@ -1180,9 +1180,9 @@ TEST_CASE("the store keeps the game in progress after each change", "[app][real]
     REQUIRE(game.startTile().has_value());
     REQUIRE(saved->lit.has_value());
     const std::string lit = *saved->lit;
-    const auto words = wjs::solve(*game.session().board(), phase_a().dictionary());
+    const auto words = sns::solve(*game.session().board(), phase_a().dictionary());
     const auto lit_word = std::ranges::find_if(
-        words, [&](const wjs::FoundWord& word) { return lower_case(word.word) == lit; });
+        words, [&](const sns::FoundWord& word) { return lower_case(word.word) == lit; });
     REQUIRE(lit_word != words.end());
     REQUIRE(game.submit(lit_word->path).kind == WordKind::viable);
     CHECK_FALSE(saved->lit.has_value());
@@ -1191,14 +1191,14 @@ TEST_CASE("the store keeps the game in progress after each change", "[app][real]
 
     // The last word clears the board, and a cleared board is kept as the resting
     // screen, which the celebration does not change.
-    for (const wjs::FoundWord& word : words) {
+    for (const sns::FoundWord& word : words) {
         game.submit(word.path);
     }
     REQUIRE(game.state() == SoloState::cleared);
-    CHECK(saved->state == wjs::SavedState::resting);
+    CHECK(saved->state == sns::SavedState::resting);
     CHECK(saved->board->finds.size() == 5);
     game.celebrated();
-    CHECK(saved->state == wjs::SavedState::resting);
+    CHECK(saved->state == sns::SavedState::resting);
 
     // Again puts the lid on: nothing is in progress.
     game.again();
@@ -1209,7 +1209,7 @@ TEST_CASE("a game in the box, the shake or the drop is no game in progress", "[a
     // A game left on the table, which a new game replaces.
     Table left("A");
     REQUIRE(left.store.session().has_value());
-    const std::optional<wjs::SavedSession>& saved = left.store.session();
+    const std::optional<sns::SavedSession>& saved = left.store.session();
 
     auto made = RealSoloGame::create(data_of(phase_a()), left.store, phonics(), device_day);
     REQUIRE(made.has_value());
@@ -1220,16 +1220,16 @@ TEST_CASE("a game in the box, the shake or the drop is no game in progress", "[a
     CHECK_FALSE(saved.has_value());
     game.settled();
     REQUIRE(saved.has_value());
-    CHECK(saved->state == wjs::SavedState::playing);
+    CHECK(saved->state == sns::SavedState::playing);
 
     game.lidOn();
     CHECK_FALSE(saved.has_value());
 }
 
 TEST_CASE("the size the child chooses is the one the box offers next", "[app][real]") {
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::Settings settings = store.settings();
-    settings.help = wjs::HelpLevel::off;
+    sns::Store store = sns::Store::in_memory();
+    sns::Settings settings = store.settings();
+    settings.help = sns::HelpLevel::off;
     settings.phase = "B";
     store.update_settings(settings);
     auto made = RealSoloGame::create(data_of(phase_a()), store, phonics(), device_day);
@@ -1249,7 +1249,7 @@ TEST_CASE("the size the child chooses is the one the box offers next", "[app][re
         CHECK(store.settings().board_size == choice.written);
     }
     // The rest of the settings are the parent's, and are not touched.
-    CHECK(store.settings().help == wjs::HelpLevel::off);
+    CHECK(store.settings().help == sns::HelpLevel::off);
     CHECK(store.settings().phase == "B");
 
     // Only the box takes a choice, so a later one is not the last used.
@@ -1272,7 +1272,7 @@ struct Seen {
     std::optional<Position> lit;
 };
 
-Seen seen(const wjs::app::SoloGame& game) {
+Seen seen(const sns::app::SoloGame& game) {
     Seen shown;
     shown.state = game.state();
     shown.size = game.size();
@@ -1287,8 +1287,8 @@ Seen seen(const wjs::app::SoloGame& game) {
 // One run of the program, as far as the game goes: the setup opened on the files and
 // the store, the game it made, and a few moves a child's hand makes on it.
 struct Run {
-    wjs::app::SoloGameSetup& setup;
-    wjs::app::SoloGame& game;
+    sns::app::SoloGameSetup& setup;
+    sns::app::SoloGame& game;
 
     // The shake and the drop: a board on the table.
     void deal() const {
@@ -1300,13 +1300,13 @@ struct Run {
     // Every word of the board in play, each with a path that spells it: the
     // words that count, which are the phase's on the phonics board and the
     // whole dictionary's on the standard board.
-    [[nodiscard]] std::vector<wjs::FoundWord> words() const {
+    [[nodiscard]] std::vector<sns::FoundWord> words() const {
         const auto* real = dynamic_cast<const RealSoloGame*>(&game);
         REQUIRE(real != nullptr);
-        const wjs::Dictionary& active = real->session().mode() == wjs::BoardMode::standard
+        const sns::Dictionary& active = real->session().mode() == sns::BoardMode::standard
                                             ? english()
                                             : setup.phase()->dictionary();
-        return wjs::solve(*real->session().board(), active);
+        return sns::solve(*real->session().board(), active);
     }
 
     // The first `count` of them, found.
@@ -1322,18 +1322,18 @@ struct Run {
 using Play = std::function<void(const Run&)>;
 
 // What a run is made from: the setup's options and the store file the runs share.
-struct RunOptions : wjs::app::SoloGameOptions {
+struct RunOptions : sns::app::SoloGameOptions {
     std::filesystem::path store;
 };
 
 // What the program has when it starts: the store opened from its file (main.cpp) and
 // the setup over it. Held in place, because the setup points at the store.
 struct OpenedRun {
-    wjs::OpenResult store;
-    std::unique_ptr<wjs::app::SoloGameSetup> setup;
+    sns::OpenResult store;
+    std::unique_ptr<sns::app::SoloGameSetup> setup;
 
-    explicit OpenedRun(const RunOptions& options) : store(wjs::Store::open(options.store)) {
-        auto opened = wjs::app::SoloGameSetup::open(options, store.store);
+    explicit OpenedRun(const RunOptions& options) : store(sns::Store::open(options.store)) {
+        auto opened = sns::app::SoloGameSetup::open(options, store.store);
         REQUIRE(opened.has_value());
         setup = *std::move(opened);
     }
@@ -1358,21 +1358,21 @@ Seen run(const RunOptions& options, const Play& play = {}) {
 RunOptions kept_options(const TempDirectory& directory) {
     write_data(directory);
     RunOptions options;
-    static_cast<wjs::app::SoloGameOptions&>(options) = options_in(directory);
-    options.store = directory.path() / "store.wjs";
-    auto opened = wjs::Store::open(options.store);
-    wjs::Settings settings = opened.store.settings();
-    settings.board = wjs::BoardMode::phonics;
+    static_cast<sns::app::SoloGameOptions&>(options) = options_in(directory);
+    options.store = directory.path() / "store.sns";
+    auto opened = sns::Store::open(options.store);
+    sns::Settings settings = opened.store.settings();
+    settings.board = sns::BoardMode::phonics;
     opened.store.update_settings(settings);
     return options;
 }
 
 // The store's file as a run left it, with its game in progress changed by `edit`.
 void tamper(const std::filesystem::path& file,
-            const std::function<void(wjs::SavedSession&)>& edit) {
-    auto opened = wjs::Store::open(file);
+            const std::function<void(sns::SavedSession&)>& edit) {
+    auto opened = sns::Store::open(file);
     REQUIRE(opened.store.session().has_value());
-    wjs::SavedSession saved = *opened.store.session();
+    sns::SavedSession saved = *opened.store.session();
     edit(saved);
     REQUIRE(opened.store.save_session(saved));
 }
@@ -1500,18 +1500,18 @@ TEST_CASE("a game that cannot come back is forgotten and a new one begins in the
           "[app][real]") {
     struct Gone {
         const char* name;
-        std::function<void(wjs::SavedSession&)> edit;  // what the file is changed by
+        std::function<void(sns::SavedSession&)> edit;  // what the file is changed by
         std::string phase;                             // the phase of the next run, or ""
     };
     const std::array<Gone, 4> rows = {{
         {"the phase played is another now", nullptr, "B"},
         {"the phase no longer holds a word of the board",
-         [](wjs::SavedSession& saved) {
+         [](sns::SavedSession& saved) {
              // A word that is not found yet: the store keeps no find that is not on the board.
              std::vector<std::string>& viable = saved.board->viable;
              const auto gone = std::ranges::find_if(viable, [&](const std::string& word) {
                  return std::ranges::none_of(saved.board->finds,
-                                             [&](const wjs::FoundSnapshot& found) {
+                                             [&](const sns::FoundSnapshot& found) {
                                                  return lower_case(found.word) == lower_case(word);
                                              });
              });
@@ -1521,9 +1521,9 @@ TEST_CASE("a game that cannot come back is forgotten and a new one begins in the
          },
          ""},
         {"a record that is resting but not cleared",
-         [](wjs::SavedSession& saved) { saved.state = wjs::SavedState::resting; }, ""},
+         [](sns::SavedSession& saved) { saved.state = sns::SavedState::resting; }, ""},
         {"a start tile lit for a word already found",
-         [](wjs::SavedSession& saved) { saved.lit = saved.board->finds.front().word; }, ""},
+         [](sns::SavedSession& saved) { saved.lit = saved.board->finds.front().word; }, ""},
     }};
 
     for (const Gone& row : rows) {
@@ -1545,7 +1545,7 @@ TEST_CASE("a game that cannot come back is forgotten and a new one begins in the
         CHECK(after.state == SoloState::box);
         CHECK(after.tiles.empty());
         CHECK(after.found.empty());
-        CHECK_FALSE(wjs::Store::open(options.store).store.session().has_value());
+        CHECK_FALSE(sns::Store::open(options.store).store.session().has_value());
 
         // And that run goes on to play a game of its own (the other phase of the test
         // data is too small to deal a board).
@@ -1570,27 +1570,27 @@ TEST_CASE("a saved game of the other board mode is not played by this one", "[ap
     });
 
     {
-        auto opened = wjs::Store::open(options.store);
+        auto opened = sns::Store::open(options.store);
         REQUIRE(opened.store.session().has_value());
-        wjs::StoreData data = opened.store.data();
+        sns::StoreData data = opened.store.data();
         data.session->board->phase.clear();
         data.session->board->viable.clear();
-        const auto parsed = wjs::Board::parse(data.session->board->tiles);
+        const auto parsed = sns::Board::parse(data.session->board->tiles);
         REQUIRE(parsed.has_value());
-        data.session->board->viable_total = static_cast<int>(wjs::solve(*parsed, english()).size());
+        data.session->board->viable_total = static_cast<int>(sns::solve(*parsed, english()).size());
         std::ofstream file(options.store, std::ios::binary | std::ios::trunc);
-        file << wjs::serialize_store(data);
+        file << sns::serialize_store(data);
     }
-    const auto kept = wjs::Store::open(options.store);
+    const auto kept = sns::Store::open(options.store);
     REQUIRE(kept.store.session().has_value());
     REQUIRE(kept.store.session()->board.has_value());
     REQUIRE(kept.store.session()->board->phase.empty());
 
     SECTION("the standard switch plays it") {
         {
-            auto opened = wjs::Store::open(options.store);
-            wjs::Settings settings = opened.store.settings();
-            settings.board = wjs::BoardMode::standard;
+            auto opened = sns::Store::open(options.store);
+            sns::Settings settings = opened.store.settings();
+            settings.board = sns::BoardMode::standard;
             opened.store.update_settings(settings);
         }
         const Seen after =
@@ -1599,16 +1599,16 @@ TEST_CASE("a saved game of the other board mode is not played by this one", "[ap
     }
     SECTION("the phonics switch refuses it as the other mode") {
         {
-            auto opened = wjs::Store::open(options.store);
-            wjs::Settings settings = opened.store.settings();
-            settings.board = wjs::BoardMode::phonics;
+            auto opened = sns::Store::open(options.store);
+            sns::Settings settings = opened.store.settings();
+            settings.board = sns::BoardMode::phonics;
             opened.store.update_settings(settings);
         }
         const Seen after = run(options);
         CHECK(after.state == SoloState::box);
         CHECK(after.tiles.empty());
         CHECK(after.found.empty());
-        CHECK_FALSE(wjs::Store::open(options.store).store.session().has_value());
+        CHECK_FALSE(sns::Store::open(options.store).store.session().has_value());
     }
 }
 
@@ -1623,9 +1623,9 @@ TEST_CASE("a start tile the parent no longer allows is not lit when the game com
     });
     REQUIRE(before.lit.has_value());
     {
-        auto opened = wjs::Store::open(options.store);
-        wjs::Settings settings = opened.store.settings();
-        settings.help = wjs::HelpLevel::off;
+        auto opened = sns::Store::open(options.store);
+        sns::Settings settings = opened.store.settings();
+        settings.help = sns::HelpLevel::off;
         opened.store.update_settings(settings);
     }
 
@@ -1652,7 +1652,7 @@ TEST_CASE("the model opens on the game that was left, with no shake", "[app][rea
         REQUIRE(before.lit.has_value());
 
         const OpenedRun opened(options);
-        wjs::app::SoloModel model(opened.setup->make());
+        sns::app::SoloModel model(opened.setup->make());
         model.setGeometry(100, 10);
 
         CHECK(model.state() == "playing");
@@ -1683,7 +1683,7 @@ TEST_CASE("the model opens on the game that was left, with no shake", "[app][rea
         });
 
         const OpenedRun opened(options);
-        wjs::app::SoloModel model(opened.setup->make());
+        sns::app::SoloModel model(opened.setup->make());
 
         CHECK(model.state() == "resting");
         CHECK_FALSE(model.found().isEmpty());
@@ -1698,26 +1698,26 @@ namespace {
 
 // The dice of a standard board for these cases: faces drawn from the test words'
 // letters, so a roll of any size holds words of the word list above.
-const wjs::DiceSets& standard_dice() {
-    static const wjs::DiceSets dice = [] {
-        std::vector<wjs::DiceSet> sets;
+const sns::DiceSets& standard_dice() {
+    static const sns::DiceSets dice = [] {
+        std::vector<sns::DiceSet> sets;
         for (std::size_t side = 3; side <= 6; ++side) {
             std::string text;
             for (std::size_t die = 0; die < side * side; ++die) {
                 text += "p a t i n s\n";
             }
-            auto set = wjs::DiceSet::parse(text);
+            auto set = sns::DiceSet::parse(text);
             REQUIRE(set.has_value());
             sets.push_back(*std::move(set));
         }
-        auto made = wjs::DiceSets::make(std::move(sets));
+        auto made = sns::DiceSets::make(std::move(sets));
         REQUIRE(made.has_value());
         return *std::move(made);
     }();
     return dice;
 }
 
-wjs::SessionData standard_data() {
+sns::SessionData standard_data() {
     return {.dictionary = english(), .dice = &standard_dice()};
 }
 
@@ -1725,8 +1725,8 @@ wjs::SessionData standard_data() {
 
 TEST_CASE("a standard game is the closed box with the standard board's four sizes",
           "[app][real][standard]") {
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::SessionOptions options;
+    sns::Store store = sns::Store::in_memory();
+    sns::SessionOptions options;
     options.size = BoardSize::six;
     auto made = RealSoloGame::create(standard_data(), store, options, device_day);
     REQUIRE(made.has_value());
@@ -1745,8 +1745,8 @@ TEST_CASE("a standard game is the closed box with the standard board's four size
 
 TEST_CASE("the standard board deals a roll of the dice, with no dead jewels",
           "[app][real][standard]") {
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::SessionOptions options;
+    sns::Store store = sns::Store::in_memory();
+    sns::SessionOptions options;
     options.size = BoardSize::three;
     options.seed = 9;
     auto made = RealSoloGame::create(standard_data(), store, options, device_day);
@@ -1768,7 +1768,7 @@ TEST_CASE("the standard board deals a roll of the dice, with no dead jewels",
 
     // A dictionary word traced on the roll is a find, as on the phonics board,
     // and a standard board has no graphemes to bind into blocks.
-    const auto words = wjs::solve(*game.session().board(), english());
+    const auto words = sns::solve(*game.session().board(), english());
     REQUIRE_FALSE(words.empty());
     const auto first = game.submit(words.front().path);
     CHECK(first.kind == WordKind::viable);
@@ -1787,19 +1787,19 @@ TEST_CASE("the standard board deals a roll of the dice, with no dead jewels",
     CHECK(saved->board->phase.empty());
     CHECK(saved->board->viable.empty());
     CHECK(saved->board->viable_total > 0);
-    const auto back = wjs::session_snapshot_of(*saved);
+    const auto back = sns::session_snapshot_of(*saved);
     REQUIRE(back.has_value());
-    CHECK(back->mode == wjs::BoardMode::standard);
-    const auto restored = wjs::GameSession::restore(*back, standard_data(), options);
+    CHECK(back->mode == sns::BoardMode::standard);
+    const auto restored = sns::GameSession::restore(*back, standard_data(), options);
     REQUIRE(restored.has_value());
-    CHECK(restored->mode() == wjs::BoardMode::standard);
+    CHECK(restored->mode() == sns::BoardMode::standard);
     CHECK(restored->state() == SessionState::playing);
     CHECK(restored->stars() == game.session().stars());
 }
 
 TEST_CASE("a standard board's scene board is the dice of its seed", "[app][real][standard]") {
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::SessionOptions options;
+    sns::Store store = sns::Store::in_memory();
+    sns::SessionOptions options;
     options.size = BoardSize::three;
     options.seed = 9;
     auto made = RealSoloGame::create(standard_data(), store, options, device_day);
@@ -1807,7 +1807,7 @@ TEST_CASE("a standard board's scene board is the dice of its seed", "[app][real]
     RealSoloGame& game = *made;
 
     REQUIRE(game.shake());
-    const wjs::app::SoloBoard& board = game.board();
+    const sns::app::SoloBoard& board = game.board();
     REQUIRE(game.session().last_deal().has_value());
     CHECK(board.seed == game.session().last_deal()->seed);
 
@@ -1815,14 +1815,14 @@ TEST_CASE("a standard board's scene board is the dice of its seed", "[app][real]
     // and the one that is up, and they are exactly what the library's roll says.
     REQUIRE(board.faces.size() == board.tiles.size());
     REQUIRE(board.up.size() == board.tiles.size());
-    const wjs::DiceSet* dice = standard_dice().find(3);
+    const sns::DiceSet* dice = standard_dice().find(3);
     REQUIRE(dice != nullptr);
-    const auto rolled = wjs::roll_with_placements(*dice, board.seed);
+    const auto rolled = sns::roll_with_placements(*dice, board.seed);
     REQUIRE(rolled.has_value());
     REQUIRE(rolled->placements.size() == board.tiles.size());
     for (std::size_t tile = 0; tile < board.tiles.size(); ++tile) {
         INFO("tile " << tile);
-        const wjs::Placement& placement = rolled->placements[tile];
+        const sns::Placement& placement = rolled->placements[tile];
         CHECK(board.faces[tile] == dice->die(placement.die));
         CHECK(board.up[tile] == static_cast<int>(placement.face));
         REQUIRE(board.up[tile] >= 0);
@@ -1843,14 +1843,14 @@ TEST_CASE("a board that was not rolled has no dice for the scene", "[app][real]"
 
     // The fake game has no dice at all (apps/app/tests/unit/fake_solo_game_test.cpp holds
     // the same).
-    wjs::app::FakeSoloGame fake;
+    sns::app::FakeSoloGame fake;
     REQUIRE(fake.shake());
     CHECK(fake.board().faces.empty());
     CHECK(fake.board().up.empty());
 }
 
 TEST_CASE("the size chosen on the standard board's box is 3 to 6", "[app][real][standard]") {
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
     auto made = RealSoloGame::create(standard_data(), store, {}, device_day);
     REQUIRE(made.has_value());
     RealSoloGame& game = *made;
@@ -1861,7 +1861,7 @@ TEST_CASE("the size chosen on the standard board's box is 3 to 6", "[app][real][
     CHECK(game.board().rows == 5);
     CHECK(game.board().columns == 5);
     // A 5x5 roll of the test dice holds words of the test word list.
-    CHECK_FALSE(wjs::solve(*game.session().board(), english()).empty());
+    CHECK_FALSE(sns::solve(*game.session().board(), english()).empty());
 }
 
 TEST_CASE("the setup without a phase directory makes the standard game", "[app][real][standard]") {
@@ -1870,8 +1870,8 @@ TEST_CASE("the setup without a phase directory makes the standard game", "[app][
     auto options = options_in(directory);
     options.phase_directory.clear();
 
-    wjs::Store store = wjs::Store::in_memory();
-    auto opened = wjs::app::SoloGameSetup::open(options, store);
+    sns::Store store = sns::Store::in_memory();
+    auto opened = sns::app::SoloGameSetup::open(options, store);
     REQUIRE(opened.has_value());
     auto& setup = **opened;
 
@@ -1881,8 +1881,8 @@ TEST_CASE("the setup without a phase directory makes the standard game", "[app][
     CHECK(setup.phase() == nullptr);
     CHECK(setup.reviewed());
 
-    wjs::Settings settings = store.settings();
-    settings.board = wjs::BoardMode::phonics;  // the parent chose it, no phase given
+    sns::Settings settings = store.settings();
+    settings.board = sns::BoardMode::phonics;  // the parent chose it, no phase given
     store.update_settings(settings);
 
     const auto game = setup.make();
@@ -1893,7 +1893,7 @@ TEST_CASE("the setup without a phase directory makes the standard game", "[app][
     game->settled();
     const auto* real = dynamic_cast<RealSoloGame*>(game.get());
     REQUIRE(real != nullptr);
-    CHECK(real->session().mode() == wjs::BoardMode::standard);
+    CHECK(real->session().mode() == sns::BoardMode::standard);
     for (const std::string& tile : game->board().tiles) {
         CHECK_FALSE(tile.empty());
     }
@@ -1904,12 +1904,12 @@ TEST_CASE("a standard run begins where the last one ended", "[app][real][standar
     write_data(directory);
     auto options = options_in(directory);
     options.phase_directory.clear();
-    const auto file = directory.path() / "kept" / "store.wjs";
+    const auto file = directory.path() / "kept" / "store.sns";
 
     // Deal a board and find one word; close the run.
     {
-        auto kept = wjs::Store::open(file);
-        auto opened = wjs::app::SoloGameSetup::open(options, kept.store);
+        auto kept = sns::Store::open(file);
+        auto opened = sns::app::SoloGameSetup::open(options, kept.store);
         REQUIRE(opened.has_value());
         const auto game = (*opened)->make();
         REQUIRE(game->shake());
@@ -1917,7 +1917,7 @@ TEST_CASE("a standard run begins where the last one ended", "[app][real][standar
         REQUIRE(game->state() == SoloState::playing);
         const auto* real = dynamic_cast<RealSoloGame*>(game.get());
         REQUIRE(real != nullptr);
-        const auto words = wjs::solve(*real->session().board(), english());
+        const auto words = sns::solve(*real->session().board(), english());
         REQUIRE_FALSE(words.empty());
         REQUIRE(game->submit(words.front().path).kind == WordKind::viable);
         REQUIRE(kept.store.session().has_value());
@@ -1926,9 +1926,9 @@ TEST_CASE("a standard run begins where the last one ended", "[app][real][standar
     }
 
     // The next run opens on the same board, with its find in the tray.
-    auto kept = wjs::Store::open(file);
-    CHECK(kept.status == wjs::LoadStatus::loaded);
-    auto reopened = wjs::app::SoloGameSetup::open(options, kept.store);
+    auto kept = sns::Store::open(file);
+    CHECK(kept.status == sns::LoadStatus::loaded);
+    auto reopened = sns::app::SoloGameSetup::open(options, kept.store);
     REQUIRE(reopened.has_value());
     const auto game = (*reopened)->make();
     CHECK(game->state() == SoloState::playing);
@@ -1942,17 +1942,17 @@ TEST_CASE("a standard run begins where the last one ended", "[app][real][standar
     REQUIRE(game->found().size() == 1);
     const auto* real = dynamic_cast<RealSoloGame*>(game.get());
     REQUIRE(real != nullptr);
-    CHECK(real->session().mode() == wjs::BoardMode::standard);
+    CHECK(real->session().mode() == sns::BoardMode::standard);
 }
 
 TEST_CASE("the shipped dice and dictionary make the standard game", "[app][real][standard]") {
-    wjs::app::SoloGameOptions options;
-    options.dice_directory = std::filesystem::path{WJS_DATA_DIRECTORY} / "dice";
-    options.dictionary = std::filesystem::path{WJS_DATA_DIRECTORY} / "dictionaries" / "en.txt";
+    sns::app::SoloGameOptions options;
+    options.dice_directory = std::filesystem::path{SNS_DATA_DIRECTORY} / "dice";
+    options.dictionary = std::filesystem::path{SNS_DATA_DIRECTORY} / "dictionaries" / "en.txt";
     options.seed = 7;
     options.today = device_day;
-    wjs::Store store = wjs::Store::in_memory();
-    auto opened = wjs::app::SoloGameSetup::open(options, store);
+    sns::Store store = sns::Store::in_memory();
+    auto opened = sns::app::SoloGameSetup::open(options, store);
     REQUIRE(opened.has_value());
     CHECK((*opened)->phases().phases().empty());
     const auto game = (*opened)->make();
@@ -1963,7 +1963,7 @@ TEST_CASE("the shipped dice and dictionary make the standard game", "[app][real]
     CHECK(game->board().columns == 3);
     const auto* real = dynamic_cast<RealSoloGame*>(game.get());
     REQUIRE(real != nullptr);
-    CHECK(real->session().mode() == wjs::BoardMode::standard);
+    CHECK(real->session().mode() == sns::BoardMode::standard);
     for (const std::string& tile : game->board().tiles) {
         CHECK_FALSE(tile.empty());
     }

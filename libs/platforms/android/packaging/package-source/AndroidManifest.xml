@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!-- The Android application's manifest: what the program asks of the system, and
      nothing else. It is the package source directory of the application target
-     (wjs_platform_configure_app in libs/platforms/android/platform.cmake):
+     (sns_platform_configure_app in libs/platforms/android/platform.cmake):
      androiddeployqt fills in the values marked INSERT from the target's properties
      and copies this file over Qt's template. The application id is not written here:
      Gradle takes it from the target's QT_ANDROID_PACKAGE_NAME and ignores a package
@@ -52,7 +52,7 @@
         android:hardwareAccelerated="true"
         android:label="-- %%INSERT_APP_NAME%% --"
         android:icon="-- %%INSERT_APP_ICON%% --"
-        android:theme="@style/Theme.WordJewelsSolver"
+        android:theme="@style/Theme.SnapAndSpell"
         android:enableOnBackInvokedCallback="true">
         <!-- Every orientation the person's rotation setting allows: the screens lay
              themselves out from the window's size, not from the device (the same as

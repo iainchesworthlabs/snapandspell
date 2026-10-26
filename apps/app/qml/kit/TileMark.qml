@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The little disc on the corner of a die that says what the die is (DESIGN.md, section 7, "Tile
 // states"): the order of a die on the path, the start tile and the next letter of a help, a word

@@ -11,9 +11,9 @@
 // path from Qt text. The words are ASCII, a phonetic sound or a folder name need
 // not be.
 
-using wjs::app::to_path;
-using wjs::app::to_qstring;
-using wjs::app::to_utf8;
+using sns::app::to_path;
+using sns::app::to_qstring;
+using sns::app::to_utf8;
 
 TEST_CASE("UTF-8 library text and a QString are the same text", "[app][text]") {
     const std::string utf8 = "caf\xC3\xA9 \xE6\x97\xA5\xE6\x9C\xAC";

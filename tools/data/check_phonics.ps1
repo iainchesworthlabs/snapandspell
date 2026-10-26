@@ -24,7 +24,7 @@
 # `# reviewed-by: <name>   reviewed-on: <date>   source: <where it came from>`.
 # A file without all three (and reviewed-on as YYYY-MM-DD) is test data.
 # -RequireReviewed makes that a failure, which is the release build's gate
-# (WJS_REQUIRE_REVIEWED_PHONICS).
+# (SNS_REQUIRE_REVIEWED_PHONICS).
 #
 # Checks, each reported with file and line:
 #   - the file name is phase-<x>.graphemes.txt or phase-<x>.words.txt and the

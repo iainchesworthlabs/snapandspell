@@ -15,7 +15,7 @@
 #include "budgets.hpp"
 
 // The window's frame budget, measured on the application itself: its smoke run
-// (`WordJewelsSolver --smoke <frames>`, docs/profiling.md, "The smoke mode") in
+// (`SnapAndSpell --smoke <frames>`, docs/profiling.md, "The smoke mode") in
 // a child process, and the report it prints. The budget is the design's
 // (docs/design/performance.md, "Budgets"): one frame, and no frame over 33 ms
 // during the shake and the drop. One frame is the DISPLAY's, which the report
@@ -25,15 +25,15 @@
 // It is a wall-time check, so it is treated as the performance tier's are
 // (docs/testing.md, "Performance tests"): it skips in a build where a clock is
 // not about the program (Debug, coverage, Tracy), and it is opt-in with its own
-// variable -- WJS_PERF_FRAME_TIMING=1 -- because it also needs a display and
+// variable -- SNS_PERF_FRAME_TIMING=1 -- because it also needs a display and
 // must never fail a shared runner. CTest runs it alone (RUN_SERIAL).
 
 namespace {
 
 // Read through volatile, so that an optimising compiler cannot see the value: it would see
 // that SKIP always ends the case and warn (C4702) about every statement after it.
-const volatile bool optimised = WJS_TEST_OPTIMISED != 0;
-const volatile bool instrumented = WJS_TEST_INSTRUMENTED != 0;
+const volatile bool optimised = SNS_TEST_OPTIMISED != 0;
+const volatile bool instrumented = SNS_TEST_INSTRUMENTED != 0;
 
 // The frames measured, after the smoke run's own warm-up. Four seconds at
 // 60 Hz: enough shakes and drops for a tail to mean something.
@@ -41,7 +41,7 @@ constexpr int kFrames = 240;
 constexpr int kTimeoutMs = 180'000;
 
 [[nodiscard]] bool frame_timing_requested() {
-    const QByteArray value = qgetenv("WJS_PERF_FRAME_TIMING");
+    const QByteArray value = qgetenv("SNS_PERF_FRAME_TIMING");
     return !value.isEmpty() && value != "0";
 }
 
@@ -61,7 +61,7 @@ void skip_unless_frame_wanted() {
     if (!frame_timing_requested()) {
         SKIP(
             "the window's frame check is opt-in and needs a display: set "
-            "WJS_PERF_FRAME_TIMING=1 on a machine with one (docs/testing.md, \"Performance "
+            "SNS_PERF_FRAME_TIMING=1 on a machine with one (docs/testing.md, \"Performance "
             "tests\")");
     }
     if (qEnvironmentVariable("QT_QPA_PLATFORM")
@@ -75,9 +75,9 @@ void skip_unless_frame_wanted() {
 // The application's own binary, beside this test's (the build puts every program
 // in one directory).
 [[nodiscard]] QString application_path() {
-    const QString directory = QFileInfo(QString::fromUtf8(WJS_APP_PATH)).absolutePath();
+    const QString directory = QFileInfo(QString::fromUtf8(SNS_APP_PATH)).absolutePath();
     for (const QString& name :
-         {QStringLiteral("WordJewelsSolver.exe"), QStringLiteral("WordJewelsSolver")}) {
+         {QStringLiteral("SnapAndSpell.exe"), QStringLiteral("SnapAndSpell")}) {
         const QString path = directory + QLatin1Char('/') + name;
         if (QFileInfo::exists(path)) {
             return path;
@@ -128,7 +128,7 @@ void skip_unless_frame_wanted() {
 // The application object QProcess needs, made once (Catch2's main makes none).
 QCoreApplication& application() {
     static int argc = 1;
-    static char name[] = "wjs_frame_timing_tests";
+    static char name[] = "sns_frame_timing_tests";
     static char* argv[] = {name, nullptr};
     static QCoreApplication instance(argc, argv);
     return instance;
@@ -141,9 +141,9 @@ TEST_CASE("the window holds the frame budget through the smoke run's shakes", "[
     application();
 
     const QString app = application_path();
-    INFO("the application, from WJS_APP_PATH: " << WJS_APP_PATH);
+    INFO("the application, from SNS_APP_PATH: " << SNS_APP_PATH);
     if (app.isEmpty()) {
-        SKIP("the application is not built (WJS_BUILD_APP=OFF, or this test was built alone)");
+        SKIP("the application is not built (SNS_BUILD_APP=OFF, or this test was built alone)");
     }
 
     QTemporaryDir directory;
@@ -155,7 +155,7 @@ TEST_CASE("the window holds the frame budget through the smoke run's shakes", "[
                           // A store of its own: the smoke writes the boards it
                           // plays, and a run must not touch the person's.
                           QStringLiteral("--store"),
-                          directory.filePath(QStringLiteral("store.wjs"))});
+                          directory.filePath(QStringLiteral("store.sns"))});
     process.setProcessChannelMode(QProcess::SeparateChannels);
     process.setWorkingDirectory(QFileInfo(app).absolutePath());
     process.start();
@@ -206,11 +206,11 @@ TEST_CASE("the window holds the frame budget through the smoke run's shakes", "[
     // but the odd one are close to it.
     const double refresh_hz = report.value(QStringLiteral("refresh_hz"));
     CHECK(report.value(QStringLiteral("p50_ms")) <=
-          wjs::perf::budget::frame_p50_budget_ms(refresh_hz));
+          sns::perf::budget::frame_p50_budget_ms(refresh_hz));
     CHECK(report.value(QStringLiteral("p95_ms")) <=
-          wjs::perf::budget::frame_p95_budget_ms(refresh_hz));
+          sns::perf::budget::frame_p95_budget_ms(refresh_hz));
     // No frame over 33 ms during the shake and the drop.
-    CHECK(report.value(QStringLiteral("max_ms")) <= wjs::perf::budget::kFrameMaxMs);
+    CHECK(report.value(QStringLiteral("max_ms")) <= sns::perf::budget::kFrameMaxMs);
     CHECK(report.value(QStringLiteral("over33")) == 0.0);
     // The report is of a window that drew.
     CHECK(report.value(QStringLiteral("first_frame_ms")) > 0.0);
@@ -219,7 +219,7 @@ TEST_CASE("the window holds the frame budget through the smoke run's shakes", "[
 // The budget's arithmetic is always checked, with or without a display: it is the
 // part of the check that can be wrong on a machine that never runs the window.
 TEST_CASE("the frame budget follows the display's refresh rate", "[app][frame]") {
-    namespace budget = wjs::perf::budget;
+    namespace budget = sns::perf::budget;
 
     // 60 Hz is the budget the design states: 17 ms for the median.
     CHECK(budget::frame_p50_budget_ms(60.0) == Catch::Approx(16.97).margin(0.01));

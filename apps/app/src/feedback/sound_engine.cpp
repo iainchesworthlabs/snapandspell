@@ -4,13 +4,13 @@
 #include <utility>
 
 #include "qt_text.hpp"
-#include "wjs/app/sound_backend.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/app/sound_backend.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
-using wjs::app::to_utf8;
+using sns::app::to_utf8;
 
 }  // namespace
 
@@ -39,7 +39,7 @@ void SoundEngine::setOutput(Output output) {
 
 void SoundEngine::play(const QString& asset, double volume) {
     // The first play of an asset loads it, which is the long one.
-    const auto zone = wjs::profiling::zone<"sound.play">();
+    const auto zone = sns::profiling::zone<"sound.play">();
     ++impl_->plays;
     if (impl_->output) {
         impl_->output(asset, volume);
@@ -49,4 +49,4 @@ void SoundEngine::play(const QString& asset, double volume) {
     emit played(asset, volume);
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

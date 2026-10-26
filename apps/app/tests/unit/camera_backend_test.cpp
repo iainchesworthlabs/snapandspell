@@ -22,14 +22,14 @@
 #include <functional>
 #include <memory>
 
+#include "sns/app/multimedia_camera_backend.hpp"
 #include "test_support.hpp"
-#include "wjs/app/multimedia_camera_backend.hpp"
 
 namespace {
 
-using wjs::app::CameraBackend;
-using wjs::app::CameraPermission;
-using wjs::app::CameraProblem;
+using sns::app::CameraBackend;
+using sns::app::CameraPermission;
+using sns::app::CameraProblem;
 
 // The platform's camera permission, answered by the test.
 struct FakePermission {
@@ -75,13 +75,13 @@ struct Counter {
 
 TEST_CASE("the camera's frames are forwarded into the preview item's own sink",
           "[app][camera][backend]") {
-    wjs::app::test::GuiApplication app;
+    sns::app::test::GuiApplication app;
     QVideoSink camera_sink;
     FakeVideoOutput output;
     QObject context;
 
     const QMetaObject::Connection connection =
-        wjs::app::forward_frames(camera_sink, &output.item, &context);
+        sns::app::forward_frames(camera_sink, &output.item, &context);
     REQUIRE(connection);
 
     camera_sink.setVideoFrame(a_frame());
@@ -97,30 +97,30 @@ TEST_CASE("the camera's frames are forwarded into the preview item's own sink",
 
 TEST_CASE("an item with no video sink, or none at all, is not forwarded to",
           "[app][camera][backend]") {
-    wjs::app::test::GuiApplication app;
+    sns::app::test::GuiApplication app;
     QVideoSink camera_sink;
     QObject context;
 
-    CHECK_FALSE(wjs::app::forward_frames(camera_sink, nullptr, &context));
+    CHECK_FALSE(sns::app::forward_frames(camera_sink, nullptr, &context));
 
     // An item that has no "videoSink", or has a null one: the result says so, and
     // the preview stays blank with a reason rather than without one.
     QObject bare;
-    CHECK_FALSE(wjs::app::forward_frames(camera_sink, &bare, &context));
+    CHECK_FALSE(sns::app::forward_frames(camera_sink, &bare, &context));
     QObject null_sink;
     null_sink.setProperty("videoSink", QVariant::fromValue(static_cast<QVideoSink*>(nullptr)));
-    CHECK_FALSE(wjs::app::forward_frames(camera_sink, &null_sink, &context));
+    CHECK_FALSE(sns::app::forward_frames(camera_sink, &null_sink, &context));
 }
 
 TEST_CASE("a preview whose sink is destroyed is not written to", "[app][camera][backend]") {
-    wjs::app::test::GuiApplication app;
+    sns::app::test::GuiApplication app;
     QVideoSink camera_sink;
     QObject context;
     QObject item;
     {
         auto sink = std::make_unique<QVideoSink>();
         item.setProperty("videoSink", QVariant::fromValue(sink.get()));
-        REQUIRE(wjs::app::forward_frames(camera_sink, &item, &context));
+        REQUIRE(sns::app::forward_frames(camera_sink, &item, &context));
     }
     // The sink is gone; a frame now must neither crash nor reach anything.
     camera_sink.setVideoFrame(a_frame());
@@ -128,9 +128,9 @@ TEST_CASE("a preview whose sink is destroyed is not written to", "[app][camera][
 }
 
 TEST_CASE("the backend attaches a preview, replaces it and lets it go", "[app][camera][backend]") {
-    wjs::app::test::GuiApplication app;
+    sns::app::test::GuiApplication app;
     FakePermission permission;
-    std::unique_ptr<CameraBackend> backend = wjs::app::make_camera_backend(permission.seam());
+    std::unique_ptr<CameraBackend> backend = sns::app::make_camera_backend(permission.seam());
     FakeVideoOutput first;
     FakeVideoOutput second;
 
@@ -151,10 +151,10 @@ TEST_CASE("the backend attaches a preview, replaces it and lets it go", "[app][c
 
 TEST_CASE("a refused camera is a permission problem, said once, and does not start",
           "[app][camera][backend]") {
-    wjs::app::test::GuiApplication app;
+    sns::app::test::GuiApplication app;
     FakePermission permission;
     permission.status = Qt::PermissionStatus::Denied;
-    std::unique_ptr<CameraBackend> backend = wjs::app::make_camera_backend(permission.seam());
+    std::unique_ptr<CameraBackend> backend = sns::app::make_camera_backend(permission.seam());
     Counter counter;
     backend->setChanged(counter.callback());
 
@@ -166,10 +166,10 @@ TEST_CASE("a refused camera is a permission problem, said once, and does not sta
 }
 
 TEST_CASE("a camera not yet asked about asks, and waits for the answer", "[app][camera][backend]") {
-    wjs::app::test::GuiApplication app;
+    sns::app::test::GuiApplication app;
     FakePermission permission;
     permission.status = Qt::PermissionStatus::Undetermined;
-    std::unique_ptr<CameraBackend> backend = wjs::app::make_camera_backend(permission.seam());
+    std::unique_ptr<CameraBackend> backend = sns::app::make_camera_backend(permission.seam());
     Counter counter;
     backend->setChanged(counter.callback());
 
@@ -194,10 +194,10 @@ TEST_CASE("a camera not yet asked about asks, and waits for the answer", "[app][
 
 TEST_CASE("an answer that comes after the camera was stopped does not start it",
           "[app][camera][backend]") {
-    wjs::app::test::GuiApplication app;
+    sns::app::test::GuiApplication app;
     FakePermission permission;
     permission.status = Qt::PermissionStatus::Undetermined;
-    std::unique_ptr<CameraBackend> backend = wjs::app::make_camera_backend(permission.seam());
+    std::unique_ptr<CameraBackend> backend = sns::app::make_camera_backend(permission.seam());
 
     REQUIRE(backend->start());
     backend->stop();
@@ -210,10 +210,10 @@ TEST_CASE("an answer that comes after the camera was stopped does not start it",
 
 TEST_CASE("the backend with nothing to capture is safe to stop and to read",
           "[app][camera][backend]") {
-    wjs::app::test::GuiApplication app;
+    sns::app::test::GuiApplication app;
     FakePermission permission;
     permission.status = Qt::PermissionStatus::Denied;
-    std::unique_ptr<CameraBackend> backend = wjs::app::make_camera_backend(permission.seam());
+    std::unique_ptr<CameraBackend> backend = sns::app::make_camera_backend(permission.seam());
 
     CHECK_FALSE(backend->running());
     CHECK_FALSE(backend->capture().has_value());

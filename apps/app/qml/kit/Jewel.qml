@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 import "PixelArt.js" as PixelArt
 
 // A found word's jewel, in pixels: an ink outline, a fill, a highlight at the top left and a shade at

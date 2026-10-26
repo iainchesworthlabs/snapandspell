@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <iostream>
 
-#include "wjs/platform/fatal_error.hpp"
+#include "sns/platform/fatal_error.hpp"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 // A program started from a terminal or a launcher that keeps the error stream is
 // told there; no desktop that uses this file has a dialog for it that every
@@ -14,4 +14,4 @@ void show_fatal_error(std::string_view title, std::string_view message,
     std::cerr.flush();
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

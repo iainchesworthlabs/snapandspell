@@ -18,7 +18,7 @@
 #   NOTARY_PASSWORD              an app-specific password for that Apple ID
 #
 # With the secrets the disk image is replaced by one whose application, frameworks,
-# plugins and wjs-cli are signed with the hardened runtime (Entitlements.plist),
+# plugins and sns-cli are signed with the hardened runtime (Entitlements.plist),
 # whose own signature is valid, and whose notarisation Apple accepted and is
 # stapled. A partial set of secrets is an error, not a quiet skip: that is a
 # release someone meant to sign.
@@ -88,7 +88,7 @@ sign() {  # path...
 # --- sign, inside out ------------------------------------------------------------
 app="$(find "$staging" -maxdepth 2 -name '*.app' -type d | head -n 1)"
 [ -n "$app" ] || { echo "sign_and_notarize.sh: no .app in $dmg" >&2; exit 1; }
-# Loose Mach-O files first (dylibs, plugins, helper programs, wjs-cli), then
+# Loose Mach-O files first (dylibs, plugins, helper programs, sns-cli), then
 # frameworks, then the bundle: a signature covers what is inside.
 while IFS= read -r file; do
   if file "$file" | grep -q 'Mach-O'; then sign "$file"; fi
@@ -96,7 +96,7 @@ done < <(find "$staging" -type f ! -path '*.framework/*' ! -path "$app/Contents/
 while IFS= read -r framework; do
   sign "$framework"
 done < <(find "$app/Contents/Frameworks" -maxdepth 1 -name '*.framework' -type d 2>/dev/null)
-sign "$app/Contents/MacOS/WordJewelsSolver"
+sign "$app/Contents/MacOS/SnapAndSpell"
 sign "$app"
 codesign --verify --deep --strict --verbose=2 "$app"
 

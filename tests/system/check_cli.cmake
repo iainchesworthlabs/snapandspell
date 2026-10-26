@@ -3,13 +3,13 @@
 # check_cli.cmake
 #
 # The command-line solver as a program: its options, its exit codes and what it
-# prints. This is the system tier's window on wjs-cli - nothing else in the tree
+# prints. This is the system tier's window on sns-cli - nothing else in the tree
 # runs the executable - and it uses a twelve-word word list written here, so the
 # expected words and points are the README's and do not move with the shipped
 # dictionary.
 #
 # Invoked once per case by ctest (`system.cli.<case>`):
-#   -DCLI=<wjs-cli> -DDICTIONARY=<data/dictionaries/en.txt>
+#   -DCLI=<sns-cli> -DDICTIONARY=<data/dictionaries/en.txt>
 #   -DWORK_DIR=<build>/system/cli -DCASE=<case>
 #
 # The cases run in parallel under `ctest -j`, so each writes under
@@ -53,7 +53,7 @@ endfunction()
 
 function(fail message)
     message(FATAL_ERROR
-        "wjs-cli ${CASE}: ${message}\n"
+        "sns-cli ${CASE}: ${message}\n"
         "  exit: ${RUN_CODE}\n"
         "  stdout:\n${RUN_OUT}\n"
         "  stderr:\n${RUN_ERR}")
@@ -96,7 +96,7 @@ endfunction()
 if(CASE STREQUAL "help")
     run_cli(--help)
     expect_code(0)
-    expect_in("Usage: wjs-cli" "${RUN_OUT}")
+    expect_in("Usage: sns-cli" "${RUN_OUT}")
     expect_in("--dictionary" "${RUN_OUT}")
     expect_in("--scoring" "${RUN_OUT}")
     expect_in("--repeat" "${RUN_OUT}")
@@ -111,15 +111,15 @@ elseif(CASE MATCHES "^output-every-time-[1-4]$")
     foreach(_run RANGE 1 15)
         run_cli(--version)
         expect_code(0)
-        expect_match("wjs-cli [0-9]+\\.[0-9]+\\.[0-9]+" "${RUN_OUT}")
+        expect_match("sns-cli [0-9]+\\.[0-9]+\\.[0-9]+" "${RUN_OUT}")
         run_cli(--help)
         expect_code(0)
-        expect_in("Usage: wjs-cli" "${RUN_OUT}")
+        expect_in("Usage: sns-cli" "${RUN_OUT}")
     endforeach()
 elseif(CASE STREQUAL "version")
     run_cli(--version)
     expect_code(0)
-    expect_match("wjs-cli [0-9]+\\.[0-9]+\\.[0-9]+" "${RUN_OUT}")
+    expect_match("sns-cli [0-9]+\\.[0-9]+\\.[0-9]+" "${RUN_OUT}")
 elseif(CASE STREQUAL "solve")
     run_cli(--dictionary "${_words}" ${_board})
     expect_code(0)
@@ -157,7 +157,7 @@ elseif(CASE STREQUAL "unknown-option")
     run_cli(--bogus ${_board})
     expect_code(1)
     expect_in("unknown option '--bogus'" "${RUN_ERR}")
-    expect_in("Usage: wjs-cli" "${RUN_ERR}")
+    expect_in("Usage: sns-cli" "${RUN_ERR}")
 elseif(CASE STREQUAL "missing-option-value")
     run_cli(--dictionary)
     expect_code(1)
@@ -177,7 +177,7 @@ elseif(CASE STREQUAL "bad-scoring")
 elseif(CASE STREQUAL "no-board")
     run_cli()
     expect_code(1)
-    expect_in("Usage: wjs-cli" "${RUN_ERR}")
+    expect_in("Usage: sns-cli" "${RUN_ERR}")
 elseif(CASE STREQUAL "board-error")
     run_cli(--dictionary "${_words}" CAT OR)
     expect_code(3)

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma ComponentBehavior: Bound
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The persistent top bar of a screen, the child's and the parent's. On home it
 // carries the wordmark; on a child screen the way back and the screen's name;

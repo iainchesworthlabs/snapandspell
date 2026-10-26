@@ -109,12 +109,12 @@ job names are free to change, as `CI Status` waits for them by job id.
 | `clang-format` | ubuntu-24.04 | Every `.cpp`/`.hpp` (and sibling extensions) under `libs/`, `apps/` and `tests/` is exactly what the repository's `.clang-format` produces, with one pinned clang-format release (`.github/requirements/lint.txt`). Any difference fails; the log names file and line. |
 | `platform-isolation` | ubuntu-24.04 | `tools/checks/check_platform_isolation.ps1`: no preprocessor conditional, no OS header or OS-querying API outside `libs/platforms/`, no OS test in CMake outside the selector, no `#define`, every platform source wired. Fast, and deliberately not behind the build legs. |
 | `Plan build legs` | ubuntu-24.04 | `tools/ci/plan.py` (its tests run first) reads the changed paths with the shared `plan_gate.py` and `.github/ci/plan.json` and decides which of the jobs below run ([What runs when](#what-runs-when)). An unknown leg name in a manual run fails here, with the list. The build, coverage, performance, package and TSan jobs wait for it. |
-| `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes (one test per core on every leg; the cases that need the machine alone are `RUN_SERIAL`). Its objects come from a compiler cache ([below](#the-compiler-cache-windows)). The leg also builds the Qt application and the scene prototype, runs the application's offscreen smoke, and packages its Debug build as a **development** ZIP whose contents and packaged programs it verifies (the `wordjewelssolver-windows-x64-debug-dev` artifact: Tracy and the ASan runtime are in it by design; the package that ships is the `Package (Windows, Release)` job's). |
-| `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: GCC 16 (`setup-gcc`; a pre-release snapshot until Ubuntu packages the release, which counts as meeting the floor) builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. The library, platform layer, CLI and scanner are built, not the Qt application (`-DWJS_BUILD_APP=OFF`). |
+| `Windows (MSVC)` | windows-2025-vs2026 | Preset `windows-msvc-debug` configures, builds warning-free (`/W4 /WX`) with ASan, and all of ctest passes (one test per core on every leg; the cases that need the machine alone are `RUN_SERIAL`). Its objects come from a compiler cache ([below](#the-compiler-cache-windows)). The leg also builds the Qt application and the scene prototype, runs the application's offscreen smoke, and packages its Debug build as a **development** ZIP whose contents and packaged programs it verifies (the `snapandspell-windows-x64-debug-dev` artifact: Tracy and the ASan runtime are in it by design; the package that ships is the `Package (Windows, Release)` job's). |
+| `Linux (GCC)` | ubuntu-26.04 | Preset `linux-gcc-debug`: GCC 16 (`setup-gcc`; a pre-release snapshot until Ubuntu packages the release, which counts as meeting the floor) builds warning-free (`-Wall -Wextra -Wpedantic -Werror ...`) with ASan and UBSan, and all of ctest passes. The library, platform layer, CLI and scanner are built, not the Qt application (`-DSNS_BUILD_APP=OFF`). |
 | `macOS (AppleClang)` | macos-26 (Apple silicon) | Preset `macos-clang-debug`: AppleClang from Xcode builds warning-free with ASan and UBSan, and all of ctest passes. As on Linux, without the Qt application. |
 | `Coverage (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-coverage` builds and runs the unit, integration and system tiers, and gcovr reads the library, scanner, platform layer and command line. `coverage_gate.py` (from `icl-common-infra`) **fails the job below a component's floor** in `tools/coverage-floors.json`, or for a file in no component; the table is in the job summary and the HTML and JSON are the `coverage-report` artifact ([Testing](testing.md#coverage)). |
-| `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DWJS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. In the merge queue and on a push; `CI Status` holds the run to it when the plan asked for it. |
-| `Package (Windows, Release)` | windows-2025-vs2026 | Preset `windows-msvc-release` (the Qt application on, tests off, Tracy and the sanitizers off, the same Qt kit as the Windows leg) builds, then `tools/package/check_package.ps1` makes the ZIP and proves it carries no `TracyClient`, AddressSanitizer runtime or `.pdb`, unpacks it, solves a board with the packaged `wjs-cli` and runs the packaged window's offscreen smoke, and `tools/release/check_release_build.ps1` checks the cache and the package. The ZIP and `SHA256SUMS` are the `wordjewelssolver-windows-x64` artifact (14 days). It is the proof, in the merge queue and on a push, that a Release package is clean. |
+| `Performance (Linux, GCC)` | ubuntu-26.04 | Preset `linux-gcc-release` (the one push leg that builds and tests a Release preset; `-DSNS_BUILD_APP=OFF`) builds warning-free and passes all of ctest, which in an optimised build includes the [work budgets](testing.md#performance-tests): visits, words and trie nodes over a fixed corpus, and a digest of every solution. The wall-time checks (`ctest --preset linux-gcc-perf`) run only in a manual run. In the merge queue and on a push; `CI Status` holds the run to it when the plan asked for it. |
+| `Package (Windows, Release)` | windows-2025-vs2026 | Preset `windows-msvc-release` (the Qt application on, tests off, Tracy and the sanitizers off, the same Qt kit as the Windows leg) builds, then `tools/package/check_package.ps1` makes the ZIP and proves it carries no `TracyClient`, AddressSanitizer runtime or `.pdb`, unpacks it, solves a board with the packaged `sns-cli` and runs the packaged window's offscreen smoke, and `tools/release/check_release_build.ps1` checks the cache and the package. The ZIP and `SHA256SUMS` are the `snapandspell-windows-x64` artifact (14 days). It is the proof, in the merge queue and on a push, that a Release package is clean. |
 | `ThreadSanitizer (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-tsan` (`-O1`, Tracy off, the Qt application not built) builds the solver, the scanner and the command line and runs their unit, integration and system tests with `halt_on_error` and the suppressions in `tools/sanitizers/tsan.supp`. The image's Clang and its sanitizer runtime are used, as in `analysis.yml`. In the merge queue and on a push. |
 | `Fuzz regression (Linux, Clang)` | ubuntu-26.04 | Preset `linux-fuzz` (Clang, libFuzzer, AddressSanitizer and UBSan, the libraries and the harnesses only) builds the harnesses of `libs/core/fuzz` and `libs/scan/fuzz` and `ctest --preset linux-fuzz` replays each over its seed corpus and the inputs that once crashed it, in seconds. In every pull request that builds, the merge queue and on a push. |
 | `Update the quality history` | ubuntu-24.04 | Only on a push to `develop`, after `Coverage (Linux, GCC)` passed: writes the coverage badges and trend to the `quality-history` branch ([Quality history](#quality-history)). Not part of `CI Status`. |
@@ -146,7 +146,7 @@ marked ready runs again with the full pull request rule.
 What a build-and-test leg's ctest contains: the four tiers of
 [Testing](testing.md#the-tiers) - the unit suite, the integration suite (the
 scanner on every leg; the window's model and the Quick Test suites where Qt is
-built), the system suite (`system.cli.*` runs `wjs-cli` itself and
+built), the system suite (`system.cli.*` runs `sns-cli` itself and
 `system.install` runs `cmake --install` into a throw-away prefix and executes
 the installed solver on every leg; `system.app.*` runs the application's
 start-up where the window is built) - and the repository checks, which carry
@@ -202,13 +202,13 @@ every Debug leg has, and report themselves skipped otherwise; a capture tool
 that will not run on the machine is a failure that says so.
 
 The **Windows leg**, the one that builds the Qt application, also runs its
-smoke mode after ctest (`WordJewelsSolver.exe --smoke 60`, offscreen with the
+smoke mode after ctest (`SnapAndSpell.exe --smoke 60`, offscreen with the
 OpenGL RHI backend): the window, its screens and the game start up and present
 frames, and the run fails if they do not (docs/profiling.md, "The smoke mode").
 The window may present no frame offscreen, so this is the start-up path and the 2D graph;
 the frame budget is a desktop check.
 
-It also **takes a picture of every screen** (`cmake --build --target wjs_screenshots`, offscreen;
+It also **takes a picture of every screen** (`cmake --build --target sns_screenshots`, offscreen;
 docs/testing.md, "Screenshots") and keeps the PNG files for 14 days as the run's `screenshots`
 artifact, so a change to the look can be seen from the pull request. The step never fails the leg.
 
@@ -218,9 +218,9 @@ That leg then **packages what it built** and proves the package is usable:
 and QML modules (the multimedia plugin and
 `qml/QtMultimedia` the camera's live view needs), the dictionary, the dice, `NOTICES.txt` and
 `LICENSE.txt`, writes `SHA256SUMS`, unpacks it, solves a board with the packaged
-`wjs-cli` and its installed dictionary, and runs the packaged
-`WordJewelsSolver --smoke 10` offscreen. The ZIP and `SHA256SUMS` are uploaded
-as the `wordjewelssolver-windows-x64-debug-dev` artifact. This is the Debug
+`sns-cli` and its installed dictionary, and runs the packaged
+`SnapAndSpell --smoke 10` offscreen. The ZIP and `SHA256SUMS` are uploaded
+as the `snapandspell-windows-x64-debug-dev` artifact. This is the Debug
 build, so the package is a development one with `TracyClient.dll` and the ASan
 runtime in it, and the script tells CPack so (`-ForbidTracy Auto`; CPack refuses
 a Tracy build otherwise, [Building](building.md#packaging)). The package that
@@ -239,7 +239,7 @@ machine without Qt's Linguist tools, but the Windows leg installs them (below).
 
 The same leg runs **the interactive QML at run time**: the `quick.*` suites, one per `apps/app/ui-tests/tst_*.qml`
 ([Testing](testing.md#the-interactive-qml-qt-quick-test)), start
-`wjs_quick_tests` once each under `QT_QPA_PLATFORM=offscreen`, with Qt's
+`sns_quick_tests` once each under `QT_QPA_PLATFORM=offscreen`, with Qt's
 software renderer and no display, and a Qt warning fails the suite. They are
 ordinary ctest entries (label `gui`), so they are part of the leg's `ctest`
 like every other test: there is nothing extra to run. Their target's
@@ -280,7 +280,7 @@ repository wants it.
   show up in a release rehearsal or locally.
 - **Qt on the Windows leg.** The Windows leg installs the prebuilt Qt 6.12.0
   kit with `jurplel/install-qt-action` (pinned to v4.4.1 by commit SHA) and
-configures with `-DWJS_BUILD_APP=ON`, so the
+configures with `-DSNS_BUILD_APP=ON`, so the
   Qt Quick application, the app tests, `parent.screens`,
   `scan.screens`, `camera.screens`, `parent.languages`, `scan.languages`, the `quick.*`
   suites, `i18n.catalogues`, `app.scene_contract`, `app.qml_lint` and `quick.lint` all run on
@@ -304,7 +304,7 @@ every push. The install names the modules `qtshadertools qtmultimedia qtsensors
   release newer than 3.3.0 includes the fix. `cache: true` keeps the kit
   between runs. `Package (Windows, Release)` installs the same kit. The other push
   legs build the library, platform layer, CLI and scanner alone
-  (`-DWJS_BUILD_APP=OFF`) and install no Qt: the desktop application has been
+  (`-DSNS_BUILD_APP=OFF`) and install no Qt: the desktop application has been
   built only on Windows. `release.yml` installs the Linux and macOS kits
   (`qt.kits` in `.github/toolchain-versions.json`) for its first builds of it
   there, and the iOS jobs install Qt's iOS kit; of those only the unsigned iOS
@@ -362,7 +362,7 @@ profiling builds (`windows-msvc-profiling`, `linux-gcc-profiling`,
 named `profiling-windows`, `profiling-linux` and `profiling-macos`, or
 `profiling` for all three. They configure, build warning-free against the real
 Tracy headers, and run all of ctest, which includes the test that the real
-variant of `wjs/profiling.hpp` is the one in use. A push does not pay for them
+variant of `sns/profiling.hpp` is the one in use. A push does not pay for them
 as well as for the debug legs, which build Tracy by default (a Debug build is
 instrumented: [Profiling](profiling.md)): the client opens a network port, and
 vcpkg builds Tracy's tools for the host in every Linux leg (there that is a
@@ -586,7 +586,7 @@ its paths implementation, `packaging/Info.plist.in`, the asset catalogue with th
 icon and the launch colour, and `packaging/verify_ipa.sh`), selected by
 `cmake/Platform.cmake` before `APPLE` (the one edit the isolation rules allow); and
 the `ios-release` preset: Release, an Xcode project, `arm64-ios`, no tests, no
-`wjs-cli`, Tracy and the sanitizers off like every Release preset. The haptics are
+`sns-cli`, Tracy and the sanitizers off like every Release preset. The haptics are
 the desktops' shared no-op and the board reader the portable one, as the roadmap
 has it; nothing buzzes yet.
 
@@ -635,13 +635,13 @@ at a multiple.
    the `.p12` imported into it, the profile installed under its UUID. The profile is held to the bundle identifier
    (`com.iainchesworthlabs.snapandspell`: its App ID is `<team>.<that>`), to its expiry, and to listing **no devices**.
    Its team ID and name come out as the step's outputs. Only counts and names are printed.
-4. *Configure (signed):* `cmake --preset ios-release` with `-DWJS_IOS_SIGNING_TEAM` and `-DWJS_IOS_SIGNING_PROFILE`, which sign the
+4. *Configure (signed):* `cmake --preset ios-release` with `-DSNS_IOS_SIGNING_TEAM` and `-DSNS_IOS_SIGNING_PROFILE`, which sign the
    application target alone (the preset turns signing off for every other Xcode target: static libraries and Qt's resource
-   targets have no bundle identifier and cannot be signed), and `-DWJS_IOS_BUILD_NUMBER`, the number of the workflow run:
+   targets have no bundle identifier and cannot be signed), and `-DSNS_IOS_BUILD_NUMBER`, the number of the workflow run:
    `CFBundleVersion`, which App Store Connect requires to be higher than every earlier build's for the version.
-5. *Archive and export* with the `export-ios-ipa` action (`xcodebuild archive`, scheme `WordJewelsSolver`, the CMake target's
+5. *Archive and export* with the `export-ios-ipa` action (`xcodebuild archive`, scheme `SnapAndSpell`, the CMake target's
    name; then `xcodebuild -exportArchive` with method `app-store`, the team, manual signing, `Apple Distribution` and the
-   profile by name). The file is `WordJewelsSolver-<v>-ios-appstore.ipa`.
+   profile by name). The file is `SnapAndSpell-<v>-ios-appstore.ipa`.
 6. *Check the IPA* with `verify_ipa.sh --signed --store --version <v> --build <n>`: as the build check, plus the signature, the
    embedded profile, that it names no devices and does not allow a debugger to attach, that it is for this bundle identifier,
    that `ITSAppUsesNonExemptEncryption` is false and that `CFBundleVersion` is the run number.
@@ -721,7 +721,7 @@ the QML modules the application imports, and Gradle makes the package.
 **Choices worth knowing.**
 
 - *The data is unpacked, not installed beside an executable.* The word list and the dice
-  are read from files by path, and nothing inside an APK is a file. `wjs_platform_configure_app`
+  are read from files by path, and nothing inside an APK is a file. `sns_platform_configure_app`
   compiles them into the application's resources, and `paths_android.cpp` lays them down
   in the application's private directory once (a file that already matches is left
   alone) and answers `executable_path()` with where an executable would be in it, which
@@ -755,8 +755,8 @@ the QML modules the application imports, and Gradle makes the package.
   question is whether a release should carry a debug server at all.
 - *The platform levels:* minimum 28 (what Qt 6.12 supports), target and compile 36 (Google
   Play's requirement is 35 or later). `versionCode` is derived from the version
-  (0.1.0 is 10000); `-DWJS_ANDROID_VERSION_CODE=<n>` overrides it.
-- *One application id,* `org.iainchesworth.wordjewelssolver`, the iOS bundle identifier.
+  (0.1.0 is 10000); `-DSNS_ANDROID_VERSION_CODE=<n>` overrides it.
+- *One application id,* `com.iainchesworthlabs.snapandspell`, the iOS bundle identifier.
 
 **The toolchain.** A Qt for Android kit (arm64-v8a) and, for the host tools a cross build
 runs (`moc`, `rcc`, `qmlcachegen`, `qsb`, `androiddeployqt`), a desktop Qt of the same
@@ -781,7 +781,7 @@ build (which runs the `apk` target), then `verify_apk.sh` on what came out (the 
 id and version, `minSdkVersion` 28 or later, `targetSdkVersion` 35 or later, the camera as the
 only permission, the camera and accelerometer not required, `arm64-v8a` only, the program's
 library inside, a launcher icon and activity, a valid signature) and an upload of
-`WordJewelsSolver-<v>-android-arm64-debug-signed.apk` as `android-apk-debug-signed`
+`SnapAndSpell-<v>-android-arm64-debug-signed.apk` as `android-apk-debug-signed`
 (14 days). Gradle signs it with Android's own debug key, so it installs on any device
 that allows it and cannot be updated by a package signed with another key. It needs no secret and runs on
 pull requests and pushes to `main`/`develop` that touch what Android reads, and by hand
@@ -808,7 +808,7 @@ author's upload key, in four repository secrets. In order:
    path, alias and passwords in `QT_ANDROID_KEYSTORE_PATH`, `QT_ANDROID_KEYSTORE_ALIAS`,
    `QT_ANDROID_KEYSTORE_STORE_PASS` and `QT_ANDROID_KEYSTORE_KEY_PASS`, which
    `androiddeployqt` reads. The files are
-   `WordJewelsSolver-<v>-android-arm64.apk` and `.aab`.
+   `SnapAndSpell-<v>-android-arm64.apk` and `.aab`.
 5. *Check the APK* with `verify_apk.sh --release --signed --version <v>`: as above, plus not
    debuggable and not signed with the debug key.
 6. Upload `package-android`.
@@ -828,7 +828,7 @@ looks like, and refuses a failed one.
    secret; it refuses a folder inside a git working tree; it needs `keytool`, which any JDK has):
 
    ```sh
-   tools/release/new_android_keystore.sh        # ~/wjs-android-keystore by default
+   tools/release/new_android_keystore.sh        # ~/sns-android-keystore by default
    ```
 
    It writes the keystore, its password, the alias and the certificate's SHA-256 into the
@@ -886,7 +886,7 @@ three optional modules:
 - Google Play: nothing was tried, and a listing needs a developer account, a store entry and
   the privacy declarations (docs/design/application.md, "Privacy, built in and checked").
 
-On a device, try in this order: install (`adb install -r WordJewelsSolver-<v>-android-arm64-debug-signed.apk`,
+On a device, try in this order: install (`adb install -r SnapAndSpell-<v>-android-arm64-debug-signed.apk`,
 or open the file on the tablet), the window and Home, Solo Play (shake, the box, the path), the
 camera prompt and Mode A, rotation and split-screen, the parent area and that its progress
 survives closing the app from the recents list, the settings *App info → Permissions* (the camera
@@ -921,7 +921,7 @@ queue, run only when something the web build reads changes (`libs/`, `apps/`, `c
    of page time and the script reads the page back. The game came up if the page's loading panel is hidden
    (the boot script hides it when Qt reports the program loaded) and the page is not marked failed. No
    browser driver and no package is installed for this.
-7. Zip the bundle as `WordJewelsSolver-<version>-web.zip` and upload it as the `web-bundle` artifact
+7. Zip the bundle as `SnapAndSpell-<version>-web.zip` and upload it as the `web-bundle` artifact
    (14 days).
 
 [Playing in a browser](web.md) says what the page keeps, what it lacks and what hosting it needs.
@@ -966,7 +966,7 @@ so it is not a required check.
 The repository's Pages source is "GitHub Actions" (`admin/apply.sh` sets it). A
 push to `main` that changes the docs deploys the site.
 
-The site is at `https://iainchesworthlabs.github.io/wordjewelssolver/` (`site_url`
+The site is at `https://iainchesworthlabs.github.io/snapandspell/` (`site_url`
 in `mkdocs.yml`). The release that fast-forwards `main` is what first makes it exist. A build of a pull request is never deployed.
 
 ## Required checks and their staging
@@ -1203,7 +1203,7 @@ likelihood:
    `libs/platforms/macos`): they compile on every push, so the leg's log names
    the line, and the usual cause is a runner image that moved to a newer SDK.
 3. **The sanitizer runtime**: ASan/UBSan on the hosted image (on Windows, the
-   ASan runtime DLL that `wjs_deploy_sanitizer_runtime` copies next to the
+   ASan runtime DLL that `sns_deploy_sanitizer_runtime` copies next to the
    tests, found next to the compiler).
 4. **The vcpkg clone**: one without enough history for the baseline (the
    setup action clones in full for that reason), or a `cmake/vcpkg-commit.txt`

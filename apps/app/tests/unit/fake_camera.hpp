@@ -8,7 +8,7 @@
 #include <utility>
 
 #include "camera_backend.hpp"
-#include "wjs/scan/frame.hpp"
+#include "sns/scan/frame.hpp"
 
 // A camera backend for the tests: no device, no driver and no Qt Multimedia. It
 // is handed to CameraSource's second constructor, so the model and the screens
@@ -16,7 +16,7 @@
 // synthetic board or a small picture), never a live camera. The test support
 // lives here and is not in anything that ships.
 
-namespace wjs::app::test {
+namespace sns::app::test {
 
 class FakeCameraBackend final : public CameraBackend {
 public:
@@ -57,11 +57,11 @@ public:
         notify();
     }
 
-    [[nodiscard]] std::optional<wjs::scan::OwnedFrame> capture() override {
+    [[nodiscard]] std::optional<sns::scan::OwnedFrame> capture() override {
         if (!running_ || !frame_) {
             return std::nullopt;
         }
-        std::optional<wjs::scan::OwnedFrame> frame = std::move(frame_);
+        std::optional<sns::scan::OwnedFrame> frame = std::move(frame_);
         frame_.reset();
         return frame;
     }
@@ -92,7 +92,7 @@ public:
             }
         }
     }
-    void setFrame(wjs::scan::OwnedFrame frame) { frame_ = std::move(frame); }
+    void setFrame(sns::scan::OwnedFrame frame) { frame_ = std::move(frame); }
     // A device that fails while running: the source's `changed` follows.
     void fail(CameraProblem problem) {
         problem_ = problem;
@@ -114,10 +114,10 @@ private:
     bool available_ = false;
     bool running_ = false;
     CameraProblem problem_ = CameraProblem::no_camera;
-    std::optional<wjs::scan::OwnedFrame> frame_;
+    std::optional<sns::scan::OwnedFrame> frame_;
     int previews_ = 0;
     int detaches_ = 0;
     QObject* preview_ = nullptr;
 };
 
-}  // namespace wjs::app::test
+}  // namespace sns::app::test

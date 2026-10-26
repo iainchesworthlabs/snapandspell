@@ -8,9 +8,9 @@
 
 #include <filesystem>
 
-#include "wjs/scan/image.hpp"
+#include "sns/scan/image.hpp"
 
-namespace wjs::scan::synth {
+namespace sns::scan::synth {
 
 // Writes the image as an 8-bit grey PNG. False if the file could not be written.
 [[nodiscard]] bool write_png(const std::filesystem::path& path, const GrayImage& image);
@@ -26,4 +26,4 @@ namespace wjs::scan::synth {
 // frame the reader accepts.
 [[nodiscard]] GrayImage read_pgm(const std::filesystem::path& path);
 
-}  // namespace wjs::scan::synth
+}  // namespace sns::scan::synth

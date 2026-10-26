@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The name is a brand, in Latin in every language, so it keeps the house faces (Pixelify Sans, Silkscreen)
 // where the chrome around it is set in a language's own face.
-// The lockup: a faceted jewel and the name. Word Jewels is the child-facing
-// name; SOLVER is the product qualifier, in the house mono face. The same
-// lockup is used in the home bar, the parent area's bar and the About page.
-// Both words are Labels, so they follow the parent's Text size setting like the
-// rest of the bar (they were 23/18 px and 9/7 px literals that ignored it).
+// The lockup: a faceted jewel and the name, Snap and Spell. The same lockup is used in the home bar,
+// the parent area's bar and the About page. The name is a Label, so it follows the parent's Text size
+// setting like the rest of the bar.
 Row {
     id: root
 
@@ -18,7 +16,7 @@ Row {
     spacing: compact ? Theme.space2 : Theme.space3
 
     Accessible.role: Accessible.StaticText
-    Accessible.name: qsTr("Word Jewels") + " " + qsTr("SOLVER")
+    Accessible.name: qsTr("Snap and Spell")
 
     Jewel {
         width: root.compact ? Theme.jewelSm : Theme.jewelMd
@@ -55,16 +53,10 @@ Row {
                 role: "display"
                 font.family: "Pixelify Sans"
                 decorative: true
-                text: qsTr("Word Jewels")
+                text: qsTr("Snap and Spell")
                 size: root.compact ? Theme.headingSize : Theme.wordSize
                 lineRatio: Theme.lineHeading
             }
-        }
-        Label {
-            role: "eyebrow"
-            font.family: "Silkscreen"
-            decorative: true
-            text: qsTr("SOLVER")
         }
     }
 }

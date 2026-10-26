@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma ComponentBehavior: Bound
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // A small picture of a board that was played: its tray, its tiles as cream squares
 // and its dead jewels as dark ones, with the jewels of the words found beneath.

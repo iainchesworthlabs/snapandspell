@@ -9,30 +9,30 @@
 # (QT_HOST_PATH). Nothing here has run on a Mac yet; the first hosted run is
 # the check (docs/ci.md, "What iOS has and has not shown").
 
-set(WJS_PLATFORM_DISPLAY_NAME "iOS")
+set(SNS_PLATFORM_DISPLAY_NAME "iOS")
 
 # A phone and a tablet have no installers and no command-line program, and the
 # application is built by Xcode, not packaged by CPack: the App Store IPA comes
 # from `xcodebuild archive` and `-exportArchive` (release.yml).
-set(WJS_PLATFORM_DESKTOP OFF)
-set(WJS_PLATFORM_EXECUTABLE_FORMAT "mach-o")
+set(SNS_PLATFORM_DESKTOP OFF)
+set(SNS_PLATFORM_EXECUTABLE_FORMAT "mach-o")
 
 # An iOS bundle is flat: the executable, Info.plist and the data are side by
-# side in WordJewelsSolver.app, and the application looks for its dictionary and
+# side in SnapAndSpell.app, and the application looks for its dictionary and
 # dice beside its own executable. (An iOS build is never `cmake --install`ed;
 # this is where an install rule would put them.)
-set(WJS_PLATFORM_INSTALL_APP_DATA_DIR "WordJewelsSolver.app")
+set(SNS_PLATFORM_INSTALL_APP_DATA_DIR "SnapAndSpell.app")
 
 # Qt is static on iOS, linked into the executable, and Xcode embeds what is
 # needed: there is no deploy script to run (and Qt's would refuse the platform).
-set(WJS_PLATFORM_QT_DEPLOY_AT_INSTALL OFF)
+set(SNS_PLATFORM_QT_DEPLOY_AT_INSTALL OFF)
 
 # Qt's iOS kit, when no QT_ROOT_DIR names it (the aqtinstall layout; only on a Mac).
-set(WJS_PLATFORM_QT_SEARCH_ROOTS "$ENV{HOME}/Qt" "/opt/Qt")
-set(WJS_PLATFORM_QT_ARCH_DIRS ios)
+set(SNS_PLATFORM_QT_SEARCH_ROOTS "$ENV{HOME}/Qt" "/opt/Qt")
+set(SNS_PLATFORM_QT_ARCH_DIRS ios)
 
 # No test runs on the device or offscreen here.
-set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
+set(SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
 
 # detail/ is what no platform differs in: no native camera backend yet, the portable
 # board reader (docs/design/scanner.md), and the no-op haptics the desktops answer
@@ -40,7 +40,7 @@ set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
 # and UIImpactFeedbackGenerator haptics replace them here when they are written
 # (docs/roadmap.md); until then Mode A reads the camera through Qt Multimedia, as
 # the desktops do, and nothing buzzes.
-set(WJS_PLATFORM_SOURCES
+set(SNS_PLATFORM_SOURCES
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
     detail/fatal_error_stderr.cpp
@@ -49,12 +49,12 @@ set(WJS_PLATFORM_SOURCES
     ios/paths_ios.cpp
     posix/console_posix.cpp)
 
-set(WJS_PLATFORM_LINK_LIBRARIES "")
-set(WJS_PLATFORM_COMPILE_DEFINITIONS "")
+set(SNS_PLATFORM_LINK_LIBRARIES "")
+set(SNS_PLATFORM_COMPILE_DEFINITIONS "")
 
 # Where the bundle's Info.plist template and asset catalogue are (captured here:
 # inside a function CMAKE_CURRENT_LIST_DIR is the caller's).
-set(WJS_IOS_PACKAGING_DIR "${CMAKE_CURRENT_LIST_DIR}/packaging")
+set(SNS_IOS_PACKAGING_DIR "${CMAKE_CURRENT_LIST_DIR}/packaging")
 
 # Code signing, for the signed App Store build only. Both are empty for the unsigned
 # compile check, which needs no Apple account, and both are given together on the
@@ -64,20 +64,20 @@ set(WJS_IOS_PACKAGING_DIR "${CMAKE_CURRENT_LIST_DIR}/packaging")
 # They sign the application target alone: signing every Xcode target, as a
 # project-wide setting does, makes Xcode demand a bundle identifier of the static
 # libraries and Qt's resource targets, which have none.
-set(WJS_IOS_SIGNING_TEAM "" CACHE STRING
+set(SNS_IOS_SIGNING_TEAM "" CACHE STRING
     "Apple team ID the application is signed for (empty: an unsigned build)")
-set(WJS_IOS_SIGNING_PROFILE "" CACHE STRING
+set(SNS_IOS_SIGNING_PROFILE "" CACHE STRING
     "Name of the App Store provisioning profile the application is signed with (empty: an unsigned build)")
 
 # The build number, CFBundleVersion. App Store Connect refuses a build whose number is not
 # higher than every earlier one for the same version, so release.yml gives it the number of
 # the workflow run (the version, the short string, stays the project's). Empty: the project's
 # version, which is right for the unsigned compile check.
-set(WJS_IOS_BUILD_NUMBER "" CACHE STRING
+set(SNS_IOS_BUILD_NUMBER "" CACHE STRING
     "CFBundleVersion of the iOS application (empty: the project version)")
-if(WJS_IOS_BUILD_NUMBER AND NOT WJS_IOS_BUILD_NUMBER MATCHES "^[1-9][0-9]*$")
+if(SNS_IOS_BUILD_NUMBER AND NOT SNS_IOS_BUILD_NUMBER MATCHES "^[1-9][0-9]*$")
     message(FATAL_ERROR
-        "WJS_IOS_BUILD_NUMBER is '${WJS_IOS_BUILD_NUMBER}': a build number is a whole number "
+        "SNS_IOS_BUILD_NUMBER is '${SNS_IOS_BUILD_NUMBER}': a build number is a whole number "
         "without a leading zero, because App Store Connect compares them as numbers.")
 endif()
 
@@ -88,7 +88,7 @@ endif()
 # has it is unknown, so only a plugin that has no value is given one, using what
 # the desktop kits say: the ones the application needs are linked, the rest are
 # opt-in. (Added in a function so the targets exist: find_package(Qt6) made them.)
-function(wjs_ios_default_plugins)
+function(sns_ios_default_plugins)
     # Linked: the platform integration, the image formats, the TLS and network
     # reachability plumbing, the camera's permission request (the application asks
     # for the camera: Mode A), and the QML debug services Qt's own kits link.
@@ -134,16 +134,16 @@ endfunction()
 # names in from the properties below; the dictionary and the dice are copied beside
 # the executable, which is the bundle's root, by the application's own post-build
 # step (apps/app/CMakeLists.txt).
-function(wjs_platform_configure_app target)
-    set(_assets "${WJS_IOS_PACKAGING_DIR}/Assets.xcassets")
+function(sns_platform_configure_app target)
+    set(_assets "${SNS_IOS_PACKAGING_DIR}/Assets.xcassets")
     set(_build_number "${PROJECT_VERSION}")
-    if(WJS_IOS_BUILD_NUMBER)
-        set(_build_number "${WJS_IOS_BUILD_NUMBER}")
+    if(SNS_IOS_BUILD_NUMBER)
+        set(_build_number "${SNS_IOS_BUILD_NUMBER}")
     endif()
     set_target_properties(${target} PROPERTIES
         MACOSX_BUNDLE ON
-        MACOSX_BUNDLE_INFO_PLIST "${WJS_IOS_PACKAGING_DIR}/Info.plist.in"
-        MACOSX_BUNDLE_BUNDLE_NAME "WordJewelsSolver"
+        MACOSX_BUNDLE_INFO_PLIST "${SNS_IOS_PACKAGING_DIR}/Info.plist.in"
+        MACOSX_BUNDLE_BUNDLE_NAME "SnapAndSpell"
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.iainchesworthlabs.snapandspell"
         MACOSX_BUNDLE_BUNDLE_VERSION "${_build_number}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
@@ -159,22 +159,22 @@ function(wjs_platform_configure_app target)
     target_sources(${target} PRIVATE "${_assets}")
     set_source_files_properties("${_assets}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-    if(WJS_IOS_SIGNING_TEAM AND WJS_IOS_SIGNING_PROFILE)
+    if(SNS_IOS_SIGNING_TEAM AND SNS_IOS_SIGNING_PROFILE)
         set_target_properties(${target} PROPERTIES
             XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED "YES"
             XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "YES"
             XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual"
             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Distribution"
-            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${WJS_IOS_SIGNING_TEAM}"
-            XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER "${WJS_IOS_SIGNING_PROFILE}")
-    elseif(WJS_IOS_SIGNING_TEAM OR WJS_IOS_SIGNING_PROFILE)
+            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${SNS_IOS_SIGNING_TEAM}"
+            XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER "${SNS_IOS_SIGNING_PROFILE}")
+    elseif(SNS_IOS_SIGNING_TEAM OR SNS_IOS_SIGNING_PROFILE)
         message(FATAL_ERROR
-            "WJS_IOS_SIGNING_TEAM and WJS_IOS_SIGNING_PROFILE go together: one of "
+            "SNS_IOS_SIGNING_TEAM and SNS_IOS_SIGNING_PROFILE go together: one of "
             "them is set and the other is empty. Give both for a signed build, or "
             "neither for an unsigned one (docs/building.md, \"iOS\").")
     endif()
 
-    wjs_ios_default_plugins()
+    sns_ios_default_plugins()
 
     # Mode A asks for the camera (NSCameraUsageDescription, Info.plist.in). In a
     # static Qt the request is answered by this plugin, so it is named outright
@@ -198,9 +198,9 @@ function(wjs_platform_configure_app target)
 endfunction()
 
 # Static Qt: nothing to deploy beside the program.
-function(wjs_platform_deploy_qt_runtime target qml_dir)
+function(sns_platform_deploy_qt_runtime target qml_dir)
 endfunction()
 
 # No CPack generator: an iOS build is archived and exported by Xcode.
-function(wjs_platform_configure_packaging)
+function(sns_platform_configure_packaging)
 endfunction()

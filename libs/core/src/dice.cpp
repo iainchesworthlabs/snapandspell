@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/dice.hpp"
+#include "sns/dice.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -10,9 +10,9 @@
 
 #include "ascii.hpp"
 #include "draw.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 constexpr std::string_view byte_order_mark = "\xEF\xBB\xBF";
@@ -187,4 +187,4 @@ std::expected<Board, DiceError> roll(const DiceSet& dice, std::uint32_t seed) {
     return std::move(rolled->board);
 }
 
-}  // namespace wjs
+}  // namespace sns

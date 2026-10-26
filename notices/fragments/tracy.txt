@@ -2,7 +2,7 @@ Tracy Profiler (development packages only)
 ------------------------------------------
 
 THIS PACKAGE IS A DEVELOPMENT BUILD. It was made with the Tracy profiler's client
-in it (WJS_ENABLE_TRACY), which opens a network listener and is never in a
+in it (SNS_ENABLE_TRACY), which opens a network listener and is never in a
 release package. A package of a release does not contain this section or the
 profiler.
 

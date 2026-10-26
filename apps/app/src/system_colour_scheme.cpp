@@ -4,7 +4,7 @@
 #include <QGuiApplication>
 #include <QStyleHints>
 
-namespace wjs::app {
+namespace sns::app {
 
 SystemColourScheme::SystemColourScheme(QObject* parent) : QObject(parent) {
     if (const auto* hints = QGuiApplication::styleHints()) {
@@ -24,4 +24,4 @@ bool SystemColourScheme::dark() const {
     return dark_;
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

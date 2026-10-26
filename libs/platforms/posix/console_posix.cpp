@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/platform/console.hpp"
+#include "sns/platform/console.hpp"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 // A POSIX terminal carries bytes, and the programs here write UTF-8: there is
 // nothing to switch on.
 void use_utf8_console() {}
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

@@ -10,12 +10,12 @@
 
 namespace {
 
-using wjs::app::SystemColourScheme;
+using sns::app::SystemColourScheme;
 
 // A GUI application on Qt's offscreen platform (the entry's environment chooses
 // it), which needs no display: the style hints SystemColourScheme listens to
 // belong to it.
-class OffscreenApplication : private wjs::app::test::GuiApplication {
+class OffscreenApplication : private sns::app::test::GuiApplication {
 public:
     // The system's style hints, which a test then tells of a change: the
     // platform that would say so is not there to ask. A signal is public in Qt 6;

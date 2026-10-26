@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma ComponentBehavior: Bound
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The parent area: the gate, then the dashboard, settings and about. The adult
 // workflows live here, behind the gate. The dashboard's "Play with a real

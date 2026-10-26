@@ -34,16 +34,16 @@
 #include "qt_text.hpp"
 #include "scan/assist_game.hpp"
 #include "scan/assist_game_factory.hpp"
+#include "sns/calendar.hpp"
+#include "sns/platform/paths.hpp"
+#include "sns/platform/window_chrome.hpp"
+#include "sns/profiling.hpp"
+#include "sns/settings.hpp"
+#include "sns/store.hpp"
+#include "sns/version.hpp"
 #include "solo/solo_game_factory.hpp"
 #include "solo/solo_game_setup.hpp"
 #include "startup_failure.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/platform/paths.hpp"
-#include "wjs/platform/window_chrome.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/settings.hpp"
-#include "wjs/store.hpp"
-#include "wjs/version.hpp"
 
 namespace {
 
@@ -58,14 +58,14 @@ namespace {
 
 // The device's own calendar, the one the game and the parent area share: Qt's
 // Julian day of 1970-01-01 is 2440588.
-[[nodiscard]] wjs::Day device_today() {
-    return static_cast<wjs::Day>(QDate::currentDate().toJulianDay() - 2440588);
+[[nodiscard]] sns::Day device_today() {
+    return static_cast<sns::Day>(QDate::currentDate().toJulianDay() - 2440588);
 }
 
 // ---------------------------------------------------------------------------
 // The smoke run (docs/profiling.md, "The smoke mode")
 //
-// `WordJewelsSolver --smoke [<frames>]` shows Solo Play, plays the shake cycle
+// `SnapAndSpell --smoke [<frames>]` shows Solo Play, plays the shake cycle
 // again and again, counts the frames, prints the frame-time report and leaves
 // with 0. It is the workload a capture attaches to, and the frame check's
 // program. The frames are measured by FrameProfiler; the scene and the screens
@@ -118,11 +118,11 @@ constexpr std::uint32_t kSmokeSeed = 7919;
 
 // Whether this run gives a profiler the moment it needs before the setup: a smoke
 // run always does, and any run does when it is started with `--wait-for-profiler`
-// or with WJS_WAIT_FOR_PROFILER set (to anything). Tracy is attached on demand and
+// or with SNS_WAIT_FOR_PROFILER set (to anything). Tracy is attached on demand and
 // takes about a second to find a program, so without the wait a normal launch
 // has finished app.startup and app.load_qml before a profiler could see them.
 [[nodiscard]] bool profiler_wait_asked(int argc, char* argv[]) {
-    if (qEnvironmentVariableIsSet("WJS_WAIT_FOR_PROFILER")) {
+    if (qEnvironmentVariableIsSet("SNS_WAIT_FOR_PROFILER")) {
         return true;
     }
     for (int i = 1; i < argc; ++i) {
@@ -140,15 +140,15 @@ constexpr std::uint32_t kSmokeSeed = 7919;
 // run works with no profiler too. Calling connected() starts Tracy's client, and
 // so its listener, if nothing else has.
 void wait_for_profiler() {
-    if constexpr (wjs::profiling::enabled) {
+    if constexpr (sns::profiling::enabled) {
         std::fputs("waiting up to 5 s for a profiler (Tracy build)\n", stdout);
         std::fflush(stdout);
         const auto deadline =
             std::chrono::steady_clock::now() + std::chrono::milliseconds(kProfilerWaitMs);
-        while (!wjs::profiling::connected() && std::chrono::steady_clock::now() < deadline) {
+        while (!sns::profiling::connected() && std::chrono::steady_clock::now() < deadline) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-        std::fputs(wjs::profiling::connected() ? "profiler connected\n"
+        std::fputs(sns::profiling::connected() ? "profiler connected\n"
                                                : "no profiler connected; continuing\n",
                    stdout);
         std::fflush(stdout);
@@ -159,10 +159,10 @@ void wait_for_profiler() {
 // per-user one, and a store that is never written when there is nowhere to keep
 // one. The game and the parent area both work on it, so that a change made in the
 // one is what the other reads.
-[[nodiscard]] wjs::OpenResult open_store(const QStringList& arguments) {
+[[nodiscard]] sns::OpenResult open_store(const QStringList& arguments) {
     std::filesystem::path file;
     if (const auto given = value_of(arguments, QStringLiteral("--store"))) {
-        file = wjs::app::to_path(*given);
+        file = sns::app::to_path(*given);
     } else {
         // Qt's per-user application data directory, which already exists for the
         // cache and follows the app's organisation name on every platform. The
@@ -171,16 +171,16 @@ void wait_for_profiler() {
         // to memory and the parent was told progress could not be saved.
         const QString base = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
         if (!base.isEmpty()) {
-            file = wjs::app::to_path(base) / std::string{wjs::store_file_name};
-        } else if (const std::filesystem::path fallback = wjs::platform::user_data_directory();
+            file = sns::app::to_path(base) / std::string{sns::store_file_name};
+        } else if (const std::filesystem::path fallback = sns::platform::user_data_directory();
                    !fallback.empty()) {
-            file = wjs::default_store_path(fallback);
+            file = sns::default_store_path(fallback);
         }
     }
     if (file.empty()) {
-        return {wjs::Store::in_memory(), wjs::LoadStatus::created, {}};
+        return {sns::Store::in_memory(), sns::LoadStatus::created, {}};
     }
-    return wjs::Store::open(file);
+    return sns::Store::open(file);
 }
 
 // What the real game is to be made from: the English word list and the standard
@@ -191,11 +191,11 @@ void wait_for_profiler() {
 // qualified to do it), so without the directory the program plays the standard
 // board, the game's default. `repeatable` gives the run a fixed seed when none
 // is asked for: the smoke's boards are the same on every run.
-[[nodiscard]] wjs::app::SoloGameOptions real_game_options(const QStringList& arguments,
+[[nodiscard]] sns::app::SoloGameOptions real_game_options(const QStringList& arguments,
                                                           bool repeatable) {
-    wjs::app::SoloGameOptions options;
+    sns::app::SoloGameOptions options;
     if (const auto directory = value_of(arguments, QStringLiteral("--phase-directory"))) {
-        options.phase_directory = wjs::app::to_path(*directory);
+        options.phase_directory = sns::app::to_path(*directory);
     }
     if (options.phase_directory.empty()) {
         if (arguments.contains(QStringLiteral("--phase"))) {
@@ -205,12 +205,12 @@ void wait_for_profiler() {
         options.phase = phase->toStdString();
     }
     if (const auto dictionary = value_of(arguments, QStringLiteral("--dictionary"))) {
-        options.dictionary = wjs::app::to_path(*dictionary);
+        options.dictionary = sns::app::to_path(*dictionary);
     } else {
         options.dictionary =
-            wjs::platform::executable_path().parent_path() / "dictionaries" / "en.txt";
+            sns::platform::executable_path().parent_path() / "dictionaries" / "en.txt";
     }
-    options.dice_directory = wjs::platform::executable_path().parent_path() / "dice";
+    options.dice_directory = sns::platform::executable_path().parent_path() / "dice";
     if (const auto seed = value_of(arguments, QStringLiteral("--seed"))) {
         bool ok = false;
         const std::uint32_t number = seed->toUInt(&ok);
@@ -228,18 +228,18 @@ void wait_for_profiler() {
 
 // What to tell the person about the store's file, or null when it was read (or made)
 // as it should be.
-[[nodiscard]] const char* store_note(wjs::LoadStatus status) noexcept {
+[[nodiscard]] const char* store_note(sns::LoadStatus status) noexcept {
     switch (status) {
-        case wjs::LoadStatus::created:
-        case wjs::LoadStatus::loaded:
-        case wjs::LoadStatus::migrated:
+        case sns::LoadStatus::created:
+        case sns::LoadStatus::loaded:
+        case sns::LoadStatus::migrated:
             return nullptr;
-        case wjs::LoadStatus::unreadable:
+        case sns::LoadStatus::unreadable:
             return "The store's file was damaged: it is set aside and a new one is started.";
-        case wjs::LoadStatus::newer_version:
+        case sns::LoadStatus::newer_version:
             return "The store's file was written by a later version: it is left alone and "
                    "nothing is saved this run.";
-        case wjs::LoadStatus::cannot_read:
+        case sns::LoadStatus::cannot_read:
             return "The store's file could not be read: it is left alone and nothing is saved "
                    "this run.";
     }
@@ -253,26 +253,26 @@ void wait_for_profiler() {
 // holds the store by reference, so the store has to be at its final address
 // before the setup is opened.
 struct Startup {
-    Startup(wjs::OpenResult opened_result, wjs::app::SoloGameOptions game_options)
+    Startup(sns::OpenResult opened_result, sns::app::SoloGameOptions game_options)
         : opened(std::move(opened_result)), options(std::move(game_options)) {}
 
-    wjs::OpenResult opened;
-    wjs::app::SoloGameOptions options;
-    std::unique_ptr<wjs::app::SoloGameSetup> solo_setup;
+    sns::OpenResult opened;
+    sns::app::SoloGameOptions options;
+    std::unique_ptr<sns::app::SoloGameSetup> solo_setup;
 };
 
 // Opens the store and loads what the game is played from. The sentence that says
 // why, when the game cannot be made.
 [[nodiscard]] std::expected<std::unique_ptr<Startup>, QString> start(const QStringList& arguments,
                                                                      bool repeatable) {
-    auto zone = wjs::profiling::zone<"app.startup">();
+    auto zone = sns::profiling::zone<"app.startup">();
 
     auto made =
         std::make_unique<Startup>(open_store(arguments), real_game_options(arguments, repeatable));
     if (const char* note = store_note(made->opened.status)) {
         qWarning() << note;
     }
-    auto setup = wjs::app::SoloGameSetup::open(made->options, made->opened.store);
+    auto setup = sns::app::SoloGameSetup::open(made->options, made->opened.store);
     if (!setup) {
         return std::unexpected(QString::fromStdString(setup.error()));
     }
@@ -289,15 +289,15 @@ int main(int argc, char* argv[]) {
         // capture has the start-up zones and no number contains the wait.
         wait_for_profiler();
     }
-    wjs::app::FrameProfiler::start_process_clock();
-    wjs::profiling::thread_name("main");
+    sns::app::FrameProfiler::start_process_clock();
+    sns::profiling::thread_name("main");
 
     QGuiApplication application(argc, argv);
-    QGuiApplication::setApplicationName(QStringLiteral("WordJewelsSolver"));
-    QGuiApplication::setApplicationDisplayName(QStringLiteral("Word Jewels Solver"));
+    QGuiApplication::setApplicationName(QStringLiteral("SnapAndSpell"));
+    QGuiApplication::setApplicationDisplayName(QStringLiteral("Snap and Spell"));
     QGuiApplication::setOrganizationName(QStringLiteral("Iain Chesworth Labs"));
     QGuiApplication::setApplicationVersion(QString::fromUtf8(
-        wjs::project_version.data(), static_cast<qsizetype>(wjs::project_version.size())));
+        sns::project_version.data(), static_cast<qsizetype>(sns::project_version.size())));
     QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/app.png")));
 
     // The house faces and Andika are compiled into the program (apps/app/src/
@@ -307,7 +307,7 @@ int main(int argc, char* argv[]) {
     {
         // Eleven font files read and parsed before the first screen: a cost every
         // launch pays, so it has a name in the profile.
-        auto zone = wjs::profiling::zone<"app.fonts">();
+        auto zone = sns::profiling::zone<"app.fonts">();
         for (const char* font :
              {":/fonts/PixelifySans-Medium.ttf", ":/fonts/PixelifySans-Bold.ttf",
               ":/fonts/Silkscreen-Regular.ttf", ":/fonts/Andika-Regular.ttf",
@@ -328,30 +328,30 @@ int main(int argc, char* argv[]) {
     // list, dice and (given one) phases, and the parent area's controller.
     auto started = start(arguments, smoke > 0);
     if (!started) {
-        return wjs::app::fail_startup(wjs::app::ExitStatus::setup_failed, started.error());
+        return sns::app::fail_startup(sns::app::ExitStatus::setup_failed, started.error());
     }
     Startup& setup = **started;
-    wjs::Store& store = setup.opened.store;
+    sns::Store& store = setup.opened.store;
     if (!setup.options.phase_directory.empty() && !setup.solo_setup->reviewed()) {
         qWarning() << "The phase files are test data, not a reviewed phase; they are for a"
                       " run on this machine and are not content for a child.";
     }
-    const wjs::app::ScopedSoloGameMaker solo_maker(
+    const sns::app::ScopedSoloGameMaker solo_maker(
         [game_setup = setup.solo_setup.get()] { return game_setup->make(); });
 
     // Mode A's rounds, over the same dictionary and the same store: the
     // assistant's board is recorded where Solo Play's is, so the dashboard
     // counts both. The maker is installed before the engine loads, and the
     // engine is gone before the setup and the store it points to (below).
-    const wjs::app::ScopedAssistGameMaker assist_maker(
-        [game_setup = setup.solo_setup.get(), &store](wjs::Board board) {
-            return std::make_unique<wjs::app::AssistGame>(
+    const sns::app::ScopedAssistGameMaker assist_maker(
+        [game_setup = setup.solo_setup.get(), &store](sns::Board board) {
+            return std::make_unique<sns::app::AssistGame>(
                 std::move(board), game_setup->dictionary(), store, [] { return device_today(); });
         });
 
     // The parent area's controller, on the same store, the same calendar and the
     // phases the game plays (none without a phase directory).
-    wjs::app::ParentController parent;
+    sns::app::ParentController parent;
     parent.useCalendar(device_today, 0);
     parent.useStore(&store, setup.opened.status);
     parent.usePhases(!setup.solo_setup->phases().phases().empty() ? &setup.solo_setup->phases()
@@ -363,8 +363,8 @@ int main(int argc, char* argv[]) {
     // direction are installed here, so the first screen parsed is already
     // translated and mirrored; a change in the parent area goes through the same
     // object, and the engine's bindings follow `languageChanged`.
-    wjs::app::LanguageManager language;
-    language.apply(wjs::app::to_qstring(store.settings().language));
+    sns::app::LanguageManager language;
+    language.apply(sns::app::to_qstring(store.settings().language));
 
     // The feedback engines and the device's motion, made before the engine that
     // points at them and gone after it: Main.qml binds the parent's settings to
@@ -372,7 +372,7 @@ int main(int argc, char* argv[]) {
     // nothing until a cue arrives or the box is shown; a build without Qt
     // Multimedia, Sensors or TextToSpeech has their silent variants behind
     // these same objects.
-    wjs::app::FeedbackEngine feedback;
+    sns::app::FeedbackEngine feedback;
     // The phase the phonics board is played in, for sounding a found word out.
     feedback.usePhase(setup.solo_setup->phase());
     if (smoke > 0) {
@@ -386,10 +386,10 @@ int main(int argc, char* argv[]) {
         feedback.soundEngine().setOutput([](const QString&, double) {});
         feedback.speech().setOutput([](const QString&, double) {});
     }
-    wjs::app::MotionSource motion;
+    sns::app::MotionSource motion;
 
     QQmlApplicationEngine engine;
-    QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+    QObject::connect(&language, &sns::app::LanguageManager::languageChanged, &engine,
                      &QQmlEngine::retranslate);
     // Qt reports a QML file that will not load as warnings, which are all the
     // person is told; keep the first few to say in the dialog.
@@ -403,7 +403,7 @@ int main(int argc, char* argv[]) {
                          }
                      });
     {
-        auto zone = wjs::profiling::zone<"app.load_qml">();
+        auto zone = sns::profiling::zone<"app.load_qml">();
         engine.setInitialProperties({
             {QStringLiteral("parentController"), QVariant::fromValue(&parent)},
             {QStringLiteral("languageManager"), QVariant::fromValue(&language)},
@@ -413,31 +413,31 @@ int main(int argc, char* argv[]) {
             // box, and the frames are counted below, in C++.
             {QStringLiteral("smoke"), smoke > 0},
         });
-        engine.loadFromModule("WordJewelsSolver", "Main");
+        engine.loadFromModule("SnapAndSpell", "Main");
     }
     if (engine.rootObjects().isEmpty()) {
-        return wjs::app::fail_startup(
-            wjs::app::ExitStatus::window_failed,
+        return sns::app::fail_startup(
+            sns::app::ExitStatus::window_failed,
             QStringLiteral("The window could not be loaded.\n\n") + qml_errors.join(u'\n'));
     }
     auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().constFirst());
     if (window == nullptr) {
-        return wjs::app::fail_startup(wjs::app::ExitStatus::window_failed,
+        return sns::app::fail_startup(sns::app::ExitStatus::window_failed,
                                       QStringLiteral("The QML root object is not a window; the"
                                                      " frame clock has nothing to attach to."));
     }
-    wjs::platform::set_window_chrome(
+    sns::platform::set_window_chrome(
         reinterpret_cast<void*>(window->winId()),
         QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
 
     // The frame clock is attached after the QML is loaded (the scene's creation
     // is in app.load_qml's span) and before the event loop, so the first frame
     // is the first one it sees.
-    wjs::app::FrameProfiler profiler(window);
+    sns::app::FrameProfiler profiler(window);
     if (smoke > 0) {
         profiler.set_target(smoke, kSmokeWarmupFrames);
         QObject::connect(
-            &profiler, &wjs::app::FrameProfiler::finished, &application, [&application, &profiler] {
+            &profiler, &sns::app::FrameProfiler::finished, &application, [&application, &profiler] {
                 const QByteArray report = profiler.report_text().toUtf8();
                 std::fwrite(report.constData(), 1, static_cast<std::size_t>(report.size()), stdout);
                 std::fflush(stdout);
@@ -454,7 +454,7 @@ int main(int argc, char* argv[]) {
                                   << "s. The window needs a display; the offscreen platform"
                                      " plugin does not provide one (docs/profiling.md, \"The"
                                      " smoke mode\").";
-            application.exit(wjs::app::exit_code(wjs::app::ExitStatus::no_frame));
+            application.exit(sns::app::exit_code(sns::app::ExitStatus::no_frame));
         });
     }
     return application.exec();

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
-import WordJewelsSolver.Parent
-import WordJewelsSolver.Scan
+import SnapAndSpell
+import SnapAndSpell.Parent
+import SnapAndSpell.Scan
 
 // A picture of every screen and dialog of the application, from the offscreen app (docs/testing.md,
 // "Screenshots"). Not a test: the file is not called tst_*.qml, so the harness does not register it, and it
 // asserts only that a screen could be made. It writes PNG files into the directory the fixture names
-// (WJS_SHOTS_DIR, else <build>/screenshots), numbered in the order of docs/design/toybox/DESIGN.md
+// (SNS_SHOTS_DIR, else <build>/screenshots), numbered in the order of docs/design/toybox/DESIGN.md
 // section 8:
 //
-//   cmake --build --preset <preset> --target wjs_screenshots
+//   cmake --build --preset <preset> --target sns_screenshots
 //
 // Light, then dark, then a larger text size, then the right-to-left, Chinese and Japanese Home, then five frames
 // of the board scene (the closed box, the shake, the lid lifting, the drop under way, the settled board).

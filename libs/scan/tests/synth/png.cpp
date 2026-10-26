@@ -14,7 +14,7 @@
 #include <system_error>
 #include <vector>
 
-namespace wjs::scan::synth {
+namespace sns::scan::synth {
 
 namespace {
 
@@ -178,4 +178,4 @@ GrayImage read_pgm(const std::filesystem::path& path) {
     return image;
 }
 
-}  // namespace wjs::scan::synth
+}  // namespace sns::scan::synth

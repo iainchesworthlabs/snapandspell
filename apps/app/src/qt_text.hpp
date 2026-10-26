@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace wjs::app {
+namespace sns::app {
 
 // The one place the application's text crosses between the library's (UTF-8, in
 // std::string and std::string_view) and Qt's (UTF-16, in QString). Every
@@ -35,4 +35,4 @@ namespace wjs::app {
     return std::filesystem::path{text.toStdU16String()};
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

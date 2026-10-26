@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <cstring>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 [[nodiscard]] std::int64_t now_ms() noexcept {
@@ -19,17 +19,17 @@ namespace {
 
 }  // namespace
 
-std::optional<wjs::scan::OwnedFrame> frame_from_image(const QImage& image) {
-    auto zone = wjs::profiling::zone<"camera.convert_frame">();
+std::optional<sns::scan::OwnedFrame> frame_from_image(const QImage& image) {
+    auto zone = sns::profiling::zone<"camera.convert_frame">();
     if (image.isNull() || image.width() <= 0 || image.height() <= 0) {
         return std::nullopt;
     }
 
-    wjs::scan::OwnedFrame frame;
+    sns::scan::OwnedFrame frame;
     frame.width = static_cast<std::size_t>(image.width());
     frame.height = static_cast<std::size_t>(image.height());
     frame.stride = frame.width * 3;
-    frame.format = wjs::scan::PixelFormat::rgb8;
+    frame.format = sns::scan::PixelFormat::rgb8;
     frame.pixels.resize(frame.height * frame.stride);
 
     if (image.format() == QImage::Format_RGB888) {
@@ -74,4 +74,4 @@ std::optional<wjs::scan::OwnedFrame> frame_from_image(const QImage& image) {
     return frame;
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

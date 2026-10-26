@@ -45,7 +45,7 @@ done
 echo "check_release_ref.sh"
 fixture="$work/fixture"
 mkdir -p "$fixture"
-printf 'project(WordJewelsSolver\n    VERSION 1.2.3\n    LANGUAGES CXX)\n' > "$fixture/CMakeLists.txt"
+printf 'project(SnapAndSpell\n    VERSION 1.2.3\n    LANGUAGES CXX)\n' > "$fixture/CMakeLists.txt"
 printf '{\n  "name": "x",\n  "version": "1.2.3"\n}\n' > "$fixture/vcpkg.json"
 (
   cd "$fixture" || exit 1
@@ -91,9 +91,9 @@ pkgs="$work/pkgs"
 mkdir -p "$pkgs/stage/bin"
 : > "$pkgs/stage/bin/Qt6Core.dll"
 : > "$pkgs/stage/bin/vcruntime140.dll"
-(cd "$pkgs/stage" && pwsh -NoProfile -Command 'Compress-Archive -Path bin -DestinationPath ../WordJewelsSolver-1.2.3-win64.zip') >/dev/null 2>&1
+(cd "$pkgs/stage" && pwsh -NoProfile -Command 'Compress-Archive -Path bin -DestinationPath ../SnapAndSpell-1.2.3-win64.zip') >/dev/null 2>&1
 rm -rf "$pkgs/stage"
-printf 'deb\n' > "$pkgs/wordjewelssolver_1.2.3_amd64.deb"
+printf 'deb\n' > "$pkgs/snapandspell_1.2.3_amd64.deb"
 mkdir -p "$work/spdx"
 cat > "$work/spdx/vcpkg.spdx.json" <<'EOF'
 {"spdxVersion":"SPDX-2.2","packages":[{"name":"catch2","versionInfo":"3.0.0","licenseConcluded":"BSL-1.0"}]}
@@ -109,12 +109,12 @@ jq -e '[.components[] | select(.type == "data" and .name == "ENABLE word list (e
 pwsh -NoProfile -File "$tools/generate_sbom.ps1" -Tag v1.2.3-rc.1 -Commit "$main_sha" -Repository example/repo -PackagesDir "$pkgs" -VcpkgSpdxDir "$work/spdx" -Output "$work/again.cdx.json" -Root "$repo" -Timestamp 2026-01-01T00:00:00Z >/dev/null 2>&1
 cmp -s "$sbom" "$work/again.cdx.json" && ok "  the same inputs give the same bytes" || bad "  the output is not deterministic"
 # Against the specification's own schema, when the caller has fetched it
-# (release-tooling.yml does): WJS_CDX_SCHEMA_DIR names the folder, WJS_PYTHON a
+# (release-tooling.yml does): SNS_CDX_SCHEMA_DIR names the folder, SNS_PYTHON a
 # python with jsonschema and referencing.
-if [ -n "${WJS_CDX_SCHEMA_DIR:-}" ]; then
-  expect_status "  it validates against the CycloneDX 1.6 JSON Schema" 0 "${WJS_PYTHON:-python3}" -I "$repo/tests/package/validate_sbom.py" "$sbom" "$WJS_CDX_SCHEMA_DIR"
+if [ -n "${SNS_CDX_SCHEMA_DIR:-}" ]; then
+  expect_status "  it validates against the CycloneDX 1.6 JSON Schema" 0 "${SNS_PYTHON:-python3}" -I "$repo/tests/package/validate_sbom.py" "$sbom" "$SNS_CDX_SCHEMA_DIR"
 else
-  echo "  skip  the CycloneDX schema check (set WJS_CDX_SCHEMA_DIR and WJS_PYTHON)"
+  echo "  skip  the CycloneDX schema check (set SNS_CDX_SCHEMA_DIR and SNS_PYTHON)"
 fi
 rm -rf "$pkgs"; mkdir -p "$pkgs"; printf 'deb\n' > "$pkgs/p.deb"
 pwsh -NoProfile -File "$tools/generate_sbom.ps1" -Tag v1.2.3 -Commit "$main_sha" -PackagesDir "$pkgs" -Output "$work/cli.cdx.json" -Root "$repo" >/dev/null 2>&1
@@ -166,7 +166,7 @@ if grep -q 'release-publish.yml@[0-9a-f]\{40\} # v' "$workflow" && grep -q 'arti
 else
   bad "release.yml does not call the shared release-publish.yml as expected"
 fi
-grep -q 'WJS_ENABLE_TRACY' "$workflow" && bad "release.yml mentions WJS_ENABLE_TRACY; the presets decide" || ok "release.yml leaves Tracy to the presets"
+grep -q 'SNS_ENABLE_TRACY' "$workflow" && bad "release.yml mentions SNS_ENABLE_TRACY; the presets decide" || ok "release.yml leaves Tracy to the presets"
 grep -Eq '^permissions: \{\}$' "$workflow" && ok "no permissions at the top level" || bad "release.yml has top-level permissions"
 if awk '/^\s*run:/{r=1} r && /\$\{\{ *(github\.event|inputs|github\.head_ref)/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "no event or input data is interpolated into a run block"; else bad "event or input data in a run block"; fi
 grep -q 'persist-credentials: false' "$workflow" && ok "checkouts do not persist credentials" || bad "a checkout persists credentials"
@@ -223,7 +223,7 @@ if grep -E 'secrets\.' "$repo/.github/workflows/ios-build.yml" | grep -q .; then
 # cache variable the workflow gives the number of the run, the property list says it uses no encryption of
 # its own, the iPad is available in all four orientations (so UIRequiresFullScreen is not needed), and the
 # 1024 pixel icon has no alpha channel (colour type 2, RGB: the byte at offset 25 of a PNG).
-grep -q 'WJS_IOS_BUILD_NUMBER' "$repo/libs/platforms/ios/platform.cmake" && grep -q 'WJS_IOS_BUILD_NUMBER=' "$workflow" \
+grep -q 'SNS_IOS_BUILD_NUMBER' "$repo/libs/platforms/ios/platform.cmake" && grep -q 'SNS_IOS_BUILD_NUMBER=' "$workflow" \
   && ok "the iOS build number is a cache variable, and the release job gives it the number of the run" || bad "the iOS build number is not wired from the release job"
 grep -A1 'ITSAppUsesNonExemptEncryption' "$repo/libs/platforms/ios/packaging/Info.plist.in" | grep -q '<false/>' \
   && ok "Info.plist says the program uses no encryption of its own" || bad "Info.plist does not set ITSAppUsesNonExemptEncryption to false"

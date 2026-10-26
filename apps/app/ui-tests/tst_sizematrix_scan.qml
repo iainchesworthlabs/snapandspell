@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
-import WordJewelsSolver.Scan
+import SnapAndSpell
+import SnapAndSpell.Scan
 
 // The size matrix over Mode A (the scan screen, the check screen and the Family
 // Assistant's screen; the two modals, the letter picker and the question about

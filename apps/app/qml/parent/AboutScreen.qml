@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // About, the licence and where the source is, and privacy (docs/design/dashboard.md, "Settings"),
 // in three Toybox cards. Plain text: no link to anywhere, because the application has nowhere to go. The licences have

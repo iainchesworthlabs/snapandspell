@@ -10,13 +10,13 @@
 
 #include "evaluate.hpp"
 #include "fixtures.hpp"
-#include "wjs/scan/reader.hpp"
-#include "wjs/scan/work.hpp"
+#include "sns/scan/reader.hpp"
+#include "sns/scan/work.hpp"
 
 namespace {
 
-using namespace wjs::scan;
-using namespace wjs::scan::synth;
+using namespace sns::scan;
+using namespace sns::scan::synth;
 
 Spec spec_of(Condition condition, std::size_t size, unsigned index) {
     Spec spec;

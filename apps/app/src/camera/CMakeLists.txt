@@ -2,7 +2,7 @@
 # CameraSource and the picture conversion. The backend is a variant chosen by
 # CMake (apps/app/CMakeLists.txt):
 #
-#   wjs/app/camera_backend.hpp   the interface (apps/app/src/camera)
+#   sns/app/camera_backend.hpp   the interface (apps/app/src/camera)
 #   variants/camera-multimedia   QCamera over Qt Multimedia, if the kit has it
 #   variants/camera-none         there is no camera in this kit
 #
@@ -10,11 +10,11 @@
 # same files without a #if anywhere (the variant pattern of
 # apps/app/src/feedback/CMakeLists.txt).
 
-set(WJS_CAMERA_SOURCES
+set(SNS_CAMERA_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/camera_backend.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/camera_source.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/camera_source.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/frame_conversion.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/frame_conversion.hpp"
-    "${WJS_CAMERA_VARIANT_DIR}/wjs/app/camera_backend.cpp"
+    "${SNS_CAMERA_VARIANT_DIR}/sns/app/camera_backend.cpp"
     PARENT_SCOPE)

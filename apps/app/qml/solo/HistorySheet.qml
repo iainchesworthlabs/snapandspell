@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // Earlier boards, newest first, as a sheet over whatever screen opened it - Home's
 // "My boards" opens it over Home, so the child is not taken into the box to look

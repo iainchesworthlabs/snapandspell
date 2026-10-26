@@ -22,15 +22,15 @@
 #include <string>
 #include <vector>
 
-#include "wjs/board.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/game_session.hpp"
-#include "wjs/grapheme_binder.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/seeding.hpp"
-#include "wjs/solver.hpp"
+#include "sns/board.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/game_session.hpp"
+#include "sns/grapheme_binder.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/seeding.hpp"
+#include "sns/solver.hpp"
 
-namespace wjs::perf {
+namespace sns::perf {
 
 // ---------------------------------------------------------------------------
 // The dictionary
@@ -39,11 +39,11 @@ namespace wjs::perf {
 // ENABLE, loaded once for the whole run (it is tens of milliseconds, and every
 // case wants the same one). The process ends if the file cannot be read: the
 // tier has nothing to say without it.
-[[nodiscard]] const wjs::Dictionary& english();
+[[nodiscard]] const sns::Dictionary& english();
 
 // How many nodes the trie holds, counted through the public interface: the root
 // and everything a step from it reaches.
-[[nodiscard]] std::uint64_t trie_nodes(const wjs::Dictionary& dictionary);
+[[nodiscard]] std::uint64_t trie_nodes(const sns::Dictionary& dictionary);
 
 // ---------------------------------------------------------------------------
 // Solver work
@@ -55,25 +55,25 @@ struct SolveWork {
 };
 
 // One solve of `board`, with the work counter reset first and read after.
-[[nodiscard]] SolveWork measure_solve(const wjs::Board& board, const wjs::Dictionary& dictionary);
+[[nodiscard]] SolveWork measure_solve(const sns::Board& board, const sns::Dictionary& dictionary);
 
 // The visits of the walk written out independently of the solver: the same
 // depth-first search over the trie, with nothing else. The solver's own tally
 // must equal it (work_test.cpp), which is what ties the numbers in the budgets
 // to a definition and not to an implementation.
-[[nodiscard]] std::uint64_t recount_visits(const wjs::Board& board,
-                                           const wjs::Dictionary& dictionary);
+[[nodiscard]] std::uint64_t recount_visits(const sns::Board& board,
+                                           const sns::Dictionary& dictionary);
 
 // ---------------------------------------------------------------------------
 // Seeding work (the phonics board)
 // ---------------------------------------------------------------------------
 
-// One seeding with the options of wjs::phonics_board_options for the board's
+// One seeding with the options of sns::phonics_board_options for the board's
 // size, no recent targets, and the work counter reset first and read after.
 // The process ends if the options or the seeding are refused: the corpus
 // cannot be said to have been seeded.
 struct SeedRun {
-    wjs::SeededBoard board;
+    sns::SeededBoard board;
     // The solver's own tally for the call: the visits of every solve it made,
     // and how many solves that was. `board.solves` is the seeding's count of
     // the same thing, which work_test cross-checks.
@@ -81,7 +81,7 @@ struct SeedRun {
     std::uint64_t solver_solves = 0;
 };
 
-[[nodiscard]] SeedRun measure_seed(const wjs::PhaseIndex& index, std::size_t size,
+[[nodiscard]] SeedRun measure_seed(const sns::PhaseIndex& index, std::size_t size,
                                    std::uint32_t seed);
 
 // ---------------------------------------------------------------------------
@@ -91,11 +91,11 @@ struct SeedRun {
 // The comparisons of one bind of `tiles`, from the library's tally, with the
 // blocks it returned.
 struct BindRun {
-    std::vector<wjs::GraphemeBinder::Block> blocks;
+    std::vector<sns::GraphemeBinder::Block> blocks;
     std::uint64_t comparisons = 0;
 };
 
-[[nodiscard]] BindRun measure_bind(const wjs::GraphemeBinder& binder,
+[[nodiscard]] BindRun measure_bind(const sns::GraphemeBinder& binder,
                                    std::span<const std::string> tiles);
 
 // The comparisons the blocks of a bind say it made, written out from the
@@ -104,8 +104,8 @@ struct BindRun {
 // in letter order; a block that starts no grapheme was held against every one,
 // and a block that starts one was held against those before it and itself. The
 // library's tally must equal it (game_work_test.cpp).
-[[nodiscard]] std::uint64_t recount_comparisons(std::span<const wjs::Grapheme> graphemes,
-                                                std::span<const wjs::GraphemeBinder::Block> blocks);
+[[nodiscard]] std::uint64_t recount_comparisons(std::span<const sns::Grapheme> graphemes,
+                                                std::span<const sns::GraphemeBinder::Block> blocks);
 
 // ---------------------------------------------------------------------------
 // Session work (both board modes)
@@ -117,12 +117,12 @@ struct BindRun {
 struct SessionRun {
     // The board mode of the session: the library's, not the metrics' (which names
     // the same two).
-    wjs::BoardMode mode = wjs::BoardMode::phonics;
+    sns::BoardMode mode = sns::BoardMode::phonics;
 
     // The session's own account of the deal, and the solver's: the visits and
     // solves of the shake. `deal.solves` is the session's count of the same
     // solves, which game_work_test cross-checks.
-    wjs::DealReport deal;
+    sns::DealReport deal;
     std::uint64_t deal_visits = 0;
     std::uint64_t deal_solves = 0;
 
@@ -140,15 +140,15 @@ struct SessionRun {
 
     std::size_t words = 0;  // the words that count on the board: the phase's, or the dictionary's
     // The kinds each trace came to, in order, and the two snapshots.
-    std::vector<wjs::TraceKind> kinds;
-    wjs::SessionSnapshot after_first_find;
-    wjs::SessionSnapshot at_rest;
+    std::vector<sns::TraceKind> kinds;
+    sns::SessionSnapshot after_first_find;
+    sns::SessionSnapshot at_rest;
 };
 
 // A PHONICS session of the given size, seeded with `seed`, dealt and played as
 // above. The process ends if the session cannot be made or refuses the deal: the
 // corpus cannot be said to have been played.
-[[nodiscard]] SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size,
+[[nodiscard]] SessionRun measure_session(const sns::PhaseIndex& index, std::size_t size,
                                          std::uint32_t seed);
 
 // The same for a STANDARD session: the project's dice (corpus.hpp, dice_sets) of
@@ -157,7 +157,7 @@ struct SessionRun {
 
 // One session's shake, for the timing rows: a session of this size seeded with
 // `seed`, dealt once. Returns the words that count on the board.
-[[nodiscard]] std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
+[[nodiscard]] std::size_t measure_session_deal(const sns::PhaseIndex& index, std::size_t size,
                                                std::uint32_t seed);
 [[nodiscard]] std::size_t measure_standard_session_deal(std::size_t size, std::uint32_t seed);
 
@@ -166,8 +166,8 @@ struct SessionRun {
 // corpus' digest.
 class Digest {
 public:
-    void add(const std::vector<wjs::FoundWord>& found);
-    void add(const wjs::SeededBoard& seeded);
+    void add(const std::vector<sns::FoundWord>& found);
+    void add(const sns::SeededBoard& seeded);
     void add(const SessionRun& run);
     [[nodiscard]] std::uint64_t value() const noexcept { return state_; }
 
@@ -175,7 +175,7 @@ private:
     void byte(std::uint8_t value) noexcept;
     void number(std::uint64_t value) noexcept;
     void text(const std::string& value);
-    void add(const wjs::SessionSnapshot& snapshot);
+    void add(const sns::SessionSnapshot& snapshot);
 
     std::uint64_t state_ = 14695981039346656037ULL;
 };
@@ -197,7 +197,7 @@ using Clock = std::chrono::steady_clock;
 [[nodiscard]] bool timing_meaningful();
 
 // True when the person running the tests has asked for the wall-time cases:
-// WJS_PERF_TIMING is set to something other than "" or "0". They are opt-in
+// SNS_PERF_TIMING is set to something other than "" or "0". They are opt-in
 // because a stopwatch on a shared machine is the one check that can be wrong
 // for no reason of its own (docs/testing.md, "Performance tests").
 [[nodiscard]] bool timing_requested();
@@ -270,4 +270,4 @@ template <typename Task>
     return out;
 }
 
-}  // namespace wjs::perf
+}  // namespace sns::perf

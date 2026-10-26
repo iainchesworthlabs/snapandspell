@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=SnapAndSpell
+GenericName=Word game
+Comment=Finds every word on a Boggle board
+Exec=SnapAndSpell
+Icon=com.iainchesworthlabs.snapandspell
+Terminal=false
+Categories=Game;LogicGame;
+Keywords=word;boggle;puzzle;jewels;spelling;

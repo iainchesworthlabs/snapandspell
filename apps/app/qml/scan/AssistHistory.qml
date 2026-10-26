@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The Family Assistant's earlier boards, newest first, over `assist.playing`
 // (docs/design/game.md, "The panel": the same history as Solo Play's). It is the

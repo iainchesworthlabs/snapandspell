@@ -8,9 +8,9 @@
 #include <optional>
 
 #include "rng.hpp"
-#include "wjs/scan/stroke_font.hpp"
+#include "sns/scan/stroke_font.hpp"
 
-namespace wjs::scan::synth {
+namespace sns::scan::synth {
 
 namespace {
 
@@ -409,7 +409,7 @@ Rendered draw(Rng& rng, const Look& look, std::size_t size, bool with_board, boo
     if (with_board && look.glare_patches_max > 0) {
         const int patches =
             1 + static_cast<int>(rng.below(static_cast<std::uint32_t>(look.glare_patches_max)));
-        const double board_pixels = wjs::scan::distance(out.corners[0], out.corners[1]);
+        const double board_pixels = sns::scan::distance(out.corners[0], out.corners[1]);
         for (int k = 0; k < patches; ++k) {
             const double s = rng.range(0.1, 0.9);
             const double t = rng.range(0.1, 0.9);
@@ -613,4 +613,4 @@ std::vector<unsigned char> to_rgb(const GrayImage& image) {
     return out;
 }
 
-}  // namespace wjs::scan::synth
+}  // namespace sns::scan::synth

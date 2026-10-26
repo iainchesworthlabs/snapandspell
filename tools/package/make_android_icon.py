@@ -9,7 +9,7 @@ libs/platforms/android/packaging/res/mipmap-xxxhdpi/ic_launcher_foreground.png.
 
 An adaptive icon is a 108-dp square of which the launcher shows a mask-shaped part
 (at most the middle 72 dp, and the mask may cut anything outside the middle 66 dp). The
-background is the frame colour (res/values/colors.xml, wjs_icon_background); this is
+background is the frame colour (res/values/colors.xml, sns_icon_background); this is
 the mark on a transparent square, scaled to the safe zone: assets/icon/app.png cropped
 to inside its gold rim and laid over the frame colour, as make_ios_icon.py does it, so
 that the launcher's mask does the rounding. 432 pixels is 108 dp at the highest density; the system scales it

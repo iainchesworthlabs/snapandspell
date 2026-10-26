@@ -16,40 +16,40 @@
 # (the camera, the accelerometer, the speech engine, sound) is built here and has
 # not been run on one: docs/ci.md, "What Android has and has not shown".
 
-set(WJS_PLATFORM_DISPLAY_NAME "Android")
+set(SNS_PLATFORM_DISPLAY_NAME "Android")
 
 # No installers and no command-line program: the package is made by androiddeployqt.
-set(WJS_PLATFORM_DESKTOP OFF)
-set(WJS_PLATFORM_EXECUTABLE_FORMAT "elf")
+set(SNS_PLATFORM_DESKTOP OFF)
+set(SNS_PLATFORM_EXECUTABLE_FORMAT "elf")
 
 # An Android build is never `cmake --install`ed, and the program does not look for
 # its data beside an executable the way a desktop one does: paths_android.cpp unpacks
 # the dictionary and the dice into the application's private storage and says that is
 # where its executable is. This is the name an install rule would use.
-set(WJS_PLATFORM_INSTALL_APP_DATA_DIR "assets")
+set(SNS_PLATFORM_INSTALL_APP_DATA_DIR "assets")
 
 # Qt's runtime is bundled into the package by androiddeployqt; Qt's install-time
 # deploy script refuses the platform.
-set(WJS_PLATFORM_QT_DEPLOY_AT_INSTALL OFF)
+set(SNS_PLATFORM_QT_DEPLOY_AT_INSTALL OFF)
 
 # Qt for Android when no QT_ROOT_DIR names it (the aqtinstall layout: Qt/6.12.0/android_arm64_v8a).
-set(WJS_PLATFORM_QT_SEARCH_ROOTS "$ENV{HOME}/Qt" "/opt/Qt")
-set(WJS_PLATFORM_QT_ARCH_DIRS android_arm64_v8a)
+set(SNS_PLATFORM_QT_SEARCH_ROOTS "$ENV{HOME}/Qt" "/opt/Qt")
+set(SNS_PLATFORM_QT_ARCH_DIRS android_arm64_v8a)
 
 # No test runs on the device or offscreen here.
-set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
+set(SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
 
 # A tablet has no desktop Qt to build against: the application is the whole build.
 # (Said here, in the one place that knows, rather than as a Qt6::Core that cannot be
 # resolved three directories away.)
-string(TOUPPER "${WJS_BUILD_APP}" _wjs_android_build_app)
-if(_wjs_android_build_app MATCHES "^(OFF|FALSE|NO|N|0)$")
+string(TOUPPER "${SNS_BUILD_APP}" _sns_android_build_app)
+if(_sns_android_build_app MATCHES "^(OFF|FALSE|NO|N|0)$")
     message(FATAL_ERROR
-        "An Android build is the Qt application: WJS_BUILD_APP=${WJS_BUILD_APP} leaves "
+        "An Android build is the Qt application: SNS_BUILD_APP=${SNS_BUILD_APP} leaves "
         "nothing to package. Use the android-arm64-release preset (docs/building.md, "
         "\"Android\").")
 endif()
-unset(_wjs_android_build_app)
+unset(_sns_android_build_app)
 
 # detail/ is what no platform differs in: no native camera backend (Mode A reads the
 # camera through Qt Multimedia, as the desktops and iOS do), the portable board reader
@@ -62,7 +62,7 @@ unset(_wjs_android_build_app)
 # So vibrate() answers false, as it does on the desktops, and the game carries on with
 # its sound and its picture. The accelerometer shake is Qt Sensors, which the
 # application's motion variant already uses where the module is in the kit.
-set(WJS_PLATFORM_SOURCES
+set(SNS_PLATFORM_SOURCES
     android/fatal_error_android.cpp
     android/paths_android.cpp
     detail/board_reader_portable.cpp
@@ -74,41 +74,41 @@ set(WJS_PLATFORM_SOURCES
 # paths_android.cpp reads the unpacked data out of Qt's resource system and finds the
 # application's private directory through QStandardPaths; fatal_error_android.cpp
 # writes to logcat (liblog, a part of the NDK's sysroot).
-set(WJS_PLATFORM_LINK_LIBRARIES Qt6::Core log)
-set(WJS_PLATFORM_COMPILE_DEFINITIONS "")
+set(SNS_PLATFORM_LINK_LIBRARIES Qt6::Core log)
+set(SNS_PLATFORM_COMPILE_DEFINITIONS "")
 
 # Where the package source (the manifest and the resources) and the package check are
 # (captured here: inside a function CMAKE_CURRENT_LIST_DIR is the caller's).
-set(WJS_ANDROID_PACKAGING_DIR "${CMAKE_CURRENT_LIST_DIR}/packaging")
+set(SNS_ANDROID_PACKAGING_DIR "${CMAKE_CURRENT_LIST_DIR}/packaging")
 
 # The application id: the same reverse-domain name as the iOS bundle identifier.
-set(WJS_ANDROID_APPLICATION_ID "com.iainchesworthlabs.snapandspell")
+set(SNS_ANDROID_APPLICATION_ID "com.iainchesworthlabs.snapandspell")
 
 # The platform levels. 28 is the lowest Qt 6.12 supports (its toolchain file's
 # default). The target and compile level are the newest the Play Console takes: a level
 # the SDK in use does not have fails androiddeployqt by name.
-set(WJS_ANDROID_MIN_SDK 28)
-set(WJS_ANDROID_TARGET_SDK 36)
+set(SNS_ANDROID_MIN_SDK 28)
+set(SNS_ANDROID_TARGET_SDK 36)
 
 # Play wants an integer that only grows. Derived from the version so that a tag is
 # enough to make one: 0.1.0 is 10000, 0.2.3 is 20300, 1.0.0 is 1000000. A build that
 # must go out under a number of its own (a second upload of one version) passes
-# -DWJS_ANDROID_VERSION_CODE=...
-set(WJS_ANDROID_VERSION_CODE "" CACHE STRING
+# -DSNS_ANDROID_VERSION_CODE=...
+set(SNS_ANDROID_VERSION_CODE "" CACHE STRING
     "versionCode of the package (empty: derived from the project version)")
 
 # The data the program reads beside its executable on a desktop is compiled into the
 # application's resources here and unpacked on first start (paths_android.cpp, which
 # names this prefix). A resource prefix, not an Android asset, because the dictionary
 # loader opens a file by path and an APK's assets are not files.
-set(WJS_ANDROID_DATA_RESOURCE_PREFIX "/wjs-android-data")
+set(SNS_ANDROID_DATA_RESOURCE_PREFIX "/sns-android-data")
 
 # What makes the application target a program of this device: the package
 # properties androiddeployqt writes into the deployment settings, the manifest and
 # icons Qt packs from QT_ANDROID_PACKAGE_SOURCE_DIR, and the data the program unpacks.
-function(wjs_platform_configure_app target)
-    if(WJS_ANDROID_VERSION_CODE)
-        set(_code "${WJS_ANDROID_VERSION_CODE}")
+function(sns_platform_configure_app target)
+    if(SNS_ANDROID_VERSION_CODE)
+        set(_code "${SNS_ANDROID_VERSION_CODE}")
     else()
         math(EXPR _code
             "${PROJECT_VERSION_MAJOR} * 1000000 + ${PROJECT_VERSION_MINOR} * 10000 + ${PROJECT_VERSION_PATCH} * 100")
@@ -118,21 +118,21 @@ function(wjs_platform_configure_app target)
     # it holds AndroidManifest.xml (what the program asks of the system) and res/
     # (the launcher icon, the launch colour).
     set_target_properties(${target} PROPERTIES
-        QT_ANDROID_PACKAGE_SOURCE_DIR "${WJS_ANDROID_PACKAGING_DIR}/package-source"
-        QT_ANDROID_PACKAGE_NAME "${WJS_ANDROID_APPLICATION_ID}"
-        QT_ANDROID_APP_NAME "Word Jewels Solver"
+        QT_ANDROID_PACKAGE_SOURCE_DIR "${SNS_ANDROID_PACKAGING_DIR}/package-source"
+        QT_ANDROID_PACKAGE_NAME "${SNS_ANDROID_APPLICATION_ID}"
+        QT_ANDROID_APP_NAME "Snap and Spell"
         QT_ANDROID_APP_ICON "@mipmap/ic_launcher"
         QT_ANDROID_VERSION_NAME "${PROJECT_VERSION}"
         QT_ANDROID_VERSION_CODE "${_code}"
-        QT_ANDROID_MIN_SDK_VERSION "${WJS_ANDROID_MIN_SDK}"
-        QT_ANDROID_TARGET_SDK_VERSION "${WJS_ANDROID_TARGET_SDK}"
-        QT_ANDROID_COMPILE_SDK_VERSION "${WJS_ANDROID_TARGET_SDK}")
+        QT_ANDROID_MIN_SDK_VERSION "${SNS_ANDROID_MIN_SDK}"
+        QT_ANDROID_TARGET_SDK_VERSION "${SNS_ANDROID_TARGET_SDK}"
+        QT_ANDROID_COMPILE_SDK_VERSION "${SNS_ANDROID_TARGET_SDK}")
 
     # The dictionary and the dice, as one resource tree. Listed here, once, with the
     # files apps/app/CMakeLists.txt copies beside a desktop executable.
     set(_data "${PROJECT_SOURCE_DIR}/data")
-    qt_add_resources(${target} wjs_android_data
-        PREFIX "${WJS_ANDROID_DATA_RESOURCE_PREFIX}"
+    qt_add_resources(${target} sns_android_data
+        PREFIX "${SNS_ANDROID_DATA_RESOURCE_PREFIX}"
         BASE "${_data}"
         FILES
             "${_data}/dictionaries/en.txt"
@@ -145,11 +145,11 @@ endfunction()
 # androiddeployqt bundles Qt's runtime, plugins and QML modules into the package from
 # the QML import scan of the target's QML root; the extra directories (Mode A's live
 # view is a file of the camera variant) are scanned too.
-function(wjs_platform_deploy_qt_runtime target qml_dir)
+function(sns_platform_deploy_qt_runtime target qml_dir)
     set(_roots ${qml_dir} ${ARGN})
     set_target_properties(${target} PROPERTIES QT_QML_ROOT_PATH "${_roots}")
 endfunction()
 
 # No CPack generator: the package is androiddeployqt's.
-function(wjs_platform_configure_packaging)
+function(sns_platform_configure_packaging)
 endfunction()

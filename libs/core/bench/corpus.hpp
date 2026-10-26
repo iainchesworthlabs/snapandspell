@@ -10,13 +10,13 @@
 #include <string_view>
 #include <vector>
 
-#include "wjs/board.hpp"
-#include "wjs/dice.hpp"
-#include "wjs/dice_sets.hpp"
-#include "wjs/grapheme_binder.hpp"
-#include "wjs/phase_data.hpp"
+#include "sns/board.hpp"
+#include "sns/dice.hpp"
+#include "sns/dice_sets.hpp"
+#include "sns/grapheme_binder.hpp"
+#include "sns/phase_data.hpp"
 
-namespace wjs::perf {
+namespace sns::perf {
 
 // The random boards: sizes 3x3 to 6x6, kBoardsPerSize of each. Board `index`
 // of a size is drawn from std::mt19937 seeded 7919 * index + size, one draw
@@ -33,7 +33,7 @@ inline constexpr unsigned kBoardsPerSize = 200;
     return 7919U * index + static_cast<unsigned>(size);
 }
 
-[[nodiscard]] wjs::Board random_board(std::size_t size, unsigned index);
+[[nodiscard]] sns::Board random_board(std::size_t size, unsigned index);
 
 // Boards built to hold many words (letters chosen for yield; not dice sets):
 // where a search costs the most, and where the result is largest.
@@ -50,7 +50,7 @@ inline constexpr std::array<RichBoard, 4> kRichBoards = {{
     {"6x6 mix", 6, "S T A R E S/E A R T S E/R E S A T R/A S T E R A/T R E S A S/S A R T E E"},
 }};
 
-[[nodiscard]] wjs::Board rich_board(const RichBoard& rich);
+[[nodiscard]] sns::Board rich_board(const RichBoard& rich);
 
 // Boards no word can be traced on (every tile the same letter): the search's
 // cost where it finds nothing.
@@ -66,16 +66,16 @@ inline constexpr std::array<RichBoard, 2> kEmptyBoards = {{
 // The dice of a size (data/dice/<n>x<n>.txt, the shipped files), loaded once.
 // The process ends if a file cannot be read or holds the wrong number of dice:
 // the tier has nothing to say without them.
-[[nodiscard]] const wjs::DiceSet& dice_set(std::size_t size);
+[[nodiscard]] const sns::DiceSet& dice_set(std::size_t size);
 
-// All four sets, as the game session takes them (wjs::DiceSets), from the same
+// All four sets, as the game session takes them (sns::DiceSets), from the same
 // files and loaded once.
-[[nodiscard]] const wjs::DiceSets& dice_sets();
+[[nodiscard]] const sns::DiceSets& dice_sets();
 
 // Board `index` of a size is a roll of those dice with the seed
 // corpus_seed(size, index), the same seeds as the random boards: kBoardsPerSize
 // of each size, 3x3 to 6x6.
-[[nodiscard]] wjs::Board dice_board(std::size_t size, unsigned index);
+[[nodiscard]] sns::Board dice_board(std::size_t size, unsigned index);
 
 // ---------------------------------------------------------------------------
 // The phonics board: a test phase, seeds and paths
@@ -93,7 +93,7 @@ inline constexpr unsigned kSeedsPerSize = 100;
 // are found by walking the dictionary's trie, so it is the same words for the
 // same word list, and the case that holds the count of them (kPhonicsWords in
 // budgets.hpp) is what says a changed list changed the corpus.
-[[nodiscard]] const wjs::PhaseIndex& phonics_phase();
+[[nodiscard]] const sns::PhaseIndex& phonics_phase();
 
 // The same phase as the two files a data directory holds for it
 // (phase-a.graphemes.txt and phase-a.words.txt), so that loading a directory is
@@ -105,7 +105,7 @@ struct PhaseTexts {
 [[nodiscard]] const PhaseTexts& phonics_phase_texts();
 
 // The sizes the game session plays on the PHONICS board: the first release's 3x3
-// and 4x4 (wjs::BoardSize). The seeds are corpus_seed(size, index) for the first
+// and 4x4 (sns::BoardSize). The seeds are corpus_seed(size, index) for the first
 // kSeedsPerSize indexes, the same seeds the seeding rows use. The STANDARD
 // board's session is played at every size of kSizes, 3x3 to 6x6, on the same
 // seeds.
@@ -133,9 +133,9 @@ inline constexpr std::array<BindPath, 3> kBindPaths = {{
 // than one letter (digraphs and trigraphs of the kind phases three to five
 // teach, so that the binder holds about as many as a real phase would), six
 // single letters, and two split digraphs, which the binder leaves out.
-[[nodiscard]] const std::vector<wjs::Grapheme>& bind_graphemes();
+[[nodiscard]] const std::vector<sns::Grapheme>& bind_graphemes();
 
 // A binder over those graphemes.
-[[nodiscard]] const wjs::GraphemeBinder& phonics_binder();
+[[nodiscard]] const sns::GraphemeBinder& phonics_binder();
 
-}  // namespace wjs::perf
+}  // namespace sns::perf

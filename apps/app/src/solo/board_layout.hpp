@@ -21,7 +21,7 @@
 //
 //   tile = (S - (n - 1) * gap) / n,   S = the shorter side of the area - 2 * inset
 
-namespace wjs::app {
+namespace sns::app {
 
 struct LayoutRect {
     double x = 0;
@@ -65,4 +65,4 @@ struct SoloLayoutResult {
 [[nodiscard]] SoloLayoutResult solo_layout(double width, double height, std::size_t n,
                                            bool right_to_left = false) noexcept;
 
-}  // namespace wjs::app
+}  // namespace sns::app

@@ -9,16 +9,16 @@
 #include <cstddef>
 #include <optional>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs::scene {
+namespace sns::scene {
 
 // The QML side of the profiling calls (docs/profiling.md, "QML and the scene"):
 // a QML singleton that opens and closes a named Tracy zone around a moment in
 // QML or JavaScript, so that a binding storm, a view rebuild or a property
 // cascade is a zone in the trace and not only a slow frame. Tracy's API is
 // macros and QML has no preprocessor, so the name arrives here as a string and
-// the wrapper's run-time scope (wjs::profiling::RuntimeScope) carries it: one
+// the wrapper's run-time scope (sns::profiling::RuntimeScope) carries it: one
 // cached source location per name, values included.
 //
 // The discipline, because QML has no scopes of its own:
@@ -40,7 +40,7 @@ namespace wjs::scene {
 //
 // In a build without Tracy every call is empty: no conversion of the name, no
 // allocation, no work. The singleton is in the scene's QML module
-// (WordJewelsSolver.Scene) because the scene and the application both import
+// (SnapAndSpell.Scene) because the scene and the application both import
 // it; the application's own modules use it too.
 class Profiler : public QObject {
     Q_OBJECT
@@ -72,10 +72,10 @@ private:
     // without bound.
     static constexpr std::size_t kMaxDepth = 8;
 
-    std::array<std::optional<wjs::profiling::RuntimeScope>, kMaxDepth> open_;
+    std::array<std::optional<sns::profiling::RuntimeScope>, kMaxDepth> open_;
     std::size_t depth_ = 0;
     // The begin() calls past kMaxDepth, whose end() calls are to be ignored.
     std::size_t overflow_ = 0;
 };
 
-}  // namespace wjs::scene
+}  // namespace sns::scene

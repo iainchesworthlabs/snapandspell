@@ -1,7 +1,7 @@
 # Design
 
 The board design, the game design and the application design for
-WordJewelsSolver, worked from the [product requirements](../product-requirements.md)
+SnapAndSpell, worked from the [product requirements](../product-requirements.md)
 including its MVP scope (section 12). Written from 2026-10-16; the code now
 exists, and the pages were brought into line with the 0.1 build on 2026-10-21.
 

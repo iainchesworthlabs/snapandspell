@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Shapes
-import WordJewelsSolver
+import SnapAndSpell
 
 // The keyboard focus ring: a 4 px dashed line in the focus colour (the outline colour: ink, cream in
 // Night), a 3 px gap outside the thing it rings, drawn by the thing itself (AppButton, ModeCard,

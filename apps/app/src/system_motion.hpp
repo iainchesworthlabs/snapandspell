@@ -4,7 +4,7 @@
 #include <QtQml/qqmlregistration.h>
 #include <QObject>
 
-namespace wjs::app {
+namespace sns::app {
 
 // Whether the system asks for reduced motion, for the parent area's Motion setting
 // "System" (docs/design/parent-area.md, "Integration"). What the system's setting is
@@ -39,4 +39,4 @@ private:
     bool reduced_ = false;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

@@ -2,42 +2,42 @@
 # Windows. Included by cmake/Platform.cmake; the contract it fills in is
 # described at the top of that file.
 
-set(WJS_PLATFORM_DISPLAY_NAME "Windows")
-set(WJS_PLATFORM_DESKTOP ON)
-set(WJS_PLATFORM_EXECUTABLE_FORMAT "pe")
+set(SNS_PLATFORM_DISPLAY_NAME "Windows")
+set(SNS_PLATFORM_DESKTOP ON)
+set(SNS_PLATFORM_EXECUTABLE_FORMAT "pe")
 
 # The application looks for its dictionary and dice beside its own executable,
 # and an installed executable is in the bindir.
-set(WJS_PLATFORM_INSTALL_APP_DATA_DIR "${CMAKE_INSTALL_BINDIR}")
+set(SNS_PLATFORM_INSTALL_APP_DATA_DIR "${CMAKE_INSTALL_BINDIR}")
 
 # An installed copy carries Qt beside itself: the install-time deploy script
 # in apps/app/CMakeLists.txt writes the DLLs, plugins and QML modules there.
-set(WJS_PLATFORM_QT_DEPLOY_AT_INSTALL ON)
+set(SNS_PLATFORM_QT_DEPLOY_AT_INSTALL ON)
 
 # C:/Qt and the user's installs are where the Qt online installer and
 # aqtinstall put a kit. C:/Repos/common/qt is the labs' shared prebuilt tree
 # (C:\Repos\common\env.ps1 sets QT_ROOT_DIR to it); FindQt6 checks that the
 # directory exists, so the entry costs nothing on a machine without it.
-set(WJS_PLATFORM_QT_SEARCH_ROOTS
+set(SNS_PLATFORM_QT_SEARCH_ROOTS
     "C:/Qt"
     "$ENV{USERPROFILE}/Qt"
     "C:/Repos/common/qt")
-set(WJS_PLATFORM_QT_ARCH_DIRS msvc2022_64 msvc2019_64)
+set(SNS_PLATFORM_QT_ARCH_DIRS msvc2022_64 msvc2019_64)
 
 # Qt's offscreen platform plugin draws text with the fonts in this directory, and
 # finds none of its own on Windows.
-set(WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT "QT_QPA_FONTDIR=$ENV{SystemRoot}/Fonts")
+set(SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT "QT_QPA_FONTDIR=$ENV{SystemRoot}/Fonts")
 
 # detail/ is what no platform differs in: no native camera backend yet, the portable
 # board reader (docs/design/scanner.md), and the no-op haptics every desktop
-# answers with (libs/platforms/interfaces/wjs/platform/haptics.hpp).
+# answers with (libs/platforms/interfaces/sns/platform/haptics.hpp).
 # The application's executable icon and version resource come from a Windows
 # resource script (packaging/app.rc.in). The application names the template and
 # icon; only this platform sets them.
-set(WJS_PLATFORM_APP_RC_TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/packaging/app.rc.in")
-set(WJS_PLATFORM_APP_ICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
+set(SNS_PLATFORM_APP_RC_TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/packaging/app.rc.in")
+set(SNS_PLATFORM_APP_ICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
 
-set(WJS_PLATFORM_SOURCES
+set(SNS_PLATFORM_SOURCES
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
     detail/haptics_none.cpp
@@ -46,15 +46,15 @@ set(WJS_PLATFORM_SOURCES
     windows/paths_windows.cpp
     windows/window_chrome_win.cpp)
 
-set(WJS_PLATFORM_LINK_LIBRARIES dwmapi)
+set(SNS_PLATFORM_LINK_LIBRARIES dwmapi)
 
 # <windows.h> without the parts and macros nobody asked for (min/max, the
 # rarely used APIs) and with the wide-character API as the default. Passed by
 # the build, so no source file declares them.
-set(WJS_PLATFORM_COMPILE_DEFINITIONS WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+set(SNS_PLATFORM_COMPILE_DEFINITIONS WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
 
 # A graphical program starts without a console window.
-function(wjs_platform_configure_app target)
+function(sns_platform_configure_app target)
     set_target_properties(${target} PROPERTIES WIN32_EXECUTABLE ON)
 endfunction()
 
@@ -70,11 +70,11 @@ endfunction()
 # installed". Any further arguments are more QML directories the program's
 # screens use (Mode A's live view is a file of the camera variant), each passed
 # as a --qmldir.
-function(wjs_platform_deploy_qt_runtime target qml_dir)
-    find_program(WJS_WINDEPLOYQT_EXECUTABLE
+function(sns_platform_deploy_qt_runtime target qml_dir)
+    find_program(SNS_WINDEPLOYQT_EXECUTABLE
         NAMES windeployqt6 windeployqt
         HINTS "${Qt6_DIR}/../../../bin")
-    if(NOT WJS_WINDEPLOYQT_EXECUTABLE)
+    if(NOT SNS_WINDEPLOYQT_EXECUTABLE)
         message(WARNING
             "windeployqt was not found; ${target} will only start from a shell "
             "that has Qt's bin directory on PATH.")
@@ -99,7 +99,7 @@ function(wjs_platform_deploy_qt_runtime target qml_dir)
         endif()
     endforeach()
     add_custom_command(TARGET ${target} POST_BUILD
-        COMMAND "${WJS_WINDEPLOYQT_EXECUTABLE}" ${_arguments} "$<TARGET_FILE:${target}>"
+        COMMAND "${SNS_WINDEPLOYQT_EXECUTABLE}" ${_arguments} "$<TARGET_FILE:${target}>"
         COMMENT "Deploying the Qt runtime beside ${target}")
 endfunction()
 
@@ -107,11 +107,11 @@ endfunction()
 # NSIS is the installer, and it is offered only when makensis is there: a
 # machine without NSIS still gets a ZIP, and the configure says which it made
 # rather than failing (docs/building.md, "Packaging").
-function(wjs_platform_configure_packaging)
-    find_program(WJS_MAKENSIS_EXECUTABLE NAMES makensis)
-    if(WJS_MAKENSIS_EXECUTABLE)
+function(sns_platform_configure_packaging)
+    find_program(SNS_MAKENSIS_EXECUTABLE NAMES makensis)
+    if(SNS_MAKENSIS_EXECUTABLE)
         list(APPEND CPACK_GENERATOR "NSIS")
-        message(STATUS "Packaging: makensis found at ${WJS_MAKENSIS_EXECUTABLE}: ZIP and NSIS")
+        message(STATUS "Packaging: makensis found at ${SNS_MAKENSIS_EXECUTABLE}: ZIP and NSIS")
     else()
         message(STATUS "Packaging: makensis was not found: the package is a ZIP only")
     endif()

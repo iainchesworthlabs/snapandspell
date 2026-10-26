@@ -4,7 +4,7 @@
 #include <QtQml/qqmlregistration.h>
 #include <QObject>
 
-namespace wjs::app {
+namespace sns::app {
 
 // Whether the system is in dark mode, for the chrome around the board (the board
 // itself is dark in both: docs/design/application.md, "Colour and contrast").
@@ -36,4 +36,4 @@ private:
     bool dark_ = false;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

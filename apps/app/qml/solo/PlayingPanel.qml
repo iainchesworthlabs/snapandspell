@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The panel beside the flat board: the words found, and under them one zone of
 // actions - the word in hand, the hint, Finish board, and Clear and Done - that

@@ -13,7 +13,7 @@
 //
 // The hidden cases ([.scan-...] and [.recorded]) are tools, not tests: they print
 // what the reader measures, and are run by name. They read the tuning split unless
-// WJS_SCAN_SPLIT=test is set, so that the reader is developed against the one split
+// SNS_SCAN_SPLIT=test is set, so that the reader is developed against the one split
 // and the other is looked at to report, not to steer.
 
 #include <algorithm>
@@ -37,20 +37,20 @@
 #include "evaluate.hpp"
 #include "png.hpp"
 #include "scene.hpp"
-#include "wjs/board.hpp"
-#include "wjs/scan/board_finder.hpp"
-#include "wjs/scan/glyph_reader.hpp"
-#include "wjs/scan/reader.hpp"
-#include "wjs/scan/stroke_font.hpp"
+#include "sns/board.hpp"
+#include "sns/scan/board_finder.hpp"
+#include "sns/scan/glyph_reader.hpp"
+#include "sns/scan/reader.hpp"
+#include "sns/scan/stroke_font.hpp"
 
 namespace {
 
-using namespace wjs::scan;
-using namespace wjs::scan::synth;
+using namespace sns::scan;
+using namespace sns::scan::synth;
 
 // Read through volatile: an optimising compiler that could see the value would see that SKIP
 // always ends the case, and warn (C4702) about the statements after it.
-const volatile bool kOptimised = WJS_SCAN_OPTIMISED != 0;
+const volatile bool kOptimised = SNS_SCAN_OPTIMISED != 0;
 
 // A call and not `if constexpr (kOptimised)`: SKIP ends the case, and where the
 // compiler can see that it always does, the statements after it are unreachable
@@ -62,7 +62,7 @@ bool optimised_build() {
 void skip_unless_optimised() {
     if (!optimised_build()) {
         SKIP("the scanner's target is held in an optimised build, and this is "
-             << WJS_SCAN_BUILD_TYPE
+             << SNS_SCAN_BUILD_TYPE
              << "; the corpus is much longer here and the optimised legs hold it "
                 "(docs/design/scanner.md, \"Where it runs\")");
     }
@@ -225,10 +225,10 @@ void check_target(Condition condition) {
     CHECK(tally.rotation_errors == 0);
 }
 
-// The split the hidden cases read: the tuning one unless WJS_SCAN_SPLIT names another
+// The split the hidden cases read: the tuning one unless SNS_SCAN_SPLIT names another
 // ("test" or "heldout"). Reading "heldout" with a tool is looking at it.
 Split report_split() {
-    const char* wanted = std::getenv("WJS_SCAN_SPLIT");  // NOLINT: read once, at start
+    const char* wanted = std::getenv("SNS_SCAN_SPLIT");  // NOLINT: read once, at start
     if (wanted != nullptr && std::string_view(wanted) == "test") {
         return Split::test;
     }
@@ -402,7 +402,7 @@ TEST_CASE("a frame with no board is not read as one in any build", "[scan][smoke
 // --- tools, not tests: hidden, run by name ---------------------------------------
 
 TEST_CASE("what the corpus measures now", "[.scan-report]") {
-    // wjs_scan_tests "[.scan-report]": the five numbers of each condition, and what
+    // sns_scan_tests "[.scan-report]": the five numbers of each condition, and what
     // drawing and reading a frame cost.
     for (const Target& target : targets()) {
         const auto start = std::chrono::steady_clock::now();
@@ -563,7 +563,7 @@ TEST_CASE("the glyph step alone, given the true corners", "[.scan-oracle]") {
 
 TEST_CASE("frames with no board", "[.scan-negatives]") {
     // The frames with no board, on the tuning seeds (100 to 119 of each kind), or on the
-    // test seeds (0 to 6) with WJS_SCAN_SPLIT=test: how many were answered with an error,
+    // test seeds (0 to 6) with SNS_SCAN_SPLIT=test: how many were answered with an error,
     // and any that came back as a board.
     const bool test = report_split() == Split::test;
     std::size_t frames = 0;
@@ -616,7 +616,7 @@ RecordedRun read_recorded(const std::filesystem::path& directory, std::ostream& 
         std::ifstream truth_file(std::filesystem::path(picture).replace_extension(".txt"));
         std::stringstream text;
         text << truth_file.rdbuf();
-        const auto board = wjs::Board::parse(text.str());
+        const auto board = sns::Board::parse(text.str());
         if (image.empty() || !board || board->rows() != board->columns()) {
             out << "skipped " << picture.filename().string() << " (no image, or no square truth)\n";
             run.skipped.push_back(picture.filename().string());
@@ -654,12 +654,12 @@ std::string text_of(const std::vector<std::string>& letters, std::size_t size) {
 
 TEST_CASE("recorded frames, kept outside the repository", "[.recorded]") {
     // The real measurement. Frames of a child's room are never committed
-    // (docs/licensing.md): this reads the directory named by WJS_SCAN_RECORDED_DIR, with
+    // (docs/licensing.md): this reads the directory named by SNS_SCAN_RECORDED_DIR, with
     // the harness the self-test below holds (read_recorded), and prints the five numbers.
     // It skips when the variable is not set. It has not been run on anything real.
-    const char* directory = std::getenv("WJS_SCAN_RECORDED_DIR");  // NOLINT: read once, at start
+    const char* directory = std::getenv("SNS_SCAN_RECORDED_DIR");  // NOLINT: read once, at start
     if (directory == nullptr) {
-        SKIP("WJS_SCAN_RECORDED_DIR is not set; no recorded frames to read");
+        SKIP("SNS_SCAN_RECORDED_DIR is not set; no recorded frames to read");
     }
     (void)read_recorded(directory, std::cout);
 }
@@ -671,7 +671,7 @@ TEST_CASE("the recorded-frames harness reads a picture with its truth and judges
     // the corpus draws, written the way a camera tool writes them.
     const std::filesystem::path directory =
         std::filesystem::temp_directory_path() /
-        ("wjs_scan_recorded_selftest_" +
+        ("sns_scan_recorded_selftest_" +
          std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::create_directories(directory);
 
@@ -734,7 +734,7 @@ TEST_CASE("the recorded-frames harness reads a picture with its truth and judges
 TEST_CASE("a picture file is read only if it is a whole grey PGM", "[scan][corpus][smoke]") {
     const std::filesystem::path directory =
         std::filesystem::temp_directory_path() /
-        ("wjs_scan_pgm_selftest_" +
+        ("sns_scan_pgm_selftest_" +
          std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::filesystem::create_directories(directory);
     GrayImage image(5, 3);

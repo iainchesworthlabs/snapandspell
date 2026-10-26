@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/path.hpp"
+#include "sns/path.hpp"
 
 #include <vector>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 std::string_view to_string(PathError error) noexcept {
     switch (error) {
@@ -51,4 +51,4 @@ std::expected<std::string, PathError> validate_path(const Board& board,
     return word;
 }
 
-}  // namespace wjs
+}  // namespace sns

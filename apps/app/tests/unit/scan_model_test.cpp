@@ -12,9 +12,9 @@
 #include "camera_test_frame.hpp"
 #include "fake_camera.hpp"
 #include "scan_model.hpp"
+#include "sns/scan/frame.hpp"
+#include "sns/scan/reading.hpp"
 #include "test_support.hpp"
-#include "wjs/scan/frame.hpp"
-#include "wjs/scan/reading.hpp"
 
 // The check screen's model (apps/app/src/scan/scan_model.*): the draft a grown-up
 // corrects, the reader's doubts and alternatives, the board size, the typed-board
@@ -26,7 +26,7 @@
 
 namespace {
 
-using wjs::app::ScanModel;
+using sns::app::ScanModel;
 
 QStringList letters_of(const ScanModel& model) {
     return model.letters();
@@ -46,8 +46,8 @@ void fill(ScanModel& model, const QString& letter) {
     }
 }
 
-wjs::scan::BoardReading two_by_two() {
-    wjs::scan::BoardReading reading;
+sns::scan::BoardReading two_by_two() {
+    sns::scan::BoardReading reading;
     reading.rows = 2;
     reading.columns = 2;
     reading.tiles.resize(4);
@@ -202,7 +202,7 @@ TEST_CASE("the reader's doubts are the tiles to ring, with its other thoughts", 
 
 TEST_CASE("a reading that is not a grid is refused", "[app][scan]") {
     ScanModel model;
-    wjs::scan::BoardReading reading;
+    sns::scan::BoardReading reading;
     reading.rows = 0;
     CHECK_FALSE(model.useReading(reading));
     CHECK(model.state() == "ready");
@@ -271,11 +271,11 @@ TEST_CASE("Try camera again is a new attempt, and a camera that appears is found
     // The supplied-source path: a camera that was not available when the screen
     // opened is there when the person tries again. The backend is a fake, so no
     // device is opened; the model's retry starts it exactly as open() would.
-    auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+    auto backend = std::make_unique<sns::app::test::FakeCameraBackend>();
     auto* camera = backend.get();
     camera->setAvailable(false);
-    camera->setProblem(wjs::app::CameraProblem::no_camera);
-    wjs::app::CameraSource source(std::move(backend));
+    camera->setProblem(sns::app::CameraProblem::no_camera);
+    sns::app::CameraSource source(std::move(backend));
 
     ScanModel model;
     model.setCameraSource(&source);
@@ -286,7 +286,7 @@ TEST_CASE("Try camera again is a new attempt, and a camera that appears is found
 
     // The camera becomes ready (uncovered, plugged in, freed by another app).
     camera->setAvailable(true);
-    camera->setProblem(wjs::app::CameraProblem::none);
+    camera->setProblem(sns::app::CameraProblem::none);
     model.retryCamera();
 
     CHECK(model.state() == "ready");
@@ -302,13 +302,13 @@ namespace {
 // A model over a running fake camera that will give `frame`, with a short wait so
 // that the case does not spend the screen's four seconds.
 struct Rig {
-    explicit Rig(wjs::scan::OwnedFrame frame) {
-        auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+    explicit Rig(sns::scan::OwnedFrame frame) {
+        auto backend = std::make_unique<sns::app::test::FakeCameraBackend>();
         camera = backend.get();
         camera->setAvailable(true);
-        camera->setProblem(wjs::app::CameraProblem::none);
+        camera->setProblem(sns::app::CameraProblem::none);
         camera->setFrame(std::move(frame));
-        source = std::make_unique<wjs::app::CameraSource>(std::move(backend));
+        source = std::make_unique<sns::app::CameraSource>(std::move(backend));
         model.setFramePatience(5, 20);
         model.setCameraSource(source.get());
         model.open();
@@ -318,21 +318,21 @@ struct Rig {
     // Captures and waits for the read to be over, whichever way it went.
     void capture() {
         model.capture();
-        REQUIRE(wjs::app::test::spin_until([this] { return model.state() != "reading"; }));
+        REQUIRE(sns::app::test::spin_until([this] { return model.state() != "reading"; }));
     }
 
-    wjs::app::test::CoreApplication application;
-    wjs::app::test::FakeCameraBackend* camera = nullptr;
-    std::unique_ptr<wjs::app::CameraSource> source;
+    sns::app::test::CoreApplication application;
+    sns::app::test::FakeCameraBackend* camera = nullptr;
+    std::unique_ptr<sns::app::CameraSource> source;
     ScanModel model;
 };
 
-[[nodiscard]] wjs::scan::OwnedFrame blank_frame(std::size_t side) {
-    wjs::scan::OwnedFrame frame;
+[[nodiscard]] sns::scan::OwnedFrame blank_frame(std::size_t side) {
+    sns::scan::OwnedFrame frame;
     frame.width = side;
     frame.height = side;
     frame.stride = side;
-    frame.format = wjs::scan::PixelFormat::gray8;
+    frame.format = sns::scan::PixelFormat::gray8;
     frame.pixels.assign(side * side, 200);
     return frame;
 }
@@ -359,14 +359,14 @@ TEST_CASE("a frame with no board in it returns the screen to ready with the came
 }
 
 TEST_CASE("a frame the scanner cannot take is an invalid frame", "[app][scan][camera]") {
-    wjs::scan::OwnedFrame empty;  // no size, no pixels
+    sns::scan::OwnedFrame empty;  // no size, no pixels
     Rig rig(std::move(empty));
 
     rig.capture();
 
     CHECK(rig.model.state() == "ready");
     CHECK(rig.model.readProblem() == "invalid_frame");
-    CHECK(rig.model.readProblemKind() == wjs::app::ReadProblem::invalid_frame);
+    CHECK(rig.model.readProblemKind() == sns::app::ReadProblem::invalid_frame);
 }
 
 TEST_CASE("the next capture clears the last read's problem", "[app][scan][camera]") {
@@ -376,16 +376,16 @@ TEST_CASE("the next capture clears the last read's problem", "[app][scan][camera
 
     // A second frame, the synthetic board: the problem is cleared by the capture
     // and the check screen opens.
-    rig.camera->setFrame(wjs::app::test::synthetic_board_frame());
+    rig.camera->setFrame(sns::app::test::synthetic_board_frame());
     rig.model.capture();
     CHECK(rig.model.readProblem().isEmpty());
-    REQUIRE(wjs::app::test::spin_until([&rig] { return rig.model.state() != "reading"; }));
+    REQUIRE(sns::app::test::spin_until([&rig] { return rig.model.state() != "reading"; }));
     CHECK(rig.model.state() == "check");
-    CHECK(rig.model.readProblemKind() == wjs::app::ReadProblem::none);
+    CHECK(rig.model.readProblemKind() == sns::app::ReadProblem::none);
 }
 
 TEST_CASE("leaving the screen while a frame is being read drops the read", "[app][scan][camera]") {
-    Rig rig(wjs::app::test::synthetic_board_frame());
+    Rig rig(sns::app::test::synthetic_board_frame());
     rig.model.capture();
     REQUIRE(rig.model.state() == "reading");
 
@@ -395,14 +395,14 @@ TEST_CASE("leaving the screen while a frame is being read drops the read", "[app
     // one waiting for it.
     CHECK(rig.model.state() == "ready");
     CHECK_FALSE(rig.model.cameraCapturing());
-    wjs::app::test::pause(150);
+    sns::app::test::pause(150);
     CHECK(rig.model.state() == "ready");
     CHECK(rig.model.rows() == 0);
 }
 
 TEST_CASE("typing a board while a frame is being read keeps the typed board",
           "[app][scan][camera]") {
-    Rig rig(wjs::app::test::synthetic_board_frame());
+    Rig rig(sns::app::test::synthetic_board_frame());
     rig.model.capture();
     REQUIRE(rig.model.state() == "reading");
 
@@ -410,7 +410,7 @@ TEST_CASE("typing a board while a frame is being read keeps the typed board",
     CHECK(rig.model.state() == "check");
     CHECK_FALSE(rig.model.draftFromCamera());
 
-    wjs::app::test::pause(150);
+    sns::app::test::pause(150);
     // The late reading did not replace what the grown-up chose.
     CHECK(rig.model.state() == "check");
     CHECK_FALSE(rig.model.draftFromCamera());
@@ -477,12 +477,12 @@ TEST_CASE("the camera is opened and closed only when it should be", "[app][scan]
 
 TEST_CASE("replacing the camera source while it is capturing stops the old one",
           "[app][scan][camera]") {
-    auto first_backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+    auto first_backend = std::make_unique<sns::app::test::FakeCameraBackend>();
     first_backend->setAvailable(true);
-    first_backend->setProblem(wjs::app::CameraProblem::none);
-    wjs::app::CameraSource first(std::move(first_backend));
-    auto second_backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
-    wjs::app::CameraSource second(std::move(second_backend));
+    first_backend->setProblem(sns::app::CameraProblem::none);
+    sns::app::CameraSource first(std::move(first_backend));
+    auto second_backend = std::make_unique<sns::app::test::FakeCameraBackend>();
+    sns::app::CameraSource second(std::move(second_backend));
 
     ScanModel model;
     model.setCameraSource(&first);

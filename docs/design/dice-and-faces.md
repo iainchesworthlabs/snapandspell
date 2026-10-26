@@ -8,7 +8,7 @@ phonics board does about dice. Proposals unless marked **Fact**; the open
 choices are put to the author at the end.
 
 > **Status, 2026-10-22: built.** The gap this page found is closed. `roll_with_placements`
-> (`wjs/dice.hpp`) returns each tile's die and the face that is up, and `roll` gives the
+> (`sns/dice.hpp`) returns each tile's die and the face that is up, and `roll` gives the
 > same board; the application hands the scene each tile's six faces and which is up
 > (on the standard board; the phonics board and a restored game give none, and the
 > scene then draws the tile's letter on all six sides); the scene draws one atlas for
@@ -30,7 +30,7 @@ board.
 
 | | **Fact**, checked in the code |
 | --- | --- |
-| The library's dice | `DiceSet` holds dice of up to 12 faces each (`wjs/dice.hpp`). `roll(dice, seed)` puts the dice in a random order, a die to a tile, and each shows one face: a pure function of the set and the seed. The project's sets have six different letters to a die and a vowel on each |
+| The library's dice | `DiceSet` holds dice of up to 12 faces each (`sns/dice.hpp`). `roll(dice, seed)` puts the dice in a random order, a die to a tile, and each shows one face: a pure function of the set and the seed. The project's sets have six different letters to a die and a vowel on each |
 | What `roll` returns | A `Board`. Which die is on which tile, and which of its faces is up, are not returned |
 | The scene | `BoardScene.qml` takes a finished board (one string a tile) and draws each die as a flat pixel tile with its letter upright. The 3D scene's `Die.qml` (a cube with a face on every side) and `FaceAtlas.qml` are gone: nothing in the scene knows a die has other faces |
 | The frequency | `tools/data/make_dice.ps1` deals faces in proportion to a fixed Scrabble-style English tile-count table (A9 B2 C2 D4 E12 ... Z1, the 100-tile counts with blanks not counted): six different letters to a die, one to three vowels and at most one of J K Q V X Z on each, 30% to 40% vowels and at most 8% S in a set, Q as `QU`. The sets are data (`data/dice/<n>x<n>.txt`) and the `data.dice` test re-makes them and compares |

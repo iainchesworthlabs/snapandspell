@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Check that a macOS application bundle is complete and self-contained.
 #
-#   libs/platforms/macos/packaging/verify_bundle.sh <WordJewelsSolver.app | package.dmg>
+#   libs/platforms/macos/packaging/verify_bundle.sh <SnapAndSpell.app | package.dmg>
 #       [--version <x.y.z>] [--smoke] [--signed]
 #
 # A disk image is mounted read-only and its .app checked. What it looks for:
@@ -62,7 +62,7 @@ plutil -lint "$plist" >/dev/null || fail "Info.plist is not a valid property lis
 key() { /usr/libexec/PlistBuddy -c "Print :$1" "$plist" 2>/dev/null || true; }
 
 [ "$(key CFBundleIdentifier)" = "com.iainchesworthlabs.snapandspell" ] || fail "CFBundleIdentifier is '$(key CFBundleIdentifier)'"
-[ "$(key CFBundleExecutable)" = "WordJewelsSolver" ] || fail "CFBundleExecutable is '$(key CFBundleExecutable)'"
+[ "$(key CFBundleExecutable)" = "SnapAndSpell" ] || fail "CFBundleExecutable is '$(key CFBundleExecutable)'"
 [ -n "$(key NSCameraUsageDescription)" ] || fail "Info.plist has no NSCameraUsageDescription"
 [ "$(key CFBundleIconFile)" = "AppIcon.icns" ] || fail "CFBundleIconFile is '$(key CFBundleIconFile)'"
 if [ -n "$version" ]; then
@@ -73,7 +73,7 @@ echo "    Info.plist: identifier, executable, icon, camera text"
 macos="$app/Contents/MacOS"
 for required in \
     "$app/Contents/Resources/AppIcon.icns" \
-    "$macos/WordJewelsSolver" \
+    "$macos/SnapAndSpell" \
     "$macos/dictionaries/en.txt" \
     "$macos/dice/3x3.txt" \
     "$macos/NOTICES.txt"; do
@@ -116,7 +116,7 @@ fi
 
 if [ "$smoke" = true ]; then
   out="$(mktemp)"
-  QT_QPA_PLATFORM=offscreen QSG_RHI_BACKEND=opengl "$macos/WordJewelsSolver" --smoke 10 --store "$(mktemp -u)" | tee "$out"
+  QT_QPA_PLATFORM=offscreen QSG_RHI_BACKEND=opengl "$macos/SnapAndSpell" --smoke 10 --store "$(mktemp -u)" | tee "$out"
   grep -Eq 'smoke: frames=[0-9]+' "$out" || fail "the bundle's program printed no frame report"
 fi
 echo "OK: $(basename "$app")"

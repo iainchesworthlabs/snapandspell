@@ -6,7 +6,7 @@
 #include <functional>
 #include <memory>
 
-namespace wjs::app {
+namespace sns::app {
 
 // The device's own voice, over Qt TextToSpeech when the application was built
 // with it and silently nothing when it was not. Whole words and sentences only:
@@ -61,4 +61,4 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

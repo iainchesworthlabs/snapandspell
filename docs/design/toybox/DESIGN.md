@@ -1,6 +1,6 @@
-# Toybox Pixel for Word Jewels Solver
+# Toybox Pixel for Snap and Spell
 
-Status: draft 1 for sign-off, 2026-10-24. Nothing here is built. It describes the restyle that Stage 5 builds, screen by screen, against the application as it is in `develop` (fa1159b) and the screens listed in section 8. The mockups are in `screens/` and `screenshots/`; `gallery.html` is the gallery. The values are in `tokens.json` (Snake, unchanged) and `wjs-tokens.json` (what this project adds).
+Status: draft 1 for sign-off, 2026-10-24. Nothing here is built. It describes the restyle that Stage 5 builds, screen by screen, against the application as it is in `develop` (fa1159b) and the screens listed in section 8. The mockups are in `screens/` and `screenshots/`; `gallery.html` is the gallery. The values are in `tokens.json` (Snake, unchanged) and `sns-tokens.json` (what this project adds).
 
 ## 1. What changes and what stays
 
@@ -18,7 +18,7 @@ Stays:
 
 ## 2. Tokens: shared and project
 
-| Group | Shared with Snake (unchanged, `tokens.json`) | Added here (`wjs-tokens.json`) |
+| Group | Shared with Snake (unchanged, `tokens.json`) | Added here (`sns-tokens.json`) |
 |---|---|---|
 | Colour | background (sunshine), ink, shadow, surface (cream), accent (coral), boardLight, boardDark, food (blueberry), foodHighlight, leaf, tongue (pink), eye, overlay | the five gem colours (all taken from the shared palette), die, tray, surfaceDim `#EBD9B4`, path, and the Night set (page, panel, text, outline, shadowDeep `#0B0618`, button pair) |
 | Shape | outline 4 and 3, radii, hard drop shadows small, medium and large, the board frame (6 px outline, 12 px drop) used for the tray | die radius and gap, gem tiers, panel and dialog values, the 20-step progress bar, the pixel-unit rule |
@@ -27,11 +27,11 @@ Stays:
 | Motion | scorePop, reducedMotion | boxShake, diceDrop, gemBob, tileFlash |
 | Not used | the snake, tilt indicator and medal tokens | |
 
-Rule for changes: a value that Snake and Word Jewels both use is changed in `tokens.json` first and copied to both. A value only this project needs goes in `wjs-tokens.json`. How the two repositories share the file is the open decision in section 15.
+Rule for changes: a value that Snake and Snap and Spell both use is changed in `tokens.json` first and copied to both. A value only this project needs goes in `sns-tokens.json`. How the two repositories share the file is the open decision in section 15.
 
 ## 3. The pixel unit
 
-Outlines (3, 4 and 6 px), hard shadows (3, 4, 6 and 12 px) and pixel art are drawn in whole device pixels. On a display with a fractional scale factor they are rounded to the nearest whole device pixel and never blurred. Snake scales its whole board in integer steps and letterboxes it. Word Jewels is a text-heavy interface in eight languages with a parent text size and windows from 900 x 620, so the layout stays fluid: only the borders, shadows and sprites are snapped, and the board scales in whole tile steps. The board is the only object that is ever letterboxed.
+Outlines (3, 4 and 6 px), hard shadows (3, 4, 6 and 12 px) and pixel art are drawn in whole device pixels. On a display with a fractional scale factor they are rounded to the nearest whole device pixel and never blurred. Snake scales its whole board in integer steps and letterboxes it. Snap and Spell is a text-heavy interface in eight languages with a parent text size and windows from 900 x 620, so the layout stays fluid: only the borders, shadows and sprites are snapped, and the board scales in whole tile steps. The board is the only object that is ever letterboxed.
 
 ## 4. Type, and why the dice keep Andika
 
@@ -98,7 +98,7 @@ All sizes in px at 1x. Hard shadows have no blur.
 | Die | Cream face, 3 px ink outline, radius 10, shadow 0 4px, Andika 700 at 0.55 x tile (0.42 for the "Qu" tile) |
 | Gem | A pixel sprite with an ink outline, a highlight at the top-left and a shade at the bottom-right. Three shapes by tier: diamond (1 star), cut gem (2 stars), star (5 stars). Colour from the five-colour list in turn, so it carries no meaning. 3 px per cell in lists, 4 to 6 in dialogs |
 | Icons | Pixel maps drawn in code from one table (check, back, x, play, person, camera, boards, retry, shake, hint). Icon-only buttons stay limited to back and close |
-| Wordmark | "Word Jewels" in Pixelify 700 with a 3 px coral hard shadow, with the cut gem to its left |
+| Wordmark | "Snap and Spell" in Pixelify 700 with a 3 px coral hard shadow, with the cut gem to its left |
 
 ## 7. Tile states
 
@@ -149,7 +149,7 @@ Every screen and dialog of the application with its mockup. Window 1160 x 740 un
 
 ## 10. Motion
 
-Toybox motion with these Word Jewels additions. With reduced motion (the system's, or the parent's setting) every row below is replaced by its still form.
+Toybox motion with these Snap and Spell additions. With reduced motion (the system's, or the parent's setting) every row below is replaced by its still form.
 
 | Effect | Full | Reduced |
 |---|---|---|
@@ -218,7 +218,7 @@ Strings that are missing from a catalogue appear in English in the mockups (the 
 
 ## 14. About and Settings
 
-Snake left both open. Word Jewels has both, so the pattern is proven here:
+Snake left both open. Snap and Spell has both, so the pattern is proven here:
 
 * One parent area behind the gate, four tabs: Dashboard, Settings, About, Licences. The settings and About are not child-facing, so they live behind the same hold gate.
 * Settings (built): Help, Board, Phase, Focus sounds, Board size, Sound, Celebration sounds, Sound it out, Vibration, Shake, Motion, Colour scheme, Language, Text size, Board clock, Reset (two steps). The Toybox restyle changes the controls, not the list.
@@ -228,7 +228,7 @@ Snake left both open. Word Jewels has both, so the pattern is proven here:
 
 ## 15. Shared theme: options
 
-Snake and Word Jewels both use Toybox. Snake has the tokens and the mockups but no theme code yet; its roadmap plans a QML theme singleton filled from `tokens.json` by a CMake step, with a test that fails when they differ. Word Jewels already has a token source (`kit/Theme.qml`) with guard rails, and eight languages and a CJK strategy to solve.
+Snake and Snap and Spell both use Toybox. Snake has the tokens and the mockups but no theme code yet; its roadmap plans a QML theme singleton filled from `tokens.json` by a CMake step, with a test that fails when they differ. Snap and Spell already has a token source (`kit/Theme.qml`) with guard rails, and eight languages and a CJK strategy to solve.
 
 | Option | What it is | For | Against |
 |---|---|---|---|
@@ -236,14 +236,14 @@ Snake and Word Jewels both use Toybox. Snake has the tokens and the mockups but 
 | B. Tokens as data, one implementation per repository (**recommended**) | `tokens.json` (and the font files with their licences and the subsetting script) live in one place, `icl-common-infra/design/toybox/`, versioned by tag and vendored with a `SOURCE` file like `cmake/icl`; each project generates its own Theme from it with a CMake step and tests that the generated file matches | One source of truth for values and fonts; no shared C++ or QML API to version; fits the existing vendoring and repin tools | Each project still writes its own components |
 | C. A shared Qt theme library | A repository with the Theme singleton, the styled controls and the drawing helpers (hard shadow, pixel sprites), consumed as a CMake package | Components shared too | A shared Qt API to version across a Qt Quick desktop app and Snake's second front end on LVGL (which cannot use QML); a new repository and its CI; the first two consumers are different enough that the common API would be guessed |
 
-Recommendation: B now, and move to C only when a third Qt Quick application needs the same components. Which repository leads: Word Jewels is ahead on the Qt side (a kit, guard rails, eight languages), Snake on the design package. Iain decides; I recommend Word Jewels writes the first generated Theme and the font subsetting step, and Snake adopts them.
+Recommendation: B now, and move to C only when a third Qt Quick application needs the same components. Which repository leads: Snap and Spell is ahead on the Qt side (a kit, guard rails, eight languages), Snake on the design package. Iain decides; I recommend Snap and Spell writes the first generated Theme and the font subsetting step, and Snake adopts them.
 
 ## 16. Art, audio and distribution
 
 * Art: drawn in code in the Toybox style (gems, box, icons, wordmark). No sprite files, so the game does not wait for assets. The application icon is a pixel gem on sunshine with an ink outline; the 1024 px source is generated by `tools/package/make_*_icon.py` from a small script.
 * Sound: the eight placeholder cues stay; the same synthesis script gains a chiptune voice for them. No music in 0.1 (a calm game for young children; the parent's Sound setting stays). The phoneme clips remain a recording job.
 * Distribution: the roadmap's first release is the three desktops and an ad-hoc iOS build; the web build is added to that list. Public store builds are a later licence and signing decision (standard D8, D17).
-* Name: keep "Word Jewels Solver" for the repository, About and CLI, and "Word Jewels" as the wordmark, as the app already does.
+* Name: keep "Snap and Spell" for the repository, About and CLI, and "Snap and Spell" as the wordmark, as the app already does.
 * Screenshots: the README and release notes carry screenshots taken by CI from the offscreen app, one set for each platform leg, so the look can be checked without building.
 
 ## 17. Mapping to the current code

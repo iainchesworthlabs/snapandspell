@@ -20,14 +20,14 @@ This is a rule for every contributor, and it is enforced by a check (see
 
 ```text
 libs/platforms/
-  interfaces/wjs/platform/   what the program needs from a platform: one header each
+  interfaces/sns/platform/   what the program needs from a platform: one header each
     console.hpp  paths.hpp  camera.hpp  board_reader.hpp
   windows/ linux/ macos/ ios/
                              one implementation per interface, plus platform.cmake
   posix/                     implementations shared by Linux and macOS
   detail/                    implementations shared by every platform that has nothing
                              of its own to say (no camera yet, the portable board reader)
-  CMakeLists.txt             builds wjs_platform from what the fragment names
+  CMakeLists.txt             builds sns_platform from what the fragment names
 tests/platform/              test cases only one platform can run, and the fragment check
 ```
 
@@ -55,19 +55,19 @@ other CMake file reads what the fragment declared:
 
 | What | Declared as | Read by |
 | --- | --- | --- |
-| Source files compiled into `wjs_platform` (relative to `libs/platforms`) | `WJS_PLATFORM_SOURCES` | `libs/platforms/CMakeLists.txt` |
-| System libraries `wjs_platform` links | `WJS_PLATFORM_LINK_LIBRARIES` | `libs/platforms/CMakeLists.txt` |
-| Compile definitions, for `wjs_platform` only (Windows: `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE`) | `WJS_PLATFORM_COMPILE_DEFINITIONS` | `libs/platforms/CMakeLists.txt` |
-| The name in the version block (`Windows`, `Linux`, `macOS`) | `WJS_PLATFORM_DISPLAY_NAME` | `libs/core` (generated `version.hpp`), the configure summary |
-| Whether this is a desktop (CPack installers exist; `OFF` on iOS, whose application Xcode archives and exports) | `WJS_PLATFORM_DESKTOP` | `cmake/Packaging.cmake` (no CPack configuration where it is `OFF`) |
-| The format of the platform's programs (`elf`, `pe`, `mach-o` or `wasm`) | `WJS_PLATFORM_EXECUTABLE_FORMAT` | `tests/checks/CMakeLists.txt` (`hardening.binary` is registered where it is `elf`) |
-| Where an installed Qt lives | `WJS_PLATFORM_QT_SEARCH_ROOTS`, `WJS_PLATFORM_QT_ARCH_DIRS` | `cmake/FindQt6.cmake` |
-| `NAME=value` entries a Qt Quick test needs to run without a display, besides `QT_QPA_PLATFORM=offscreen` (`""` for none) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` | `tests/CMakeLists.txt` |
-| Where the application's dictionary and dice go, relative to the install prefix (the bindir, or `Contents/MacOS` in a bundle) | `WJS_PLATFORM_INSTALL_APP_DATA_DIR` | `apps/app/CMakeLists.txt`, `cmake/Notices.cmake` |
-| Whether an installed application carries Qt's runtime (Windows and macOS) or loads the system's (Linux) | `WJS_PLATFORM_QT_DEPLOY_AT_INSTALL` | `apps/app/CMakeLists.txt` |
-| What makes the Qt application a program of this desktop (no console window on Windows, a bundle on macOS) | `wjs_platform_configure_app(<target>)` | `apps/app/CMakeLists.txt` |
-| Qt's runtime beside a program, including the QML modules in `<qml_dir>` (`windeployqt` on Windows) | `wjs_platform_deploy_qt_runtime(<target> <qml_dir>)` | `apps/app/CMakeLists.txt`, `tests/CMakeLists.txt` |
-| This platform's CPack generators, added to `CPACK_GENERATOR` when their tools are found | `wjs_platform_configure_packaging()` | `cmake/Packaging.cmake` |
+| Source files compiled into `sns_platform` (relative to `libs/platforms`) | `SNS_PLATFORM_SOURCES` | `libs/platforms/CMakeLists.txt` |
+| System libraries `sns_platform` links | `SNS_PLATFORM_LINK_LIBRARIES` | `libs/platforms/CMakeLists.txt` |
+| Compile definitions, for `sns_platform` only (Windows: `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE`) | `SNS_PLATFORM_COMPILE_DEFINITIONS` | `libs/platforms/CMakeLists.txt` |
+| The name in the version block (`Windows`, `Linux`, `macOS`) | `SNS_PLATFORM_DISPLAY_NAME` | `libs/core` (generated `version.hpp`), the configure summary |
+| Whether this is a desktop (CPack installers exist; `OFF` on iOS, whose application Xcode archives and exports) | `SNS_PLATFORM_DESKTOP` | `cmake/Packaging.cmake` (no CPack configuration where it is `OFF`) |
+| The format of the platform's programs (`elf`, `pe`, `mach-o` or `wasm`) | `SNS_PLATFORM_EXECUTABLE_FORMAT` | `tests/checks/CMakeLists.txt` (`hardening.binary` is registered where it is `elf`) |
+| Where an installed Qt lives | `SNS_PLATFORM_QT_SEARCH_ROOTS`, `SNS_PLATFORM_QT_ARCH_DIRS` | `cmake/FindQt6.cmake` |
+| `NAME=value` entries a Qt Quick test needs to run without a display, besides `QT_QPA_PLATFORM=offscreen` (`""` for none) | `SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT` | `tests/CMakeLists.txt` |
+| Where the application's dictionary and dice go, relative to the install prefix (the bindir, or `Contents/MacOS` in a bundle) | `SNS_PLATFORM_INSTALL_APP_DATA_DIR` | `apps/app/CMakeLists.txt`, `cmake/Notices.cmake` |
+| Whether an installed application carries Qt's runtime (Windows and macOS) or loads the system's (Linux) | `SNS_PLATFORM_QT_DEPLOY_AT_INSTALL` | `apps/app/CMakeLists.txt` |
+| What makes the Qt application a program of this desktop (no console window on Windows, a bundle on macOS) | `sns_platform_configure_app(<target>)` | `apps/app/CMakeLists.txt` |
+| Qt's runtime beside a program, including the QML modules in `<qml_dir>` (`windeployqt` on Windows) | `sns_platform_deploy_qt_runtime(<target> <qml_dir>)` | `apps/app/CMakeLists.txt`, `tests/CMakeLists.txt` |
+| This platform's CPack generators, added to `CPACK_GENERATOR` when their tools are found | `sns_platform_configure_packaging()` | `cmake/Packaging.cmake` |
 
 The full contract is the header comment of `cmake/Platform.cmake`. A fragment
 that forgets part of it fails the configure by name, not three files away. A
@@ -105,23 +105,23 @@ The cases already in the tree:
 
 | Need | Done as |
 | --- | --- |
-| `<windows.h>` without the `min`/`max` macros, and with the wide-character API | `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE` are in the Windows `platform.cmake` and passed to `wjs_platform`; no source file defines them |
-| The path of the running executable, and the directory a program keeps its own data in | `interfaces/wjs/platform/paths.hpp` (`executable_path`, `user_data_directory`); `windows/paths_windows.cpp`, `linux/paths_linux.cpp`, `macos/paths_macos.cpp`, `ios/paths_ios.cpp` |
-| What a Qt Quick test needs to draw with no display (the offscreen platform has no fonts on Windows until told where the system's are) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` in each `platform.cmake`, read by the tests that run Qt Quick |
-| A UTF-8 console on Windows, nothing to do on a POSIX terminal | `interfaces/wjs/platform/console.hpp`; `windows/console_windows.cpp` and `posix/console_posix.cpp` |
-| The version and the platform's name in `wjs-cli --version` | `configure_file` generates `constexpr` values (`wjs::project_version`, `wjs::target_platform`); no macro |
-| A program with no console window on Windows, a bundle on macOS | The `wjs_platform_configure_app` hook in each fragment |
-| Where to find Qt on each system | `WJS_PLATFORM_QT_SEARCH_ROOTS` in each fragment, read by `cmake/FindQt6.cmake` |
-| Copying Qt's DLLs beside the program on Windows | The `wjs_platform_deploy_qt_runtime` hook; Linux and macOS define it as a no-op |
-| A profiler whose API is macros (Tracy) | Two `wjs/profiling.hpp` under `libs/core/variants/`, one calling Tracy's functions and one empty; CMake puts one directory on the include path. [Profiling](profiling.md) |
-| Whether a build is optimised, or has coverage or Tracy in it, for the performance tests | `WJS_PERF_OPTIMISED` and the like, compile definitions CMake passes to `wjs_perf_tests`, read as `constexpr bool` in `libs/core/bench/perf_build.hpp` |
+| `<windows.h>` without the `min`/`max` macros, and with the wide-character API | `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE` are in the Windows `platform.cmake` and passed to `sns_platform`; no source file defines them |
+| The path of the running executable, and the directory a program keeps its own data in | `interfaces/sns/platform/paths.hpp` (`executable_path`, `user_data_directory`); `windows/paths_windows.cpp`, `linux/paths_linux.cpp`, `macos/paths_macos.cpp`, `ios/paths_ios.cpp` |
+| What a Qt Quick test needs to draw with no display (the offscreen platform has no fonts on Windows until told where the system's are) | `SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT` in each `platform.cmake`, read by the tests that run Qt Quick |
+| A UTF-8 console on Windows, nothing to do on a POSIX terminal | `interfaces/sns/platform/console.hpp`; `windows/console_windows.cpp` and `posix/console_posix.cpp` |
+| The version and the platform's name in `sns-cli --version` | `configure_file` generates `constexpr` values (`sns::project_version`, `sns::target_platform`); no macro |
+| A program with no console window on Windows, a bundle on macOS | The `sns_platform_configure_app` hook in each fragment |
+| Where to find Qt on each system | `SNS_PLATFORM_QT_SEARCH_ROOTS` in each fragment, read by `cmake/FindQt6.cmake` |
+| Copying Qt's DLLs beside the program on Windows | The `sns_platform_deploy_qt_runtime` hook; Linux and macOS define it as a no-op |
+| A profiler whose API is macros (Tracy) | Two `sns/profiling.hpp` under `libs/core/variants/`, one calling Tracy's functions and one empty; CMake puts one directory on the include path. [Profiling](profiling.md) |
+| Whether a build is optimised, or has coverage or Tracy in it, for the performance tests | `SNS_PERF_OPTIMISED` and the like, compile definitions CMake passes to `sns_perf_tests`, read as `constexpr bool` in `libs/core/bench/perf_build.hpp` |
 
 ## Rules
 
 **Do**
 
 - Declare what the program needs from the OS in `libs/platforms/interfaces/`, in
-  `namespace wjs::platform`, with a comment saying that there is one definition
+  `namespace sns::platform`, with a comment saying that there is one definition
   per platform.
 - Implement it once per platform, and list each file in the `platform.cmake` of
   every platform that compiles it.
@@ -201,7 +201,7 @@ The CMake side has its own check, the `platform.fragments` test
 exercised only on their own machines. The test includes every fragment it
 finds, each in a process of its own, and holds it to the contract: every
 variable and hook defined, every file it compiles present, every interface
-header under `libs/platforms/interfaces/wjs/platform/` included by one of those
+header under `libs/platforms/interfaces/sns/platform/` included by one of those
 files (so the haptics interface, for one, cannot be declared and left
 unimplemented), and a branch in the selector for it (and the other way: a
 branch with no fragment behind it). It runs wherever the tests run, so a typo

@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The parental gate: one large press-and-hold target, not two far-apart
 // circles. A parent should not have to discover that a mouse on one circle and

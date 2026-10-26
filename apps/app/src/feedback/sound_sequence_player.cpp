@@ -5,13 +5,13 @@
 #include <utility>
 
 #include "qt_text.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
-[[nodiscard]] QString kind_name(wjs::SoundStepKind kind) {
-    return to_qstring(wjs::to_string(kind));
+[[nodiscard]] QString kind_name(sns::SoundStepKind kind) {
+    return to_qstring(sns::to_string(kind));
 }
 
 }  // namespace
@@ -36,9 +36,9 @@ void SoundSequencePlayer::setScheduler(Scheduler scheduler) {
     scheduler_ = std::move(scheduler);
 }
 
-void SoundSequencePlayer::start(wjs::SoundSequence sequence, double volume) {
+void SoundSequencePlayer::start(sns::SoundSequence sequence, double volume) {
     // Walking a word's steps, up to the first clip that has to be waited for.
-    const auto zone = wjs::profiling::zone<"sound.sequence">();
+    const auto zone = sns::profiling::zone<"sound.sequence">();
     cancel();
     sequence_ = std::move(sequence);
     volume_ = volume;
@@ -66,9 +66,9 @@ void SoundSequencePlayer::advance(std::uint64_t serial) {
         return;
     }
     while (next_ < sequence_.steps.size()) {
-        const wjs::SoundStep& step = sequence_.steps[next_];
+        const sns::SoundStep& step = sequence_.steps[next_];
         const bool is_clip_step =
-            step.kind == wjs::SoundStepKind::sound || step.kind == wjs::SoundStepKind::blend;
+            step.kind == sns::SoundStepKind::sound || step.kind == sns::SoundStepKind::blend;
         // The gap before a sound is waited only after a sound that was heard: the
         // gap is silence between two clips, not a delay before the first.
         if (is_clip_step && after_audible_ && !gap_waited_ && step.gap_before.count() > 0) {
@@ -79,7 +79,7 @@ void SoundSequencePlayer::advance(std::uint64_t serial) {
         gap_waited_ = false;
 
         // Copied before the signal goes out: a slot may start another sequence.
-        const wjs::SoundStepKind kind = step.kind;
+        const sns::SoundStepKind kind = step.kind;
         const int block = static_cast<int>(step.block);
         const std::string word = step.letters;
         ++next_;
@@ -89,8 +89,8 @@ void SoundSequencePlayer::advance(std::uint64_t serial) {
         }
 
         switch (kind) {
-            case wjs::SoundStepKind::sound: {
-                const wjs::SoundStep& played = sequence_.steps[next_ - 1];
+            case sns::SoundStepKind::sound: {
+                const sns::SoundStep& played = sequence_.steps[next_ - 1];
                 if (!played.clips.empty() &&
                     clips_->play(played.clips.front(), volume_,
                                  [this, serial] { clipFinished(serial); })) {
@@ -100,7 +100,7 @@ void SoundSequencePlayer::advance(std::uint64_t serial) {
                 after_audible_ = false;
                 break;
             }
-            case wjs::SoundStepKind::blend: {
+            case sns::SoundStepKind::blend: {
                 in_blend_ = true;
                 blend_clip_ = 0;
                 if (playBlendClip(serial)) {
@@ -111,13 +111,13 @@ void SoundSequencePlayer::advance(std::uint64_t serial) {
                 after_audible_ = false;
                 break;
             }
-            case wjs::SoundStepKind::say:
+            case sns::SoundStepKind::say:
                 after_audible_ = false;
                 if (say_) {
                     say_(to_qstring(word), volume_);
                 }
                 break;
-            case wjs::SoundStepKind::cheer:
+            case sns::SoundStepKind::cheer:
                 // The phrase is a recording whose wording the reviewer owns: there
                 // is none to play, and the voice does not stand in for it.
                 after_audible_ = false;
@@ -128,7 +128,7 @@ void SoundSequencePlayer::advance(std::uint64_t serial) {
 }
 
 bool SoundSequencePlayer::playBlendClip(std::uint64_t serial) {
-    const wjs::SoundStep& blend = sequence_.steps[next_ - 1];
+    const sns::SoundStep& blend = sequence_.steps[next_ - 1];
     while (blend_clip_ < blend.clips.size()) {
         if (clips_->play(blend.clips[blend_clip_], volume_,
                          [this, serial] { clipFinished(serial); })) {
@@ -159,4 +159,4 @@ void SoundSequencePlayer::finish() {
     emit finished();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

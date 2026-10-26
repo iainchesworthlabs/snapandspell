@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 
 // The design's contrast gates, computed from the real Theme tokens in both
 // schemes (WCAG 2.x relative luminance): text 4.5:1, non-text 3:1, and the

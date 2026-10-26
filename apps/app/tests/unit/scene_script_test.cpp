@@ -21,11 +21,11 @@
 
 namespace {
 
-constexpr std::string_view script_path = WJS_SCENE_SCRIPT;
+constexpr std::string_view script_path = SNS_SCENE_SCRIPT;
 
 QCoreApplication& application() {
     static int argc = 1;
-    static char name[] = "wjs_scene_script_tests";
+    static char name[] = "sns_scene_script_tests";
     static char* argv[] = {name, nullptr};
     static QCoreApplication instance(argc, argv);
     return instance;
@@ -81,7 +81,7 @@ TEST_CASE("the longest play stays within the budget", "[scene][perf]") {
     const double play = s.number(
         "stageLength(b, 'shake') + stageLength(b, 'lid') + "
         "stageLength(b, 'drop') + stageLength(b, 'settle')");
-    CHECK(play <= static_cast<double>(wjs::perf::budget::kScenePlay6x6Ms));
+    CHECK(play <= static_cast<double>(sns::perf::budget::kScenePlay6x6Ms));
 }
 
 TEST_CASE("the same seed gives the same play and another seed another", "[scene]") {

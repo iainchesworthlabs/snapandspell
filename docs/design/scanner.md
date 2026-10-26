@@ -38,13 +38,13 @@ counted outside them, and a typed board starts at 4x4
 A frame in, a board and a doubt per tile out, and the data flow that makes a
 grown-up confirm it before the solver sees it. Not the screen when this page was
 written (the Solo Play UI owned `apps/app/src`); Mode A's screens are now built in
-`apps/app/qml/scan` and bind to `wjs::scan::BoardDraft` through `ScanModel`
+`apps/app/qml/scan` and bind to `sns::scan::BoardDraft` through `ScanModel`
 ([Mode A as built](#mode-a-as-built); docs/architecture.md, "The Qt Quick window").
 And not the iOS reader (it needs a Mac and an iPad: see
 [What is left](#what-is-left-for-a-real-camera-a-mac-and-an-ipad)).
 
 ```text
- camera (CameraSource / platform)   wjs::scan (portable, Qt-free)            UI binds to
+ camera (CameraSource / platform)   sns::scan (portable, Qt-free)            UI binds to
  ───────────────────────────────    ─────────────────────────────            ───────────
  OwnedFrame ──▶ read_board(frame, options)                        BoardDraft
                   1. luma, a working picture of 480 px
@@ -55,7 +55,7 @@ And not the iOS reader (it needs a Mac and an iPad: see
                                           try_from_reading ──▶ BoardDraft
                                                           set_tile / accept_tile / turn / resize
                                                           doubtful()  (the ringed tiles)
-                                                          confirm() ──▶ wjs::Board ──▶ solver
+                                                          confirm() ──▶ sns::Board ──▶ solver
 ```
 
 Three rules hold the shape of it:
@@ -68,7 +68,7 @@ Three rules hold the shape of it:
 2. **A doubt is data, not a message.** Each tile carries a confidence, its
    runners-up and a `doubtful` flag; what the screen does with them (a ring and
    a `?`, [board design](board.md#the-tile)) is the UI's. Nothing in
-   `wjs::scan` produces text for a child, lists a word, or calls the solver.
+   `sns::scan` produces text for a child, lists a word, or calls the solver.
    Mode A highlights only the start tile (PRD 12.4); that is the session flow's,
    after `confirm()`.
 3. **Frames live in memory only.** No code under `libs/scan` or in the two
@@ -227,7 +227,7 @@ the application: nothing in `src` links it.
 
 ![Four synthetic frames: a 4x4 board of dice under four conditions](scanner-corpus.png)
 
-*Four frames of the corpus (`wjs_scan_render --sheet`): upright, angled, loose
+*Four frames of the corpus (`sns_scan_render --sheet`): upright, angled, loose
 and glare, each a 4x4 board, at a third of the size they are read at.*
 
 ### What the generator draws
@@ -267,7 +267,7 @@ first run ([History](#history-the-first-limits)); so it is no longer a measure o
 anything unseen either. The **heldout** split was drawn after the bounds were
 derived and fixed, and its first reading is the one reported under
 [What was measured](#what-was-measured). The reader is developed against the
-tuning split alone. `WJS_SCAN_SPLIT=test` or `=heldout` tells a hidden diagnostic
+tuning split alone. `SNS_SCAN_SPLIT=test` or `=heldout` tells a hidden diagnostic
 to read another split, and reading the heldout one with a tool **is looking at
 it**: if it steers a change, the split is retired and a new base seed taken
 (`seed_of` in `libs/scan/tests/synth/scene.cpp`). That is a convention: nothing but
@@ -292,7 +292,7 @@ margin for that.
 | Release (`ctest --preset linux-gcc-release`, the `Performance` leg) | The whole heldout split against the derived bounds, and 21 frames with no board |
 | Debug with the sanitizers (the build legs) | A **smoke** subset: one board of each condition and one frame with no board of each kind, the judge's rotation rule, the turn taken from corners, and the recorded-frames harness on made frames. The pipeline runs clean under ASan and gets the plain cases right. The target is **skipped**, not failed, as the performance tier skips: the corpus is much longer there |
 
-`wjs_scan_render` (built with the tests) writes the corpus, or a contact sheet of
+`sns_scan_render` (built with the tests) writes the corpus, or a contact sheet of
 it, to a directory, for a person to look at. **The app never writes a frame**; the
 generator is a test tool and its PNG writer is in `tests/`.
 
@@ -300,7 +300,7 @@ generator is a test tool and its PNG writer is in `tests/`.
 
 The real measurement is on real photographs, and the repository cannot hold
 them. `libs/scan/tests` has a hidden case, `[.recorded]`, that reads frames from the
-directory in `WJS_SCAN_RECORDED_DIR` (binary PGM, grey, with a `<name>.txt`
+directory in `SNS_SCAN_RECORDED_DIR` (binary PGM, grey, with a `<name>.txt`
 beside each holding the true board in the board text format) and prints the same
 five numbers. It skips when the variable is unset, as
 [Licensing](../licensing.md#camera-input-and-letter-recognition) asks. The
@@ -314,8 +314,8 @@ are no recorded-frame bounds, and the harness only prints.
 
 ## The library
 
-`wjs_scan` (`wjs::scan`), a static library of its own in `libs/scan`. It links
-`wjs::lib` for `Board` and nothing else; the solver library does not link it and
+`sns_scan` (`sns::scan`), a static library of its own in `libs/scan`. It links
+`sns::lib` for `Board` and nothing else; the solver library does not link it and
 stays free of image code.
 
 ### No image dependency
@@ -358,7 +358,7 @@ GPL-3.0-or-later; **not added now**).
 | Output | Per tile: letters, confidence in [0, 1], the turn found, the score and lead, up to two runners-up; per board: size, corners in the frame, a size confidence, the glyph height taken | A `std::expected<BoardReading, ReadError>`. `ReadError` has **five** values: `invalid_frame`, `board_not_found`, `size_not_found`, `no_letters` and `invalid_options` (never produced with the default options) |
 
 The templates are renders of the library's own stroke font
-(`wjs/scan/stroke_font.hpp`): 26 letters and `Qu`, as polylines and elliptical
+(`sns/scan/stroke_font.hpp`): 26 letters and `Qu`, as polylines and elliptical
 arcs in a box 4 wide and 6 tall, drawn at any angle and weight by distance to the
 strokes. **Template matching and a bitmap of the real dice font are
 interchangeable behind `GlyphReader`**, which is how a font of the real dice (once
@@ -370,7 +370,7 @@ and expected to move on the first real ones.
 
 ### Confirm and correct
 
-`BoardDraft` (`wjs/scan/confirmation.hpp`) is the model the check screen binds
+`BoardDraft` (`sns/scan/confirmation.hpp`) is the model the check screen binds
 to. It is Qt-free and holds no pixels.
 
 | Operation | What it does |
@@ -398,14 +398,14 @@ The whole flow, from a reading to the words on the board, is a test
 
 ## The platform interfaces
 
-Two headers under `libs/platforms/interfaces/wjs/platform/`, one definition each
+Two headers under `libs/platforms/interfaces/sns/platform/`, one definition each
 per platform, chosen only by `cmake/Platform.cmake` through the platform
 fragments:
 
 | Interface | What it is | Windows, Linux, macOS (today) |
 | --- | --- | --- |
 | `camera.hpp` | `enumerate_devices`, `start`, `stop`, `is_capturing`, `try_pop_latest_frame`, `open_permission_settings`: Cubeulator's `camera.hpp` without OpenCV types (an `OwnedFrame` for its `cv::Mat`) and without its photometry lock, which is about colour sampling and not about letters | **Still no native desktop backend**: every function answers `unavailable`, or nothing. Mode A's desktop camera is not this interface: it is the application's `CameraSource` over Qt Multimedia ([below](#the-qt-multimedia-desktop-backend)), which is the optional-module variant pattern. This interface stays for a platform whose own camera API must be used (the iPad's AVFoundation), so the model can use either. *Type in your board* is the answer on a desktop with no camera ([Game](game.md#no-camera)) |
-| `board_reader.hpp` | `read(frame, options)`: a `BoardReading` or a `ReadError`; `kind()` and `name()` say whether the reader is the portable one or a native one | **The portable reader**: the three desktops forward to `wjs::scan::read_board`, from one file all of them name |
+| `board_reader.hpp` | `read(frame, options)`: a `BoardReading` or a `ReadError`; `kind()` and `name()` say whether the reader is the portable one or a native one | **The portable reader**: the three desktops forward to `sns::scan::read_board`, from one file all of them name |
 
 Both are implemented in `libs/platforms/detail/`, the directory for what no
 platform differs in (the isolation check has always allowed it; the
@@ -423,9 +423,9 @@ own camera and board reader are held to it (today the always-unavailable desktop
 camera and the portable reader). `kind()` and `name()` are called only by tests;
 no production code yet reads them.
 
-`wjs_platform` now links `wjs_scan` (for the frame and reading types the two
-headers use), so the layering is `wjs_lib` ← `wjs_scan` ← `wjs_platform` ← the
-front ends; `wjs_scan` does not include a platform header.
+`sns_platform` now links `sns_scan` (for the frame and reading types the two
+headers use), so the layering is `sns_lib` ← `sns_scan` ← `sns_platform` ← the
+front ends; `sns_scan` does not include a platform header.
 
 ### The Qt Multimedia desktop backend
 
@@ -435,17 +435,17 @@ module, one directory per variant, and no `#if` in a source.
 
 | Piece | Where | What it is |
 | --- | --- | --- |
-| `CameraSource` | `apps/app/src/camera/camera_source.*` | The QObject and `QML_ELEMENT` Mode A binds to: `available`, `devices`, `problem`, `running`, `start()`, `stop()`, `capture()` and the frame in hand. It is in the QML module `WordJewelsSolver.Scan`, so `Main.qml` makes one and hands it to `ScanModel::cameraSource` |
-| The backend seam | `apps/app/src/camera/camera_backend.hpp` | An interface that names no Qt Multimedia type: a `Changed` callback, the device list and state, `start`/`stop`, `capture()` returning a `wjs::scan::OwnedFrame`, and a preview hand-over by `QObject*`. The none backend is the same interface answering `no_camera` |
-| The multimedia backend | `apps/app/src/variants/camera-multimedia/wjs/app/camera_backend.cpp` | `QCamera` → `QMediaCaptureSession` → `QVideoSink`. The sink keeps the newest `QVideoFrame` only; capture converts it with `QVideoFrame::toImage()` and copies it into an owned RGB24 frame (`frame_from_image`, `apps/app/src/camera/frame_conversion.*`: `QImage::Format_RGB888`, bytes R, G, B, rows packed, `stride = width * 3`). No `ImageCapture`, no `QMediaRecorder`, no file |
-| The none backend | `apps/app/src/variants/camera-none/wjs/app/camera_backend.cpp` | A kit without Qt Multimedia: no device, no preview, no frame. It is the variant CMake compiles there; the rest of the application is unchanged |
+| `CameraSource` | `apps/app/src/camera/camera_source.*` | The QObject and `QML_ELEMENT` Mode A binds to: `available`, `devices`, `problem`, `running`, `start()`, `stop()`, `capture()` and the frame in hand. It is in the QML module `SnapAndSpell.Scan`, so `Main.qml` makes one and hands it to `ScanModel::cameraSource` |
+| The backend seam | `apps/app/src/camera/camera_backend.hpp` | An interface that names no Qt Multimedia type: a `Changed` callback, the device list and state, `start`/`stop`, `capture()` returning a `sns::scan::OwnedFrame`, and a preview hand-over by `QObject*`. The none backend is the same interface answering `no_camera` |
+| The multimedia backend | `apps/app/src/variants/camera-multimedia/sns/app/camera_backend.cpp` | `QCamera` → `QMediaCaptureSession` → `QVideoSink`. The sink keeps the newest `QVideoFrame` only; capture converts it with `QVideoFrame::toImage()` and copies it into an owned RGB24 frame (`frame_from_image`, `apps/app/src/camera/frame_conversion.*`: `QImage::Format_RGB888`, bytes R, G, B, rows packed, `stride = width * 3`). No `ImageCapture`, no `QMediaRecorder`, no file |
+| The none backend | `apps/app/src/variants/camera-none/sns/app/camera_backend.cpp` | A kit without Qt Multimedia: no device, no preview, no frame. It is the variant CMake compiles there; the rest of the application is unchanged |
 | The preview | `CameraPreview.qml` in each variant | A `VideoOutput` (multimedia) or an empty `Item` (none). The source sets the item's `videoSink`; the QML names no camera type of its own, so the shared screen builds either way |
 
 **The lifecycle.** `ScanModel::open()` starts the camera only in `scan.ready`.
 `capture()` waits for the newest frame with the existing patience (100 ms polls,
 40 of them, so a camera that never delivers returns to `ready` with `no_frame`).
 As soon as a frame is in hand the camera is stopped, before the frame is read;
-the `wjs::scan::OwnedFrame` is read through `board_reader::read` and dropped, and
+the `sns::scan::OwnedFrame` is read through `board_reader::read` and dropped, and
 only the `BoardReading`'s letters and doubts remain. Leaving the screen, the
 check screen opening, or the model being destroyed stops the camera too.
 
@@ -470,7 +470,7 @@ which is still `unavailable` on the three desktops.
 shared Qt 6.12 kit (MSVC, Debug and the Release package). `camera.screens`
 drives the real `ScanScreen`, the real `CameraSource` and a real `VideoOutput`
 headless, with a **fake backend** and one **synthetic** board frame: the preview
-is shown, Capture opens the check screen, and the camera stops. `wjs_app_tests`
+is shown, Capture opens the check screen, and the camera stops. `sns_app_tests`
 holds the conversion, the availability/refusal/failure states, the frame that
 never arrives and the model's use of a supplied source. **No camera is attached
 to this machine**, so no device was opened, the live picture path and the
@@ -591,7 +591,7 @@ child's room.
 | No audio input | The camera interface has no audio and `start` takes a video device; the Qt Multimedia backend creates only a video `QCamera`/`QMediaCaptureSession`; the iOS notes above forbid an audio input | The same scan fails on an audio-capture class or a microphone usage string, which would also cover `camera_ios.mm` when it is written |
 | No network | The library includes no network header | The same scan fails on a network class or socket header |
 | No export | No share, print or save | The file scan above |
-| No profiler in what ships | The scanner's zones (`scan.find_board`, `scan.read_tiles` and the steps inside them, listed under [Performance](#performance)) go through `wjs/profiling.hpp`, which is empty in a normal build | `profiling.shipped_presets` and `profiling.zone_names` (existing) |
+| No profiler in what ships | The scanner's zones (`scan.find_board`, `scan.read_tiles` and the steps inside them, listed under [Performance](#performance)) go through `sns/profiling.hpp`, which is empty in a normal build | `profiling.shipped_presets` and `profiling.zone_names` (existing) |
 
 The scan holds four rules, named in its findings: **file output**, **frame
 capture** (an image-capture or buffer class, or a save of an image), **audio
@@ -615,10 +615,10 @@ The comments in `camera.hpp` and `libs/scan/tests/synth/png.hpp` cite a check na
 [Performance design](performance.md) proposes 3 s from capture to the check
 screen. The library carries the usual counters and zones:
 
-- `wjs/scan/work.hpp` tallies, per thread, the reads, the pixels of the frame, the
+- `sns/scan/work.hpp` tallies, per thread, the reads, the pixels of the frame, the
   working picture and the warps, the blobs and die candidates, the cells read, the
   template comparisons and the pixel buffers allocated (and the most any one read
-  took), as `wjs/solver_work.hpp` does for the solver.
+  took), as `sns/solver_work.hpp` does for the solver.
 - `libs/core/bench` holds **work budgets** for four fixed frames and opt-in
   **wall-time** ratios (rows `scan.*` and `time.read.*`; see
   [Testing](../testing.md#performance-tests)). A change that reads each cell at

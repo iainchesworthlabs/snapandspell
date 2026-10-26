@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "solo_game.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 std::string_view to_string(SoloState state) noexcept {
     switch (state) {
@@ -21,4 +21,4 @@ std::string_view to_string(SoloState state) noexcept {
     return "box";
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

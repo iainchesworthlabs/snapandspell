@@ -9,13 +9,13 @@
 #include <limits>
 
 #include "fixtures.hpp"
-#include "wjs/scan/board_finder.hpp"
-#include "wjs/scan/image.hpp"
+#include "sns/scan/board_finder.hpp"
+#include "sns/scan/image.hpp"
 
 namespace {
 
-using namespace wjs::scan;
-using namespace wjs::scan::synth;
+using namespace sns::scan;
+using namespace sns::scan::synth;
 using Catch::Approx;
 
 // How far the found corners are from the true ones: each found corner against the

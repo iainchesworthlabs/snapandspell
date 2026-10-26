@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma ComponentBehavior: Bound
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The well of the tray, Toybox: a teal checker with one cell behind each die (DESIGN.md, section 6).
 // It shows where a die is missing - the box before the drop, a die that has not landed - and a fringe

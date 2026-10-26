@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/phase_data.hpp"
+#include "sns/phase_data.hpp"
 
 #include <algorithm>
 #include <array>
@@ -12,9 +12,9 @@
 #include <utility>
 
 #include "ascii.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 constexpr std::string_view byte_order_mark = "\xEF\xBB\xBF";
@@ -820,4 +820,4 @@ std::expected<PhaseSet, DataProblems> PhaseSet::load_directory(
     return phases;
 }
 
-}  // namespace wjs
+}  // namespace sns

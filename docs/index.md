@@ -1,11 +1,11 @@
-# WordJewelsSolver
+# SnapAndSpell
 
-WordJewelsSolver finds every word on a Boggle board.
+SnapAndSpell finds every word on a Boggle board.
 
 The goal is to hold a real Boggle board up to a webcam, or a phone or tablet
 camera, and have it solve the board, as a learning aid for young children (five
 and six year olds) playing with an adult. It is also a game: Solo Play, where a
-child shakes a box of dice and finds words. You can type a board into `wjs-cli`
+child shakes a box of dice and finds words. You can type a board into `sns-cli`
 and get the words and their scores; the application plays Solo Play and can read
 a board from the camera, though the reader has only been tested on drawn frames.
 
@@ -14,7 +14,7 @@ a board from the camera, though the reader has only been tested on drawn frames.
     The scanner's reader and the desktop camera exist, and **no real board has
     been read**: the reader is tested on drawn frames only
     ([Scanner design](design/scanner.md)). CI builds and tests the library and
-    `wjs-cli` on Windows, Linux and macOS and the application on Windows; the
+    `sns-cli` on Windows, Linux and macOS and the application on Windows; the
     release workflow builds packages for all three desktops and an iOS build for TestFlight
     for the author's own devices, and has never run on GitHub. Android is in
     progress and does not exist yet. The English word list is ENABLE. It has not been
@@ -27,11 +27,11 @@ a board from the camera, though the reader has only been tested on drawn frames.
 - **A library** (`libs/core`) that parses a board, holds a dictionary as a trie,
   scores words and finds every word on the board with a depth-first search. It
   has no GUI and no operating system code.
-- **`wjs-cli`**, a command-line front end to the library: give it a board and a
+- **`sns-cli`**, a command-line front end to the library: give it a board and a
   word list, and it prints the words, their scores and the tiles that spell
   them.
 - **The Qt Quick application**, built when Qt 6.12 is found
-  (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it):
+  (`SNS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it):
   the Solo Play game of [Game design](design/game.md) (shake the box, trace
   words on the board and collect jewels) played over the library's session, a
   parent area behind a gate (the dashboard, the settings, About and licences),
@@ -48,7 +48,7 @@ a board from the camera, though the reader has only been tested on drawn frames.
 ## Using the command-line solver
 
 ```text
-wjs-cli [-d <file>] [-m <n>] [-s boggle|rarity] <row>...
+sns-cli [-d <file>] [-m <n>] [-s boggle|rarity] <row>...
 ```
 
 Each `<row>` is one row of the board, as one argument. A worked example is in
@@ -103,7 +103,7 @@ counted from 1. Then a total line. Words are ordered by score (highest first),
 then length (longest first), then alphabetically.
 
 ```text
-$ wjs-cli -d words.txt -s rarity CAT ORE DGS
+$ sns-cli -d words.txt -s rarity CAT ORE DGS
 DOG                28   r3c1 r2c1 r3c2
 COD                24   r1c1 r2c1 r3c1
 CAR                21   r1c1 r1c2 r2c2
@@ -141,14 +141,14 @@ rarity.
 | 4 | An exception the program did not foresee |
 | 5 | The result could not be written to standard output |
 
-Errors go to standard error as `wjs-cli: <what went wrong>`. The board is read
+Errors go to standard error as `sns-cli: <what went wrong>`. The board is read
 before the word list is opened, so a bad board is reported as 3 even if the
 word list is also missing.
 
 ## Using the window
 
-The application is built when a Qt 6.12 kit is found (`WJS_BUILD_APP=AUTO`; see
-[Building](building.md#the-qt-quick-window)), then start `WordJewelsSolver`
+The application is built when a Qt 6.12 kit is found (`SNS_BUILD_APP=AUTO`; see
+[Building](building.md#the-qt-quick-window)), then start `SnapAndSpell`
 from `build/<preset>/bin/`. It plays the Solo Play
 game: shake the box and trace words on the board. A grown-up reaches the
 settings, the dashboard and the scanner (Mode A) through the parent button, which
@@ -160,7 +160,7 @@ when the program is started with `--phase-directory <dir>` and the Phonics board
 is chosen in the parent area's settings. A game in progress is kept in the store
 (`--store <file>`, or the per-user file) and comes back after a restart. The
 application always uses a minimum length of three letters and its own star and
-point scoring; the options of `wjs-cli` have no equivalent in it.
+point scoring; the options of `sns-cli` have no equivalent in it.
 
 ## Where to go next
 

@@ -4,9 +4,9 @@
 #include <QObject>
 #include <memory>
 
-#include "wjs/motion.hpp"
+#include "sns/motion.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // The device's motion, from Qt Sensors when the application was built with it
 // and never when it was not. One sample of the accelerometer and the gyroscope
@@ -15,7 +15,7 @@ namespace wjs::app {
 //     dice with (accelerometer in g, gravity included; gyroscope in rad/s);
 //   - shakeDetected(), once per real shake, which rolls the box like the Shake
 //     button;
-// all of it through the pure wjs::MotionProcessor, so the processing is tested
+// all of it through the pure sns::MotionProcessor, so the processing is tested
 // on a recorded trace without hardware.
 //
 // The application starts it only while Solo Play's box or the falling dice
@@ -52,7 +52,7 @@ public:
     // One sample of the device's motion: the way the sensor backend delivers each
     // reading, and so the way a recorded trace is played through the same path
     // (processing, availability, the shake gate) without a sensor.
-    void accept(const wjs::DeviceMotion& motion);
+    void accept(const sns::DeviceMotion& motion);
 
 signals:
     void availableChanged();
@@ -72,4 +72,4 @@ private:
     bool shake_enabled_ = true;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

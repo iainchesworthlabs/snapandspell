@@ -1,4 +1,4 @@
-Word Jewels Solver and the wjs library
+Snap and Spell and the sns library
 --------------------------------------
 
 Copyright (C) Iain Chesworth and contributors.

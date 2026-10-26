@@ -5,13 +5,13 @@
 #include <optional>
 #include <vector>
 
-#include "wjs/board.hpp"
+#include "sns/board.hpp"
 
 // Trace and tap in order, both always on (docs/design/game.md, "Tracing and
 // tapping"): the touch half of making a word. It turns pointer positions into
 // a path of touching tiles and says when the path is finished. It knows no
 // word and no sound; what the path spells is the game's to say
-// (wjs::validate_path and the session), and what it looks like is QML's.
+// (sns::validate_path and the session), and what it looks like is QML's.
 //
 //   Trace  press a tile and slide across neighbours, diagonals included; lift
 //          the finger to hand the path in. Sliding back onto the previous tile
@@ -29,7 +29,7 @@
 // thing a unit test cannot settle (docs/design/game.md); they are in tile
 // widths, 1 being a tile.
 
-namespace wjs::app {
+namespace sns::app {
 
 struct Point {
     double x = 0;
@@ -77,7 +77,7 @@ public:
 
     // Input with no pointer: a keyboard's Space, a screen reader's activation.
     // The same as tapping the tile.
-    Event tap(wjs::Position position);
+    Event tap(sns::Position position);
     // The Done jewel, Enter: hand the path in if there is one.
     Event submit();
     // Backspace: take the last tile off.
@@ -85,17 +85,17 @@ public:
     // Escape, or the end of a round: throw the path away.
     Event clear();
 
-    [[nodiscard]] const std::vector<wjs::Position>& path() const noexcept { return path_; }
+    [[nodiscard]] const std::vector<sns::Position>& path() const noexcept { return path_; }
     [[nodiscard]] bool pointerDown() const noexcept { return active_; }
 
     // The centre of a tile in pixels, and the tile nearest to a point.
-    [[nodiscard]] Point centre(wjs::Position position) const noexcept;
-    [[nodiscard]] std::optional<wjs::Position> nearest(Point at, double within) const;
+    [[nodiscard]] Point centre(sns::Position position) const noexcept;
+    [[nodiscard]] std::optional<sns::Position> nearest(Point at, double within) const;
 
 private:
-    [[nodiscard]] bool usable(wjs::Position position) const;
-    [[nodiscard]] bool used(wjs::Position position) const;
-    [[nodiscard]] bool joins(wjs::Position position) const;
+    [[nodiscard]] bool usable(sns::Position position) const;
+    [[nodiscard]] bool used(sns::Position position) const;
+    [[nodiscard]] bool joins(sns::Position position) const;
     bool step(Point at);
 
     std::size_t rows_ = 0;
@@ -105,7 +105,7 @@ private:
     double gap_ = 0;
     TraceTolerance tolerance_;
 
-    std::vector<wjs::Position> path_;
+    std::vector<sns::Position> path_;
     bool active_ = false;
     bool ignored_ = false;        // the press hit nothing, or a non-neighbour
     bool moved_ = false;          // the finger added or took off a tile since pressing
@@ -113,4 +113,4 @@ private:
     Point last_point_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

@@ -2,7 +2,7 @@
 <!--
   SPDX-License-Identifier: GPL-3.0-or-later
   The page of the web build (libs/platforms/web/packaging/index.html.in). It is written at
-  configure time; wjs-boot.js starts the program.
+  configure time; sns-boot.js starts the program.
 -->
 <html lang="en">
   <head>
@@ -13,7 +13,7 @@
     <!-- Nothing but this site's own files, no network request but to it (R-PLT-14), and
          WebAssembly compiled from them. The page's one <style> is inline. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; connect-src 'self' data: blob:; manifest-src 'self'; worker-src 'self' blob:; base-uri 'none'; form-action 'none'">
-    <title>@WJS_WEB_PAGE_TITLE@</title>
+    <title>@SNS_WEB_PAGE_TITLE@</title>
     <meta name="description" content="A word-finding game for young readers: shake the jewel box, find words and collect the jewels.">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" type="image/png" sizes="64x64" href="icon-64.png">
@@ -49,16 +49,16 @@
       a { color: inherit; }
     </style>
   </head>
-  <body data-app="@WJS_WEB_APP_NAME@" data-entry="@WJS_WEB_ENTRY_NAME@">
+  <body data-app="@SNS_WEB_APP_NAME@" data-entry="@SNS_WEB_ENTRY_NAME@">
     <div id="loading" role="status">
-      <h1>@WJS_WEB_PAGE_TITLE@</h1>
+      <h1>@SNS_WEB_PAGE_TITLE@</h1>
       <div class="cells" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <div id="status">Loading the game&hellip;</div>
       <noscript>This game needs JavaScript. Please turn it on for this page.</noscript>
     </div>
     <div id="screen"></div>
-    <script src="@WJS_WEB_APP_NAME@.js"></script>
+    <script src="@SNS_WEB_APP_NAME@.js"></script>
     <script src="qtloader.js"></script>
-    <script src="wjs-boot.js"></script>
+    <script src="sns-boot.js"></script>
   </body>
 </html>

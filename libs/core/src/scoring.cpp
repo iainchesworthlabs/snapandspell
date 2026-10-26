@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scoring.hpp"
+#include "sns/scoring.hpp"
 
 #include <array>
 #include <cstddef>
 
-namespace wjs {
+namespace sns {
 namespace {
 
 // How often each letter turns up in English text, in percent (the table the
@@ -133,4 +133,4 @@ int word_points(std::string_view word) noexcept {
     return total;
 }
 
-}  // namespace wjs
+}  // namespace sns

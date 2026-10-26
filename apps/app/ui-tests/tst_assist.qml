@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
-import WordJewelsSolver.Scan
+import SnapAndSpell
+import SnapAndSpell.Scan
 
 // The Family Assistant's screen (apps/app/qml/scan/AssistScreen.qml and
 // AssistBoard.qml): the board as Solo Play's object (the kit's tray with its gold

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scan/geometry.hpp"
+#include "sns/scan/geometry.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
 
-namespace wjs::scan {
+namespace sns::scan {
 
 namespace {
 
@@ -263,4 +263,4 @@ std::optional<Homography> inverse(const Homography& h) noexcept {
     return out;
 }
 
-}  // namespace wjs::scan
+}  // namespace sns::scan

@@ -6,27 +6,27 @@
 #include <random>
 #include <vector>
 
-#include "wjs/parent_gate.hpp"
+#include "sns/parent_gate.hpp"
 
 namespace {
 
+using sns::Gate;
+using sns::GateState;
+using sns::Point;
 using std::chrono::milliseconds;
-using wjs::Gate;
-using wjs::GateState;
-using wjs::Point;
 
 // An iPad-sized screen in points, landscape, and the layout the gate makes for it.
 constexpr double screen_width = 1024.0;
 constexpr double screen_height = 768.0;
 
-wjs::GateLayout ipad_layout() {
-    return wjs::gate_layout(screen_width, screen_height, 48.0);
+sns::GateLayout ipad_layout() {
+    return sns::gate_layout(screen_width, screen_height, 48.0);
 }
 
-Point in_first(const wjs::GateLayout& layout) {
+Point in_first(const sns::GateLayout& layout) {
     return layout.first.centre;
 }
-Point in_second(const wjs::GateLayout& layout) {
+Point in_second(const sns::GateLayout& layout) {
     return layout.second.centre;
 }
 Point nowhere() {
@@ -40,7 +40,7 @@ TEST_CASE("the layout puts two spots far apart on the diagonal", "[gate]") {
 
     CHECK(layout.first.centre.x < layout.second.centre.x);
     CHECK(layout.first.centre.y < layout.second.centre.y);
-    CHECK(wjs::gate_layout_is_usable(layout, screen_width, screen_height));
+    CHECK(sns::gate_layout_is_usable(layout, screen_width, screen_height));
 }
 
 TEST_CASE("the layout is usable on every screen shape the app meets", "[gate]") {
@@ -49,35 +49,35 @@ TEST_CASE("the layout is usable on every screen shape the app meets", "[gate]") 
     };
     for (const Size size : {Size{1024, 768}, Size{768, 1024}, Size{844, 390}, Size{390, 844},
                             Size{1366, 1024}, Size{360, 640}, Size{2560, 1440}, Size{480, 800}}) {
-        const auto layout = wjs::gate_layout(size.w, size.h, 48.0);
+        const auto layout = sns::gate_layout(size.w, size.h, 48.0);
         INFO(size.w << " x " << size.h);
-        CHECK(wjs::gate_layout_is_usable(layout, size.w, size.h));
+        CHECK(sns::gate_layout_is_usable(layout, size.w, size.h));
         CHECK(layout.first.radius >= 48.0);
     }
 }
 
 TEST_CASE("the spots are never smaller than the adult touch target", "[gate]") {
     // 48 dp is the floor for anything an adult touches (application.md).
-    CHECK(wjs::gate_layout(300.0, 300.0, 48.0).first.radius >= 48.0);
-    CHECK(wjs::gate_layout(2000.0, 1500.0, 48.0).first.radius >= 48.0);
+    CHECK(sns::gate_layout(300.0, 300.0, 48.0).first.radius >= 48.0);
+    CHECK(sns::gate_layout(2000.0, 1500.0, 48.0).first.radius >= 48.0);
 }
 
 TEST_CASE("a layout whose spots are close, or off the screen, is not usable", "[gate]") {
-    wjs::GateLayout close = ipad_layout();
+    sns::GateLayout close = ipad_layout();
     close.second.centre = {close.first.centre.x + close.first.radius * 2.0, close.first.centre.y};
-    CHECK_FALSE(wjs::gate_layout_is_usable(close, screen_width, screen_height));
+    CHECK_FALSE(sns::gate_layout_is_usable(close, screen_width, screen_height));
 
-    wjs::GateLayout off = ipad_layout();
+    sns::GateLayout off = ipad_layout();
     off.first.centre = {5.0, 5.0};
-    CHECK_FALSE(wjs::gate_layout_is_usable(off, screen_width, screen_height));
+    CHECK_FALSE(sns::gate_layout_is_usable(off, screen_width, screen_height));
 
-    wjs::GateLayout empty = ipad_layout();
+    sns::GateLayout empty = ipad_layout();
     empty.first.radius = 0.0;
-    CHECK_FALSE(wjs::gate_layout_is_usable(empty, screen_width, screen_height));
+    CHECK_FALSE(sns::gate_layout_is_usable(empty, screen_width, screen_height));
 }
 
 TEST_CASE("a spot contains its edge and nothing past it", "[gate]") {
-    const wjs::Spot spot{{100.0, 100.0}, 10.0};
+    const sns::Spot spot{{100.0, 100.0}, 10.0};
     CHECK(spot.contains({100.0, 100.0}));
     CHECK(spot.contains({110.0, 100.0}));
     CHECK_FALSE(spot.contains({110.1, 100.0}));
@@ -355,7 +355,7 @@ TEST_CASE("a new layout starts the hold over", "[gate]") {
     gate.touch_down(2, in_second(layout), milliseconds{0});
     gate.tick(milliseconds{1500});
 
-    gate.set_layout(wjs::gate_layout(768.0, 1024.0, 48.0));
+    gate.set_layout(sns::gate_layout(768.0, 1024.0, 48.0));
 
     CHECK(gate.state() == GateState::waiting);
     gate.tick(milliseconds{5000});
@@ -375,7 +375,7 @@ TEST_CASE("a hold time of the caller's choosing is respected", "[gate]") {
 }
 
 TEST_CASE("the hold the design asks for is two seconds", "[gate]") {
-    CHECK(wjs::gate_hold_time == milliseconds{2000});
+    CHECK(sns::gate_hold_time == milliseconds{2000});
 }
 
 // A property test against an oracle written separately from the gate. A

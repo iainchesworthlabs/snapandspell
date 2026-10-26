@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Window
-import WordJewelsSolver
-import WordJewelsSolver.Scan
+import SnapAndSpell
+import SnapAndSpell.Scan
 
 // A stub for the application's screen shell for the Family Assistant's screens:
 // the scan screen and the assistant's screen, with the two models the program

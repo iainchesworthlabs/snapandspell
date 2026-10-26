@@ -9,8 +9,8 @@
 #include <string_view>
 #include <vector>
 
-#include "wjs/board.hpp"
-#include "wjs/grapheme_binder.hpp"
+#include "sns/board.hpp"
+#include "sns/grapheme_binder.hpp"
 
 // What the Solo Play screens need from the game, and nothing more: the names
 // of docs/design/game.md (Mode B, "The flow") as plain C++, with no Qt. The
@@ -36,7 +36,7 @@
 // still, so the port has one call for it (settled) and the game may report
 // `shaking` or `dropping` between shake() and settled() as it likes.
 
-namespace wjs::app {
+namespace sns::app {
 
 enum class SoloState {
     box,       // solo.box: the lid on; size choice; Shake
@@ -68,7 +68,7 @@ struct SoloBoard {
     std::vector<std::string> tiles;
     // The six faces of the die on each tile, row-major, and which of them is up,
     // so that faces[t][up[t]] == tiles[t]. They are the library's roll of the
-    // seed (wjs::roll_with_placements): a die carries its six different letters
+    // seed (sns::roll_with_placements): a die carries its six different letters
     // and the scene lands it on the one that is up. Empty when the board was not
     // rolled from dice: the phonics board, a game the store brought back (a
     // board's roll seed is not kept), and the fake game. The scene then draws
@@ -77,7 +77,7 @@ struct SoloBoard {
     std::vector<int> up;  // one of the six, 0 to 5
     // The seed of the scene's shake and drop; the same board and seed replay
     // identically. A dealt board's seed is also the roll's seed, which is why the
-    // faces above are what wjs::roll_with_placements gives for it.
+    // faces above are what sns::roll_with_placements gives for it.
     std::uint32_t seed = 0;
 
     [[nodiscard]] bool empty() const noexcept { return tiles.empty(); }
@@ -91,7 +91,7 @@ struct SoloFound {
     std::string word;  // lower-case: the tray's text
     WordTier tier = WordTier::spark;
     int stars = 0;
-    // The word's child-facing points (wjs::word_points): length, letter value
+    // The word's child-facing points (sns::word_points): length, letter value
     // and the long-word bonus. Stars are the tier's reward; points are the
     // running score the panel and summary show.
     int points = 0;
@@ -190,4 +190,4 @@ public:
     [[nodiscard]] virtual bool saveFailed() const { return false; }
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

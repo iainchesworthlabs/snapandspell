@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/shake.hpp"
+#include "sns/shake.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 struct Vector {
@@ -119,4 +119,4 @@ std::vector<Shake> detect_shakes(std::span<const AccelerationSample> samples,
     return shakes;
 }
 
-}  // namespace wjs
+}  // namespace sns

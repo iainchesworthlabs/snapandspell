@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/dashboard.hpp"
+#include "sns/dashboard.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -7,9 +7,9 @@
 #include <string_view>
 #include <vector>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 namespace {
 
@@ -153,4 +153,4 @@ Dashboard build_dashboard(const StoreData& data, const PhaseIndex* index, Day to
     return dashboard;
 }
 
-}  // namespace wjs
+}  // namespace sns

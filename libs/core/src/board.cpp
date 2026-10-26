@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/board.hpp"
+#include "sns/board.hpp"
 
 #include <utility>
 
 #include "ascii.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 constexpr std::string_view tile_separators = " \t,";
@@ -144,4 +144,4 @@ const std::string& Board::tile(Position position) const noexcept {
     return tiles_[position.row * columns_ + position.column];
 }
 
-}  // namespace wjs
+}  // namespace sns

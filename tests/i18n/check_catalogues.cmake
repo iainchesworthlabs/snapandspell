@@ -32,7 +32,7 @@ if(NOT LUPDATE OR NOT EXISTS "${LUPDATE}")
 endif()
 
 set(_missing "")
-foreach(_ts IN LISTS WJS_TS_FILES)
+foreach(_ts IN LISTS SNS_TS_FILES)
     if(NOT EXISTS "${_ts}")
         list(APPEND _missing "${_ts}")
     endif()
@@ -41,14 +41,14 @@ if(_missing)
     string(REPLACE ";" "\n  " _report "${_missing}")
     message(FATAL_ERROR
         "These catalogues are missing (they are generated, and checked in):\n  ${_report}\n"
-        "Run: cmake --build <build> --target wjs_update_translations")
+        "Run: cmake --build <build> --target sns_update_translations")
 endif()
 
 # A copy of the checked-in catalogues, so the check never rewrites the tree.
 file(REMOVE_RECURSE "${WORK_DIR}")
 file(MAKE_DIRECTORY "${WORK_DIR}")
 set(_generated "")
-foreach(_ts IN LISTS WJS_TS_FILES)
+foreach(_ts IN LISTS SNS_TS_FILES)
     get_filename_component(_name "${_ts}" NAME)
     set(_copy "${WORK_DIR}/${_name}")
     configure_file("${_ts}" "${_copy}" COPYONLY)
@@ -57,7 +57,7 @@ endforeach()
 
 execute_process(
     COMMAND "${LUPDATE}" -locations relative -no-obsolete
-            ${WJS_TRANSLATION_SOURCES} -ts ${_generated}
+            ${SNS_TRANSLATION_SOURCES} -ts ${_generated}
     WORKING_DIRECTORY "${REPO_ROOT}"
     RESULT_VARIABLE _result
     OUTPUT_VARIABLE _output
@@ -71,14 +71,14 @@ endif()
 # the same source is named "../qml/..." in one and "../../../../../apps/app/qml/..." in the
 # other. The path from the application's directory is what is compared; everything
 # else in the line (the line number and its delta) still has to match.
-function(wjs_normalise_catalogue variable)
+function(sns_normalise_catalogue variable)
     string(REGEX REPLACE "filename=\"[^\"]*/((src|qml)/[^\"]*)\"" "filename=\"\\1\""
         _normalised "${${variable}}")
     set("${variable}" "${_normalised}" PARENT_SCOPE)
 endfunction()
 
 set(_drift "")
-foreach(_ts IN LISTS WJS_TS_FILES)
+foreach(_ts IN LISTS SNS_TS_FILES)
     get_filename_component(_name "${_ts}" NAME)
     set(_copy "${WORK_DIR}/${_name}")
     file(READ "${_ts}" _checked)
@@ -87,8 +87,8 @@ foreach(_ts IN LISTS WJS_TS_FILES)
     # comparison is over the text lupdate writes (LF).
     string(REPLACE "\r\n" "\n" _checked "${_checked}")
     string(REPLACE "\r\n" "\n" _regenerated "${_regenerated}")
-    wjs_normalise_catalogue(_checked)
-    wjs_normalise_catalogue(_regenerated)
+    sns_normalise_catalogue(_checked)
+    sns_normalise_catalogue(_regenerated)
     if(NOT _checked STREQUAL _regenerated)
         list(APPEND _drift "${_ts}")
     endif()
@@ -100,8 +100,8 @@ if(_drift)
         "The interface's catalogues are out of date:\n  ${_report}\n"
         "They are generated from the sources (apps/app/translations/sources are listed in "
         "cmake/Translations.cmake). Regenerate and translate anything new:\n"
-        "  cmake --build <build> --target wjs_update_translations")
+        "  cmake --build <build> --target sns_update_translations")
 endif()
 
-string(REPLACE ";" ", " _languages "${WJS_TRANSLATION_LANGUAGES}")
+string(REPLACE ";" ", " _languages "${SNS_TRANSLATION_LANGUAGES}")
 message(STATUS "i18n: ${_languages} catalogues are up to date")

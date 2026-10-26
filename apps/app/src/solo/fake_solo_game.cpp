@@ -6,11 +6,11 @@
 #include <tuple>
 #include <utility>
 
-#include "wjs/path.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/scoring.hpp"
+#include "sns/path.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/scoring.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 // TEST DATA (see the header): today's words are the five the design names.
@@ -129,7 +129,7 @@ bool FakeSoloGame::shake() {
     board_.tiles =
         size_ == 3 ? turned(board_3x3, 3, board_.seed) : turned(board_4x4, 4, board_.seed);
 
-    viable_ = wjs::solve(library_board(board_), todays_);
+    viable_ = sns::solve(library_board(board_), todays_);
     found_.clear();
     stars_ = 0;
     saved_ = false;
@@ -149,7 +149,7 @@ TraceOutcome FakeSoloGame::submit(std::span<const Position> path) {
     if (state_ != SoloState::playing || path.size() < 2) {
         return outcome;
     }
-    const auto spelled = wjs::validate_path(library_board(board_), path);
+    const auto spelled = sns::validate_path(library_board(board_), path);
     if (!spelled) {
         return outcome;
     }
@@ -160,7 +160,7 @@ TraceOutcome FakeSoloGame::submit(std::span<const Position> path) {
         outcome.found.word = lower(word);
         outcome.found.tier = tier_of(word.size());
         outcome.found.stars = stars_of(outcome.found.tier);
-        outcome.found.points = wjs::word_points(word);
+        outcome.found.points = sns::word_points(word);
         const bool again = std::ranges::any_of(
             found_, [&](const SoloFound& entry) { return entry.word == outcome.found.word; });
         outcome.alreadyFound = again;
@@ -168,7 +168,7 @@ TraceOutcome FakeSoloGame::submit(std::span<const Position> path) {
             found_.push_back(outcome.found);
             stars_ += outcome.found.stars;
         }
-        const bool all = std::ranges::all_of(viable_, [&](const wjs::FoundWord& viable) {
+        const bool all = std::ranges::all_of(viable_, [&](const sns::FoundWord& viable) {
             return std::ranges::any_of(
                 found_, [&](const SoloFound& entry) { return entry.word == lower(viable.word); });
         });
@@ -207,8 +207,8 @@ std::optional<Position> FakeSoloGame::startTile() {
     // The shortest word not yet found; of those the one whose first tile is
     // nearest the top left (squared distance, then the upper tile, then the left
     // one), then the word that sorts first.
-    const wjs::FoundWord* best = nullptr;
-    const auto key = [](const wjs::FoundWord& word) {
+    const sns::FoundWord* best = nullptr;
+    const auto key = [](const sns::FoundWord& word) {
         const Position first = word.path.front();
         return std::tuple{word.word.size(), first.row * first.row + first.column * first.column,
                           first.row, first.column, word.word};
@@ -234,7 +234,7 @@ std::optional<Position> FakeSoloGame::litTile() const {
     if (lit_word_.empty() || state_ != SoloState::playing) {
         return std::nullopt;
     }
-    const auto viable = std::ranges::find(viable_, lit_word_, &wjs::FoundWord::word);
+    const auto viable = std::ranges::find(viable_, lit_word_, &sns::FoundWord::word);
     const bool done = std::ranges::any_of(
         found_, [&](const SoloFound& entry) { return entry.word == lower(lit_word_); });
     if (viable == viable_.end() || viable->path.empty() || done) {
@@ -247,7 +247,7 @@ std::vector<Position> FakeSoloGame::helpPath() const {
     if (lit_word_.empty() || state_ != SoloState::playing) {
         return {};
     }
-    const auto viable = std::ranges::find(viable_, lit_word_, &wjs::FoundWord::word);
+    const auto viable = std::ranges::find(viable_, lit_word_, &sns::FoundWord::word);
     const bool done = std::ranges::any_of(
         found_, [&](const SoloFound& entry) { return entry.word == lower(lit_word_); });
     if (viable == viable_.end() || done) {
@@ -258,7 +258,7 @@ std::vector<Position> FakeSoloGame::helpPath() const {
 
 std::size_t FakeSoloGame::wordsWithStart(std::span<const Position> prefix) const {
     std::size_t count = 0;
-    for (const wjs::FoundWord& viable : viable_) {
+    for (const sns::FoundWord& viable : viable_) {
         const bool done = std::ranges::any_of(
             found_, [&](const SoloFound& entry) { return entry.word == lower(viable.word); });
         if (done || viable.path.size() < prefix.size()) {
@@ -310,4 +310,4 @@ void FakeSoloGame::again() {
     }
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

@@ -4,8 +4,8 @@
 #include <cstdlib>
 #include <span>
 
-#include "wjs/scan/frame.hpp"
-#include "wjs/scan/reader.hpp"
+#include "sns/scan/frame.hpp"
+#include "sns/scan/reader.hpp"
 
 // A camera frame. The first five bytes say how to read the rest: the pixel format, the width and
 // the height (each modulo 256 plus one, so a frame stays small enough to read in a few
@@ -18,14 +18,14 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
     if (size < header) {
         return 0;
     }
-    wjs::scan::Frame frame;
-    frame.format = static_cast<wjs::scan::PixelFormat>(data[0] % 5);
+    sns::scan::Frame frame;
+    frame.format = static_cast<sns::scan::PixelFormat>(data[0] % 5);
     frame.width = static_cast<std::size_t>(data[1]) + 1;
     frame.height = static_cast<std::size_t>(data[2]) + 1;
     frame.stride = static_cast<std::size_t>(data[3]) | (static_cast<std::size_t>(data[4]) << 8U);
     frame.pixels = std::span<const std::uint8_t>(data + header, size - header);
 
-    const auto reading = wjs::scan::read_board(frame);
+    const auto reading = sns::scan::read_board(frame);
     if (reading && reading->tiles.size() != reading->rows * reading->columns) {
         std::abort();
     }

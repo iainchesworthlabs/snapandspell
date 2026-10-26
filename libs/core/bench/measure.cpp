@@ -12,19 +12,19 @@
 
 #include "corpus.hpp"
 #include "perf_build.hpp"
-#include "wjs/binder_work.hpp"
-#include "wjs/game_session.hpp"
-#include "wjs/solver_work.hpp"
+#include "sns/binder_work.hpp"
+#include "sns/game_session.hpp"
+#include "sns/solver_work.hpp"
 
-namespace wjs::perf {
+namespace sns::perf {
 
 // ---------------------------------------------------------------------------
 // The dictionary
 // ---------------------------------------------------------------------------
 
-const wjs::Dictionary& english() {
-    static const wjs::Dictionary dictionary = [] {
-        auto loaded = wjs::Dictionary::load_file(std::string(kDictionaryPath));
+const sns::Dictionary& english() {
+    static const sns::Dictionary dictionary = [] {
+        auto loaded = sns::Dictionary::load_file(std::string(kDictionaryPath));
         // Nothing in this tier can say anything without the word list, and a
         // case that dereferenced an empty result would only say it worse.
         if (!loaded) {
@@ -35,16 +35,16 @@ const wjs::Dictionary& english() {
     return dictionary;
 }
 
-std::uint64_t trie_nodes(const wjs::Dictionary& dictionary) {
+std::uint64_t trie_nodes(const sns::Dictionary& dictionary) {
     std::uint64_t nodes = 0;
-    std::vector<wjs::Dictionary::Cursor> pending{wjs::Dictionary::root};
+    std::vector<sns::Dictionary::Cursor> pending{sns::Dictionary::root};
     while (!pending.empty()) {
-        const wjs::Dictionary::Cursor at = pending.back();
+        const sns::Dictionary::Cursor at = pending.back();
         pending.pop_back();
         ++nodes;
         for (char letter = 'A'; letter <= 'Z'; ++letter) {
-            const wjs::Dictionary::Cursor next = dictionary.step(at, letter);
-            if (next != wjs::Dictionary::no_node) {
+            const sns::Dictionary::Cursor next = dictionary.step(at, letter);
+            if (next != sns::Dictionary::no_node) {
                 pending.push_back(next);
             }
         }
@@ -56,10 +56,10 @@ std::uint64_t trie_nodes(const wjs::Dictionary& dictionary) {
 // Solver work
 // ---------------------------------------------------------------------------
 
-SolveWork measure_solve(const wjs::Board& board, const wjs::Dictionary& dictionary) {
-    wjs::reset_solve_work();
-    const auto found = wjs::solve(board, dictionary);
-    return {.visits = wjs::solve_work().visits, .words = found.size()};
+SolveWork measure_solve(const sns::Board& board, const sns::Dictionary& dictionary) {
+    sns::reset_solve_work();
+    const auto found = sns::solve(board, dictionary);
+    return {.visits = sns::solve_work().visits, .words = found.size()};
 }
 
 namespace {
@@ -68,24 +68,24 @@ namespace {
 // letters stepped so far, with its own, are still the start of some word.
 class Recount {
 public:
-    Recount(const wjs::Board& board, const wjs::Dictionary& dictionary)
+    Recount(const sns::Board& board, const sns::Dictionary& dictionary)
         : board_(board), dictionary_(dictionary), used_(board.rows() * board.columns(), false) {}
 
     std::uint64_t run() {
         for (std::size_t row = 0; row < board_.rows(); ++row) {
             for (std::size_t column = 0; column < board_.columns(); ++column) {
-                visit(row, column, wjs::Dictionary::root);
+                visit(row, column, sns::Dictionary::root);
             }
         }
         return visits_;
     }
 
 private:
-    void visit(std::size_t row, std::size_t column, wjs::Dictionary::Cursor from) {
-        wjs::Dictionary::Cursor cursor = from;
+    void visit(std::size_t row, std::size_t column, sns::Dictionary::Cursor from) {
+        sns::Dictionary::Cursor cursor = from;
         for (const char letter : board_.tile({row, column})) {
             cursor = dictionary_.step(cursor, letter);
-            if (cursor == wjs::Dictionary::no_node) {
+            if (cursor == sns::Dictionary::no_node) {
                 return;
             }
         }
@@ -105,15 +105,15 @@ private:
         used_[row * board_.columns() + column] = false;
     }
 
-    const wjs::Board& board_;
-    const wjs::Dictionary& dictionary_;
+    const sns::Board& board_;
+    const sns::Dictionary& dictionary_;
     std::vector<bool> used_;
     std::uint64_t visits_ = 0;
 };
 
 }  // namespace
 
-std::uint64_t recount_visits(const wjs::Board& board, const wjs::Dictionary& dictionary) {
+std::uint64_t recount_visits(const sns::Board& board, const sns::Dictionary& dictionary) {
     return Recount(board, dictionary).run();
 }
 
@@ -121,19 +121,19 @@ std::uint64_t recount_visits(const wjs::Board& board, const wjs::Dictionary& dic
 // Seeding work
 // ---------------------------------------------------------------------------
 
-SeedRun measure_seed(const wjs::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
-    const auto options = wjs::phonics_board_options(index, size);
+SeedRun measure_seed(const sns::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
+    const auto options = sns::phonics_board_options(index, size);
     // A phase that cannot make the options, or a seeding that is refused, is a
     // mistake in the corpus; there is nothing to recover to.
     if (!options) {
         std::abort();
     }
-    wjs::reset_solve_work();
-    auto seeded = wjs::seed_board(index, *options, wjs::RecentTargets{}, seed);
+    sns::reset_solve_work();
+    auto seeded = sns::seed_board(index, *options, sns::RecentTargets{}, seed);
     if (!seeded) {
         std::abort();
     }
-    const auto work = wjs::solve_work();
+    const auto work = sns::solve_work();
     return {.board = *std::move(seeded), .visits = work.visits, .solver_solves = work.solves};
 }
 
@@ -148,24 +148,24 @@ namespace {
 // touch, the snapshots, and the restore. `active` is the word list that counts
 // on the board: the phase's index on the phonics board, the dictionary on the
 // standard. The process ends if the session cannot be made or refuses the deal.
-SessionRun run_session(const wjs::SessionData& data, const wjs::SessionOptions& options,
-                       const wjs::Dictionary& active) {
-    auto created = wjs::GameSession::create(data, options);
+SessionRun run_session(const sns::SessionData& data, const sns::SessionOptions& options,
+                       const sns::Dictionary& active) {
+    auto created = sns::GameSession::create(data, options);
     if (!created) {
         std::abort();
     }
-    wjs::GameSession session = *std::move(created);
+    sns::GameSession session = *std::move(created);
 
     SessionRun run;
     run.mode = options.mode;
 
     // The deal: the shake and nothing else.
-    wjs::reset_solve_work();
+    sns::reset_solve_work();
     if (!session.shake()) {
         std::abort();
     }
-    run.deal_visits = wjs::solve_work().visits;
-    run.deal_solves = wjs::solve_work().solves;
+    run.deal_visits = sns::solve_work().visits;
+    run.deal_solves = sns::solve_work().solves;
     run.deal = *session.last_deal();
 
     // The words and their paths come from the solver, outside the counted part:
@@ -173,11 +173,11 @@ SessionRun run_session(const wjs::SessionData& data, const wjs::SessionOptions& 
     if (!session.still() || !session.landed()) {
         std::abort();
     }
-    const std::vector<wjs::FoundWord> words = wjs::solve(*session.board(), active);
+    const std::vector<sns::FoundWord> words = sns::solve(*session.board(), active);
     run.words = words.size();
 
-    wjs::reset_solve_work();
-    wjs::Stamp when = 0;
+    sns::reset_solve_work();
+    sns::Stamp when = 0;
     for (std::size_t which = 0; which < words.size(); ++which) {
         if (which % 2 == 1) {
             static_cast<void>(session.request_help());
@@ -186,37 +186,37 @@ SessionRun run_session(const wjs::SessionData& data, const wjs::SessionOptions& 
         if (which == 0) {
             // A word again, and a touch of one tile: neither is a find.
             run.kinds.push_back(session.trace(words[0].path, ++when).kind);
-            const std::vector<wjs::Position> touch{words[0].path.front()};
+            const std::vector<sns::Position> touch{words[0].path.front()};
             run.kinds.push_back(session.trace(touch, ++when).kind);
             run.after_first_find = session.snapshot();
             (void)session.record();
         }
     }
-    if (session.state() != wjs::SessionState::cleared || !session.rest()) {
+    if (session.state() != sns::SessionState::cleared || !session.rest()) {
         std::abort();
     }
     run.at_rest = session.snapshot();
-    run.play_visits = wjs::solve_work().visits;
-    run.play_solves = wjs::solve_work().solves;
+    run.play_visits = sns::solve_work().visits;
+    run.play_solves = sns::solve_work().solves;
 
     // Bringing the board back: one solve.
-    wjs::reset_solve_work();
-    const auto restored = wjs::GameSession::restore(run.after_first_find, data, options);
+    sns::reset_solve_work();
+    const auto restored = sns::GameSession::restore(run.after_first_find, data, options);
     if (!restored) {
         std::abort();
     }
-    run.restore_visits = wjs::solve_work().visits;
-    run.restore_solves = wjs::solve_work().solves;
+    run.restore_visits = sns::solve_work().visits;
+    run.restore_solves = sns::solve_work().solves;
     return run;
 }
 
-[[nodiscard]] wjs::SessionOptions options_of(wjs::BoardMode mode, std::size_t size,
+[[nodiscard]] sns::SessionOptions options_of(sns::BoardMode mode, std::size_t size,
                                              std::uint32_t seed) {
-    const auto board_size = wjs::board_size_for(size);
+    const auto board_size = sns::board_size_for(size);
     if (!board_size) {
         std::abort();
     }
-    wjs::SessionOptions options;
+    sns::SessionOptions options;
     options.mode = mode;
     options.size = *board_size;
     options.seed = seed;
@@ -225,20 +225,20 @@ SessionRun run_session(const wjs::SessionData& data, const wjs::SessionOptions& 
 
 }  // namespace
 
-SessionRun measure_session(const wjs::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
+SessionRun measure_session(const sns::PhaseIndex& index, std::size_t size, std::uint32_t seed) {
     return run_session({.dictionary = english(), .phase = &index},
-                       options_of(wjs::BoardMode::phonics, size, seed), index.dictionary());
+                       options_of(sns::BoardMode::phonics, size, seed), index.dictionary());
 }
 
 SessionRun measure_standard_session(std::size_t size, std::uint32_t seed) {
     return run_session({.dictionary = english(), .dice = &dice_sets()},
-                       options_of(wjs::BoardMode::standard, size, seed), english());
+                       options_of(sns::BoardMode::standard, size, seed), english());
 }
 
-std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
+std::size_t measure_session_deal(const sns::PhaseIndex& index, std::size_t size,
                                  std::uint32_t seed) {
-    auto created = wjs::GameSession::create({.dictionary = english(), .phase = &index},
-                                            options_of(wjs::BoardMode::phonics, size, seed));
+    auto created = sns::GameSession::create({.dictionary = english(), .phase = &index},
+                                            options_of(sns::BoardMode::phonics, size, seed));
     if (!created || !created->shake()) {
         std::abort();
     }
@@ -246,8 +246,8 @@ std::size_t measure_session_deal(const wjs::PhaseIndex& index, std::size_t size,
 }
 
 std::size_t measure_standard_session_deal(std::size_t size, std::uint32_t seed) {
-    auto created = wjs::GameSession::create({.dictionary = english(), .dice = &dice_sets()},
-                                            options_of(wjs::BoardMode::standard, size, seed));
+    auto created = sns::GameSession::create({.dictionary = english(), .dice = &dice_sets()},
+                                            options_of(sns::BoardMode::standard, size, seed));
     if (!created || !created->shake()) {
         std::abort();
     }
@@ -258,22 +258,22 @@ std::size_t measure_standard_session_deal(std::size_t size, std::uint32_t seed) 
 // Binder work
 // ---------------------------------------------------------------------------
 
-BindRun measure_bind(const wjs::GraphemeBinder& binder, std::span<const std::string> tiles) {
-    wjs::reset_bind_work();
+BindRun measure_bind(const sns::GraphemeBinder& binder, std::span<const std::string> tiles) {
+    sns::reset_bind_work();
     BindRun run;
     run.blocks = binder.bind(tiles);
-    run.comparisons = wjs::bind_work().comparisons;
+    run.comparisons = sns::bind_work().comparisons;
     return run;
 }
 
-std::uint64_t recount_comparisons(std::span<const wjs::Grapheme> graphemes,
-                                  std::span<const wjs::GraphemeBinder::Block> blocks) {
+std::uint64_t recount_comparisons(std::span<const sns::Grapheme> graphemes,
+                                  std::span<const sns::GraphemeBinder::Block> blocks) {
     // What the binder holds, from its own description (grapheme_binder.hpp):
     // the multi-letter graphemes that are not split, longest first, then in
     // letter order, each once. The letters of a Grapheme are lower-case as
     // written.
     std::vector<std::string> held;
-    for (const wjs::Grapheme& grapheme : graphemes) {
+    for (const sns::Grapheme& grapheme : graphemes) {
         if (grapheme.letters.size() > 1 && !grapheme.split()) {
             held.push_back(grapheme.letters);
         }
@@ -284,7 +284,7 @@ std::uint64_t recount_comparisons(std::span<const wjs::Grapheme> graphemes,
     held.erase(std::ranges::unique(held).begin(), held.end());
 
     std::uint64_t comparisons = 0;
-    for (const wjs::GraphemeBinder::Block& block : blocks) {
+    for (const sns::GraphemeBinder::Block& block : blocks) {
         if (!block.linked()) {
             comparisons += held.size();
             continue;
@@ -314,20 +314,20 @@ void Digest::text(const std::string& value) {
     byte(0);
 }
 
-void Digest::add(const std::vector<wjs::FoundWord>& found) {
+void Digest::add(const std::vector<sns::FoundWord>& found) {
     number(found.size());
-    for (const wjs::FoundWord& word : found) {
+    for (const sns::FoundWord& word : found) {
         text(word.word);
         number(static_cast<std::uint64_t>(word.score));
         number(word.path.size());
-        for (const wjs::Position position : word.path) {
+        for (const sns::Position position : word.path) {
             number(position.row);
             number(position.column);
         }
     }
 }
 
-void Digest::add(const wjs::SeededBoard& seeded) {
+void Digest::add(const sns::SeededBoard& seeded) {
     number(seeded.board.rows());
     number(seeded.board.columns());
     for (std::size_t row = 0; row < seeded.board.rows(); ++row) {
@@ -340,7 +340,7 @@ void Digest::add(const wjs::SeededBoard& seeded) {
         text(target);
     }
     number(seeded.dead.size());
-    for (const wjs::Position position : seeded.dead) {
+    for (const sns::Position position : seeded.dead) {
         number(position.row);
         number(position.column);
     }
@@ -350,13 +350,13 @@ void Digest::add(const wjs::SeededBoard& seeded) {
     add(seeded.viable);
 }
 
-void Digest::add(const wjs::SessionSnapshot& snapshot) {
+void Digest::add(const sns::SessionSnapshot& snapshot) {
     number(static_cast<std::uint64_t>(snapshot.state));
-    number(wjs::side(snapshot.size));
+    number(sns::side(snapshot.size));
     number(snapshot.seed);
     number(snapshot.board ? 1U : 0U);
     if (snapshot.board) {
-        const wjs::BoardRecord& record = *snapshot.board;
+        const sns::BoardRecord& record = *snapshot.board;
         text(record.phase);
         text(record.tiles);
         number(record.viable.size());
@@ -364,14 +364,14 @@ void Digest::add(const wjs::SessionSnapshot& snapshot) {
             text(word);
         }
         number(record.finds.size());
-        for (const wjs::Find& find : record.finds) {
+        for (const sns::Find& find : record.finds) {
             text(find.word);
             number(find.assisted ? 1U : 0U);
             number(static_cast<std::uint64_t>(find.when));
         }
         // What only the standard board's record says. Added for it alone, so that
         // the phonics digest is what it was before the mode existed.
-        if (record.mode == wjs::BoardMode::standard) {
+        if (record.mode == sns::BoardMode::standard) {
             number(record.viable_total);
         }
     }
@@ -382,7 +382,7 @@ void Digest::add(const wjs::SessionSnapshot& snapshot) {
 }
 
 void Digest::add(const SessionRun& run) {
-    if (run.mode == wjs::BoardMode::standard) {
+    if (run.mode == sns::BoardMode::standard) {
         number(run.deal.rolls);  // the standard deal's own count, in the place of the seedings
     }
     number(run.deal.seedings);
@@ -393,7 +393,7 @@ void Digest::add(const SessionRun& run) {
     number(run.deal.seed);
     number(run.words);
     number(run.kinds.size());
-    for (const wjs::TraceKind kind : run.kinds) {
+    for (const sns::TraceKind kind : run.kinds) {
         number(static_cast<std::uint64_t>(kind));
     }
     add(run.after_first_find);
@@ -413,7 +413,7 @@ bool timing_meaningful() {
 }
 
 bool timing_requested() {
-    const char* value = std::getenv("WJS_PERF_TIMING");
+    const char* value = std::getenv("SNS_PERF_TIMING");
     if (value == nullptr) {
         return false;
     }
@@ -469,4 +469,4 @@ double median(std::vector<double> values) {
 
 }  // namespace detail
 
-}  // namespace wjs::perf
+}  // namespace sns::perf

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Check that an iOS application (a built .app, or an exported .ipa) is complete.
 #
-#   libs/platforms/ios/packaging/verify_ipa.sh <WordJewelsSolver.app | package.ipa>
+#   libs/platforms/ios/packaging/verify_ipa.sh <SnapAndSpell.app | package.ipa>
 #       [--version <x.y.z>] [--build <n>] [--signed] [--store]
 #
 # What it looks for:
@@ -72,7 +72,7 @@ plutil -lint "$plist" >/dev/null || fail "Info.plist is not a valid property lis
 key() { /usr/libexec/PlistBuddy -c "Print :$1" "$plist" 2>/dev/null || true; }
 
 [ "$(key CFBundleIdentifier)" = "$bundle_id" ] || fail "CFBundleIdentifier is '$(key CFBundleIdentifier)'"
-[ "$(key CFBundleExecutable)" = "WordJewelsSolver" ] || fail "CFBundleExecutable is '$(key CFBundleExecutable)'"
+[ "$(key CFBundleExecutable)" = "SnapAndSpell" ] || fail "CFBundleExecutable is '$(key CFBundleExecutable)'"
 [ -n "$(key NSCameraUsageDescription)" ] || fail "Info.plist has no NSCameraUsageDescription"
 [ "$(key CFBundleIconName)" = "AppIcon" ] || fail "CFBundleIconName is '$(key CFBundleIconName)'"
 [ -n "$(key UILaunchScreen)" ] || fail "Info.plist has no UILaunchScreen (iOS would run the program in a legacy window)"
@@ -92,7 +92,7 @@ fi
 echo "    Info.plist: identifier, executable, version $(key CFBundleShortVersionString) build $(key CFBundleVersion), icon, camera text, launch screen, iOS $(key MinimumOSVersion) or later"
 
 for required in \
-    "$app/WordJewelsSolver" \
+    "$app/SnapAndSpell" \
     "$app/Assets.car" \
     "$app/dictionaries/en.txt" \
     "$app/dice/3x3.txt" \
@@ -101,9 +101,9 @@ for required in \
 done
 echo "    executable, asset catalogue, dictionary and dice"
 
-archs="$(lipo -archs "$app/WordJewelsSolver" 2>/dev/null || true)"
+archs="$(lipo -archs "$app/SnapAndSpell" 2>/dev/null || true)"
 [ "$archs" = "arm64" ] || fail "the executable is for '$archs', expected arm64"
-bad="$(otool -L "$app/WordJewelsSolver" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/usr/lib/|/System/Library/)' || true)"
+bad="$(otool -L "$app/SnapAndSpell" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/usr/lib/|/System/Library/)' || true)"
 [ -z "$bad" ] || fail "the executable links outside the system: $bad"
 echo "    executable: arm64, links only the system"
 

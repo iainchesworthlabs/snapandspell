@@ -1,4 +1,4 @@
-wjs-store 3
+sns-store 3
 settings help=off board=phonics phase=B focus=ai,ee size=4 sound_it_out=full celebration=full sound=1 vibration=1 shake=1 motion=system colour=dark timer=down timer_minutes=15 text=125 font=- language=-
 total stars=12 next_board=4
 best 3 5

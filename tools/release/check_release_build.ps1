@@ -8,12 +8,12 @@
 .DESCRIPTION
     Run after cpack, on the build tree and its packages/ directory:
 
-      1. the profiler is off. CMakeCache.txt says WJS_ENABLE_TRACY:BOOL=OFF, and
+      1. the profiler is off. CMakeCache.txt says SNS_ENABLE_TRACY:BOOL=OFF, and
          no file inside any package that can be listed has Tracy in its name
          (TracyClient.dll, libTracyClient.so). A release with the profiler in
          it opens a network port (docs/profiling.md);
       2. the build type is Release, the sanitizers are off in the cache (the
-         Release presets set WJS_ENABLE_SANITIZERS=OFF, so no sanitizer runtime is
+         Release presets set SNS_ENABLE_SANITIZERS=OFF, so no sanitizer runtime is
          copied into the tree), and no package that can be listed holds a
          sanitizer runtime (an asan or clang_rt file in a package is a Debug
          build shipped by mistake);
@@ -63,12 +63,12 @@ function Get-CacheValue([string]$name) {
 }
 
 # 1 and 2. The configuration.
-$tracy = Get-CacheValue 'WJS_ENABLE_TRACY'
-if ($tracy -ne 'OFF') { Fail "WJS_ENABLE_TRACY is '$tracy' in $cache; a release is built with the profiler off." }
+$tracy = Get-CacheValue 'SNS_ENABLE_TRACY'
+if ($tracy -ne 'OFF') { Fail "SNS_ENABLE_TRACY is '$tracy' in $cache; a release is built with the profiler off." }
 $type = Get-CacheValue 'CMAKE_BUILD_TYPE'
 if ($type -ne 'Release') { Fail "CMAKE_BUILD_TYPE is '$type'; a release is built as Release." }
-$sanitizers = Get-CacheValue 'WJS_ENABLE_SANITIZERS'
-if ($sanitizers -ne 'OFF') { Fail "WJS_ENABLE_SANITIZERS is '$sanitizers' in $cache; the Release presets turn it off." }
+$sanitizers = Get-CacheValue 'SNS_ENABLE_SANITIZERS'
+if ($sanitizers -ne 'OFF') { Fail "SNS_ENABLE_SANITIZERS is '$sanitizers' in $cache; the Release presets turn it off." }
 Write-Host '    configuration: Release, Tracy off, sanitizers off'
 
 # 3. The packages.

@@ -1,1 +1,1 @@
-wjs-store 3
+sns-store 3

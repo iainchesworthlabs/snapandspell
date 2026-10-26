@@ -1,8 +1,8 @@
-# WordJewelsSolver
+# SnapAndSpell
 
 [![CI](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/ci.yml)
-[![Coverage: statements](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworthlabs%2Fwordjewelssolver%2Fquality-history%2Fcoverage-line.json)](docs/ci.md#quality-history)
-[![Coverage: branches](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworthlabs%2Fwordjewelssolver%2Fquality-history%2Fcoverage-branch.json)](docs/ci.md#quality-history)
+[![Coverage: statements](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworthlabs%2Fsnapandspell%2Fquality-history%2Fcoverage-line.json)](docs/ci.md#quality-history)
+[![Coverage: branches](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworthlabs%2Fsnapandspell%2Fquality-history%2Fcoverage-branch.json)](docs/ci.md#quality-history)
 [![CodeQL](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/codeql.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/codeql.yml)
 [![zizmor](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/zizmor.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/zizmor.yml)
 [![Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworthlabs/wordjewelssolver/badge)](https://securityscorecards.dev/viewer/?uri=github.com/iainchesworthlabs/wordjewelssolver)
@@ -44,9 +44,9 @@ A board in play, in Solo Play at its smallest window (more in
 | Part | Where | State |
 | --- | --- | --- |
 | The library: board parsing, a trie dictionary, scoring, a depth-first solver, dice and deals, the game session, the store, the parent gate and dashboard. No GUI, no operating system code | `libs/core` | Unit tested |
-| `wjs-cli`, a command-line front end | `apps/cli` | Works; not covered by a test of its own |
+| `sns-cli`, a command-line front end | `apps/cli` | Works; not covered by a test of its own |
 | Per-OS code (finding the executable, a UTF-8 console), and nothing else per-OS | `libs/platforms` | Built and tested by CI on Windows, Linux and macOS |
-| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the end-of-board summary, My jewels and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `apps/app/src`, `libs/core` | Built when a prebuilt Qt 6.12 is found (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI (the Linux and macOS legs build the library and the command-line solver; the release workflow builds the application on those two); installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
+| **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the end-of-board summary, My jewels and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `apps/app/src`, `libs/core` | Built when a prebuilt Qt 6.12 is found (`SNS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI (the Linux and macOS legs build the library and the command-line solver; the release workflow builds the application on those two); installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
 | A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces, and a desktop camera over Qt Multimedia | `libs/scan`, `apps/app/src/scan`, `libs/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; the camera backend is never constructed in a test and has not read a real frame; never tried on a real board ([design](docs/design/scanner.md)) |
 | Catch2 unit, scanner, app and performance tests, Quick Test suites for the QML, and the repository checks (platform isolation, privacy, packaging, translations, toolchain pins) | `tests`, `tools/checks` | Pass in CI on Windows, Linux and macOS (what each leg runs: [docs/ci.md](docs/ci.md)) |
 | An iOS build for TestFlight | `libs/platforms/ios`, `.github/workflows/release.yml` | Written; the App Store signing, the upload and the install have **never run** ([docs/ios-install.md](docs/ios-install.md)) |
@@ -75,7 +75,7 @@ those are skipped by the tests if it is not installed.
 
 ```sh
 git clone https://github.com/iainchesworthlabs/wordjewelssolver
-cd wordjewelssolver
+cd snapandspell
 
 # needs VCPKG_ROOT set to a clone of the labs' vcpkg fork (one clone serves every
 # project on the machine; it is not vendored): docs/building.md
@@ -84,7 +84,7 @@ cmake --build --preset windows-msvc-debug
 ctest --preset windows-msvc-debug
 ```
 
-The window is built too when a prebuilt Qt 6.12 kit is found: `WJS_BUILD_APP` defaults to `AUTO`, and the labs' shared kit at `C:\Repos\common\qt` is searched automatically (set `QT_ROOT_DIR` or `CMAKE_PREFIX_PATH` for a kit somewhere else). Pass `-DWJS_BUILD_APP=OFF` for a solver-only build, `ON` to require Qt, and `-DWJS_BUILD_SHAKE_PROTOTYPE=ON` for the scene harness (see [docs/building.md](docs/building.md#the-qt-quick-window)).
+The window is built too when a prebuilt Qt 6.12 kit is found: `SNS_BUILD_APP` defaults to `AUTO`, and the labs' shared kit at `C:\Repos\common\qt` is searched automatically (set `QT_ROOT_DIR` or `CMAKE_PREFIX_PATH` for a kit somewhere else). Pass `-DSNS_BUILD_APP=OFF` for a solver-only build, `ON` to require Qt, and `-DSNS_BUILD_SHAKE_PROTOTYPE=ON` for the scene harness (see [docs/building.md](docs/building.md#the-qt-quick-window)).
 
 The presets are `windows-msvc-{debug,release,profiling,analysis}`,
 `windows-clang-coverage`, `linux-gcc-{debug,release,profiling,coverage,analysis}`,
@@ -139,11 +139,11 @@ Run the solver, giving the word list with `-d` and each row of the board as an
 argument:
 
 ```sh
-build/linux-gcc-debug/bin/wjs-cli -d words.txt CAT ORE DGS
+build/linux-gcc-debug/bin/sns-cli -d words.txt CAT ORE DGS
 ```
 
 ```powershell
-build\windows-msvc-debug\bin\wjs-cli.exe -d words.txt CAT ORE DGS
+build\windows-msvc-debug\bin\sns-cli.exe -d words.txt CAT ORE DGS
 ```
 
 ```text
@@ -167,7 +167,7 @@ letters. A tile may be used once per word, and tiles touch horizontally,
 vertically and diagonally.
 
 A tile can hold more than one letter, as the "Qu" face of a Boggle die does.
-Separate the tiles with spaces or commas and quote the row: `wjs-cli -d words.txt "Qu I T" "A B C" "D E F"`.
+Separate the tiles with spaces or commas and quote the row: `sns-cli -d words.txt "Qu I T" "A B C" "D E F"`.
 The options (`-m` for the shortest word, `-s rarity` for the other scoring
 scheme), the exit codes and the board format are in
 [docs/index.md](docs/index.md#using-the-command-line-solver).
@@ -176,16 +176,16 @@ scheme), the exit codes and the board format are in
 
 ```text
 libs/
-  core/           wjs:: the game logic: board, dictionary, scoring, solver, dice,
+  core/           sns:: the game logic: board, dictionary, scoring, solver, dice,
                   the game session, the store, the parent gate, feedback policy
-  scan/           wjs::scan, the board reader (camera frame to letters)
+  scan/           sns::scan, the board reader (camera frame to letters)
   platforms/      everything that differs between operating systems
-    interfaces/     one header per OS service (wjs/platform/*.hpp)
+    interfaces/     one header per OS service (sns/platform/*.hpp)
     windows/ linux/ macos/ ios/ android/ posix/
                     implementations, and each platform's platform.cmake
 apps/
-  cli/            wjs-cli
-  app/            the Qt Quick application (WordJewelsSolver; WJS_BUILD_APP=AUTO):
+  cli/            sns-cli
+  app/            the Qt Quick application (SnapAndSpell; SNS_BUILD_APP=AUTO):
     qml/            the screens (kit/ is the design system), solo/, scan/, parent/
     src/            the C++ behind them: solo/, scan/, parent/, feedback/, scene/
                     (the 3D board), camera/, variants/
@@ -227,7 +227,7 @@ check enforces it. See [docs/platform-isolation.md](docs/platform-isolation.md).
 
 | | |
 | --- | --- |
-| [docs/index.md](docs/index.md) | What it is, and how to use `wjs-cli` |
+| [docs/index.md](docs/index.md) | What it is, and how to use `sns-cli` |
 | [docs/building.md](docs/building.md) | Presets, options, vcpkg, Qt, packaging, platform notes |
 | [docs/testing.md](docs/testing.md) | The test suites, the checks, coverage, the performance tests |
 | [docs/profiling.md](docs/profiling.md) | Profiling with Tracy: building, capturing, reading a trace |
@@ -244,7 +244,7 @@ check enforces it. See [docs/platform-isolation.md](docs/platform-isolation.md).
 
 The documentation is built with mkdocs-material (`mkdocs.yml`), strictly, by
 `.github/workflows/docs.yml`, and published from `main` at
-<https://iainchesworthlabs.github.io/wordjewelssolver/> once the repository's
+<https://iainchesworthlabs.github.io/snapandspell/> once the repository's
 Pages source is set ([docs/ci.md](docs/ci.md#documentation-site)).
 
 ## Verifying a release
@@ -271,5 +271,5 @@ and Qt is used under the LGPL. Each package states that plainly in its
 the English word list is ENABLE, a separate work that its originators released
 into the public domain (provenance in [data/README.md](data/README.md)).
 
-WordJewelsSolver is a project of Iain Chesworth Labs.
+SnapAndSpell is a project of Iain Chesworth Labs.
 

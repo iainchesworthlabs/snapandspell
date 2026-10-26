@@ -5,7 +5,7 @@
 #include <functional>
 #include <string_view>
 
-namespace wjs::app {
+namespace sns::app {
 
 // What the program leaves with. The codes are the program's contract with a
 // script and with the system tests (tests/system/check_app.cmake); each is a
@@ -28,12 +28,12 @@ enum class ExitStatus : int {
 }
 
 // How a fatal message reaches the person: the platform's way
-// (wjs::platform::show_fatal_error), or a test's.
+// (sns::platform::show_fatal_error), or a test's.
 using FatalErrorSink =
     std::function<void(std::string_view title, std::string_view message, bool interactive)>;
 
 // Whether a dialog may be put in front of the person. Not when a test or a
-// headless run is in charge: `WJS_NO_DIALOGS` is set (to anything), or Qt is told
+// headless run is in charge: `SNS_NO_DIALOGS` is set (to anything), or Qt is told
 // to draw on a platform that has no screen (`QT_QPA_PLATFORM` is "offscreen" or
 // "minimal"). A pure function of the two facts so that it is testable.
 [[nodiscard]] bool dialogs_wanted(std::string_view qpa_platform, bool no_dialogs_set) noexcept;
@@ -46,4 +46,4 @@ using FatalErrorSink =
 [[nodiscard]] int fail_startup(ExitStatus status, const QString& message,
                                const FatalErrorSink& sink = {});
 
-}  // namespace wjs::app
+}  // namespace sns::app

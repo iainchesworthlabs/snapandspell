@@ -4,9 +4,9 @@
 #include <algorithm>
 #include <cmath>
 
-#include "wjs/scan/reader.hpp"
+#include "sns/scan/reader.hpp"
 
-namespace wjs::scan::synth {
+namespace sns::scan::synth {
 
 namespace {
 
@@ -128,4 +128,4 @@ Tally with_thresholds(const std::vector<TileRecord>& records, double min_score, 
     return tally;
 }
 
-}  // namespace wjs::scan::synth
+}  // namespace sns::scan::synth

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/platform/window_chrome.hpp"
+#include "sns/platform/window_chrome.hpp"
 
 #include <windows.h>
 
@@ -20,7 +20,7 @@ void set_colour(HWND window, DWORD attribute, COLORREF colour) {
 
 }  // namespace
 
-namespace wjs::platform {
+namespace sns::platform {
 
 void set_window_chrome(void* native_handle, bool dark) {
     const HWND native = static_cast<HWND>(native_handle);
@@ -44,4 +44,4 @@ void set_window_chrome(void* native_handle, bool dark) {
     }
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

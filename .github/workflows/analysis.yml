@@ -238,7 +238,7 @@ jobs:
         uses: ./.github/actions/linux-tracy-tools
 
       - name: Configure
-        run: cmake --preset linux-clang-debug -DWJS_BUILD_APP=OFF
+        run: cmake --preset linux-clang-debug -DSNS_BUILD_APP=OFF
 
       - name: Build
         run: cmake --build --preset linux-clang-debug

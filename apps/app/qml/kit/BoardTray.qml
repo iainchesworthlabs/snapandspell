@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The tray the board stands in, Toybox: the deep tray colour, a 6 px outline, a hard 12 px drop shadow
 // and, when asked for, the darker well inside it. FlatBoard, the jewel box, the scan

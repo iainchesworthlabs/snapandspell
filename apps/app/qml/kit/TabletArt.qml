@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma ComponentBehavior: Bound
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The picture of a tablet on its stand, with a 4 x 4 board on its screen and,
 // optionally, the camera looking at it: the Family Assistant's card on the home

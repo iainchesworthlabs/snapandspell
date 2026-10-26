@@ -130,6 +130,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          app="$(find build/ios-release -name WordJewelsSolver.app -type d | head -n 1)"
-          [ -n "$app" ] || { echo "::error::no WordJewelsSolver.app under build/ios-release"; exit 1; }
+          app="$(find build/ios-release -name SnapAndSpell.app -type d | head -n 1)"
+          [ -n "$app" ] || { echo "::error::no SnapAndSpell.app under build/ios-release"; exit 1; }
           libs/platforms/ios/packaging/verify_ipa.sh "$app"

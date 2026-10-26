@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
-import WordJewelsSolver.Parent
-import WordJewelsSolver.Scan
+import SnapAndSpell
+import SnapAndSpell.Parent
+import SnapAndSpell.Scan
 
 // Hebrew and Yiddish (docs/design/application.md, "Languages"): the chrome
 // mirrors and the board does not. Three things are held here, and they are the

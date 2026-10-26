@@ -21,8 +21,8 @@ find_package(Qt6 ${Qt6_FIND_VERSION} CONFIG QUIET COMPONENTS ${Qt6_FIND_COMPONEN
 if(NOT Qt6_FOUND)
     # Where an aqtinstall-style Qt lives is a fact about the platform, so it
     # is declared by the platform's fragment (cmake/Platform.cmake).
-    set(_qt6_search_roots ${WJS_PLATFORM_QT_SEARCH_ROOTS})
-    set(_qt6_arch_dirs ${WJS_PLATFORM_QT_ARCH_DIRS})
+    set(_qt6_search_roots ${SNS_PLATFORM_QT_SEARCH_ROOTS})
+    set(_qt6_arch_dirs ${SNS_PLATFORM_QT_ARCH_DIRS})
 
     set(_qt6_candidates "")
     foreach(root IN LISTS _qt6_search_roots)
@@ -87,27 +87,27 @@ endif()
 # type compiler is given them by hand (Qt's own developer builds load them for
 # themselves).
 # ---------------------------------------------------------------------------
-function(wjs_enable_qmltc_private_headers target)
+function(sns_enable_qmltc_private_headers target)
     find_package(Qt6QmltcPrivate 6.12 CONFIG QUIET)
     if(TARGET Qt6::QmltcPrivate)
         target_link_libraries("${target}" PRIVATE Qt6::QmltcPrivate)
     endif()
 
-    get_filename_component(_wjs_qt_prefix "${Qt6Qml_DIR}/../../.." ABSOLUTE)
-    set(_wjs_private_include_dirs "")
-    foreach(_wjs_module IN ITEMS QtQml QtCore QtQuick QtGui QtQuickLayouts QtQmlModels QtQuickShapes)
-        list(APPEND _wjs_private_include_dirs
-            "${_wjs_qt_prefix}/include/${_wjs_module}"
-            "${_wjs_qt_prefix}/include/${_wjs_module}/${Qt6Qml_VERSION}"
-            "${_wjs_qt_prefix}/include/${_wjs_module}/${Qt6Qml_VERSION}/${_wjs_module}"
+    get_filename_component(_sns_qt_prefix "${Qt6Qml_DIR}/../../.." ABSOLUTE)
+    set(_sns_private_include_dirs "")
+    foreach(_sns_module IN ITEMS QtQml QtCore QtQuick QtGui QtQuickLayouts QtQmlModels QtQuickShapes)
+        list(APPEND _sns_private_include_dirs
+            "${_sns_qt_prefix}/include/${_sns_module}"
+            "${_sns_qt_prefix}/include/${_sns_module}/${Qt6Qml_VERSION}"
+            "${_sns_qt_prefix}/include/${_sns_module}/${Qt6Qml_VERSION}/${_sns_module}"
             # A framework kit (Qt's macOS and iOS builds) keeps the same
             # headers inside the framework, and the type compiler's code
             # includes them as "private/x_p.h".
-            "${_wjs_qt_prefix}/lib/${_wjs_module}.framework/Headers"
-            "${_wjs_qt_prefix}/lib/${_wjs_module}.framework/Headers/${Qt6Qml_VERSION}"
-            "${_wjs_qt_prefix}/lib/${_wjs_module}.framework/Headers/${Qt6Qml_VERSION}/${_wjs_module}")
+            "${_sns_qt_prefix}/lib/${_sns_module}.framework/Headers"
+            "${_sns_qt_prefix}/lib/${_sns_module}.framework/Headers/${Qt6Qml_VERSION}"
+            "${_sns_qt_prefix}/lib/${_sns_module}.framework/Headers/${Qt6Qml_VERSION}/${_sns_module}")
     endforeach()
     # SYSTEM: these are Qt's headers, and the target's warnings are errors; a framework
     # kit's compiler (AppleClang) would otherwise warn about them.
-    target_include_directories("${target}" SYSTEM PRIVATE ${_wjs_private_include_dirs})
+    target_include_directories("${target}" SYSTEM PRIVATE ${_sns_private_include_dirs})
 endfunction()

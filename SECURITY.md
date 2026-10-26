@@ -9,8 +9,8 @@ private advisory that only you and the maintainer can see.
 
 What helps most:
 
-- what is affected: the version (`wjs-cli --version` prints it), the platform,
-  and whether it is `wjs-cli`, the Qt Quick window or the library;
+- what is affected: the version (`sns-cli --version` prints it), the platform,
+  and whether it is `sns-cli`, the Qt Quick window or the library;
 - how to reproduce it: the board, the word list (or a small one that shows it)
   and the command line;
 - what someone could do with it.
@@ -50,7 +50,7 @@ the port. Do not run one on an untrusted network.
 
 ### What to expect
 
-WordJewelsSolver is maintained by one person, so there is no guaranteed response
+SnapAndSpell is maintained by one person, so there is no guaranteed response
 time and no promised schedule for a fix. Please allow time before you publish
 details: the advisory is where that is agreed.
 

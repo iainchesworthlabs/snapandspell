@@ -117,6 +117,6 @@ jobs:
 
       - name: Run the self-test
         env:
-          WJS_CDX_SCHEMA_DIR: ${{ runner.temp }}/cdx-schema
-          WJS_PYTHON: ${{ runner.temp }}/sbom-venv/bin/python
+          SNS_CDX_SCHEMA_DIR: ${{ runner.temp }}/cdx-schema
+          SNS_PYTHON: ${{ runner.temp }}/sbom-venv/bin/python
         run: tests/package/test_release_tools.sh

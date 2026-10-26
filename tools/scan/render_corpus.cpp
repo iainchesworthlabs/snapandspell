@@ -2,7 +2,7 @@
 // Writes the synthetic scanner corpus to a directory, so that a person can look at
 // it: one PNG a frame, and beside each a text file with the true board.
 //
-//   wjs_scan_render --out <directory> [--split test|tuning] [--condition <name>|all]
+//   sns_scan_render --out <directory> [--split test|tuning] [--condition <name>|all]
 //                   [--negatives] [--sheet <file.png>]
 //
 // The conditions are upright, angled, loose and glare. --sheet writes one contact
@@ -23,8 +23,8 @@
 
 namespace {
 
-using wjs::scan::GrayImage;
-using namespace wjs::scan::synth;
+using sns::scan::GrayImage;
+using namespace sns::scan::synth;
 
 GrayImage thumbnail(const GrayImage& image, int factor) {
     GrayImage out(image.width / factor, image.height / factor);
@@ -55,9 +55,9 @@ std::string board_text(const Rendered& frame) {
 
 int usage() {
     std::cerr
-        << "usage: wjs_scan_render --out <directory> [--split test|tuning]\n"
+        << "usage: sns_scan_render --out <directory> [--split test|tuning]\n"
            "                       [--condition upright|angled|loose|glare|all] [--negatives]\n"
-           "       wjs_scan_render --sheet <file.png>\n";
+           "       sns_scan_render --sheet <file.png>\n";
     return 2;
 }
 
@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        return wjs::scan::synth::write_png(sheet, page) ? 0 : 1;
+        return sns::scan::synth::write_png(sheet, page) ? 0 : 1;
     }
 
     if (out.empty()) {

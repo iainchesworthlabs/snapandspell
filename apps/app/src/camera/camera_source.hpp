@@ -10,9 +10,9 @@
 
 #include "camera_backend.hpp"
 #include "camera_problem.hpp"
-#include "wjs/scan/frame.hpp"
+#include "sns/scan/frame.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // Mode A's camera: the live view the ready screen shows, and the one frame a
 // capture reads. It owns the camera's little lifecycle and nothing else; the
@@ -23,7 +23,7 @@ namespace wjs::app {
 //                                            takes it and the camera is stopped
 //
 // The backend is one of two sources with this same header, chosen by CMake
-// (wjs/app/camera_backend.hpp): QCamera over Qt Multimedia, or a backend that
+// (sns/app/camera_backend.hpp): QCamera over Qt Multimedia, or a backend that
 // answers "no_camera" in a kit without the module. A camera that is absent,
 // refused or broken is a code in `problem` (the wording file makes the sentence)
 // and never a faked frame. The camera runs only while `running`; start() is
@@ -76,7 +76,7 @@ public:
 
     // The frame capture() put in hand, or nothing. It is moved out: the source
     // keeps no second copy.
-    [[nodiscard]] std::optional<wjs::scan::OwnedFrame> takeFrame();
+    [[nodiscard]] std::optional<sns::scan::OwnedFrame> takeFrame();
 
     // The QML preview: the backend points a VideoOutput at its sink. The
     // multimedia variant needs this because this header names no Qt Multimedia
@@ -90,7 +90,7 @@ signals:
 
 private:
     std::unique_ptr<CameraBackend> backend_;
-    std::optional<wjs::scan::OwnedFrame> frame_;
+    std::optional<sns::scan::OwnedFrame> frame_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

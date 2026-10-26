@@ -12,7 +12,7 @@
 // Only A-Z and a-z change case; every other byte, including the bytes of a
 // multi-byte UTF-8 sequence, passes through untouched.
 
-namespace wjs::ascii {
+namespace sns::ascii {
 
 [[nodiscard]] constexpr char to_upper(char c) noexcept {
     return (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
@@ -46,4 +46,4 @@ namespace wjs::ascii {
     return text.substr(first, last - first + 1);
 }
 
-}  // namespace wjs::ascii
+}  // namespace sns::ascii

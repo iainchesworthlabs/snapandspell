@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scan/image.hpp"
+#include "sns/scan/image.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 
 #include "scratch.hpp"
-#include "wjs/scan/work.hpp"
+#include "sns/scan/work.hpp"
 
-namespace wjs::scan {
+namespace sns::scan {
 
 GrayImage::GrayImage(int w, int h, std::uint8_t fill)
     : width(w > 0 && h > 0 ? w : 0),
@@ -151,4 +151,4 @@ double sample(const GrayImage& image, double x, double y) noexcept {
     return top * (1.0 - ty) + bottom * ty;
 }
 
-}  // namespace wjs::scan
+}  // namespace sns::scan

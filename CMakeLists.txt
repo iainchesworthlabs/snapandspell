@@ -14,7 +14,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/Vcpkg.cmake")
 # prebuilt dependency found via CMAKE_PREFIX_PATH (see cmake/FindQt6.cmake),
 # not built by vcpkg.
 # ---------------------------------------------------------------------------
-if(NOT DEFINED WJS_BUILD_TESTS OR WJS_BUILD_TESTS)
+if(NOT DEFINED SNS_BUILD_TESTS OR SNS_BUILD_TESTS)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif()
 
@@ -29,22 +29,22 @@ endif()
 # from this one switch, and tests/profiling/check_presets.cmake holds the
 # policy.
 if(CMAKE_CONFIGURATION_TYPES)
-    set(_wjs_tracy_default OFF)
+    set(_sns_tracy_default OFF)
 elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(_wjs_tracy_default ON)
+    set(_sns_tracy_default ON)
 else()
-    set(_wjs_tracy_default OFF)
+    set(_sns_tracy_default OFF)
 endif()
-option(WJS_ENABLE_TRACY
+option(SNS_ENABLE_TRACY
     "Enable Tracy profiler instrumentation (on by default for a Debug build; never for a shipped build)"
-    ${_wjs_tracy_default})
-unset(_wjs_tracy_default)
+    ${_sns_tracy_default})
+unset(_sns_tracy_default)
 
-if(WJS_ENABLE_TRACY)
+if(SNS_ENABLE_TRACY)
     list(APPEND VCPKG_MANIFEST_FEATURES "profiling")
 endif()
 
-project(WordJewelsSolver
+project(SnapAndSpell
     VERSION 0.1.0
     DESCRIPTION "Finds every word on a Boggle board"
     HOMEPAGE_URL "https://github.com/iainchesworthlabs/wordjewelssolver"
@@ -70,11 +70,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 # that copy what it needs (the vcpkg DLLs, Qt's runtime, the sanitizer runtime)
 # into that one directory, and two of them at once copy the same files over
 # each other: "The process cannot access the file because it is being used by
-# another process" failed a release build linking wjs_perf_tests and
-# wjs_frame_timing_tests together. Compiling, which is where the time goes,
+# another process" failed a release build linking sns_perf_tests and
+# sns_frame_timing_tests together. Compiling, which is where the time goes,
 # stays parallel. Other generators ignore the pool.
-set_property(GLOBAL APPEND PROPERTY JOB_POOLS wjs_link=1)
-set(CMAKE_JOB_POOL_LINK wjs_link)
+set_property(GLOBAL APPEND PROPERTY JOB_POOLS sns_link=1)
+set(CMAKE_JOB_POOL_LINK sns_link)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # The one place the target OS is decided (cmake/Platform.cmake); every other
@@ -94,17 +94,17 @@ include(Translations)
 # ---------------------------------------------------------------------------
 # Options
 # ---------------------------------------------------------------------------
-option(WJS_BUILD_CLI "Build the wjs-cli command-line solver" ON)
+option(SNS_BUILD_CLI "Build the sns-cli command-line solver" ON)
 # The application is the product, but it is the one target that needs a
 # prebuilt Qt 6.12 kit (cmake/FindQt6.cmake), which vcpkg does not build. AUTO
 # builds it when such a kit is found and leaves it out when it is not, so one
 # preset is useful both on a machine that only builds the solver and on a
 # desktop with Qt; ON makes a missing Qt an error, and OFF never looks for it.
 # The resolved value is ON or OFF from the Qt section below onwards.
-set(WJS_BUILD_APP "AUTO" CACHE STRING
+set(SNS_BUILD_APP "AUTO" CACHE STRING
     "Build the Qt Quick application: AUTO when Qt 6.12 is found, ON to require it, OFF to skip it")
-set_property(CACHE WJS_BUILD_APP PROPERTY STRINGS AUTO ON OFF)
-option(WJS_BUILD_TESTS "Build the unit, integration, system and UI test suites" ON)
+set_property(CACHE SNS_BUILD_APP PROPERTY STRINGS AUTO ON OFF)
+option(SNS_BUILD_TESTS "Build the unit, integration, system and UI test suites" ON)
 
 # The review gate. Phonics data (data/phonics) is written and reviewed by a
 # person qualified to do it, and a file says so in its header (reviewed-by and
@@ -113,17 +113,17 @@ option(WJS_BUILD_TESTS "Build the unit, integration, system and UI test suites" 
 # stops if any file is test data, so a release cannot carry unreviewed content.
 # On by default for the release build types, and for any multi-config generator
 # (which has no build type at configure time, so it is the developer who says
-# "not a release" by passing -DWJS_REQUIRE_REVIEWED_PHONICS=OFF).
+# "not a release" by passing -DSNS_REQUIRE_REVIEWED_PHONICS=OFF).
 if(CMAKE_CONFIGURATION_TYPES)
-    set(WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT ON)
+    set(SNS_REQUIRE_REVIEWED_PHONICS_DEFAULT ON)
 elseif(CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel)$")
-    set(WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT ON)
+    set(SNS_REQUIRE_REVIEWED_PHONICS_DEFAULT ON)
 else()
-    set(WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT OFF)
+    set(SNS_REQUIRE_REVIEWED_PHONICS_DEFAULT OFF)
 endif()
-option(WJS_REQUIRE_REVIEWED_PHONICS
+option(SNS_REQUIRE_REVIEWED_PHONICS
     "Refuse to build while data/phonics holds a file without a review header"
-    ${WJS_REQUIRE_REVIEWED_PHONICS_DEFAULT})
+    ${SNS_REQUIRE_REVIEWED_PHONICS_DEFAULT})
 
 # ---------------------------------------------------------------------------
 # Qt, when the application is built. Found here, before any target and before
@@ -132,84 +132,84 @@ option(WJS_REQUIRE_REVIEWED_PHONICS
 # level is visible to tests/ and to every module under apps/app/src.
 # LinguistTools is the catalogues' (lupdate/lrelease).
 #
-# WJS_BUILD_APP is resolved here first: AUTO looks for the kit and builds the
+# SNS_BUILD_APP is resolved here first: AUTO looks for the kit and builds the
 # application when it is there, ON requires it, OFF never looks. Every use
 # after this point sees ON or OFF, whichever the person asked for.
 # ---------------------------------------------------------------------------
-string(TOUPPER "${WJS_BUILD_APP}" WJS_BUILD_APP_MODE)
-if(WJS_BUILD_APP_MODE STREQUAL "AUTO")
-    set(_wjs_qt_requirement QUIET)
-elseif(WJS_BUILD_APP)
-    set(_wjs_qt_requirement REQUIRED)
-elseif(WJS_BUILD_APP_MODE MATCHES "^(OFF|FALSE|NO|N|0)$")
-    set(_wjs_qt_requirement "")
+string(TOUPPER "${SNS_BUILD_APP}" SNS_BUILD_APP_MODE)
+if(SNS_BUILD_APP_MODE STREQUAL "AUTO")
+    set(_sns_qt_requirement QUIET)
+elseif(SNS_BUILD_APP)
+    set(_sns_qt_requirement REQUIRED)
+elseif(SNS_BUILD_APP_MODE MATCHES "^(OFF|FALSE|NO|N|0)$")
+    set(_sns_qt_requirement "")
 else()
     message(FATAL_ERROR
-        "WJS_BUILD_APP is '${WJS_BUILD_APP}'. It takes AUTO (build the "
+        "SNS_BUILD_APP is '${SNS_BUILD_APP}'. It takes AUTO (build the "
         "application when Qt 6.12 is found), ON (require Qt) or OFF (never "
         "build the application).")
 endif()
 
-set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 QuickLayouts QuickShapes LinguistTools)
-if(_wjs_qt_requirement)
-    find_package(Qt6 6.12 ${_wjs_qt_requirement} COMPONENTS ${WJS_QT_COMPONENTS})
+set(SNS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 QuickLayouts QuickShapes LinguistTools)
+if(_sns_qt_requirement)
+    find_package(Qt6 6.12 ${_sns_qt_requirement} COMPONENTS ${SNS_QT_COMPONENTS})
 endif()
 
-if(WJS_BUILD_APP_MODE STREQUAL "AUTO")
+if(SNS_BUILD_APP_MODE STREQUAL "AUTO")
     if(Qt6_FOUND)
-        set(WJS_BUILD_APP ON)
+        set(SNS_BUILD_APP ON)
         message(STATUS
             "Qt ${Qt6_VERSION} found: the Qt Quick application is built "
-            "(WJS_BUILD_APP=AUTO). Pass -DWJS_BUILD_APP=OFF to leave it out.")
+            "(SNS_BUILD_APP=AUTO). Pass -DSNS_BUILD_APP=OFF to leave it out.")
     else()
-        set(WJS_BUILD_APP OFF)
+        set(SNS_BUILD_APP OFF)
         message(STATUS
             "Qt 6.12 with the modules the application needs was not found: the "
-            "Qt Quick application is not built (WJS_BUILD_APP=AUTO). Point "
+            "Qt Quick application is not built (SNS_BUILD_APP=AUTO). Point "
             "QT_ROOT_DIR or CMAKE_PREFIX_PATH at a Qt 6.12 kit, or pass "
-            "-DWJS_BUILD_APP=ON to make its absence an error.")
+            "-DSNS_BUILD_APP=ON to make its absence an error.")
     endif()
-elseif(WJS_BUILD_APP)
-    set(WJS_BUILD_APP ON)
+elseif(SNS_BUILD_APP)
+    set(SNS_BUILD_APP ON)
 else()
-    set(WJS_BUILD_APP OFF)
+    set(SNS_BUILD_APP OFF)
 endif()
-unset(_wjs_qt_requirement)
+unset(_sns_qt_requirement)
 
-if(WJS_BUILD_APP)
+if(SNS_BUILD_APP)
     # The feedback engines' modules are optional: the application's sound,
     # speech and motion have silent variants selected by CMake when a module is
     # absent (apps/app/src/feedback/CMakeLists.txt), so a contributor's kit without
     # them still configures and builds. The shared kit on the author's machine
     # has all three (docs/building.md, "The Qt Quick window").
     find_package(Qt6 6.12 QUIET OPTIONAL_COMPONENTS Multimedia Sensors TextToSpeech)
-    set(WJS_QT_HAS_MULTIMEDIA OFF)
-    set(WJS_QT_HAS_SENSORS OFF)
-    set(WJS_QT_HAS_TEXTTOSPEECH OFF)
+    set(SNS_QT_HAS_MULTIMEDIA OFF)
+    set(SNS_QT_HAS_SENSORS OFF)
+    set(SNS_QT_HAS_TEXTTOSPEECH OFF)
     if(TARGET Qt6::Multimedia)
-        set(WJS_QT_HAS_MULTIMEDIA ON)
+        set(SNS_QT_HAS_MULTIMEDIA ON)
         # Mode A's camera is a Qt Multimedia backend where the module is, and a
         # none backend otherwise (the variant pattern; apps/app/src/camera). The
         # directories are chosen here, in the scope the tests share, because
         # tests/ compiles the same source and needs the backend's path.
-        set(WJS_CAMERA_VARIANT_DIR
+        set(SNS_CAMERA_VARIANT_DIR
             "${PROJECT_SOURCE_DIR}/apps/app/src/variants/camera-multimedia")
-        set(WJS_CAMERA_PREVIEW_QML "${WJS_CAMERA_VARIANT_DIR}/CameraPreview.qml")
+        set(SNS_CAMERA_PREVIEW_QML "${SNS_CAMERA_VARIANT_DIR}/CameraPreview.qml")
     else()
-        set(WJS_QT_HAS_MULTIMEDIA OFF)
-        set(WJS_CAMERA_VARIANT_DIR
+        set(SNS_QT_HAS_MULTIMEDIA OFF)
+        set(SNS_CAMERA_VARIANT_DIR
             "${PROJECT_SOURCE_DIR}/apps/app/src/variants/camera-none")
-        set(WJS_CAMERA_PREVIEW_QML "${WJS_CAMERA_VARIANT_DIR}/CameraPreview.qml")
+        set(SNS_CAMERA_PREVIEW_QML "${SNS_CAMERA_VARIANT_DIR}/CameraPreview.qml")
     endif()
     if(TARGET Qt6::Sensors)
-        set(WJS_QT_HAS_SENSORS ON)
+        set(SNS_QT_HAS_SENSORS ON)
     endif()
     if(TARGET Qt6::TextToSpeech)
-        set(WJS_QT_HAS_TEXTTOSPEECH ON)
+        set(SNS_QT_HAS_TEXTTOSPEECH ON)
     endif()
     # clang-cl under the Visual Studio generator (the coverage preset) does not
     # treat Qt's headers as system headers by itself (cmake/CompilerWarnings.cmake).
-    wjs_treat_qt_headers_as_system()
+    sns_treat_qt_headers_as_system()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -220,14 +220,14 @@ endif()
 # which refer to the generated file.
 # ---------------------------------------------------------------------------
 include(Notices)
-wjs_write_notices()
+sns_write_notices()
 
 # ---------------------------------------------------------------------------
 # Targets
 # ---------------------------------------------------------------------------
 # The tests the libraries register themselves (the fuzz regression replays, libs/<lib>/fuzz) need
 # CTest on before their directories are added; the suites in tests/ come last.
-if(WJS_BUILD_TESTS OR WJS_ENABLE_FUZZING)
+if(SNS_BUILD_TESTS OR SNS_ENABLE_FUZZING)
     enable_testing()
 endif()
 
@@ -245,32 +245,32 @@ add_subdirectory(libs/core)
 # dependency of its own to fetch.
 add_subdirectory(libs/scan)
 
-if(WJS_REQUIRE_REVIEWED_PHONICS)
+if(SNS_REQUIRE_REVIEWED_PHONICS)
     # A CMake script, so that a release build needs nothing but CMake: it holds
     # the review headers (tools/data/check_phonics_review.cmake); the lines of the
     # data are the `data.phonics` ctest case's (tools/data/check_phonics.ps1).
     # Always out of date, so every build looks at the data as it is now, not as
     # it was when CMake last ran. The library depends on it, so building any
     # target that links the library is gated.
-    add_custom_target(wjs_phonics_review_gate ALL
+    add_custom_target(sns_phonics_review_gate ALL
         COMMAND "${CMAKE_COMMAND}"
             "-DROOT=${CMAKE_CURRENT_SOURCE_DIR}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/data/check_phonics_review.cmake"
         COMMENT "Checking that the phonics data has been reviewed"
         VERBATIM)
-    add_dependencies(wjs_lib wjs_phonics_review_gate)
+    add_dependencies(sns_lib sns_phonics_review_gate)
 endif()
 
-if(WJS_BUILD_CLI)
+if(SNS_BUILD_CLI)
     add_subdirectory(apps/cli)
 endif()
 
 # The application is a thin Qt Quick layer over the library.
-if(WJS_BUILD_APP)
+if(SNS_BUILD_APP)
     add_subdirectory(apps/app)
 endif()
 
-if(WJS_BUILD_TESTS)
+if(SNS_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
@@ -286,11 +286,11 @@ include(Packaging)
 # Targets View (and the solution generators) group targets by; it changes
 # nothing about what is built. The programs and the application's modules come
 # first, then the libraries they are made of, then the test harnesses and the
-# one-off tools, so opening this tree shows WordJewelsSolver rather than a flat
-# list of wjs_* targets. Conditional targets are guarded by if(TARGET) because
+# one-off tools, so opening this tree shows SnapAndSpell rather than a flat
+# list of sns_* targets. Conditional targets are guarded by if(TARGET) because
 # this runs once all the subdirectories have had their say.
 # ---------------------------------------------------------------------------
-function(wjs_set_target_folder folder)
+function(sns_set_target_folder folder)
     foreach(target IN LISTS ARGN)
         if(TARGET "${target}")
             set_target_properties("${target}" PROPERTIES FOLDER "${folder}")
@@ -298,52 +298,52 @@ function(wjs_set_target_folder folder)
     endforeach()
 endfunction()
 
-wjs_set_target_folder("Application"
-    WordJewelsSolver
-    wjs_scene
-    wjs_sceneplugin
-    wjs_parent
-    wjs_parentplugin
-    wjs_scan_ui
-    wjs_scan_uiplugin
-    wjs_i18n
-    wjs_trace
-    wjs_feedback)
-wjs_set_target_folder("Command line" wjs-cli)
-wjs_set_target_folder("Libraries"
-    wjs_lib
-    wjs_platform
-    wjs_scan
-    wjs_tracy
-    wjs_profiling
-    wjs_warnings
-    wjs_sanitizers
-    wjs_coverage)
-wjs_set_target_folder("Tests"
-    wjs_unit_tests
-    wjs_perf_tests
-    wjs_scan_tests
-    wjs_scan_synth
-    wjs_app_tests
-    wjs_scene_script_tests
-    wjs_frame_timing_tests
-    wjs_parent_preview
-    wjs_scan_preview
-    wjs_quick_tests
-    wjs_quick_tests_support
-    wjs_quick_test_scene
-    wjs_quick_test_sceneplugin)
-wjs_set_target_folder("Tools" wjs_scan_render)
-wjs_set_target_folder("Packaging" "package-${PROJECT_NAME}")
+sns_set_target_folder("Application"
+    SnapAndSpell
+    sns_scene
+    sns_sceneplugin
+    sns_parent
+    sns_parentplugin
+    sns_scan_ui
+    sns_scan_uiplugin
+    sns_i18n
+    sns_trace
+    sns_feedback)
+sns_set_target_folder("Command line" sns-cli)
+sns_set_target_folder("Libraries"
+    sns_lib
+    sns_platform
+    sns_scan
+    sns_tracy
+    sns_profiling
+    sns_warnings
+    sns_sanitizers
+    sns_coverage)
+sns_set_target_folder("Tests"
+    sns_unit_tests
+    sns_perf_tests
+    sns_scan_tests
+    sns_scan_synth
+    sns_app_tests
+    sns_scene_script_tests
+    sns_frame_timing_tests
+    sns_parent_preview
+    sns_scan_preview
+    sns_quick_tests
+    sns_quick_tests_support
+    sns_quick_test_scene
+    sns_quick_test_sceneplugin)
+sns_set_target_folder("Tools" sns_scan_render)
+sns_set_target_folder("Packaging" "package-${PROJECT_NAME}")
 
-message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_NAME}")
-message(STATUS "  Build CLI   : ${WJS_BUILD_CLI}")
-message(STATUS "  Build app   : ${WJS_BUILD_APP} (requested ${WJS_BUILD_APP_MODE})")
-message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")
-message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY} (default: ON for a Debug build type)")
-message(STATUS "  Reviewed phonics data required : ${WJS_REQUIRE_REVIEWED_PHONICS}")
-message(STATUS "  Package generators : ${WJS_PACKAGE_GENERATORS}")
-if(WJS_BUILD_APP)
-    message(STATUS "  Qt feedback modules : Multimedia=${WJS_QT_HAS_MULTIMEDIA}"
-                   " Sensors=${WJS_QT_HAS_SENSORS} TextToSpeech=${WJS_QT_HAS_TEXTTOSPEECH}")
+message(STATUS "SnapAndSpell ${PROJECT_VERSION} for ${SNS_PLATFORM_DISPLAY_NAME}")
+message(STATUS "  Build CLI   : ${SNS_BUILD_CLI}")
+message(STATUS "  Build app   : ${SNS_BUILD_APP} (requested ${SNS_BUILD_APP_MODE})")
+message(STATUS "  Build tests : ${SNS_BUILD_TESTS}")
+message(STATUS "  Tracy       : ${SNS_ENABLE_TRACY} (default: ON for a Debug build type)")
+message(STATUS "  Reviewed phonics data required : ${SNS_REQUIRE_REVIEWED_PHONICS}")
+message(STATUS "  Package generators : ${SNS_PACKAGE_GENERATORS}")
+if(SNS_BUILD_APP)
+    message(STATUS "  Qt feedback modules : Multimedia=${SNS_QT_HAS_MULTIMEDIA}"
+                   " Sensors=${SNS_QT_HAS_SENSORS} TextToSpeech=${SNS_QT_HAS_TEXTTOSPEECH}")
 endif()

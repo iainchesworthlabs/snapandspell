@@ -3,16 +3,16 @@
 # Notices.cmake - the third-party notices a package carries, assembled from
 # fragment files at configure time.
 #
-#   wjs_generate_notices(<out-file>
+#   sns_generate_notices(<out-file>
 #       FRAGMENT_DIR <dir>...   directories holding <fragment>.txt files,
 #                               searched in the order given
 #       FRAGMENTS <name>...     which fragments, in the order they appear
 #       TOKENS <KEY=value>...   every {{KEY}} in the fragments becomes value
 #       FILES <NAME=path>...    every {{FILE:NAME}} becomes that file's text)
 #
-#   wjs_write_notices()         this project's NOTICES.txt, for this build
-#   wjs_add_notices_resource(<target>)   :/notices/NOTICES.txt on a program
-#   wjs_install_notices()       NOTICES.txt and LICENSE.txt beside the programs
+#   sns_write_notices()         this project's NOTICES.txt, for this build
+#   sns_add_notices_resource(<target>)   :/notices/NOTICES.txt on a program
+#   sns_install_notices()       NOTICES.txt and LICENSE.txt beside the programs
 #
 # The one file a package installs and the application embeds as
 # :/notices/NOTICES.txt (the About screen's Licences view) is written once, from
@@ -46,16 +46,16 @@ include_guard(GLOBAL)
 
 include(GNUInstallDirs)
 
-function(wjs_generate_notices out)
+function(sns_generate_notices out)
     cmake_parse_arguments(PARSE_ARGV 1 N "" "" "FRAGMENT_DIR;FRAGMENTS;TOKENS;FILES")
     if(N_UNPARSED_ARGUMENTS)
-        message(FATAL_ERROR "wjs_generate_notices: unexpected arguments: ${N_UNPARSED_ARGUMENTS}")
+        message(FATAL_ERROR "sns_generate_notices: unexpected arguments: ${N_UNPARSED_ARGUMENTS}")
     endif()
     if(NOT N_FRAGMENT_DIR)
-        message(FATAL_ERROR "wjs_generate_notices: FRAGMENT_DIR is required")
+        message(FATAL_ERROR "sns_generate_notices: FRAGMENT_DIR is required")
     endif()
     if(NOT N_FRAGMENTS)
-        message(FATAL_ERROR "wjs_generate_notices: FRAGMENTS names no fragment for ${out}")
+        message(FATAL_ERROR "sns_generate_notices: FRAGMENTS names no fragment for ${out}")
     endif()
 
     # 1. The fragments, in order, one blank line between them. Each name is
@@ -88,7 +88,7 @@ function(wjs_generate_notices out)
     foreach(pair IN LISTS N_FILES)
         string(FIND "${pair}" "=" eq)
         if(eq EQUAL -1)
-            message(FATAL_ERROR "wjs_generate_notices: FILES entry '${pair}' is not NAME=path")
+            message(FATAL_ERROR "sns_generate_notices: FILES entry '${pair}' is not NAME=path")
         endif()
         string(SUBSTRING "${pair}" 0 ${eq} name)
         math(EXPR after "${eq} + 1")
@@ -113,7 +113,7 @@ function(wjs_generate_notices out)
     foreach(pair IN LISTS N_TOKENS)
         string(FIND "${pair}" "=" eq)
         if(eq EQUAL -1)
-            message(FATAL_ERROR "wjs_generate_notices: TOKENS entry '${pair}' is not KEY=value")
+            message(FATAL_ERROR "sns_generate_notices: TOKENS entry '${pair}' is not KEY=value")
         endif()
         string(SUBSTRING "${pair}" 0 ${eq} key)
         math(EXPR after "${eq} + 1")
@@ -146,21 +146,21 @@ endfunction()
 # ---------------------------------------------------------------------------
 # This project's notice, for this build. A section describes what a package
 # contains, so Qt and the assets are named only when the application is built
-# and wjs-cli only when the command-line program is. Qt's version and series are
+# and sns-cli only when the command-line program is. Qt's version and series are
 # written into it, so Qt is found by the top-level CMakeLists.txt before this
 # runs.
 # ---------------------------------------------------------------------------
-function(wjs_write_notices)
+function(sns_write_notices)
     set(fragments header project)
-    if(WJS_BUILD_CLI)
+    if(SNS_BUILD_CLI)
         list(APPEND fragments cli)
     endif()
     set(qt_version "")
     set(qt_series "")
-    if(WJS_BUILD_APP)
+    if(SNS_BUILD_APP)
         # The web program carries the web fragments' text: Qt statically linked, and Qt's loader
         # script, which Qt offers under the GPL-3.0 only.
-        if(WJS_PLATFORM_EXECUTABLE_FORMAT STREQUAL "wasm")
+        if(SNS_PLATFORM_EXECUTABLE_FORMAT STREQUAL "wasm")
             list(APPEND fragments application-web qt-web)
         else()
             list(APPEND fragments application qt)
@@ -169,37 +169,37 @@ function(wjs_write_notices)
         string(REGEX MATCH "^[0-9]+\\.[0-9]+" qt_series "${Qt6_VERSION}")
         if(NOT qt_version OR NOT qt_series)
             message(FATAL_ERROR
-                "notices: WJS_BUILD_APP is ON but the Qt version is '${Qt6_VERSION}', so "
+                "notices: SNS_BUILD_APP is ON but the Qt version is '${Qt6_VERSION}', so "
                 "the Qt section would name no version. The top-level CMakeLists.txt calls "
                 "find_package(Qt6) before this file for exactly this reason.")
         endif()
     endif()
     list(APPEND fragments enable translations)
-    if(WJS_BUILD_APP)
+    if(SNS_BUILD_APP)
         list(APPEND fragments assets fonts)
     endif()
     list(APPEND fragments catch2)
     # A build with the Tracy profiler in it is a development build, and its package
     # (cmake/PackagePreflight.cmake) says so and carries Tracy's licence. A release
     # build never has this section.
-    if(WJS_ENABLE_TRACY)
+    if(SNS_ENABLE_TRACY)
         list(APPEND fragments tracy)
     endif()
 
     set(out "${CMAKE_BINARY_DIR}/notices/NOTICES.txt")
-    wjs_generate_notices("${out}"
+    sns_generate_notices("${out}"
         FRAGMENT_DIR "${PROJECT_SOURCE_DIR}/notices/fragments"
         FRAGMENTS ${fragments}
         TOKENS
             "VERSION=${PROJECT_VERSION}"
-            "PLATFORM=${WJS_PLATFORM_DISPLAY_NAME}"
+            "PLATFORM=${SNS_PLATFORM_DISPLAY_NAME}"
             "LOCATION=${CMAKE_INSTALL_BINDIR}/NOTICES.txt"
             "QT_VERSION=${qt_version}"
             "QT_SERIES=${qt_series}"
         FILES
             "LGPL3=${PROJECT_SOURCE_DIR}/notices/licences/LGPL-3.0.txt")
 
-    set(WJS_NOTICES_FILE "${out}" PARENT_SCOPE)
+    set(SNS_NOTICES_FILE "${out}" PARENT_SCOPE)
     message(STATUS "Notices: ${out} (${fragments})")
 endfunction()
 
@@ -208,19 +208,19 @@ endfunction()
 # Added to the executable targets that need it, not to a static library: a
 # resource in a static library is linked out unless something refers to it.
 # ---------------------------------------------------------------------------
-function(wjs_add_notices_resource target)
+function(sns_add_notices_resource target)
     if(NOT TARGET ${target})
-        message(FATAL_ERROR "wjs_add_notices_resource: no target ${target}")
+        message(FATAL_ERROR "sns_add_notices_resource: no target ${target}")
     endif()
-    if(NOT WJS_NOTICES_FILE)
+    if(NOT SNS_NOTICES_FILE)
         message(FATAL_ERROR
-            "wjs_add_notices_resource: WJS_NOTICES_FILE is unset; call wjs_write_notices() "
+            "sns_add_notices_resource: SNS_NOTICES_FILE is unset; call sns_write_notices() "
             "from the top-level CMakeLists.txt before the targets are added.")
     endif()
-    qt_add_resources(${target} wjs_notices
+    qt_add_resources(${target} sns_notices
         PREFIX "/notices"
         BASE "${CMAKE_BINARY_DIR}/notices"
-        FILES "${WJS_NOTICES_FILE}")
+        FILES "${SNS_NOTICES_FILE}")
 endfunction()
 
 # ---------------------------------------------------------------------------
@@ -231,18 +231,18 @@ endfunction()
 # go beside that program too, so a notice is never in only one of the places a
 # program lives.
 # ---------------------------------------------------------------------------
-function(wjs_install_notices)
-    if(NOT WJS_NOTICES_FILE)
+function(sns_install_notices)
+    if(NOT SNS_NOTICES_FILE)
         message(FATAL_ERROR
-            "wjs_install_notices: WJS_NOTICES_FILE is unset; call wjs_write_notices() "
+            "sns_install_notices: SNS_NOTICES_FILE is unset; call sns_write_notices() "
             "from the top-level CMakeLists.txt first.")
     endif()
-    install(FILES "${WJS_NOTICES_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${SNS_NOTICES_FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}")
     install(FILES "${PROJECT_SOURCE_DIR}/LICENSE"
         DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME "LICENSE.txt")
-    if(WJS_BUILD_APP AND NOT WJS_PLATFORM_INSTALL_APP_DATA_DIR STREQUAL CMAKE_INSTALL_BINDIR)
-        install(FILES "${WJS_NOTICES_FILE}" DESTINATION "${WJS_PLATFORM_INSTALL_APP_DATA_DIR}")
+    if(SNS_BUILD_APP AND NOT SNS_PLATFORM_INSTALL_APP_DATA_DIR STREQUAL CMAKE_INSTALL_BINDIR)
+        install(FILES "${SNS_NOTICES_FILE}" DESTINATION "${SNS_PLATFORM_INSTALL_APP_DATA_DIR}")
         install(FILES "${PROJECT_SOURCE_DIR}/LICENSE"
-            DESTINATION "${WJS_PLATFORM_INSTALL_APP_DATA_DIR}" RENAME "LICENSE.txt")
+            DESTINATION "${SNS_PLATFORM_INSTALL_APP_DATA_DIR}" RENAME "LICENSE.txt")
     endif()
 endfunction()

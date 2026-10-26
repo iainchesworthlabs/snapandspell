@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The licences, on their own page (docs/design/dashboard.md, "Settings"): what
 // this build includes and the licence of each part, with the full third-party

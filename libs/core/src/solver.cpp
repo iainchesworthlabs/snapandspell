@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/solver.hpp"
+#include "sns/solver.hpp"
 
 #include <algorithm>
 #include <array>
@@ -9,10 +9,10 @@
 #include <unordered_map>
 #include <utility>
 
-#include "wjs/profiling.hpp"
-#include "wjs/solver_work.hpp"
+#include "sns/profiling.hpp"
+#include "sns/solver_work.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 struct Offset {
@@ -183,4 +183,4 @@ std::vector<FoundWord> solve(const Board& board, const Dictionary& dictionary,
     return found;
 }
 
-}  // namespace wjs
+}  // namespace sns

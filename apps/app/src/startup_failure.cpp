@@ -6,9 +6,9 @@
 #include <cstddef>
 #include <string_view>
 
-#include "wjs/platform/fatal_error.hpp"
+#include "sns/platform/fatal_error.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 bool dialogs_wanted(std::string_view qpa_platform, bool no_dialogs_set) noexcept {
     if (no_dialogs_set) {
@@ -20,20 +20,20 @@ bool dialogs_wanted(std::string_view qpa_platform, bool no_dialogs_set) noexcept
 bool dialogs_wanted_here() {
     const QByteArray qpa = qgetenv("QT_QPA_PLATFORM");
     return dialogs_wanted(std::string_view{qpa.constData(), static_cast<std::size_t>(qpa.size())},
-                          qEnvironmentVariableIsSet("WJS_NO_DIALOGS"));
+                          qEnvironmentVariableIsSet("SNS_NO_DIALOGS"));
 }
 
 int fail_startup(ExitStatus status, const QString& message, const FatalErrorSink& sink) {
     const QByteArray text = message.toUtf8();
     const std::string_view body{text.constData(), static_cast<std::size_t>(text.size())};
-    constexpr std::string_view title = "Word Jewels Solver cannot start";
+    constexpr std::string_view title = "Snap and Spell cannot start";
     const bool interactive = dialogs_wanted_here();
     if (sink) {
         sink(title, body, interactive);
     } else {
-        wjs::platform::show_fatal_error(title, body, interactive);
+        sns::platform::show_fatal_error(title, body, interactive);
     }
     return exit_code(status);
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

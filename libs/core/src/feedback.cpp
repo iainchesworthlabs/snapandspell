@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/feedback.hpp"
+#include "sns/feedback.hpp"
 
 #include <array>
 #include <utility>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 // One asset name per cue that has a sound. They are the stems of the files in
@@ -160,4 +160,4 @@ CuePlan plan_cue(FeedbackCue cue, std::string_view detail, const FeedbackSetting
     return plan;
 }
 
-}  // namespace wjs
+}  // namespace sns

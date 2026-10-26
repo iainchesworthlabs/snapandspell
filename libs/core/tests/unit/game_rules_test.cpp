@@ -16,13 +16,13 @@
 #include <utility>
 #include <vector>
 
+#include "sns/board.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/game_rules.hpp"
+#include "sns/path.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/solver.hpp"
 #include "support/test_support.hpp"
-#include "wjs/board.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/game_rules.hpp"
-#include "wjs/path.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/solver.hpp"
 
 // TEST DATA. The words below were written for these tests: the ones of the
 // phonics index are the product brief's own five early-reader words and two
@@ -30,24 +30,24 @@
 
 namespace {
 
-using wjs::Position;
+using sns::Position;
 
-using wjs::test::board_of;
-using wjs::test::dictionary_of;
+using sns::test::board_of;
+using sns::test::dictionary_of;
 
-wjs::Board make_board(std::string_view text) {
+sns::Board make_board(std::string_view text) {
     return board_of(text);
 }
 
 // Every word of the tests' English, which is also the standard board's word set.
-wjs::Dictionary english() {
+sns::Dictionary english() {
     return dictionary_of({"nip", "pan", "pat", "pin", "sat", "sit", "tap",  // the phonics index
                           "tan", "pit", "sap", "ant",                       // real, not in it
                           "at", "it"});                                     // too short to count
 }
 
 // Phase A of the tests: six single-letter graphemes and seven words.
-wjs::PhaseSet phase_a(const wjs::Dictionary& dictionary) {
+sns::PhaseSet phase_a(const sns::Dictionary& dictionary) {
     std::istringstream graphemes_in(
         "# phase: A\n"
         "a  /t1/  clip:t1\n"
@@ -56,7 +56,7 @@ wjs::PhaseSet phase_a(const wjs::Dictionary& dictionary) {
         "p  /t4/  clip:t4\n"
         "s  /t5/  clip:t5\n"
         "t  /t6/  clip:t6\n");
-    auto graphemes = wjs::parse_graphemes(graphemes_in, "phase-a.graphemes.txt");
+    auto graphemes = sns::parse_graphemes(graphemes_in, "phase-a.graphemes.txt");
     REQUIRE(graphemes.has_value());
 
     std::istringstream words_in(
@@ -68,10 +68,10 @@ wjs::PhaseSet phase_a(const wjs::Dictionary& dictionary) {
         "sat  s a t\n"
         "sit  s i t\n"
         "tap  t a p\n");
-    auto words = wjs::parse_words(words_in, "phase-a.words.txt");
+    auto words = sns::parse_words(words_in, "phase-a.words.txt");
     REQUIRE(words.has_value());
 
-    auto set = wjs::PhaseSet::build({*graphemes}, {*words}, dictionary);
+    auto set = sns::PhaseSet::build({*graphemes}, {*words}, dictionary);
     REQUIRE(set.has_value());
     return std::move(*set);
 }
@@ -93,15 +93,15 @@ const std::vector<Position> path_tan = {{0, 2}, {0, 1}, {1, 2}};
 const std::vector<Position> path_san = {{0, 0}, {0, 1}, {1, 2}};
 const std::vector<Position> path_at = {{0, 1}, {0, 2}};
 
-wjs::Classification classify(const wjs::Board& board, const std::vector<Position>& path,
-                             const wjs::WordSets& words) {
-    return wjs::classify_path(board, path, words);
+sns::Classification classify(const sns::Board& board, const std::vector<Position>& path,
+                             const sns::WordSets& words) {
+    return sns::classify_path(board, path, words);
 }
 
 // Calls visit(path) for every path of one or more touching tiles, no tile
 // twice: every path a finger could trace on the board.
 template <typename Visit>
-void extend_paths(const wjs::Board& board, std::vector<Position>& path, std::vector<bool>& used,
+void extend_paths(const sns::Board& board, std::vector<Position>& path, std::vector<bool>& used,
                   Visit& visit) {
     visit(std::span<const Position>(path));
     const Position last = path.back();
@@ -109,7 +109,7 @@ void extend_paths(const wjs::Board& board, std::vector<Position>& path, std::vec
         for (std::size_t column = 0; column < board.columns(); ++column) {
             const Position next{row, column};
             const std::size_t index = row * board.columns() + column;
-            if (used[index] || !wjs::are_neighbours(last, next)) {
+            if (used[index] || !sns::are_neighbours(last, next)) {
                 continue;
             }
             used[index] = true;
@@ -122,7 +122,7 @@ void extend_paths(const wjs::Board& board, std::vector<Position>& path, std::vec
 }
 
 template <typename Visit>
-void for_each_path(const wjs::Board& board, Visit visit) {
+void for_each_path(const sns::Board& board, Visit visit) {
     std::vector<bool> used(board.rows() * board.columns(), false);
     std::vector<Position> path;
     for (std::size_t row = 0; row < board.rows(); ++row) {
@@ -138,8 +138,8 @@ void for_each_path(const wjs::Board& board, Visit visit) {
 // A word the solver "found", written by hand: the rules look at the word and
 // at the tile its path starts on, and nothing else of it. The path runs along
 // a row from the given tile, so it is as long as the word has tiles.
-wjs::FoundWord along(std::string word, std::size_t row, std::size_t column) {
-    wjs::FoundWord result;
+sns::FoundWord along(std::string word, std::size_t row, std::size_t column) {
+    sns::FoundWord result;
     for (std::size_t i = 0; i < word.size(); ++i) {
         result.path.push_back(Position{row, column + i});
     }
@@ -149,9 +149,9 @@ wjs::FoundWord along(std::string word, std::size_t row, std::size_t column) {
 
 // As above for a word spelled by tiles of more than one letter: the path has
 // as many positions as the tiles it is given.
-wjs::FoundWord along_tiles(std::string word, std::size_t tiles, std::size_t row,
+sns::FoundWord along_tiles(std::string word, std::size_t tiles, std::size_t row,
                            std::size_t column) {
-    wjs::FoundWord result;
+    sns::FoundWord result;
     for (std::size_t i = 0; i < tiles; ++i) {
         result.path.push_back(Position{row, column + i});
     }
@@ -159,9 +159,9 @@ wjs::FoundWord along_tiles(std::string word, std::size_t tiles, std::size_t row,
     return result;
 }
 
-std::optional<std::string> helped_word(const std::vector<wjs::FoundWord>& viable,
-                                       const wjs::FoundWords& found) {
-    const auto help = wjs::start_tile_help(viable, found);
+std::optional<std::string> helped_word(const std::vector<sns::FoundWord>& viable,
+                                       const sns::FoundWords& found) {
+    const auto help = sns::start_tile_help(viable, found);
     if (!help) {
         return std::nullopt;
     }
@@ -174,25 +174,25 @@ std::optional<std::string> helped_word(const std::vector<wjs::FoundWord>& viable
 
 TEST_CASE("on the standard board every word of the dictionary counts", "[rules]") {
     const auto dictionary = english();
-    const auto words = wjs::WordSets::standard(dictionary);
+    const auto words = sns::WordSets::standard(dictionary);
     const auto board = make_board(board_text);
 
     SECTION("a word the phonics index also has") {
         const auto result = classify(board, path_sat, words);
-        CHECK(result.state == wjs::WordState::viable);
+        CHECK(result.state == sns::WordState::viable);
         CHECK(result.word == "SAT");
         CHECK_FALSE(result.fault.has_value());
     }
 
     SECTION("a word only the dictionary has is viable too") {
         const auto result = classify(board, path_tan, words);
-        CHECK(result.state == wjs::WordState::viable);
+        CHECK(result.state == sns::WordState::viable);
         CHECK(result.word == "TAN");
     }
 
     SECTION("a string of letters that is no word") {
         const auto result = classify(board, path_san, words);
-        CHECK(result.state == wjs::WordState::not_a_word);
+        CHECK(result.state == sns::WordState::not_a_word);
         CHECK(result.word.empty());
         CHECK_FALSE(result.fault.has_value());
     }
@@ -203,22 +203,22 @@ TEST_CASE("on the phonics board only the phase's words count", "[rules]") {
     const auto set = phase_a(dictionary);
     const auto* index = set.find("A");
     REQUIRE(index != nullptr);
-    const auto words = wjs::WordSets::phonics(dictionary, *index);
+    const auto words = sns::WordSets::phonics(dictionary, *index);
     const auto board = make_board(board_text);
 
     SECTION("a word of the index is viable") {
         const auto result = classify(board, path_sit, words);
-        CHECK(result.state == wjs::WordState::viable);
+        CHECK(result.state == sns::WordState::viable);
         CHECK(result.word == "SIT");
     }
 
     SECTION("a dictionary word that is not in the index is real, not today's") {
         const auto result = classify(board, path_tan, words);
-        CHECK(result.state == wjs::WordState::real_not_todays);
+        CHECK(result.state == sns::WordState::real_not_todays);
     }
 
     SECTION("a string of letters that is no word") {
-        CHECK(classify(board, path_san, words).state == wjs::WordState::not_a_word);
+        CHECK(classify(board, path_san, words).state == sns::WordState::not_a_word);
     }
 }
 
@@ -227,7 +227,7 @@ TEST_CASE("a word that is not today's is never handed back", "[rules]") {
     // today's, so the answer carries no word to show.
     const auto dictionary = english();
     const auto set = phase_a(dictionary);
-    const auto words = wjs::WordSets::phonics(dictionary, *set.find("A"));
+    const auto words = sns::WordSets::phonics(dictionary, *set.find("A"));
     const auto board = make_board(board_text);
 
     CHECK(classify(board, path_tan, words).word.empty());
@@ -240,52 +240,52 @@ TEST_CASE("a word of fewer than three letters is not a word, however real", "[ru
     REQUIRE(dictionary.contains("AT"));
 
     SECTION("when the dictionary is the word set") {
-        const auto words = wjs::WordSets::standard(dictionary);
+        const auto words = sns::WordSets::standard(dictionary);
         const auto result = classify(board, path_at, words);
-        CHECK(result.state == wjs::WordState::not_a_word);
+        CHECK(result.state == sns::WordState::not_a_word);
         CHECK(result.word.empty());
     }
 
     SECTION("even when the active set holds it") {
         const auto active = dictionary_of({"at", "sat"});
-        const wjs::WordSets words{dictionary, active};
-        CHECK(classify(board, path_at, words).state == wjs::WordState::not_a_word);
+        const sns::WordSets words{dictionary, active};
+        CHECK(classify(board, path_at, words).state == sns::WordState::not_a_word);
     }
 
     SECTION("a single tile") {
-        const auto words = wjs::WordSets::standard(dictionary);
+        const auto words = sns::WordSets::standard(dictionary);
         const std::vector<Position> one = {{0, 0}};
-        CHECK(classify(board, one, words).state == wjs::WordState::not_a_word);
+        CHECK(classify(board, one, words).state == sns::WordState::not_a_word);
     }
 }
 
 TEST_CASE("a path that is not a path is not a word, and says why", "[rules]") {
     const auto dictionary = english();
-    const auto words = wjs::WordSets::standard(dictionary);
+    const auto words = sns::WordSets::standard(dictionary);
     const auto board = make_board(board_text);
 
     const auto fault_of = [&](const std::vector<Position>& path) {
         const auto result = classify(board, path, words);
-        CHECK(result.state == wjs::WordState::not_a_word);
+        CHECK(result.state == sns::WordState::not_a_word);
         CHECK(result.word.empty());
         return result.fault;
     };
 
-    CHECK(fault_of({}) == wjs::PathError::empty);
-    CHECK(fault_of({{0, 0}, {0, 3}}) == wjs::PathError::off_board);
-    CHECK(fault_of({{0, 0}, {0, 1}, {0, 0}}) == wjs::PathError::repeated_tile);
-    CHECK(fault_of({{0, 0}, {0, 2}}) == wjs::PathError::not_adjacent);
+    CHECK(fault_of({}) == sns::PathError::empty);
+    CHECK(fault_of({{0, 0}, {0, 3}}) == sns::PathError::off_board);
+    CHECK(fault_of({{0, 0}, {0, 1}, {0, 0}}) == sns::PathError::repeated_tile);
+    CHECK(fault_of({{0, 0}, {0, 2}}) == sns::PathError::not_adjacent);
 }
 
 TEST_CASE("a Qu tile counts as two letters in the length of a word", "[rules]") {
     const auto dictionary = dictionary_of({"quit", "qua"});
-    const auto words = wjs::WordSets::standard(dictionary);
+    const auto words = sns::WordSets::standard(dictionary);
     const auto board = make_board("Qu I/T A");
 
     SECTION("three tiles, four letters") {
         const std::vector<Position> path = {{0, 0}, {0, 1}, {1, 0}};
         const auto result = classify(board, path, words);
-        CHECK(result.state == wjs::WordState::viable);
+        CHECK(result.state == sns::WordState::viable);
         CHECK(result.word == "QUIT");
         CHECK(result.word.size() == 4);
     }
@@ -293,13 +293,13 @@ TEST_CASE("a Qu tile counts as two letters in the length of a word", "[rules]") 
     SECTION("two tiles are enough for a three-letter word") {
         const std::vector<Position> path = {{0, 0}, {1, 1}};
         const auto result = classify(board, path, words);
-        CHECK(result.state == wjs::WordState::viable);
+        CHECK(result.state == sns::WordState::viable);
         CHECK(result.word == "QUA");
     }
 
     SECTION("a lone Qu is two letters, below the minimum") {
         const std::vector<Position> path = {{0, 0}};
-        CHECK(classify(board, path, words).state == wjs::WordState::not_a_word);
+        CHECK(classify(board, path, words).state == sns::WordState::not_a_word);
     }
 }
 
@@ -308,8 +308,8 @@ TEST_CASE("viable words are the active words of three letters or more on the boa
     const auto board = make_board(board_text);
 
     SECTION("the standard board's") {
-        const auto words = wjs::WordSets::standard(dictionary);
-        const auto viable = wjs::viable_words(board, words);
+        const auto words = sns::WordSets::standard(dictionary);
+        const auto viable = sns::viable_words(board, words);
 
         std::unordered_set<std::string> spelled;
         for (const auto& found : viable) {
@@ -323,8 +323,8 @@ TEST_CASE("viable words are the active words of three letters or more on the boa
 
     SECTION("the phonics board's") {
         const auto set = phase_a(dictionary);
-        const auto words = wjs::WordSets::phonics(dictionary, *set.find("A"));
-        const auto viable = wjs::viable_words(board, words);
+        const auto words = sns::WordSets::phonics(dictionary, *set.find("A"));
+        const auto viable = sns::viable_words(board, words);
 
         std::unordered_set<std::string> spelled;
         for (const auto& found : viable) {
@@ -336,8 +336,8 @@ TEST_CASE("viable words are the active words of three letters or more on the boa
 
     SECTION("a short word in the active set is passed over") {
         const auto active = dictionary_of({"at", "sat"});
-        const wjs::WordSets words{dictionary, active};
-        const auto viable = wjs::viable_words(board, words);
+        const sns::WordSets words{dictionary, active};
+        const auto viable = sns::viable_words(board, words);
         REQUIRE(viable.size() == 1);
         CHECK(viable.front().word == "SAT");
     }
@@ -349,12 +349,12 @@ TEST_CASE("every path classifies the way the solver says", "[rules]") {
     const auto dictionary = english();
     const auto set = phase_a(dictionary);
     const auto board = make_board(board_text);
-    const auto standard = wjs::WordSets::standard(dictionary);
-    const auto phonics = wjs::WordSets::phonics(dictionary, *set.find("A"));
+    const auto standard = sns::WordSets::standard(dictionary);
+    const auto phonics = sns::WordSets::phonics(dictionary, *set.find("A"));
 
-    for (const wjs::WordSets* words : {&standard, &phonics}) {
+    for (const sns::WordSets* words : {&standard, &phonics}) {
         std::unordered_set<std::string> solver_words;
-        for (const auto& found : wjs::viable_words(board, *words)) {
+        for (const auto& found : sns::viable_words(board, *words)) {
             solver_words.insert(found.word);
         }
 
@@ -365,27 +365,27 @@ TEST_CASE("every path classifies the way the solver says", "[rules]") {
 
         for_each_path(board, [&](std::span<const Position> path) {
             ++paths;
-            const auto result = wjs::classify_path(board, path, *words);
-            const auto spelled = wjs::validate_path(board, path);
+            const auto result = sns::classify_path(board, path, *words);
+            const auto spelled = sns::validate_path(board, path);
             if (!spelled) {
                 ++disagreements;
                 return;
             }
             const bool solver_has_it = solver_words.contains(*spelled);
             switch (result.state) {
-                case wjs::WordState::viable:
+                case sns::WordState::viable:
                     ++viable;
                     if (!solver_has_it || result.word != *spelled) {
                         ++disagreements;
                     }
                     break;
-                case wjs::WordState::real_not_todays:
+                case sns::WordState::real_not_todays:
                     ++real_not_todays;
                     if (solver_has_it || !result.word.empty()) {
                         ++disagreements;
                     }
                     break;
-                case wjs::WordState::not_a_word:
+                case sns::WordState::not_a_word:
                     if (solver_has_it || !result.word.empty()) {
                         ++disagreements;
                     }
@@ -409,14 +409,14 @@ TEST_CASE("every path classifies the way the solver says", "[rules]") {
 
 TEST_CASE("the path the solver reports for a word is a viable path", "[rules]") {
     const auto dictionary = english();
-    const auto words = wjs::WordSets::standard(dictionary);
+    const auto words = sns::WordSets::standard(dictionary);
     const auto board = make_board(board_text);
 
-    const auto viable = wjs::viable_words(board, words);
+    const auto viable = sns::viable_words(board, words);
     REQUIRE_FALSE(viable.empty());
     for (const auto& found : viable) {
-        const auto result = wjs::classify_path(board, found.path, words);
-        CHECK(result.state == wjs::WordState::viable);
+        const auto result = sns::classify_path(board, found.path, words);
+        CHECK(result.state == sns::WordState::viable);
         CHECK(result.word == found.word);
     }
 }
@@ -424,66 +424,66 @@ TEST_CASE("the path the solver reports for a word is a viable path", "[rules]") 
 // --- 2. tiers and stars -------------------------------------------------------
 
 TEST_CASE("a word's tier follows from its letter count", "[rules]") {
-    CHECK_FALSE(wjs::tier_for_letters(0).has_value());
-    CHECK_FALSE(wjs::tier_for_letters(1).has_value());
-    CHECK_FALSE(wjs::tier_for_letters(2).has_value());
-    CHECK(wjs::tier_for_letters(3) == wjs::Tier::spark);
-    CHECK(wjs::tier_for_letters(4) == wjs::Tier::power);
-    CHECK(wjs::tier_for_letters(5) == wjs::Tier::mega);
-    CHECK(wjs::tier_for_letters(6) == wjs::Tier::mega);
-    CHECK(wjs::tier_for_letters(9) == wjs::Tier::mega);
-    CHECK(wjs::tier_for_letters(48) == wjs::Tier::mega);
+    CHECK_FALSE(sns::tier_for_letters(0).has_value());
+    CHECK_FALSE(sns::tier_for_letters(1).has_value());
+    CHECK_FALSE(sns::tier_for_letters(2).has_value());
+    CHECK(sns::tier_for_letters(3) == sns::Tier::spark);
+    CHECK(sns::tier_for_letters(4) == sns::Tier::power);
+    CHECK(sns::tier_for_letters(5) == sns::Tier::mega);
+    CHECK(sns::tier_for_letters(6) == sns::Tier::mega);
+    CHECK(sns::tier_for_letters(9) == sns::Tier::mega);
+    CHECK(sns::tier_for_letters(48) == sns::Tier::mega);
 }
 
 TEST_CASE("each tier earns its stars, and Power a sticker", "[rules]") {
-    const auto spark = wjs::reward_for(wjs::Tier::spark);
+    const auto spark = sns::reward_for(sns::Tier::spark);
     CHECK(spark.stars == 1);
     CHECK_FALSE(spark.sticker);
 
-    const auto power = wjs::reward_for(wjs::Tier::power);
+    const auto power = sns::reward_for(sns::Tier::power);
     CHECK(power.stars == 2);
     CHECK(power.sticker);
 
-    const auto mega = wjs::reward_for(wjs::Tier::mega);
+    const auto mega = sns::reward_for(sns::Tier::mega);
     CHECK(mega.stars == 5);
     CHECK_FALSE(mega.sticker);
 }
 
 TEST_CASE("a Qu word is as long as its letters: QUIT is a Power word", "[rules]") {
     const auto dictionary = dictionary_of({"quit", "quite", "tie"});
-    const auto words = wjs::WordSets::standard(dictionary);
+    const auto words = sns::WordSets::standard(dictionary);
     const auto board = make_board("Qu I T/X X E");
 
     const std::vector<Position> quit = {{0, 0}, {0, 1}, {0, 2}};
     const auto four = classify(board, quit, words);
-    REQUIRE(four.state == wjs::WordState::viable);
-    CHECK(wjs::tier_for_letters(four.word.size()) == wjs::Tier::power);
+    REQUIRE(four.state == sns::WordState::viable);
+    CHECK(sns::tier_for_letters(four.word.size()) == sns::Tier::power);
 
     const std::vector<Position> quite = {{0, 0}, {0, 1}, {0, 2}, {1, 2}};
     const auto five = classify(board, quite, words);
-    REQUIRE(five.state == wjs::WordState::viable);
-    CHECK(wjs::tier_for_letters(five.word.size()) == wjs::Tier::mega);
+    REQUIRE(five.state == sns::WordState::viable);
+    CHECK(sns::tier_for_letters(five.word.size()) == sns::Tier::mega);
 
     // Three tiles that spell three letters are Spark.
     const std::vector<Position> tie = {{0, 2}, {0, 1}, {1, 2}};
     const auto three = classify(board, tie, words);
-    REQUIRE(three.state == wjs::WordState::viable);
-    CHECK(wjs::tier_for_letters(three.word.size()) == wjs::Tier::spark);
+    REQUIRE(three.state == sns::WordState::viable);
+    CHECK(sns::tier_for_letters(three.word.size()) == sns::Tier::spark);
 }
 
 TEST_CASE("tiers and states have names to print", "[rules]") {
-    CHECK(wjs::to_string(wjs::Tier::spark) == "Spark");
-    CHECK(wjs::to_string(wjs::Tier::power) == "Power");
-    CHECK(wjs::to_string(wjs::Tier::mega) == "Mega");
-    CHECK(wjs::to_string(wjs::WordState::viable) == "viable");
-    CHECK_FALSE(wjs::to_string(wjs::WordState::real_not_todays).empty());
-    CHECK(wjs::to_string(wjs::WordState::not_a_word) == "not a word");
+    CHECK(sns::to_string(sns::Tier::spark) == "Spark");
+    CHECK(sns::to_string(sns::Tier::power) == "Power");
+    CHECK(sns::to_string(sns::Tier::mega) == "Mega");
+    CHECK(sns::to_string(sns::WordState::viable) == "viable");
+    CHECK_FALSE(sns::to_string(sns::WordState::real_not_todays).empty());
+    CHECK(sns::to_string(sns::WordState::not_a_word) == "not a word");
 }
 
 // --- the words found on a board -----------------------------------------------
 
 TEST_CASE("a word is found once, whatever its case", "[rules]") {
-    wjs::FoundWords found;
+    sns::FoundWords found;
     CHECK(found.empty());
 
     CHECK(found.insert("SAT"));
@@ -507,7 +507,7 @@ TEST_CASE("a word is found once, whatever its case", "[rules]") {
 }
 
 TEST_CASE("the words found are kept in the order they were found", "[rules]") {
-    wjs::FoundWords found;
+    sns::FoundWords found;
     found.insert("tap");
     found.insert("sat");
     found.insert("tap");
@@ -521,13 +521,13 @@ TEST_CASE("the words found are kept in the order they were found", "[rules]") {
 TEST_CASE("help names the shortest word first, even from the far corner", "[rules]") {
     // The five-letter word starts in the very corner and the three-letter word
     // is the furthest tile away; the shorter word still wins.
-    const std::vector<wjs::FoundWord> viable = {
+    const std::vector<sns::FoundWord> viable = {
         along("TAPES", 0, 0),
         along("TAPE", 0, 0),
         along("TAP", 3, 3),
     };
 
-    const auto help = wjs::start_tile_help(viable, wjs::FoundWords{});
+    const auto help = sns::start_tile_help(viable, sns::FoundWords{});
     REQUIRE(help.has_value());
     CHECK(help->word == "TAP");
     CHECK(help->tile == Position{3, 3});
@@ -538,11 +538,11 @@ TEST_CASE("of equal length, help names the word whose first tile is nearest the 
     SECTION("distance, not reading order") {
         // (0,3) is first in reading order but three tiles from the corner;
         // (2,0) is two.
-        const std::vector<wjs::FoundWord> viable = {
+        const std::vector<sns::FoundWord> viable = {
             along("TAP", 0, 3),
             along("CAT", 2, 0),
         };
-        const auto help = wjs::start_tile_help(viable, wjs::FoundWords{});
+        const auto help = sns::start_tile_help(viable, sns::FoundWords{});
         REQUIRE(help.has_value());
         CHECK(help->word == "CAT");
         CHECK(help->tile == Position{2, 0});
@@ -550,31 +550,31 @@ TEST_CASE("of equal length, help names the word whose first tile is nearest the 
 
     SECTION("a diagonal is further than it looks") {
         // (1,1) is 2 away and (0,2) is 4 away, though both sum to 2.
-        const std::vector<wjs::FoundWord> viable = {
+        const std::vector<sns::FoundWord> viable = {
             along("TAP", 0, 2),
             along("CAT", 1, 1),
         };
-        CHECK(helped_word(viable, wjs::FoundWords{}) == "CAT");
+        CHECK(helped_word(viable, sns::FoundWords{}) == "CAT");
     }
 
     SECTION("equally near, the upper tile") {
-        const std::vector<wjs::FoundWord> viable = {
+        const std::vector<sns::FoundWord> viable = {
             along("CAT", 2, 0),
             along("TAP", 0, 2),
         };
-        const auto help = wjs::start_tile_help(viable, wjs::FoundWords{});
+        const auto help = sns::start_tile_help(viable, sns::FoundWords{});
         REQUIRE(help.has_value());
         CHECK(help->word == "TAP");
         CHECK(help->tile == Position{0, 2});
     }
 
     SECTION("the same tile, the word that sorts first") {
-        const std::vector<wjs::FoundWord> viable = {
+        const std::vector<sns::FoundWord> viable = {
             along("CAT", 1, 1),
             along("CAR", 1, 1),
             along("CAN", 1, 1),
         };
-        CHECK(helped_word(viable, wjs::FoundWords{}) == "CAN");
+        CHECK(helped_word(viable, sns::FoundWords{}) == "CAN");
     }
 }
 
@@ -582,44 +582,44 @@ TEST_CASE("help counts a word's length in letters, not tiles", "[rules]") {
     // QUIT is three tiles and four letters; TIDE is four tiles and four
     // letters. Counted in tiles QUIT would win; counted in letters they tie and
     // the nearer tile decides.
-    const std::vector<wjs::FoundWord> viable = {
+    const std::vector<sns::FoundWord> viable = {
         along_tiles("QUIT", 3, 2, 2),
         along("TIDE", 0, 0),
     };
 
-    const auto help = wjs::start_tile_help(viable, wjs::FoundWords{});
+    const auto help = sns::start_tile_help(viable, sns::FoundWords{});
     REQUIRE(help.has_value());
     CHECK(help->word == "TIDE");
 }
 
 TEST_CASE("help gives the same answer however the words are ordered", "[rules]") {
-    std::vector<wjs::FoundWord> viable = {
+    std::vector<sns::FoundWord> viable = {
         along("CAT", 2, 0),  along("TAP", 0, 3),   along("CAR", 2, 0),
         along("TAPE", 0, 0), along("TAPES", 1, 0),
     };
-    std::ranges::sort(viable, {}, &wjs::FoundWord::word);
+    std::ranges::sort(viable, {}, &sns::FoundWord::word);
 
     std::size_t orders = 0;
     do {
         ++orders;
-        const auto help = wjs::start_tile_help(viable, wjs::FoundWords{});
+        const auto help = sns::start_tile_help(viable, sns::FoundWords{});
         REQUIRE(help.has_value());
         CHECK(help->word == "CAR");
         CHECK(help->tile == Position{2, 0});
-    } while (std::ranges::next_permutation(viable, {}, &wjs::FoundWord::word).found);
+    } while (std::ranges::next_permutation(viable, {}, &sns::FoundWord::word).found);
     CHECK(orders == 120);
 }
 
 TEST_CASE("help stays on a word until that word is found", "[rules]") {
-    const std::vector<wjs::FoundWord> viable = {
+    const std::vector<sns::FoundWord> viable = {
         along("CAT", 2, 0),  along("TAN", 4, 0),   along("TAP", 3, 3),
         along("TAPE", 0, 0), along("TAPES", 0, 0),
     };
-    wjs::FoundWords found;
+    sns::FoundWords found;
 
     SECTION("asking again changes nothing") {
-        const auto first = wjs::start_tile_help(viable, found);
-        const auto again = wjs::start_tile_help(viable, found);
+        const auto first = sns::start_tile_help(viable, found);
+        const auto again = sns::start_tile_help(viable, found);
         REQUIRE(first.has_value());
         REQUIRE(again.has_value());
         CHECK(first->word == again->word);
@@ -636,143 +636,143 @@ TEST_CASE("help stays on a word until that word is found", "[rules]") {
 
     SECTION("finding it names the next, until none is left") {
         std::vector<std::string> helped;
-        while (const auto help = wjs::start_tile_help(viable, found)) {
+        while (const auto help = sns::start_tile_help(viable, found)) {
             helped.push_back(help->word);
             REQUIRE(found.insert(help->word));
         }
         CHECK(helped == std::vector<std::string>{"CAT", "TAN", "TAP", "TAPE", "TAPES"});
-        CHECK_FALSE(wjs::start_tile_help(viable, found).has_value());
+        CHECK_FALSE(sns::start_tile_help(viable, found).has_value());
     }
 }
 
 TEST_CASE("help has nothing to say when nothing is left, or nothing is viable", "[rules]") {
-    CHECK_FALSE(wjs::start_tile_help({}, wjs::FoundWords{}).has_value());
+    CHECK_FALSE(sns::start_tile_help({}, sns::FoundWords{}).has_value());
 
-    const std::vector<wjs::FoundWord> viable = {along("CAT", 0, 0)};
-    wjs::FoundWords found;
+    const std::vector<sns::FoundWord> viable = {along("CAT", 0, 0)};
+    sns::FoundWords found;
     found.insert("cat");
-    CHECK_FALSE(wjs::start_tile_help(viable, found).has_value());
+    CHECK_FALSE(sns::start_tile_help(viable, found).has_value());
 }
 
 TEST_CASE("help passes over a word it cannot point at", "[rules]") {
-    wjs::FoundWord no_path;
+    sns::FoundWord no_path;
     no_path.word = "ANT";
 
-    const std::vector<wjs::FoundWord> viable = {no_path, along("TAPE", 0, 0)};
-    CHECK(helped_word(viable, wjs::FoundWords{}) == "TAPE");
+    const std::vector<sns::FoundWord> viable = {no_path, along("TAPE", 0, 0)};
+    CHECK(helped_word(viable, sns::FoundWords{}) == "TAPE");
 }
 
 TEST_CASE("help points at a tile the word can be traced from", "[rules]") {
     // On a real board, with the solver's own paths: the tile is the first of a
     // path that spells the word, and following help finds every word.
     const auto dictionary = english();
-    const auto words = wjs::WordSets::standard(dictionary);
+    const auto words = sns::WordSets::standard(dictionary);
     const auto board = make_board(board_text);
-    const auto viable = wjs::viable_words(board, words);
+    const auto viable = sns::viable_words(board, words);
     REQUIRE_FALSE(viable.empty());
 
-    wjs::FoundWords found;
+    sns::FoundWords found;
     std::size_t helps = 0;
-    while (const auto help = wjs::start_tile_help(viable, found)) {
+    while (const auto help = sns::start_tile_help(viable, found)) {
         ++helps;
         REQUIRE_FALSE(found.contains(help->word));
 
-        const auto entry = std::ranges::find(viable, help->word, &wjs::FoundWord::word);
+        const auto entry = std::ranges::find(viable, help->word, &sns::FoundWord::word);
         REQUIRE(entry != viable.end());
         CHECK(help->tile == entry->path.front());
 
         // The word really can be started there.
-        const auto traced = wjs::classify_path(board, entry->path, words);
-        CHECK(traced.state == wjs::WordState::viable);
+        const auto traced = sns::classify_path(board, entry->path, words);
+        CHECK(traced.state == sns::WordState::viable);
         CHECK(traced.word == help->word);
 
-        CHECK_FALSE(wjs::is_cleared(viable, found));
+        CHECK_FALSE(sns::is_cleared(viable, found));
         REQUIRE(found.insert(help->word));
     }
 
     CHECK(helps == viable.size());
-    CHECK(wjs::is_cleared(viable, found));
+    CHECK(sns::is_cleared(viable, found));
 }
 
 TEST_CASE("the words left of a start count the ones that begin with its tiles", "[rules]") {
     // SAT and SIT begin on the same tile; PAT begins on the next tile of the
     // same row; NAP is on a path of its own.
-    const std::vector<wjs::FoundWord> viable = {along("SAT", 0, 0), along("SIT", 0, 0),
+    const std::vector<sns::FoundWord> viable = {along("SAT", 0, 0), along("SIT", 0, 0),
                                                 along("PAT", 0, 1), along("NAP", 0, 2)};
-    const wjs::FoundWords none;
-    CHECK(wjs::words_starting_with(viable, none, {}) == 0);
-    CHECK(wjs::words_starting_with(viable, none, std::array<Position, 1>{Position{0, 0}}) == 2);
-    CHECK(wjs::words_starting_with(viable, none, std::array<Position, 1>{Position{0, 1}}) == 1);
-    CHECK(wjs::words_starting_with(viable, none, std::array<Position, 1>{Position{3, 3}}) == 0);
+    const sns::FoundWords none;
+    CHECK(sns::words_starting_with(viable, none, {}) == 0);
+    CHECK(sns::words_starting_with(viable, none, std::array<Position, 1>{Position{0, 0}}) == 2);
+    CHECK(sns::words_starting_with(viable, none, std::array<Position, 1>{Position{0, 1}}) == 1);
+    CHECK(sns::words_starting_with(viable, none, std::array<Position, 1>{Position{3, 3}}) == 0);
     // The first two tiles narrow the count to the words that share them.
-    CHECK(wjs::words_starting_with(viable, none,
+    CHECK(sns::words_starting_with(viable, none,
                                    std::array<Position, 2>{Position{0, 0}, Position{0, 1}}) == 2);
-    CHECK(wjs::words_starting_with(viable, none,
+    CHECK(sns::words_starting_with(viable, none,
                                    std::array<Position, 2>{Position{0, 1}, Position{0, 2}}) == 1);
 
     // A word found is not counted among the ones left; nothing else changes.
-    wjs::FoundWords found;
+    sns::FoundWords found;
     found.insert("SAT");
-    CHECK(wjs::words_starting_with(viable, found, std::array<Position, 1>{Position{0, 0}}) == 1);
+    CHECK(sns::words_starting_with(viable, found, std::array<Position, 1>{Position{0, 0}}) == 1);
     found.insert("SIT");
-    CHECK(wjs::words_starting_with(viable, found, std::array<Position, 1>{Position{0, 0}}) == 0);
+    CHECK(sns::words_starting_with(viable, found, std::array<Position, 1>{Position{0, 0}}) == 0);
 }
 
 TEST_CASE("a prefix longer than a word's path counts that word as no match", "[rules]") {
     // Comparing the prefix with a shorter path would read past its end; the
     // word is simply not one that begins with so many tiles.
-    const std::vector<wjs::FoundWord> viable = {along("SAT", 0, 0), along("SATIN", 0, 0),
-                                                wjs::FoundWord{}};
-    const wjs::FoundWords none;
+    const std::vector<sns::FoundWord> viable = {along("SAT", 0, 0), along("SATIN", 0, 0),
+                                                sns::FoundWord{}};
+    const sns::FoundWords none;
     const std::array<Position, 4> four = {Position{0, 0}, Position{0, 1}, Position{0, 2},
                                           Position{0, 3}};
 
     // Only SATIN has four tiles to compare; its fourth is (0, 3), as the prefix's.
-    CHECK(wjs::words_starting_with(viable, none, four) == 1);
+    CHECK(sns::words_starting_with(viable, none, four) == 1);
     const std::array<Position, 6> six = {Position{0, 0}, Position{0, 1}, Position{0, 2},
                                          Position{0, 3}, Position{0, 4}, Position{0, 5}};
-    CHECK(wjs::words_starting_with(viable, none, six) == 0);
+    CHECK(sns::words_starting_with(viable, none, six) == 0);
     // A word with no path at all is never a match, whatever the prefix.
-    CHECK(wjs::words_starting_with(std::vector<wjs::FoundWord>{wjs::FoundWord{}}, none,
+    CHECK(sns::words_starting_with(std::vector<sns::FoundWord>{sns::FoundWord{}}, none,
                                    std::array<Position, 1>{Position{0, 0}}) == 0);
 }
 
 // --- 4. whether the board is cleared -----------------------------------------
 
 TEST_CASE("a board is cleared when no viable word is left unfound", "[rules]") {
-    const std::vector<wjs::FoundWord> viable = {
+    const std::vector<sns::FoundWord> viable = {
         along("SAT", 0, 0),
         along("SIT", 1, 0),
         along("TAP", 2, 0),
     };
-    wjs::FoundWords found;
+    sns::FoundWords found;
 
-    CHECK_FALSE(wjs::is_cleared(viable, found));
+    CHECK_FALSE(sns::is_cleared(viable, found));
 
     found.insert("SAT");
     found.insert("sit");
-    CHECK_FALSE(wjs::is_cleared(viable, found));
+    CHECK_FALSE(sns::is_cleared(viable, found));
 
     found.insert("TAP");
-    CHECK(wjs::is_cleared(viable, found));
+    CHECK(sns::is_cleared(viable, found));
 }
 
 TEST_CASE("words found that are not viable do not clear a board", "[rules]") {
-    const std::vector<wjs::FoundWord> viable = {along("SAT", 0, 0), along("SIT", 1, 0)};
-    wjs::FoundWords found;
+    const std::vector<sns::FoundWord> viable = {along("SAT", 0, 0), along("SIT", 1, 0)};
+    sns::FoundWords found;
     found.insert("SAT");
     found.insert("TAN");
     found.insert("PIN");
 
-    CHECK_FALSE(wjs::is_cleared(viable, found));
+    CHECK_FALSE(sns::is_cleared(viable, found));
     found.insert("SIT");
-    CHECK(wjs::is_cleared(viable, found));
+    CHECK(sns::is_cleared(viable, found));
 }
 
 TEST_CASE("a board with no viable word has none left to find", "[rules]") {
     // The literal reading. The deal is meant never to make such a board (the
     // author, 2026-10-16), so this is only what the question answers for one.
-    CHECK(wjs::is_cleared({}, wjs::FoundWords{}));
+    CHECK(sns::is_cleared({}, sns::FoundWords{}));
 }
 
 // ---------------------------------------------------------------------------
@@ -806,7 +806,7 @@ constexpr std::array<std::uint64_t, 8> never_meet_hashes = {
 
 // The words of the shipped dictionary whose hash is in the list.
 std::vector<std::string> never_meet_words() {
-    std::ifstream in(std::filesystem::path(WJS_DATA_DIRECTORY) / "dictionaries" / "en.txt");
+    std::ifstream in(std::filesystem::path(SNS_DATA_DIRECTORY) / "dictionaries" / "en.txt");
     REQUIRE(in);
     std::vector<std::string> found;
     std::string line;
@@ -829,14 +829,14 @@ TEST_CASE("a word a child must never meet is counted by the standard board and n
     // Every word of the list is in the real dictionary: the list is still true.
     REQUIRE(words.size() == never_meet_hashes.size());
 
-    const wjs::Dictionary& english = wjs::test::shipped_english();
-    const wjs::PhaseSet set = phase_a(english);
-    const wjs::PhaseIndex& phase = *set.find("A");
-    const wjs::WordSets standard = wjs::WordSets::standard(english);
-    const wjs::WordSets phonics = wjs::WordSets::phonics(english, phase);
+    const sns::Dictionary& english = sns::test::shipped_english();
+    const sns::PhaseSet set = phase_a(english);
+    const sns::PhaseIndex& phase = *set.find("A");
+    const sns::WordSets standard = sns::WordSets::standard(english);
+    const sns::WordSets phonics = sns::WordSets::phonics(english, phase);
 
     for (const std::string& word : words) {
-        REQUIRE(word.size() >= wjs::min_word_letters);
+        REQUIRE(word.size() >= sns::min_word_letters);
         REQUIRE(word.size() <= 9);
 
         // The word laid along the first cells of a 3x3 board in a snake, the
@@ -851,17 +851,17 @@ TEST_CASE("a word a child must never meet is counted by the standard board and n
             path.push_back(snake[i]);
         }
         const std::string tiles{cells.begin(), cells.end()};
-        const wjs::Board board =
+        const sns::Board board =
             make_board(tiles.substr(0, 3) + "/" + tiles.substr(3, 3) + "/" + tiles.substr(6, 3));
 
         INFO("a word of " << word.size() << " letters, hash " << std::hex << fnv1a(word));
         // The standard board: a find, whatever the word is.
-        CHECK(classify(board, path, standard).state == wjs::WordState::viable);
-        CHECK(wjs::viable_words(board, standard).size() >= 1);
+        CHECK(classify(board, path, standard).state == sns::WordState::viable);
+        CHECK(sns::viable_words(board, standard).size() >= 1);
         // The phonics board: a real word that is not today's, named by nobody.
-        const wjs::Classification on_phonics = classify(board, path, phonics);
-        CHECK(on_phonics.state == wjs::WordState::real_not_todays);
+        const sns::Classification on_phonics = classify(board, path, phonics);
+        CHECK(on_phonics.state == sns::WordState::real_not_todays);
         CHECK(on_phonics.word.empty());
-        CHECK(wjs::viable_words(board, phonics).empty());
+        CHECK(sns::viable_words(board, phonics).empty());
     }
 }

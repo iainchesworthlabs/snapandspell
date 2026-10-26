@@ -5,13 +5,13 @@
 #include <vector>
 
 #include "path_tracer.hpp"
-#include "wjs/board.hpp"
+#include "sns/board.hpp"
 
 namespace {
 
-using wjs::Position;
-using wjs::app::PathTracer;
-using wjs::app::Point;
+using sns::Position;
+using sns::app::PathTracer;
+using sns::app::Point;
 using Event = PathTracer::Event;
 
 // A 3 x 3 board of tiles 100 wide with 10 between them: the centre of the tile

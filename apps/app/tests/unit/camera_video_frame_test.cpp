@@ -12,7 +12,7 @@
 #include <optional>
 
 #include "frame_conversion.hpp"
-#include "wjs/scan/frame.hpp"
+#include "sns/scan/frame.hpp"
 
 TEST_CASE("a video frame becomes an RGB24 scanner frame", "[app][scan][camera]") {
     QImage image(2, 2, QImage::Format_RGB888);
@@ -27,12 +27,12 @@ TEST_CASE("a video frame becomes an RGB24 scanner frame", "[app][scan][camera]")
     const QImage converted = video.toImage();
     REQUIRE_FALSE(converted.isNull());
 
-    const std::optional<wjs::scan::OwnedFrame> frame = wjs::app::frame_from_image(converted);
+    const std::optional<sns::scan::OwnedFrame> frame = sns::app::frame_from_image(converted);
     REQUIRE(frame.has_value());
     CHECK(frame->width == 2);
     CHECK(frame->height == 2);
     CHECK(frame->stride == 6);
-    CHECK(frame->format == wjs::scan::PixelFormat::rgb8);
+    CHECK(frame->format == sns::scan::PixelFormat::rgb8);
     REQUIRE(frame->pixels.size() == 12);
     CHECK(frame->pixels[0] == 1);
     CHECK(frame->pixels[1] == 2);

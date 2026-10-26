@@ -6,9 +6,9 @@
 #include <filesystem>
 #include <string>
 
-#include "wjs/platform/paths.hpp"
+#include "sns/platform/paths.hpp"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 std::filesystem::path executable_path() {
     // readlink does not say when it truncated, so grow until the name fits.
@@ -45,4 +45,4 @@ std::filesystem::path user_data_directory() {
     return {};
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

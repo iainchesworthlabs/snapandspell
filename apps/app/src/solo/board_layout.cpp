@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-namespace wjs::app {
+namespace sns::app {
 
 BoardMetrics board_metrics(double width, double height, std::size_t n) noexcept {
     BoardMetrics metrics;
@@ -55,4 +55,4 @@ SoloLayoutResult solo_layout(double width, double height, std::size_t n,
     return result;
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

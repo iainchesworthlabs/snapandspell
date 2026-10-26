@@ -12,7 +12,7 @@
 #include "assist_game_factory.hpp"
 #include "path_tracer.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // What the Family Assistant screen (`assist.playing`) binds to: the confirmed
 // board's tiles, the path being traced, the tray, the start tile and the cues.
@@ -26,9 +26,9 @@ namespace wjs::app {
 // false, and the screen stays on the check screen.
 //
 // The board arrives from the check screen as plain values, because QML carries
-// plain values: begin(rows, columns, letters) makes the wjs::Board that the
+// plain values: begin(rows, columns, letters) makes the sns::Board that the
 // grown-up's "Yes, play" confirmed. That is the only way a board gets here: a
-// reading is never a board (wjs::scan::BoardDraft::confirm() is the check).
+// reading is never a board (sns::scan::BoardDraft::confirm() is the check).
 //
 // Tile indices are row * columns + column, from the top left.
 class AssistModel : public QObject {
@@ -144,4 +144,4 @@ private:
     std::size_t last_path_size_ = 0;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

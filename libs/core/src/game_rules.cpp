@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/game_rules.hpp"
+#include "sns/game_rules.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -7,9 +7,9 @@
 #include <utility>
 
 #include "ascii.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 // The three places that say "three letters" are one number.
@@ -167,4 +167,4 @@ std::size_t words_starting_with(std::span<const FoundWord> viable, const FoundWo
     return count;
 }
 
-}  // namespace wjs
+}  // namespace sns

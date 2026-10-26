@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Shapes
-import WordJewelsSolver
+import SnapAndSpell
 
 // An outline button that needs a deliberate press: hold it for a second while a
 // ring fills (docs/design/game.md, "The resting screen"). It is a brake and not

@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace wjs::scene {
+namespace sns::scene {
 namespace {
 
 // A name as UTF-8 for the wrapper. It is only made in a build with Tracy: the
@@ -31,7 +31,7 @@ void Profiler::begin(const QString& name) {
         ++overflow_;
         return;
     }
-    if constexpr (wjs::profiling::enabled) {
+    if constexpr (sns::profiling::enabled) {
         if (!name.isEmpty()) {
             const QByteArray text = name.toUtf8();
             // In place: the scope is not movable (Tracy's zone ends where it was
@@ -56,7 +56,7 @@ void Profiler::end() {
 }
 
 void Profiler::value(qulonglong number) {
-    if constexpr (wjs::profiling::enabled) {
+    if constexpr (sns::profiling::enabled) {
         // The innermost zone is a place-holder when its begin() had no name to
         // open; there is nothing to give the number to then.
         if (overflow_ == 0 && depth_ > 0 && open_[depth_ - 1].has_value()) {
@@ -70,11 +70,11 @@ void Profiler::mark(const QString& name) {
     if (name.isEmpty()) {
         return;
     }
-    if constexpr (wjs::profiling::enabled) {
+    if constexpr (sns::profiling::enabled) {
         const QByteArray text = name.toUtf8();
         // Opened and closed where it is declared: a zero-length zone.
-        [[maybe_unused]] const wjs::profiling::RuntimeScope point{utf8(text)};
+        [[maybe_unused]] const sns::profiling::RuntimeScope point{utf8(text)};
     }
 }
 
-}  // namespace wjs::scene
+}  // namespace sns::scene

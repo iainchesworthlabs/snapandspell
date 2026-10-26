@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/motion.hpp"
+#include "sns/motion.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 MotionProcessor::MotionProcessor(ShakeOptions options) : options_(options) {}
 
@@ -79,4 +79,4 @@ MotionOutput MotionProcessor::push(const DeviceMotion& sample) {
     return output;
 }
 
-}  // namespace wjs
+}  // namespace sns

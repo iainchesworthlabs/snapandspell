@@ -1,7 +1,7 @@
 Qt {{QT_VERSION}}
 ------------------
 
-WordJewelsSolver.wasm contains the Qt {{QT_VERSION}} libraries and plugins the
+SnapAndSpell.wasm contains the Qt {{QT_VERSION}} libraries and plugins the
 application uses, built for WebAssembly with Emscripten and linked statically
 into the one file, with the QML modules the application imports: QtQuick,
 QtQuick.Controls (the Basic style), QtQuick.Layouts, QtQuick.Shapes,

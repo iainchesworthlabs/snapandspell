@@ -5,7 +5,7 @@
 #include <string_view>
 
 #include "fuzz_input.hpp"
-#include "wjs/store.hpp"
+#include "sns/store.hpp"
 
 namespace {
 
@@ -36,8 +36,8 @@ std::string with_checksum(std::string_view text) {
 }
 
 // What a store that was read must survive: written out again, it reads back as the same data.
-void check_round_trip(const wjs::ParsedStore& parsed) {
-    const auto again = wjs::parse_store(wjs::serialize_store(parsed.data));
+void check_round_trip(const sns::ParsedStore& parsed) {
+    const auto again = sns::parse_store(sns::serialize_store(parsed.data));
     if (!again || !(again->data == parsed.data)) {
         std::abort();
     }
@@ -48,11 +48,11 @@ void check_round_trip(const wjs::ParsedStore& parsed) {
 // A store file as found on disk: the size, the header, the checksum, the migrations and every
 // record.
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
-    const auto text = wjs::test::fuzz_text(data, size);
-    if (const auto parsed = wjs::parse_store(text)) {
+    const auto text = sns::test::fuzz_text(data, size);
+    if (const auto parsed = sns::parse_store(text)) {
         check_round_trip(*parsed);
     }
-    if (const auto parsed = wjs::parse_store(with_checksum(text))) {
+    if (const auto parsed = sns::parse_store(with_checksum(text))) {
         check_round_trip(*parsed);
     }
     return 0;

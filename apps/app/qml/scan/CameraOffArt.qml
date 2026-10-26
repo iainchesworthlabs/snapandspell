@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Shapes
-import WordJewelsSolver
+import SnapAndSpell
 
 // The picture shown in the viewfinder's place when the device has no camera: a
 // camera with a stroke through it, drawn on the tray in the dice's cream. It says

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Shapes
-import WordJewelsSolver
+import SnapAndSpell
 import "PixelArt.js" as PixelArt
 
 // A picture drawn in cells (PixelArt.js, written by tools/design/make_pixel_art.py): one coloured layer

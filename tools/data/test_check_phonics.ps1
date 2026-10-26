@@ -75,7 +75,7 @@ function New-Phases([switch]$Reviewed) {
 
 $failures = [System.Collections.Generic.List[string]]::new()
 $count = 0
-$temp = Join-Path ([System.IO.Path]::GetTempPath()) ("wjs_check_phonics_" + [guid]::NewGuid().ToString('N'))
+$temp = Join-Path ([System.IO.Path]::GetTempPath()) ("sns_check_phonics_" + [guid]::NewGuid().ToString('N'))
 
 # Builds a root from the files, runs the checker and judges it.
 function Test-Case([string]$Name, [int]$Expected, $Files, [string[]]$Expect = @(), [string[]]$Arguments = @()) {

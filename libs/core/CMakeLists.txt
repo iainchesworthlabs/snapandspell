@@ -5,11 +5,11 @@
 # Build-time facts (the version, the target platform's name) become constants
 # in a header CMake generates, rather than macros the sources would declare.
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/wjs/version.hpp.in"
-    "${PROJECT_BINARY_DIR}/generated/wjs/version.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/sns/version.hpp.in"
+    "${PROJECT_BINARY_DIR}/generated/sns/version.hpp"
     @ONLY)
 
-add_library(wjs_lib STATIC
+add_library(sns_lib STATIC
     src/board.cpp
     src/dashboard.cpp
     src/deal.cpp
@@ -34,25 +34,25 @@ add_library(wjs_lib STATIC
     src/store.cpp
     src/store_format.cpp
     src/version.cpp)
-add_library(wjs::lib ALIAS wjs_lib)
+add_library(sns::lib ALIAS sns_lib)
 
-# Which wjs/profiling.hpp the zones in the sources resolve to: CMake chooses the
+# Which sns/profiling.hpp the zones in the sources resolve to: CMake chooses the
 # directory, no preprocessor conditional does (cmake/Tracy.cmake). PUBLIC
 # because the layers above the library are instrumented the same way; the
 # interface carries the variant's include path and, in a profiling build,
-# Tracy's own headers through wjs::tracy.
-target_include_directories(wjs_lib PUBLIC
+# Tracy's own headers through sns::tracy.
+target_include_directories(sns_lib PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${PROJECT_BINARY_DIR}/generated")
-target_compile_features(wjs_lib PUBLIC cxx_std_23)
-target_link_libraries(wjs_lib
+target_compile_features(sns_lib PUBLIC cxx_std_23)
+target_link_libraries(sns_lib
     PUBLIC
-        wjs::profiling
+        sns::profiling
     PRIVATE
-        wjs::warnings
-        wjs::hardening
-        wjs::sanitizers
-        wjs::coverage)
-if(WJS_ENABLE_FUZZING)
+        sns::warnings
+        sns::hardening
+        sns::sanitizers
+        sns::coverage)
+if(SNS_ENABLE_FUZZING)
     add_subdirectory(fuzz)
 endif()

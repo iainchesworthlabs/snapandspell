@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 
 // The kit's tokens (apps/app/qml/kit/Theme.qml): the values the design's placeholders
 // pin, the three things the person or the system chooses, and the two the

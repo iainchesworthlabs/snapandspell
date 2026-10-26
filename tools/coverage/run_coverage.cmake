@@ -5,7 +5,7 @@
 # Runs one coverage tier and turns its counters into a report, then holds it to
 # the project's minimum standard. Invoked by the coverage-unit / coverage-ui
 # targets (cmake/Coverage.cmake); not a ctest entry, because it runs ctest
-# itself and needs a build with WJS_ENABLE_COVERAGE on.
+# itself and needs a build with SNS_ENABLE_COVERAGE on.
 #
 # Inputs (all -D):
 #   SOURCE_DIR        the checkout root
@@ -145,7 +145,7 @@ if(STYLE STREQUAL "llvm")
     if(NOT _profiles)
         message(FATAL_ERROR
             "coverage: the ${LABEL} run wrote no profile data to ${_profile_dir}. "
-            "Check that the test programs link wjs::coverage and that "
+            "Check that the test programs link sns::coverage and that "
             "LLVM_PROFILE_FILE reached them.")
     endif()
     list(LENGTH _profiles _profile_count)
@@ -284,7 +284,7 @@ endif()
 # ---------------------------------------------------------------------------
 # 4. One summary, written for both styles, then the gate.
 # ---------------------------------------------------------------------------
-function(wjs_one_decimal value out)
+function(sns_one_decimal value out)
     string(REGEX MATCH "^([0-9]+)(\\.([0-9]*))?" _match "${value}")
     if(NOT _match)
         set(${out} "0.0" PARENT_SCOPE)
@@ -294,8 +294,8 @@ function(wjs_one_decimal value out)
     string(SUBSTRING "${_fraction}" 0 1 _first)
     set(${out} "${CMAKE_MATCH_1}.${_first}" PARENT_SCOPE)
 endfunction()
-wjs_one_decimal("${_line_percent}" _line_display)
-wjs_one_decimal("${_branch_percent}" _branch_display)
+sns_one_decimal("${_line_percent}" _line_display)
+sns_one_decimal("${_branch_percent}" _branch_display)
 
 set(_summary
 "{

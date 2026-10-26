@@ -8,9 +8,9 @@
 #include <string>
 #include <system_error>
 
-#include "wjs/platform/paths.hpp"
+#include "sns/platform/paths.hpp"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 std::filesystem::path executable_path() {
     // The first call fails on purpose: it reports the length the name needs.
@@ -44,4 +44,4 @@ std::filesystem::path user_data_directory() {
     return {};
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

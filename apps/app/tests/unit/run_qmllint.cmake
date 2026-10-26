@@ -4,8 +4,8 @@
 # the application is configured, and the types themselves when it is built, so this
 # runs after a build and reports itself skipped (exit 4) when there is none.
 #
-# The board scene is a QML module of its own (WordJewelsSolver.Scene), and so is
-# the Family Assistant (WordJewelsSolver.Scan), so their response files and types
+# The board scene is a QML module of its own (SnapAndSpell.Scene), and so is
+# the Family Assistant (SnapAndSpell.Scan), so their response files and types
 # are linted too, in the same case: a warning in either module fails the
 # application's lint. The scan module's screens import the application's own
 # module for its kit, and the application's shell imports the scan module.

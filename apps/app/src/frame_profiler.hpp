@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-namespace wjs::app {
+namespace sns::app {
 
 // The frame clock of the window (docs/profiling.md, "The frame"): a frame mark
 // named "UI" at every swap, the interval between swaps as the plot
@@ -136,4 +136,4 @@ private:
     std::vector<QMetaObject::Connection> connections_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

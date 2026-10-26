@@ -7,9 +7,9 @@
 #include <utility>
 #include <vector>
 
-#include "wjs/dictionary.hpp"
+#include "sns/dictionary.hpp"
 
-namespace wjs::app::demo {
+namespace sns::app::demo {
 namespace {
 
 constexpr std::string_view graphemes_a =
@@ -48,8 +48,8 @@ constexpr std::string_view words_b =
     "saint  s ai n t\n"
     "stain  s t ai n\n";
 
-wjs::Dictionary english() {
-    wjs::Dictionary dictionary;
+sns::Dictionary english() {
+    sns::Dictionary dictionary;
     for (const std::string_view word : {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "zap",
                                         "cow", "pain", "paint", "saint", "stain"}) {
         static_cast<void>(dictionary.insert(word));
@@ -57,7 +57,7 @@ wjs::Dictionary english() {
     return dictionary;
 }
 
-wjs::FoundSnapshot found(std::string word, int stars, bool assisted, wjs::Day day) {
+sns::FoundSnapshot found(std::string word, int stars, bool assisted, sns::Day day) {
     return {std::move(word), assisted, day, stars};
 }
 
@@ -69,34 +69,34 @@ std::string tiles(int variant) {
 
 }  // namespace
 
-wjs::PhaseSet phases() {
+sns::PhaseSet phases() {
     const auto read_graphemes = [](std::string_view text, std::string_view name) {
         std::istringstream in{std::string(text)};
-        auto parsed = wjs::parse_graphemes(in, name);
+        auto parsed = sns::parse_graphemes(in, name);
         return std::move(*parsed);
     };
     const auto read_words = [](std::string_view text, std::string_view name) {
         std::istringstream in{std::string(text)};
-        auto parsed = wjs::parse_words(in, name);
+        auto parsed = sns::parse_words(in, name);
         return std::move(*parsed);
     };
-    auto built = wjs::PhaseSet::build(
+    auto built = sns::PhaseSet::build(
         {read_graphemes(graphemes_a, "a.g"), read_graphemes(graphemes_b, "b.g")},
         {read_words(words_a, "a.w"), read_words(words_b, "b.w")}, english());
     return std::move(*built);
 }
 
-wjs::Store empty_store() {
-    return wjs::Store::in_memory();
+sns::Store empty_store() {
+    return sns::Store::in_memory();
 }
 
-wjs::Store busy_store(wjs::Day today) {
-    wjs::Store store = wjs::Store::in_memory();
+sns::Store busy_store(sns::Day today) {
+    sns::Store store = sns::Store::in_memory();
     int variant = 0;
 
     const auto phonics = [&](std::vector<std::string> viable,
-                             std::vector<wjs::FoundSnapshot> finds) {
-        wjs::BoardSnapshot board;
+                             std::vector<sns::FoundSnapshot> finds) {
+        sns::BoardSnapshot board;
         board.phase = "B";
         board.size = 3;
         board.tiles = tiles(variant++);
@@ -107,7 +107,7 @@ wjs::Store busy_store(wjs::Day today) {
     };
 
     // Last week: a few boards of phase B.
-    const wjs::Day last_week = today - 9;
+    const sns::Day last_week = today - 9;
     phonics({"pain", "sat", "pin"},
             {found("pain", 2, true, last_week), found("sat", 1, false, last_week),
              found("pin", 1, false, last_week)});
@@ -124,7 +124,7 @@ wjs::Store busy_store(wjs::Day today) {
             {found("paint", 5, false, today), found("pan", 1, false, today)});
 
     // Standard boards.
-    wjs::BoardSnapshot standard;
+    sns::BoardSnapshot standard;
     standard.size = 4;
     standard.tiles = "S A T P/I N S A/T P I N/A T S P";
     standard.viable_total = 60;
@@ -132,12 +132,12 @@ wjs::Store busy_store(wjs::Day today) {
                       found("tans", 1, false, today)};
     static_cast<void>(store.record(standard, today));
 
-    wjs::Settings settings;
-    settings.board = wjs::BoardMode::phonics;
+    sns::Settings settings;
+    settings.board = sns::BoardMode::phonics;
     settings.phase = "B";
     settings.focus_sounds = {"ai", "z"};
     store.update_settings(settings);
     return store;
 }
 
-}  // namespace wjs::app::demo
+}  // namespace sns::app::demo

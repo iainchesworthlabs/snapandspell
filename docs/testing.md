@@ -40,11 +40,11 @@ Every Catch2 `TEST_CASE` is registered with CTest by name
 unit-test program directly, with Catch2's own filters:
 
 ```sh
-build/windows-msvc-debug/bin/wjs_unit_tests --list-tests
-build/windows-msvc-debug/bin/wjs_unit_tests "[solver]"
+build/windows-msvc-debug/bin/sns_unit_tests --list-tests
+build/windows-msvc-debug/bin/sns_unit_tests "[solver]"
 ```
 
-The scanner's tests are their own binary, `wjs_scan_tests`, tagged `[scan]` (with
+The scanner's tests are their own binary, `sns_scan_tests`, tagged `[scan]` (with
 `[geometry]`, `[image]`, `[finder]`, `[font]`, `[glyph]`, `[reader]`, `[draft]`,
 `[platform]` (with `[contract]`), `[corpus]` and `[smoke]`); see [The scanner](#the-scanner).
 
@@ -52,20 +52,20 @@ The tags are `[board]`, `[dictionary]`, `[scoring]`, `[solver]`, `[path]`, `[dic
 (and `[data]` for the cases that read the shipped data),
 `[phase]` (and `[review]` for the review header), `[seeding]`, `[binder]`,
 `[shake]`, `[rules]`, `[session]` (with `[standard]` for the cases that play the standard board), `[deal]`, `[dice_sets]`, `[platform]`, `[feedback]`, `[motion]` (with `[processor]` for the pure processing) and `[haptics]`, and `[profiling]`, and `[app]` in
-`wjs_app_tests` (with `[layout]`, `[trace]`, `[fake]`, `[solo]`, `[feedback]`, `[motion]` and `[i18n]`,
+`sns_app_tests` (with `[layout]`, `[trace]`, `[fake]`, `[solo]`, `[feedback]`, `[motion]` and `[i18n]`,
 the last with `[catalogue]`, `[language]` and `[glyph]`). The camera's are `[camera]` (with
-`[scan]`, and `[app]` in `wjs_app_tests`), and `camera.screens` is the QML check that
+`[scan]`, and `[app]` in `sns_app_tests`), and `camera.screens` is the QML check that
 drives the live view. The parent area's are
 `[calendar]`, `[settings]`, `[gate]`, `[store]` (with `[record]`, `[file]`, `[migration]`, `[bounds]`,
 `[reset]`, `[resume]` and `[privacy]`), `[dashboard]` (with `[sounds]`, `[week]`, `[vault]`, `[best]`,
-`[focus]`), `[session-store]` (the copy to and from the game session) and, in `wjs_app_tests`, `[parent]`
+`[focus]`), `[session-store]` (the copy to and from the game session) and, in `sns_app_tests`, `[parent]`
 (and `[system]` with `[motion]` for the singleton over the system's motion preference, which makes a
 GUI application on Qt's offscreen platform and tells its accessibility hints of a change).
-The rest: `[sound_it_out]` and `[version]` in `wjs_unit_tests`; `[golden]` in the store's cases (a
+The rest: `[sound_it_out]` and `[version]` in `sns_unit_tests`; `[golden]` in the store's cases (a
 file of known data, byte for byte); `[assist]`, `[startup]`, `[text]`, `[sequence]` (with `[feedback]`),
 `[clock]` (with `[solo]`, the board clock), `[edited]`, `[real]`, `[totals]` and `[backend]` in
-`wjs_app_tests`; `[scene]` (with `[profiler]` and `[perf]`) in `wjs_scene_script_tests`;
-and `[frame]` in `wjs_frame_profiler_tests` and `wjs_frame_timing_tests`.
+`sns_app_tests`; `[scene]` (with `[profiler]` and `[perf]`) in `sns_scene_script_tests`;
+and `[frame]` in `sns_frame_profiler_tests` and `sns_frame_timing_tests`.
 
 ## The tiers
 
@@ -77,7 +77,7 @@ they are not separate builds, and a full `ctest` runs all of them.
 | --- | --- | --- | --- |
 | **Unit** | `ctest -L unit` | One class or one function, with no file, no Qt and no process around it: the library's cases and the platform layer's. The only tier with a coverage floor (90% lines / 80% branches, [Coverage](#coverage)). | `libs/core/tests/unit/` |
 | **Integration** | `ctest -R "^integration\\."` | Several first-party pieces together: the window's model over the real library and store, the scanner's pipeline over its synthetic corpus, and the board scene's script in Qt's engine. No program is started. | `apps/app/tests/unit/`, `libs/scan/tests/` |
-| **System** | `ctest -L system` | The programs as programs: `wjs-cli`'s options, exit codes and output; the application's start-up contract and headless smoke run; the install rules run into a throw-away prefix and the installed `wjs-cli` then executed; the two programs run with the Tracy capture attached (`profiling.trace_cli`, `profiling.trace_app`, [Performance tests](#the-trace-tests)); the window's frame budget (`system.frame.*`, opt-in); and the two stub shells walking every screen. | `tests/system/`, `tests/checks/`, `apps/app/tests/unit/*_ui/`, `apps/app/tests/unit/frame_timing_test.cpp` |
+| **System** | `ctest -L system` | The programs as programs: `sns-cli`'s options, exit codes and output; the application's start-up contract and headless smoke run; the install rules run into a throw-away prefix and the installed `sns-cli` then executed; the two programs run with the Tracy capture attached (`profiling.trace_cli`, `profiling.trace_app`, [Performance tests](#the-trace-tests)); the window's frame budget (`system.frame.*`, opt-in); and the two stub shells walking every screen. | `tests/system/`, `tests/checks/`, `apps/app/tests/unit/*_ui/`, `apps/app/tests/unit/frame_timing_test.cpp` |
 | **UI** | `ctest -L ui` (or `-R ^quick`) | The application's own screens and kit driven at run time by Qt Quick Test, and the two stub shells' screen walks. `coverage-ui` shows which C++ the QML reaches ([Coverage](#coverage)). | `apps/app/ui-tests/`, `apps/app/tests/unit/parent_ui/`, `apps/app/tests/unit/scan_ui/` |
 
 The performance tier (`ctest -L perf`, [Performance tests](#performance-tests)) is
@@ -110,76 +110,76 @@ app and scanner suites' CTest labels (`camera`, `app`, `solo`, ...).
 
 | Test file | Tests | What it holds down |
 | --- | --- | --- |
-| `libs/core/tests/unit/board_test.cpp` | `wjs::Board::parse` | One letter per tile or separated tiles (`Qu I T`), `/` and `\r\n` as row breaks, each way a board is refused (empty, ragged, bad tile, over 16 by 16), `contains` |
-| `libs/core/tests/unit/dictionary_test.cpp` | `wjs::Dictionary` | Case-insensitivity, prefix versus word, words refused (apostrophe, hyphen, digit, empty), duplicates counted once, stepping through the trie, loading skips blanks and non-words, a missing file is an error value, a file round trip |
-| `libs/core/tests/unit/scoring_test.cpp` | `wjs::score_word`, `wjs::word_points` | The printed Boggle scores from 2 letters to 12, and the letter-rarity scores for `E`, `Z`, `EZ`; the points a child sees (`word_points`): a base for the length (none under three letters), each letter at its English Scrabble value in either case, a longer word always worth more than a shorter one of the same letters (lengths 3 to 16), a non-letter counting in the length and adding no value; standard Boggle scores in either case |
-| `libs/core/tests/unit/solver_test.cpp` | `wjs::solve` | Adjacency, the minimum length, the path reported for a word, a tile used at most once, a word reached by several paths reported once, the `Qu` tile, the scoring scheme applied, an empty dictionary; the order of the answer (highest score, then longer, then alphabetical, in both schemes); a tile of three letters spending all three on one visit; a word using every tile of a 4x4 board; and the work counter (`wjs/solver_work.hpp`): visits, solves and the largest, reset, and that each thread has its own |
-| `libs/core/tests/unit/path_test.cpp` | `wjs::validate_path`, `wjs::are_neighbours` | The word a path spells (a `Qu` tile adds two letters), each fault (off the board, a tile twice, tiles that do not touch, no tiles), no wrap-around from the end of a row, and that every path the solver reports validates |
-| `libs/core/tests/unit/phase_data_test.cpp` | `wjs::parse_words`, `parse_graphemes`, `PhaseSet` | The two file formats, the review header (all three on one line or one to a line, placeholders, a half-given or malformed review), each line problem with its line number, the cumulative phase index, each cross-file check, `reviewed()` and the files it names, loading a directory |
-| `libs/core/tests/unit/seeding_test.cpp` | `wjs::seed_board`, `RecentTargets` | The same inputs give the same board (and two boards are pinned, so a change of compiler or algorithm shows), a range of three to five words unless the board says it fell back, targets that are words of the phase and are on the board, dead jewels, recent targets, the cap on tries, **focus sounds steering the targets** (targets prefer words that have a ticked sound; when too few do, the rest come from the phase and the board says `focus_unmet`; a sound is ticked by its letters in any case and not by its slashed sound; every sound the dashboard offers is one seeding honours), each refused option, variety over 300 seeds; the target-length limit, and the guided fill (count kept in range, dead jewels listed as they are on the board, a function of the seed, none with letters outside the phase) |
-| `libs/core/tests/unit/grapheme_binder_test.cpp` | `wjs::GraphemeBinder` | The brief's `R [AI] N`, order, longest first, greedy from the left, blocks that are whole tiles (`Qu`), single letters ignored, a block growing as the path does, every path of up to four tiles covered in order |
-| `libs/core/tests/unit/shake_test.cpp` | `wjs::detect_shakes` | Synthetic traces: a shake, one still, a gentle wave, walking, a knock, turning over, a slow tilt, two shakes, a pause, sample rates and jitter, units, a harder threshold, damaged samples |
-| `libs/core/tests/unit/motion_test.cpp` | `wjs::MotionProcessor` | Samples in, the scene's numbers out: metres per second squared become g, the gyroscope passes through unchanged, and a non-finite sample or one whose time goes backwards is dropped rather than reaching the dice. The same synthetic traces as the detector's: a device lying still is not shaken; a vigorous shake is reported **once**, on the sample that completes it; two shakes are two events; `reset()` forgets the first. No sensor and no hardware |
-| `libs/core/tests/unit/feedback_test.cpp` | `wjs::plan_cue` | The cue policy of the design's feedback table: every cue names its asset, the master Sound switch silences assets and speech, Celebration sounds off stops the cheer/chime/cleared notes but not the word, quiet lowers them, Sound it out full/word/off decides whether the whole word is said (and full is the seam for the sequence), a real word that is not today's is a soft tick and nothing else, Vibration is its own switch, and every haptic is dropped when it is off. No speaker, no sensor, no Qt |
-| `libs/core/tests/unit/haptics_test.cpp` | `wjs::platform::vibrate` | Every pattern is a call the platform answers, twice, and the three desktops answer false through the shared no-op (`[platform][haptics]`) |
-| `libs/core/tests/unit/sound_it_out_test.cpp` | `wjs::sound_it_out_sequence` | The sequence of steps for a found word, as data and with no clip and no speaker (`[sound_it_out]`): one sound step for each grapheme in the word's order, 150 ms apart with the first at once, then a blend of 380 ms that plays every sound again, then the word said whole, then the cheer (which names the sound of the first grapheme of more than one letter, and none for a word of single letters); a split digraph (`cake`) one block at the place of its first letter; a letter with two sounds (`o:2`) sounded as the word uses it; a tricky word said whole and never sounded out; `word_only` is the word and nothing else; `off` is no steps, for a tricky word too; a word the phase does not hold is told and not sounded; the same word and setting the same sequence; the time the sequence fixes is its gaps and its blend; every step kind has a name |
-| `libs/core/tests/unit/version_test.cpp` | `wjs/version.hpp` | The version block names the version and the build's provenance (`[version]`) |
-| `libs/core/tests/unit/game_rules_test.cpp` | `wjs::classify_path`, `viable_words`, `tier_for_letters`, `reward_for`, `FoundWords`, `start_tile_help`, `is_cleared` | The three states on each word set (the standard board's has no middle state; the phonics board's holds only the index, and a real word outside it is "real, not today's" with no word handed back), a word under three letters never counting, each path fault by name, a `Qu` tile adding two letters (QUIT is Power), every one of the 10,305 paths of a 3 by 3 board against the solver on both word sets; the tier table and rewards; a word found once whatever its case and kept in order; the help (shortest in letters, then nearest the top left by distance and not by reading order, then alphabetical, the same in all 120 orders of its input, unmoved while other words are found, and following it finds every word and clears the board); cleared, and the empty board. **The accepted risk, pinned on purpose** (`[rules][data]`): `a word a child must never meet is counted by the standard board and not by the phonics`. Eight words stand for it, kept out of the repository as FNV-1a hashes and found in the shipped ENABLE file by hash; each is laid on a 3x3 board and is a find on the standard board (counted, named) and a real word that is not today's, with no word handed back, on the phonics board. The standard board has no block list ([D7](roadmap.md#4-decisions-that-gate-the-plan)), so lifting the risk is a deliberate edit of this case, not a side effect of a refactor |
-| `libs/core/tests/unit/deal_test.cpp` | `wjs::deal_playable`, `deal_standard_board`, `next_deal_seed` | With stub boards written in the test: the same inputs deal the same board; a board with a word is dealt in one roll; an empty board is made again from the next seed (the maker is asked for exactly the two seeds); the viable list is the board's own solve; `min_viable` of 2 is kept; the cap on rolls (counted by the maker) and a board that comes on the second not being dealt at a cap of one; each refused option, a missing maker and a maker that fails; only the active set's words count; `next_deal_seed` is `std::mt19937`'s first output; each error's name. With the shipped 3x3 dice and dictionary: none of 2,000 deals has an empty viable list (and some were made again), two seeds are pinned, one of them dealt in two rolls, and dice that make no board are `bad_board` |
-| `libs/core/tests/unit/game_session_test.cpp` | `wjs::GameSession` | Every edge of the flow and every event refused in every other state (a table of nine events by six states, a refused event changing nothing); the three kinds of trace, found again, and an ignored one; stars by tier on a board with words of three, four and five letters; clearing, the celebration, resting and again (these are the session's states; the window shows no resting screen, a cleared board waits on a summary sheet, [D12](roadmap.md#4-decisions-that-gate-the-plan)); the help (the same tile until its word is found, an assisted find, off at the parent's switch, followed to the end of the board); the deal (the same seed gives the same boards and outcomes, different seeds differ, three to five words over 600 seeds, never none, the range and the seedings the options', the focus sounds reaching the seeding, dead jewels); the record, and a snapshot restored in each state and refused in each way; and what it never says: every one of the 10,296 paths of two or more tiles on a 3 by 3 board answered as the two word lists say, and a word only in the dictionary never handed out. **The standard board** (`[standard]`, the session's default mode): the mode and the data each needs (the dice and no phase, the phase and no dice, an app that holds both); each mode refusing the options it cannot play; the sizes 3x3 to 6x6 chosen in the box and the phonics board refusing 5x5 and 6x6; a board dealt at every size with no dead jewel, one solve a roll, the report's counts held to the solver, and the library's own deal seed for seed; a roll that holds no word rolled again and never dealt, and no board when no roll holds a word; the same seed the same boards and one seed a run of them; every dictionary word of three letters or more a find (the same trace a tick on the phonics board and a find on the standard), the tiers and stars, a two-letter real word a tick, the board cleared by every word and the help following all twelve of them to the end; the record (the mode, no phase, the count of the words and none listed) and a snapshot restored in each state and refused in each way (the other mode, a record and a snapshot of two modes, a list or no count of the words, a count that is not the board's, a find that is not a word that counts); a tile of two letters; every path of the 3 by 3 board answered as the dictionary says; and, from the shipped dice and the full dictionary (`[data]`), a board that holds a word at every size, the deals pinned to the library's for two seeds, and a whole board played to its clearing |
-| `libs/core/tests/unit/profiling_test.cpp` | `wjs/profiling.hpp` | That the variant CMake chose is the one it was asked for, that every call can be made with no profiler connected, and that a zone cannot be copied or moved |
-| `libs/core/tests/unit/dice_test.cpp` | `wjs::DiceSet`, `wjs::roll`, `wjs::roll_with_placements` | The file format (a face of several letters, commas, comments, a byte-order mark), each way a set is refused, a roll using each die once and showing one of its faces, a function of the seed, two boards pinned so a change of compiler shows; the placements: the die and face of each tile are the tile's letters, each die used once, `roll` the same board as `roll_with_placements` for 200 seeds, the same two boards pinned through it, and the placements of two seeds pinned; every face shown over many rolls |
-| `libs/core/tests/unit/dice_sets_test.cpp` | `wjs::DiceSets` | A set for each side from 3 to 6 in any order, `find` for each and null for any other side; a side missing, twice or out of range refused as `wrong_count` and a set that is not a square as `not_square`; the project's `data/dice` directory read as the four sets, and a directory without them unreadable |
+| `libs/core/tests/unit/board_test.cpp` | `sns::Board::parse` | One letter per tile or separated tiles (`Qu I T`), `/` and `\r\n` as row breaks, each way a board is refused (empty, ragged, bad tile, over 16 by 16), `contains` |
+| `libs/core/tests/unit/dictionary_test.cpp` | `sns::Dictionary` | Case-insensitivity, prefix versus word, words refused (apostrophe, hyphen, digit, empty), duplicates counted once, stepping through the trie, loading skips blanks and non-words, a missing file is an error value, a file round trip |
+| `libs/core/tests/unit/scoring_test.cpp` | `sns::score_word`, `sns::word_points` | The printed Boggle scores from 2 letters to 12, and the letter-rarity scores for `E`, `Z`, `EZ`; the points a child sees (`word_points`): a base for the length (none under three letters), each letter at its English Scrabble value in either case, a longer word always worth more than a shorter one of the same letters (lengths 3 to 16), a non-letter counting in the length and adding no value; standard Boggle scores in either case |
+| `libs/core/tests/unit/solver_test.cpp` | `sns::solve` | Adjacency, the minimum length, the path reported for a word, a tile used at most once, a word reached by several paths reported once, the `Qu` tile, the scoring scheme applied, an empty dictionary; the order of the answer (highest score, then longer, then alphabetical, in both schemes); a tile of three letters spending all three on one visit; a word using every tile of a 4x4 board; and the work counter (`sns/solver_work.hpp`): visits, solves and the largest, reset, and that each thread has its own |
+| `libs/core/tests/unit/path_test.cpp` | `sns::validate_path`, `sns::are_neighbours` | The word a path spells (a `Qu` tile adds two letters), each fault (off the board, a tile twice, tiles that do not touch, no tiles), no wrap-around from the end of a row, and that every path the solver reports validates |
+| `libs/core/tests/unit/phase_data_test.cpp` | `sns::parse_words`, `parse_graphemes`, `PhaseSet` | The two file formats, the review header (all three on one line or one to a line, placeholders, a half-given or malformed review), each line problem with its line number, the cumulative phase index, each cross-file check, `reviewed()` and the files it names, loading a directory |
+| `libs/core/tests/unit/seeding_test.cpp` | `sns::seed_board`, `RecentTargets` | The same inputs give the same board (and two boards are pinned, so a change of compiler or algorithm shows), a range of three to five words unless the board says it fell back, targets that are words of the phase and are on the board, dead jewels, recent targets, the cap on tries, **focus sounds steering the targets** (targets prefer words that have a ticked sound; when too few do, the rest come from the phase and the board says `focus_unmet`; a sound is ticked by its letters in any case and not by its slashed sound; every sound the dashboard offers is one seeding honours), each refused option, variety over 300 seeds; the target-length limit, and the guided fill (count kept in range, dead jewels listed as they are on the board, a function of the seed, none with letters outside the phase) |
+| `libs/core/tests/unit/grapheme_binder_test.cpp` | `sns::GraphemeBinder` | The brief's `R [AI] N`, order, longest first, greedy from the left, blocks that are whole tiles (`Qu`), single letters ignored, a block growing as the path does, every path of up to four tiles covered in order |
+| `libs/core/tests/unit/shake_test.cpp` | `sns::detect_shakes` | Synthetic traces: a shake, one still, a gentle wave, walking, a knock, turning over, a slow tilt, two shakes, a pause, sample rates and jitter, units, a harder threshold, damaged samples |
+| `libs/core/tests/unit/motion_test.cpp` | `sns::MotionProcessor` | Samples in, the scene's numbers out: metres per second squared become g, the gyroscope passes through unchanged, and a non-finite sample or one whose time goes backwards is dropped rather than reaching the dice. The same synthetic traces as the detector's: a device lying still is not shaken; a vigorous shake is reported **once**, on the sample that completes it; two shakes are two events; `reset()` forgets the first. No sensor and no hardware |
+| `libs/core/tests/unit/feedback_test.cpp` | `sns::plan_cue` | The cue policy of the design's feedback table: every cue names its asset, the master Sound switch silences assets and speech, Celebration sounds off stops the cheer/chime/cleared notes but not the word, quiet lowers them, Sound it out full/word/off decides whether the whole word is said (and full is the seam for the sequence), a real word that is not today's is a soft tick and nothing else, Vibration is its own switch, and every haptic is dropped when it is off. No speaker, no sensor, no Qt |
+| `libs/core/tests/unit/haptics_test.cpp` | `sns::platform::vibrate` | Every pattern is a call the platform answers, twice, and the three desktops answer false through the shared no-op (`[platform][haptics]`) |
+| `libs/core/tests/unit/sound_it_out_test.cpp` | `sns::sound_it_out_sequence` | The sequence of steps for a found word, as data and with no clip and no speaker (`[sound_it_out]`): one sound step for each grapheme in the word's order, 150 ms apart with the first at once, then a blend of 380 ms that plays every sound again, then the word said whole, then the cheer (which names the sound of the first grapheme of more than one letter, and none for a word of single letters); a split digraph (`cake`) one block at the place of its first letter; a letter with two sounds (`o:2`) sounded as the word uses it; a tricky word said whole and never sounded out; `word_only` is the word and nothing else; `off` is no steps, for a tricky word too; a word the phase does not hold is told and not sounded; the same word and setting the same sequence; the time the sequence fixes is its gaps and its blend; every step kind has a name |
+| `libs/core/tests/unit/version_test.cpp` | `sns/version.hpp` | The version block names the version and the build's provenance (`[version]`) |
+| `libs/core/tests/unit/game_rules_test.cpp` | `sns::classify_path`, `viable_words`, `tier_for_letters`, `reward_for`, `FoundWords`, `start_tile_help`, `is_cleared` | The three states on each word set (the standard board's has no middle state; the phonics board's holds only the index, and a real word outside it is "real, not today's" with no word handed back), a word under three letters never counting, each path fault by name, a `Qu` tile adding two letters (QUIT is Power), every one of the 10,305 paths of a 3 by 3 board against the solver on both word sets; the tier table and rewards; a word found once whatever its case and kept in order; the help (shortest in letters, then nearest the top left by distance and not by reading order, then alphabetical, the same in all 120 orders of its input, unmoved while other words are found, and following it finds every word and clears the board); cleared, and the empty board. **The accepted risk, pinned on purpose** (`[rules][data]`): `a word a child must never meet is counted by the standard board and not by the phonics`. Eight words stand for it, kept out of the repository as FNV-1a hashes and found in the shipped ENABLE file by hash; each is laid on a 3x3 board and is a find on the standard board (counted, named) and a real word that is not today's, with no word handed back, on the phonics board. The standard board has no block list ([D7](roadmap.md#4-decisions-that-gate-the-plan)), so lifting the risk is a deliberate edit of this case, not a side effect of a refactor |
+| `libs/core/tests/unit/deal_test.cpp` | `sns::deal_playable`, `deal_standard_board`, `next_deal_seed` | With stub boards written in the test: the same inputs deal the same board; a board with a word is dealt in one roll; an empty board is made again from the next seed (the maker is asked for exactly the two seeds); the viable list is the board's own solve; `min_viable` of 2 is kept; the cap on rolls (counted by the maker) and a board that comes on the second not being dealt at a cap of one; each refused option, a missing maker and a maker that fails; only the active set's words count; `next_deal_seed` is `std::mt19937`'s first output; each error's name. With the shipped 3x3 dice and dictionary: none of 2,000 deals has an empty viable list (and some were made again), two seeds are pinned, one of them dealt in two rolls, and dice that make no board are `bad_board` |
+| `libs/core/tests/unit/game_session_test.cpp` | `sns::GameSession` | Every edge of the flow and every event refused in every other state (a table of nine events by six states, a refused event changing nothing); the three kinds of trace, found again, and an ignored one; stars by tier on a board with words of three, four and five letters; clearing, the celebration, resting and again (these are the session's states; the window shows no resting screen, a cleared board waits on a summary sheet, [D12](roadmap.md#4-decisions-that-gate-the-plan)); the help (the same tile until its word is found, an assisted find, off at the parent's switch, followed to the end of the board); the deal (the same seed gives the same boards and outcomes, different seeds differ, three to five words over 600 seeds, never none, the range and the seedings the options', the focus sounds reaching the seeding, dead jewels); the record, and a snapshot restored in each state and refused in each way; and what it never says: every one of the 10,296 paths of two or more tiles on a 3 by 3 board answered as the two word lists say, and a word only in the dictionary never handed out. **The standard board** (`[standard]`, the session's default mode): the mode and the data each needs (the dice and no phase, the phase and no dice, an app that holds both); each mode refusing the options it cannot play; the sizes 3x3 to 6x6 chosen in the box and the phonics board refusing 5x5 and 6x6; a board dealt at every size with no dead jewel, one solve a roll, the report's counts held to the solver, and the library's own deal seed for seed; a roll that holds no word rolled again and never dealt, and no board when no roll holds a word; the same seed the same boards and one seed a run of them; every dictionary word of three letters or more a find (the same trace a tick on the phonics board and a find on the standard), the tiers and stars, a two-letter real word a tick, the board cleared by every word and the help following all twelve of them to the end; the record (the mode, no phase, the count of the words and none listed) and a snapshot restored in each state and refused in each way (the other mode, a record and a snapshot of two modes, a list or no count of the words, a count that is not the board's, a find that is not a word that counts); a tile of two letters; every path of the 3 by 3 board answered as the dictionary says; and, from the shipped dice and the full dictionary (`[data]`), a board that holds a word at every size, the deals pinned to the library's for two seeds, and a whole board played to its clearing |
+| `libs/core/tests/unit/profiling_test.cpp` | `sns/profiling.hpp` | That the variant CMake chose is the one it was asked for, that every call can be made with no profiler connected, and that a zone cannot be copied or moved |
+| `libs/core/tests/unit/dice_test.cpp` | `sns::DiceSet`, `sns::roll`, `sns::roll_with_placements` | The file format (a face of several letters, commas, comments, a byte-order mark), each way a set is refused, a roll using each die once and showing one of its faces, a function of the seed, two boards pinned so a change of compiler shows; the placements: the die and face of each tile are the tile's letters, each die used once, `roll` the same board as `roll_with_placements` for 200 seeds, the same two boards pinned through it, and the placements of two seeds pinned; every face shown over many rolls |
+| `libs/core/tests/unit/dice_sets_test.cpp` | `sns::DiceSets` | A set for each side from 3 to 6 in any order, `find` for each and null for any other side; a side missing, twice or out of range refused as `wrong_count` and a set that is not a square as `not_square`; the project's `data/dice` directory read as the four sets, and a directory without them unreadable |
 | `libs/core/tests/unit/dice_data_test.cpp` | The shipped dice, `data/dice` | Each size has the dice for its board and six different faces to a die with a vowel among them; for each size, 300 boards whose placements name, for every tile, the face of its die that is the tile's letters, with each die used once; the board the deal keeps is the roll of the seed it reports, die for die (so a scene is given the dice of a dealt board by `roll_with_placements(dice, dealt.seed)`); 300 boards a size rolled and solved against the dictionary hold about the words a random board does; two boards pinned, through `roll` and through `roll_with_placements`. Reads the shipped files by their path in the checkout, as the performance tier does |
-| `libs/core/tests/unit/paths_test.cpp` | `wjs::platform::executable_path`, `user_data_directory` | That the first names the running test program: absolute, an existing file, called `wjs_unit_tests`; that the second is an absolute path and is the same each time |
-| `libs/core/tests/unit/calendar_test.cpp` | `wjs/calendar.hpp` | A date as a day (against dates counted by an independent program), the ISO weekday, the week from any first day of the week, over 800 days for each |
-| `libs/core/tests/unit/settings_test.cpp` | `wjs::Settings` | The defaults are the table's (the board clock is off and the help is the last of its three steps); every value a screen offers survives; any other becomes the default for it; names, sizes, text scales and focus sounds are brought within their bounds; the board clock is off, up or down and its minutes one of the choices; the help is off, the start tile, or the start tile and two letters |
-| `libs/core/tests/unit/parent_gate_test.cpp` | `wjs::Gate` | The gate's logic, which is still **two touches on two spots** held for two seconds: the layout on every screen shape; two touches, one on each spot, held two seconds open it, anything else does not (one touch, two on one spot, a third touch, a slide out, a lift and a press again); the accessibility action; and a property test, 400 random runs of touches, against an oracle written separately. What the child or parent meets is **one press-and-hold** ([D9](roadmap.md#4-decisions-that-gate-the-plan)): the screen's single target puts both touches down from one press, and only `tst_parent.qml` presses it (see [the Qt Quick Test suites](#the-interactive-qml-qt-quick-test)); `parent_controller_test.cpp` drives the controller's two-touch interface directly |
-| `libs/core/tests/unit/store_test.cpp` | `wjs::Store`, `parse_store`, `serialize_store` | The format and its round trip; a golden file (format version 2 of known data, byte for byte, both written and read: `[golden]`); a file cut at every length and with every byte changed is refused; each record checked; a later version told apart; migration through a pretend older format; what a snapshot records (stars once, first-time words, bests, tallies, cleared boards, the bounds); the game in progress; each way a file on disk can be (missing, damaged, newer, older, unreadable, a refusing disk), kept whole and never overwritten; the worst case the bounds allow is under the cap; no time of day in the file |
-| `libs/core/tests/unit/session_store_test.cpp` | `wjs::snapshot_of`, `record_of`, `saved_session_of`, `session_snapshot_of` | The copy between the game session's values and the store's: fields, the stars from each find's reward, a stamp that is not a day refused, a board and every saved state through the store and back as it was, the words back in upper case and in order, what cannot come back refused; and a real session (one restored from a hand-written board, one the session dealt itself) taken through the store's file and brought back by `restore()`. **The standard board** (`[standard]`): a record with no phase and the count of its words, a record whose mode and phase disagree refused, the record and each saved state back as they were, a game in the box with no board to say its mode, a standard game brought back by the session and refused under the other switch, and the history keeping the board by its count; the store keeping a standard game in progress by the count of its words, and the session bringing it back (and a standard board the session dealt itself coming back from its saved session); a standard board recorded once however often it is sent, and clearing it a best |
-| `libs/core/tests/unit/dashboard_test.cpp` | `wjs::build_dashboard`, `focus_sound_choices` | Each count of a sound (met, found, unassisted, often found, few words) on a made-up phase; the week on either first day of the week; the vault and the best; nothing said of a week without play |
+| `libs/core/tests/unit/paths_test.cpp` | `sns::platform::executable_path`, `user_data_directory` | That the first names the running test program: absolute, an existing file, called `sns_unit_tests`; that the second is an absolute path and is the same each time |
+| `libs/core/tests/unit/calendar_test.cpp` | `sns/calendar.hpp` | A date as a day (against dates counted by an independent program), the ISO weekday, the week from any first day of the week, over 800 days for each |
+| `libs/core/tests/unit/settings_test.cpp` | `sns::Settings` | The defaults are the table's (the board clock is off and the help is the last of its three steps); every value a screen offers survives; any other becomes the default for it; names, sizes, text scales and focus sounds are brought within their bounds; the board clock is off, up or down and its minutes one of the choices; the help is off, the start tile, or the start tile and two letters |
+| `libs/core/tests/unit/parent_gate_test.cpp` | `sns::Gate` | The gate's logic, which is still **two touches on two spots** held for two seconds: the layout on every screen shape; two touches, one on each spot, held two seconds open it, anything else does not (one touch, two on one spot, a third touch, a slide out, a lift and a press again); the accessibility action; and a property test, 400 random runs of touches, against an oracle written separately. What the child or parent meets is **one press-and-hold** ([D9](roadmap.md#4-decisions-that-gate-the-plan)): the screen's single target puts both touches down from one press, and only `tst_parent.qml` presses it (see [the Qt Quick Test suites](#the-interactive-qml-qt-quick-test)); `parent_controller_test.cpp` drives the controller's two-touch interface directly |
+| `libs/core/tests/unit/store_test.cpp` | `sns::Store`, `parse_store`, `serialize_store` | The format and its round trip; a golden file (format version 2 of known data, byte for byte, both written and read: `[golden]`); a file cut at every length and with every byte changed is refused; each record checked; a later version told apart; migration through a pretend older format; what a snapshot records (stars once, first-time words, bests, tallies, cleared boards, the bounds); the game in progress; each way a file on disk can be (missing, damaged, newer, older, unreadable, a refusing disk), kept whole and never overwritten; the worst case the bounds allow is under the cap; no time of day in the file |
+| `libs/core/tests/unit/session_store_test.cpp` | `sns::snapshot_of`, `record_of`, `saved_session_of`, `session_snapshot_of` | The copy between the game session's values and the store's: fields, the stars from each find's reward, a stamp that is not a day refused, a board and every saved state through the store and back as it was, the words back in upper case and in order, what cannot come back refused; and a real session (one restored from a hand-written board, one the session dealt itself) taken through the store's file and brought back by `restore()`. **The standard board** (`[standard]`): a record with no phase and the count of its words, a record whose mode and phase disagree refused, the record and each saved state back as they were, a game in the box with no board to say its mode, a standard game brought back by the session and refused under the other switch, and the history keeping the board by its count; the store keeping a standard game in progress by the count of its words, and the session bringing it back (and a standard board the session dealt itself coming back from its saved session); a standard board recorded once however often it is sent, and clearing it a best |
+| `libs/core/tests/unit/dashboard_test.cpp` | `sns::build_dashboard`, `focus_sound_choices` | Each count of a sound (met, found, unassisted, often found, few words) on a made-up phase; the week on either first day of the week; the vault and the best; nothing said of a week without play |
 | `apps/app/tests/unit/assist_game_test.cpp`, `assist_model_test.cpp` | Mode A's `AssistGame` and `AssistModel` (the typed or scanned board played as a game) | A typed board played for the words that count with one of today's not named; the standard board counting every real word with no middle state; `begin` refusing a grid that is not a board (a tile holding a space or a slash cannot change the grid's shape) and nothing starting; no maker, no round; a board that cannot be made leaving the running round as it was; a round recorded once when replaced or left, and a round not left recorded by the destructor; a tile out of range and every touch with no round doing nothing; each tile sounding its letters and a word cueing the word; a real word that is not today's ticking without a word and a string fading silently; a path traced and removed tile by tile; the start tile offered only while the parent allows it; a board the store cannot keep told once as a save failure (`[app][scan][assist]`) |
 | `apps/app/tests/unit/scan_model_test.cpp` | `ScanModel` (the check screen's draft and the camera's state machine) | The typed board an empty 4x4; a full grid confirms and an incomplete one does not; the reader's doubts as the tiles to ring with its other thoughts; a reading that is not a grid refused; with no camera the typed board is the way on and nothing is faked; Try camera again is a new attempt and a camera that appears is found; a frame with no board, or one the scanner cannot take, returns the screen to ready; the next capture clears the last problem; leaving while a frame is read drops the read; an index off the grid or a size that is not a board refused; the camera opened and closed only when it should be; replacing a source that is capturing stops the old one (`[app][scan]`, `[camera]`) |
 | `apps/app/tests/unit/startup_failure_test.cpp` | `apps/app/src/startup_failure.*` | Each reason the program can leave for has an exit code of its own; a dialog is wanted unless a test or a headless run is in charge; a failure is told through the sink once and gives its code; the message keeps its non-ASCII text as UTF-8; the platform writes a fatal error to the error stream without a dialog (`[app][startup]`) |
-| `apps/app/tests/unit/system_colour_scheme_test.cpp`, `system_motion_test.cpp` | `SystemColourScheme`, `SystemMotion` | The singleton starts as the system's setting is, reports a change once, and is read by name and notifies as QML needs; each makes a GUI application on Qt's offscreen platform. Built only with `WJS_BUILD_APP` |
+| `apps/app/tests/unit/system_colour_scheme_test.cpp`, `system_motion_test.cpp` | `SystemColourScheme`, `SystemMotion` | The singleton starts as the system's setting is, reports a change once, and is read by name and notifies as QML needs; each makes a GUI application on Qt's offscreen platform. Built only with `SNS_BUILD_APP` |
 | `apps/app/tests/unit/qt_text_test.cpp` | `apps/app/src/qt_text.hpp` | UTF-8 library text and a `QString` are the same text, a NUL inside keeps its length, a path from Qt text keeps letters the system's code page lacks (`[app][text]`) |
 | `apps/app/tests/unit/sound_sequence_player_test.cpp` | The feedback module's `SoundSequencePlayer` | Plays the sequence of `sound_it_out_test.cpp` with no speaker: with no clips recorded the word is said at once and the steps are told in order; clips play one after another with the gap between and the word last; a clip that is not there takes no time and no gap; the whole-word-only sequence is the word alone; a new sequence stops the one under way and the old clip says nothing more; a sequence cancelled in a gap does not go on; the volume reaches the clips and the word (`[app][feedback][sequence]`). **No clip exists**: the cases use test clips, a recorded one is gated on the literacy reviewer, and the player's `stepStarted` signal is connected to nothing in the screens, so no block lights while a word is sounded out |
-| `apps/app/tests/unit/frame_profiler_test.cpp` | `apps/app/src/frame_profiler.cpp`, as `wjs_frame_profiler_tests` | The frame clock on a window that is never shown, its signals emitted by the test (the render thread's from a thread of its own): each signal adds to its own part of the report; the render and GUI threads' times leave out the warm-up; the GUI thread's frame is the time it was busy; the target is reached once and told on the GUI thread; the profiler can go while the render thread is mid-frame (`[app][frame]`) |
-| `apps/app/tests/unit/profiler_test.cpp` | The profiler seam: the QML singleton that opens and closes a Tracy zone, in `wjs_scene_script_tests` | The seam's `begin()` and `end()` always pair, named or not, and nesting past the seam's depth is balanced too (`[scene]`) |
-| `apps/app/tests/unit/scene_script_test.cpp` | The board scene's script (`apps/app/qml/solo/SceneScript.js`), run in Qt's own JavaScript engine, as `wjs_scene_script_tests` | The stages and their lengths (shake 600 ms, lid 250 ms, drop 380 ms a die, settle 150 ms; a 6x6 play within 2.2 s); the box's hops are whole steps of 6 px and never still; the lid lifts in quarters; a die falls through six frames in whole pixels and is not seen before its turn; the same seed is the same play and another seed another; with reduced motion nothing hops and the dice fade in together (`[scene]`, `[perf]`) |
+| `apps/app/tests/unit/frame_profiler_test.cpp` | `apps/app/src/frame_profiler.cpp`, as `sns_frame_profiler_tests` | The frame clock on a window that is never shown, its signals emitted by the test (the render thread's from a thread of its own): each signal adds to its own part of the report; the render and GUI threads' times leave out the warm-up; the GUI thread's frame is the time it was busy; the target is reached once and told on the GUI thread; the profiler can go while the render thread is mid-frame (`[app][frame]`) |
+| `apps/app/tests/unit/profiler_test.cpp` | The profiler seam: the QML singleton that opens and closes a Tracy zone, in `sns_scene_script_tests` | The seam's `begin()` and `end()` always pair, named or not, and nesting past the seam's depth is balanced too (`[scene]`) |
+| `apps/app/tests/unit/scene_script_test.cpp` | The board scene's script (`apps/app/qml/solo/SceneScript.js`), run in Qt's own JavaScript engine, as `sns_scene_script_tests` | The stages and their lengths (shake 600 ms, lid 250 ms, drop 380 ms a die, settle 150 ms; a 6x6 play within 2.2 s); the box's hops are whole steps of 6 px and never still; the lid lifts in quarters; a die falls through six frames in whole pixels and is not seen before its turn; the same seed is the same play and another seed another; with reduced motion nothing hops and the dice fade in together (`[scene]`, `[perf]`) |
 | `apps/app/tests/unit/board_layout_test.cpp` | The layout rule, `SoloLayout` | The nine reference windows of the board design: which side the board takes, the tile of each size 3x3 to 6x6 against the page's table, the inset and gap either side of 600 dp, the board centred, a size offered only at 48 dp, the object recomputing on a rotation (`[layout]`) |
 | `apps/app/tests/unit/path_tracer_test.cpp` | `PathTracer` | A slide, a diagonal that skips no tile, a fast jump, the hit circle smaller than the tile, sliding back, a tile used twice, a dead jewel, lifting outside, tapping in order and the last tile again, a trace carried on from taps, a press in a gap, the keyboard's moves, a rotated window (`[trace]`) |
 | `apps/app/tests/unit/fake_solo_game_test.cpp` | `FakeSoloGame` | The flow of the game design: the board dealt by the shake, the size, a viable word and its stars, a word found again, a real word that is not today's (no word in the answer), not a word, clearing and then the C++ `resting` state, the best, the start tile (shortest, nearest the top left, stays until found), the history, the blocks (`[fake]`) |
-| `apps/app/tests/unit/real_solo_game_test.cpp` | `RealSoloGame` over `wjs::GameSession`, `SoloGameSetup`, `make_solo_game()` | The port's mapping as a table, run on two tiny phases written in the test: each state, the shake that deals no board, `settled` from either state it waits in, each answer to a trace (a word of today's by tier and stars, found again, a real word that is not today's with no word in the answer, not a word, a single tile), clearing and the new best, a sticker only the first time on a device, what is handed to the store after a find and when the lid goes on, the history newest first with a dead jewel blank only on a board of the phase, the start tile and the help switch, the grapheme blocks; loading a phase directory, the settings it makes a game from, a store file round trip, and each way loading fails; and the game in progress: what the store keeps after each change (the box, the shake and the drop keep none), the size chosen written to the settings and nothing else of them, a table of runs closed in each state and opened again (a board with finds and a lit tile, cleared, resting, Again, the lid on, mid-shake), a restored game going on with its board recorded once, four records that cannot come back (another phase, a changed board, a state that does not fit, a start tile lit for a word already found) starting a new game in the box and clearing the file, the help switch off at restore, and `SoloModel` opening on a restored board or on a cleared one put away (the C++ `resting` state, which the window shows as the summary sheet, not a screen of its own: [D12](roadmap.md#4-decisions-that-gate-the-plan)) (`[real]`); and the **standard board** over the shipped dice and dictionary (`[standard]`): a game with the four sizes, a roll with no dead jewel, the scene's board the dice of its seed (and a phonics board, which is seeded and not rolled, has none), the size chosen 3 to 6, a setup without a phase directory making the standard game, a standard run beginning where the last one ended, and a saved game of the other mode not played by this one; and the parent area on the game's store: the dashboard sees a find the game recorded, a setting the controller changes is what the setup makes the next game from, and the controller's edit reaches the model's next game (`[parent]`) |
+| `apps/app/tests/unit/real_solo_game_test.cpp` | `RealSoloGame` over `sns::GameSession`, `SoloGameSetup`, `make_solo_game()` | The port's mapping as a table, run on two tiny phases written in the test: each state, the shake that deals no board, `settled` from either state it waits in, each answer to a trace (a word of today's by tier and stars, found again, a real word that is not today's with no word in the answer, not a word, a single tile), clearing and the new best, a sticker only the first time on a device, what is handed to the store after a find and when the lid goes on, the history newest first with a dead jewel blank only on a board of the phase, the start tile and the help switch, the grapheme blocks; loading a phase directory, the settings it makes a game from, a store file round trip, and each way loading fails; and the game in progress: what the store keeps after each change (the box, the shake and the drop keep none), the size chosen written to the settings and nothing else of them, a table of runs closed in each state and opened again (a board with finds and a lit tile, cleared, resting, Again, the lid on, mid-shake), a restored game going on with its board recorded once, four records that cannot come back (another phase, a changed board, a state that does not fit, a start tile lit for a word already found) starting a new game in the box and clearing the file, the help switch off at restore, and `SoloModel` opening on a restored board or on a cleared one put away (the C++ `resting` state, which the window shows as the summary sheet, not a screen of its own: [D12](roadmap.md#4-decisions-that-gate-the-plan)) (`[real]`); and the **standard board** over the shipped dice and dictionary (`[standard]`): a game with the four sizes, a roll with no dead jewel, the scene's board the dice of its seed (and a phonics board, which is seeded and not rolled, has none), the size chosen 3 to 6, a setup without a phase directory making the standard game, a standard run beginning where the last one ended, and a saved game of the other mode not played by this one; and the parent area on the game's store: the dashboard sees a find the game recorded, a setting the controller changes is what the setup makes the next game from, and the controller's edit reaches the model's next game (`[parent]`) |
 | `apps/app/tests/unit/solo_model_test.cpp` | `SoloModel` over the fake | The states as the screens see them, input before the dice settle, the find shown and ended, the tick and the fade, tap and Done, a find again, the start tile and the parent's three-step help (the default is the two rungs, the start tile and then the tiles of its first two letters; the start-tile level stops at the first rung and the next press puts it away; off takes the help away, rings and all; a level the table lacks changes nothing; a find from the lit start answers the help and says what is left), the blocks as a path grows, a dead jewel, the last word and the rest, the lid back on, the model built once and read many times per trace (`[solo]`); **the board clock** (`[clock]`): off until the parent sets one and ticking only while a board is active, a count-down starting with its minutes and ending the round at zero, each new board starting it again, the clock's own timer counting the time that really went by and a stalled interface not losing it, a change mid-round keeping the time already played; an edit by the parent gives the next game at once in the box, after the lid or Again otherwise, and never with no edit (`[edited]`) |
 | `apps/app/tests/unit/feedback_engine_test.cpp` | `FeedbackEngine` and the parent's settings map | The cue wiring without a speaker: master Sound off silences assets and speech and leaves the vibration request, Celebration sounds off and Sound it out off each stop their own half, a cue kind the design does not have is ignored, and the engine starts from the library's defaults; a found word at full volume asks for the cheer and the voice once each and a quiet celebration is half as loud; the rattle plays and buzzes and says nothing; requests are reported once per cue (`[app][feedback]`). **Sound it out** (`[sequence]`): a found word of the phonics board is sounded out and then said, `word` says only the word, `off` says and sounds nothing out, the standard board or a word the phase does not hold says the word whole, and with clips the word waits for the sounds and the next word stops them. The cue-to-asset mapping itself is the pure policy's case |
-| `apps/app/tests/unit/motion_source_test.cpp` | `MotionSource` | On a desktop there is no accelerometer: unavailable, no sample arrives, starting and stopping is safe, and the drag stands in. Built only with `WJS_BUILD_APP` (`[app][motion]`) |
+| `apps/app/tests/unit/motion_source_test.cpp` | `MotionSource` | On a desktop there is no accelerometer: unavailable, no sample arrives, starting and stopping is safe, and the drag stands in. Built only with `SNS_BUILD_APP` (`[app][motion]`) |
 | `apps/app/tests/unit/check_scene_contract.cmake` | `apps/app/qml/solo/BoardScene.qml` and `apps/app/ui-tests/StubBoardScene.qml` (the scene the Quick Test suites of the Solo screen use) | `app.scene_contract`: both declare the whole interface of the board scene, under the same names |
 | `apps/app/tests/unit/run_qmllint.cmake` | The application's QML | `app.qml_lint`: no warning from `qmllint` over the application's QML, the board scene's module and Mode A's module (not the parent area's module); skipped, exit 4, if the application has not been built |
-| `apps/app/tests/unit/parent_controller_test.cpp` | The parent area's `ParentController` | The gate as the screens drive it, the dashboard and settings maps, every setting changed by name and every wrong value refused, the resets, what the parent is told of the store (a store in memory, in a file, unreadable or from a newer version; a save that fails, and one that is not repeated when a setting is already what it is), the totals and the kept boards the My jewels screen reads (`[totals]`; the screen itself has no test, [below](#the-interactive-qml-qt-quick-test)), and what the game is told of an edit (`[edited]`: a change, a reset, not a read or the same value). The gate cases drive the controller's **two-touch** interface; the one-press button is the screen's (`tst_parent.qml`). Built only with `WJS_BUILD_APP` |
-| `apps/app/tests/unit/language_test.cpp` | `LanguageManager` (`apps/app/src/language_manager.*`), the catalogues in `apps/app/translations/`, the app's font chain | The eight catalogues are well formed, none of their messages marked `unfinished`, `vanished` or `obsolete`, no form empty, and the same messages as the English source. **That is not the same as translated**: a message left in English is a non-empty translation, and nothing counts those ([The interface's languages](#the-interfaces-languages)); every language's code, direction and fallback (Hebrew and Yiddish RTL, the rest LTR, the device's locale or English); applying a language installs its catalogue and turns the application's layout; and the eight sample sentences' glyphs are in the app's font chain (a Windows check today, skipped where the platform has no such fonts). Built only with `WJS_BUILD_APP` |
+| `apps/app/tests/unit/parent_controller_test.cpp` | The parent area's `ParentController` | The gate as the screens drive it, the dashboard and settings maps, every setting changed by name and every wrong value refused, the resets, what the parent is told of the store (a store in memory, in a file, unreadable or from a newer version; a save that fails, and one that is not repeated when a setting is already what it is), the totals and the kept boards the My jewels screen reads (`[totals]`; the screen itself has no test, [below](#the-interactive-qml-qt-quick-test)), and what the game is told of an edit (`[edited]`: a change, a reset, not a read or the same value). The gate cases drive the controller's **two-touch** interface; the one-press button is the screen's (`tst_parent.qml`). Built only with `SNS_BUILD_APP` |
+| `apps/app/tests/unit/language_test.cpp` | `LanguageManager` (`apps/app/src/language_manager.*`), the catalogues in `apps/app/translations/`, the app's font chain | The eight catalogues are well formed, none of their messages marked `unfinished`, `vanished` or `obsolete`, no form empty, and the same messages as the English source. **That is not the same as translated**: a message left in English is a non-empty translation, and nothing counts those ([The interface's languages](#the-interfaces-languages)); every language's code, direction and fallback (Hebrew and Yiddish RTL, the rest LTR, the device's locale or English); applying a language installs its catalogue and turns the application's layout; and the eight sample sentences' glyphs are in the app's font chain (a Windows check today, skipped where the platform has no such fonts). Built only with `SNS_BUILD_APP` |
 | `apps/app/tests/unit/parent_ui/` | The parent area's screens | `parent.screens`: see below; `parent.languages`: the gate, dashboard, settings and about in all eight languages, the catalogue really applied, the bar mirrored in Hebrew and Yiddish, no QML warning |
 | `apps/app/tests/unit/scan_ui/` | The Family Assistant's screens | `scan.screens`: see below; `scan.languages`: the scan screen, the check screen and the assistant's panel in all eight languages, the split mirrored for RTL while the replica stays as confirmed, no QML warning |
-| `tests/system/check_cli.cmake` | `wjs-cli` as a program | `system.cli.*`: help and version, and `output-every-time` (`--version` and `--help` run 60 times each, because a flush lost at exit in a Debug build once left one run in ten with nothing printed); the README board solved from a twelve-word list (`9 words, 9 points`); `--min-length`, `--scoring rarity`, `--repeat`; a `Qu` tile; and each failure - an unknown option, a missing value, a bad length/count/scheme, no board, a ragged board (exit 3), a missing dictionary (exit 2) |
-| `tests/system/check_app.cmake` | `WordJewelsSolver` as a program | `system.app.*`: a missing word list (exit 2, the file named), a damaged store (set aside and said), `--phase` without `--phase-directory` (warned and ignored), and a headless smoke run that either reports frames (`smoke: frames=`, `ui.frame_ms`) and exits 0 or says no frame can be presented and exits 3 |
-| `tests/system/check_install.cmake` | The install rules, run | `system.install`: `cmake --install` into a throw-away prefix; the two programs, the dictionary, `LICENSE.txt` and `NOTICES.txt`; then the installed `wjs-cli` solves the README board from the installed dictionary |
+| `tests/system/check_cli.cmake` | `sns-cli` as a program | `system.cli.*`: help and version, and `output-every-time` (`--version` and `--help` run 60 times each, because a flush lost at exit in a Debug build once left one run in ten with nothing printed); the README board solved from a twelve-word list (`9 words, 9 points`); `--min-length`, `--scoring rarity`, `--repeat`; a `Qu` tile; and each failure - an unknown option, a missing value, a bad length/count/scheme, no board, a ragged board (exit 3), a missing dictionary (exit 2) |
+| `tests/system/check_app.cmake` | `SnapAndSpell` as a program | `system.app.*`: a missing word list (exit 2, the file named), a damaged store (set aside and said), `--phase` without `--phase-directory` (warned and ignored), and a headless smoke run that either reports frames (`smoke: frames=`, `ui.frame_ms`) and exits 0 or says no frame can be presented and exits 3 |
+| `tests/system/check_install.cmake` | The install rules, run | `system.install`: `cmake --install` into a throw-away prefix; the two programs, the dictionary, `LICENSE.txt` and `NOTICES.txt`; then the installed `sns-cli` solves the README board from the installed dictionary |
 | `apps/app/ui-tests/` | The kit and the screens, driven at run time | `quick.<suite>`: Qt Quick Test suites (`box`, `home`, `kit`, `panel`, `parent`, `rtl`, `scan`, `scene`, `theme`, `contrast`, `sizematrix` with `_audit` and `_solo`), and `quick.lint` with `quick.lint.selftest`; see [The interactive QML](#the-interactive-qml-qt-quick-test) |
 | `tests/i18n/` | `apps/app/translations/*.ts` | `i18n.catalogues`: lupdate regenerates the catalogues and the checked-in ones must be identical; skipped (exit 4) when Qt's Linguist tools are absent |
 | `tests/notices/check_notices.cmake` | The generated `NOTICES.txt` | `notices.sections`: the project's licence, the GPL-3.0-or-later application (and nothing that says GPL-3.0 only), Qt's LGPL/GPL options and the feedback modules Multimedia/Sensors/TextToSpeech (in a build with the application), ENABLE, the translations, the bundled fonts and feedback sounds and Catch2 are all stated, no placeholder is left, and a command-line-only build carries no Qt section |
 | `tests/package/check_package.cmake` | `CPackConfig.cmake` and the generated install scripts | `package.config`: CPack names the project, its version, its licence and a ZIP, and the install rules carry both programs, the dictionary, the dice, the notices and the licence text, with Qt's install-time deploy script where the platform uses it |
-| `tools/package/check_package.ps1` | A built tree and the package it makes | The archive's required files, `SHA256SUMS`, the packaged `wjs-cli` solving a board from its installed dictionary and the packaged window's offscreen smoke. Run by hand and by the Windows CI leg, not by ctest |
+| `tools/package/check_package.ps1` | A built tree and the package it makes | The archive's required files, `SHA256SUMS`, the packaged `sns-cli` solving a board from its installed dictionary and the packaged window's offscreen smoke. Run by hand and by the Windows CI leg, not by ctest |
 | `tests/package/run_release_tools_test.ps1`, `test_release_tools.sh` | `tools/release` | `release.tooling`: the tag checks, signing and verification with a throw-away key, the SBOM (validated against the CycloneDX 1.6 schema by `validate_sbom.py`), and that `tools/package/check_package.ps1` refuses a Release package carrying Tracy, an ASan runtime or a pdb (`test_check_package_forbid.ps1`); needs bash, gpg, jq, git and pwsh and reports itself skipped (exit 77) where one is missing. `release-tooling.yml` runs it on a runner that has them ([CI](ci.md)) |
 | `tests/toolchain/` | `.github/toolchain-versions.json`, the workflows, `project(VERSION)`, `vcpkg.json`, `CHANGELOG.md` | `toolchain.versions`: the workflows' CMake, Ninja, Qt and aqtinstall pins are the file's, and the vcpkg baseline is the pinned commit; `toolchain.version` and `toolchain.version.selftest`: the version is one number in the three places and the check is held to a table of cases on throw-away trees |
 | `tests/profiling/check_tracy_port.cmake` | `cmake/vcpkg-ports/tracy`, `vcpkg-configuration.json`, `vcpkg.json` | `profiling.tracy_portable`: the Tracy overlay port is configured, passes `NO_ISA_EXTENSIONS` and is the version the manifest pins, so a capture tool built on one hosted runner and restored on another does not die with an illegal instruction |
 | `tests/profiling/check_trace.cmake`, `check_perf_ran.cmake` | A trace of the two programs; the performance tier's cases | `profiling.trace_cli`, `profiling.trace_app`, `profiling.perf_budgets_ran`: see [The trace tests](#the-trace-tests) |
-| `tools/data/check_phonics_review.cmake`, `test_check_phonics_review.cmake` | The review headers of `data/phonics` | `data.phonics.review_gate.selftest` (always) and `data.phonics.review_gate` (when `WJS_REQUIRE_REVIEWED_PHONICS` is on): see [the review gate](#phonics-data-the-checker-and-the-review-gate) |
+| `tools/data/check_phonics_review.cmake`, `test_check_phonics_review.cmake` | The review headers of `data/phonics` | `data.phonics.review_gate.selftest` (always) and `data.phonics.review_gate` (when `SNS_REQUIRE_REVIEWED_PHONICS` is on): see [the review gate](#phonics-data-the-checker-and-the-review-gate) |
 | `tests/requirements/` | `docs/requirements.md` and `docs/requirements/*.md` | `requirements.matrix` and `requirements.matrix.selftest`: see [The requirements matrix](#the-requirements-matrix) |
 | `tests/privacy/` | The source tree | `privacy.sources` and `privacy.sources.selftest`: see below |
 | `tests/parent/` | `ParentWording.qml` | `parent.wording` and `parent.wording.selftest`: see below |
-| `libs/core/bench/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, what the screens wait on besides the solver (the store a play leaves, the dashboard, the phase directory, a path submitted), and the scanner's work, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
-| `libs/scan/tests/` | The scanner, the camera and `board_reader` interfaces and the synthetic corpus, as `wjs_scan_tests` | See below: [The scanner](#the-scanner) |
+| `libs/core/bench/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, what the screens wait on besides the solver (the store a play leaves, the dashboard, the phase directory, a path submitted), and the scanner's work, as `sns_perf_tests` | See below: [Performance tests](#performance-tests) |
+| `libs/scan/tests/` | The scanner, the camera and `board_reader` interfaces and the synthetic corpus, as `sns_scan_tests` | See below: [The scanner](#the-scanner) |
 | `libs/scan/tests/check_privacy.cmake` | The scanner's sources and the camera and `board_reader` files | `scan.privacy`, `scan.privacy.catches_a_leak`: see [The scanner](#the-scanner) |
-| `tests/design/check_tokens.cmake` | `docs/design/toybox/tokens.json`, `wjs-tokens.json`, `Theme.qml`, `assets/fonts`, the application's and the tests' font lists | `design.tokens`: every colour of the shared palette, the dimmer surface, the Night shadow, the three faces, the smallest text size and the touch targets of the design are what `Theme` says, and the font files, the resource list and both loaders are one list |
+| `tests/design/check_tokens.cmake` | `docs/design/toybox/tokens.json`, `sns-tokens.json`, `Theme.qml`, `assets/fonts`, the application's and the tests' font lists | `design.tokens`: every colour of the shared palette, the dimmer surface, the Night shadow, the three faces, the smallest text size and the touch targets of the design are what `Theme` says, and the font files, the resource list and both loaders are one list |
 | `tests/analysis/check_analysis.cmake` | `CMakePresets.json`, `.github/workflows/analysis.yml`, `codeql.yml` | `analysis.config`: the analysis presets exist with their settings, `analysis.yml` is nightly and not on a push, pull request or `merge_group`, and `codeql.yml` is nightly too |
 | `tests/profiling/check_presets.cmake` | `CMakePresets.json`, `vcpkg.json`, `cmake/Tracy.cmake` | See below: `profiling.shipped_presets` |
 | `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `libs/` and `apps/` | See below: `profiling.zone_names` |
@@ -286,14 +286,14 @@ below describe at length are marked "below":
 | `notices.sections`, `package.config` | The generated notices and the CPack configuration (rows of [What there is](#what-there-is)) | Nothing |
 | `platform.fragments`, `profiling.shipped_presets`, `profiling.zone_names` | Below | Nothing |
 | `profiling.tracy_portable` | The Tracy overlay port is configured, passes `NO_ISA_EXTENSIONS` and is the version the manifest pins | Nothing |
-| `profiling.perf_budgets_ran` | A leg that claims the performance work budgets ran them ([The trace tests](#the-trace-tests)) | An optimised build, or `WJS_REQUIRE_PERF_BUDGETS=1`; otherwise it reports itself skipped (exit 4) |
+| `profiling.perf_budgets_ran` | A leg that claims the performance work budgets ran them ([The trace tests](#the-trace-tests)) | An optimised build, or `SNS_REQUIRE_PERF_BUDGETS=1`; otherwise it reports itself skipped (exit 4) |
 | `toolchain.versions`, `toolchain.version`, `toolchain.version.selftest` | The workflows' toolchain pins are `.github/toolchain-versions.json`'s; the version is one number in `project(VERSION)`, `vcpkg.json` and the newest `CHANGELOG.md` release (and the release job runs the same script with the tag) | Nothing |
 | `analysis.config` | The nightly analysis presets and workflows (row of [What there is](#what-there-is)) | Nothing |
 | `design.tokens` | The design's tokens against `Theme.qml`, and the font lists (row of [What there is](#what-there-is)) | Nothing |
 | `privacy.sources`, `privacy.sources.selftest`, `parent.wording`, `parent.wording.selftest` | [The privacy and parent-area checks](#the-privacy-and-parent-area-checks) | Nothing |
 | `requirements.matrix`, `requirements.matrix.selftest` | [The requirements matrix](#the-requirements-matrix) | Nothing |
-| `data.phonics.review_gate.selftest`, `data.phonics.review_gate` | The release build's review gate, held to cases (always) and to the data there is (only when `WJS_REQUIRE_REVIEWED_PHONICS` is on): [Phonics data](#phonics-data-the-checker-and-the-review-gate) | Nothing: a CMake script |
-| `i18n.catalogues` | [The interface's languages](#the-interfaces-languages) | `WJS_BUILD_APP`, and Qt's Linguist tools (skipped, exit 4, without) |
+| `data.phonics.review_gate.selftest`, `data.phonics.review_gate` | The release build's review gate, held to cases (always) and to the data there is (only when `SNS_REQUIRE_REVIEWED_PHONICS` is on): [Phonics data](#phonics-data-the-checker-and-the-review-gate) | Nothing: a CMake script |
+| `i18n.catalogues` | [The interface's languages](#the-interfaces-languages) | `SNS_BUILD_APP`, and Qt's Linguist tools (skipped, exit 4, without) |
 | `data.dice`, `data.wordlists`, `data.sounds`, `data.phonics`, `data.phonics.checker`, `platform.isolation`, `release.tooling` | Rows of [What there is](#what-there-is), and below | PowerShell 7 (`release.tooling` also bash, gpg, jq and git, and is skipped, exit 77, where one is missing) |
 
 **`platform.fragments`** runs `tests/platform/check_fragments.cmake`. A build
@@ -302,9 +302,9 @@ another platform's fragment (a renamed file, a hook that was never defined)
 would otherwise be found only by someone on that platform. The check includes
 every fragment under `libs/platforms/`, each in a process of its own, and holds
 it to the contract in `cmake/PlatformContract.cmake`: every variable and hook
-defined, `WJS_PLATFORM_DESKTOP` either `ON` or `OFF`, `WJS_PLATFORM_EXECUTABLE_FORMAT` one of `elf`, `pe` and `mach-o`, every file it compiles
+defined, `SNS_PLATFORM_DESKTOP` either `ON` or `OFF`, `SNS_PLATFORM_EXECUTABLE_FORMAT` one of `elf`, `pe` and `mach-o`, every file it compiles
 present, and every interface header under
-`libs/platforms/interfaces/wjs/platform/` included by one of the fragment's own
+`libs/platforms/interfaces/sns/platform/` included by one of the fragment's own
 sources (so a new interface, haptics included, cannot link by accident). It
 also checks that `cmake/Platform.cmake` has a branch selecting each
 fragment, and that every branch has a fragment. It runs on whatever host runs
@@ -330,7 +330,7 @@ profiling build has a Tracy client in it, which opens a TCP port and answers
 discovery broadcasts, so nothing that ships may have it — while every Debug
 build is instrumented, because it is a development build by definition. The
 check resolves `inherits` the way CMake does and fails if a configure preset
-other than a `*-debug` or `*-profiling` one turns `WJS_ENABLE_TRACY` on (a
+other than a `*-debug` or `*-profiling` one turns `SNS_ENABLE_TRACY` on (a
 release or coverage preset, above all), if a debug preset does not turn it on,
 if the option's default in the top-level `CMakeLists.txt` is not `ON` for a
 Debug build type (and `OFF` otherwise, including multi-config generators) or
@@ -377,10 +377,10 @@ design quotes are there, none of a list of words an assessment or a gap is made 
 ("weak", "mastered", "missed", ...) is in any parent screen, and no screen has a `qsTr`
 of its own. **`parent.wording.selftest`** holds the check to cases.
 
-**`parent.screens`** (with `WJS_BUILD_APP`) runs `wjs_parent_preview --check`: the
+**`parent.screens`** (with `SNS_BUILD_APP`) runs `sns_parent_preview --check`: the
 parent area's screens in a stub shell, drawn by the software renderer under Qt's
 offscreen platform (`QT_QPA_PLATFORM=offscreen`; the platform fragment names anything
-else the host needs, `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT`). It drives the gate with
+else the host needs, `SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT`). It drives the gate with
 synthetic touches (the controller's two-touch interface, not the one button a
 person presses) on a clock of its own, walks the dashboard, the settings and the about
 page over made-up play, checks what is on screen (the design's sentences, the settings
@@ -393,7 +393,7 @@ program without `--check` is a window to look at them in.
 The interface is offered in eight languages, right to left and left to right
 ([Application design](design/application.md#languages-right-to-left-and-fonts)), and the
 checks below hold it. They all run in every ctest of a
-build with the window (`WJS_BUILD_APP=ON`, the Windows CI leg).
+build with the window (`SNS_BUILD_APP=ON`, the Windows CI leg).
 
 - **`i18n.catalogues`** regenerates `apps/app/translations/*.ts` from the QML sources with the kit's
   `lupdate` into a temporary directory and fails when the checked-in catalogue
@@ -401,7 +401,7 @@ build with the window (`WJS_BUILD_APP=ON`, the Windows CI leg).
   caught. It reports itself **skipped** (exit 4) when Qt's Linguist tools are not
   installed, so the Linux and macOS legs, which do not build the window, and a
   developer without `qttools`, can still run the rest.
-- **The catalogue case** (`apps/app/tests/unit/language_test.cpp`, in `wjs_app_tests`) reads
+- **The catalogue case** (`apps/app/tests/unit/language_test.cpp`, in `sns_app_tests`) reads
   each `.ts` with `QXmlStreamReader`: well formed; no message marked
   `type="unfinished"`, `vanished` or `obsolete`; no empty translation (plural
   forms are checked where a catalogue has them); each language present, with the
@@ -449,9 +449,9 @@ requirements](requirements/application.md)).
 ## The interactive QML (Qt Quick Test)
 
 The screens and the kit are exercised at run time by twelve Qt Quick Test suites,
-headless: `wjs_quick_tests` (`apps/app/ui-tests/`) starts each one under Qt's offscreen
+headless: `sns_quick_tests` (`apps/app/ui-tests/`) starts each one under Qt's offscreen
 platform with the software renderer, so no leg needs a display or a GPU. It runs
-in every ctest of a build with the window (`WJS_BUILD_APP=ON`, the Windows CI leg
+in every ctest of a build with the window (`SNS_BUILD_APP=ON`, the Windows CI leg
 today). `apps/app/ui-tests/CMakeLists.txt` registers one ctest entry for each
 `tst_<suite>.qml` file it finds (`quick.box`, `quick.contrast`, `quick.home`,
 `quick.kit`, `quick.panel`, `quick.parent`, `quick.rtl`, `quick.scan`, `quick.scene`,
@@ -463,7 +463,7 @@ no edit to the CMake file, and two more that read sources only: `quick.lint` and
 ```sh
 ctest --preset windows-msvc-debug -R "^quick[.]"     # the tier
 ctest --preset windows-msvc-debug -R "^quick[.]kit"  # one suite
-build/windows-msvc-debug/bin/wjs_quick_tests -input apps/app/ui-tests/tst_kit.qml -platform offscreen
+build/windows-msvc-debug/bin/sns_quick_tests -input apps/app/ui-tests/tst_kit.qml -platform offscreen
 ```
 
 The QML under test is the application's own, not a copy: the kit, Home (with its
@@ -555,9 +555,9 @@ Not tested anywhere, so that no row above is read as covering it:
 
 ### Screenshots
 
-`cmake --build --preset <preset> --target wjs_screenshots` takes a picture of every screen and dialog of
+`cmake --build --preset <preset> --target sns_screenshots` takes a picture of every screen and dialog of
 the application from the offscreen platform and writes 31 PNG files into `<build>/screenshots` (or the
-directory named by `WJS_SHOTS_DIR`). `apps/app/ui-tests/capture_screens.qml` drives the same screens the
+directory named by `SNS_SHOTS_DIR`). `apps/app/ui-tests/capture_screens.qml` drives the same screens the
 suites test, through the same fixture, in this order: Home, Solo Play (the box, playing, a word in progress,
 the summary), My jewels, the parent gate and the four tabs, the real-board screens (no camera, a live camera,
 the check screen, the assistant), the kit gallery and a sheet, then Home in the dark scheme, at 150 % text
@@ -573,8 +573,8 @@ settled board.
 
 ### The house fonts in the QML tests
 
-The Quick Test harness and the two stub shells (`wjs_scan_preview`, `wjs_parent_preview`) register Pixelify Sans,
-Silkscreen and Andika from `assets/fonts` before a screen is loaded (`wjs_test_fonts`,
+The Quick Test harness and the two stub shells (`sns_scan_preview`, `sns_parent_preview`) register Pixelify Sans,
+Silkscreen and Andika from `assets/fonts` before a screen is loaded (`sns_test_fonts`,
 `apps/app/tests/fonts`), as the application does from its resource. Without them a screen is laid out in
 whatever the machine has: every label has another width, so a layout assertion (the action zone's sizes,
 the frame's room) measures the fallback and fails on a machine whose fallback differs from the
@@ -592,7 +592,7 @@ loaders to one list.
 The live view is a `VideoOutput`, and a `VideoOutput` needs a Qt Multimedia backend. Where the
 backend plugin cannot load (a system library it links is missing) Qt prints "No QtMultimedia backends
 found" and creates no sink, so every test that shows the live view would fail for a reason that has
-nothing to do with the screens. `wjs_media_probe` (`apps/app/tests/media`) asks
+nothing to do with the screens. `sns_media_probe` (`apps/app/tests/media`) asks
 `QMediaFormat` whether the backend can decode anything, once per process:
 
 - `camera.screens` returns 77 and CTest reports it as skipped;
@@ -607,7 +607,7 @@ messages itself, once, and does not count them against whichever case happened t
 
 ## Performance tests
 
-`wjs_perf_tests` is a binary of its own, linked against `wjs::lib` and nothing
+`sns_perf_tests` is a binary of its own, linked against `sns::lib` and nothing
 else (no Qt, no platform layer), so that it can be built and run alone and so
 that nothing else's allocator churn is in the way of a stopwatch. It is
 modelled on [Cubeulator's](https://github.com/iainchesworthlabs/cubeulator/blob/main/docs/testing.md#performance-tests)
@@ -617,7 +617,7 @@ design](design/performance.md). **Two halves, and the split is the design:**
 | | Holds | Exact? | Runs |
 | --- | --- | --- | --- |
 | **Work budgets** | What the code *does*: visits, words found, the word list's words and trie nodes, verifications and solves spent seeding, comparisons made binding, the bytes of the store a play leaves and the rows of the dashboard built from it, the scanner's reads, and a digest of every result | Yes, on every machine and compiler | In every `ctest` of an optimised build |
-| **Wall-time checks** | What it *takes*, as a multiple of a calibration workload run in the same process | No, and loose on purpose | Only when asked: `WJS_PERF_TIMING=1`, or a `*-perf` test preset |
+| **Wall-time checks** | What it *takes*, as a multiple of a calibration workload run in the same process | No, and loose on purpose | Only when asked: `SNS_PERF_TIMING=1`, or a `*-perf` test preset |
 
 The sources: `work_test.cpp` (the word list and the solver), `game_work_test.cpp`
 (making a board, seeding, binding, and the two sessions), `data_work_test.cpp` (the
@@ -629,11 +629,11 @@ threshold in `budgets.hpp`.
 ```sh
 ctest --preset windows-msvc-release -L perf        # the tier, work budgets only
 ctest --preset windows-msvc-perf                   # the tier, with the wall-time checks
-build/windows-msvc-release/bin/wjs_perf_tests "[.perf-report]"   # what each metric is now
+build/windows-msvc-release/bin/sns_perf_tests "[.perf-report]"   # what each metric is now
 ```
 
 (`linux-gcc-` and `macos-clang-` likewise.) Every case carries the `perf`
-label. There are 32 work cases and six wall-time cases in `wjs_perf_tests` (the
+label. There are 32 work cases and six wall-time cases in `sns_perf_tests` (the
 hidden `[.perf-report]` cases are tools, not tests). A **Debug or sanitizer build
 skips** the work budgets (reported as skipped, not failed: the corpus is much
 longer there, and the counts are the same in every build), and a coverage or
@@ -658,7 +658,7 @@ Two things are measured outside that binary, because they need Qt or a window:
   `refresh_hz=`, so a failure says which screen the window was on. A second case,
   always run, holds the budget's arithmetic (60 Hz is 16.97 ms, 100 Hz is 10.3 ms,
   a window that skips every second refresh of a 100 Hz screen fails). The check is
-  opt-in with its own variable, **`WJS_PERF_FRAME_TIMING=1`**, and needs a
+  opt-in with its own variable, **`SNS_PERF_FRAME_TIMING=1`**, and needs a
   display, so a shared runner never runs it and **it has never run in CI**; it
   also skips a build that is not optimised, one with Tracy or coverage in, and
   the `offscreen` platform plugin (it presents no frames;
@@ -672,8 +672,8 @@ Two things are measured outside that binary, because they need Qt or a window:
 
 ```sh
 # on a desktop with a display, in an optimised build
-set WJS_PERF_FRAME_TIMING=1
-ctest -R "frame budget"        # or: wjs_frame_timing_tests
+set SNS_PERF_FRAME_TIMING=1
+ctest -R "frame budget"        # or: sns_frame_timing_tests
 ```
 
 ### The corpus
@@ -694,7 +694,7 @@ The same boards on every machine, compiler and standard library:
   three or more letters of ENABLE spelled only with S, A, T, P, I and N (the
   proxy index of [Seeding: what was measured](#seeding-what-was-measured)), built
   by walking the trie; 100 seeds of each size 3x3 to 6x6 with the options of
-  `wjs::phonics_board_options`. And, for the binder, three paths of nine tiles
+  `sns::phonics_board_options`. And, for the binder, three paths of nine tiles
   against a test set of 39 graphemes (31 of more than one letter and not split).
 - **The game session** (phonics board): the same test phase, 100 sessions of each
   of 3x3 and 4x4, session `i` seeded `7919 * i + n`, each dealt (`shake`) and
@@ -703,7 +703,7 @@ The same boards on every machine, compiler and standard library:
   one tile, a snapshot after the first find, `rest` (the session's `resting`
   state, which the window no longer has a screen for), and the last snapshot;
   then the first snapshot restored.
-- **The game session** (standard board): the shipped dice (`wjs::DiceSets` over
+- **The game session** (standard board): the shipped dice (`sns::DiceSets` over
   `data/dice`) and the full word list, 100 sessions of each of 3x3 to 6x6, seeded
   `7919 * i + n` as the dice rows' boards are, each dealt and played in the same
   way: a find for every word of the dictionary on the board (about 33, 100, 192
@@ -753,29 +753,29 @@ The same boards on every machine, compiler and standard library:
 | `dashboard.sounds`, `.boards_met`, `.words_found`, `.vault`, `.inputs`, **phonics board** | The dashboard built from the phonics board's twenty boards against the test phase: exactly 6 sounds, 81 boards met, 133 words found and 48 stickers, reading at most 204 inputs (163 measured) |
 | `phase.load.phases`, `.words`, `.graphemes`, `.bytes`, **phonics board** | The test phase loaded from a directory of its two files: exactly 1 phase, 249 words, 6 graphemes, and at most 5,440 bytes (4,345 measured) |
 | `submit.found_by_a_miss`, `.again_not_again`, `.finds_added`, both modes | Exactly 0 each: over 100 submits of each kind, a path that spells nothing the board holds is never a find, a word again is always found again, and the session gains no find |
-| `scan.*` | Reading four fixed synthetic frames (a 4x4, a 5x5, a 6x6, a 4x4 under glare). Exact, because they pin the corpus: 4 reads, 4 boards answered, 2,764,800 frame pixels and 691,200 working pixels, and, for the optimised reader, 0 pixel buffers allocated, 225 cells read and 291,600 template comparisons. A quarter above the measurement: 2.6 million warped pixels, 3,240 blobs, 619 die candidates, 282 cells read, 364,500 comparisons and 105 buffer hand-outs reused from the reader's scratch pool; a warm read allocates no pixel buffers, so buffers and their most are held at 0 (`wjs/scan/work.hpp`). Reading seeds and solves nothing, so these rows carry the default, standard, board mode |
+| `scan.*` | Reading four fixed synthetic frames (a 4x4, a 5x5, a 6x6, a 4x4 under glare). Exact, because they pin the corpus: 4 reads, 4 boards answered, 2,764,800 frame pixels and 691,200 working pixels, and, for the optimised reader, 0 pixel buffers allocated, 225 cells read and 291,600 template comparisons. A quarter above the measurement: 2.6 million warped pixels, 3,240 blobs, 619 die candidates, 282 cells read, 364,500 comparisons and 105 buffer hand-outs reused from the reader's scratch pool; a warm read allocates no pixel buffers, so buffers and their most are held at 0 (`sns/scan/work.hpp`). Reading seeds and solves nothing, so these rows carry the default, standard, board mode |
 | `time.read.4x4`, `.5x5`, `.6x6`, `.glare` | Opt-in, as the other wall-time rows: one read of a frame against the heavy calibration, budgets 3.0, 4.0, 4.0 and 4.0, seven to eight times the measurement. A read is on the GUI thread, so what it costs is the stall the player sees |
 | `time.store.serialize`, `.parse`, `.save`, `time.dashboard.build`, `time.phase.load`, `time.submit.<mode>`, `time.path.validate` | Opt-in: the store's text of the heaviest store, its parse and its save to a file, the dashboard, the phase directory, 200 submits of each kind and 200 validations of 12 tiles, against the light calibration (the save and the phase directory against the heavy one, since they touch a disk); budgets 0.4, 0.8, 1.0, 0.15, 0.5, 0.08 and 0.02, about ten times the highest measurement and, for the two that touch a disk, about fifty |
 | `scene.play.6x6` (tags `[scene][perf]`, `apps/app/tests/unit/scene_script_test.cpp`) | The longest play (6x6): the shake's 600 ms, the lid's 250, the drop (35 gaps of 700/36 ms and a die's 380) and the settle's 150, counted from the script: at most 2.2 s for 2.06 |
-| The window's frame (`apps/app/tests/unit/frame_timing_test.cpp`, not a metric of the tier's binary) | Opt-in with `WJS_PERF_FRAME_TIMING=1` and a display: the application's smoke report (`p50_ms`, `p95_ms`, `max_ms`, `over33`, `refresh_hz`) against the display's period (1000 / `refresh_hz`) plus 0.3 ms for the median and plus 2 ms for the 95th percentile, and 33 ms and zero frames over it for the worst: 16.97 and 18.67 ms on a 60 Hz screen, 10.3 and 12 ms on a 100 Hz one |
+| The window's frame (`apps/app/tests/unit/frame_timing_test.cpp`, not a metric of the tier's binary) | Opt-in with `SNS_PERF_FRAME_TIMING=1` and a display: the application's smoke report (`p50_ms`, `p95_ms`, `max_ms`, `over33`, `refresh_hz`) against the display's period (1000 / `refresh_hz`) plus 0.3 ms for the median and plus 2 ms for the 95th percentile, and 33 ms and zero frames over it for the worst: 16.97 and 18.67 ms on a 60 Hz screen, 10.3 and 12 ms on a 100 Hz one |
 
 Every metric is for one **board mode**, and the report and a failure say which.
 The standard board is the default mode; the phonics board is a parent's switch,
 so its rows are not the standard board's work and vice versa. A **verification**
-is one solve of a candidate board; a **solve** is any call to `wjs::solve`,
+is one solve of a candidate board; a **solve** is any call to `sns::solve`,
 including the guided fill's trial of a letter on a tile; the seeding reports
 both (`SeededBoard::tries`, `SeededBoard::solves`) and the performance case
 holds `solves` to the solver's own tally. A **comparison** is a grapheme held
 against the letters at the start of a block; the binder tallies them in
-`wjs/binder_work.hpp` once per bind, and a case recounts them from the blocks
+`sns/binder_work.hpp` once per bind, and a case recounts them from the blocks
 that came back.
 
 A **visit** is a tile step that stayed inside the dictionary's trie: the
 letters of the path so far, with the tile's own, still begin some word. The
 solver counts them in a member of its search and adds the total to a
-thread-local tally (`wjs/solver_work.hpp`) once as the solve ends, so the cost
+thread-local tally (`sns/solver_work.hpp`) once as the solve ends, so the cost
 is one add a solve and nothing per visit; nothing in the application reads it.
-`wjs::solve`'s signature is as it was. A separate case holds the solver's tally
+`sns::solve`'s signature is as it was. A separate case holds the solver's tally
 to a second walk written out in the test with nothing but the dictionary's
 trie, so the budgets are held to a definition and not to an implementation.
 
@@ -813,8 +813,8 @@ and read it (`tests/profiling/check_trace.cmake`, with `run_capture.cmake`):
 
 | Test | Runs | The trace must hold |
 | --- | --- | --- |
-| `profiling.trace_cli` | `wjs-cli --repeat 1000000` on a 4x4 board, ended by its timeout after twelve seconds of capture (a Debug build with the sanitizers takes seconds to load the dictionary, so the run is not sized in repeats). Port 18086 | The zone `solver.solve` and the plot `solver.visits` |
-| `profiling.trace_app` | `WordJewelsSolver --smoke 120` on Qt's offscreen platform, which waits up to five seconds for a profiler so that the start-up zones are in the capture. Port 18087 | The zones `app.startup`, `app.load_qml`, `data.load_dictionary`, `data.load_store`, `data.save_store`, `board.deal`, `board.roll`, `solver.solve`, `scene.step`, `scene.prepare`, `scene.play`, `scene.show`, `scene.shake`, `scene.drop` and `scene.settle` (the last three are chosen by `BoardScene.stageZone()`, so only a run shows they are emitted), and the plots `solver.visits`, `ui.frame_ms`, `ui.first_frame_ms`, `ui.sync_ms`, `ui.animate_ms` and `render.frame_ms`. `render.record_ms` is not asked for: the software renderer has no render pass to record |
+| `profiling.trace_cli` | `sns-cli --repeat 1000000` on a 4x4 board, ended by its timeout after twelve seconds of capture (a Debug build with the sanitizers takes seconds to load the dictionary, so the run is not sized in repeats). Port 18086 | The zone `solver.solve` and the plot `solver.visits` |
+| `profiling.trace_app` | `SnapAndSpell --smoke 120` on Qt's offscreen platform, which waits up to five seconds for a profiler so that the start-up zones are in the capture. Port 18087 | The zones `app.startup`, `app.load_qml`, `data.load_dictionary`, `data.load_store`, `data.save_store`, `board.deal`, `board.roll`, `solver.solve`, `scene.step`, `scene.prepare`, `scene.play`, `scene.show`, `scene.shake`, `scene.drop` and `scene.settle` (the last three are chosen by `BoardScene.stageZone()`, so only a run shows they are emitted), and the plots `solver.visits`, `ui.frame_ms`, `ui.first_frame_ms`, `ui.sync_ms`, `ui.animate_ms` and `render.frame_ms`. `render.record_ms` is not asked for: the software renderer has no render pass to record |
 
 They need a build with Tracy (every Debug build has it, and the `*-profiling`
 presets) **and** the capture tools, which are built by the same vcpkg feature;
@@ -833,33 +833,33 @@ not run in a Debug build with the sanitizers, whose smoke run is slow.
 **`profiling.perf_budgets_ran`** (a `quality` test, `tests/profiling/check_perf_ran.cmake`)
 answers a different question: the performance work budgets skip in a build that is
 not optimised, and a skipped case is not a failed one, so a leg of Debug builds
-passes with the whole tier skipped. This test runs `wjs_perf_tests "[perf]~[timing]"`
+passes with the whole tier skipped. This test runs `sns_perf_tests "[perf]~[timing]"`
 and counts the cases that ran:
 
 - In an optimised build (Release, RelWithDebInfo, MinSizeRel), or in any build
-  where the environment variable **`WJS_REQUIRE_PERF_BUDGETS`** is set to
+  where the environment variable **`SNS_REQUIRE_PERF_BUDGETS`** is set to
   something other than empty or `0` (a workflow saying "this leg holds the
   budgets"), it **fails** when no case ran, or when any case skipped, since the
   only reason the tier stands aside is that a build is not optimised.
 - Otherwise it reports itself skipped (exit 4) with that reason, so it is never a
   pass that checked nothing.
 
-**No workflow sets `WJS_REQUIRE_PERF_BUDGETS`**, and the leg that is optimised is
+**No workflow sets `SNS_REQUIRE_PERF_BUDGETS`**, and the leg that is optimised is
 not a required check, so today no required check holds a work budget
 ([Performance requirements](requirements/performance.md)). Making the Release
 leg required, or setting the variable on a leg that must hold them, is the fix.
 
 ### Capturing it
 
-A short run of `wjs-cli` is over before a profiler attaches; the tier's binary
+A short run of `sns-cli` is over before a profiler attaches; the tier's binary
 runs for seconds, which makes it a good thing to capture:
 [Profiling](profiling.md#capturing-a-trace).
 
 ## The scanner
 
-`wjs_scan_tests` is a binary of its own, linked against `wjs::scan`, `wjs::lib`,
-`wjs::platform` and the synthetic corpus (`wjs_scan_synth`), so that the corpus and its
-renderer stay out of `wjs_unit_tests` and the scanner can be built and run alone
+`sns_scan_tests` is a binary of its own, linked against `sns::scan`, `sns::lib`,
+`sns::platform` and the synthetic corpus (`sns_scan_synth`), so that the corpus and its
+renderer stay out of `sns_unit_tests` and the scanner can be built and run alone
 ([Scanner design](design/scanner.md) is the page about what it holds and why).
 
 | Test file | What it holds down |
@@ -875,8 +875,8 @@ renderer stay out of `wjs_unit_tests` and the scanner can be built and run alone
 
 ```sh
 ctest --preset windows-msvc-release -R scan              # the scanner's tests, the corpus included
-build/windows-msvc-release/bin/wjs_scan_tests "[smoke]"  # the subset that runs in Debug too
-build/windows-msvc-release/bin/wjs_scan_tests "[.scan-report]"   # what the corpus measures now
+build/windows-msvc-release/bin/sns_scan_tests "[smoke]"  # the subset that runs in Debug too
+build/windows-msvc-release/bin/sns_scan_tests "[.scan-report]"   # what the corpus measures now
 ```
 
 **The target** is five numbers a condition (the board found, correct, silent errors,
@@ -922,7 +922,7 @@ reader is developed against and the bounds and doubt thresholds are derived from
 **test**, which was read and reported on while the reader changed, so is no longer held
 out and is kept for the tools and for the frames other tests draw; and **heldout**, which
 the target tests read. The hidden cases are the tools (they assert nothing, and read the
-tuning split unless `WJS_SCAN_SPLIT=test` or `heldout` is set; reading `heldout` with a
+tuning split unless `SNS_SCAN_SPLIT=test` or `heldout` is set; reading `heldout` with a
 tool is looking at it):
 
 | Case | Prints |
@@ -933,7 +933,7 @@ tool is looking at it):
 | `[.scan-confusions]` | Each wrong tile as truth -> read, how often each true letter is right, and why a frame was not read |
 | `[.scan-oracle]` | The glyph step alone, given the true corners and centres: what it gets right when the geometry is perfect |
 | `[.scan-negatives]` | How many frames with no board were answered with an error |
-| `[.recorded]` | The same numbers over real frames kept outside the repository, from `WJS_SCAN_RECORDED_DIR` (grey PGMs with a `.txt` truth beside each). Skips when unset, and **has not been run on anything real**: its harness is tested (below), the first session on a real board is not to be spent finding out that it cannot read a header |
+| `[.recorded]` | The same numbers over real frames kept outside the repository, from `SNS_SCAN_RECORDED_DIR` (grey PGMs with a `.txt` truth beside each). Skips when unset, and **has not been run on anything real**: its harness is tested (below), the first session on a real board is not to be spent finding out that it cannot read a header |
 | `[.glyph-print]` | What each clean upright glyph is read as, with its scores (`scan_glyph_test.cpp`) |
 
 **The recorded-frames harness is self-tested.** `the recorded-frames harness reads a
@@ -946,9 +946,9 @@ skipped and counting no rotation error. `a picture file is read only if it is a 
 PGM` holds the reader of the format to its refusals. Neither says anything about real
 frames: none has been read by anything in this repository.
 
-`wjs_scan_render --out <directory>` writes the corpus as PNG files with the truth beside
+`sns_scan_render --out <directory>` writes the corpus as PNG files with the truth beside
 each, and `--sheet <file.png>` a contact sheet, to look at. It is a one-off tool,
-not part of the default build: `cmake --build <build> --target wjs_scan_render`
+not part of the default build: `cmake --build <build> --target sns_scan_render`
 makes it. **Recorded camera frames are
 never committed** (`.gitignore`, [Licensing](licensing.md#camera-input-and-letter-recognition)).
 
@@ -988,9 +988,9 @@ must not be needed to prove the state machine, and no live picture may be faked.
 
 | Where | What it holds down |
 | --- | --- |
-| `apps/app/tests/unit/camera_test.cpp` (`wjs_app_tests`, `[camera]`) | An image is copied into the scanner's RGB24 frame, packed row by row and with the QImage padding gone; a grey picture becomes equal channels; a null picture is no frame. A `CameraSource` over a fake backend says `no_camera` with no device, `permission` when refused, hands a frame over once, and reports a failure that happens later. A `ScanModel` with a supplied source opens the check screen from a frame, returns to `ready` with `no_frame` when the frame never arrives, and says `no_camera` with no frame when the source cannot start |
+| `apps/app/tests/unit/camera_test.cpp` (`sns_app_tests`, `[camera]`) | An image is copied into the scanner's RGB24 frame, packed row by row and with the QImage padding gone; a grey picture becomes equal channels; a null picture is no frame. A `CameraSource` over a fake backend says `no_camera` with no device, `permission` when refused, hands a frame over once, and reports a failure that happens later. A `ScanModel` with a supplied source opens the check screen from a frame, returns to `ready` with `no_frame` when the frame never arrives, and says `no_camera` with no frame when the source cannot start |
 | `apps/app/tests/unit/camera_backend_test.cpp` (only where the kit has Qt Multimedia, `[app][camera][backend]`) | The Qt Multimedia backend built headless: the camera's frames are forwarded into the preview item's own sink; an item with no sink, or a sink destroyed, is not written to; the backend attaches a preview, replaces it and lets it go; a refused camera is a permission problem, said once, and does not start; a camera not yet asked about asks and waits for the answer, and an answer that comes after a stop does not start it; with nothing to capture it is safe to stop and to read |
-| `apps/app/tests/unit/scan_model_test.cpp` (`wjs_app_tests`, `[app][scan][camera]`) | `ScanModel` and a camera source that fails, never delivers a frame or is replaced: see the row in [What there is](#what-there-is) |
+| `apps/app/tests/unit/scan_model_test.cpp` (`sns_app_tests`, `[app][scan][camera]`) | `ScanModel` and a camera source that fails, never delivers a frame or is replaced: see the row in [What there is](#what-there-is) |
 | `apps/app/tests/unit/camera_video_frame_test.cpp` (only where the kit has Qt Multimedia) | A `QVideoFrame` made from a picture goes through `QVideoFrame::toImage()` and the shared conversion to the same RGB24 frame — the backend's step, without a device |
 | `camera.screens` (`apps/app/tests/unit/scan_ui`, only where the kit has Qt Multimedia) | The real `ScanScreen` and `ScanModel` in the offscreen stub shell with a fake source and one synthetic board: the live `VideoOutput` is created and shown, Capture is offered, the frame reaches the check screen, and the camera stops. The no-camera check (`scan.screens`) is the other path. Skipped (exit 77) where Qt Multimedia has no backend on the machine ([Camera tests without a media backend](#camera-tests-without-a-media-backend)) |
 | `quick.scan` (`apps/app/ui-tests/tst_scan.qml`) | The same preview on and no-preview path through the QML suite, with `fixture.useCamera()` supplying a fake source; the window is offscreen and no device is opened |
@@ -1039,8 +1039,8 @@ minute because each case starts a PowerShell.
 **The review gate.** A file with no `reviewed-by`, `reviewed-on` (a date,
 `YYYY-MM-DD`) and `source` is test data. Test data need not say where it came
 from; a file that claims a review has to, as `data/README.md` asks of every
-list. `WJS_REQUIRE_REVIEWED_PHONICS` makes the
-build refuse it: with the switch on, the target `wjs_phonics_review_gate` runs
+list. `SNS_REQUIRE_REVIEWED_PHONICS` makes the
+build refuse it: with the switch on, the target `sns_phonics_review_gate` runs
 `tools/data/check_phonics_review.cmake` before the library is built, every
 time (it is always out of date), so a file edited after configuring is still
 caught and building any target that links the library is gated. It is a CMake
@@ -1050,7 +1050,7 @@ the data are `data.phonics`'s, which passes `-RequireReviewed` too when the
 switch is on. The switch is on by default for `Release`, `RelWithDebInfo` and
 `MinSizeRel` and for any multi-config generator (which has no build type at
 configure time), and the release presets set it. Turning it off is an explicit
-`-DWJS_REQUIRE_REVIEWED_PHONICS=OFF`, which is on the command line of whoever
+`-DSNS_REQUIRE_REVIEWED_PHONICS=OFF`, which is on the command line of whoever
 did it. The gate is held to a table of cases on throw-away data
 (`data.phonics.review_gate.selftest`, always) and, with the switch on, to the
 data there is (`data.phonics.review_gate`). With no `data/phonics` there is nothing
@@ -1251,7 +1251,7 @@ timing from an earlier run), each change on top of the one before:
 | the tree before | 613 s | 1,994 s |
 | allocation stacks of two frames, the dice world by reference, the long cases split | about 357 s | 1,275 s |
 | the two trace tests beside the others, not alone | about 321 s | 1,170 s |
-| first-party code built with `/O1` (`WJS_SANITIZER_OPTIMIZE`) | about 274 s | 970 s |
+| first-party code built with `/O1` (`SNS_SANITIZER_OPTIMIZE`) | about 274 s | 970 s |
 | Tracy's Debug client does not calibrate its timer | about 204 s | 710 s |
 | the longest cases are started first (`COST`) | about 182 s | 715 s |
 | the same, after merging `develop` (two runs, 1,144 cases) | 194 s | 727 s |
@@ -1261,7 +1261,7 @@ What each one is:
 - **Allocation stacks** and **by-value copies**: the section above.
 - **Long cases.** A case that sweeps seeds is several cases, a range of seeds
   each, when each seed's checks stand alone (the 600 deals of "a board is never
-  dealt with no word on it", the output of `wjs-cli` 60 times over, the groups of
+  dealt with no word on it", the output of `sns-cli` 60 times over, the groups of
   checks about the scene's script). A case that keeps a statistic *over* its seeds
   stays one: the median of how far sixteen dice were shaken, the median of how
   long the guide took, the share of the 18 face-up runs that were late, the count
@@ -1271,7 +1271,7 @@ What each one is:
   take a lock between themselves (`RESOURCE_LOCK`) and run beside the others;
   they passed in each of the eight full runs made beside the others.
 - **`/O1`.** ASan makes every access to memory a check and every copy of a struct
-  a call, and unoptimised code has many of both. `-DWJS_SANITIZER_OPTIMIZE=OFF`
+  a call, and unoptimised code has many of both. `-DSNS_SANITIZER_OPTIMIZE=OFF`
   brings back `/Od` to step through the code in a debugger. Two tests that skip
   themselves in a build that is not optimised read their flag through a
   `volatile`, since an optimising compiler that sees the flag is constant warns
@@ -1373,8 +1373,8 @@ the QML bindings and the tests' presses, not by a direct C++ call. The report
 has no floor; a run that reaches nothing is a build problem, not a number to
 lower.
 
-The thresholds are CMake cache variables (`WJS_COVERAGE_MIN_LINE`,
-`WJS_COVERAGE_MIN_BRANCH`), and the scopes are a tier's; raising a floor above
+The thresholds are CMake cache variables (`SNS_COVERAGE_MIN_LINE`,
+`SNS_COVERAGE_MIN_BRANCH`), and the scopes are a tier's; raising a floor above
 what the tier reaches is a test-writing job, not a configuration one. The
 coverage build is Debug with the sanitizers off (`cmake/Sanitizers.cmake`,
 `cmake/Coverage.cmake`): a sanitizer runtime and a coverage counter in the same
@@ -1445,7 +1445,7 @@ default or a design number, change the row in the same commit.
   for Catch2, `LABELS` for an `add_test`); a new tier entry is one line there, not
   a new build. A check about the tree, the build or the data (a script that reads
   files) is registered in `tests/checks/CMakeLists.txt` and added to
-  `WJS_QUALITY_TESTS`, which gives it the `quality` label; its script lives in the
+  `SNS_QUALITY_TESTS`, which gives it the `quality` label; its script lives in the
   topic directory beside it (`tests/privacy/`, `tests/toolchain/`, ...), and a
   checker that can pass everything is worse than none, so it comes with a
   `.selftest` that holds it to cases on throw-away trees.
@@ -1512,7 +1512,7 @@ than it is:
 - **The release pipeline has not run on GitHub**: `release.tooling` runs its scripts
   with a throw-away key, and the packages the release workflow makes for Linux and
   macOS are unrun.
-- **`wjs-cli` and the console.** `system.cli.*` runs the program (its options, the
+- **`sns-cli` and the console.** `system.cli.*` runs the program (its options, the
   four exit codes - 0 solved, 1 usage, 2 dictionary, 3 board - and what it prints
   from a twelve-word list). Not tested: the console's UTF-8 mode on Windows and paths
   longer than `MAX_PATH` ([known problems](building.md#platform-notes)), and nobody

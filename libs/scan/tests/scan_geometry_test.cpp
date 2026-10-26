@@ -8,11 +8,11 @@
 #include <limits>
 #include <vector>
 
-#include "wjs/scan/geometry.hpp"
+#include "sns/scan/geometry.hpp"
 
 namespace {
 
-using namespace wjs::scan;
+using namespace sns::scan;
 using Catch::Approx;
 
 bool near(Point a, Point b, double tolerance = 1e-6) {

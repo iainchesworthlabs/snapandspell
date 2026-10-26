@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // A screen with a Sheet open on it, for the size matrix: the sheet must stay
 // inside the window at every size, and its Close button and the buttons it

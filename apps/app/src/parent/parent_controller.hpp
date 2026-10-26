@@ -13,16 +13,16 @@
 #include <functional>
 #include <optional>
 
-#include "wjs/calendar.hpp"
-#include "wjs/parent_gate.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/store.hpp"
+#include "sns/calendar.hpp"
+#include "sns/parent_gate.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/store.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // What the parent area's screens talk to (docs/design/dashboard.md): the gate,
 // the dashboard, the settings and the two resets. All of the rules are the
-// library's (wjs/parent_gate.hpp, wjs/store.hpp, wjs/dashboard.hpp); this is
+// library's (sns/parent_gate.hpp, sns/store.hpp, sns/dashboard.hpp); this is
 // the shape Qt Quick wants, and the clock, which the library does not have.
 //
 // It shows the person nothing but what the store holds. It starts nothing and
@@ -120,14 +120,14 @@ public:
 
     // The program's store, shared and not owned: it must outlive this. `status`
     // is how it was opened, which the note says.
-    void useStore(wjs::Store* store, wjs::LoadStatus status = wjs::LoadStatus::loaded);
+    void useStore(sns::Store* store, sns::LoadStatus status = sns::LoadStatus::loaded);
 
     // Phase data, not owned; null for none.
-    void usePhases(const wjs::PhaseSet* phases);
+    void usePhases(const sns::PhaseSet* phases);
 
     // The calendar, which a test fixes: today as a Day and the locale's first day
     // of the week (ISO numbered). Without it the device's own are read.
-    void useCalendar(std::function<wjs::Day()> today, int first_day_of_week);
+    void useCalendar(std::function<sns::Day()> today, int first_day_of_week);
 
     // The clock the gate is told the time by, in milliseconds from any fixed
     // moment, which a test fixes. Without it the steady clock is read. The
@@ -227,20 +227,20 @@ signals:
 
 private:
     void afterGateEvent(std::chrono::milliseconds now);
-    [[nodiscard]] const wjs::PhaseIndex* activeIndex() const;
-    void applySettings(wjs::Settings settings);
+    [[nodiscard]] const sns::PhaseIndex* activeIndex() const;
+    void applySettings(sns::Settings settings);
     void updateNote();
 
-    std::optional<wjs::Store> owned_;
-    wjs::Store* store_ = nullptr;
-    wjs::LoadStatus status_ = wjs::LoadStatus::loaded;
-    const wjs::PhaseSet* phases_ = nullptr;
+    std::optional<sns::Store> owned_;
+    sns::Store* store_ = nullptr;
+    sns::LoadStatus status_ = sns::LoadStatus::loaded;
+    const sns::PhaseSet* phases_ = nullptr;
 
-    std::function<wjs::Day()> today_;
+    std::function<sns::Day()> today_;
     int first_day_of_week_ = 0;  // 0: ask the locale
     std::function<qint64()> clock_;
 
-    wjs::Gate gate_;
+    sns::Gate gate_;
     bool unlocked_ = false;
     bool holding_ = false;
     double progress_ = 0.0;
@@ -250,4 +250,4 @@ private:
     QString note_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

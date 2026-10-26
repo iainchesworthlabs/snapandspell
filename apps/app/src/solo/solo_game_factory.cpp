@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 // The game of a model that was told of none: a box that cannot be shaken. The
@@ -74,4 +74,4 @@ std::unique_ptr<SoloGame> make_solo_game() {
     return std::make_unique<NoSoloGame>();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

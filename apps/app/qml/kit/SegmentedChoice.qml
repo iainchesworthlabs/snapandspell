@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // One choice among a few: a row of buttons, the chosen one filled soft emerald
 // with an emerald edge and a check mark. It replaces the parent area's PChoice

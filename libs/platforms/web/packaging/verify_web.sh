@@ -43,7 +43,7 @@ bad() { checks=$((checks + 1)); failures=$((failures + 1)); echo "  FAIL  $1" >&
 
 echo "web bundle: $bundle"
 
-for file in index.html wjs-boot.js qtloader.js WordJewelsSolver.js WordJewelsSolver.wasm \
+for file in index.html sns-boot.js qtloader.js SnapAndSpell.js SnapAndSpell.wasm \
             manifest.webmanifest icon-64.png icon-256.png LICENSE.txt NOTICES.txt; do
   if [ -s "$bundle/$file" ]; then
     ok "$file is there"
@@ -68,7 +68,7 @@ done < <(grep -oE '(src|href)="[^"#]+"' "$bundle/index.html" | sed -E 's/^(src|h
 
 # Nothing in what the bundle writes itself reaches another site. (The program's own .js is
 # Emscripten's, and carries documentation URLs in comments; it is not read for this.)
-for file in index.html wjs-boot.js manifest.webmanifest; do
+for file in index.html sns-boot.js manifest.webmanifest; do
   if grep -E "https?://" "$bundle/$file" | grep -vE 'www\.w3\.org' | grep -q .; then
     bad "$file contains a URL"
   else
@@ -112,7 +112,7 @@ if [ -s "$bundle/NOTICES.txt" ]; then
 fi
 
 # WebAssembly: the magic number, then single-thread and without the modules left out on purpose.
-wasm="$bundle/WordJewelsSolver.wasm"
+wasm="$bundle/SnapAndSpell.wasm"
 if [ -s "$wasm" ]; then
   if [ "$(head -c 4 "$wasm" | od -An -tx1 | tr -d ' \n')" = "0061736d" ]; then
     ok "the program is a WebAssembly module"
@@ -120,7 +120,7 @@ if [ -s "$wasm" ]; then
     bad "the program is not a WebAssembly module"
   fi
 
-  if grep -q SharedArrayBuffer "$bundle/WordJewelsSolver.js"; then
+  if grep -q SharedArrayBuffer "$bundle/SnapAndSpell.js"; then
     bad "the program uses SharedArrayBuffer: it needs cross-origin isolation, which GitHub Pages cannot give"
   else
     ok "the program is single-threaded (no SharedArrayBuffer)"

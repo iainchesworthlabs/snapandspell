@@ -5,16 +5,16 @@
 #include <vector>
 
 #include "fake_solo_game.hpp"
-#include "wjs/board.hpp"
-#include "wjs/path.hpp"
+#include "sns/board.hpp"
+#include "sns/path.hpp"
 
 namespace {
 
-using wjs::Position;
-using wjs::app::FakeSoloGame;
-using wjs::app::SoloState;
-using wjs::app::WordKind;
-using wjs::app::WordTier;
+using sns::Position;
+using sns::app::FakeSoloGame;
+using sns::app::SoloState;
+using sns::app::WordKind;
+using sns::app::WordTier;
 
 // The first board of a new device (seed 1) is the 3x3 turned a quarter:
 //
@@ -213,7 +213,7 @@ TEST_CASE("a second clear that does not beat the best says nothing", "[app][fake
         game.settled();
         // The boards turn with the seed: find each word by solving it again from
         // the board, which is what a child does by looking.
-        wjs::app::TraceOutcome last;
+        sns::app::TraceOutcome last;
         for (const auto& word : FakeSoloGame::todaysWords()) {
             // Find a path for the word on the board in play.
             const auto& board = game.board();
@@ -232,7 +232,7 @@ TEST_CASE("a second clear that does not beat the best says nothing", "[app][fake
                 for (std::size_t row = 0; row < board.rows; ++row) {
                     for (std::size_t column = 0; column < board.columns; ++column) {
                         const Position to{row, column};
-                        if (!used[row * board.columns + column] && wjs::are_neighbours(at, to) &&
+                        if (!used[row * board.columns + column] && sns::are_neighbours(at, to) &&
                             self(self, to, next + 1)) {
                             return true;
                         }

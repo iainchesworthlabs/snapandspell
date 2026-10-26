@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scan/segment.hpp"
+#include "sns/scan/segment.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -7,10 +7,10 @@
 #include <utility>
 
 #include "scratch.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/scan/work.hpp"
+#include "sns/profiling.hpp"
+#include "sns/scan/work.hpp"
 
-namespace wjs::scan {
+namespace sns::scan {
 
 namespace {
 
@@ -325,4 +325,4 @@ std::vector<Blob> find_blobs(std::span<const std::uint8_t> mask, int width, int 
     return detail::find_blobs(mask, width, height, min_area, max_area, room);
 }
 
-}  // namespace wjs::scan
+}  // namespace sns::scan

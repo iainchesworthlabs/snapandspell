@@ -229,8 +229,8 @@ scene draws that, so it is given more than a finished board: the library's roll
 returns the dice with the board, and the scene takes them as they are.
 
 ```text
-wjs::roll_with_placements(dice, seed) -> RolledBoard
-    board:      the Board, as wjs::roll returns it
+sns::roll_with_placements(dice, seed) -> RolledBoard
+    board:      the Board, as sns::roll returns it
     placements: for each tile, row-major: the die on it (an index into the set)
                 and which of its faces is up
 
@@ -250,7 +250,7 @@ draw ahead.
 
 **Built.** `SoloBoard` (`apps/app/src/solo/solo_game.hpp`) carries `faces` and `up`
 beside the tiles. `RealSoloGame::board()` takes them from
-`wjs::roll_with_placements` with the dealt board's seed on the standard board;
+`sns::roll_with_placements` with the dealt board's seed on the standard board;
 the phonics board and the fake game carry none, and a game brought back from the
 store carries none (its board's roll seed was not kept). The scene is the application's own QML,
 `apps/app/qml/solo/BoardScene.qml` with `SceneDie.qml` and `SceneScript.js`; the Quick Test suites

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/game_session.hpp"
+#include "sns/game_session.hpp"
 
 #include <algorithm>
 #include <utility>
 
-#include "wjs/deal.hpp"
-#include "wjs/path.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/deal.hpp"
+#include "sns/path.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 // How far a count of words is from the range: zero inside it.
@@ -667,4 +667,4 @@ std::expected<GameSession, SessionError> GameSession::restore(const SessionSnaps
     return session;
 }
 
-}  // namespace wjs
+}  // namespace sns

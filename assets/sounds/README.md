@@ -11,7 +11,7 @@ while the real recordings are still the reviewer's job.
 The real phoneme clips and the recorded cheers replace them after the literacy
 review ([Phonics design](../../docs/design/phonics.md)); the file names are the
 seam. The mapping from a cue to one of these files is the pure policy in
-`libs/core/include/wjs/feedback.hpp`.
+`libs/core/include/sns/feedback.hpp`.
 
 They are 16-bit PCM mono WAV at 22050 Hz, embedded as `:/sounds/<name>.wav` in
 the application (`apps/app/CMakeLists.txt`), so no file of them is installed.

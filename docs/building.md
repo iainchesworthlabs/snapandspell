@@ -1,6 +1,6 @@
 # Building
 
-This page builds WordJewelsSolver from source. To use `wjs-cli`, see the
+This page builds SnapAndSpell from source. To use `sns-cli`, see the
 [home page](index.md#using-the-command-line-solver).
 
 CI builds and tests all three desktops: Windows (MSVC 19.51), Linux (GCC 15.2,
@@ -38,7 +38,7 @@ intent; only the versions just named have been tried. What CI runs is in
 
 ```sh
 git clone https://github.com/iainchesworthlabs/wordjewelssolver
-cd wordjewelssolver
+cd snapandspell
 ```
 
 ## vcpkg
@@ -89,9 +89,9 @@ cmake --build --preset macos-clang-debug
 ctest --preset macos-clang-debug
 ```
 
-The programs are in `build/<preset>/bin/`: `WordJewelsSolver`
-(`WordJewelsSolver.exe` on Windows), `wjs-cli` (`wjs-cli.exe`), and the test
-binaries `wjs_unit_tests` and `wjs_perf_tests`
+The programs are in `build/<preset>/bin/`: `SnapAndSpell`
+(`SnapAndSpell.exe` on Windows), `sns-cli` (`sns-cli.exe`), and the test
+binaries `sns_unit_tests` and `sns_perf_tests`
 ([Testing](testing.md#performance-tests)). The window is built when Qt 6.12 is
 found; the paragraph under [The Qt Quick window](#the-qt-quick-window) says how
 it is found and how to skip it. `ctest` fails if it finds no tests at all. A
@@ -102,16 +102,16 @@ The executable targets are named after the programs they make, so one of them
 can be built alone:
 
 ```sh
-cmake --build --preset windows-msvc-debug --target WordJewelsSolver
-cmake --build --preset windows-msvc-debug --target wjs-cli
+cmake --build --preset windows-msvc-debug --target SnapAndSpell
+cmake --build --preset windows-msvc-debug --target sns-cli
 ```
 
-The rest of the target list is libraries (`wjs_*`), the test binaries
-(`wjs_*_tests`), and the screens' test harnesses (`wjs_parent_preview`,
-`wjs_scan_preview`, `wjs_quick_tests`). IDEs that read CMake's `FOLDER`
+The rest of the target list is libraries (`sns_*`), the test binaries
+(`sns_*_tests`), and the screens' test harnesses (`sns_parent_preview`,
+`sns_scan_preview`, `sns_quick_tests`). IDEs that read CMake's `FOLDER`
 property, Visual Studio's CMake Targets View among them, put the programs and
 the application's modules in an Application folder, the libraries under
-Libraries, and the tests and tools under Tests and Tools. `wjs_scan_render` is
+Libraries, and the tests and tools under Tests and Tools. `sns_scan_render` is
 a one-off corpus renderer and is not part of the default build; ask for it by
 target when it is wanted ([Testing](testing.md#the-scanner)).
 
@@ -121,7 +121,7 @@ A preset configures into `build/<preset>/` and is named
 `<os>-<compiler>-<config>`. Each is available only on its own host, so
 `cmake --list-presets` lists the ones for the machine you are on. The plain Debug
 presets have the sanitizers **and Tracy** on; a Release preset has the Qt
-application on (a missing Qt is an error, unless you pass `-DWJS_BUILD_APP=OFF`, as
+application on (a missing Qt is an error, unless you pass `-DSNS_BUILD_APP=OFF`, as
 the solver-only release legs do), Tracy and the sanitizers off and reviewed phonics
 required.
 
@@ -136,10 +136,10 @@ required.
 | `linux-clang-debug` | Linux | `x64-linux` | Debug, with Clang's AddressSanitizer and UBSan; uses `clang++`. The nightly Clang sanitizer leg |
 | `macos-clang-debug` | macOS | `arm64-osx` | Debug, with AddressSanitizer and UBSan |
 | `macos-clang-release` | macOS | `arm64-osx` | Release |
-| `ios-release` | macOS | `arm64-ios` | An Xcode project for an iPhone or iPad: Release, no tests, no `wjs-cli`, unsigned unless given a team and a profile. Needs Qt's iOS kit; see [iOS](#ios) |
-| `android-arm64-release` | any | `arm64-android` | An APK and an AAB for an arm64 tablet or phone: Release, no tests, no `wjs-cli`, unsigned unless asked. Needs Qt's Android kit, the SDK, the NDK and a JDK; see [Android](#android) |
+| `ios-release` | macOS | `arm64-ios` | An Xcode project for an iPhone or iPad: Release, no tests, no `sns-cli`, unsigned unless given a team and a profile. Needs Qt's iOS kit; see [iOS](#ios) |
+| `android-arm64-release` | any | `arm64-android` | An APK and an AAB for an arm64 tablet or phone: Release, no tests, no `sns-cli`, unsigned unless asked. Needs Qt's Android kit, the SDK, the NDK and a JDK; see [Android](#android) |
 | `android-arm64-debuggable` | any | `arm64-android` | As above, a debuggable APK signed with Android's debug key. Tracy is off, so it is not named `*-debug` |
-| `web-release` | any | `wasm32-emscripten` | A directory of static files for a browser (WebAssembly, one thread): Release, no tests, no `wjs-cli`, no hardening flags. Needs Qt's WebAssembly kit and Emscripten; see [Web](#web) |
+| `web-release` | any | `wasm32-emscripten` | A directory of static files for a browser (WebAssembly, one thread): Release, no tests, no `sns-cli`, no hardening flags. Needs Qt's WebAssembly kit and Emscripten; see [Web](#web) |
 | `windows-msvc-profiling` | Windows | `x64-windows` | RelWithDebInfo with Tracy, sanitizers off. A development build, never shipped: see [Profiling](profiling.md) |
 | `linux-gcc-profiling` | Linux | `x64-linux` | As above, with `g++` |
 | `macos-clang-profiling` | macOS | `arm64-osx` | As above |
@@ -166,26 +166,26 @@ For a combination the presets do not cover, make your own in
 ## Options
 
 Pass these to the configure step, for example
-`cmake --preset linux-gcc-debug -DWJS_BUILD_TESTS=OFF`.
+`cmake --preset linux-gcc-debug -DSNS_BUILD_TESTS=OFF`.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `WJS_BUILD_CLI` | `ON` | Build `wjs-cli` |
-| `WJS_BUILD_APP` | `AUTO` | Build the Qt Quick window. `AUTO` builds it when Qt 6.12 is found and leaves it out otherwise; `ON` requires Qt and fails the configure without it; `OFF` never looks. The board scene is 2D, so the binary is GPL-3.0-or-later like the sources |
-| `WJS_BUILD_TESTS` | `ON` | Build the test suites, and register the platform tests. Turning it off also stops vcpkg building Catch2 |
-| `WJS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
-| `WJS_ENABLE_HARDENING` | `ON` | The shared hardening flags on the libraries, the command line and the application: stack protector, `_FORTIFY_SOURCE=3` outside Debug, relro and immediate binding, PIE and control-flow protection on GCC and Clang; `/GS /guard:cf /sdl` on MSVC. Only the `linux-fuzz` preset turns it off (a fortified libc call bypasses AddressSanitizer); the switch is also for finding a toolchain problem. See [Security](security.md#hardening) |
-| `WJS_ENABLE_FUZZING` | `OFF` | The libFuzzer harnesses of `libs/<lib>/fuzz`, with AddressSanitizer and UBSan. Clang only, and not with the other instrumentation switches, Tracy or the hardening flags; the `linux-fuzz` preset sets it on its own. See [Fuzzing](fuzzing.md) |
-| `WJS_SANITIZER_OPTIMIZE` | `ON` | Build first-party code with `/O1` instead of `/Od` in a Debug build that has MSVC's AddressSanitizer on. The sanitizer makes every unoptimised access and struct copy a call, and the tests ran about twice as fast with it. `OFF` to step through the code in a debugger. See [Sanitizers](#sanitizers-and-warnings) |
-| `WJS_ENABLE_MSVC_ANALYSIS` | `OFF` | MSVC's static analyzer during compilation (`/analyze`, with `/W4 /WX`), SARIF logs written beside the objects. Needs MSVC; the `windows-msvc-analysis` preset turns it on. See [Static analysis](#static-analysis) |
-| `WJS_ENABLE_COVERAGE` | `OFF` | Source coverage instrumentation, read back with gcovr (GCC/Clang) or llvm-cov (clang-cl). Only the `*-coverage` presets turn it on. See [Coverage](#coverage) |
-| `WJS_COVERAGE_MIN_LINE` | `90` | The unit tier's line floor, as a percentage. `coverage-unit` fails below it |
-| `WJS_COVERAGE_MIN_BRANCH` | `80` | The unit tier's branch floor, as a percentage. `coverage-unit` fails below it |
-| `WJS_COVERAGE_OUTPUT_DIR` | `<build>/coverage` | Where the reports and profile data are written |
-| `WJS_REQUIRE_REVIEWED_PHONICS` | `ON` for Release, RelWithDebInfo and MinSizeRel builds and multi-config generators, else `OFF` | The review gate: the build runs `tools/data/check_phonics_review.cmake` (a CMake script; no PowerShell) and stops while a file in `data/phonics` has no reviewed-by and reviewed-on header. The repository has no phonics data yet. The release presets set it. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
-| `WJS_PACKAGE_PRERELEASE` | empty | A SemVer prerelease identifier appended to the package version (`rc.1` gives `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1`, an rpm release `0.rc.1`). `release.yml` passes it from the tag |
-| `WJS_IOS_SIGNING_TEAM`, `WJS_IOS_SIGNING_PROFILE` | empty | The Apple team ID and the provisioning profile's name that sign the iOS application target. See [iOS](#ios) |
-| `WJS_ENABLE_TRACY` | `ON` for Debug build types, else `OFF` | The Tracy profiler: makes the calls in `wjs/profiling.hpp` real, and installs the client and its tools through the vcpkg `profiling` feature. A Debug build is instrumented by default, so a regular development build can be connected to by the profiler; a Release build can be instrumented by hand, for data from a real session; nothing that ships may have it on ([Profiling](profiling.md)) |
+| `SNS_BUILD_CLI` | `ON` | Build `sns-cli` |
+| `SNS_BUILD_APP` | `AUTO` | Build the Qt Quick window. `AUTO` builds it when Qt 6.12 is found and leaves it out otherwise; `ON` requires Qt and fails the configure without it; `OFF` never looks. The board scene is 2D, so the binary is GPL-3.0-or-later like the sources |
+| `SNS_BUILD_TESTS` | `ON` | Build the test suites, and register the platform tests. Turning it off also stops vcpkg building Catch2 |
+| `SNS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
+| `SNS_ENABLE_HARDENING` | `ON` | The shared hardening flags on the libraries, the command line and the application: stack protector, `_FORTIFY_SOURCE=3` outside Debug, relro and immediate binding, PIE and control-flow protection on GCC and Clang; `/GS /guard:cf /sdl` on MSVC. Only the `linux-fuzz` preset turns it off (a fortified libc call bypasses AddressSanitizer); the switch is also for finding a toolchain problem. See [Security](security.md#hardening) |
+| `SNS_ENABLE_FUZZING` | `OFF` | The libFuzzer harnesses of `libs/<lib>/fuzz`, with AddressSanitizer and UBSan. Clang only, and not with the other instrumentation switches, Tracy or the hardening flags; the `linux-fuzz` preset sets it on its own. See [Fuzzing](fuzzing.md) |
+| `SNS_SANITIZER_OPTIMIZE` | `ON` | Build first-party code with `/O1` instead of `/Od` in a Debug build that has MSVC's AddressSanitizer on. The sanitizer makes every unoptimised access and struct copy a call, and the tests ran about twice as fast with it. `OFF` to step through the code in a debugger. See [Sanitizers](#sanitizers-and-warnings) |
+| `SNS_ENABLE_MSVC_ANALYSIS` | `OFF` | MSVC's static analyzer during compilation (`/analyze`, with `/W4 /WX`), SARIF logs written beside the objects. Needs MSVC; the `windows-msvc-analysis` preset turns it on. See [Static analysis](#static-analysis) |
+| `SNS_ENABLE_COVERAGE` | `OFF` | Source coverage instrumentation, read back with gcovr (GCC/Clang) or llvm-cov (clang-cl). Only the `*-coverage` presets turn it on. See [Coverage](#coverage) |
+| `SNS_COVERAGE_MIN_LINE` | `90` | The unit tier's line floor, as a percentage. `coverage-unit` fails below it |
+| `SNS_COVERAGE_MIN_BRANCH` | `80` | The unit tier's branch floor, as a percentage. `coverage-unit` fails below it |
+| `SNS_COVERAGE_OUTPUT_DIR` | `<build>/coverage` | Where the reports and profile data are written |
+| `SNS_REQUIRE_REVIEWED_PHONICS` | `ON` for Release, RelWithDebInfo and MinSizeRel builds and multi-config generators, else `OFF` | The review gate: the build runs `tools/data/check_phonics_review.cmake` (a CMake script; no PowerShell) and stops while a file in `data/phonics` has no reviewed-by and reviewed-on header. The repository has no phonics data yet. The release presets set it. See [Testing](testing.md#phonics-data-the-checker-and-the-review-gate) |
+| `SNS_PACKAGE_PRERELEASE` | empty | A SemVer prerelease identifier appended to the package version (`rc.1` gives `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1`, an rpm release `0.rc.1`). `release.yml` passes it from the tag |
+| `SNS_IOS_SIGNING_TEAM`, `SNS_IOS_SIGNING_PROFILE` | empty | The Apple team ID and the provisioning profile's name that sign the iOS application target. See [iOS](#ios) |
+| `SNS_ENABLE_TRACY` | `ON` for Debug build types, else `OFF` | The Tracy profiler: makes the calls in `sns/profiling.hpp` real, and installs the client and its tools through the vcpkg `profiling` feature. A Debug build is instrumented by default, so a regular development build can be connected to by the profiler; a Release build can be instrumented by hand, for data from a real session; nothing that ships may have it on ([Profiling](profiling.md)) |
 
 C++23 is required, with compiler extensions off, for every target.
 
@@ -194,12 +194,12 @@ C++23 is required, with compiler extensions off, for every target.
 The window is the game of [Application design](design/application.md) in Qt Quick,
 over the library: Solo Play, the Family Assistant that reads a board with the camera,
 and the parent area (`apps/app/src`; [Architecture](architecture.md#the-qt-quick-window)). Its target is
-`WordJewelsSolver`, the program it makes (`WordJewelsSolver.exe` on Windows,
+`SnapAndSpell`, the program it makes (`SnapAndSpell.exe` on Windows,
 where it is a GUI-subsystem program with no console window; an application
-bundle on macOS). `WJS_BUILD_APP` is `AUTO`, so the window is built whenever a
-Qt 6.12 kit is found and the same preset still builds `wjs-cli` and the tests on
-a machine without one. Pass `-DWJS_BUILD_APP=OFF` to leave the window out
-deliberately, or `-DWJS_BUILD_APP=ON` to make a missing Qt a configure error
+bundle on macOS). `SNS_BUILD_APP` is `AUTO`, so the window is built whenever a
+Qt 6.12 kit is found and the same preset still builds `sns-cli` and the tests on
+a machine without one. Pass `-DSNS_BUILD_APP=OFF` to leave the window out
+deliberately, or `-DSNS_BUILD_APP=ON` to make a missing Qt a configure error
 (the Windows CI leg does the latter).
 
 It needs Qt 6.12 with the modules Core, Gui, Qml, Quick, Quick Controls 2, Quick
@@ -231,7 +231,7 @@ chosen for the missing modules. The Windows CI leg installs all three with
 PyPI aqtinstall, because Qt 6.11+ split the Windows repository per architecture
 ([CI](ci.md#toolchain-choices)).
 
-The three feedback backends are chosen the way `wjs/profiling.hpp` is
+The three feedback backends are chosen the way `sns/profiling.hpp` is
 (docs/profiling.md): one directory under `apps/app/src/variants/` goes on the include
 path, every variant has the same header and interface, and no source asks
 whether the module is there. The camera uses the same pattern: `apps/app/src/camera`
@@ -248,8 +248,8 @@ The sound assets are the project's own
 placeholders: `tools/sounds/make_sounds.ps1` writes `assets/sounds/*.wav`
 (16-bit PCM mono, deterministic; `-Check` proves the checked-in files), and the
 build embeds them as `:/sounds/<name>.wav`. The real phoneme clips and cheers
-replace them after the literacy review. `wjs_unit_tests "[feedback],[motion],[haptics]"`
-and `wjs_app_tests "[feedback],[motion]"` run the policy and the processing
+replace them after the literacy review. `sns_unit_tests "[feedback],[motion],[haptics]"`
+and `sns_app_tests "[feedback],[motion]"` run the policy and the processing
 without a speaker or a sensor; `ctest -L camera` runs the camera's cases and
 `camera.screens` draws the live view headless from a fake source.
 
@@ -266,15 +266,15 @@ With a kit in one of those places, the preset needs no flag at all:
 
 ```sh
 cmake --preset windows-msvc-debug
-cmake --build --preset windows-msvc-debug --target WordJewelsSolver
-build/windows-msvc-debug/bin/WordJewelsSolver.exe
+cmake --build --preset windows-msvc-debug --target SnapAndSpell
+build/windows-msvc-debug/bin/SnapAndSpell.exe
 ```
 
 A kit somewhere else is named on the command line. `ON` here also proves the
 configure fails if that kit cannot be found:
 
 ```sh
-cmake --preset windows-msvc-debug -DWJS_BUILD_APP=ON -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64
+cmake --preset windows-msvc-debug -DSNS_BUILD_APP=ON -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64
 ```
 
 On Windows the build runs `windeployqt` after linking, so Qt's DLLs and the QML
@@ -287,9 +287,9 @@ application bundle is given Qt's runtime at install time; no macOS desktop build
 the window has run yet (the release workflow's macOS leg will be its first), so that is
 configured but unverified.
 
-With the window enabled, `ctest` also runs `wjs_app_tests`, the Catch2 tests of
+With the window enabled, `ctest` also runs `sns_app_tests`, the Catch2 tests of
 the model the window talks to, and the Qt Quick Test suites that drive the screens
-(`ctest -R quick`, `wjs_quick_tests`). They need Qt's runtime beside them, which the
+(`ctest -R quick`, `sns_quick_tests`). They need Qt's runtime beside them, which the
 build arranges the same way, and run under the offscreen platform plugin.
 
 The window plays the real game from the start: the standard board, a roll of the
@@ -304,7 +304,7 @@ the program with the directory
 ([the options](architecture.md#the-qt-quick-window)):
 
 ```sh
-build/windows-msvc-release/bin/WordJewelsSolver.exe --phase-directory <dir> --store <file> --seed 7
+build/windows-msvc-release/bin/SnapAndSpell.exe --phase-directory <dir> --store <file> --seed 7
 ```
 
 Give `--store` a file of its own when the phase is test data, or what is found
@@ -317,18 +317,18 @@ The window is offered in English, French, Spanish, German, Yiddish, Hebrew,
 Chinese and Japanese, and Hebrew and Yiddish read right to left
 ([Application design](design/application.md#languages-right-to-left-and-fonts)).
 One Qt Linguist catalogue per language is checked in under `apps/app/translations/`
-(`wjs_en.ts` … `wjs_ja.ts`), and `apps/app/src/language_manager.*` loads the compiled
-one from the application's resources as `:/i18n/wjs_<code>.qm`.
+(`sns_en.ts` … `sns_ja.ts`), and `apps/app/src/language_manager.*` loads the compiled
+one from the application's resources as `:/i18n/sns_<code>.qm`.
 
 `lrelease` runs at build time, as part of building the window: each `.ts` is
-compiled into `build/<preset>/apps/app/i18n/` and embedded in the `wjs_i18n`
+compiled into `build/<preset>/apps/app/i18n/` and embedded in the `sns_i18n`
 library. Nothing has to be done by hand for a normal build.
 
 After adding, changing or moving a `qsTr()` string, regenerate the catalogues
 and translate anything new:
 
 ```sh
-cmake --build --preset windows-msvc-debug --target wjs_update_translations
+cmake --build --preset windows-msvc-debug --target sns_update_translations
 ```
 
 That target runs the kit's `lupdate` over the source list in
@@ -345,7 +345,7 @@ the literacy reviewer replaces them (docs/design/application.md, "Languages, rig
 
 ## Running the programs
 
-`WordJewelsSolver` takes these options; `wjs-cli`'s are in the
+`SnapAndSpell` takes these options; `sns-cli`'s are in the
 [home page](index.md#using-the-command-line-solver).
 
 | Option | Meaning |
@@ -355,21 +355,21 @@ the literacy reviewer replaces them (docs/design/application.md, "Languages, rig
 | `--dictionary <file>` | A word list instead of `dictionaries/en.txt` beside the executable |
 | `--seed <n>` | A fixed seed, so the boards repeat; a smoke run plays a fixed seed when none is given |
 | `--smoke [<frames>]` | Plays the shake cycle, measures that many frames (300 without a number), prints the frame report and leaves; see [Profiling](profiling.md#the-smoke-mode) |
-| `--wait-for-profiler`, or `WJS_WAIT_FOR_PROFILER=1` | In a Tracy build, waits up to 5 seconds for a profiler to attach before the start-up it is meant to see; a smoke run always does |
+| `--wait-for-profiler`, or `SNS_WAIT_FOR_PROFILER=1` | In a Tracy build, waits up to 5 seconds for a profiler to attach before the start-up it is meant to see; a smoke run always does |
 
-Exit codes. `WordJewelsSolver`: **0** ran to the end; **2** the game could not be set
+Exit codes. `SnapAndSpell`: **0** ran to the end; **2** the game could not be set
 up (the word list, the dice or the phase directory is missing or unreadable); **3** a
 smoke run presented no frame (a machine with no display may present none); **4**
-the window failed to load. 1 is left to the toolkit and to a crash. `wjs-cli`:
+the window failed to load. 1 is left to the toolkit and to a crash. `sns-cli`:
 **0** solved, **1** usage, **2** the word list, **3** the board, and **4** an
 exception the program did not foresee and **5** the result could not be written to
 standard output (the codes 0 to 3 are in the [home
-page](index.md#exit-codes)). When `WordJewelsSolver` cannot start it says why in a
+page](index.md#exit-codes)). When `SnapAndSpell` cannot start it says why in a
 dialog on Windows, where it has no console, and on standard error everywhere; set
-`WJS_NO_DIALOGS=1` (or run with `QT_QPA_PLATFORM` set to `offscreen` or `minimal`) to
+`SNS_NO_DIALOGS=1` (or run with `QT_QPA_PLATFORM` set to `offscreen` or `minimal`) to
 suppress the dialog in a script or a test.
 
-`WordJewelsSolver.exe` is a GUI-subsystem program: its standard output (the smoke
+`SnapAndSpell.exe` is a GUI-subsystem program: its standard output (the smoke
 report) reaches a redirect, but Qt's log lines (`qWarning` and the like) do not
 unless `QT_ASSUME_STDERR_HAS_CONSOLE=1` is set.
 
@@ -396,11 +396,11 @@ export VCPKG_ROOT=...            # as for any preset
 
 cmake --preset ios-release       # an Xcode project in build/ios-release/
 cmake --build --preset ios-release   # unsigned: compiles for a device
-libs/platforms/ios/packaging/verify_ipa.sh "$(find build/ios-release -name WordJewelsSolver.app -type d | head -n 1)"
+libs/platforms/ios/packaging/verify_ipa.sh "$(find build/ios-release -name SnapAndSpell.app -type d | head -n 1)"
 ```
 
 (`aqt` is the pinned one: `.github/toolchain-versions.json`, `qt.aqtsource`.) The
-preset turns the tests and `wjs-cli` off, Tracy and the sanitizers off, builds for
+preset turns the tests and `sns-cli` off, Tracy and the sanitizers off, builds for
 `arm64` with an iOS 18.0 deployment target, and signs nothing. The vcpkg toolchain is
 still the CMake toolchain file, chaining to Qt's; the manifest has no dependency
 without the tests or Tracy, so vcpkg installs nothing.
@@ -410,10 +410,10 @@ A signed build gives the application target a team and a provisioning profile na
 keychain and the profile in `~/Library/MobileDevice/Provisioning Profiles`:
 
 ```sh
-cmake --preset ios-release -DWJS_IOS_SIGNING_TEAM=<team id> "-DWJS_IOS_SIGNING_PROFILE=<profile name>"
-xcodebuild archive -project build/ios-release/WordJewelsSolver.xcodeproj -scheme WordJewelsSolver \
-    -configuration Release -destination "generic/platform=iOS" -archivePath build/ios-release/WordJewelsSolver.xcarchive
-xcodebuild -exportArchive -archivePath build/ios-release/WordJewelsSolver.xcarchive \
+cmake --preset ios-release -DSNS_IOS_SIGNING_TEAM=<team id> "-DSNS_IOS_SIGNING_PROFILE=<profile name>"
+xcodebuild archive -project build/ios-release/SnapAndSpell.xcodeproj -scheme SnapAndSpell \
+    -configuration Release -destination "generic/platform=iOS" -archivePath build/ios-release/SnapAndSpell.xcarchive
+xcodebuild -exportArchive -archivePath build/ios-release/SnapAndSpell.xcarchive \
     -exportPath build/ios-release/export -exportOptionsPlist ExportOptions.plist
 ```
 
@@ -471,7 +471,7 @@ under the target's directory, `build/<preset>/apps/app/android-build/build/outpu
 `android-arm64-release` is the same with Release and an unsigned APK
 (`.../apk/release/android-build-release-unsigned.apk`, which no device installs); `--target
 aab` makes the bundle (`.../bundle/release/android-build-release.aab`). The presets turn the
-tests and `wjs-cli` off, and Tracy and the sanitizers off: Tracy's client listens on the
+tests and `sns-cli` off, and Tracy and the sanitizers off: Tracy's client listens on the
 network, which the application has no permission for. For that reason the debuggable preset
 is not named `*-debug` ([CI](ci.md#android)). The vcpkg toolchain is still the CMake
 toolchain file, chaining to Qt's; the manifest has no dependency without the tests or Tracy, so
@@ -540,7 +540,7 @@ Things that differ from the other builds:
   Qt Multimedia and four more Qt Quick Controls styles: 10 MB of the program (43 MB before, 32 after). The fragment turns the scan off
   and names the modules itself (`libs/platforms/web/qml_plugins_web.cpp`, `platform.cmake`);
   `platform.web` fails when an application's QML imports a module not named there.
-- **No hardening flags** (`WJS_ENABLE_HARDENING=OFF` in the preset). The shared hardening set links
+- **No hardening flags** (`SNS_ENABLE_HARDENING=OFF` in the preset). The shared hardening set links
   with `-z relro -z now`, which `wasm-ld` does not know (it warns "unknown -z value" at every link),
   and the set is `icl-common-infra`'s, copied in as `cmake/icl/`. The compile-time half (the stack
   protector, `_FORTIFY_SOURCE`) does work with Emscripten and has not been weighed for the web; turning
@@ -552,7 +552,7 @@ Things that differ from the other builds:
   32-bit `size_t` is why the found-words hash (`libs/core/src/game_rules.cpp`) is 64 bits wide whatever
   `size_t` is (the value is unchanged where it already was).
 
-The tests (`WJS_BUILD_TESTS`) are off: nothing here runs in a browser's test harness, and the library's tests
+The tests (`SNS_BUILD_TESTS`) are off: nothing here runs in a browser's test harness, and the library's tests
 run on the host builds.
 
 ## Packaging
@@ -600,24 +600,24 @@ What lands in `build/<preset>/packages/`:
 
 | Generator | Produces | Run when |
 | --- | --- | --- |
-| ZIP | `WordJewelsSolver-<version>-<system>.zip` | always |
-| NSIS | `WordJewelsSolver-<version>-win64.exe` | Windows, when `makensis` is found |
-| DragNDrop | `WordJewelsSolver-<version>-Darwin.dmg` | macOS |
-| TGZ | `WordJewelsSolver-<version>-Linux.tar.gz` | Linux |
-| DEB | `wordjewelssolver_<version>_<arch>.deb` | Linux, when `dpkg-deb` and `dpkg-shlibdeps` are found and the application is not built |
-| RPM | `wordjewelssolver-<version>-<release>.<arch>.rpm` | Linux, when `rpmbuild` is found and the application is not built |
-| *(AppImage)* | `WordJewelsSolver-<version>-x86_64.AppImage` | Linux, with the application: `build_appimage.sh`, not CPack |
+| ZIP | `SnapAndSpell-<version>-<system>.zip` | always |
+| NSIS | `SnapAndSpell-<version>-win64.exe` | Windows, when `makensis` is found |
+| DragNDrop | `SnapAndSpell-<version>-Darwin.dmg` | macOS |
+| TGZ | `SnapAndSpell-<version>-Linux.tar.gz` | Linux |
+| DEB | `snapandspell_<version>_<arch>.deb` | Linux, when `dpkg-deb` and `dpkg-shlibdeps` are found and the application is not built |
+| RPM | `snapandspell-<version>-<release>.<arch>.rpm` | Linux, when `rpmbuild` is found and the application is not built |
+| *(AppImage)* | `SnapAndSpell-<version>-x86_64.AppImage` | Linux, with the application: `build_appimage.sh`, not CPack |
 
 The deb and rpm are for the command-line solver: the application needs a Qt 6.12
 that no distribution packages, so a package of it could only declare
 dependencies nobody can satisfy. On Linux the application is the AppImage, which
 carries its Qt. A prerelease is packaged under its own version:
-`-DWJS_PACKAGE_PRERELEASE=rc.1` gives `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1` and
+`-DSNS_PACKAGE_PRERELEASE=rc.1` gives `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1` and
 an rpm release `0.rc.1`.
 
 CPack **refuses to package a build that has Tracy in it** (the Debug and profiling
 presets): `cmake/PackagePreflight.cmake` stops it and says why, and a development
-package has to be asked for by name with `cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON`.
+package has to be asked for by name with `cpack -D CPACK_SNS_ALLOW_DEV_PACKAGE=ON`.
 The Release presets turn the application on (a missing Qt is an error), Tracy off
 and the sanitizers off.
 
@@ -625,10 +625,10 @@ The ZIP's contents are under one directory named after the package (CPack's
 default for the archive generators):
 
 ```text
-WordJewelsSolver-0.1.0-win64/
+SnapAndSpell-0.1.0-win64/
   bin/
-    WordJewelsSolver.exe
-    wjs-cli.exe
+    SnapAndSpell.exe
+    sns-cli.exe
     Qt6*.dll, qt.conf
     dictionaries/en.txt
     dice/3x3.txt … 6x6.txt
@@ -677,8 +677,8 @@ Two checks cover packaging:
   `-Archive`), checks its required files (and, when the window links Qt
   Multimedia, that `plugins/multimedia` and `qml/QtMultimedia` are in it),
   writes `SHA256SUMS` beside it, unpacks
-  it, solves a board with the packaged `wjs-cli` and its own dictionary, and
-  runs the packaged `WordJewelsSolver --smoke 10` with the offscreen platform
+  it, solves a board with the packaged `sns-cli` and its own dictionary, and
+  runs the packaged `SnapAndSpell --smoke 10` with the offscreen platform
   plugin:
 
 ```powershell
@@ -701,7 +701,7 @@ ones to run by hand to see what a release will contain:
 ```powershell
 # Windows, from a Developer PowerShell (the application needs Qt 6.12.0:
 # QT_ROOT_DIR or CMAKE_PREFIX_PATH)
-cmake --preset windows-msvc-release -DWJS_BUILD_APP=ON
+cmake --preset windows-msvc-release -DSNS_BUILD_APP=ON
 cmake --build --preset windows-msvc-release
 ctest --preset windows-msvc-release
 ./tools/package/check_package.ps1 -Build build/windows-msvc-release
@@ -710,7 +710,7 @@ ctest --preset windows-msvc-release
 
 ```sh
 # Linux, the command-line solver (no Qt needed)
-cmake --preset linux-gcc-release -DWJS_BUILD_APP=OFF
+cmake --preset linux-gcc-release -DSNS_BUILD_APP=OFF
 cmake --build --preset linux-gcc-release
 ctest --preset linux-gcc-release
 cpack --preset package-linux-gcc-release                  # every generator the configure chose
@@ -729,7 +729,7 @@ libs/platforms/macos/packaging/verify_bundle.sh build/macos-clang-release/packag
 ```
 
 The Release presets turn the application on, Tracy and the sanitizers off, and
-require reviewed phonics data (`WJS_REQUIRE_REVIEWED_PHONICS`; it needs `pwsh`).
+require reviewed phonics data (`SNS_REQUIRE_REVIEWED_PHONICS`; it needs `pwsh`).
 `check_release_build.ps1` fails if the profiler or the sanitizers are on in the
 cache or a package holds either, and `smoke_package.sh`
 opens each format a user would (ZIP, tar.gz, deb, rpm, a mounted disk image)
@@ -740,14 +740,14 @@ install NSIS before configuring (`makensis` is found at configure time), then
 The SBOM of a release directory:
 
 ```sh
-pwsh tools/release/generate_sbom.ps1 -Tag v0.1.0 -PackagesDir dist -Output dist/WordJewelsSolver-0.1.0.cdx.json
+pwsh tools/release/generate_sbom.ps1 -Tag v0.1.0 -PackagesDir dist -Output dist/SnapAndSpell-0.1.0.cdx.json
 ```
 
 The checksums and signatures are made by the release workflow with the organisation's key; the
 author's set-up is in [Releasing](releasing.md#what-the-author-sets-up-once), and users check a download as
 in [Releasing](releasing.md#checking-a-download). Packages are
 named after the project version (`0.1.0`), and a prerelease's files carry its
-identifier (`-DWJS_PACKAGE_PRERELEASE=rc.1`, which `release.yml` passes from a
+identifier (`-DSNS_PACKAGE_PRERELEASE=rc.1`, which `release.yml` passes from a
 `v0.1.0-rc.1` tag: `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1`, an rpm release `0.rc.1`),
 so a final release's files are never named like a rehearsal's.
 
@@ -774,13 +774,13 @@ dependencies, and two optional features:
 
 | Feature | Packages | When |
 | --- | --- | --- |
-| `tests` | `catch2` (BSL-1.0) | Whenever `WJS_BUILD_TESTS` is `ON`; CMake selects it before `project()` |
-| `profiling` | `tracy` (the client, with `on-demand`) and, for the host, `tracy`'s command-line tools (`tracy-capture`, `tracy-csvexport`) | Whenever `WJS_ENABLE_TRACY` is `ON`: the Debug presets (the coverage and analysis ones turn it off) and the profiling presets. `tracy` is overridden to one version and built from the repository's overlay port, without ISA extensions ([Profiling](profiling.md)) |
+| `tests` | `catch2` (BSL-1.0) | Whenever `SNS_BUILD_TESTS` is `ON`; CMake selects it before `project()` |
+| `profiling` | `tracy` (the client, with `on-demand`) and, for the host, `tracy`'s command-line tools (`tracy-capture`, `tracy-csvexport`) | Whenever `SNS_ENABLE_TRACY` is `ON`: the Debug presets (the coverage and analysis ones turn it off) and the profiling presets. `tracy` is overridden to one version and built from the repository's overlay port, without ISA extensions ([Profiling](profiling.md)) |
 
 On Linux the Tracy tools are built from `dbus` upward, which needs `autoconf`,
 `autoconf-archive`, `automake`, `libtool`, `libltdl-dev` and `python3-venv` installed
 first (CI's `linux-tracy-tools` action does it); without them pass
-`-DWJS_ENABLE_TRACY=OFF`.
+`-DSNS_ENABLE_TRACY=OFF`.
 
 Licences of everything involved are in [Licensing](licensing.md).
 
@@ -801,15 +801,15 @@ Debug builds also turn on sanitizers (`cmake/Sanitizers.cmake`):
   are turned off because they cannot be used with it. The ASan runtime DLL
   (`clang_rt.asan_dynamic-*.dll`) is copied beside each executable at build
   time, so the programs start outside a Developer prompt too.
-  The code is also built with `/O1` (no `/Od`, no `/Ob0`): see `WJS_SANITIZER_OPTIMIZE`.
+  The code is also built with `/O1` (no `/Od`, no `/Ob0`): see `SNS_SANITIZER_OPTIMIZE`.
 - clang-cl: disabled.
 
-Release builds are not instrumented. `-DWJS_ENABLE_SANITIZERS=OFF` turns it all
+Release builds are not instrumented. `-DSNS_ENABLE_SANITIZERS=OFF` turns it all
 off for a Debug build. `linux-clang-debug` is the same flags with `clang++`, and
 is what the nightly Clang sanitizer leg builds ([CI](ci.md#nightly-analysis)).
 
 ThreadSanitizer is a separate runtime and cannot be combined with those, so it has
-its own preset, `linux-clang-tsan` (`WJS_ENABLE_TSAN`, built at `-O1` with frame
+its own preset, `linux-clang-tsan` (`SNS_ENABLE_TSAN`, built at `-O1` with frame
 pointers, Tracy off). It builds the solver, the scanner and the command line and
 runs their unit, integration and system tests, with `halt_on_error` and the
 suppressions in `tools/sanitizers/tsan.supp` (a reason and an issue for each
@@ -876,7 +876,7 @@ is off in every other preset, so a normal build is unchanged.
 
 ## Coverage
 
-`linux-gcc-coverage` is Debug with `WJS_ENABLE_COVERAGE=ON` and the sanitizers
+`linux-gcc-coverage` is Debug with `SNS_ENABLE_COVERAGE=ON` and the sanitizers
 off: it compiles the library, the platform layer and the tests with
 `--coverage -fprofile-update=atomic -fno-inline`, so running the tests writes
 gcov data (`.gcda` files beside the objects). `windows-clang-coverage` is the
@@ -929,7 +929,7 @@ build from a normal shell, or re-run the command after each such build. The
 application's own behaviour is unchanged either way: a camera it cannot see is
 said so on the scan screen, and the typed board remains the way on.
 
-**Linux.** `wjs-cli` finds its default word list through `/proc/self/exe`, so it
+**Linux.** `sns-cli` finds its default word list through `/proc/self/exe`, so it
 needs `/proc` mounted, as on any normal system.
 
 **macOS.** The executable's own path comes from `_NSGetExecutablePath`, with
@@ -970,17 +970,17 @@ the build placed beside them.
   ships with Visual Studio on `PATH` for the configure — for example
   `C:\Program Files\Microsoft Visual Studio\2026\Community\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd`
   (the path of your own install).
-- **`wjs-cli: ...dictionaries/en.txt: the dictionary file could not be opened`**:
+- **`sns-cli: ...dictionaries/en.txt: the dictionary file could not be opened`**:
   there is no `dictionaries/en.txt` beside the executable. A build copies it
   there from `data/dictionaries/en.txt`; if you moved the executable, move the
   `dictionaries` folder with it, or pass a word list with `-d <file>`.
-- **The window is missing from the build**: `WJS_BUILD_APP=AUTO` found no Qt
+- **The window is missing from the build**: `SNS_BUILD_APP=AUTO` found no Qt
   6.12 and built the command-line program and tests alone; the configure says so.
   Pass `-DCMAKE_PREFIX_PATH=<kit directory>` (the directory that holds
   `lib/cmake/Qt6`) or set `QT_ROOT_DIR`, then reconfigure. On Windows the labs'
   shared tree at `C:\Repos\common\qt\6.12.0\msvc2022_64` is searched
   automatically; `C:\Repos\common\env.ps1` also sets `QT_ROOT_DIR`. Pass
-  `-DWJS_BUILD_APP=ON` to turn a missing kit into an error instead.
+  `-DSNS_BUILD_APP=ON` to turn a missing kit into an error instead.
 - **`ninja: ... not mentioned in its dyndep file`**, or a `ctest` that runs a stale
   binary: two builds of the same preset ran at once (two scripts, or an IDE and a
   terminal). Build one preset in one process at a time; separate presets are separate
@@ -995,9 +995,9 @@ the build placed beside them.
   lookup.
 - **vcpkg fails building Tracy's tools on Linux** (`dbus`, `libxcrypt`, `libsystemd`,
   missing `autoreconf`): the autotools are not installed, see
-  [Dependencies](#dependencies); or turn Tracy off with `-DWJS_ENABLE_TRACY=OFF`.
+  [Dependencies](#dependencies); or turn Tracy off with `-DSNS_ENABLE_TRACY=OFF`.
 - **"libs/core/bench is missing, as it is in a source archive"**: a `git archive` leaves the
-  test tree out; configure with `-DWJS_BUILD_TESTS=OFF`.
+  test tree out; configure with `-DSNS_BUILD_TESTS=OFF`.
 - **A test fails to compile with an ambiguous symbol under MSVC**: a constant named
   like a `<cmath>` function (`tan`, `sin`, `log`) in test code. Rename it.
 - **`cpack` fails with "Refusing to package this build"**: the tree has Tracy in it

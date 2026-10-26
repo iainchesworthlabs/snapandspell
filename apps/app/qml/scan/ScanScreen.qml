@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // Mode A, the Family Companion's first screen (docs/design/game.md, "The MVP:
 // one capture"): `scan.ready`, `scan.reading` and `scan.check` are one screen,

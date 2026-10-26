@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The face of a die, Toybox: a cream tile with a 3 px ink outline, a hard 4 px shadow and an Andika
 // letter in ink (DESIGN.md, section 7, "Tile states"). The states are shapes as well as colours:

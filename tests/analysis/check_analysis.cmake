@@ -26,10 +26,10 @@ file(READ "${_presets_file}" _presets)
 
 foreach(_needle IN ITEMS
         "\"name\": \"windows-msvc-analysis\""
-        "\"WJS_ENABLE_MSVC_ANALYSIS\": \"ON\""
-        "\"WJS_BUILD_APP\": \"OFF\""
-        "\"WJS_BUILD_TESTS\": \"OFF\""
-        "\"WJS_ENABLE_SANITIZERS\": \"OFF\""
+        "\"SNS_ENABLE_MSVC_ANALYSIS\": \"ON\""
+        "\"SNS_BUILD_APP\": \"OFF\""
+        "\"SNS_BUILD_TESTS\": \"OFF\""
+        "\"SNS_ENABLE_SANITIZERS\": \"OFF\""
         "\"CMAKE_CXX_COMPILER\": \"clang++\"")
     string(FIND "${_presets}" "${_needle}" _at)
     if(_at EQUAL -1)

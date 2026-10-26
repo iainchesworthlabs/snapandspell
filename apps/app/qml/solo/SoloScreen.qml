@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // Solo Play, Mode B. The closed jewel box and the flat board are 2D; the 3D
 // scene is used only for the shake and the drop. A persistent app bar holds the

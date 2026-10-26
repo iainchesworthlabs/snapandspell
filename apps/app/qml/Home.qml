@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // home: the primary way in is one large Play placard. A second, quieter card
 // opens the grown-up area; every adult workflow — the real board, settings and
@@ -180,7 +180,7 @@ FocusScope {
                 spacing: Theme.space4
 
                 Eyebrow {
-                    text: qsTr("Word Jewels Solver")
+                    text: qsTr("Snap and Spell")
                     elide: Text.ElideRight
                     Layout.maximumWidth: content.width * 0.42
                 }
