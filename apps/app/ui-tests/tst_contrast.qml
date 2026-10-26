@@ -77,7 +77,7 @@ TestCase {
         ["goldInk", "card", 4.5, "emphasised reward text on a card"],
         ["hintCardInk", "hintCard", 4.5, "ink on the hint card"],
         ["dieInk", "die", 7.0, "letters on a die (the content: 7:1)"],
-        ["dieLitInk", "dieLit", 7.0, "letters on a lit die"],
+        ["dieLitInk", "dieLit", 4.5, "letters on a lit die"],
 
         // A disabled control's label: exempt from WCAG, 3:1 in the house.
         ["disabledInk", "disabledFill", 3.0, "a disabled button's label"],

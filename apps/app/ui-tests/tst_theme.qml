@@ -181,7 +181,8 @@ TestCase {
         compare(Theme.trayOutset(100), Math.max(Theme.trayInsetMin, 100 * Theme.trayInsetShare))
         compare(Theme.trayOutset(300), 24)
         compare(Theme.trayOutset(300, 12), 12 - Theme.trayRim)
-        compare(Theme.trayOutset(60, 12), Theme.trayInsetMin)
+        // The 6 px outline leaves 6 of the inset, less than the least outset: the inset wins.
+        compare(Theme.trayOutset(60, 12), 12 - Theme.trayRim)
         compare(Theme.trayOutset(400, 24), 24 - Theme.trayRim)
     }
 

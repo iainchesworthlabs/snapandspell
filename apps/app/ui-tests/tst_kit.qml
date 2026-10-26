@@ -224,20 +224,22 @@ TestCase {
         verify(letter !== undefined)
         compare(face.shown, "A")
         compare(face.scale, 1)
-        compare(faceRect.border.width, Theme.rule)
+        compare(faceRect.border.width, Theme.outlineControl)
+        compare(faceRect.y, 0)
         compare(faceRect.color.toString(), Theme.die.toString())
         compare(letter.text, "A")
         compare(letter.color.toString(), Theme.dieInk.toString())
 
         face.lit = true
 
-        // Lit is a shape as well as a colour: the edge turns gold and thickens.
+        // Lit is a shape as well as a colour: the face turns coral and sinks 3 px onto its shadow.
         // The tile keeps its size so the letter over the path cannot drift with
         // the face's scale; the face and its letter stay readable.
         compare(face.scale, 1)
-        compare(faceRect.border.width, Theme.litEdge)
-        compare(faceRect.border.color.toString(), Theme.gold.toString())
-        compare(faceRect.color.toString(), Theme.die.toString())
+        compare(faceRect.border.width, Theme.outlineControl)
+        compare(faceRect.y, Theme.shadowSmall)
+        compare(faceRect.color.toString(), Theme.dieLit.toString())
+        verify(Theme.dieLit.toString() !== Theme.die.toString())
         compare(letter.color.toString(), Theme.dieInk.toString())
     }
 

@@ -1,0 +1,1 @@
+**The dice, the tray and the path look like the new design.** A die is cream with an outline and a hard shadow, and turns coral and sinks when it is on the path; the tray has a thick outline and a hard drop; and the path is a dotted trail of ink squares with a cream centre that leaves the letters readable.

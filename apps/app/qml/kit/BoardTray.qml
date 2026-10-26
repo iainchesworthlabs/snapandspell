@@ -2,8 +2,8 @@
 import QtQuick
 import WordJewelsSolver
 
-// The tray the board stands in: the deep tray colour, a gold rim and, when
-// asked for, the darker well inside it. FlatBoard, the jewel box, the scan
+// The tray the board stands in, Toybox: the deep tray colour, a 6 px outline, a hard 12 px drop shadow
+// and, when asked for, the darker well inside it. FlatBoard, the jewel box, the scan
 // viewfinder and Mode A's assist board all draw this one object, so the board
 // is the same toy wherever it appears.
 //
@@ -28,6 +28,16 @@ Rectangle {
     radius: Theme.radiusLarge
     color: Theme.tray
     border.width: root.rim
+
+    // The drop, in the shadow colour, behind the tray.
+    Rectangle {
+        z: -1
+        y: Theme.shadowFrame
+        width: parent.width
+        height: parent.height
+        radius: root.radius
+        color: Theme.shadow
+    }
     border.color: Theme.trayEdge
 
     Rectangle {
