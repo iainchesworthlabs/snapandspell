@@ -61,7 +61,7 @@ done
 
 url="http://127.0.0.1:$port/index.html"
 flags=(--no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader
-       --ignore-gpu-blocklist --window-size=1100,700 --virtual-time-budget=60000
+       --ignore-gpu-blocklist "--window-size=1100,700" --virtual-time-budget=60000
        --user-data-dir="$work/profile")
 
 echo "smoke: $chrome loads $url"
