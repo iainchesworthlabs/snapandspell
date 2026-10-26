@@ -30,7 +30,17 @@ set(_members
     "overdraw, read-only|readonly[ \t]+property[ \t]+real[ \t]+overdraw"
     "play(board, seed)|function[ \t]+play[ \t]*\\([ \t]*board[ \t]*,[ \t]*seed[ \t]*\\)"
     "show(board)|function[ \t]+show[ \t]*\\([ \t]*board[ \t]*\\)"
-    "prepare(board)|function[ \t]+prepare[ \t]*\\([ \t]*board[ \t]*\\)")
+    "prepare(board)|function[ \t]+prepare[ \t]*\\([ \t]*board[ \t]*\\)"
+    # What the screen hands the scene so that it and the flat board are one colour
+    # (apps/app/qml/solo/SoloScreen.qml): a scene that lacks one fails to load the screen.
+    "trayColor, in|property[ \t]+color[ \t]+trayColor"
+    "rimColor, in|property[ \t]+color[ \t]+rimColor"
+    "dieColor, in|property[ \t]+color[ \t]+dieColor"
+    "dieEdgeColor, in|property[ \t]+color[ \t]+dieEdgeColor"
+    "dieInkColor, in|property[ \t]+color[ \t]+dieInkColor"
+    "jewelColor, in|property[ \t]+color[ \t]+jewelColor"
+    "lidColor, in|property[ \t]+color[ \t]+lidColor"
+    "trayInset, in|property[ \t]+real[ \t]+trayInset")
 
 set(_failed FALSE)
 set(_checked 0)

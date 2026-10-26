@@ -139,6 +139,7 @@ required.
 | `ios-release` | macOS | `arm64-ios` | An Xcode project for an iPhone or iPad: Release, no tests, no `wjs-cli`, unsigned unless given a team and a profile. Needs Qt's iOS kit; see [iOS](#ios) |
 | `android-arm64-release` | any | `arm64-android` | An APK and an AAB for an arm64 tablet or phone: Release, no tests, no `wjs-cli`, unsigned unless asked. Needs Qt's Android kit, the SDK, the NDK and a JDK; see [Android](#android) |
 | `android-arm64-debuggable` | any | `arm64-android` | As above, a debuggable APK signed with Android's debug key. Tracy is off, so it is not named `*-debug` |
+| `web-release` | any | `wasm32-emscripten` | A directory of static files for a browser (WebAssembly, one thread): Release, no tests, no `wjs-cli`, no hardening flags. Needs Qt's WebAssembly kit and Emscripten; see [Web](#web) |
 | `windows-msvc-profiling` | Windows | `x64-windows` | RelWithDebInfo with Tracy, sanitizers off. A development build, never shipped: see [Profiling](profiling.md) |
 | `linux-gcc-profiling` | Linux | `x64-linux` | As above, with `g++` |
 | `macos-clang-profiling` | macOS | `arm64-osx` | As above |
@@ -496,6 +497,68 @@ Speech are optional, and a kit without them (the shared one) builds the silent v
 package from it has no live camera view, no shake and no speech. The CI kit has them.
 No Android build runs the tests: the library's, the scanner's and the screens' tests run on the
 host builds (a device or an emulator would be needed for these ones, and none is wired).
+
+## Web
+
+A web build makes a directory of static files, `build/web-release/web-bundle/`, that a browser plays:
+the page, a boot script, Qt's loader and the program as WebAssembly. What it is, what it lacks and how a
+child's progress is kept is on [Playing in a browser](web.md); [CI](ci.md#web) is how it is built and
+looked at on every change. It cross-builds from Linux, macOS or Windows with three things, all of one
+version:
+
+| What | Which |
+| --- | --- |
+| Qt for WebAssembly | 6.12.0, `wasm_singlethread` (`QT_WEB_DIR`) |
+| A desktop Qt | 6.12.0, for the host tools: moc, rcc, qmlcachegen, lrelease (`QT_HOST_PATH`) |
+| Emscripten | **5.0.5**, the one the kit asks for (`EMSDK`); the kit refuses another |
+
+With aqtinstall and emsdk (no module is needed: the web build has no Qt Quick 3D, Multimedia, Sensors or
+Speech):
+
+```sh
+aqt install-qt all_os wasm 6.12.0 wasm_singlethread --autodesktop --outputdir ~/Qt
+git clone https://github.com/emscripten-core/emsdk.git && cd emsdk
+./emsdk install 5.0.5 && ./emsdk activate 5.0.5 && source ./emsdk_env.sh
+export QT_WEB_DIR=~/Qt/6.12.0/wasm_singlethread
+export QT_HOST_PATH=~/Qt/6.12.0/gcc_64          # msvc2022_64 on Windows, macos on a Mac
+export VCPKG_ROOT=...                           # as for any preset
+```
+
+(`aqt` is the pinned one: `.github/toolchain-versions.json`, `qt.aqtsource`; the Emscripten version
+and the emsdk commit are `emscripten.*` in the same file. Write paths with forward slashes on Windows.)
+
+```sh
+cmake --preset web-release
+cmake --build --preset web-release                # the bundle is build/web-release/web-bundle
+libs/platforms/web/packaging/verify_web.sh build/web-release/web-bundle --version 0.1.0
+libs/platforms/web/packaging/smoke_web.sh build/web-release/web-bundle     # needs Chrome
+python3 -m http.server --directory build/web-release/web-bundle            # then open localhost:8000
+```
+
+Things that differ from the other builds:
+
+- **The 2D board scene.** The platform fragment says `WJS_PLATFORM_SCENE 2d`: the board scene is the drawn
+  one (`apps/app/qml/scene/fallback`), and Qt Quick 3D is not looked for, linked or needed. The application
+  is not GPL-3.0 only on Quick 3D's account there.
+- **No import scan.** Qt's own finalisation scans every `.qml` file under `apps/app` and links what they
+  import, which for a static build would pull in Quick 3D (the 3D scene's files), Qt Test (the UI suites'),
+  Qt Multimedia and four more Qt Quick Controls styles: 10 MB of the program (43 MB before, 32 after). The fragment turns the scan off
+  and names the modules itself (`libs/platforms/web/qml_plugins_web.cpp`, `platform.cmake`);
+  `platform.web` fails when an application's QML imports a module not named there.
+- **No hardening flags** (`WJS_ENABLE_HARDENING=OFF` in the preset). The shared hardening set links
+  with `-z relro -z now`, which `wasm-ld` does not know (it warns "unknown -z value" at every link),
+  and the set is `icl-common-infra`'s, copied in as `cmake/icl/`. The compile-time half (the stack
+  protector, `_FORTIFY_SOURCE`) does work with Emscripten and has not been weighed for the web; turning
+  it on is a change to the shared module (skip the linker options for a WebAssembly target), not to
+  this repository.
+- **The data is in the program.** The English word list and the dice are compiled into the program's
+  resources and laid down in the browser's in-memory file system at start, as on Android.
+- **Warnings are errors** here too: `EM_ASM`'s `$0` is silenced for the two files that use it, and a
+  32-bit `size_t` is why the found-words hash (`libs/core/src/game_rules.cpp`) is 64 bits wide whatever
+  `size_t` is (the value is unchanged where it already was).
+
+The tests (`WJS_BUILD_TESTS`) are off: nothing here runs in a browser's test harness, and the library's tests
+run on the host builds.
 
 ## Packaging
 

@@ -30,7 +30,8 @@ target_link_libraries(wjs_i18n
 wjs_add_translations(wjs_i18n)
 
 # The board scene: one QML module (`WordJewelsSolver.Scene`) with the 3D scene,
-# the dice and the script, built in scene/. The application and the prototype
+# the dice and the script, built in scene/ (or, where the platform says
+# WJS_PLATFORM_SCENE 2d, the drawn 2D scene). The application and the prototype
 # harness both link it, so both show the same scene.
 add_subdirectory(src/scene)
 set(WJS_SCENE_IMPORT_DIR "${CMAKE_CURRENT_BINARY_DIR}/src/scene")
@@ -308,11 +309,13 @@ target_link_libraries(WordJewelsSolver
         Qt6::QuickControls2
         Qt6::QuickLayouts
         Qt6::QuickShapes
-        Qt6::Quick3D
         wjs::warnings
         wjs::hardening
         wjs::sanitizers
         wjs::coverage)
+if(WJS_PLATFORM_SCENE STREQUAL "3d")
+    target_link_libraries(WordJewelsSolver PRIVATE Qt6::Quick3D)
+endif()
 
 # What makes it a program of the platform's desktop, and its Qt runtime beside
 # it: both are the selected platform's to say (libs/platforms/<name>/).

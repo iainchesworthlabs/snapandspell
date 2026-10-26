@@ -42,6 +42,22 @@ Item {
 
     // --- the seam ------------------------------------------------------------
     property bool reducedMotion: false
+
+    // The colours and the tray's reach the screen hands the scene, so that the scene and the flat
+    // board it cross-fades with are one colour (the 3D scene takes them as its materials). The
+    // 2D dice are the kit's TileFace and the jewels the kit's, which draw from the same tokens,
+    // so the die and jewel colours are accepted for the interface and not needed here; the tray,
+    // its rim and the lid are drawn with theirs. Defaults are the tokens.
+    property color trayColor: Theme.tray
+    property color rimColor: Theme.trayEdge
+    property color dieColor: Theme.die
+    property color dieEdgeColor: Theme.dieEdge
+    property color dieInkColor: Theme.dieInk
+    property color jewelColor: Theme.jewelDead
+    property color lidColor: Theme.lid
+    // How far the tray stands off the tiles, 0 for the scene's own (a share of the inset).
+    property real trayInset: 0
+
     property real agitation: 0
     property vector2d tilt: Qt.vector2d(0, 0)
 
@@ -218,14 +234,14 @@ Item {
         transformOrigin: Item.Center
 
         Rectangle {
-            readonly property real rim: root.inset * 0.6
+            readonly property real rim: root.trayInset > 0 ? root.trayInset : root.inset * 0.6
             x: -rim
             y: -rim
             width: parent.width + 2 * rim
             height: parent.height + 2 * rim
-            color: Theme.tray
+            color: root.trayColor
             border.width: Theme.rule
-            border.color: Theme.trayEdge
+            border.color: root.rimColor
         }
 
         // The empty wells of the box with its lid on: a picture of the size chosen.
@@ -266,17 +282,17 @@ Item {
 
         // The lid: a translucent pane over the box that lifts and tilts away.
         Rectangle {
-            readonly property real rim: root.inset * 0.6
+            readonly property real rim: root.trayInset > 0 ? root.trayInset : root.inset * 0.6
             x: -rim
             y: -rim - root.lidOpen * root.tile * 0.4
             width: parent.width + 2 * rim
             height: parent.height + 2 * rim
             visible: root.lidOpen < 1
-            color: Theme.lid
+            color: root.lidColor
             opacity: 0.55 * (1 - root.lidOpen)
             rotation: -6 * root.lidOpen
             border.width: Theme.rule
-            border.color: Theme.trayEdge
+            border.color: root.rimColor
         }
     }
 }

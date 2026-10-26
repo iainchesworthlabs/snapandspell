@@ -16,6 +16,7 @@ set(WJS_PLATFORM_DISPLAY_NAME "iOS")
 # from `xcodebuild archive` and `-exportArchive` (release.yml).
 set(WJS_PLATFORM_DESKTOP OFF)
 set(WJS_PLATFORM_EXECUTABLE_FORMAT "mach-o")
+set(WJS_PLATFORM_SCENE "3d")
 
 # An iOS bundle is flat: the executable, Info.plist and the data are side by
 # side in WordJewelsSolver.app, and the application looks for its dictionary and

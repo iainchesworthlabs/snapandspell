@@ -387,6 +387,35 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "QT_ANDROID_DEPLOYMENT_TYPE": "Debug"
       }
+    },
+    {
+      "name": "web-base",
+      "hidden": true,
+      "description": "A browser (WebAssembly, one thread), built from any host with Qt's WebAssembly kit (QT_WEB_DIR, the wasm_singlethread one), a desktop Qt of the same version for the host tools (QT_HOST_PATH) and the Emscripten SDK the kit was built with (EMSDK; Qt 6.12 wants 5.0.5). vcpkg's toolchain is the CMAKE_TOOLCHAIN_FILE like everywhere else and chains to Qt's, which chains to Emscripten's; the manifest has no dependency without the tests or Tracy, so vcpkg installs nothing. Tracy is off, as on every tablet: its client listens on the network. The hardening flags are off: the shared set links with -z relro -z now, which wasm-ld does not know (docs/building.md, Web). The C++ module dependency scan is off: nothing here uses modules. The bundle is <build>/web-bundle.",
+      "inherits": [
+        "base"
+      ],
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "wasm32-emscripten",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{QT_WEB_DIR}/lib/cmake/Qt6/qt.toolchain.cmake",
+        "QT_HOST_PATH": "$env{QT_HOST_PATH}",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
+        "WJS_BUILD_APP": "ON",
+        "WJS_BUILD_CLI": "OFF",
+        "WJS_BUILD_TESTS": "OFF",
+        "WJS_ENABLE_TRACY": "OFF",
+        "WJS_ENABLE_SANITIZERS": "OFF",
+        "WJS_ENABLE_HARDENING": "OFF"
+      }
+    },
+    {
+      "name": "web-release",
+      "displayName": "Web (WebAssembly, Release)",
+      "description": "What the web bundle is made from: Release, the Qt Quick application, the 2D board scene.",
+      "inherits": [
+        "web-base",
+        "release"
+      ]
     }
   ],
   "buildPresets": [
@@ -408,7 +437,14 @@
     { "name": "linux-fuzz", "configurePreset": "linux-fuzz" },
     { "name": "ios-release", "configurePreset": "ios-release", "configuration": "Release", "targets": ["WordJewelsSolver"] },
     { "name": "android-arm64-release", "configurePreset": "android-arm64-release", "targets": ["apk"] },
-    { "name": "android-arm64-debuggable", "configurePreset": "android-arm64-debuggable", "targets": ["apk"] }
+    { "name": "android-arm64-debuggable", "configurePreset": "android-arm64-debuggable", "targets": ["apk"] },
+    {
+      "name": "web-release",
+      "configurePreset": "web-release",
+      "targets": [
+        "WordJewelsSolver"
+      ]
+    }
   ],
   "testPresets": [
     {

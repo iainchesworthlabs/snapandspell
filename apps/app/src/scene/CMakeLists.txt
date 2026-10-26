@@ -13,55 +13,90 @@
 # It links Qt Quick 3D, which Qt offers under the GPL-3.0 only: every program
 # that links this module is GPL-3.0 only (docs/design/board.md, "Rendered 3D, or
 # drawn in 2D", and docs/design/shake-prototype.md).
+#
+# On a platform that says WJS_PLATFORM_SCENE 2d (the web) the same module is made
+# from the drawn scene instead (qml/scene/fallback): the same BoardScene with the
+# same members (check_scene_contract.cmake holds both to it), no dice simulation
+# and no Quick 3D, so a browser loads neither the 3D pipeline nor its shaders. The
+# 3D scene is a second implementation behind the one interface, not a fork of it.
 
 # The application's QML module sets these for its own target; a module compiled
 # in a directory of its own sets them again (as the parent area's does).
 set(CMAKE_AUTOMOC ON)
 qt_policy(SET QTP0001 NEW)
 
-# The dice's plain-C++ simulation (no Qt, no renderer), behind the QML object the
-# script drives.
-add_subdirectory(sim)
+if(WJS_PLATFORM_SCENE STREQUAL "3d")
+    # The dice's plain-C++ simulation (no Qt, no renderer), behind the QML object the
+    # script drives.
+    add_subdirectory(sim)
 
-# The QML is in apps/app/qml/scene, beside the application's other modules; each
-# file is given the name it has in this module.
-set(WJS_SCENE_QML_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../qml/scene")
-set(WJS_SCENE_QML_NAMES
-    BoardScene.qml
-    Die.qml
-    FaceAtlas.qml
-    ShakeScript.js)
-set(WJS_SCENE_QML_SOURCES "")
-foreach(_file IN LISTS WJS_SCENE_QML_NAMES)
-    set_source_files_properties("${WJS_SCENE_QML_DIR}/${_file}"
-        PROPERTIES QT_RESOURCE_ALIAS "${_file}")
-    list(APPEND WJS_SCENE_QML_SOURCES "${WJS_SCENE_QML_DIR}/${_file}")
-endforeach()
+    # The QML is in apps/app/qml/scene, beside the application's other modules; each
+    # file is given the name it has in this module.
+    set(WJS_SCENE_QML_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../qml/scene")
+    set(WJS_SCENE_QML_NAMES
+        BoardScene.qml
+        Die.qml
+        FaceAtlas.qml
+        ShakeScript.js)
+    set(WJS_SCENE_QML_SOURCES "")
+    foreach(_file IN LISTS WJS_SCENE_QML_NAMES)
+        set_source_files_properties("${WJS_SCENE_QML_DIR}/${_file}"
+            PROPERTIES QT_RESOURCE_ALIAS "${_file}")
+        list(APPEND WJS_SCENE_QML_SOURCES "${WJS_SCENE_QML_DIR}/${_file}")
+    endforeach()
 
-# The light probe is read by BoardScene.qml as "lightprobe/sky.ktx", relative to
-# the scene's own resource directory.
-set_source_files_properties("${WJS_SCENE_QML_DIR}/lightprobe/sky.ktx"
-    PROPERTIES QT_RESOURCE_ALIAS "lightprobe/sky.ktx")
+    # The light probe is read by BoardScene.qml as "lightprobe/sky.ktx", relative to
+    # the scene's own resource directory.
+    set_source_files_properties("${WJS_SCENE_QML_DIR}/lightprobe/sky.ktx"
+        PROPERTIES QT_RESOURCE_ALIAS "lightprobe/sky.ktx")
 
-qt_add_qml_module(wjs_scene
-    STATIC
-    URI WordJewelsSolver.Scene
-    VERSION 1.0
-    # No ENABLE_TYPE_COMPILER here: the dice build on QQuick3DGeometry, a C++
-    # base type qmltc cannot see in its bare mode. The scene's first cost is the
-    # shaders, which the persistent shader caches and the deferred loader in
-    # SoloScreen cover; its scripts are still bytecode-compiled by qmlcachegen.
-    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/WordJewelsSolver/Scene"
-    QML_FILES ${WJS_SCENE_QML_SOURCES}
-    RESOURCES
-        "${WJS_SCENE_QML_DIR}/lightprobe/sky.ktx"
-    SOURCES
-        dice_sim.cpp
-        dice_sim.hpp
-        die_geometry.cpp
-        die_geometry.hpp
-        profiler.cpp
-        profiler.hpp)
+    qt_add_qml_module(wjs_scene
+        STATIC
+        URI WordJewelsSolver.Scene
+        VERSION 1.0
+        # No ENABLE_TYPE_COMPILER here: the dice build on QQuick3DGeometry, a C++
+        # base type qmltc cannot see in its bare mode. The scene's first cost is the
+        # shaders, which the persistent shader caches and the deferred loader in
+        # SoloScreen cover; its scripts are still bytecode-compiled by qmlcachegen.
+        OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/WordJewelsSolver/Scene"
+        QML_FILES ${WJS_SCENE_QML_SOURCES}
+        RESOURCES
+            "${WJS_SCENE_QML_DIR}/lightprobe/sky.ktx"
+        SOURCES
+            dice_sim.cpp
+            dice_sim.hpp
+            die_geometry.cpp
+            die_geometry.hpp
+            profiler.cpp
+            profiler.hpp)
+
+else()
+    # The drawn scene: the 2D BoardScene, the die it draws and its script, under the
+    # names the 3D scene's files have in this module (BoardScene.qml, and the script
+    # the application never imports by name). Only the profiler's zones are C++: the
+    # scene's Profiler.begin/end (wjs/profiling.hpp).
+    set(WJS_SCENE_QML_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../qml/scene/fallback")
+    set(WJS_SCENE_QML_NAMES
+        BoardScene.qml
+        SceneDie.qml
+        SceneScript.js)
+    set(WJS_SCENE_QML_SOURCES "")
+    foreach(_file IN LISTS WJS_SCENE_QML_NAMES)
+        set_source_files_properties("${WJS_SCENE_QML_DIR}/${_file}"
+            PROPERTIES QT_RESOURCE_ALIAS "${_file}")
+        list(APPEND WJS_SCENE_QML_SOURCES "${WJS_SCENE_QML_DIR}/${_file}")
+    endforeach()
+
+    qt_add_qml_module(wjs_scene
+        STATIC
+        URI WordJewelsSolver.Scene
+        VERSION 1.0
+        OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/WordJewelsSolver/Scene"
+        QML_FILES ${WJS_SCENE_QML_SOURCES}
+        SOURCES
+            profiler.cpp
+            profiler.hpp)
+endif()
 
 # GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
 icl_relax_generated_warnings(wjs_scene)
@@ -87,8 +122,6 @@ target_link_libraries(wjs_scene
         Qt6::Gui
         Qt6::Qml
         Qt6::Quick
-        Qt6::Quick3D
-        wjs_dice_world
     PRIVATE
         # The wrapper (wjs/profiling.hpp) and, in a profiling build, Tracy: this
         # module does not link the library, so it carries the interface itself.
@@ -97,3 +130,8 @@ target_link_libraries(wjs_scene
         wjs::hardening
         wjs::sanitizers
         wjs::coverage)
+
+# The 3D scene's own: Quick 3D, and the dice's plain-C++ simulation behind it.
+if(WJS_PLATFORM_SCENE STREQUAL "3d")
+    target_link_libraries(wjs_scene PUBLIC Qt6::Quick3D wjs_dice_world)
+endif()
