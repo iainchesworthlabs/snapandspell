@@ -22,6 +22,8 @@ Item {
     property bool showWordmark: false
     property bool showParent: true
     property bool compact: false
+    // Home's bar sits on the page: no panel fill and no rule under it, and the wordmark has its coral shadow.
+    property bool transparent: false
     // The child's own collection: home only, so the words and stars are one
     // press from the first screen rather than hidden behind the play panel.
     property bool showJewels: false
@@ -62,9 +64,11 @@ Item {
 
     Rectangle {
         anchors.fill: parent
+        visible: !root.transparent
         color: Theme.surface
     }
     Rectangle {
+        visible: !root.transparent
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -96,6 +100,7 @@ Item {
             id: mark
             visible: root.showWordmark
             compact: root.compact
+            shadowed: root.transparent
             anchors.verticalCenter: parent.verticalCenter
         }
 

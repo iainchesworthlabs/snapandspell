@@ -11,6 +11,8 @@ Row {
     id: root
 
     property bool compact: false
+    // Home: the name has a hard coral shadow under it, as the title of a game.
+    property bool shadowed: false
     spacing: compact ? Theme.space2 : Theme.space3
 
     Accessible.role: Accessible.StaticText
@@ -21,19 +23,38 @@ Row {
         height: width
         anchors.verticalCenter: parent.verticalCenter
         tier: "power"
-        color: Theme.gold
+        color: root.shadowed ? Theme.coral : Theme.gold
     }
 
     Column {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 0
 
-        Label {
-            role: "display"
-            decorative: true
-            text: qsTr("Word Jewels")
-            size: root.compact ? Theme.headingSize : Theme.wordSize
-            lineRatio: Theme.lineHeading
+        Item {
+            implicitWidth: nameText.implicitWidth + Theme.shadowSmall
+            implicitHeight: nameText.implicitHeight + Theme.shadowSmall
+            width: implicitWidth
+            height: implicitHeight
+
+            Label {
+                visible: root.shadowed
+                x: Theme.shadowSmall
+                y: Theme.shadowSmall
+                role: "display"
+                decorative: true
+                text: nameText.text
+                size: nameText.size
+                lineRatio: nameText.lineRatio
+                color: Theme.coral
+            }
+            Label {
+                id: nameText
+                role: "display"
+                decorative: true
+                text: qsTr("Word Jewels")
+                size: root.compact ? Theme.headingSize : Theme.wordSize
+                lineRatio: Theme.lineHeading
+            }
         }
         Label {
             role: "eyebrow"

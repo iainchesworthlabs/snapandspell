@@ -1,0 +1,1 @@
+**Home looks like the new design.** The bar sits on the page with the name in pixels and a coral shadow, the second sentence under "Shake. Find. Collect." is gone, and each of the two cards ends in a full-width button: a tall Play for the child, a smaller Continue for the grown-up.
