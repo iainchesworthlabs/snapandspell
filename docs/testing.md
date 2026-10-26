@@ -554,6 +554,21 @@ Not tested anywhere, so that no row above is read as covering it:
   board, reduced motion at screen level, and a screen reader (only the kit's
   components are asserted to carry names and roles) have no QML test.
 
+### Screenshots
+
+`cmake --build --preset <preset> --target wjs_screenshots` takes a picture of every screen and dialog of
+the application from the offscreen platform and writes 25 PNG files into `<build>/screenshots` (or the
+directory named by `WJS_SHOTS_DIR`). `apps/app/ui-tests/capture_screens.qml` drives the same screens the
+suites test, through the same fixture, in this order: Home, Solo Play (the box, playing, a word in progress,
+the summary), My jewels, the parent gate and the four tabs, the real-board screens (no camera, a live camera,
+the check screen, the assistant), the kit gallery and a sheet, then Home in the dark scheme, at 150 % text
+and in Hebrew and Chinese. It is not a test (the file is not called `tst_*.qml`, so nothing registers it) and
+it is not part of `all`. It is how a change to the look is compared with the one before it, and the
+Toybox restyle ([design](design/toybox/DESIGN.md)) is checked against its mockups with it.
+
+The board scene is the harness's stub, which draws nothing: the dice of Solo Play are not in the pictures
+until the 2D scene replaces the 3D one, which does not render without a GPU.
+
 ### The house fonts in the QML tests
 
 The Quick Test harness and the two stub shells (`wjs_scan_preview`, `wjs_parent_preview`) register Archivo,
