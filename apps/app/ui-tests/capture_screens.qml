@@ -13,8 +13,8 @@ import WordJewelsSolver.Scan
 //
 //   cmake --build --preset <preset> --target wjs_screenshots
 //
-// Light, then dark, then a larger text size, then the right-to-left and Chinese Home, then four frames of the
-// board scene (the closed box, the shake, the lid lifting, the drop under way).
+// Light, then dark, then a larger text size, then the right-to-left, Chinese and Japanese Home, then five frames
+// of the board scene (the closed box, the shake, the lid lifting, the drop under way, the settled board).
 TestCase {
     id: testCase
     name: "Capture"
@@ -39,6 +39,7 @@ TestCase {
         fixture.reset()
         Navigation.home()
         Theme.rightToLeft = false
+        Theme.language = "en"
         Theme.reducedMotion = false
         Theme.textScale = 1.0
     }
@@ -180,11 +181,17 @@ TestCase {
     function test_12_hebrew() {
         fixture.useLanguage("he")
         Theme.rightToLeft = true
+        Theme.language = "he"
         shot(make(homeComponent), "20-home-hebrew-rtl")
-        fixture.useLanguage("zh")
+        fixture.useLanguage("zh_CN")
         Theme.rightToLeft = false
+        Theme.language = "zh_CN"
         shot(make(homeComponent), "21-home-chinese")
+        fixture.useLanguage("ja")
+        Theme.language = "ja"
+        shot(make(homeComponent), "26-home-japanese")
         fixture.useLanguage("en")
+        Theme.language = "en"
     }
     // A frame of the board scene at a moment of its play.
     function frame(scene, name) {
@@ -197,17 +204,17 @@ TestCase {
         const board = { rows: 4, columns: 4, faces: [], up: [],
                         tiles: ["S", "A", "T", "E", "P", "I", "N", "R", "O", "L", "D", "M", "U", "G", "H", "K"] }
         scene.show({ rows: 4, columns: 4, tiles: [], faces: [], up: [] })
-        frame(scene, "26-scene-closed-box")
+        frame(scene, "27-scene-closed-box")
         scene.play(board, 4242)
         wait(190)
-        frame(scene, "27-scene-shake")
+        frame(scene, "28-scene-shake")
         tryCompare(scene, "stage", "lid", 4000)
         wait(110)
-        frame(scene, "28-scene-lid")
+        frame(scene, "29-scene-lid")
         tryCompare(scene, "stage", "drop", 2000)
         wait(220)
-        frame(scene, "29-scene-drop")
+        frame(scene, "30-scene-drop")
         tryCompare(scene, "busy", false, 4000)
-        frame(scene, "30-scene-settled")
+        frame(scene, "31-scene-settled")
     }
 }

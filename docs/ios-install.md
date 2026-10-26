@@ -59,12 +59,12 @@ works once the workflow is on the default branch, `develop` ([Releasing](releasi
 gh workflow run release.yml --ref main -f signing=ephemeral -f ios=true
 ```
 
-Read the `Build the iOS ad-hoc IPA` job. It stops at the first step if one of the five
-secrets is missing and says which, and then checks the provisioning profile against
-the secrets before building (its name, its team, the App ID, that it lists devices,
-that it has not expired). The IPA of a rehearsal is in the `package-ios` artifact,
-but its install link would point at a release that does not exist, so a rehearsal
-proves the build and the signing, not the install. The install is proved by the first
+Read the `Build the iOS ad-hoc IPA` job. It stops at the first step if one of the three
+secrets is missing and says which, and then checks the provisioning profile before
+building (the App ID, that it lists devices, that it has not expired). The IPA of a
+rehearsal is in the `ios-adhoc` artifact (or `package-ios` when `IOS_IPA_ON_RELEASE` is
+`true`), and its install link would point at a release that does not exist, so a
+rehearsal proves the build and the signing, not the install. The install is proved by the first
 tag, a `-rc` one.
 
 ## Add a device
@@ -88,9 +88,8 @@ registered will never install on it.
 
    On Windows PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("WordJewelsSolver_AdHoc.mobileprovision")) | gh secret set IOS_PROVISIONING_PROFILE_BASE64 --repo iainchesworthlabs/wordjewelssolver`.
 
-   If you made a new profile instead of editing the old one and gave it another name,
-   set `APPLE_PROVISIONING_PROFILE_NAME` to match; the build refuses a profile whose
-   name differs from the secret and says so.
+   The profile's name and team are read out of the file, so a new profile under
+   another name needs nothing else set.
 4. Cut a release (a patch tag, [Releasing](releasing.md#cutting-a-release)) or rehearse as above to
    check the new profile. Install from the new release's page.
 
@@ -101,15 +100,14 @@ registered will never install on it.
   portal (editing it and saving it makes a fresh one), upload it as above and cut a
   release; then reinstall. The build's own check fails with the expiry date when the secret holds an
   expired profile.
-- **The distribution certificate has its own expiry** (the portal shows it). When it
-  is renewed, export the new
-  certificate with its private key as a `.p12`, and set `IOS_DIST_CERTIFICATE_BASE64` and
-  `IOS_DIST_CERTIFICATE_PASSWORD`. The profile must be regenerated against the new
-  certificate.
-- **The secrets** are `IOS_DIST_CERTIFICATE_BASE64`, `IOS_DIST_CERTIFICATE_PASSWORD`,
-  `IOS_PROVISIONING_PROFILE_BASE64`, `APPLE_TEAM_ID` and
-  `APPLE_PROVISIONING_PROFILE_NAME`. They are repository secrets, set with
-  `gh secret set`, which reads the value from standard input and prints none of it.
+- **The distribution certificate has its own expiry** (the portal shows it). It is the
+  organisation's, shared by every app of the team: renewing it is done once, in
+  `icl-common-infra` (`docs/ios-signing.md`), and every profile must then be regenerated
+  against the new certificate.
+- **The secrets** are `IOS_DIST_CERT_P12_BASE64` and `IOS_DIST_CERT_PASSWORD`, the
+  organisation's, and `IOS_PROVISIONING_PROFILE_BASE64`, this repository's. The team ID
+  and the profile name are no longer secrets. They are set with `gh secret set`, which
+  reads the value from standard input and prints none of it.
   The workflow never prints them either; keep the `.p12`, its password and the
   profile somewhere safe, outside the repository.
 
