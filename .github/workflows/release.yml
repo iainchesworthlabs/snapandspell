@@ -623,7 +623,7 @@ jobs:
       # Before a Qt download of several gigabytes: the secrets, by name. The
       # certificate, its password and the App Store Connect key are the organisation's,
       # the profile is this repository's; the values are never printed.
-      - name: Require the Apple secrets
+      - name: Require the Apple signing secrets
         env:
           IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
           IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
