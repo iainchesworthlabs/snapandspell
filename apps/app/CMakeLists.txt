@@ -218,7 +218,9 @@ qt_add_resources(WordJewelsSolver wjs_sounds
 
 # The fonts the screens use: the Toybox faces (Pixelify Sans for the chrome, Silkscreen
 # for the upper-case labels) and Andika for the learning text, the dice and every
-# numeral (docs/design/toybox/DESIGN.md, section 4). They
+# numeral (docs/design/toybox/DESIGN.md, section 4), and Noto Sans SC, JP and Hebrew,
+# subset to the catalogues' characters (tools/design/make_noto_subsets.py), for the
+# languages the first three lack (the web has no system fonts). They
 # are SIL Open Font Licence works; the notices carry the licence text. They are
 # compiled in rather than installed beside the program, so a package cannot be
 # missing one and QML's font lookup is the same on every target.
@@ -227,7 +229,13 @@ set(WJS_FONT_FILES
     "${PROJECT_SOURCE_DIR}/assets/fonts/PixelifySans-Bold.ttf"
     "${PROJECT_SOURCE_DIR}/assets/fonts/Silkscreen-Regular.ttf"
     "${PROJECT_SOURCE_DIR}/assets/fonts/Andika-Regular.ttf"
-    "${PROJECT_SOURCE_DIR}/assets/fonts/Andika-Bold.ttf")
+    "${PROJECT_SOURCE_DIR}/assets/fonts/Andika-Bold.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/NotoSansSC-Regular.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/NotoSansSC-Bold.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/NotoSansJP-Regular.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/NotoSansJP-Bold.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Regular.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/NotoSansHebrew-Bold.ttf")
 foreach(WJS_FONT_FILE IN LISTS WJS_FONT_FILES)
     if(NOT EXISTS "${WJS_FONT_FILE}")
         message(FATAL_ERROR "The application font ${WJS_FONT_FILE} is missing.")

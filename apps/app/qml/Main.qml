@@ -184,6 +184,12 @@ ApplicationWindow {
         property: "rightToLeft"
         value: window.languageManager.rightToLeft
     }
+    // The language, for which bundled face a glyph the house faces lack is drawn in.
+    Binding {
+        target: Theme
+        property: "language"
+        value: window.languageManager.code
+    }
 
     // A setting the parent changed, or a reset, is read by the next game.
     Connections {

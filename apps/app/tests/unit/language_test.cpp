@@ -10,6 +10,7 @@
 #include <QFont>
 #include <QFontDatabase>
 #include <QFontMetricsF>
+#include <QRawFont>
 #include <QGuiApplication>
 #include <QSet>
 #include <QString>
@@ -326,4 +327,108 @@ TEST_CASE("applying a language installs its catalogue, its direction and its tex
     // it is, it is one of the eight.
     CHECK(language.apply(QString()) == LanguageManager::system_language());
     CHECK(language.setting().isEmpty());
+}
+
+namespace {
+
+// Every character of every translation of a catalogue (the `<translation>` and `<numerusform>` text).
+[[nodiscard]] QSet<char32_t> catalogue_characters(const QString& code) {
+    QSet<char32_t> found;
+    QFile file(QDir(QStringLiteral(WJS_I18N_DIRECTORY)).filePath(QStringLiteral("wjs_%1.ts").arg(code)));
+    REQUIRE(file.open(QIODevice::ReadOnly | QIODevice::Text));
+    QXmlStreamReader reader(&file);
+    while (!reader.atEnd()) {
+        reader.readNext();
+        if (reader.isStartElement() && (reader.name() == QStringLiteral("translation") ||
+                                        reader.name() == QStringLiteral("numerusform"))) {
+            const QString text = reader.readElementText(QXmlStreamReader::IncludeChildElements);
+            for (const char32_t c : text.toUcs4()) {
+                found.insert(c);
+            }
+        }
+    }
+    REQUIRE_FALSE(reader.hasError());
+    return found;
+}
+
+[[nodiscard]] QRawFont bundled_face(const char* file) {
+    const QRawFont face(QDir(QStringLiteral(WJS_FONTS_DIRECTORY)).filePath(QString::fromLatin1(file)), 16);
+    REQUIRE(face.isValid());
+    return face;
+}
+
+}  // namespace
+
+// The bundled faces are subsets cut from the catalogues by tools/design/make_noto_subsets.py. A
+// translation that gains a character the subset lacks would draw in whatever the platform has, or, on
+// the web, in nothing: the test names the character and the command that remakes the files.
+TEST_CASE("the bundled faces carry every character of every catalogue", "[app][i18n][glyph]") {
+    TestApplication app;
+
+    // The house faces: whatever a language needs beyond them comes from its own Noto face.
+    const QList<QRawFont> house = {bundled_face("Andika-Regular.ttf"), bundled_face("PixelifySans-Medium.ttf"),
+                                   bundled_face("Silkscreen-Regular.ttf")};
+    const struct {
+        const char* code;
+        std::vector<const char*> noto;
+    } languages[] = {
+        {"en", {}},
+        {"fr", {}},
+        {"es", {}},
+        {"de", {}},
+        {"yi", {"NotoSansHebrew-Regular.ttf", "NotoSansHebrew-Bold.ttf"}},
+        {"he", {"NotoSansHebrew-Regular.ttf", "NotoSansHebrew-Bold.ttf"}},
+        {"zh_CN", {"NotoSansSC-Regular.ttf", "NotoSansSC-Bold.ttf"}},
+        {"ja", {"NotoSansJP-Regular.ttf", "NotoSansJP-Bold.ttf"}},
+    };
+    for (const auto& language : languages) {
+        INFO(language.code);
+        QList<QRawFont> faces = house;
+        QList<QRawFont> bold;
+        for (const char* file : language.noto) {
+            (QString::fromLatin1(file).contains(QStringLiteral("Bold")) ? bold : faces)
+                .append(bundled_face(file));
+        }
+        QStringList missing;
+        QStringList missing_bold;
+        for (const char32_t c : catalogue_characters(QString::fromLatin1(language.code))) {
+            if (c < 0x20 || c == 0x7F) {
+                continue;  // a control character in a translation is a line break, not a glyph
+            }
+            const auto carried = [&](const QList<QRawFont>& list) {
+                return std::any_of(list.begin(), list.end(),
+                                   [c](const QRawFont& face) { return face.supportsCharacter(c); });
+            };
+            if (!carried(faces)) {
+                missing.append(QStringLiteral("U+%1").arg(static_cast<uint>(c), 4, 16, QLatin1Char('0')).toUpper());
+            }
+            // The bold face must carry what the regular one does (a heading is Bold).
+            if (!bold.isEmpty() && carried(faces) && !carried(house) &&
+                !std::any_of(bold.begin(), bold.end(),
+                             [c](const QRawFont& face) { return face.supportsCharacter(c); })) {
+                missing_bold.append(QStringLiteral("U+%1").arg(static_cast<uint>(c), 4, 16, QLatin1Char('0')).toUpper());
+            }
+        }
+        INFO("missing from the bundled faces: " + missing.join(QStringLiteral(" ")).toStdString() +
+             " (run tools/design/make_noto_subsets.py, docs/i18n.md)");
+        CHECK(missing.isEmpty());
+        CHECK(missing_bold.isEmpty());
+    }
+
+    // The language picker names each language in its own script, in every interface language, so the
+    // three Noto faces together carry those names.
+    QList<QRawFont> noto;
+    for (const char* file : {"NotoSansHebrew-Regular.ttf", "NotoSansSC-Regular.ttf", "NotoSansJP-Regular.ttf"}) {
+        noto.append(bundled_face(file));
+    }
+    for (const QString& name : {QStringLiteral("\u05D9\u05D9\u05B4\u05D3\u05D9\u05E9"),
+                                QStringLiteral("\u05E2\u05D1\u05E8\u05D9\u05EA"),
+                                QStringLiteral("\u4E2D\u6587"),
+                                QStringLiteral("\u65E5\u672C\u8A9E")}) {
+        for (const char32_t c : name.toUcs4()) {
+            INFO(QStringLiteral("U+%1").arg(static_cast<uint>(c), 4, 16, QLatin1Char('0')).toStdString());
+            CHECK(std::any_of(noto.begin(), noto.end(),
+                              [c](const QRawFont& face) { return face.supportsCharacter(c); }));
+        }
+    }
 }

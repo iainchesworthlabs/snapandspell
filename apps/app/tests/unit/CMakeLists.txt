@@ -56,7 +56,8 @@ target_include_directories(wjs_app_tests PRIVATE
 # (language_test.cpp).
 target_compile_definitions(wjs_app_tests PRIVATE
     "WJS_DATA_DIRECTORY=\"${PROJECT_SOURCE_DIR}/data\""
-    "WJS_I18N_DIRECTORY=\"${PROJECT_SOURCE_DIR}/apps/app/translations\"")
+    "WJS_I18N_DIRECTORY=\"${PROJECT_SOURCE_DIR}/apps/app/translations\""
+    "WJS_FONTS_DIRECTORY=\"${PROJECT_SOURCE_DIR}/assets/fonts\"")
 target_link_libraries(wjs_app_tests
     PRIVATE
         wjs_feedback

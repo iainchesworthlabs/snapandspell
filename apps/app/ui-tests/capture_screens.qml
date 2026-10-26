@@ -13,7 +13,7 @@ import WordJewelsSolver.Scan
 //
 //   cmake --build --preset <preset> --target wjs_screenshots
 //
-// Light, then dark, then a larger text size, then the right-to-left and Chinese Home. The board scene is the
+// Light, then dark, then a larger text size, then the right-to-left, Chinese and Japanese Home. The board scene is the
 // harness's stub, which draws nothing, so the dice of Solo Play are not in the pictures until the 2D scene
 // replaces the 3D one.
 TestCase {
@@ -40,6 +40,7 @@ TestCase {
         fixture.reset()
         Navigation.home()
         Theme.rightToLeft = false
+        Theme.language = "en"
         Theme.reducedMotion = false
         Theme.textScale = 1.0
     }
@@ -181,10 +182,16 @@ TestCase {
     function test_12_hebrew() {
         fixture.useLanguage("he")
         Theme.rightToLeft = true
+        Theme.language = "he"
         shot(make(homeComponent), "20-home-hebrew-rtl")
-        fixture.useLanguage("zh")
+        fixture.useLanguage("zh_CN")
         Theme.rightToLeft = false
+        Theme.language = "zh_CN"
         shot(make(homeComponent), "21-home-chinese")
+        fixture.useLanguage("ja")
+        Theme.language = "ja"
+        shot(make(homeComponent), "26-home-japanese")
         fixture.useLanguage("en")
+        Theme.language = "en"
     }
 }

@@ -306,12 +306,15 @@ int main(int argc, char* argv[]) {
     // `font.family` resolves to the face the design names rather than a
     // platform fallback.
     {
-        // Five font files read and parsed before the first screen: a cost every
+        // Eleven font files read and parsed before the first screen: a cost every
         // launch pays, so it has a name in the profile.
         auto zone = wjs::profiling::zone<"app.fonts">();
         for (const char* font : {":/fonts/PixelifySans-Medium.ttf", ":/fonts/PixelifySans-Bold.ttf",
                                  ":/fonts/Silkscreen-Regular.ttf", ":/fonts/Andika-Regular.ttf",
-                                 ":/fonts/Andika-Bold.ttf"}) {
+                                 ":/fonts/Andika-Bold.ttf", ":/fonts/NotoSansSC-Regular.ttf",
+                                 ":/fonts/NotoSansSC-Bold.ttf", ":/fonts/NotoSansJP-Regular.ttf",
+                                 ":/fonts/NotoSansJP-Bold.ttf", ":/fonts/NotoSansHebrew-Regular.ttf",
+                                 ":/fonts/NotoSansHebrew-Bold.ttf"}) {
             const int id = QFontDatabase::addApplicationFont(QString::fromLatin1(font));
             if (id < 0) {
                 qWarning() << "The bundled font" << font << "could not be loaded.";

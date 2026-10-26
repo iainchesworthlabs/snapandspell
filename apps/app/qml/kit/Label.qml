@@ -57,7 +57,7 @@ Text {
             return {face: Theme.uiFont, size: Theme.headingSize, weight: Font.Bold, line: Theme.lineHeading,
                     tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
         case "label":
-            return {face: learning ? Theme.fontFamily : Theme.uiFont, size: Theme.labelSize,
+            return {face: learning ? Theme.textFont : Theme.uiFont, size: Theme.labelSize,
                     weight: learning ? Font.Bold : Font.Medium, line: Theme.lineHeading, tracking: Theme.trackNone,
                     caps: Font.MixedCase, color: Theme.ink};
         case "child":
@@ -73,15 +73,18 @@ Text {
             return {face: Theme.eyebrowFont, size: Theme.monoSize, weight: Font.Normal, line: Theme.lineMono,
                     tracking: Theme.trackMono, caps: Font.AllUppercase, color: Theme.inkSecondary};
         case "caption":
-            return {face: Theme.fontFamily, size: Theme.captionSize, weight: Font.Normal, line: Theme.lineCaption,
+            return {face: Theme.textFont, size: Theme.captionSize, weight: Font.Normal, line: Theme.lineCaption,
                     tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.inkSecondary};
         default:
-            return {face: Theme.fontFamily, size: Theme.bodySize, weight: Font.Normal, line: Theme.lineBody,
+            return {face: Theme.textFont, size: Theme.bodySize, weight: Font.Normal, line: Theme.lineBody,
                     tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
         }
     }
 
     color: spec.color
+    // The face the role asks for (the language's own Noto face in Chinese, Japanese, Hebrew and Yiddish,
+    // see Theme.nativeFont).
+    readonly property string face: spec.face
     font.family: spec.face
     font.pixelSize: root.size
     font.weight: spec.weight

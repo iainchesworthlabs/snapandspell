@@ -2,6 +2,8 @@
 import QtQuick
 import WordJewelsSolver
 
+// The name is a brand, in Latin in every language, so it keeps the house faces (Pixelify Sans, Silkscreen)
+// where the chrome around it is set in a language's own face.
 // The lockup: a faceted jewel and the name. Word Jewels is the child-facing
 // name; SOLVER is the product qualifier, in the house mono face. The same
 // lockup is used in the home bar, the parent area's bar and the About page.
@@ -41,6 +43,7 @@ Row {
                 x: Theme.shadowSmall
                 y: Theme.shadowSmall
                 role: "display"
+                font.family: "Pixelify Sans"
                 decorative: true
                 text: nameText.text
                 size: nameText.size
@@ -50,6 +53,7 @@ Row {
             Label {
                 id: nameText
                 role: "display"
+                font.family: "Pixelify Sans"
                 decorative: true
                 text: qsTr("Word Jewels")
                 size: root.compact ? Theme.headingSize : Theme.wordSize
@@ -58,6 +62,7 @@ Row {
         }
         Label {
             role: "eyebrow"
+            font.family: "Silkscreen"
             decorative: true
             text: qsTr("SOLVER")
         }
