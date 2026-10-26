@@ -35,6 +35,10 @@ QtObject {
     property real textScale: 1.0
     property string colourScheme: "system"
     property bool rightToLeft: false
+    // The interface's language code ("en", "fr", "es", "de", "yi", "he", "zh_CN", "ja"), set by the shell
+    // from the LanguageManager; it decides the face of the chrome and the sentences (a Han character is
+    // Chinese or Japanese by the language it is read in).
+    property string language: "en"
 
     readonly property bool dark: colourScheme === "dark"
                                  || (colourScheme !== "light" && SystemColourScheme.dark)
@@ -153,12 +157,23 @@ QtObject {
     // --- type --------------------------------------------------------------
     // Pixelify Sans: the chrome. Silkscreen: the upper-case eyebrow only. Andika: the face a child
     // reads - the dice, the words, the body and caption text and every numeral.
-    readonly property string uiFont: "Pixelify Sans"
+    readonly property string uiFont: nativeFont !== "" ? nativeFont : "Pixelify Sans"
     readonly property string fontFamily: "Andika"
-    readonly property string eyebrowFont: "Silkscreen"
+    readonly property string eyebrowFont: nativeFont !== "" ? nativeFont : "Silkscreen"
     // The one monospace: the About version block and the licence bodies. Courier New is on Windows and
     // macOS (so Qt has no missing family to warn about); elsewhere fontconfig substitutes its metric twin.
     readonly property string monoFont: "Courier New"
+    // Chinese, Japanese, Hebrew and Yiddish are set in a bundled Noto Sans face of their own (subsets,
+    // assets/fonts, tools/design/make_noto_subsets.py), for the chrome and for the sentences: Pixelify Sans,
+    // Silkscreen and Andika carry Latin only, and the web has no system fonts to fall back on. The board's
+    // dice, the English words and every numeral stay Andika (`fontFamily`). A glyph from another script in
+    // a Label (the language picker names each language in its own) is found by Qt among the registered
+    // fonts.
+    readonly property string nativeFont: language === "zh_CN" ? "Noto Sans SC"
+                                       : language === "ja" ? "Noto Sans JP"
+                                       : (language === "he" || language === "yi") ? "Noto Sans Hebrew" : ""
+    // The face of a sentence the interface says: Andika, or the language's own Noto face.
+    readonly property string textFont: nativeFont !== "" ? nativeFont : fontFamily
 
     // Nothing is set smaller than this, at any text scale (Toybox's caption).
     readonly property real minTextSize: 14
