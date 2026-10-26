@@ -6,7 +6,7 @@
 #   cmake -DREPO_ROOT=<repository root> -P tests/profiling/check_zone_names.cmake
 #
 # A zone's source location is a function-local static of zone<"name">() (see
-# libs/core/variants/profiling-enabled/wjs/profiling.hpp), so there is one per
+# libs/core/variants/profiling-enabled/sns/profiling.hpp), so there is one per
 # NAME: a name used at two places shows the first one's file and line, and the
 # second's call is indistinguishable from it in a trace. The names are also
 # what the CSV export and the profiler show and what any baseline reads, so
@@ -61,7 +61,7 @@ set(_layer_registry
     app        # start-up of the application: apps/app/src/main.cpp
     board      # making and restoring a board: roll, seed, verify, deal, parse
     camera     # converting a camera frame
-    cli        # wjs-cli
+    cli        # sns-cli
     data       # loading and saving: dictionary, dice, phases, catalogue, store, dashboard
     dice       # the dice sets
     feedback   # the cue plan for sound and haptics
@@ -136,7 +136,7 @@ endforeach()
 set(_sources ${_production})
 foreach(_source IN LISTS _sources)
     file(RELATIVE_PATH _relative "${REPO_ROOT}" "${_source}")
-    if(_relative MATCHES "^libs/core/variants/" OR _relative STREQUAL "libs/core/include/wjs/profiling_types.hpp")
+    if(_relative MATCHES "^libs/core/variants/" OR _relative STREQUAL "libs/core/include/sns/profiling_types.hpp")
         continue()
     endif()
 

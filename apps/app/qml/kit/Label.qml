@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The one text of the application. A screen says what a piece of text IS (its
 // `role`) and the kit decides how it looks: face, size, weight, line height,

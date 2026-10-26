@@ -4,7 +4,7 @@
 #
 # Platform-isolation guard (docs/platform-isolation.md).
 #
-# WordJewelsSolver branches on the operating system in CMake, never in source: each
+# SnapAndSpell branches on the operating system in CMake, never in source: each
 # platform's implementations live in libs/platforms/<name>/, and that
 # platform's platform.cmake (selected once, in cmake/Platform.cmake) says which
 # of them are compiled and what they link against. Adding a platform is a new

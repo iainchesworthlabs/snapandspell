@@ -10,12 +10,12 @@
 #include <utility>
 
 #include "qt_text.hpp"
-#include "wjs/platform/board_reader.hpp"
-#include "wjs/platform/camera.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/scan/reader.hpp"
+#include "sns/platform/board_reader.hpp"
+#include "sns/platform/camera.hpp"
+#include "sns/profiling.hpp"
+#include "sns/scan/reader.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 // How often a capture looks for a frame, and for how long: a camera that has
@@ -25,48 +25,48 @@ namespace {
 constexpr int kFramePollMs = 100;
 constexpr int kMaxFramePolls = 40;
 
-[[nodiscard]] CameraProblem camera_problem_of(wjs::platform::camera::CameraError error) {
+[[nodiscard]] CameraProblem camera_problem_of(sns::platform::camera::CameraError error) {
     switch (error) {
-        case wjs::platform::camera::CameraError::unavailable:
+        case sns::platform::camera::CameraError::unavailable:
             return CameraProblem::unavailable;
-        case wjs::platform::camera::CameraError::permission_denied:
+        case sns::platform::camera::CameraError::permission_denied:
             return CameraProblem::permission_denied;
-        case wjs::platform::camera::CameraError::no_such_device:
+        case sns::platform::camera::CameraError::no_such_device:
             return CameraProblem::no_such_device;
-        case wjs::platform::camera::CameraError::already_running:
+        case sns::platform::camera::CameraError::already_running:
             return CameraProblem::already_running;
-        case wjs::platform::camera::CameraError::failed:
+        case sns::platform::camera::CameraError::failed:
             return CameraProblem::failed;
     }
     return CameraProblem::failed;
 }
 
-[[nodiscard]] ReadProblem read_problem_of(wjs::scan::ReadError error) {
+[[nodiscard]] ReadProblem read_problem_of(sns::scan::ReadError error) {
     switch (error) {
-        case wjs::scan::ReadError::invalid_frame:
+        case sns::scan::ReadError::invalid_frame:
             return ReadProblem::invalid_frame;
-        case wjs::scan::ReadError::board_not_found:
+        case sns::scan::ReadError::board_not_found:
             return ReadProblem::board_not_found;
-        case wjs::scan::ReadError::size_not_found:
+        case sns::scan::ReadError::size_not_found:
             return ReadProblem::size_not_found;
-        case wjs::scan::ReadError::no_letters:
+        case sns::scan::ReadError::no_letters:
             return ReadProblem::no_letters;
-        case wjs::scan::ReadError::invalid_options:
+        case sns::scan::ReadError::invalid_options:
             // The caller's options, never the camera's: not a board this program can show.
             return ReadProblem::invalid_reading;
     }
     return ReadProblem::board_not_found;
 }
 
-[[nodiscard]] QString origin_name(wjs::scan::TileOrigin origin) {
+[[nodiscard]] QString origin_name(sns::scan::TileOrigin origin) {
     switch (origin) {
-        case wjs::scan::TileOrigin::read:
+        case sns::scan::TileOrigin::read:
             return QStringLiteral("read");
-        case wjs::scan::TileOrigin::corrected:
+        case sns::scan::TileOrigin::corrected:
             return QStringLiteral("corrected");
-        case wjs::scan::TileOrigin::typed:
+        case sns::scan::TileOrigin::typed:
             return QStringLiteral("typed");
-        case wjs::scan::TileOrigin::empty:
+        case sns::scan::TileOrigin::empty:
             return QStringLiteral("empty");
     }
     return QStringLiteral("empty");
@@ -170,13 +170,13 @@ QVariantList ScanModel::tiles() const {
     }
     for (std::size_t row = 0; row < draft_->rows(); ++row) {
         for (std::size_t column = 0; column < draft_->columns(); ++column) {
-            const wjs::scan::DraftTile& tile = draft_->tile({row, column});
+            const sns::scan::DraftTile& tile = draft_->tile({row, column});
             QVariantMap map;
             map.insert(QStringLiteral("letters"), to_qstring(tile.letters));
             map.insert(QStringLiteral("doubtful"), tile.doubtful);
             map.insert(QStringLiteral("origin"), origin_name(tile.origin));
             QStringList alternatives;
-            for (const wjs::scan::Alternative& alternative : tile.alternatives) {
+            for (const sns::scan::Alternative& alternative : tile.alternatives) {
                 if (!alternative.letters.empty()) {
                     alternatives.append(to_qstring(alternative.letters));
                 }
@@ -193,7 +193,7 @@ QVariantList ScanModel::doubtful() const {
     if (!draft_) {
         return list;
     }
-    for (const wjs::Position& position : draft_->doubtful()) {
+    for (const sns::Position& position : draft_->doubtful()) {
         list.append(static_cast<int>(position.row * draft_->columns() + position.column));
     }
     return list;
@@ -216,8 +216,8 @@ QStringList ScanModel::alternatives(int index) const {
         return list;
     }
     const auto i = static_cast<std::size_t>(index);
-    const wjs::scan::DraftTile& tile = draft_->tile({i / draft_->columns(), i % draft_->columns()});
-    for (const wjs::scan::Alternative& alternative : tile.alternatives) {
+    const sns::scan::DraftTile& tile = draft_->tile({i / draft_->columns(), i % draft_->columns()});
+    for (const sns::scan::Alternative& alternative : tile.alternatives) {
         if (!alternative.letters.empty()) {
             list.append(to_qstring(alternative.letters));
         }
@@ -325,7 +325,7 @@ void ScanModel::open() {
         emit cameraChanged();
         return;
     }
-    const auto devices = wjs::platform::camera::enumerate_devices();
+    const auto devices = sns::platform::camera::enumerate_devices();
     if (!devices) {
         camera_problem_ = camera_problem_of(devices.error());
         emit cameraChanged();
@@ -338,14 +338,14 @@ void ScanModel::open() {
         emit cameraChanged();
         return;
     }
-    const wjs::platform::camera::DeviceInfo* chosen = &devices->front();
-    for (const wjs::platform::camera::DeviceInfo& device : *devices) {
-        if (device.facing == wjs::platform::camera::Facing::rear) {
+    const sns::platform::camera::DeviceInfo* chosen = &devices->front();
+    for (const sns::platform::camera::DeviceInfo& device : *devices) {
+        if (device.facing == sns::platform::camera::Facing::rear) {
             chosen = &device;
             break;
         }
     }
-    const auto started = wjs::platform::camera::start(*chosen);
+    const auto started = sns::platform::camera::start(*chosen);
     if (!started) {
         camera_problem_ = camera_problem_of(started.error());
         emit cameraChanged();
@@ -361,7 +361,7 @@ void ScanModel::stopCamera() {
     if (camera_source_) {
         camera_source_->stop();
     } else {
-        wjs::platform::camera::stop();
+        sns::platform::camera::stop();
     }
     if (camera_capturing_) {
         camera_capturing_ = false;
@@ -405,7 +405,7 @@ void ScanModel::tryFrame() {
             }
             return;
         }
-        std::optional<wjs::scan::OwnedFrame> frame = camera_source_->takeFrame();
+        std::optional<sns::scan::OwnedFrame> frame = camera_source_->takeFrame();
         if (!frame) {
             // The source said it had one and did not: a camera that cannot hand
             // its frame over is a failed read, not a screen left in `reading`.
@@ -416,7 +416,7 @@ void ScanModel::tryFrame() {
         return;
     }
 
-    std::optional<wjs::scan::OwnedFrame> frame = wjs::platform::camera::try_pop_latest_frame();
+    std::optional<sns::scan::OwnedFrame> frame = sns::platform::camera::try_pop_latest_frame();
     if (!frame) {
         if (++frame_ticks_ > max_frame_polls_) {
             failed(ReadProblem::no_frame);
@@ -426,7 +426,7 @@ void ScanModel::tryFrame() {
     readFrame(std::move(*frame));
 }
 
-void ScanModel::readFrame(wjs::scan::OwnedFrame frame) {
+void ScanModel::readFrame(sns::scan::OwnedFrame frame) {
     frame_timer_.stop();
     // The camera stops as soon as a frame is in hand, before the read: the
     // picture of a room is in memory, and the next one is not needed.
@@ -441,14 +441,14 @@ void ScanModel::readFrame(wjs::scan::OwnedFrame frame) {
     reader_.setFuture(promise->future());
     reader_pool_.start([promise, frame = std::move(frame)]() mutable {
         static thread_local const bool named = [] {
-            wjs::profiling::thread_name("scan");
+            sns::profiling::thread_name("scan");
             return true;
         }();
         static_cast<void>(named);
         ReadResult result;
         {
-            auto zone = wjs::profiling::zone<"scan.process_frame">();
-            result.reading = wjs::platform::board_reader::read(frame.view());
+            auto zone = sns::profiling::zone<"scan.process_frame">();
+            result.reading = sns::platform::board_reader::read(frame.view());
         }
         // The frame is a picture of a room and a child may be in it. It is read
         // here and gone: only the reading's letters and doubts go on to the check
@@ -493,7 +493,7 @@ void ScanModel::failed(ReadProblem problem) {
 
 void ScanModel::typeBoard() {
     close();
-    const auto empty = wjs::scan::BoardDraft::empty(4, 4);
+    const auto empty = sns::scan::BoardDraft::empty(4, 4);
     if (!empty) {
         return;
     }
@@ -518,13 +518,13 @@ void ScanModel::readAgain() {
     open();
 }
 
-bool ScanModel::useReading(const wjs::scan::BoardReading& reading) {
-    if (reading.rows == 0 || reading.columns == 0 || reading.rows > wjs::Board::max_dimension ||
-        reading.columns > wjs::Board::max_dimension ||
+bool ScanModel::useReading(const sns::scan::BoardReading& reading) {
+    if (reading.rows == 0 || reading.columns == 0 || reading.rows > sns::Board::max_dimension ||
+        reading.columns > sns::Board::max_dimension ||
         reading.tiles.size() != reading.rows * reading.columns) {
         return false;
     }
-    draft_ = wjs::scan::BoardDraft::from_reading(reading);
+    draft_ = sns::scan::BoardDraft::from_reading(reading);
     draft_from_camera_ = true;
     confirmed_.reset();
     clearReadProblem();
@@ -586,7 +586,7 @@ void ScanModel::turn() {
     if (!draft_) {
         return;
     }
-    draft_->turn(wjs::scan::Turn::clockwise);
+    draft_->turn(sns::scan::Turn::clockwise);
     changedDraft();
 }
 
@@ -628,4 +628,4 @@ void ScanModel::retryCamera() {
     open();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

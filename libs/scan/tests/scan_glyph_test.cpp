@@ -11,12 +11,12 @@
 #include <numbers>
 #include <string>
 
-#include "wjs/scan/glyph_reader.hpp"
-#include "wjs/scan/stroke_font.hpp"
+#include "sns/scan/glyph_reader.hpp"
+#include "sns/scan/stroke_font.hpp"
 
 namespace {
 
-using namespace wjs::scan;
+using namespace sns::scan;
 
 // A cell of 100 x 100 pixels with a die in it (cream, 89 pixels a side) and the
 // glyph at `index` on it, drawn from the stroke font, `turn` degrees clockwise. The

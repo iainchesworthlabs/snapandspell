@@ -11,7 +11,7 @@
 namespace {
 
 using Catch::Approx;
-using wjs::app::solo_layout;
+using sns::app::solo_layout;
 
 // A window of docs/design/board.md's reference table and the tiles it lists for
 // 3x3, 4x4, 5x5 and 6x6 (the page rounds them to whole dp).
@@ -84,7 +84,7 @@ TEST_CASE("the split mirrors for a right-to-left language, the board does not",
     CHECK(solo_layout(800, 1280, 4, true).board_area == solo_layout(800, 1280, 4).board_area);
 
     // The object the screens bind to carries the flag and recomputes.
-    wjs::app::SoloLayout rule;
+    sns::app::SoloLayout rule;
     rule.setWidth(1280);
     rule.setHeight(800);
     rule.setRightToLeft(true);
@@ -114,8 +114,8 @@ TEST_CASE("a square window is wide, and the width decides ties", "[app][layout]"
 }
 
 TEST_CASE("the inset and the gap are small under 600 dp and roomy from it", "[app][layout]") {
-    const auto small = wjs::app::board_metrics(599, 900, 4);
-    const auto roomy = wjs::app::board_metrics(600, 900, 4);
+    const auto small = sns::app::board_metrics(599, 900, 4);
+    const auto roomy = sns::app::board_metrics(600, 900, 4);
 
     CHECK(small.inset == 12);
     CHECK(small.gap == 6);
@@ -138,10 +138,10 @@ TEST_CASE("the board is the largest square that fits its area, centred", "[app][
 TEST_CASE("a size is offered only if its tile is at least 48 dp", "[app][layout]") {
     // A 320 x 600 phone: the 6x6 tile is 44 dp and is not shown (not shown disabled).
     const auto phone = solo_layout(320, 600, 6);
-    CHECK(phone.metrics.tile < wjs::app::min_offered_tile);
-    CHECK(solo_layout(320, 600, 5).metrics.tile >= wjs::app::min_offered_tile);
+    CHECK(phone.metrics.tile < sns::app::min_offered_tile);
+    CHECK(solo_layout(320, 600, 5).metrics.tile >= sns::app::min_offered_tile);
 
-    wjs::app::SoloLayout rule;
+    sns::app::SoloLayout rule;
     rule.setWidth(320);
     rule.setHeight(600);
     CHECK(rule.offers(3));
@@ -160,17 +160,17 @@ TEST_CASE("the MVP's sizes are offered in every reference window", "[app][layout
 }
 
 TEST_CASE("an area too small for a tile has no tile and no board", "[app][layout]") {
-    const auto metrics = wjs::app::board_metrics(10, 10, 4);
+    const auto metrics = sns::app::board_metrics(10, 10, 4);
 
     CHECK(metrics.tile == 0);
     CHECK(metrics.side == 0);
-    CHECK(wjs::app::board_metrics(300, 300, 0).tile == 0);
+    CHECK(sns::app::board_metrics(300, 300, 0).tile == 0);
 }
 
 TEST_CASE("the layout object recomputes when the window or the size changes", "[app][layout]") {
-    wjs::app::SoloLayout rule;
+    sns::app::SoloLayout rule;
     int changes = 0;
-    QObject::connect(&rule, &wjs::app::SoloLayout::changed, [&] { ++changes; });
+    QObject::connect(&rule, &sns::app::SoloLayout::changed, [&] { ++changes; });
 
     rule.setWidth(1280);
     rule.setHeight(800);
@@ -192,7 +192,7 @@ TEST_CASE("the layout object recomputes when the window or the size changes", "[
 }
 
 TEST_CASE("the geometry the scene draws by is the same rule", "[app][layout]") {
-    wjs::app::BoardGeometry geometry;
+    sns::app::BoardGeometry geometry;
     const auto layout = solo_layout(1280, 800, 4);
 
     CHECK(geometry.inset(853, 800) == layout.metrics.inset);

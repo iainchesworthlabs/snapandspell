@@ -19,7 +19,7 @@
 
 namespace {
 
-using wjs::app::FrameProfiler;
+using sns::app::FrameProfiler;
 
 // The platform is read when the application is made, so it is chosen before it.
 struct OffscreenPlatform {
@@ -33,7 +33,7 @@ public:
 
 private:
     static inline int argc_ = 1;
-    static inline char name_[] = "wjs_frame_profiler_tests";
+    static inline char name_[] = "sns_frame_profiler_tests";
     static inline char* argv_[] = {name_, nullptr};
 
     QGuiApplication application_;

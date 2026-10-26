@@ -238,8 +238,8 @@ once without a restart.
 
 **The catalogues.** One Qt Linguist `.ts` file per language is in `apps/app/translations/`,
 generated from the QML sources with the kit's `lupdate`
-(`cmake --build <build> --target wjs_update_translations`), and `lrelease`
-compiles them at build time into `:/i18n/wjs_<code>.qm`, embedded in the
+(`cmake --build <build> --target sns_update_translations`), and `lrelease`
+compiles them at build time into `:/i18n/sns_<code>.qm`, embedded in the
 application (docs/building.md, "The interface's languages"). English is the
 source language and has a catalogue too, so the eight are checked alike. Every
 user-facing string is `qsTr()`; the sentences of an area live in that area's
@@ -420,7 +420,7 @@ decision, not a child's, and it is not behind the game.
 **Motion as input, as built.** `MotionSource` (`apps/app/src/feedback`, over Qt
 Sensors) reads the accelerometer and the gyroscope at the highest rate the
 platform lists, feeds the samples to the scene's `pushMotion(ax, ay, az, wx,
-wy, wz)` and to the pure `wjs::MotionProcessor`, and reports a real shake once
+wy, wz)` and to the pure `sns::MotionProcessor`, and reports a real shake once
 per shake; the box then rolls as the Shake button does. It runs only while Solo
 Play's box or the falling dice are on screen, only while Shake is on, and stops
 when the screen is left. On the three desktops there is no accelerometer: the
@@ -478,7 +478,7 @@ under 300 ms except the sequence and the rattle. No music.
 **As built.** The seam is still `Feedback.cue(kind, detail)` in the QML
 (`apps/app/qml/kit/Feedback.qml`); Main.qml installs one `FeedbackEngine` on it
 (`apps/app/src/feedback`), and the engine asks the pure policy
-`wjs::plan_cue` (`libs/core/include/wjs/feedback.hpp`) what the cue and the
+`sns::plan_cue` (`libs/core/include/sns/feedback.hpp`) what the cue and the
 parent's settings come to. The policy is tested without a speaker: a cue, a
 settings value and a detail in, and the asset, its volume, whether the word is
 spoken and which tap of the hand is asked for.
@@ -512,7 +512,7 @@ played for "not a word".
   sentences only. It is output only: there is no audio input in the engine or
   anywhere else in the application (section 12.2). **The sound-it-out sequence
   is built and has no sounds to play.** The library makes the steps for a word
-  of the phonics board (`wjs::sound_it_out_sequence`: a sound for each block, a
+  of the phonics board (`sns::sound_it_out_sequence`: a sound for each block, a
   blend, the word, a cheer; a tricky word is said whole), and the application's
   `SoundSequencePlayer` walks them through a `ClipPlayer`. No phoneme clip
   exists, so the application has the player that answers "no such clip" and the
@@ -524,7 +524,7 @@ played for "not a word".
   clips and recorded cheers replace them after the literacy review; the file
   names are the seam. The three Qt modules are optional at build time: their
   silent variants are chosen by CMake, so a kit without them still builds.
-- **Touch feedback.** `libs/platforms/interfaces/wjs/platform/haptics.hpp` is the
+- **Touch feedback.** `libs/platforms/interfaces/sns/platform/haptics.hpp` is the
   platform interface (`light`, `medium`, `double_tap`). All three desktops
   answer false through `detail/haptics_none.cpp`, and the game is unchanged:
   every haptic is paired with a sound and a picture. The Android

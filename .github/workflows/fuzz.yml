@@ -94,8 +94,8 @@ jobs:
           set -uo pipefail
           mkdir -p fuzz-work fuzz-crashes
           failed=0
-          for exe in build/linux-fuzz/bin/wjs_fuzz_*; do
-            target="${exe##*/wjs_fuzz_}"
+          for exe in build/linux-fuzz/bin/sns_fuzz_*; do
+            target="${exe##*/sns_fuzz_}"
             dirs=(libs/*/fuzz/corpus/"$target" libs/*/fuzz/regressions/"$target")
             mkdir -p "fuzz-work/$target"
             echo "::group::$target ($SECONDS_PER_TARGET s)"

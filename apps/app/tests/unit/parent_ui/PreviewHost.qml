@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Window
-import WordJewelsSolver
-import WordJewelsSolver.Parent
+import SnapAndSpell
+import SnapAndSpell.Parent
 
 // A stub for the application's screen shell, so that the parent area's screens
 // can be tried and checked before (and whatever) the shell is: a home with one

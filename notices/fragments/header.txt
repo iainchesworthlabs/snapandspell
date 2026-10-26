@@ -1,4 +1,4 @@
-Word Jewels Solver {{VERSION}} - notices for the {{PLATFORM}} build
+Snap and Spell {{VERSION}} - notices for the {{PLATFORM}} build
 =====================================================================
 
 This file is installed beside the programs as {{LOCATION}}. It is also embedded

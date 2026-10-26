@@ -61,9 +61,9 @@ fail() {
 if [ -n "$dry_run" ]; then
   [[ "$dry_run" =~ ^[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*$ ]] || fail "the dry-run label '$dry_run' is not a valid prerelease identifier."
   dry_version="$(tr -d '\r' < "$root/CMakeLists.txt" | awk '
-    /^project\(WordJewelsSolver/ { inproject = 1 }
+    /^project\(SnapAndSpell/ { inproject = 1 }
     inproject && $1 == "VERSION" { print $2; exit }')"
-  [ -n "$dry_version" ] || fail "no 'project(WordJewelsSolver ... VERSION x.y.z' found in $root/CMakeLists.txt."
+  [ -n "$dry_version" ] || fail "no 'project(SnapAndSpell ... VERSION x.y.z' found in $root/CMakeLists.txt."
   tag="v${dry_version}-${dry_run}"
 fi
 
@@ -83,9 +83,9 @@ suffix="${BASH_REMATCH[6]:-}"
 cmake_file="$root/CMakeLists.txt"
 [ -f "$cmake_file" ] || fail "$cmake_file does not exist; run from a checkout or pass --root."
 cmake_version="$(tr -d '\r' < "$cmake_file" | awk '
-  /^project\(WordJewelsSolver/ { inproject = 1 }
+  /^project\(SnapAndSpell/ { inproject = 1 }
   inproject && $1 == "VERSION" { print $2; exit }')"
-[ -n "$cmake_version" ] || fail "no 'project(WordJewelsSolver ... VERSION x.y.z' found in $cmake_file."
+[ -n "$cmake_version" ] || fail "no 'project(SnapAndSpell ... VERSION x.y.z' found in $cmake_file."
 if [ "$cmake_version" != "$version" ]; then
   fail "the tag $tag is version $version but CMakeLists.txt declares $cmake_version. Change project(VERSION) and vcpkg.json in a commit, merge it, and tag that commit."
 fi

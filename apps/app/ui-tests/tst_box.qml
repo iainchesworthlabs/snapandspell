@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 
 // solo.box (apps/app/qml/solo/SoloScreen.qml and SoloBox.qml): the board-size
 // choice, the Shake button and Space. The screen is the application's own; the

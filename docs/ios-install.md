@@ -1,6 +1,6 @@
 # Installing on an iPhone or iPad
 
-Word Jewels Solver is distributed to iPhones and iPads through **TestFlight**. The release workflow builds the app, signs it
+Snap and Spell is distributed to iPhones and iPads through **TestFlight**. The release workflow builds the app, signs it
 for the App Store, has Apple check it and uploads it to App Store Connect, and the people the owner has invited as testers
 install it from the TestFlight app. No device is registered with Apple and nothing in the build identifies a device, which is
 what a public repository needs: an ad-hoc IPA carries the identifiers of the devices it is for, and neither a release asset
@@ -59,7 +59,7 @@ A pushed `v*` tag uploads too. Read the job's log, not its green tick: the valid
 `VERIFY SUCCEEDED with no errors`, and the upload with `UPLOAD SUCCEEDED with no errors` and a Delivery UUID. The build
 appears in TestFlight a few minutes after the upload, once Apple has processed it.
 
-Each upload gets a **build number** that is the number of the workflow run (`WJS_IOS_BUILD_NUMBER`, written to
+Each upload gets a **build number** that is the number of the workflow run (`SNS_IOS_BUILD_NUMBER`, written to
 `CFBundleVersion`), which only grows, as App Store Connect requires; the version people see is the project's. A build cannot
 be taken back from App Store Connect once uploaded, so validate first.
 

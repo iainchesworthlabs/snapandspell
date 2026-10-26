@@ -10,15 +10,15 @@
 #include "camera_source.hpp"
 #include "fake_solo_game.hpp"
 #include "media_probe.hpp"
+#include "sns/scan/reading.hpp"
 #include "test_fonts.hpp"
-#include "wjs/scan/reading.hpp"
 
 namespace {
 
 // The dictionary a confirmed Family Assistant board is played over in the
 // suites: the five test words of apps/app/tests/unit/scan_ui/preview_main.cpp, so a typed
 // 4x4 of SAT/PIN... holds a word and the tray has a jewel. TEST DATA.
-void fill_test_dictionary(wjs::Dictionary& dictionary) {
+void fill_test_dictionary(sns::Dictionary& dictionary) {
     for (const char* word : {"SAT", "SIT", "PIN", "NIP", "TAP"}) {
         static_cast<void>(dictionary.insert(word));
     }
@@ -32,11 +32,11 @@ QuickFixture::~QuickFixture() = default;
 
 void QuickFixture::applicationAvailable() {
     // The faces the screens name, as the application registers them before its engine loads.
-    static_cast<void>(wjs::app::test::load_house_fonts());
+    static_cast<void>(sns::app::test::load_house_fonts());
     // One manager for the run: apply() swaps the installed catalogue, and a
     // manager destroyed with a translator still installed would leave it behind
     // for every later suite. reset() applies English again.
-    language_ = std::make_unique<wjs::app::LanguageManager>();
+    language_ = std::make_unique<sns::app::LanguageManager>();
     language_->apply(QStringLiteral("en"));
 }
 
@@ -68,14 +68,14 @@ void QuickFixture::advance(qint64 milliseconds) {
 
 void QuickFixture::resetSolo() {
     retired_solos_.push_back(std::move(solo_));
-    solo_ = std::make_unique<wjs::app::SoloModel>(std::make_unique<wjs::app::FakeSoloGame>());
+    solo_ = std::make_unique<sns::app::SoloModel>(std::make_unique<sns::app::FakeSoloGame>());
     setContextProperty("soloModel", solo_.get());
 }
 
 void QuickFixture::resetParent(bool busy) {
     auto data = std::make_unique<ParentData>();
     if (busy) {
-        data->store = wjs::app::demo::busy_store(today_);
+        data->store = sns::app::demo::busy_store(today_);
     }
     data->controller.useCalendar([this] { return today_; }, 1);
     data->controller.useClock([this] { return clock_; });
@@ -92,7 +92,7 @@ void QuickFixture::resetParentWithEmptyStore() {
 
 void QuickFixture::resetScan() {
     retired_scans_.push_back(std::move(scan_));
-    scan_ = std::make_unique<wjs::app::ScanModel>();
+    scan_ = std::make_unique<sns::app::ScanModel>();
     setContextProperty("scanModel", scan_.get());
 }
 
@@ -105,13 +105,13 @@ void QuickFixture::resetAssist() {
     // its dictionary and store in main.cpp, and this is the same seam. It holds
     // the data it makes rounds from for as long as a round can be alive.
     assist_maker_.reset();
-    assist_maker_.emplace([data](wjs::Board board) {
-        return std::make_unique<wjs::app::AssistGame>(std::move(board), data->dictionary,
+    assist_maker_.emplace([data](sns::Board board) {
+        return std::make_unique<sns::app::AssistGame>(std::move(board), data->dictionary,
                                                       data->store, [data] { return data->today; });
     });
 
     retired_assists_.push_back(std::move(assist_));
-    assist_ = std::make_unique<wjs::app::AssistModel>();
+    assist_ = std::make_unique<sns::app::AssistModel>();
     setContextProperty("assistModel", assist_.get());
 }
 
@@ -122,7 +122,7 @@ bool QuickFixture::readDoubtfulBoard() {
     // What the reader makes of a frame whose middle tiles it could not trust: a
     // 2x2 with one letter seen, one seen with an alternative, one seen nothing
     // in, and one seen but doubted.
-    wjs::scan::BoardReading reading;
+    sns::scan::BoardReading reading;
     reading.rows = 2;
     reading.columns = 2;
     reading.tiles.resize(4);
@@ -146,22 +146,22 @@ bool QuickFixture::readDoubtfulBoard() {
 }
 
 QString QuickFixture::shotsDirectory() const {
-    QDir directory(qEnvironmentVariable("WJS_SHOTS_DIR", QStringLiteral("screenshots")));
+    QDir directory(qEnvironmentVariable("SNS_SHOTS_DIR", QStringLiteral("screenshots")));
     directory.mkpath(QStringLiteral("."));
     return directory.absolutePath() + QLatin1Char('/');
 }
 
 bool QuickFixture::mediaBackendAvailable() const {
-    return wjs::app::test::mediaBackendAvailable();
+    return sns::app::test::mediaBackendAvailable();
 }
 
 void QuickFixture::useCamera() {
-    auto backend = std::make_unique<wjs::app::test::FakeCameraBackend>();
+    auto backend = std::make_unique<sns::app::test::FakeCameraBackend>();
     backend->setAvailable(true);
     backend->setProblem(QString());
     // The source is kept for the fixture's lifetime: a model points at it, and
     // a destroyed screen's destruction still calls close() on the model.
-    cameras_.push_back(std::make_unique<wjs::app::CameraSource>(std::move(backend)));
+    cameras_.push_back(std::make_unique<sns::app::CameraSource>(std::move(backend)));
     if (scan_ != nullptr) {
         scan_->setCameraSource(cameras_.back().get());
     }

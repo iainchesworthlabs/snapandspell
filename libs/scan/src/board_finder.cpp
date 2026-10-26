@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scan/board_finder.hpp"
+#include "sns/scan/board_finder.hpp"
 
 #include <algorithm>
 #include <array>
@@ -10,11 +10,11 @@
 #include <span>
 
 #include "scratch.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/scan/segment.hpp"
-#include "wjs/scan/work.hpp"
+#include "sns/profiling.hpp"
+#include "sns/scan/segment.hpp"
+#include "sns/scan/work.hpp"
 
-namespace wjs::scan {
+namespace sns::scan {
 
 namespace {
 
@@ -623,4 +623,4 @@ CellCentres locate_cells(const GrayImage& warped, const BoardProfiles& profiles,
     return centres;
 }
 
-}  // namespace wjs::scan
+}  // namespace sns::scan

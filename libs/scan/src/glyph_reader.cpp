@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scan/glyph_reader.hpp"
+#include "sns/scan/glyph_reader.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <numbers>
 #include <span>
 
-#include "wjs/scan/stroke_font.hpp"
-#include "wjs/scan/work.hpp"
+#include "sns/scan/stroke_font.hpp"
+#include "sns/scan/work.hpp"
 
-namespace wjs::scan {
+namespace sns::scan {
 
 namespace {
 
@@ -409,4 +409,4 @@ GlyphRead GlyphReader::read(const GrayImage& board, Point centre, double half_si
     return result;
 }
 
-}  // namespace wjs::scan
+}  // namespace sns::scan

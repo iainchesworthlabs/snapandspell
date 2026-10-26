@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma Singleton
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The one design system of the application: Toybox Pixel (docs/design/toybox/DESIGN.md). A sunshine
 // page, night-purple ink, cream panels with hard outlines and hard shadows, a coral selection and five

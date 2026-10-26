@@ -92,7 +92,7 @@ Test-Case 'diff below the scissors line is ignored' 0 @('-GitMessage') "Subject`
 Test-Case 'text above the scissors line still counts' 1 @('-GitMessage') "Subject $toolOne`n$scissors`n+ diff`n"
 
 # Files, and bad invocations.
-$temp = Join-Path ([System.IO.Path]::GetTempPath()) ("wjs-policy-" + [guid]::NewGuid().ToString('N'))
+$temp = Join-Path ([System.IO.Path]::GetTempPath()) ("sns-policy-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp | Out-Null
 try {
     $cleanFile = Join-Path $temp 'clean.txt'

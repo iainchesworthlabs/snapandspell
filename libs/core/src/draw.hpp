@@ -7,7 +7,7 @@
 #include <span>
 #include <utility>
 
-namespace wjs::detail {
+namespace sns::detail {
 
 // The only source of randomness in the library: std::mt19937, whose output is
 // fixed by the standard, taken modulo. A draw is never part of a larger
@@ -37,4 +37,4 @@ private:
     std::mt19937 engine_;
 };
 
-}  // namespace wjs::detail
+}  // namespace sns::detail

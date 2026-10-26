@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 
 // The panel of solo.playing (apps/app/qml/solo/PlayingPanel.qml): the tray of
 // words found, the hint, and Done while a tapped path waits. The model is the

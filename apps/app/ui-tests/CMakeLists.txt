@@ -7,11 +7,11 @@
 #
 # A directory of its own rather than a section of tests/CMakeLists.txt, and not
 # only for tidiness: a QML module's generated qrc is named after its URI
-# ("qmake_WordJewelsSolver.qrc") and written to the directory scope's build
+# ("qmake_SnapAndSpell.qrc") and written to the directory scope's build
 # directory. The scan preview's stub shell (tests/CMakeLists.txt) builds a
 # module of the same URI, so in one directory the two would overwrite each
 # other's qrc and the preview would load this module's qmldir - measured: the
-# preview failed with "Module "WordJewelsSolver" contains no type named
+# preview failed with "Module "SnapAndSpell" contains no type named
 # "PreviewHost"". One directory down, each has its own.
 #
 # The QML under test is the application's own files, not a copy: the same
@@ -24,7 +24,7 @@
 # makes the window, and the suites test the screens it would show.
 #
 # What is test support rather than the application is the Scene module and the
-# stub scene. WordJewelsSolver.Scene is the profiling seam, a C++ singleton, so a
+# stub scene. SnapAndSpell.Scene is the profiling seam, a C++ singleton, so a
 # static QML module of the same URI is built here from scene_stub (a Profiler that
 # does nothing). The board scene is the application's own QML (qml/solo/BoardScene.qml)
 # and is tested as it is (tst_scene.qml); the suites of the Solo Play screen give
@@ -42,34 +42,34 @@ find_package(Qt6 6.12 REQUIRED COMPONENTS QuickTest)
 
 qt_policy(SET QTP0001 NEW)
 
-set(WJS_QUICK_TEST_SCENE_IMPORT "${CMAKE_CURRENT_BINARY_DIR}/quick-scene")
+set(SNS_QUICK_TEST_SCENE_IMPORT "${CMAKE_CURRENT_BINARY_DIR}/quick-scene")
 set_source_files_properties(
     "${CMAKE_CURRENT_SOURCE_DIR}/scene_stub/Profiler.qml"
     PROPERTIES QT_RESOURCE_ALIAS "Profiler.qml" QT_QML_SINGLETON_TYPE TRUE)
 # The library is made first so that AUTOMOC is on it before the QML module is:
 # the module's type registration extracts metatypes at once, and without AUTOMOC
 # the configure stops there.
-qt_add_library(wjs_quick_test_scene STATIC)
-set_target_properties(wjs_quick_test_scene PROPERTIES AUTOMOC ON)
-qt_add_qml_module(wjs_quick_test_scene
-    URI WordJewelsSolver.Scene
+qt_add_library(sns_quick_test_scene STATIC)
+set_target_properties(sns_quick_test_scene PROPERTIES AUTOMOC ON)
+qt_add_qml_module(sns_quick_test_scene
+    URI SnapAndSpell.Scene
     VERSION 1.0
-    OUTPUT_DIRECTORY "${WJS_QUICK_TEST_SCENE_IMPORT}/WordJewelsSolver/Scene"
+    OUTPUT_DIRECTORY "${SNS_QUICK_TEST_SCENE_IMPORT}/SnapAndSpell/Scene"
     QML_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/scene_stub/Profiler.qml")
 
 # GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
-icl_relax_generated_warnings(wjs_quick_test_scene)
-target_link_libraries(wjs_quick_test_scene PUBLIC Qt6::Qml Qt6::Quick)
+icl_relax_generated_warnings(sns_quick_test_scene)
+target_link_libraries(sns_quick_test_scene PUBLIC Qt6::Qml Qt6::Quick)
 
 # The models the screens bind to, and the fixture that hands them to a suite, in
 # a library of its own rather than in the QML module's target. The Family
-# Assistant's own models and their games come from its module (wjs_scan_uiplugin,
+# Assistant's own models and their games come from its module (sns_scan_uiplugin,
 # linked by the test executable below): compiling them here as well put two
 # copies of their moc in the program once the fixture also used the module's
 # CameraSource. The parent area's controller and the Solo Play models are
 # compiled here, as the parent preview does.
-add_library(wjs_quick_tests_support STATIC
+add_library(sns_quick_tests_support STATIC
     "${PROJECT_SOURCE_DIR}/apps/app/tests/unit/parent_ui/demo_data.cpp"
     quick_fixture.cpp
     quick_fixture.hpp
@@ -78,8 +78,8 @@ add_library(wjs_quick_tests_support STATIC
     "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_game.cpp"
     "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_game_factory.cpp"
     "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_model.cpp")
-set_target_properties(wjs_quick_tests_support PROPERTIES AUTOMOC ON)
-target_include_directories(wjs_quick_tests_support
+set_target_properties(sns_quick_tests_support PROPERTIES AUTOMOC ON)
+target_include_directories(sns_quick_tests_support
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${PROJECT_SOURCE_DIR}/apps/app/src"
@@ -88,45 +88,45 @@ target_include_directories(wjs_quick_tests_support
         "${PROJECT_SOURCE_DIR}/apps/app/src/scan"
         "${PROJECT_SOURCE_DIR}/apps/app/src/solo"
         "${PROJECT_SOURCE_DIR}/apps/app/tests/unit/parent_ui")
-target_link_libraries(wjs_quick_tests_support
+target_link_libraries(sns_quick_tests_support
     PUBLIC
-        wjs_media_probe
-        wjs_test_fonts
-        wjs_i18n
-        wjs_trace
-        wjs::lib
-        wjs::platform
+        sns_media_probe
+        sns_test_fonts
+        sns_i18n
+        sns_trace
+        sns::lib
+        sns::platform
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
     PRIVATE
-        wjs::warnings
-        wjs::sanitizers
-        wjs::coverage)
+        sns::warnings
+        sns::sanitizers
+        sns::coverage)
 
-qt_add_executable(wjs_quick_tests quicktest_main.cpp)
+qt_add_executable(sns_quick_tests quicktest_main.cpp)
 # A console program, so that the suites' output reaches ctest's log.
-set_target_properties(wjs_quick_tests PROPERTIES AUTOMOC ON WIN32_EXECUTABLE OFF)
-target_compile_definitions(wjs_quick_tests PRIVATE
+set_target_properties(sns_quick_tests PROPERTIES AUTOMOC ON WIN32_EXECUTABLE OFF)
+target_compile_definitions(sns_quick_tests PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
 # The QML the modules above import from the application: the kit, Home and Solo
 # Play's screens, each aliased to its own name in the module. The aliases are
 # flat (AppButton.qml, not qml/kit/AppButton.qml) so no extra directory needs a
 # qmldir; a type is named by its file's basename either way.
-set(WJS_QUICK_TEST_QML_DIR "${PROJECT_SOURCE_DIR}/apps/app/qml")
-set(WJS_QUICK_TEST_QML_SOURCES "")
+set(SNS_QUICK_TEST_QML_DIR "${PROJECT_SOURCE_DIR}/apps/app/qml")
+set(SNS_QUICK_TEST_QML_SOURCES "")
 
 # The kit, from the one list the application and the previews use.
-include("${WJS_QUICK_TEST_QML_DIR}/kit/kit_files.cmake")
-set(WJS_QUICK_TEST_KIT_FILES ${WJS_KIT_QML_FILES})
-foreach(_file IN LISTS WJS_QUICK_TEST_KIT_FILES)
-    set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/kit/${_file}"
+include("${SNS_QUICK_TEST_QML_DIR}/kit/kit_files.cmake")
+set(SNS_QUICK_TEST_KIT_FILES ${SNS_KIT_QML_FILES})
+foreach(_file IN LISTS SNS_QUICK_TEST_KIT_FILES)
+    set_source_files_properties("${SNS_QUICK_TEST_QML_DIR}/kit/${_file}"
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")
-    list(APPEND WJS_QUICK_TEST_QML_SOURCES "${WJS_QUICK_TEST_QML_DIR}/kit/${_file}")
+    list(APPEND SNS_QUICK_TEST_QML_SOURCES "${SNS_QUICK_TEST_QML_DIR}/kit/${_file}")
 endforeach()
 
-set(WJS_QUICK_TEST_SOLO_FILES
+set(SNS_QUICK_TEST_SOLO_FILES
     BoardScene.qml
     BoardThumb.qml
     FlatBoard.qml
@@ -140,90 +140,90 @@ set(WJS_QUICK_TEST_SOLO_FILES
     SoloBox.qml
     SoloScreen.qml
     SoloWording.qml)
-foreach(_file IN LISTS WJS_QUICK_TEST_SOLO_FILES)
-    set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/solo/${_file}"
+foreach(_file IN LISTS SNS_QUICK_TEST_SOLO_FILES)
+    set_source_files_properties("${SNS_QUICK_TEST_QML_DIR}/solo/${_file}"
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")
-    list(APPEND WJS_QUICK_TEST_QML_SOURCES "${WJS_QUICK_TEST_QML_DIR}/solo/${_file}")
+    list(APPEND SNS_QUICK_TEST_QML_SOURCES "${SNS_QUICK_TEST_QML_DIR}/solo/${_file}")
 endforeach()
 
 foreach(_file IN ITEMS Home.qml HomeWording.qml)
-    set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/${_file}"
+    set_source_files_properties("${SNS_QUICK_TEST_QML_DIR}/${_file}"
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")
-    list(APPEND WJS_QUICK_TEST_QML_SOURCES "${WJS_QUICK_TEST_QML_DIR}/${_file}")
+    list(APPEND SNS_QUICK_TEST_QML_SOURCES "${SNS_QUICK_TEST_QML_DIR}/${_file}")
 endforeach()
 
 # The stub scene is test support: part of the test module, beside the screens that take it.
 set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/StubBoardScene.qml"
     PROPERTIES QT_RESOURCE_ALIAS "StubBoardScene.qml")
-list(APPEND WJS_QUICK_TEST_QML_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/StubBoardScene.qml")
+list(APPEND SNS_QUICK_TEST_QML_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/StubBoardScene.qml")
 
 # The kit's and the screens' singletons are singletons in this module too: a
 # pragma Singleton file is not one without this.
-foreach(_file IN LISTS WJS_KIT_QML_SINGLETONS)
-    set_source_files_properties("${WJS_QUICK_TEST_QML_DIR}/kit/${_file}"
+foreach(_file IN LISTS SNS_KIT_QML_SINGLETONS)
+    set_source_files_properties("${SNS_QUICK_TEST_QML_DIR}/kit/${_file}"
         PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 endforeach()
 set_source_files_properties(
-    "${WJS_QUICK_TEST_QML_DIR}/solo/SoloWording.qml"
-    "${WJS_QUICK_TEST_QML_DIR}/solo/JewelsWording.qml"
-    "${WJS_QUICK_TEST_QML_DIR}/HomeWording.qml"
+    "${SNS_QUICK_TEST_QML_DIR}/solo/SoloWording.qml"
+    "${SNS_QUICK_TEST_QML_DIR}/solo/JewelsWording.qml"
+    "${SNS_QUICK_TEST_QML_DIR}/HomeWording.qml"
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
-qt_add_qml_module(wjs_quick_tests
-    URI WordJewelsSolver
+qt_add_qml_module(sns_quick_tests
+    URI SnapAndSpell
     VERSION 1.0
     # A directory of this target's own: the scan preview embeds the same URI in
     # the build directory above.
-    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/quick-qml/WordJewelsSolver"
-    # Where qmlcachegen finds WordJewelsSolver.Scene while compiling the
+    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/quick-qml/SnapAndSpell"
+    # Where qmlcachegen finds SnapAndSpell.Scene while compiling the
     # screens: the stub module's output above, not the application's 3D one.
-    IMPORT_PATH "${WJS_QUICK_TEST_SCENE_IMPORT}"
-    QML_FILES ${WJS_QUICK_TEST_QML_SOURCES}
+    IMPORT_PATH "${SNS_QUICK_TEST_SCENE_IMPORT}"
+    QML_FILES ${SNS_QUICK_TEST_QML_SOURCES}
     SOURCES
         "${PROJECT_SOURCE_DIR}/apps/app/src/solo/board_layout.cpp"
         "${PROJECT_SOURCE_DIR}/apps/app/src/solo/solo_layout.cpp"
         "${PROJECT_SOURCE_DIR}/apps/app/src/system_colour_scheme.cpp")
 
 # GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
-icl_relax_generated_warnings(wjs_quick_tests)
+icl_relax_generated_warnings(sns_quick_tests)
 
-target_link_libraries(wjs_quick_tests
+target_link_libraries(sns_quick_tests
     PRIVATE
-        wjs_quick_tests_support
-        wjs_parentplugin
-        wjs_scan_uiplugin
-        wjs_quick_test_sceneplugin
+        sns_quick_tests_support
+        sns_parentplugin
+        sns_scan_uiplugin
+        sns_quick_test_sceneplugin
         Qt6::Core
         Qt6::Gui
         Qt6::Qml
         Qt6::Quick
         Qt6::QuickTest
-        wjs::warnings
-        wjs::sanitizers
-        wjs::coverage)
+        sns::warnings
+        sns::sanitizers
+        sns::coverage)
 
 # The QML compiler's generated C++ and MSVC's C4702, as for the application's
 # own QML target and the two stub shells.
-get_target_property(_wjs_quick_tests_sources wjs_quick_tests SOURCES)
-foreach(_wjs_source IN LISTS _wjs_quick_tests_sources)
-    if(_wjs_source MATCHES "/[.]rcc/qmlcache/")
-        set_source_files_properties("${_wjs_source}" PROPERTIES
+get_target_property(_sns_quick_tests_sources sns_quick_tests SOURCES)
+foreach(_sns_source IN LISTS _sns_quick_tests_sources)
+    if(_sns_source MATCHES "/[.]rcc/qmlcache/")
+        set_source_files_properties("${_sns_source}" PROPERTIES
             COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/wd4702>")
     endif()
 endforeach()
 
-wjs_deploy_sanitizer_runtime(wjs_quick_tests)
+sns_deploy_sanitizer_runtime(sns_quick_tests)
 # The scan screen's live view imports QtMultimedia from the camera variant; the
 # suites' own qml directory is not where that file is.
-set(WJS_QUICK_TESTS_DEPLOY_QML_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
-if(WJS_QT_HAS_MULTIMEDIA)
-    list(APPEND WJS_QUICK_TESTS_DEPLOY_QML_DIRS "${WJS_CAMERA_VARIANT_DIR}")
+set(SNS_QUICK_TESTS_DEPLOY_QML_DIRS "${CMAKE_CURRENT_SOURCE_DIR}")
+if(SNS_QT_HAS_MULTIMEDIA)
+    list(APPEND SNS_QUICK_TESTS_DEPLOY_QML_DIRS "${SNS_CAMERA_VARIANT_DIR}")
 endif()
-wjs_platform_deploy_qt_runtime(wjs_quick_tests ${WJS_QUICK_TESTS_DEPLOY_QML_DIRS})
+sns_platform_deploy_qt_runtime(sns_quick_tests ${SNS_QUICK_TESTS_DEPLOY_QML_DIRS})
 # One windeployqt at a time into the shared bin/ (the race the sibling projects'
 # comments describe): this one deploys QtTest and the modules the suites import,
 # after the scan shell's own deploy has finished.
-add_dependencies(wjs_quick_tests wjs_scan_preview)
+add_dependencies(sns_quick_tests sns_scan_preview)
 
 # One ctest entry per tst_*.qml file, as the house pattern has it: a failure
 # names the suite, each suite gets its own process and its own models, and
@@ -232,32 +232,32 @@ add_dependencies(wjs_quick_tests wjs_scan_preview)
 # offscreen plugin needs on this platform (the font directory on Windows).
 # QT_FORCE_STDERR_LOGGING makes QtTest's own output and every qWarning reach
 # ctest's log rather than OutputDebugString.
-file(GLOB WJS_QUICK_TEST_FILES CONFIGURE_DEPENDS
+file(GLOB SNS_QUICK_TEST_FILES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/tst_*.qml")
-foreach(WJS_QUICK_TEST_FILE IN LISTS WJS_QUICK_TEST_FILES)
-    get_filename_component(WJS_QUICK_TEST_NAME "${WJS_QUICK_TEST_FILE}" NAME_WE)
-    string(REGEX REPLACE "^tst_" "" WJS_QUICK_TEST_SUITE "${WJS_QUICK_TEST_NAME}")
-    add_test(NAME "quick.${WJS_QUICK_TEST_SUITE}"
-        COMMAND wjs_quick_tests -input "${WJS_QUICK_TEST_FILE}" -platform offscreen)
-    set_tests_properties("quick.${WJS_QUICK_TEST_SUITE}" PROPERTIES
-        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_FORCE_STDERR_LOGGING=1;${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
+foreach(SNS_QUICK_TEST_FILE IN LISTS SNS_QUICK_TEST_FILES)
+    get_filename_component(SNS_QUICK_TEST_NAME "${SNS_QUICK_TEST_FILE}" NAME_WE)
+    string(REGEX REPLACE "^tst_" "" SNS_QUICK_TEST_SUITE "${SNS_QUICK_TEST_NAME}")
+    add_test(NAME "quick.${SNS_QUICK_TEST_SUITE}"
+        COMMAND sns_quick_tests -input "${SNS_QUICK_TEST_FILE}" -platform offscreen)
+    set_tests_properties("quick.${SNS_QUICK_TEST_SUITE}" PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_FORCE_STDERR_LOGGING=1;${SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
         TIMEOUT 300
         LABELS "system;ui;gui")
 endforeach()
 
 # A picture of every screen and dialog (capture_screens.qml): the QML the suites test, drawn by the
-# offscreen platform and written as PNG files into <build>/screenshots (or WJS_SHOTS_DIR). Not a test and
-# not part of `all`: `cmake --build --preset <preset> --target wjs_screenshots` (docs/testing.md,
+# offscreen platform and written as PNG files into <build>/screenshots (or SNS_SHOTS_DIR). Not a test and
+# not part of `all`: `cmake --build --preset <preset> --target sns_screenshots` (docs/testing.md,
 # "Screenshots").
-add_custom_target(wjs_screenshots
+add_custom_target(sns_screenshots
     COMMAND "${CMAKE_COMMAND}" -E env
         QT_QPA_PLATFORM=offscreen
         QT_FORCE_STDERR_LOGGING=1
-        ${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}
-        "WJS_SHOTS_DIR=${PROJECT_BINARY_DIR}/screenshots"
-        $<TARGET_FILE:wjs_quick_tests>
+        ${SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT}
+        "SNS_SHOTS_DIR=${PROJECT_BINARY_DIR}/screenshots"
+        $<TARGET_FILE:sns_quick_tests>
         -input "${CMAKE_CURRENT_SOURCE_DIR}/capture_screens.qml" -platform offscreen
-    DEPENDS wjs_quick_tests
+    DEPENDS sns_quick_tests
     USES_TERMINAL
     COMMENT "Taking a picture of every screen")
 

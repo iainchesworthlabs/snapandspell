@@ -10,11 +10,11 @@
 #include <string_view>
 #include <vector>
 
+#include "sns/board.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/solver.hpp"
 #include "support/test_support.hpp"
-#include "wjs/board.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/solver.hpp"
 
 // TEST DATA. Every word, grapheme, sound and clip below was written for these
 // tests and is not content for a child: the sounds are placeholders (`/t1/`),
@@ -57,8 +57,8 @@ constexpr std::string_view words_b =
     "saint  s ai n t\n"
     "stain  s t ai n\n";
 
-wjs::Dictionary english() {
-    wjs::Dictionary dictionary;
+sns::Dictionary english() {
+    sns::Dictionary dictionary;
     for (const std::string_view word :
          {"nip", "pan", "pat", "pin", "sat", "sit", "tap", "pain", "paint", "saint", "stain", "xyz",
           "qqq", "cake", "like", "snow", "cow"}) {
@@ -71,17 +71,17 @@ std::string file_text(std::string_view header, std::string_view body) {
     return std::string(header) + std::string(body);
 }
 
-wjs::WordsFile read_words(const std::string& text, std::string_view name = "words.txt") {
+sns::WordsFile read_words(const std::string& text, std::string_view name = "words.txt") {
     std::istringstream in(text);
-    auto parsed = wjs::parse_words(in, name);
+    auto parsed = sns::parse_words(in, name);
     REQUIRE(parsed.has_value());
     return *parsed;
 }
 
-wjs::GraphemesFile read_graphemes(const std::string& text,
+sns::GraphemesFile read_graphemes(const std::string& text,
                                   std::string_view name = "graphemes.txt") {
     std::istringstream in(text);
-    auto parsed = wjs::parse_graphemes(in, name);
+    auto parsed = sns::parse_graphemes(in, name);
     REQUIRE(parsed.has_value());
     return *parsed;
 }
@@ -90,7 +90,7 @@ wjs::GraphemesFile read_graphemes(const std::string& text,
 // part it cares about.
 std::vector<std::string> word_problems(const std::string& text) {
     std::istringstream in(text);
-    const auto parsed = wjs::parse_words(in, "words.txt");
+    const auto parsed = sns::parse_words(in, "words.txt");
     REQUIRE_FALSE(parsed.has_value());
     std::vector<std::string> result;
     for (const auto& problem : parsed.error()) {
@@ -101,7 +101,7 @@ std::vector<std::string> word_problems(const std::string& text) {
 
 std::vector<std::string> grapheme_problems(const std::string& text) {
     std::istringstream in(text);
-    const auto parsed = wjs::parse_graphemes(in, "graphemes.txt");
+    const auto parsed = sns::parse_graphemes(in, "graphemes.txt");
     REQUIRE_FALSE(parsed.has_value());
     std::vector<std::string> result;
     for (const auto& problem : parsed.error()) {
@@ -111,7 +111,7 @@ std::vector<std::string> grapheme_problems(const std::string& text) {
 }
 
 // The letters of each grapheme of a word, in order.
-std::vector<std::string> letters_of(const wjs::PhaseWord& word) {
+std::vector<std::string> letters_of(const sns::PhaseWord& word) {
     std::vector<std::string> letters;
     for (const auto& grapheme : word.graphemes) {
         letters.push_back(grapheme.letters);
@@ -127,8 +127,8 @@ bool mentions(const std::vector<std::string>& problems, std::string_view text) {
 
 // Test phases A and B, both unreviewed.
 struct Files {
-    std::vector<wjs::GraphemesFile> graphemes;
-    std::vector<wjs::WordsFile> words;
+    std::vector<sns::GraphemesFile> graphemes;
+    std::vector<sns::WordsFile> words;
 };
 
 Files phases_a_and_b() {
@@ -143,7 +143,7 @@ Files phases_a_and_b() {
 }
 
 std::vector<std::string> build_problems(const Files& files) {
-    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+    const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
     REQUIRE_FALSE(built.has_value());
     std::vector<std::string> result;
     for (const auto& problem : built.error()) {
@@ -416,14 +416,14 @@ TEST_CASE("a bad line in a graphemes file is reported with its line", "[phase]")
 }
 
 TEST_CASE("a problem prints as file, line and message", "[phase]") {
-    CHECK(wjs::to_string({"words.txt", 4, "no good"}) == "words.txt:4: no good");
-    CHECK(wjs::to_string({"words.txt", 0, "no good"}) == "words.txt: no good");
+    CHECK(sns::to_string({"words.txt", 4, "no good"}) == "words.txt:4: no good");
+    CHECK(sns::to_string({"words.txt", 0, "no good"}) == "words.txt: no good");
 }
 
 TEST_CASE("a phase set is cumulative: a later phase holds the earlier phases' words", "[phase]") {
     const auto files = phases_a_and_b();
 
-    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+    const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
 
     REQUIRE(built.has_value());
     REQUIRE(built->phases().size() == 2);
@@ -450,18 +450,18 @@ TEST_CASE("a phase set is cumulative: a later phase holds the earlier phases' wo
 
 TEST_CASE("phases are in the order of their names: shorter first, then alphabetical", "[phase]") {
     // Written in the wrong order on purpose; "10" is after "2" and not before.
-    std::vector<wjs::GraphemesFile> graphemes;
+    std::vector<sns::GraphemesFile> graphemes;
     for (const std::string_view name : {"10", "B", "2", "AA", "A"}) {
         graphemes.push_back(read_graphemes(
             "# phase: " + std::string(name) + "\nx  /t" + std::string(name) + "/  clip:c\n",
             std::string(name) + ".graphemes"));
     }
 
-    const auto built = wjs::PhaseSet::build(graphemes, {}, english());
+    const auto built = sns::PhaseSet::build(graphemes, {}, english());
 
     REQUIRE(built.has_value());
     std::vector<std::string> order;
-    for (const wjs::PhaseIndex& index : built->phases()) {
+    for (const sns::PhaseIndex& index : built->phases()) {
         order.push_back(index.phase());
     }
     CHECK(order == std::vector<std::string>{"2", "A", "B", "10", "AA"});
@@ -469,7 +469,7 @@ TEST_CASE("phases are in the order of their names: shorter first, then alphabeti
 
 TEST_CASE("a phase's alphabet is the letters of its graphemes and words", "[phase]") {
     const auto files = phases_a_and_b();
-    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+    const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
     REQUIRE(built.has_value());
 
     CHECK(built->find("A")->alphabet() == "AINPST");
@@ -478,18 +478,18 @@ TEST_CASE("a phase's alphabet is the letters of its graphemes and words", "[phas
 
 TEST_CASE("a phase's words are a dictionary a board can be solved against", "[phase][solver]") {
     const auto files = phases_a_and_b();
-    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+    const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
     REQUIRE(built.has_value());
-    const auto board = wjs::Board::parse("S A T/P I N/T N A");
+    const auto board = sns::Board::parse("S A T/P I N/T N A");
     REQUIRE(board.has_value());
 
-    const auto in_a = wjs::solve(*board, built->find("A")->dictionary());
-    const auto in_b = wjs::solve(*board, built->find("B")->dictionary());
+    const auto in_a = sns::solve(*board, built->find("A")->dictionary());
+    const auto in_b = sns::solve(*board, built->find("B")->dictionary());
 
     // Phase B's index has every word of phase A and the words that need "ai":
     // SAINT is spelt here (S, A, I, N, T), but "ai" is not a phase A grapheme.
-    CHECK(std::ranges::none_of(in_a, [](const wjs::FoundWord& w) { return w.word == "SAINT"; }));
-    CHECK(std::ranges::any_of(in_b, [](const wjs::FoundWord& w) { return w.word == "SAINT"; }));
+    CHECK(std::ranges::none_of(in_a, [](const sns::FoundWord& w) { return w.word == "SAINT"; }));
+    CHECK(std::ranges::any_of(in_b, [](const sns::FoundWord& w) { return w.word == "SAINT"; }));
     CHECK(in_b.size() > in_a.size());
 }
 
@@ -515,7 +515,7 @@ TEST_CASE("a word may use only graphemes of its phase or an earlier one", "[phas
         files.words[1] = read_words("# phase: B\nnip  n i p\n", "b.words");
         files.words[0] = read_words("# phase: A\npan  p a n\n", "a.words");
 
-        const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+        const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
 
         CHECK(built.has_value());
     }
@@ -558,7 +558,7 @@ TEST_CASE("a tricky word is checked against the dictionary and nothing else", "[
     SECTION("in the dictionary") {
         files.words[0] = read_words("# phase: A\nnip  n i p\nxyz  tricky\n", "a.words");
 
-        const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+        const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
 
         REQUIRE(built.has_value());
         const auto* word = built->find("A")->find_word("xyz");
@@ -583,7 +583,7 @@ TEST_CASE("a phase with only one of its files is a phase", "[phase]") {
     auto dictionary = english();
     REQUIRE(dictionary.insert("taps"));
 
-    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, dictionary);
+    const auto built = sns::PhaseSet::build(files.graphemes, files.words, dictionary);
 
     REQUIRE(built.has_value());
     CHECK(built->find("B")->words().size() == 8);
@@ -598,7 +598,7 @@ TEST_CASE("a set is reviewed only when every file is", "[phase][review]") {
     };
 
     SECTION("none of the files") {
-        const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+        const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
         REQUIRE(built.has_value());
         CHECK_FALSE(built->reviewed());
         CHECK(built->unreviewed_files().size() == 4);
@@ -610,7 +610,7 @@ TEST_CASE("a set is reviewed only when every file is", "[phase][review]") {
         files.words[0] = read_words(reviewed("A", words_a), "a.words");
         files.words[1] = read_words(reviewed("B", words_b), "b.words");
 
-        const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+        const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
 
         REQUIRE(built.has_value());
         CHECK(built->reviewed());
@@ -622,7 +622,7 @@ TEST_CASE("a set is reviewed only when every file is", "[phase][review]") {
         files.graphemes[1] = read_graphemes(reviewed("B", graphemes_b), "b.graphemes");
         files.words[0] = read_words(reviewed("A", words_a), "a.words");
 
-        const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+        const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
 
         REQUIRE(built.has_value());
         CHECK_FALSE(built->reviewed());
@@ -630,7 +630,7 @@ TEST_CASE("a set is reviewed only when every file is", "[phase][review]") {
     }
 
     SECTION("no files at all is not a reviewed set") {
-        const auto built = wjs::PhaseSet::build({}, {}, english());
+        const auto built = sns::PhaseSet::build({}, {}, english());
 
         REQUIRE(built.has_value());
         CHECK_FALSE(built->reviewed());
@@ -640,7 +640,7 @@ TEST_CASE("a set is reviewed only when every file is", "[phase][review]") {
 
 namespace {
 
-using wjs::test::TempDirectory;
+using sns::test::TempDirectory;
 
 }  // namespace
 
@@ -652,7 +652,7 @@ TEST_CASE("a directory of phase files is loaded by name", "[phase]") {
     directory.write("phase-B.words.txt", file_text("# phase: B\n", words_b));
     directory.write("notes.md", "not a data file, and not .txt");
 
-    const auto built = wjs::PhaseSet::load_directory(directory.path(), english());
+    const auto built = sns::PhaseSet::load_directory(directory.path(), english());
 
     REQUIRE(built.has_value());
     REQUIRE(built->phases().size() == 2);
@@ -669,35 +669,35 @@ TEST_CASE("a directory with a file that does not belong is refused", "[phase]") 
     SECTION("a .txt file of another name") {
         directory.write("extra.txt", "nip\n");
 
-        const auto built = wjs::PhaseSet::load_directory(directory.path(), english());
+        const auto built = sns::PhaseSet::load_directory(directory.path(), english());
 
         REQUIRE_FALSE(built.has_value());
-        CHECK(mentions({wjs::to_string(built.error().front())}, "extra.txt"));
+        CHECK(mentions({sns::to_string(built.error().front())}, "extra.txt"));
     }
 
     SECTION("a header that names another phase than the file name") {
         directory.write("phase-a.words.txt", file_text("# phase: B\n", words_a));
 
-        const auto built = wjs::PhaseSet::load_directory(directory.path(), english());
+        const auto built = sns::PhaseSet::load_directory(directory.path(), english());
 
         REQUIRE_FALSE(built.has_value());
-        CHECK(mentions({wjs::to_string(built.error().front())}, "its header says phase B"));
+        CHECK(mentions({sns::to_string(built.error().front())}, "its header says phase B"));
     }
 
     SECTION("a file with a problem in it") {
         directory.write("phase-a.words.txt", "# phase: A\nnip  n i t\n");
 
-        const auto built = wjs::PhaseSet::load_directory(directory.path(), english());
+        const auto built = sns::PhaseSet::load_directory(directory.path(), english());
 
         REQUIRE_FALSE(built.has_value());
-        CHECK(mentions({wjs::to_string(built.error().front())}, "spell 'nit'"));
+        CHECK(mentions({sns::to_string(built.error().front())}, "spell 'nit'"));
     }
 }
 
 TEST_CASE("a directory that does not exist is a problem", "[phase]") {
     const TempDirectory directory;
 
-    const auto built = wjs::PhaseSet::load_directory(directory.path() / "missing", english());
+    const auto built = sns::PhaseSet::load_directory(directory.path() / "missing", english());
 
     REQUIRE_FALSE(built.has_value());
     CHECK(mentions({built.error().front().message}, "no such directory"));
@@ -761,7 +761,7 @@ TEST_CASE("a split digraph is a grapheme of its phase like any other", "[phase][
     // Sorted by letters: '_' comes before 'c', and "a_e" before "c".
     files.words.push_back(read_words("# phase: A\ncake  c a_ k _e\n"));
 
-    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+    const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
 
     REQUIRE(built.has_value());
     const auto& index = *built->find("A");
@@ -791,7 +791,7 @@ TEST_CASE("a grapheme with two sounds is listed twice and a word picks one", "[p
         "s  /t5/  clip:t5\nw  /t4/  clip:t4\n"));
     files.words.push_back(read_words("# phase: A\ncow  c ow:2\nsnow  s n ow:1\n"));
 
-    const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+    const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
 
     REQUIRE(built.has_value());
     const auto& index = *built->find("A");
@@ -828,7 +828,7 @@ TEST_CASE("a word has to say which sound when a grapheme has several", "[phase][
     SECTION("a number on a grapheme with one sound is fine when it is 1") {
         files.graphemes[0] = read_graphemes("# phase: A\nc  /t1/  clip:t1\now  /t8/  clip:t8\n");
         files.words.push_back(read_words("# phase: A\ncow  c:1 ow:1\n"));
-        CHECK(wjs::PhaseSet::build(files.graphemes, files.words, english()).has_value());
+        CHECK(sns::PhaseSet::build(files.graphemes, files.words, english()).has_value());
     }
 
     SECTION("a number that is not a number") {
@@ -853,7 +853,7 @@ TEST_CASE("a second sound may come in a later phase, and the earlier phase canno
             "s  /t5/  clip:t5\n",
             "a.graphemes");
 
-        const auto built = wjs::PhaseSet::build(files.graphemes, files.words, english());
+        const auto built = sns::PhaseSet::build(files.graphemes, files.words, english());
 
         REQUIRE(built.has_value());
         CHECK(built->find("A")->sounds_of("ow").size() == 1);

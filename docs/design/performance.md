@@ -22,7 +22,7 @@ and work budgets too: see [The game rows](#the-game-rows).
 - **No required CI leg holds the work budgets.** They skip in a Debug build, and
   the three required build legs are Debug. The one automatic Release leg
   (`Performance (Linux, GCC)`) is not a required check, no workflow sets
-  `WJS_REQUIRE_PERF_BUDGETS`, and the wall-time checks and the window's frame
+  `SNS_REQUIRE_PERF_BUDGETS`, and the wall-time checks and the window's frame
   check run in no automatic leg ([The performance tier](#the-performance-tier)).
 - **The dictionary load is synchronous.** It runs on the main thread before the
   QML engine exists; "off the UI thread" is not built ([Budgets](#budgets)).
@@ -64,7 +64,7 @@ throw-away program saw 55 to 65 ms); 66 to 68 ms is the figure the budgets, the
 | | Result |
 | --- | --- |
 | Loading ENABLE (172,823 words) | 66 to 68 ms in the tier (55 to 65 ms in the throw-away program); 387,889 trie nodes; +17.7 MB of working set |
-| Whole `wjs-cli` run (roadmap's figure, not re-measured) | About 76 ms, load dominating |
+| Whole `sns-cli` run (roadmap's figure, not re-measured) | About 76 ms, load dominating |
 | Solving one board, mean / 95th percentile / worst | 3x3: 0.03 / 0.06 / 0.07 ms. 4x4: 0.12 / 0.19 / 0.26 ms. 5x5: 0.26 / 0.42 / 0.51 ms. 6x6: 0.48 / 0.69 / 0.85 ms |
 | Visits of the search, mean / worst | 3x3: 181 / 514. 4x4: 707 / 1,548. 5x5: 1,477 / 2,859. 6x6: 2,692 / 5,174 |
 | Boards built to hold many words (not dice sets) | 4x4 1,126 words, 2,832 visits, 0.9 ms; 5x5 1,464 words, 5,496 visits, 1.1 ms; 6x6 1,788 words, 9,443 visits, 1.7 ms; a 6x6 mix 12,350 visits, 1.5 ms |
@@ -177,7 +177,7 @@ records the call site's function, file and line:
 
 ```cpp
 // in a portable source file, no #define, no #if
-const auto zone = wjs::profiling::zone<"solver.solve">();
+const auto zone = sns::profiling::zone<"solver.solve">();
 ```
 
 where `zone` is a function template whose name is a class-type template
@@ -189,7 +189,7 @@ which were read from source and not compiled here.
 
 The design, following Cubeulator's seam:
 
-1. `libs/core/variants/profiling-enabled/wjs/profiling.hpp` includes Tracy and
+1. `libs/core/variants/profiling-enabled/sns/profiling.hpp` includes Tracy and
    aliases the stand-ins to `tracy::SourceLocationData` and `tracy::ScopedZone`;
    `profiling-disabled/` defines an empty zone class. CMake puts one directory
    on the include path. **No first-party file has a `#define` or an `#if`.**
@@ -225,7 +225,7 @@ did not have:
   convert from a string literal only, so a temporary string, whose pointer Tracy
   would keep, does not compile.
 - **The variants are named `profiling-enabled/` and `profiling-disabled/`**,
-  chosen by `WJS_ENABLE_TRACY` in `cmake/Tracy.cmake`. The `profiling-recorder/`
+  chosen by `SNS_ENABLE_TRACY` in `cmake/Tracy.cmake`. The `profiling-recorder/`
   of point 4 is not built: nothing targets the browser yet.
 
 ## What to instrument
@@ -237,15 +237,15 @@ on an inner loop.
 
 **Built:** `solver.solve` (the zone's value is the words found; the visits are
 the plot `solver.visits`, because a zone carries one number) and
-`data.load_dictionary` (the words), in `wjs::solve` and `Dictionary::load`; and,
+`data.load_dictionary` (the words), in `sns::solve` and `Dictionary::load`; and,
 with the code that makes a board, `board.seed` (the verifications it spent),
 `board.verify` (the words of the phase found on one verified board),
 `board.roll` (the dice rolled) and `phonics.bind` (the comparisons it made), in
-`wjs::seed_board`, `wjs::roll` and `GraphemeBinder::bind`; and, with the game
+`sns::seed_board`, `sns::roll` and `GraphemeBinder::bind`; and, with the game
 session, `board.deal` (the seedings a deal spent on the phonics board, the rolls on
 the standard), `input.submit` (the length of a traced path) and `board.restore`, in
 `GameSession::shake`, `trace` and `restore`; and, with the scanner, `scan.find_board` and `scan.read_tiles`, in
-`wjs::scan::find_board` and `read_board`. Since then the rest of the table below
+`sns::scan::find_board` and `read_board`. Since then the rest of the table below
 that is marked built was added with the code it times, and the whole set is
 pinned: `profiling.zone_names` fails when a required zone, plot, QML scope, frame
 set or thread name is gone, and [Profiling](../profiling.md#what-is-instrumented)
@@ -291,14 +291,14 @@ would carry the build (version, commit, dirty); nothing sets it yet.
 
 ## The performance tier
 
-Modelled on Cubeulator's `libs/core/bench`: its own binary, `wjs_perf_tests`, linked
-against `wjs::lib` and the scanner with its synthetic corpus (no Qt, no window), every
+Modelled on Cubeulator's `libs/core/bench`: its own binary, `sns_perf_tests`, linked
+against `sns::lib` and the scanner with its synthetic corpus (no Qt, no window), every
 threshold in one file,
 `libs/core/bench/budgets.hpp`. **Two halves, and the split is the design.**
 | | Holds | Exact? | Runs |
 | --- | --- | --- | --- |
 | **Work budgets** | What the code *does*: visits, words, tries, trie nodes | Yes, on every machine and compiler | In every plain `ctest` of an optimised build; **skipped in a Debug build**, and so in the three required CI legs |
-| **Wall-time checks** | What it *takes*, as a multiple of a calibration workload run in the same process | No, and loose on purpose | Only when asked: `WJS_PERF_TIMING=1` or a `*-perf` test preset; run serially. No automatic CI leg asks |
+| **Wall-time checks** | What it *takes*, as a multiple of a calibration workload run in the same process | No, and loose on purpose | Only when asked: `SNS_PERF_TIMING=1` or a `*-perf` test preset; run serially. No automatic CI leg asks |
 
 Cubeulator's reasons carry over: a count fails with a number and a seed rather
 than "slower"; a time is the one check that can fail with nothing changed, so it
@@ -316,14 +316,14 @@ check**, and the release workflow's Release build. Three more pieces:
 
 - `profiling.perf_budgets_ran` (`tests/profiling/check_perf_ran.cmake`) runs the
   work cases and **fails** when a Release, RelWithDebInfo or MinSizeRel build,
-  or any build run with `WJS_REQUIRE_PERF_BUDGETS=1` in its environment, ran
+  or any build run with `SNS_REQUIRE_PERF_BUDGETS=1` in its environment, ran
   none of them or found one that skipped; in any other build it reports itself
   skipped, with the reason, so it is never a pass that checked nothing. No
-  workflow sets `WJS_REQUIRE_PERF_BUDGETS` yet, so a Debug leg does not use it.
-- `WJS_PERF_TIMING=1` turns the wall-time checks on. The `*-perf` test presets
+  workflow sets `SNS_REQUIRE_PERF_BUDGETS` yet, so a Debug leg does not use it.
+- `SNS_PERF_TIMING=1` turns the wall-time checks on. The `*-perf` test presets
   set it and select the `perf` label; the Performance leg runs that preset on a
   manual dispatch only.
-- `WJS_PERF_FRAME_TIMING=1` turns on the window's frame check
+- `SNS_PERF_FRAME_TIMING=1` turns on the window's frame check
   ([The window's frames](#the-windows-frames)); no preset and no workflow sets it.
 
 ### Mechanics to copy
@@ -333,11 +333,11 @@ check**, and the release workflow's Release build. Three more pieces:
   own), so a seed is the same board on MSVC, libstdc++ and libc++.
 - **A work counter in the library**: a thread-local tally the search adds to
   once as it ends, nothing per visit, and nothing in the application reads it.
-  (Cubeulator's `search_work.hpp`.) **Built:** `wjs/solver_work.hpp`; the search
+  (Cubeulator's `search_work.hpp`.) **Built:** `sns/solver_work.hpp`; the search
   counts into a member and the solve adds the total.
 - **The build decides whether a clock is meaningful**, as `constexpr bool`s from
-  compile definitions CMake passes (`WJS_PERF_OPTIMISED`,
-  `WJS_PERF_INSTRUMENTED`), read with no preprocessor. Debug and sanitizer
+  compile definitions CMake passes (`SNS_PERF_OPTIMISED`,
+  `SNS_PERF_INSTRUMENTED`), read with no preprocessor. Debug and sanitizer
   builds *skip* the tier, never fail it.
 - **A digest** of every solution over the corpus, so "same results" is one
   number.
@@ -399,9 +399,9 @@ every machine, the milliseconds are this machine's, taken by a throw-away
 program that is not committed). The cases are in
 `libs/core/bench/game_work_test.cpp` and carry the tags `[standard]` or `[phonics]`.
 
-**Standard board (the default).** `wjs::roll` of the project's dice
+**Standard board (the default).** `sns::roll` of the project's dice
 (`data/dice/<n>x<n>.txt`, the shipped files) with the seeds of the random
-boards (`7919 * i + n`, 200 a size), then `wjs::solve` against the full word
+boards (`7919 * i + n`, 200 a size), then `sns::solve` against the full word
 list: what making a standard board costs. The zone is `board.roll` (the dice
 rolled). The three measured columns are the earlier dice's (see above); the
 budget is what the test asserts.
@@ -470,7 +470,7 @@ What it says:
 **Phonics board: binding.** `GraphemeBinder::bind` of a path of nine tiles
 against a test set of 39 graphemes, of which the binder holds the 31 that have
 more than one letter and are not split. The zone is `phonics.bind`, carrying the
-comparisons; the work counter is `wjs/binder_work.hpp`, written once as a bind
+comparisons; the work counter is `sns/binder_work.hpp`, written once as a bind
 ends, as the solver's is.
 
 | Path | Blocks | Comparisons | Budget | Time a bind |
@@ -485,7 +485,7 @@ only growth: a phase of 100 multi-letter graphemes would cost about 900
 comparisons a path. A case recounts the comparisons from the blocks that came
 back and the order the binder documents, with nothing the library counts.
 
-**Phonics board: the game session.** `wjs::GameSession` deals a board with
+**Phonics board: the game session.** `sns::GameSession` deals a board with
 `seed_board` and seeds again, with the next seed of its stream, until a board
 holds three to five words, up to five seedings (`SessionOptions::max_seedings`).
 The corpus is the same test phase and the sizes the first release plays: 100
@@ -528,9 +528,9 @@ What it says:
   3x3's misses here are an upper bound, and the 4x4's 0 is not a promise for a
   smaller index.
 
-**Standard board: the game session.** The default mode. `wjs::GameSession` over
-the project's dice (`wjs::DiceSets`, `data/dice`) and the full dictionary deals a
-board with `wjs::deal_standard_board`: it rolls the dice of the chosen size and
+**Standard board: the game session.** The default mode. `sns::GameSession` over
+the project's dice (`sns::DiceSets`, `data/dice`) and the full dictionary deals a
+board with `sns::deal_standard_board`: it rolls the dice of the chosen size and
 solves the roll, and rolls again, with the next seed of its stream, until the board
 holds a word, up to 20 rolls (`SessionOptions::max_rolls`). It lands no range of
 words. The corpus is the dice rows' seeds, 100 sessions each of 3x3, 4x4, 5x5 and 6x6,
@@ -700,19 +700,19 @@ debug, Tracy or coverage build and the `offscreen` platform.
 | `frame.over33` | 0 | The same, counted: no frame in the measured window is over it |
 
 A report with no refresh rate is held to 60 Hz. The check is
-`apps/app/tests/unit/frame_timing_test.cpp`: it runs `WordJewelsSolver --smoke 240` in a
+`apps/app/tests/unit/frame_timing_test.cpp`: it runs `SnapAndSpell --smoke 240` in a
 child process, reads the report's `smoke: key=value` line, requires 240 frames and
 a first frame, and compares the four numbers above. A second case, always run,
 checks the arithmetic of the budget for 60, 100 and 144 Hz and for a refresh rate
 that is not one. The frame case needs a display and a quiet machine; it carries
 the `perf` label, so a `*-perf` test preset selects it, but it **skips** unless
-`WJS_PERF_FRAME_TIMING=1` is set, which no preset and no workflow sets. So it
+`SNS_PERF_FRAME_TIMING=1` is set, which no preset and no workflow sets. So it
 **runs in no CI leg**: it is a desktop check, run alone (`RUN_SERIAL`). A window
 that cannot present a frame (exit code 3) is reported as a skip with the
 application's own sentence, not as a pass.
 
 **The first windowed frame report, 2026-10-20.** The same desktop, a Release
-build (`windows-msvc-release`), the check run as designed (`WJS_PERF_FRAME_TIMING=1`
+build (`windows-msvc-release`), the check run as designed (`SNS_PERF_FRAME_TIMING=1`
 with a real window), when the budget was still a fixed 17.0 ms median and the
 report did not yet say which screen the window was on: `frames=240, mean 16.69 ms,
 p50 19.72, p95 20.30, p99 20.37, max 22.36, over 33 ms 0, first frame 582 ms`. The
@@ -778,7 +778,7 @@ per visit, is a factor of several, which these absorb.
 
 ### What the tier does not hold
 
-Not every budget is in `wjs_perf_tests`. It is not the frame time of the
+Not every budget is in `sns_perf_tests`. It is not the frame time of the
 application's window (held opt-in, with the window and Qt, by
 `apps/app/tests/unit/frame_timing_test.cpp`: [The window's frames](#the-windows-frames)),
 the start of a sound, the speed of the OCR (it is held, as work and as ratios), the dictionary load being off the UI thread (it is not),
@@ -812,6 +812,6 @@ with the screen.
   real headers (see "A macro-free route").
 - **A profiler needs about a second to find a program that has just started**,
   and in on-demand mode what happens before it connects is not recorded, so a
-  program that is over in a tenth of a second (`wjs-cli`) cannot be captured as
-  it is. `wjs-cli --repeat <n>` exists for this; the zones of the application
+  program that is over in a tenth of a second (`sns-cli`) cannot be captured as
+  it is. `sns-cli --repeat <n>` exists for this; the zones of the application
   will not have the problem. See [Profiling](../profiling.md#capturing-a-trace).

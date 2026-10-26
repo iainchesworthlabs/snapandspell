@@ -5,7 +5,7 @@
 #include <QGuiApplication>
 #include <QStyleHints>
 
-namespace wjs::app {
+namespace sns::app {
 
 SystemMotion::SystemMotion(QObject* parent) : QObject(parent) {
     const auto* style = QGuiApplication::styleHints();
@@ -28,4 +28,4 @@ void SystemMotion::update(bool reduced) {
     emit reducedChanged();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

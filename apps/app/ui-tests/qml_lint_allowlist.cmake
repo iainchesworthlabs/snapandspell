@@ -10,28 +10,28 @@
 # (the parent-screens stream), scan/ (Mode A).
 #
 # Regenerate the current counts (to see what is left) with
-#   cmake -DREPO_ROOT=<root> -DALLOWLIST=<a file holding set(WJS_ALLOW_PIXEL_SIZE)> \
+#   cmake -DREPO_ROOT=<root> -DALLOWLIST=<a file holding set(SNS_ALLOW_PIXEL_SIZE)> \
 #         -DREPORT=<out.txt> -P apps/app/ui-tests/check_qml_literals.cmake
 
-set(WJS_ALLOW_PIXEL_SIZE
+set(SNS_ALLOW_PIXEL_SIZE
 )
 
-set(WJS_ALLOW_LETTER_SPACING
+set(SNS_ALLOW_LETTER_SPACING
 )
 
-set(WJS_ALLOW_HEX_COLOUR
+set(SNS_ALLOW_HEX_COLOUR
 )
 
-set(WJS_ALLOW_BARE_TEXT
+set(SNS_ALLOW_BARE_TEXT
     "solo/FlatBoard.qml=1"
 )
 
-set(WJS_ALLOW_DISABLED_OPACITY
+set(SNS_ALLOW_DISABLED_OPACITY
 )
 
-set(WJS_ALLOW_GOLD_SELECTION
+set(SNS_ALLOW_GOLD_SELECTION
 )
 
-set(WJS_ALLOW_ICON_ONLY
+set(SNS_ALLOW_ICON_ONLY
 )
 

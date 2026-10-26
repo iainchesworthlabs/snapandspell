@@ -2,15 +2,15 @@
 # ---------------------------------------------------------------------------
 # CompilerWarnings.cmake
 #
-# Defines an INTERFACE target `wjs::warnings`: the shared strict warning set
+# Defines an INTERFACE target `sns::warnings`: the shared strict warning set
 # (icl::warnings, warnings as errors) plus this project's own additions. Link it
 # PRIVATE-ly into every first-party target (library, app, tests). Third-party code
 # (Qt, vcpkg packages) is pulled in as SYSTEM headers by their package configs, so
 # these flags never fire on dependency code.
 # ---------------------------------------------------------------------------
 
-add_library(wjs_warnings INTERFACE)
-add_library(wjs::warnings ALIAS wjs_warnings)
+add_library(sns_warnings INTERFACE)
+add_library(sns::warnings ALIAS sns_warnings)
 
 # MSVC's static analyzer, run as part of the compile rather than beside it. It
 # is opt-in because it costs several times a normal compile; the nightly
@@ -19,25 +19,25 @@ add_library(wjs::warnings ALIAS wjs_warnings)
 # warning. SARIF is what GitHub's code scanning ingests; /analyze:external- keeps
 # the report to this repository's code, and CMake marks imported targets'
 # headers as external so Qt and Catch2 are skipped too.
-option(WJS_ENABLE_MSVC_ANALYSIS
+option(SNS_ENABLE_MSVC_ANALYSIS
     "Run MSVC's static analyzer (/analyze) during compilation" OFF)
-if(WJS_ENABLE_MSVC_ANALYSIS)
+if(SNS_ENABLE_MSVC_ANALYSIS)
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         message(FATAL_ERROR
-            "WJS_ENABLE_MSVC_ANALYSIS needs the MSVC compiler: clang-cl has "
+            "SNS_ENABLE_MSVC_ANALYSIS needs the MSVC compiler: clang-cl has "
             "no /analyze, and clang-tidy is the analyzer for every other "
             "compiler (docs/ci.md).")
     endif()
-    target_compile_options(wjs_warnings INTERFACE
+    target_compile_options(sns_warnings INTERFACE
         "$<$<CXX_COMPILER_ID:MSVC>:/analyze;/analyze:external-;/analyze:log:format:sarif>")
 endif()
 
 # The warning set is icl::warnings (cmake/icl/IclWarnings.cmake): -Wall -Wextra -Wpedantic -Werror
 # and the classes of mistake (shadowing, dubious conversions, missing overrides) that a generator
-# is most likely to introduce, /W4 /WX /permissive- for MSVC. wjs::warnings adds what is this
+# is most likely to introduce, /W4 /WX /permissive- for MSVC. sns::warnings adds what is this
 # project's own: the MSVC analyzer above and the Qt header handling below.
 include("${CMAKE_CURRENT_LIST_DIR}/icl/IclWarnings.cmake")
-target_link_libraries(wjs_warnings INTERFACE icl::warnings)
+target_link_libraries(sns_warnings INTERFACE icl::warnings)
 
 # ---------------------------------------------------------------------------
 # Qt's headers are third-party code, and the QML compiler's generated C++ (qmltc)
@@ -50,7 +50,7 @@ target_link_libraries(wjs_warnings INTERFACE icl::warnings)
 # Called once Qt has been found (top-level CMakeLists.txt); a no-op for every
 # other compiler, whose generators do the right thing.
 # ---------------------------------------------------------------------------
-function(wjs_treat_qt_headers_as_system)
+function(sns_treat_qt_headers_as_system)
     if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
             AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
         return()
@@ -79,7 +79,7 @@ function(wjs_treat_qt_headers_as_system)
     endforeach()
     list(REMOVE_DUPLICATES _directories)
     foreach(_directory IN LISTS _directories)
-        target_compile_options(wjs_warnings INTERFACE
+        target_compile_options(sns_warnings INTERFACE
             "$<$<COMPILE_LANGUAGE:CXX>:SHELL:/imsvc \"${_directory}\">")
     endforeach()
 endfunction()

@@ -5,17 +5,17 @@
 #include <string>
 #include <string_view>
 
-#include "wjs/platform/fatal_error.hpp"
+#include "sns/platform/fatal_error.hpp"
 
 // Emscripten's EM_ASM names its arguments $0, $1 ...; clang calls a dollar in an identifier an
 // extension and the project's warnings are errors.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 // A page has no console a person looks at: the message goes to the browser's console, where a
-// bug report can quote it, and into the page's status line (wjs-boot.js's #status, which is
+// bug report can quote it, and into the page's status line (sns-boot.js's #status, which is
 // what the person sees in place of the game), as text and never as markup. There is no dialog:
 // alert() blocks the page and a program that cannot start has nothing else to show.
 void show_fatal_error(std::string_view title, std::string_view message,
@@ -37,6 +37,6 @@ void show_fatal_error(std::string_view title, std::string_view message,
     // clang-format on
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform
 
 #pragma clang diagnostic pop

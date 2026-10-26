@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scan/stroke_font.hpp"
+#include "sns/scan/stroke_font.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string_view>
 
-namespace wjs::scan {
+namespace sns::scan {
 
 namespace {
 
@@ -241,4 +241,4 @@ double distance_to_strokes(std::span<const Stroke> strokes, Point p) noexcept {
     return best;
 }
 
-}  // namespace wjs::scan
+}  // namespace sns::scan

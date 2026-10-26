@@ -10,9 +10,9 @@
 #include <vector>
 
 #include "scene.hpp"
-#include "wjs/scan/reading.hpp"
+#include "sns/scan/reading.hpp"
 
-namespace wjs::scan::synth {
+namespace sns::scan::synth {
 
 // What is counted over a set of frames. The tile figures are over the frames in
 // which the board was found.
@@ -103,4 +103,4 @@ struct TileRecord {
 [[nodiscard]] Tally with_thresholds(const std::vector<TileRecord>& records, double min_score,
                                     double min_margin);
 
-}  // namespace wjs::scan::synth
+}  // namespace sns::scan::synth

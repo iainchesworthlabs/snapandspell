@@ -1,6 +1,6 @@
 # Architecture
 
-WordJewelsSolver is a small library of game logic with thin front ends on top
+SnapAndSpell is a small library of game logic with thin front ends on top
 of it, and a separate layer for the few things that differ between operating
 systems. This page says what is there. What is not built yet is listed at the
 end and in the [roadmap](roadmap.md).
@@ -9,8 +9,8 @@ end and in the [roadmap](roadmap.md).
 
 ```text
 libs/
-  core/                wjs:: the game logic. GUI-free and OS-free
-    include/wjs/         board.hpp  dice.hpp  dice_sets.hpp  dictionary.hpp  scoring.hpp  solver.hpp
+  core/                sns:: the game logic. GUI-free and OS-free
+    include/sns/         board.hpp  dice.hpp  dice_sets.hpp  dictionary.hpp  scoring.hpp  solver.hpp
                          path.hpp  phase_data.hpp  seeding.hpp  deal.hpp
                          grapheme_binder.hpp  shake.hpp  game_rules.hpp
                          game_session.hpp  sound_it_out.hpp
@@ -28,18 +28,18 @@ libs/
                          parent_gate.cpp  dashboard.cpp
                          feedback.cpp  motion.cpp  version.cpp
                          ascii.hpp  draw.hpp (internal)
-    variants/            profiling-enabled/wjs/profiling.hpp   (Tracy behind it)
-                         profiling-disabled/wjs/profiling.hpp  (empty)
-  scan/                wjs::scan: finds a board in a camera frame and reads its
-                       letters. Portable and Qt-free; links wjs::lib for Board
-    include/wjs/scan/    frame.hpp  image.hpp  geometry.hpp  segment.hpp
+    variants/            profiling-enabled/sns/profiling.hpp   (Tracy behind it)
+                         profiling-disabled/sns/profiling.hpp  (empty)
+  scan/                sns::scan: finds a board in a camera frame and reads its
+                       letters. Portable and Qt-free; links sns::lib for Board
+    include/sns/scan/    frame.hpp  image.hpp  geometry.hpp  segment.hpp
                          board_finder.hpp  stroke_font.hpp  glyph_reader.hpp
                          reading.hpp  reader.hpp  confirmation.hpp  work.hpp
     src/                 board_finder.cpp  confirmation.cpp  geometry.cpp
                          glyph_reader.cpp  image.cpp  reader.cpp  segment.cpp
                          stroke_font.cpp  scratch.hpp (internal)
   platforms/           everything that differs between operating systems
-    interfaces/wjs/platform/
+    interfaces/sns/platform/
                          console.hpp  paths.hpp  camera.hpp  board_reader.hpp  haptics.hpp
                          fatal_error.hpp  window_chrome.hpp
     detail/              what no platform differs in: camera_unavailable.cpp,
@@ -53,8 +53,8 @@ libs/
                          Assets.xcassets, verify_ipa.sh): written, never run on a device
     posix/               console_posix.cpp (shared by Linux, macOS and iOS)
 apps/
-  cli/                 src/main.cpp: wjs-cli
-  app/                 the Qt Quick application (WordJewelsSolver; WJS_BUILD_APP=AUTO)
+  cli/                 src/main.cpp: sns-cli
+  app/                 the Qt Quick application (SnapAndSpell; SNS_BUILD_APP=AUTO)
     qml/Main.qml         the window: a shell that shows the screen Navigation names
     qml/Home.qml         home (HomeWording.qml: its sentences)
     qml/kit/             Theme (the tokens), Navigation, Feedback, and the parts the
@@ -94,15 +94,15 @@ apps/
                            also has its CameraPreview.qml)
       scan/                assist_game.* (the Qt-free Mode A port and its maker),
                            assist_model.* and scan_model.* (the QML models), CMake
-                           for the WordJewelsSolver.Scan module
+                           for the SnapAndSpell.Scan module
       parent/              the parent area's controller and its QML module (CMake)
       prototype/shake/     ShakePrototype, the harness around the same scene for timing,
-                           stills and measurement (WJS_BUILD_SHAKE_PROTOTYPE)
-      language_manager.*   the interface's language and layout direction (wjs_i18n)
+                           stills and measurement (SNS_BUILD_SHAKE_PROTOTYPE)
+      language_manager.*   the interface's language and layout direction (sns_i18n)
       system_colour_scheme.*  whether the system is in dark mode
       system_motion.*      whether the system asks for reduced motion
       frame_profiler.*     the window's frame mark and plots
-    translations/        wjs_<code>.ts, the eight languages' catalogues
+    translations/        sns_<code>.ts, the eight languages' catalogues
 assets/                fonts/ (Pixelify Sans, Silkscreen, Andika: compiled into the program),
                        icon/, and sounds/ (the project's eight placeholder feedback WAVs)
 data/                  dice/ (3x3 to 6x6), dictionaries/en.txt (ENABLE), lexicon/
@@ -118,7 +118,7 @@ tests/                 the repository's own checks: system/  checks/  platform/ 
                        libs/scan/tests, apps/app/tests/unit (parent_ui/, scan_ui/),
                        apps/app/tests/prototype, apps/app/ui-tests)
 tools/checks/          check_platform_isolation.ps1
-tools/scan/            render_corpus.cpp: wjs_scan_render, writes the synthetic corpus
+tools/scan/            render_corpus.cpp: sns_scan_render, writes the synthetic corpus
 tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
                        make_dice.ps1
 tools/sounds/          make_sounds.ps1: writes assets/sounds/*.wav, checked by data.sounds
@@ -133,12 +133,12 @@ tools/coverage/, design/, policy/, repo/, hooks/
 ## How the pieces depend on each other
 
 ```text
- wjs-cli      WordJewelsSolver (window)      wjs_unit_tests
+ sns-cli      SnapAndSpell (window)      sns_unit_tests
       \                |                     /
        +---------------+---------------------+
        |                                     |
        v                                     v
-   wjs::lib  <---- wjs::scan  <----    wjs::platform
+   sns::lib  <---- sns::scan  <----    sns::platform
    board, dictionary, scoring,    finds a board in a      one implementation of each
    solver, path, phase data,      frame and reads it      interfaces/ header, chosen
    seeding, grapheme binder,      (no dependency)         by CMake
@@ -146,24 +146,24 @@ tools/coverage/, design/, policy/, repo/, hooks/
    game session
 ```
 
-- **`wjs::lib`** (target `wjs_lib`, a static library) includes no operating
-  system header and no Qt. It links `wjs::profiling` PUBLIC, which carries
-  Tracy's client in a Debug or profiling build (`WJS_ENABLE_TRACY`, on by default
+- **`sns::lib`** (target `sns_lib`, a static library) includes no operating
+  system header and no Qt. It links `sns::profiling` PUBLIC, which carries
+  Tracy's client in a Debug or profiling build (`SNS_ENABLE_TRACY`, on by default
   for Debug only) and nothing but an empty header otherwise, and the warning,
   sanitizer and coverage settings PRIVATE: in a Release build that is the
   warnings and nothing else. Everything that decides what a board scores lives
   here.
-- **`wjs::platform`** (target `wjs_platform`, a static library) is the only
+- **`sns::platform`** (target `sns_platform`, a static library) is the only
   target that includes OS headers. Its public interface is the headers in
   `libs/platforms/interfaces/`; its sources are whichever files the selected
   platform's `platform.cmake` names. The library does not use it.
-- **`wjs::scan`** (target `wjs_scan`, a static library) finds a board in a camera
+- **`sns::scan`** (target `sns_scan`, a static library) finds a board in a camera
   frame and reads each die's letter. It includes no operating system header and no
   Qt, and **adds no third-party dependency** (`vcpkg.json` is unchanged). It links
-  `wjs::lib` for `Board` and nothing else; `wjs::lib` does not link it, so the
-  solver stays free of image code. `wjs::platform` links it, because the camera and
+  `sns::lib` for `Board` and nothing else; `sns::lib` does not link it, so the
+  solver stays free of image code. `sns::platform` links it, because the camera and
   `board_reader` interfaces are written in terms of its frame and reading types.
-- **The front ends** link both. `wjs-cli` and the window ask the platform layer
+- **The front ends** link both. `sns-cli` and the window ask the platform layer
   where the executable is (to find a word list beside it) and, in the CLI, to
   put the console in UTF-8; they hand everything else to the library.
 
@@ -172,7 +172,7 @@ How CMake picks the platform and keeps the OS out of the source is in
 
 ## The library
 
-All of it is in `namespace wjs`.
+All of it is in `namespace sns`.
 
 ### Board
 
@@ -231,10 +231,10 @@ not depend on the path.
 
 Pruning by the trie is what keeps the search small; there is no other
 optimisation. The search counts its **visits**, the tile steps that stayed
-inside the trie, and `wjs/solver_work.hpp` tallies them per thread, once per
+inside the trie, and `sns/solver_work.hpp` tallies them per thread, once per
 solve; the performance tests hold budgets on that count
 ([Testing](testing.md#performance-tests)). The grapheme binder tallies its
-comparisons the same way (`wjs/binder_work.hpp`), once per bind, and the seeding
+comparisons the same way (`sns/binder_work.hpp`), once per bind, and the seeding
 reports its verifications and solves in its result. On the corpus of 3x3 to 6x6 boards
 the worst solve is about 5,200 visits and 0.9 ms; a 6x6 built to hold 1,788
 words is about 9,400 visits and 1.6 ms. Nothing larger than 6x6 has been
@@ -242,13 +242,13 @@ measured.
 
 ### Profiling
 
-`wjs/profiling.hpp` is the one place the code asks to be timed: `zone<"name">()`,
+`sns/profiling.hpp` is the one place the code asks to be timed: `zone<"name">()`,
 `frame_mark()`, `plot()`, `message()`, `thread_name()` and the run-time-named
 `RuntimeScope`, as functions and not macros. There are two files of that name
 under `libs/core/variants/`, one with Tracy behind it and one empty, and CMake puts
-exactly one on the include path through `wjs::profiling` (which `wjs::lib`
+exactly one on the include path through `sns::profiling` (which `sns::lib`
 carries publicly), so no source asks which it got. A Release build has the empty
-one: `WJS_ENABLE_TRACY` defaults to on for Debug and off otherwise, and no preset
+one: `SNS_ENABLE_TRACY` defaults to on for Debug and off otherwise, and no preset
 a package is built from turns it on (`profiling.shipped_presets`).
 
 The application is instrumented as well: `apps/app/src/frame_profiler.cpp` sends the
@@ -256,7 +256,7 @@ window's frame mark (`UI`), the plots `ui.frame_ms`, `ui.first_frame_ms`,
 `render.frame_ms` and `ui.sync_ms`, names the render thread, and keeps the
 rolling report the `--smoke` mode prints; `apps/app/src/scene/profiler.cpp` is the
 `Profiler` QML singleton the scene and the screens open their zones with, over
-`wjs::profiling::RuntimeScope` (a transient zone, so a name from QML carries its
+`sns::profiling::RuntimeScope` (a transient zone, so a name from QML carries its
 own location: function and file `QML`, line 0). Both are described in
 [Profiling](profiling.md), with the zones and the smoke mode.
 
@@ -385,7 +385,7 @@ pure function of the phase data, the options, the recent targets and a seed:
    agrees, leaving room for the dead jewels.
 3. **Fill** the other tiles: `dead_cells` of them with the dead letter, the rest
    from the filler (the phase's alphabet by default).
-4. **Verify** with `wjs::solve` against the phase's dictionary. Three to five
+4. **Verify** with `sns::solve` against the phase's dictionary. Three to five
    words is kept. Otherwise another board is made, up to `max_tries` (20)
    verifications in all, and the nearest is returned with `fallback` set.
 
@@ -512,9 +512,9 @@ and none is meant to be dealt: the board is decided and checked before the
 shake, so a child never lands on one (the author, 2026-10-16). A phonics board
 always holds its planted targets, so `seed_board` already keeps to that (a case
 pins it); the standard board's deal does it with `deal_playable`, below, and
-`deal_standard_board`, which is that over `wjs::roll`.
+`deal_standard_board`, which is that over `sns::roll`.
 
-**The deal** (`wjs/deal.hpp`). `deal_playable(words, make_board, seed, options)` calls
+**The deal** (`sns/deal.hpp`). `deal_playable(words, make_board, seed, options)` calls
 `make_board(seed)`, solves what it made with `viable_words`, and keeps the first
 board that holds `options.min_viable` words (default 1); otherwise it asks
 `make_board` again with `next_deal_seed`, the first output of `std::mt19937`
@@ -526,8 +526,8 @@ the seed of the one kept. Nothing is thrown: a zero `min_viable` or `max_rolls`,
 or no maker, is `DealError::bad_options`; a maker that fails ends the deal as
 `bad_board`; `max_rolls` boards with none holding enough words is `no_board`.
 
-`deal_standard_board(dice, words, seed, options)` is that over `wjs::roll`, with
-a `DiceError` read as `bad_board`. It is needed because `wjs::roll` does not
+`deal_standard_board(dice, words, seed, options)` is that over `sns::roll`, with
+a `DiceError` read as `bad_board`. It is needed because `sns::roll` does not
 look at what it rolled: measured 2026-10-16 with the project's dice and the full
 dictionary, 3,830 of 100,000 3x3 rolls (3.8%) and 30 of 20,000 4x4 rolls
 (0.15%) hold no word of three letters or more, and none of 5,000 5x5 or 2,000
@@ -540,9 +540,9 @@ on [Testing](testing.md#game-rules-what-is-pinned).
 ### Game session
 
 `game_session.hpp` is the state machine of Solo Play (Mode B) that the screens
-bind to. One class, `wjs::GameSession`, deals a board, takes a traced path and
+bind to. One class, `sns::GameSession`, deals a board, takes a traced path and
 answers it, keeps the finds and says when the board is cleared. It plays either
-**board mode** (`SessionOptions::mode`, which is `wjs::BoardMode` and the parent's
+**board mode** (`SessionOptions::mode`, which is `sns::BoardMode` and the parent's
 switch, `Settings::board`): the **standard board**, the default (decided 2026-10-16),
 a roll of the project's dice at 3x3 to 6x6 against the full dictionary; and the
 **phonics board**, the seeded 3x3 and 4x4 of a phase against that phase's words.
@@ -563,9 +563,9 @@ own and ignores the other, so an app that holds both hands both over and lets th
 parent's switch choose.
 
 ```cpp
-const wjs::SessionData data{.dictionary = english, .dice = &dice, .phase = &phase};
-auto session = wjs::GameSession::create(data, {.mode = settings.board,
-                                               .size = wjs::BoardSize::three,
+const sns::SessionData data{.dictionary = english, .dice = &dice, .phase = &phase};
+auto session = sns::GameSession::create(data, {.mode = settings.board,
+                                               .size = sns::BoardSize::three,
                                                .seed = random_seed});
 session->shake();                         // box -> shaking: the board is dealt here
 session->still(); session->landed();      // shaking -> dropping -> playing
@@ -681,7 +681,7 @@ done: a refusal leaves the session in the box. `last_deal()` reports how it went
 (`DealReport`).
 
 - **Standard.** The dice of the size chosen on the box (`DiceSets::find`) are rolled
-  with `wjs::deal_standard_board` (`wjs::roll`, and a solve of the roll against the
+  with `sns::deal_standard_board` (`sns::roll`, and a solve of the roll against the
   dictionary; rolled again with `next_deal_seed` of the last seed until the board holds
   a word, up to `SessionOptions::max_rolls`, 20). With the project's dice and the full
   dictionary 3.8% of 3x3 rolls and 0.15% of 4x4 rolls hold none, and no 5x5 or 6x6 did
@@ -762,11 +762,11 @@ and kept beside the new one, a damaged file is moved aside whole and never
 overwritten, and a newer file is left alone and not saved over. A save is written
 whole and renamed into place. The game session hands it plain values
 (`BoardSnapshot`, `SavedSession`), and a find's moment is a `Day` from
-`wjs/calendar.hpp` (days since 1970-01-01, the device's calendar, with the week by
+`sns/calendar.hpp` (days since 1970-01-01, the device's calendar, with the week by
 the locale's first day). Where the file goes: the program asks Qt for its per-user application-data
 directory (`QStandardPaths::AppLocalDataLocation`, which follows the app's
-organisation name on every platform) and keeps `wjs::default_store_path` of it,
-falling back to `wjs::platform::user_data_directory()` only if Qt gives none, to a
+organisation name on every platform) and keeps `sns::default_store_path` of it,
+falling back to `sns::platform::user_data_directory()` only if Qt gives none, to a
 store that is never written if there is no place at all, and to the file
 `--store <file>` names when the person gives one (`open_store` in
 `apps/app/src/main.cpp`).
@@ -777,7 +777,7 @@ See [The parent area as built](design/parent-area.md#the-store).
 
 ### The parent gate
 
-`Gate` (`wjs/parent_gate.hpp`) is the rule of the parental gate as logic: two touches,
+`Gate` (`sns/parent_gate.hpp`) is the rule of the parental gate as logic: two touches,
 one in each of two circles a diagonal apart, held two seconds; any other touch, a lift
 or a slide out starts the hold over. It has no clock of its own: it is told the time
 with each touch. An accessibility action opens it with no hold.
@@ -801,7 +801,7 @@ no sounds.
 
 ### The scanner
 
-`wjs::scan` (`libs/scan`) reads a real board for Mode A: `read_board(frame, options)`
+`sns::scan` (`libs/scan`) reads a real board for Mode A: `read_board(frame, options)`
 finds the board in a camera frame (the largest convex quadrilateral of a lattice of
 dice), draws it square, counts and centres the cells, and reads each cell's one
 rotated glyph by template matching against the project's own stroke font, answering a
@@ -828,15 +828,15 @@ opened) is a `std::expected<T, E>` value with a small enum for `E` and a
 
 ### The version header
 
-`libs/core/include/wjs/version.hpp.in` is configured by CMake into a generated
-header that holds `wjs::project_version` and `wjs::target_platform` as
+`libs/core/include/sns/version.hpp.in` is configured by CMake into a generated
+header that holds `sns::project_version` and `sns::target_platform` as
 `constexpr` values. That is how the version and the name of the platform reach
-the code without a macro, and why `wjs-cli --version` can print them.
+the code without a macro, and why `sns-cli --version` can print them.
 
 ## The platform layer
 
 An OS service the program needs is declared in a header under
-`libs/platforms/interfaces/wjs/platform/`, and defined once per platform:
+`libs/platforms/interfaces/sns/platform/`, and defined once per platform:
 
 | Interface | What it does | Windows | Linux | macOS |
 | --- | --- | --- | --- | --- |
@@ -871,7 +871,7 @@ is the page for the lifecycle, the RGB24 conversion and what was verified.
 
 ## The Qt Quick window
 
-`apps/app/src` is the Qt Quick application. `WJS_BUILD_APP` is `AUTO`: it is built
+`apps/app/src` is the Qt Quick application. `SNS_BUILD_APP` is `AUTO`: it is built
 when a prebuilt Qt 6.12 is found, left out when there is none, and `ON`/`OFF`
 force that choice. It plays both modes of
 [Application design](design/application.md) and [Game design](design/game.md).
@@ -901,7 +901,7 @@ GPL-3.0-or-later like everything else.
 
 The board scene's board is `{ rows, columns, tiles, faces, up }`: for each tile,
 its letters, the six faces of the die that is on it and which of them is up,
-from `wjs::roll_with_placements` of the dealt board's seed. The pixel scene draws
+from `sns::roll_with_placements` of the dealt board's seed. The pixel scene draws
 the tile's letter upright and ignores the faces, so a board that was not rolled
 from dice (the phonics board, a game the store brought back, the fake game) is
 drawn like any other. `SoloScreen` makes the scene with an asynchronous Loader
@@ -910,17 +910,17 @@ when Solo Play is first shown and keeps it, so it is not created on the Shake pr
 | Layer | Where | What it is |
 | --- | --- | --- |
 | The port | `solo/solo_game.hpp` | `SoloGame`, a Qt-free abstract class in the names of the game design: the states of the flow (box, shaking, dropping, playing, cleared, resting), `shake`, `settled`, `submit(path)` answered as viable, real-but-not-today's or not-a-word (the last two carry no word), `startTile`, `lidOn`, `again`, the tray and the history. It decides nothing |
-| The real game | `solo/real_solo_game.*` | `RealSoloGame`, the port over `wjs::GameSession`: it turns the session's names into the port's and is the one place that hands the session's records to the store. It plays either board: the standard board (dice, no phase, no blocks) by default, or the phonics board. It decides nothing. See *Wiring the library's session* below |
+| The real game | `solo/real_solo_game.*` | `RealSoloGame`, the port over `sns::GameSession`: it turns the session's names into the port's and is the one place that hands the session's records to the store. It plays either board: the standard board (dice, no phase, no blocks) by default, or the phonics board. It decides nothing. See *Wiring the library's session* below |
 | The setup | `solo/solo_game_setup.*` | `SoloGameSetup`: loads the word list always and the dice of the standard board, and the phases of a data directory when one is given, owns them for the run, holds the program's store by reference, and makes a `RealSoloGame` from the parent's settings. Qt-free |
 | The fake | `solo/fake_solo_game.*` | A stand-in for the library's session, for the tests. Its words are test data: today's are the five early-reader words the design names, a few more are real, and the boards are two fixed grids turned by the seed. It publishes no phonics list |
 | The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile and the help's steps, the board clock, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue`. When the parent changes the store (`storeEdited()`), it takes its next game from the program's maker |
 | The touch logic | `solo/path_tracer.*` | Trace and tap in order, both always on. A hit circle smaller than the tile and a larger one it must leave, so a diagonal slide takes the diagonal tile and a wobble near an edge does nothing; a fast move is walked in small steps so no tile is jumped; sliding back takes the last tile off; lifting outside the board cancels; a tapped path ends with the last tile tapped again or the Done jewel; a trace may carry on from a tapped path; a dead jewel is never in a path. The radii are starting values for a small finger and are the one thing the tests cannot settle |
 | The layout rule | `solo/board_layout.*`, `solo/solo_layout.*` | [Board design](design/board.md#layouts-and-sizes) as a pure function, tested on the page's reference windows, and one copy for the screens and the scene. A size is offered only if its tile is 48 dp or more |
 | The board scene | `qml/solo/BoardScene.qml`, `SceneDie.qml`, `SceneScript.js` | One component: given a finished board and a seed, play the shake, the lid and the drop and say when the dice are settled. 2D pixel art in Qt Quick alone (DESIGN.md, "Motion"): the closed box hops in stepped jumps, the lid lifts in four steps and each die falls through six frames; the poses are pure functions of the board size, the seed and the time (`SceneScript.js`, held by `scene_script_test.cpp`). It draws with the kit's tile, tray and well, so the cross-fade to the flat board changes nothing. Built once behind home by `SoloScreen`'s Loader and kept. `app.scene_contract` holds it and the stub of the Quick Test suites to the interface list |
-| The Mode A port | `scan/assist_game.*` | `AssistGame`, Qt-free: a board a grown-up confirmed, the English dictionary as both the words that count and the words that tell a real word from a string of letters (the standard board's word set, with no block list, so every real word counts and `real_not_todays` never arises; a second constructor takes a phase index's words and nothing in the program calls it), and the store. `wjs::classify_path` answers viable, real-but-not-today's or not-a-word (the last two carry no word); `FoundWords` keeps the tray; `wjs::start_tile_help` answers the one help with a tile, never the word; `leave()` records the board in the store's standard-board form (`viable_total`, no phase) with each find's day and whether the start tile was shown |
+| The Mode A port | `scan/assist_game.*` | `AssistGame`, Qt-free: a board a grown-up confirmed, the English dictionary as both the words that count and the words that tell a real word from a string of letters (the standard board's word set, with no block list, so every real word counts and `real_not_todays` never arises; a second constructor takes a phase index's words and nothing in the program calls it), and the store. `sns::classify_path` answers viable, real-but-not-today's or not-a-word (the last two carry no word); `FoundWords` keeps the tray; `sns::start_tile_help` answers the one help with a tile, never the word; `leave()` records the board in the store's standard-board form (`viable_total`, no phase) with each find's day and whether the start tile was shown |
 | The Mode A models | `scan/scan_model.*`, `scan/assist_model.*` | `ScanModel` owns the `BoardDraft` the check screen corrects, the doubtful tiles and the reader's alternatives, the board size, and the camera's little lifecycle: it starts the camera only on `scan.ready`, takes one frame (from the application's `CameraSource` when it is supplied, otherwise from the platform interface), stops the camera as soon as the frame is in hand, reads it through `board_reader` on a worker thread named `scan` (a `QThreadPool` of one), and only a grown-up's `confirm()` makes a `Board`. `AssistModel` is the assistant's board as Qt Quick wants it: tiles, the traced path (`PathTracer`, the same touch logic as Solo Play), the tray, the start tile and the cues. It is made by QML and asks `make_assist_game()` for its round, which `main.cpp` installs over the program's one dictionary and store |
-| The Mode A screens | `qml/scan/`, the module `WordJewelsSolver.Scan` (`scan/`) | `ScanScreen` (`scan.ready`, `scan.reading`, `scan.check` on one screen, the check in `CheckScreen.qml`), `AssistScreen`, `AssistBoard` and `AssistHistory` (`assist.playing`, the two-thirds/one-third split of `SoloLayout`, the tray, the start tile, earlier boards, New board), and `ScanWording` (every sentence and accessible name, in all eight languages). The camera is on only while `scan.ready` is on screen; every frame is read on the device and none is kept (docs/design/scanner.md, "Privacy, built in and checked"). On a device with a camera its live picture is shown in the frame; with none (a desktop without a webcam, or a kit without Qt Multimedia) the absence is said in words and "Type in your board" opens the check screen with an empty 4x4 |
-| The camera | `camera/`, the module `WordJewelsSolver.Scan` (`scan/`) | `CameraSource`, a QML element over a `CameraBackend` chosen by CMake: Qt Multimedia's `QCamera`/`QMediaCaptureSession`/`QVideoSink`, or a backend that answers `no_camera`. It owns the preview and the one captured frame (RGB24, in memory), never a file. `Main.qml` makes one and hands it to `ScanModel`; a stub shell or a test supplies a fake backend instead, or none and the platform interface is used |
+| The Mode A screens | `qml/scan/`, the module `SnapAndSpell.Scan` (`scan/`) | `ScanScreen` (`scan.ready`, `scan.reading`, `scan.check` on one screen, the check in `CheckScreen.qml`), `AssistScreen`, `AssistBoard` and `AssistHistory` (`assist.playing`, the two-thirds/one-third split of `SoloLayout`, the tray, the start tile, earlier boards, New board), and `ScanWording` (every sentence and accessible name, in all eight languages). The camera is on only while `scan.ready` is on screen; every frame is read on the device and none is kept (docs/design/scanner.md, "Privacy, built in and checked"). On a device with a camera its live picture is shown in the frame; with none (a desktop without a webcam, or a kit without Qt Multimedia) the absence is said in words and "Type in your board" opens the check screen with an empty 4x4 |
+| The camera | `camera/`, the module `SnapAndSpell.Scan` (`scan/`) | `CameraSource`, a QML element over a `CameraBackend` chosen by CMake: Qt Multimedia's `QCamera`/`QMediaCaptureSession`/`QVideoSink`, or a backend that answers `no_camera`. It owns the preview and the one captured frame (RGB24, in memory), never a file. `Main.qml` makes one and hands it to `ScanModel`; a stub shell or a test supplies a fake backend instead, or none and the platform interface is used |
 | The kit | `qml/kit/` | `Theme` has every colour, size, time and type size a screen uses (light and dark, reduced motion, text scale); a screen writes none of its own, so a school font or a world is a token swap. `AppButton` has the three targets (48, 64 and 96 dp), acts on release inside it and takes the keyboard. Nothing drawn has text in it |
 
 The two-thirds and one-third split is applied to the window below a 72 dp bar
@@ -948,7 +948,7 @@ that the wording file turns into a sentence, and the typed board stays beside
 it; no frame is faked. "Type in your board" is the same draft with
 `BoardDraft::empty(4, 4)`. The check screen rings the reader's doubtful tiles,
 offers its runners-up first in the letter picker, turns the replica and changes
-the size; *Start playing* calls `ScanModel::confirm()` (the only way to a `wjs::Board`)
+the size; *Start playing* calls `ScanModel::confirm()` (the only way to a `sns::Board`)
 and hands the same plain grid to `AssistModel::begin()`, which makes the round
 through `make_assist_game()`. That is the program's maker over its one store and
 dictionary (`ScopedAssistGameMaker`, installed in `main.cpp`, like Solo Play's).
@@ -971,14 +971,14 @@ as built, what it lacks and what is untested are on
 one `FeedbackEngine` (`apps/app/src/feedback`) on the seam, and the engine carries
 the cue out as a short asset (Qt Multimedia), a whole word or a picture's name
 (the platform's Qt TextToSpeech) and a haptic pattern (the platform interface).
-The cue mapping is the library's pure `wjs::plan_cue`, and the parent's Sound,
+The cue mapping is the library's pure `sns::plan_cue`, and the parent's Sound,
 Celebration sounds, Sound it out and Vibration settings are read by the next
 cue. A build without the three Qt modules selects silent backends by CMake (the
 variant pattern), so the application still configures and builds. `MotionSource`
 over Qt Sensors feeds the scene's `pushMotion` and the pure
-`wjs::MotionProcessor`; a real shake rolls the box, and on the desktops the
+`sns::MotionProcessor`; a real shake rolls the box, and on the desktops the
 source stays unavailable and the drag stands in. The sound-it-out sequence of a
-word found on the phonics board is the library's `wjs::sound_it_out_sequence` (a pure
+word found on the phonics board is the library's `sns::sound_it_out_sequence` (a pure
 list of steps from the phase, the word and the parent's setting), walked by the
 application's `SoundSequencePlayer` through a `ClipPlayer`. **No clip exists**: the
 phoneme clips and recorded cheers are the literacy reviewer's, so the program has only
@@ -1000,7 +1000,7 @@ phonics board when the program is given a phase (below) and the parent's switch
 is on.
 
 **Wiring the library's session.** Done: `RealSoloGame` is the port over
-`wjs::GameSession`, and `make_solo_game()` in `solo/solo_game_factory.cpp` is still
+`sns::GameSession`, and `make_solo_game()` in `solo/solo_game_factory.cpp` is still
 the one place that decides which game is played. It answers with the maker the
 program installed (`ScopedSoloGameMaker`, in `main.cpp`), and with the fake when
 there is none. The mapping, which `apps/app/tests/unit/real_solo_game_test.cpp` holds down:
@@ -1056,7 +1056,7 @@ box otherwise; `play(board, seed)` is still only for a shake. So the scene's
 interface, which `app.scene_contract` holds, did not change. The run itself still
 begins on `home`: Solo Play, pressed there, opens on the board that was left.
 
-The unit of the stamp is the **day**: `wjs::Day`, days since 1970-01-01 on the
+The unit of the stamp is the **day**: `sns::Day`, days since 1970-01-01 on the
 device's calendar, which is what the store keeps of when and the most it will
 ever keep. The program gives the game a function for it (Qt's `QDate`, in
 `main.cpp`).
@@ -1070,8 +1070,8 @@ be published before that. So the phonics board is played only when the program i
 told where a phase is, and the parent's switch is on:
 
 ```text
-WordJewelsSolver [--store <file>] [--dictionary <file>] [--seed <number>]
-WordJewelsSolver --phase-directory <dir> [--phase <name>] [--dictionary <file>]
+SnapAndSpell [--store <file>] [--dictionary <file>] [--seed <number>]
+SnapAndSpell --phase-directory <dir> [--phase <name>] [--dictionary <file>]
                  [--store <file>] [--seed <number>]
 ```
 
@@ -1086,7 +1086,7 @@ cannot be read does: it does not fall back to the fake, which would hide the
 mistake.
 
 `--store` is the program's one store, with a phase or without: it defaults to the
-per-user file (`wjs::default_store_path`), and it is the file the game keeps its
+per-user file (`sns::default_store_path`), and it is the file the game keeps its
 finds in and the parent area keeps the settings in. Run against test data, give
 `--store` a file of its own, or the finds go to the store of the person's real
 profile.
@@ -1103,7 +1103,7 @@ next run. The size the child last chose on the box is written back to
 a run closed in the middle of a board shows the same board with the same finds.
 
 The parent area (the gate, the dashboard, the settings and the about page) is a QML
-module of its own, `WordJewelsSolver.Parent`, in `apps/app/src/parent` (C++) and
+module of its own, `SnapAndSpell.Parent`, in `apps/app/src/parent` (C++) and
 `apps/app/qml/parent` (screens), linked by one line of `apps/app/CMakeLists.txt`.
 `ParentController` is the shape Qt Quick wants over the library's rules, plus the
 clock; `ParentArea.qml` is one screen with a controller and a `closed()` signal. The
@@ -1116,35 +1116,35 @@ from the box by the corner button and closed back to where it came from, and bin
 size: Reduced forces reduced motion on and System follows the operating system's
 (`SystemMotion`, over Qt's `QAccessibilityHints`), while the system's text size is not
 read (Qt 6.12 does not expose it). The gate is the parent area's own. Its tests are in
-`wjs_app_tests`, and a stub shell (`apps/app/tests/unit/parent_ui`) draws the screens without a
+`sns_app_tests`, and a stub shell (`apps/app/tests/unit/parent_ui`) draws the screens without a
 display. See [The parent area as built](design/parent-area.md).
 
 ## Build targets
 
 | Target | Kind | Notes |
 | --- | --- | --- |
-| `wjs_lib` (`wjs::lib`) | static library | The game logic |
-| `wjs_platform` (`wjs::platform`) | static library | The platform's implementations; links `wjs_scan` |
-| `wjs_scan` (`wjs::scan`) | static library | The scanner: finds a board in a frame and reads it. No third-party dependency |
-| `wjs-cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
-| `WordJewelsSolver` | executable `WordJewelsSolver` | `WJS_BUILD_APP=AUTO` when Qt 6.12 is found, `ON` to require it, `OFF` to skip |
-| `wjs_scene` | static QML module (`WordJewelsSolver.Scene`) | The profiling seam: the `Profiler` singleton that opens Tracy zones from QML. Linked by `WordJewelsSolver` |
-| `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording, models and the camera source. Linked by `WordJewelsSolver` as `wjs_scan_uiplugin` |
-| `wjs_parent` | static QML module (`WordJewelsSolver.Parent`) | The parent area: the controller and the screens (the gate, the dashboard, the settings, the about page) |
-| `wjs_feedback` | static library | The sound, speech and motion engines and the sound-it-out player, over the variant backends |
-| `wjs_i18n` | static library | The interface language, the layout direction and the eight catalogues compiled from `apps/app/translations/` |
-| `wjs_trace` | static library | `PathTracer`, the touch half of making a word, shared by Solo Play's model and the assistant's |
-| `ShakePrototype` | executable `ShakePrototype` | `WJS_BUILD_SHAKE_PROTOTYPE`, with the application built; the harness around `wjs_scene` |
-| `wjs_unit_tests` | executable | Catch2 |
-| `wjs_perf_tests` | executable | Catch2; work budgets and opt-in wall-time checks, linked to `wjs::lib` and the scanner with its synthetic corpus |
-| `wjs_scan_tests` | executable | Catch2; the scanner, the camera and `board_reader` interfaces, and the corpus that holds it to its target |
-| `wjs_scan_synth` | static library | The synthetic corpus (frames of a board of dice drawn from a seed) and the counting of the target. Test tool; nothing in `src` links it |
-| `wjs_scan_render` | executable | Writes the corpus to a directory as PNG files, to look at |
-| `wjs_scan_preview` | executable | Mode A's screens in a stub shell; with `--check` the offscreen `scan.screens`, with `--camera` the camera's live view and capture `camera.screens` (a fake source and a synthetic frame). Test tool; not part of the application |
-| `wjs::tracy` | interface library | Tracy's client when `WJS_ENABLE_TRACY` is on, otherwise nothing |
-| `wjs_app_tests` | executable | Catch2, with `WJS_BUILD_APP` |
-| `wjs_quick_tests` | executable | Qt Quick Test: the QML suites in `apps/app/ui-tests`, with `WJS_BUILD_APP` |
-| `wjs::warnings`, `wjs::sanitizers`, `wjs::coverage` | interface libraries | Flags, linked into every first-party target |
+| `sns_lib` (`sns::lib`) | static library | The game logic |
+| `sns_platform` (`sns::platform`) | static library | The platform's implementations; links `sns_scan` |
+| `sns_scan` (`sns::scan`) | static library | The scanner: finds a board in a frame and reads it. No third-party dependency |
+| `sns-cli` | executable `sns-cli` | `SNS_BUILD_CLI` |
+| `SnapAndSpell` | executable `SnapAndSpell` | `SNS_BUILD_APP=AUTO` when Qt 6.12 is found, `ON` to require it, `OFF` to skip |
+| `sns_scene` | static QML module (`SnapAndSpell.Scene`) | The profiling seam: the `Profiler` singleton that opens Tracy zones from QML. Linked by `SnapAndSpell` |
+| `sns_scan_ui` | static QML module (`SnapAndSpell.Scan`) | Mode A's screens, wording, models and the camera source. Linked by `SnapAndSpell` as `sns_scan_uiplugin` |
+| `sns_parent` | static QML module (`SnapAndSpell.Parent`) | The parent area: the controller and the screens (the gate, the dashboard, the settings, the about page) |
+| `sns_feedback` | static library | The sound, speech and motion engines and the sound-it-out player, over the variant backends |
+| `sns_i18n` | static library | The interface language, the layout direction and the eight catalogues compiled from `apps/app/translations/` |
+| `sns_trace` | static library | `PathTracer`, the touch half of making a word, shared by Solo Play's model and the assistant's |
+| `ShakePrototype` | executable `ShakePrototype` | `SNS_BUILD_SHAKE_PROTOTYPE`, with the application built; the harness around `sns_scene` |
+| `sns_unit_tests` | executable | Catch2 |
+| `sns_perf_tests` | executable | Catch2; work budgets and opt-in wall-time checks, linked to `sns::lib` and the scanner with its synthetic corpus |
+| `sns_scan_tests` | executable | Catch2; the scanner, the camera and `board_reader` interfaces, and the corpus that holds it to its target |
+| `sns_scan_synth` | static library | The synthetic corpus (frames of a board of dice drawn from a seed) and the counting of the target. Test tool; nothing in `src` links it |
+| `sns_scan_render` | executable | Writes the corpus to a directory as PNG files, to look at |
+| `sns_scan_preview` | executable | Mode A's screens in a stub shell; with `--check` the offscreen `scan.screens`, with `--camera` the camera's live view and capture `camera.screens` (a fake source and a synthetic frame). Test tool; not part of the application |
+| `sns::tracy` | interface library | Tracy's client when `SNS_ENABLE_TRACY` is on, otherwise nothing |
+| `sns_app_tests` | executable | Catch2, with `SNS_BUILD_APP` |
+| `sns_quick_tests` | executable | Qt Quick Test: the QML suites in `apps/app/ui-tests`, with `SNS_BUILD_APP` |
+| `sns::warnings`, `sns::sanitizers`, `sns::coverage` | interface libraries | Flags, linked into every first-party target |
 
 ## Limits of what exists
 
@@ -1172,7 +1172,7 @@ These do not exist, and nothing in the tree stands in for them:
   which carries the same Qt Multimedia camera, has not run on a device either); the iPad's
   `AVCaptureSession` backend and the platform interface's implementations are
   still not written. Mode A's screens and its **typed-board fallback are built**
-  (`qml/scan`, the module `WordJewelsSolver.Scan`), so a desktop without a
+  (`qml/scan`, the module `SnapAndSpell.Scan`), so a desktop without a
   webcam is complete: a person types the board the family is playing.
 - **Reading letters from a real picture.** The reader exists and is measured on
   synthetic frames only ([Scanner design](design/scanner.md#what-was-measured)).
@@ -1183,7 +1183,7 @@ These do not exist, and nothing in the tree stands in for them:
   shake detector, the game rules and the game session exist and are tested, and **the
   window uses them**: `SoloGameSetup` (`apps/app/src/solo/solo_game_setup.cpp`) loads the
   word list, the dice and, given `--phase-directory`, the phases, and `RealSoloGame`
-  (`real_solo_game.cpp`) plays them through `wjs::GameSession`, which calls the deal,
+  (`real_solo_game.cpp`) plays them through `sns::GameSession`, which calls the deal,
   the seeding, the rules and the binder. The standard board is played by default; the
   phonics board only with phase files. **No phase file exists** in the repository, and
   none is written here: the content has to be written and reviewed by someone qualified

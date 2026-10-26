@@ -12,10 +12,10 @@
 #include <span>
 
 #include "path_tracer.hpp"
+#include "sns/settings.hpp"
 #include "solo_game.hpp"
-#include "wjs/settings.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // What the Solo Play screens bind to: the game's state, board, tray and path as
 // Qt Quick wants them, and the touch input turned into moves. It decides
@@ -293,7 +293,7 @@ private:
     // The board's clock: the parent's choice, and the seconds it shows. The
     // QTimer below ticks once a second while the screen says it is active.
     SoloClock clock_mode_ = SoloClock::off;
-    int clock_minutes_ = wjs::default_solo_clock_minutes;
+    int clock_minutes_ = sns::default_solo_clock_minutes;
     bool clock_active_ = false;
     bool clock_expired_ = false;
     int clock_seconds_ = 0;
@@ -316,4 +316,4 @@ private:
     mutable bool found_dirty_ = true;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

@@ -22,13 +22,13 @@
 # capture attaches to").
 #
 # The two programs are run differently, because one is quick and one is not:
-#   cli   `wjs-cli --repeat N` with an N no build finishes: the capture attaches (it
+#   cli   `sns-cli --repeat N` with an N no build finishes: the capture attaches (it
 #         takes about 0.7 s to find a program, Tracy being on-demand), records a few
 #         seconds of solves and saves, and the run is ended by its timeout. How fast
 #         the build is, a Debug build with the sanitizers included, does not matter:
 #         there is always a few seconds of solves to read, and there is no number
 #         of repeats to guess.
-#   app   `WordJewelsSolver --smoke`: waits up to five seconds for a profiler before
+#   app   `SnapAndSpell --smoke`: waits up to five seconds for a profiler before
 #         loading anything, so the start-up zones are in the capture too, and leaves
 #         by itself.
 # ---------------------------------------------------------------------------
@@ -57,7 +57,7 @@ if(CASE STREQUAL "cli")
 elseif(CASE STREQUAL "app")
     # The offscreen platform: the window draws with a software renderer, but the frame clock
     # and the start-up are the same (docs/profiling.md, "The smoke mode").
-    set(_args --smoke 120 --store "${WORK_DIR}/app-store.wjs")
+    set(_args --smoke 120 --store "${WORK_DIR}/app-store.sns")
     set(_capture_seconds 60)
     set(_timeout 180)
     set(_ends_by_timeout FALSE)
@@ -86,7 +86,7 @@ set(_capture "${TRACY_TOOLS}/tracy-capture${EXE_SUFFIX}")
 set(_export "${TRACY_TOOLS}/tracy-csvexport${EXE_SUFFIX}")
 if("${TRACY_TOOLS}" STREQUAL "" OR NOT EXISTS "${_capture}" OR NOT EXISTS "${_export}")
     message(STATUS
-        "SKIPPED: this build has no Tracy capture tools (WJS_ENABLE_TRACY is off, or "
+        "SKIPPED: this build has no Tracy capture tools (SNS_ENABLE_TRACY is off, or "
         "'${TRACY_TOOLS}' does not hold tracy-capture and tracy-csvexport). A Debug or "
         "*-profiling build has them; docs/profiling.md, \"Building a profiling binary\".")
     cmake_language(EXIT 4)
@@ -123,7 +123,7 @@ if(CASE STREQUAL "app")
     # The same trace on every run, in this build directory or a fresh one: a store
     # left by an earlier run holds a game to resume, and an app that resumes a game
     # does not show the closed box first, so a trace of it has no scene.show.
-    file(GLOB _stale_store "${WORK_DIR}/app-store.wjs*")
+    file(GLOB _stale_store "${WORK_DIR}/app-store.sns*")
     if(_stale_store)
         file(REMOVE ${_stale_store})
     endif()

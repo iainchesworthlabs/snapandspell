@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/session_store.hpp"
+#include "sns/session_store.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -11,9 +11,9 @@
 #include <vector>
 
 #include "ascii.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 namespace {
 
@@ -184,4 +184,4 @@ std::optional<SessionSnapshot> session_snapshot_of(const SavedSession& saved) {
     return snapshot;
 }
 
-}  // namespace wjs
+}  // namespace sns

@@ -9,18 +9,18 @@
 #include <string_view>
 #include <vector>
 
-#include "wjs/board.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/game_rules.hpp"
-#include "wjs/store.hpp"
+#include "sns/board.hpp"
+#include "sns/calendar.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/game_rules.hpp"
+#include "sns/store.hpp"
 
 // What the Family Assistant screens need from the game, and nothing more: the
 // name of docs/design/game.md's `assist.playing`, as plain C++ with no Qt. The
 // screens talk to AssistModel, AssistModel talks to this.
 //
 // Mode A is not a game and this port keeps no scoreboard. It is given one board
-// a grown-up has confirmed (wjs::scan::BoardDraft::confirm(), so never a reading
+// a grown-up has confirmed (sns::scan::BoardDraft::confirm(), so never a reading
 // straight from the reader), plays it against a word set, and answers what a
 // traced path is:
 //
@@ -39,7 +39,7 @@
 //
 // Help is one level in both modes (question 68): the start tile of the shortest
 // viable word not yet found, nearest the top left, the same one until that word
-// is found (wjs::start_tile_help). The word itself is never handed out, only the
+// is found (sns::start_tile_help). The word itself is never handed out, only the
 // tile to light.
 //
 // The board is recorded to the store when the round is left (leave()), in the
@@ -51,9 +51,9 @@
 // on the table.
 //
 // No Qt, no pixels, no clock, no I/O: the board, the dictionaries and the store
-// are held by reference or by value, and the day is the caller's (wjs::Day).
+// are held by reference or by value, and the day is the caller's (sns::Day).
 
-namespace wjs::app {
+namespace sns::app {
 
 // What a traced path is on this board (the library's WordState, without the
 // word for the two states that must never be shown or read).
@@ -66,7 +66,7 @@ enum class AssistWordKind {
 // A word found on the board: one jewel in the tray.
 struct AssistFound {
     std::string word;  // lower case: the tray's text
-    wjs::Tier tier = wjs::Tier::spark;
+    sns::Tier tier = sns::Tier::spark;
     int stars = 0;
     // The start tile had been shown for this word when it was found.
     bool assisted = false;
@@ -98,15 +98,15 @@ public:
     // The standard board's word set: the English dictionary as both the words
     // that count and the words that tell a real word from a string of letters.
     // No phase, no block list (docs/design/mvp-library.md).
-    AssistGame(wjs::Board board, const wjs::Dictionary& dictionary, wjs::Store& store,
-               std::function<wjs::Day()> today);
+    AssistGame(sns::Board board, const sns::Dictionary& dictionary, sns::Store& store,
+               std::function<sns::Day()> today);
 
     // The design's Mode A word set: `dictionary` tells a real word from a string
     // of letters and `active` is what counts on this board (a phase index, when
     // the repository has one). The words that count are a subset of the
     // dictionary's, as they are for the library's WordSets.
-    AssistGame(wjs::Board board, const wjs::Dictionary& dictionary, const wjs::Dictionary& active,
-               wjs::Store& store, std::function<wjs::Day()> today);
+    AssistGame(sns::Board board, const sns::Dictionary& dictionary, const sns::Dictionary& active,
+               sns::Store& store, std::function<sns::Day()> today);
 
     AssistGame(const AssistGame&) = delete;
     AssistGame& operator=(const AssistGame&) = delete;
@@ -114,27 +114,27 @@ public:
     AssistGame& operator=(AssistGame&&) = delete;
     ~AssistGame() = default;
 
-    [[nodiscard]] const wjs::Board& board() const noexcept { return board_; }
+    [[nodiscard]] const sns::Board& board() const noexcept { return board_; }
 
     // The words of the active set the board holds, each once: what "nothing for
     // you this time" is counted from. Empty is an ordinary board, not an error.
-    [[nodiscard]] const std::vector<wjs::FoundWord>& viable() const noexcept { return viable_; }
+    [[nodiscard]] const std::vector<sns::FoundWord>& viable() const noexcept { return viable_; }
     [[nodiscard]] std::size_t viableCount() const noexcept { return viable_.size(); }
 
-    // A traced or tapped path (the check that it is a path is wjs::validate_path's
+    // A traced or tapped path (the check that it is a path is sns::validate_path's
     // inside classify_path). `alreadyFound` keeps nothing from being earned
     // twice; the tray's entry is the first find's.
-    [[nodiscard]] AssistTraceOutcome submit(std::span<const wjs::Position> path);
+    [[nodiscard]] AssistTraceOutcome submit(std::span<const sns::Position> path);
 
     // "Show me a start": the tile of the shortest viable word not yet found,
-    // nearest the top left (wjs::start_tile_help). Nothing once none is left.
+    // nearest the top left (sns::start_tile_help). Nothing once none is left.
     // Asking again lights the same tile, and finding another word does not move
     // it: the answer depends only on the words left.
-    std::optional<wjs::Position> showStart();
+    std::optional<sns::Position> showStart();
 
     // The tile lit now, or nothing: a shown start is gone once its word is
     // found. Asking this lights nothing.
-    [[nodiscard]] std::optional<wjs::Position> litTile() const;
+    [[nodiscard]] std::optional<sns::Position> litTile() const;
 
     // The parent's help switch as the store has it now (Settings::help). The
     // screens do not offer the start tile when it is off.
@@ -163,20 +163,20 @@ public:
     [[nodiscard]] bool saveFailed() const noexcept { return save_failed_; }
 
 private:
-    [[nodiscard]] wjs::WordSets words() const noexcept;
+    [[nodiscard]] sns::WordSets words() const noexcept;
     // The tiles as Board::parse reads them: spaces between tiles, '/' between rows.
     [[nodiscard]] std::string tiles_text() const;
     // The tray's entry for a word, or nullptr.
     [[nodiscard]] const AssistFound* tray_word(std::string_view word) const;
 
-    wjs::Board board_;
-    const wjs::Dictionary* dictionary_;
-    const wjs::Dictionary* active_;
-    wjs::Store* store_;
-    std::function<wjs::Day()> today_;
-    std::vector<wjs::FoundWord> viable_;
+    sns::Board board_;
+    const sns::Dictionary* dictionary_;
+    const sns::Dictionary* active_;
+    sns::Store* store_;
+    std::function<sns::Day()> today_;
+    std::vector<sns::FoundWord> viable_;
     // The words found, each once, upper-case: what start_tile_help reads.
-    wjs::FoundWords found_set_;
+    sns::FoundWords found_set_;
     std::vector<AssistFound> found_;
     // The word whose start tile was shown and has not been found, upper-case.
     std::optional<std::string> lit_word_;
@@ -184,4 +184,4 @@ private:
     bool save_failed_ = false;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

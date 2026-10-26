@@ -4,7 +4,7 @@
 # (tests/platform/check_android.cmake) and its self-test
 # (tests/platform/test_check_android.cmake) include.
 #
-#   wjs_check_android_manifest(<manifest file> <result variable>)
+#   sns_check_android_manifest(<manifest file> <result variable>)
 #
 # sets <result variable> to the list of what is wrong with the manifest (empty when
 # it holds). The rules are the privacy rules of the first release
@@ -26,12 +26,12 @@
 # ---------------------------------------------------------------------------
 include_guard(GLOBAL)
 
-string(CONCAT WJS_ANDROID_PERMISSION_PREFIX "andro" "id.permission.")
+string(CONCAT SNS_ANDROID_PERMISSION_PREFIX "andro" "id.permission.")
 # Written in two pieces for the privacy scan (tests/privacy/check_sources.cmake), which
 # looks for the name of the microphone permission in every file of the tree.
-string(CONCAT WJS_ANDROID_MICROPHONE_NAME "RECORD" "_AUDIO")
+string(CONCAT SNS_ANDROID_MICROPHONE_NAME "RECORD" "_AUDIO")
 
-function(wjs_check_android_manifest manifest result)
+function(sns_check_android_manifest manifest result)
     set(_failures "")
 
     if(NOT EXISTS "${manifest}")
@@ -74,7 +74,7 @@ function(wjs_check_android_manifest manifest result)
             list(APPEND _failures "a uses-permission element without a name: ${_element}")
         endif()
     endforeach()
-    set(_camera "${WJS_ANDROID_PERMISSION_PREFIX}CAMERA")
+    set(_camera "${SNS_ANDROID_PERMISSION_PREFIX}CAMERA")
     foreach(_permission IN LISTS _asked)
         if(NOT _permission STREQUAL _camera)
             list(APPEND _failures "the manifest asks for ${_permission}; the camera is the only permission the program may hold")
@@ -87,10 +87,10 @@ function(wjs_check_android_manifest manifest result)
     # A permission named anywhere else (a tools:node edit, a permission element of
     # its own, a meta-data value) is a permission being dealt with.
     foreach(_name IN ITEMS INTERNET ACCESS_NETWORK_STATE ACCESS_WIFI_STATE
-            "${WJS_ANDROID_MICROPHONE_NAME}" WRITE_EXTERNAL_STORAGE READ_EXTERNAL_STORAGE READ_MEDIA_IMAGES
+            "${SNS_ANDROID_MICROPHONE_NAME}" WRITE_EXTERNAL_STORAGE READ_EXTERNAL_STORAGE READ_MEDIA_IMAGES
             ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION VIBRATE)
-        if(_without_comments MATCHES "${WJS_ANDROID_PERMISSION_PREFIX}${_name}")
-            list(APPEND _failures "the manifest names ${WJS_ANDROID_PERMISSION_PREFIX}${_name}")
+        if(_without_comments MATCHES "${SNS_ANDROID_PERMISSION_PREFIX}${_name}")
+            list(APPEND _failures "the manifest names ${SNS_ANDROID_PERMISSION_PREFIX}${_name}")
         endif()
     endforeach()
 

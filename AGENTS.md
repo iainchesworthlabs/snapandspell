@@ -28,7 +28,7 @@ hand will also find it a short list of what the checks expect; [CONTRIBUTING.md]
   - Format: the repository's `.clang-format` (Google-based, attached braces, 100 columns). Run `clang-format` on
     changed files; `clang-format` is a required check.
   - Names: types and enums `PascalCase`; functions, variables, constants and enumerators `lower_snake_case`;
-    private data members end in an underscore (`rows_`); namespaces `lower_case` under `wjs`. The properties,
+    private data members end in an underscore (`rows_`); namespaces `lower_case` under `sns`. The properties,
     signals and slots that QML sees are `camelCase`.
   - Return `std::expected` for failures that are expected; do not throw for them.
 - No preprocessor directive outside `libs/platforms/` and `tests/platform/`: no `#if`, `#ifdef`, `#define`. The

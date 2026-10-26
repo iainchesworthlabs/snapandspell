@@ -1,7 +1,7 @@
 # FAQ
 
 **Does it solve a Boggle board today?**
-Yes, from a board you type in: give `wjs-cli` the rows of the board and a word
+Yes, from a board you type in: give `sns-cli` the rows of the board and a word
 list, and it prints every word that can be traced on the board with its score
 and the tiles that spell it. The Qt Quick application does the same for a board
 you type or scan, and also plays Solo Play with a child. See the
@@ -14,7 +14,7 @@ with a reader that finds the board and its letters; the person then confirms or
 corrects the letters, or types the board in instead. The reader is tested on drawn
 frames only, and the camera backend has not been used in a test or on a real board
 ([scanner design](design/scanner.md)). A picture is read in memory and never saved
-or sent anywhere. `wjs-cli` has no camera. The
+or sent anywhere. `sns-cli` has no camera. The
 [architecture](architecture.md#not-built-yet) says what is missing, and the
 [roadmap](roadmap.md) says what is planned.
 
@@ -27,7 +27,7 @@ reviewer. The standard board also has no block list, so it can show any word in 
 ENABLE list. The plan for trying it is in
 [Application design](design/application.md#user-study-plan-open).
 
-**Where is the word list? `wjs-cli` says the dictionary file could not be opened.**
+**Where is the word list? `sns-cli` says the dictionary file could not be opened.**
 Without `-d`, the program looks for `dictionaries/en.txt` beside the
 executable, and a build copies ENABLE (`data/dictionaries/en.txt`; see
 [Licensing](licensing.md#the-word-list)) there. If you moved the executable, move
@@ -57,7 +57,7 @@ error.
 
 **Which platforms does it run on?**
 The code is written for Windows, Linux and macOS, with the differences between
-them kept in `libs/platforms`. CI builds and tests the library and `wjs-cli` on
+them kept in `libs/platforms`. CI builds and tests the library and `sns-cli` on
 Windows (MSVC), Linux (GCC) and macOS (AppleClang); the Qt application is built and
 tested in CI on Windows, and built for Linux and macOS by the release workflow,
 which has never run. An iOS build for TestFlight is written and has never been uploaded or run on a device. Android is being worked on separately and is not
@@ -93,7 +93,7 @@ and is never released ([Security](https://github.com/iainchesworthlabs/wordjewel
 **Can I use the library in my own program?**
 There is no install step or exported package yet, so it can only be built as
 part of this tree. Its interface is the four headers in
-`libs/core/include/wjs/`, and the [architecture](architecture.md#the-library)
+`libs/core/include/sns/`, and the [architecture](architecture.md#the-library)
 describes them. A program that includes it is subject to the terms of the
 GPL-3.0-or-later.
 
@@ -105,6 +105,6 @@ later" is the reason the project avoids Qt modules that are offered only under
 GPL-3.0-only.
 
 **How do I build without the tests?**
-Configure with `-DWJS_BUILD_TESTS=OFF`: the manifest then asks vcpkg for no
+Configure with `-DSNS_BUILD_TESTS=OFF`: the manifest then asks vcpkg for no
 packages (Catch2 is the only one it ever asks for), and the tests and platform
 checks are not built. See [Building](building.md#options).

@@ -1,6 +1,6 @@
 {
-  "name": "@WJS_WEB_PAGE_TITLE@",
-  "short_name": "Word Jewels",
+  "name": "@SNS_WEB_PAGE_TITLE@",
+  "short_name": "Snap and Spell",
   "description": "A word-finding game for young readers.",
   "start_url": ".",
   "scope": ".",

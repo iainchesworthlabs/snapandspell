@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/version.hpp"
+#include "sns/version.hpp"
 
 #include <format>
 #include <string>
 
-namespace wjs {
+namespace sns {
 
 std::string version_details() {
     std::string details = std::format(
-        "Word Jewels Solver {}\n"
+        "Snap and Spell {}\n"
         "  release: {}\n"
         "  commit:  {}\n"
         "  branch:  {}\n"
@@ -20,4 +20,4 @@ std::string version_details() {
     return details;
 }
 
-}  // namespace wjs
+}  // namespace sns

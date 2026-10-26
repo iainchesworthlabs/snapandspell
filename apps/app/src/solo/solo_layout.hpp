@@ -7,7 +7,7 @@
 
 #include "board_layout.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // The layout rule (board_layout.hpp) for QML: give it the window and the board
 // size and read where the board area, the panel and the board are. A screen
@@ -93,4 +93,4 @@ public:
     Q_INVOKABLE qreal side(qreal width, qreal height, int size) const;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

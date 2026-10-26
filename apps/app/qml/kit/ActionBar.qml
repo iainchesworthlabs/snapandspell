@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The action zone of a play screen: the one primary action and its quieter
 // neighbours, on one height ladder. It replaces the four different button styles

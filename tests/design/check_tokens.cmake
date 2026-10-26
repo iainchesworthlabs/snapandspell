@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-# The design's tokens (docs/design/toybox/tokens.json and wjs-tokens.json) and the Theme that spends them
+# The design's tokens (docs/design/toybox/tokens.json and sns-tokens.json) and the Theme that spends them
 # (apps/app/qml/kit/Theme.qml) say the same thing: every colour of the shared palette, the dimmer surface,
 # the Night shadow, the three type faces and the smallest text size. And the font files are one list in
 # four places: the files in assets/fonts, the application's resource list, the application's loader and
@@ -18,7 +18,7 @@ function(_fail message_text)
 endfunction()
 
 file(READ "${REPO_ROOT}/docs/design/toybox/tokens.json" _tokens)
-file(READ "${REPO_ROOT}/docs/design/toybox/wjs-tokens.json" _wjs)
+file(READ "${REPO_ROOT}/docs/design/toybox/sns-tokens.json" _sns)
 file(READ "${REPO_ROOT}/apps/app/qml/kit/Theme.qml" _theme)
 
 # The hex literals on the line that declares a Theme property, in order.
@@ -64,29 +64,29 @@ foreach(_pair IN LISTS _palette)
     endif()
 endforeach()
 
-# --- what only this project adds (wjs-tokens.json) --------------------------------------------------
-string(JSON _dim GET "${_wjs}" color surfaceDim value)
+# --- what only this project adds (sns-tokens.json) --------------------------------------------------
+string(JSON _dim GET "${_sns}" color surfaceDim value)
 _theme_hex(surfaceDim _got)
 list(GET _got 1 _day)
 string(TOLOWER "${_dim}" _dim)
 string(TOLOWER "${_day}" _day)
 if(NOT _dim STREQUAL _day)
-    _fail("Theme.surfaceDim (light) is ${_day}, wjs-tokens.json color.surfaceDim is ${_dim}")
+    _fail("Theme.surfaceDim (light) is ${_day}, sns-tokens.json color.surfaceDim is ${_dim}")
 endif()
 
-string(JSON _deep GET "${_wjs}" color night shadowDeep value)
+string(JSON _deep GET "${_sns}" color night shadowDeep value)
 _theme_hex(shadow _got)
 list(GET _got 0 _night)
 string(TOLOWER "${_deep}" _deep)
 string(TOLOWER "${_night}" _night)
 if(NOT _deep STREQUAL _night)
-    _fail("Theme.shadow (Night) is ${_night}, wjs-tokens.json color.night.shadowDeep is ${_deep}")
+    _fail("Theme.shadow (Night) is ${_night}, sns-tokens.json color.night.shadowDeep is ${_deep}")
 endif()
 
 # --- type -------------------------------------------------------------------------------------------
-string(JSON _chrome GET "${_wjs}" typography faces chrome family)
-string(JSON _reading GET "${_wjs}" typography faces reading family)
-string(JSON _counter GET "${_wjs}" typography faces counter family)
+string(JSON _chrome GET "${_sns}" typography faces chrome family)
+string(JSON _reading GET "${_sns}" typography faces reading family)
+string(JSON _counter GET "${_sns}" typography faces counter family)
 foreach(_pair "uiFont|${_chrome}" "fontFamily|${_reading}" "eyebrowFont|${_counter}")
     string(REPLACE "|" ";" _pair "${_pair}")
     list(GET _pair 0 _property)
@@ -99,14 +99,14 @@ foreach(_pair "uiFont|${_chrome}" "fontFamily|${_reading}" "eyebrowFont|${_count
         set(_got "${CMAKE_MATCH_1}")
     endif()
     if(NOT _want STREQUAL _got)
-        _fail("Theme.${_property} is '${_got}', wjs-tokens.json says '${_want}'")
+        _fail("Theme.${_property} is '${_got}', sns-tokens.json says '${_want}'")
     endif()
 endforeach()
 
-string(JSON _minimum GET "${_wjs}" typography minimumSize)
+string(JSON _minimum GET "${_sns}" typography minimumSize)
 string(REGEX MATCH "readonly property real minTextSize: ([0-9.]+)" _m "${_theme}")
 if(NOT CMAKE_MATCH_1 STREQUAL _minimum)
-    _fail("Theme.minTextSize is '${CMAKE_MATCH_1}', wjs-tokens.json typography.minimumSize is ${_minimum}")
+    _fail("Theme.minTextSize is '${CMAKE_MATCH_1}', sns-tokens.json typography.minimumSize is ${_minimum}")
 endif()
 
 # --- the touch targets ------------------------------------------------------------------------------
@@ -114,10 +114,10 @@ foreach(_pair "targetMin|min" "targetChild|child" "targetPrimary|primary" "targe
     string(REPLACE "|" ";" _pair "${_pair}")
     list(GET _pair 0 _property)
     list(GET _pair 1 _key)
-    string(JSON _want GET "${_wjs}" touch "${_key}")
+    string(JSON _want GET "${_sns}" touch "${_key}")
     string(REGEX MATCH "readonly property real ${_property}: ([0-9.]+)" _m "${_theme}")
     if(NOT CMAKE_MATCH_1 STREQUAL _want)
-        _fail("Theme.${_property} is '${CMAKE_MATCH_1}', wjs-tokens.json touch.${_key} is ${_want}")
+        _fail("Theme.${_property} is '${CMAKE_MATCH_1}', sns-tokens.json touch.${_key} is ${_want}")
     endif()
 endforeach()
 

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/parent_gate.hpp"
+#include "sns/parent_gate.hpp"
 
 #include <algorithm>
 #include <cstddef>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 bool Spot::contains(Point p) const noexcept {
     const double dx = p.x - centre.x;
@@ -135,4 +135,4 @@ double Gate::progress(Time now) const noexcept {
     return std::clamp(elapsed / static_cast<double>(hold_.count()), 0.0, 1.0);
 }
 
-}  // namespace wjs
+}  // namespace sns

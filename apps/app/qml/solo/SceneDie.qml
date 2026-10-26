@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // One die of the board scene: the kit's tile face (cream, a 3 px outline, a hard shadow, the Andika
 // letter), or, for a dead tile, the same face with a pixel jewel on it, as the flat board draws it

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // A name, what it does, and the control: side by side where there is room, one
 // above the other where there is not. A card of the kit's look (the card colour

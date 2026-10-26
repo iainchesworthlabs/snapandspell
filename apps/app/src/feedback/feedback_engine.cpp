@@ -8,15 +8,15 @@
 #include <utility>
 
 #include "qt_text.hpp"
-#include "wjs/platform/haptics.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/settings.hpp"
+#include "sns/platform/haptics.hpp"
+#include "sns/profiling.hpp"
+#include "sns/settings.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
-using wjs::app::to_qstring;
-using wjs::app::to_utf8;
+using sns::app::to_qstring;
+using sns::app::to_utf8;
 
 // The map's value for `key`, or `fallback` when the parent area has not filled
 // it or it is not the type the screens write.
@@ -29,17 +29,17 @@ template <typename Value>
     return value.value<Value>();
 }
 
-[[nodiscard]] wjs::FeedbackSettings policy_settings(const QVariantMap& map) {
-    wjs::FeedbackSettings settings;
+[[nodiscard]] sns::FeedbackSettings policy_settings(const QVariantMap& map) {
+    sns::FeedbackSettings settings;
     settings.sound = value_or<bool>(map, QStringLiteral("sound"), settings.sound);
     settings.vibration = value_or<bool>(map, QStringLiteral("vibration"), settings.vibration);
 
-    const auto celebration = wjs::celebration_sounds_from_string(to_utf8(
+    const auto celebration = sns::celebration_sounds_from_string(to_utf8(
         value_or<QString>(map, QStringLiteral("celebrationSounds"), QStringLiteral("full"))));
     if (celebration) {
         settings.celebration_sounds = *celebration;
     }
-    const auto sound_it_out = wjs::sound_it_out_from_string(
+    const auto sound_it_out = sns::sound_it_out_from_string(
         to_utf8(value_or<QString>(map, QStringLiteral("soundItOut"), QStringLiteral("full"))));
     if (sound_it_out) {
         settings.sound_it_out = *sound_it_out;
@@ -47,18 +47,18 @@ template <typename Value>
     return settings;
 }
 
-[[nodiscard]] wjs::platform::HapticPattern platform_pattern(wjs::HapticCue cue) {
+[[nodiscard]] sns::platform::HapticPattern platform_pattern(sns::HapticCue cue) {
     switch (cue) {
-        case wjs::HapticCue::light:
-            return wjs::platform::HapticPattern::light;
-        case wjs::HapticCue::medium:
-            return wjs::platform::HapticPattern::medium;
-        case wjs::HapticCue::double_tap:
-            return wjs::platform::HapticPattern::double_tap;
-        case wjs::HapticCue::none:
+        case sns::HapticCue::light:
+            return sns::platform::HapticPattern::light;
+        case sns::HapticCue::medium:
+            return sns::platform::HapticPattern::medium;
+        case sns::HapticCue::double_tap:
+            return sns::platform::HapticPattern::double_tap;
+        case sns::HapticCue::none:
             break;
     }
-    return wjs::platform::HapticPattern::light;
+    return sns::platform::HapticPattern::light;
 }
 
 }  // namespace
@@ -93,7 +93,7 @@ bool FeedbackEngine::sayFoundWord(const QString& word, double volume) {
     // last of them says the word; with no clips recorded yet that is at once, so
     // the child hears the word as before. Anything else is said whole.
     if (phase_ != nullptr && phonics_board_ && !word.isEmpty()) {
-        auto sequence = wjs::sound_it_out_sequence(*phase_, to_utf8(word), settings_.sound_it_out);
+        auto sequence = sns::sound_it_out_sequence(*phase_, to_utf8(word), settings_.sound_it_out);
         if (sequence && !sequence->steps.empty()) {
             // Asked for: the word is said by the sequence's say step, now or when
             // the clips before it have played.
@@ -112,13 +112,13 @@ int FeedbackEngine::utterances() const noexcept {
 
 void FeedbackEngine::cue(const QString& kind, const QString& detail) {
     // A moment's whole answer: the policy, the sound, the voice and the buzz.
-    const auto zone = wjs::profiling::zone<"feedback.play">();
-    const auto parsed = wjs::feedback_cue_from_string(to_utf8(kind));
+    const auto zone = sns::profiling::zone<"feedback.play">();
+    const auto parsed = sns::feedback_cue_from_string(to_utf8(kind));
     if (!parsed) {
         return;
     }
 
-    const wjs::CuePlan plan = wjs::plan_cue(*parsed, to_utf8(detail), settings_);
+    const sns::CuePlan plan = sns::plan_cue(*parsed, to_utf8(detail), settings_);
     bool asked = false;
 
     if (plan.sound) {
@@ -130,12 +130,12 @@ void FeedbackEngine::cue(const QString& kind, const QString& detail) {
     } else if (plan.speak_text) {
         asked = speech_.say_text(detail, plan.volume) || asked;
     }
-    if (plan.haptic != wjs::HapticCue::none) {
+    if (plan.haptic != sns::HapticCue::none) {
         ++haptics_requested_;
         // The desktops answer false; a tablet will answer with its own engine.
         // The answer is deliberately not read: every haptic is paired with the
         // sound and the picture that were already asked for.
-        static_cast<void>(wjs::platform::vibrate(platform_pattern(plan.haptic)));
+        static_cast<void>(sns::platform::vibrate(platform_pattern(plan.haptic)));
         asked = true;
     }
 
@@ -144,4 +144,4 @@ void FeedbackEngine::cue(const QString& kind, const QString& detail) {
     }
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

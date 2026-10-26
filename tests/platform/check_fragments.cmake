@@ -38,14 +38,14 @@ include(GNUInstallDirs)
 
 # ---- child mode: check one fragment, in this (fresh) process ----------------
 if(FRAGMENT)
-    get_filename_component(WJS_PLATFORM_DIR "${FRAGMENT}" DIRECTORY)
-    get_filename_component(WJS_PLATFORM "${WJS_PLATFORM_DIR}" NAME)
+    get_filename_component(SNS_PLATFORM_DIR "${FRAGMENT}" DIRECTORY)
+    get_filename_component(SNS_PLATFORM "${SNS_PLATFORM_DIR}" NAME)
 
     include("${FRAGMENT}")
-    wjs_platform_check_contract("${FRAGMENT}" "${_app_dir}")
+    sns_platform_check_contract("${FRAGMENT}" "${_app_dir}")
 
-    list(LENGTH WJS_PLATFORM_SOURCES _sources)
-    message(STATUS "platform '${WJS_PLATFORM}': contract satisfied (${_sources} sources)")
+    list(LENGTH SNS_PLATFORM_SOURCES _sources)
+    message(STATUS "platform '${SNS_PLATFORM}': contract satisfied (${_sources} sources)")
     return()
 endif()
 
@@ -55,10 +55,10 @@ endif()
 # Platform.cmake decides from the toolchain's own flags, which a script run on
 # one host cannot set up for another.
 file(READ "${REPO_ROOT}/cmake/Platform.cmake" _selector)
-string(REGEX MATCHALL "set[(]WJS_PLATFORM [a-z0-9_]+[)]" _branches "${_selector}")
+string(REGEX MATCHALL "set[(]SNS_PLATFORM [a-z0-9_]+[)]" _branches "${_selector}")
 set(_selected "")
 foreach(_branch IN LISTS _branches)
-    string(REGEX REPLACE "set[(]WJS_PLATFORM ([a-z0-9_]+)[)]" "\\1" _name "${_branch}")
+    string(REGEX REPLACE "set[(]SNS_PLATFORM ([a-z0-9_]+)[)]" "\\1" _name "${_branch}")
     list(APPEND _selected "${_name}")
 endforeach()
 if(NOT _selected)

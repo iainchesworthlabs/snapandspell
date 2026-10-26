@@ -16,20 +16,20 @@
 #include <vector>
 
 #include "qt_text.hpp"
-#include "wjs/dashboard.hpp"
-#include "wjs/game_rules.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/scoring.hpp"
-#include "wjs/settings.hpp"
-#include "wjs/version.hpp"
+#include "sns/dashboard.hpp"
+#include "sns/game_rules.hpp"
+#include "sns/profiling.hpp"
+#include "sns/scoring.hpp"
+#include "sns/settings.hpp"
+#include "sns/version.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 using std::chrono::milliseconds;
 
-using wjs::app::to_qstring;
-using wjs::app::to_utf8;
+using sns::app::to_qstring;
+using sns::app::to_utf8;
 
 [[nodiscard]] QStringList list(const std::vector<std::string>& values) {
     QStringList result;
@@ -72,18 +72,18 @@ using wjs::app::to_utf8;
 }
 
 [[nodiscard]] QString tier_name(std::size_t letters) {
-    switch (wjs::tier_for_letters(letters).value_or(wjs::Tier::spark)) {
-        case wjs::Tier::spark:
+    switch (sns::tier_for_letters(letters).value_or(sns::Tier::spark)) {
+        case sns::Tier::spark:
             return QStringLiteral("spark");
-        case wjs::Tier::power:
+        case sns::Tier::power:
             return QStringLiteral("power");
-        case wjs::Tier::mega:
+        case sns::Tier::mega:
             return QStringLiteral("mega");
     }
     return QStringLiteral("spark");
 }
 
-[[nodiscard]] QVariantMap dashboard_map(const wjs::Dashboard& d) {
+[[nodiscard]] QVariantMap dashboard_map(const sns::Dashboard& d) {
     QVariantMap map;
     map.insert(QStringLiteral("empty"), d.empty);
     map.insert(QStringLiteral("hasPhaseData"), d.has_phase_data);
@@ -98,7 +98,7 @@ using wjs::app::to_utf8;
     map.insert(QStringLiteral("week"), week);
 
     QVariantList sounds;
-    for (const wjs::SoundRow& row : d.sounds) {
+    for (const sns::SoundRow& row : d.sounds) {
         QVariantMap sound;
         sound.insert(QStringLiteral("letters"), to_qstring(row.letters));
         sound.insert(QStringLiteral("wordsInPhase"), static_cast<qulonglong>(row.words_in_phase));
@@ -114,7 +114,7 @@ using wjs::app::to_utf8;
     map.insert(QStringLiteral("sounds"), sounds);
 
     QVariantList vault;
-    for (const wjs::StickerRow& row : d.vault) {
+    for (const sns::StickerRow& row : d.vault) {
         QVariantMap sticker;
         sticker.insert(QStringLiteral("word"), to_qstring(row.word));
         vault.append(sticker);
@@ -122,7 +122,7 @@ using wjs::app::to_utf8;
     map.insert(QStringLiteral("vault"), vault);
 
     QVariantList best;
-    for (const wjs::BestRow& row : d.best) {
+    for (const sns::BestRow& row : d.best) {
         QVariantMap one;
         one.insert(QStringLiteral("size"), row.size);
         one.insert(QStringLiteral("stars"), row.stars);
@@ -132,7 +132,7 @@ using wjs::app::to_utf8;
     return map;
 }
 
-[[nodiscard]] QVariantMap settings_map(const wjs::Settings& s) {
+[[nodiscard]] QVariantMap settings_map(const sns::Settings& s) {
     QVariantMap map;
     map.insert(QStringLiteral("help"), to_qstring(to_string(s.help)));
     map.insert(QStringLiteral("board"), to_qstring(to_string(s.board)));
@@ -165,23 +165,23 @@ public:
     EditScope& operator=(const EditScope&) = delete;
 
 private:
-    wjs::profiling::Zone zone_ = wjs::profiling::zone<"parent.edit">();
+    sns::profiling::Zone zone_ = sns::profiling::zone<"parent.edit">();
 };
 
 }  // namespace
 
 ParentController::ParentController(QObject* parent)
-    : QObject(parent), gate_(wjs::gate_layout(1024.0, 768.0, 48.0)) {
+    : QObject(parent), gate_(sns::gate_layout(1024.0, 768.0, 48.0)) {
     // Until the program hands it the real one, the screens have a store that
     // keeps nothing, so that none of them has to ask whether there is one.
-    owned_.emplace(wjs::Store::in_memory());
+    owned_.emplace(sns::Store::in_memory());
     store_ = &*owned_;
     refresh();
 }
 
 ParentController::~ParentController() = default;
 
-void ParentController::useStore(wjs::Store* store, wjs::LoadStatus status) {
+void ParentController::useStore(sns::Store* store, sns::LoadStatus status) {
     if (store == nullptr) {
         return;
     }
@@ -191,12 +191,12 @@ void ParentController::useStore(wjs::Store* store, wjs::LoadStatus status) {
     refresh();
 }
 
-void ParentController::usePhases(const wjs::PhaseSet* phases) {
+void ParentController::usePhases(const sns::PhaseSet* phases) {
     phases_ = phases;
     refresh();
 }
 
-void ParentController::useCalendar(std::function<wjs::Day()> today, int first_day_of_week) {
+void ParentController::useCalendar(std::function<sns::Day()> today, int first_day_of_week) {
     today_ = std::move(today);
     first_day_of_week_ = first_day_of_week;
     refresh();
@@ -216,7 +216,7 @@ qint64 ParentController::now() const {
 }
 
 void ParentController::openStore(const std::filesystem::path& file) {
-    wjs::OpenResult opened = wjs::Store::open(file);
+    sns::OpenResult opened = sns::Store::open(file);
     status_ = opened.status;
     owned_.emplace(std::move(opened.store));
     store_ = &*owned_;
@@ -228,7 +228,7 @@ void ParentController::openStore(const std::filesystem::path& file) {
 
 QVariantList ParentController::gateSpots() const {
     QVariantList spots;
-    for (const wjs::Spot& spot : {gate_.layout().first, gate_.layout().second}) {
+    for (const sns::Spot& spot : {gate_.layout().first, gate_.layout().second}) {
         QVariantMap one;
         one.insert(QStringLiteral("x"), spot.centre.x);
         one.insert(QStringLiteral("y"), spot.centre.y);
@@ -239,7 +239,7 @@ QVariantList ParentController::gateSpots() const {
 }
 
 void ParentController::afterGateEvent(milliseconds now) {
-    const bool holding = gate_.state() == wjs::GateState::holding;
+    const bool holding = gate_.state() == sns::GateState::holding;
     const double progress = gate_.progress(now);
     if (holding != holding_ || progress != progress_) {
         holding_ = holding;
@@ -258,7 +258,7 @@ void ParentController::afterGateEvent(milliseconds now) {
 }
 
 void ParentController::layoutGate(double width, double height, double minRadius) {
-    gate_.set_layout(wjs::gate_layout(width, height, minRadius));
+    gate_.set_layout(sns::gate_layout(width, height, minRadius));
     emit gateSpotsChanged();
     afterGateEvent(milliseconds{0});
 }
@@ -296,13 +296,13 @@ void ParentController::lock() {
 // ---------------------------------------------------------------------------
 // What the screens show
 
-const wjs::PhaseIndex* ParentController::activeIndex() const {
+const sns::PhaseIndex* ParentController::activeIndex() const {
     return phases_ != nullptr ? phases_->find(store_->settings().phase) : nullptr;
 }
 
 QStringList ParentController::focusChoices() const {
-    const wjs::PhaseIndex* index = activeIndex();
-    return index != nullptr ? list(wjs::focus_sound_choices(*index)) : QStringList{};
+    const sns::PhaseIndex* index = activeIndex();
+    return index != nullptr ? list(sns::focus_sound_choices(*index)) : QStringList{};
 }
 
 QStringList ParentController::phases() const {
@@ -311,7 +311,7 @@ QStringList ParentController::phases() const {
         return {QStringLiteral("A"), QStringLiteral("B")};
     }
     QStringList names;
-    for (const wjs::PhaseIndex& index : phases_->phases()) {
+    for (const sns::PhaseIndex& index : phases_->phases()) {
         names.append(to_qstring(index.phase()));
     }
     return names;
@@ -327,12 +327,12 @@ bool ParentController::retrySave() {
 
 void ParentController::refresh() {
     // The device's own calendar: Qt's Julian day of 1970-01-01 is 2440588.
-    const wjs::Day today =
-        today_ ? today_() : static_cast<wjs::Day>(QDate::currentDate().toJulianDay() - 2440588);
+    const sns::Day today =
+        today_ ? today_() : static_cast<sns::Day>(QDate::currentDate().toJulianDay() - 2440588);
     const int first_day =
         first_day_of_week_ > 0 ? first_day_of_week_ : static_cast<int>(QLocale().firstDayOfWeek());
     dashboard_ =
-        dashboard_map(wjs::build_dashboard(store_->data(), activeIndex(), today, first_day));
+        dashboard_map(sns::build_dashboard(store_->data(), activeIndex(), today, first_day));
     settings_ = settings_map(store_->settings());
     emit dashboardChanged();
     emit settingsChanged();
@@ -342,18 +342,18 @@ void ParentController::refresh() {
 void ParentController::updateNote() {
     QString note;
     switch (status_) {
-        case wjs::LoadStatus::unreadable:
+        case sns::LoadStatus::unreadable:
             note = QStringLiteral("unreadable");
             break;
-        case wjs::LoadStatus::newer_version:
+        case sns::LoadStatus::newer_version:
             note = QStringLiteral("newer");
             break;
-        case wjs::LoadStatus::cannot_read:
+        case sns::LoadStatus::cannot_read:
             note = QStringLiteral("unsaved");
             break;
-        case wjs::LoadStatus::created:
-        case wjs::LoadStatus::loaded:
-        case wjs::LoadStatus::migrated:
+        case sns::LoadStatus::created:
+        case sns::LoadStatus::loaded:
+        case sns::LoadStatus::migrated:
             if (!store_->persistent() || store_->last_save_error().has_value()) {
                 note = QStringLiteral("unsaved");
             }
@@ -375,8 +375,8 @@ int ParentController::lifetimeStars() const {
 
 int ParentController::lifetimePoints() const {
     int total = 0;
-    for (const wjs::VaultWord& word : store_->data().vault) {
-        total += wjs::word_points(word.word) * static_cast<int>(word.found);
+    for (const sns::VaultWord& word : store_->data().vault) {
+        total += sns::word_points(word.word) * static_cast<int>(word.found);
     }
     return total;
 }
@@ -387,7 +387,7 @@ int ParentController::lifetimeWords() const {
 
 QString ParentController::longestWord() const {
     std::string longest;
-    for (const wjs::VaultWord& word : store_->data().vault) {
+    for (const sns::VaultWord& word : store_->data().vault) {
         if (word.word.size() > longest.size() ||
             (word.word.size() == longest.size() && word.word < longest)) {
             longest = word.word;
@@ -402,7 +402,7 @@ int ParentController::boardsKept() const {
 
 QVariantList ParentController::recentBoards() const {
     QVariantList list;
-    const wjs::StoreData& data = store_->data();
+    const sns::StoreData& data = store_->data();
     for (auto board = data.boards.rbegin(); board != data.boards.rend(); ++board) {
         QVariantMap map;
         map.insert(QStringLiteral("rows"), board->size);
@@ -425,14 +425,14 @@ QVariantList ParentController::recentBoards() const {
         map.insert(QStringLiteral("tiles"), tiles);
 
         QVariantList words;
-        for (const wjs::FindRecord& find : data.finds) {
+        for (const sns::FindRecord& find : data.finds) {
             if (find.board != board->serial) {
                 continue;
             }
             QVariantMap word;
             word.insert(QStringLiteral("word"), to_qstring(find.word));
             word.insert(QStringLiteral("stars"), find.stars);
-            word.insert(QStringLiteral("points"), wjs::word_points(find.word));
+            word.insert(QStringLiteral("points"), sns::word_points(find.word));
             word.insert(QStringLiteral("assisted"), find.start_tile_used);
             word.insert(QStringLiteral("tier"), tier_name(find.word.size()));
             words.append(word);
@@ -469,14 +469,14 @@ int ParentController::soloClockMinutes() const {
 
 QVariantList ParentController::timerLengthChoices() const {
     QVariantList list;
-    for (const int minutes : wjs::solo_clock_minutes_choices) {
+    for (const int minutes : sns::solo_clock_minutes_choices) {
         list.append(minutes);
     }
     return list;
 }
 
 bool ParentController::reducedMotion() const {
-    return store_->settings().motion == wjs::MotionSetting::reduced;
+    return store_->settings().motion == sns::MotionSetting::reduced;
 }
 
 double ParentController::textScale() const {
@@ -484,11 +484,11 @@ double ParentController::textScale() const {
 }
 
 QString ParentController::version() const {
-    return to_qstring(wjs::project_version);
+    return to_qstring(sns::project_version);
 }
 
 QString ParentController::versionDetails() const {
-    return to_qstring(wjs::version_details());
+    return to_qstring(sns::version_details());
 }
 
 // The notice is not one of the parent area's sentences: it is a legal text, in
@@ -505,12 +505,12 @@ QString ParentController::licenceNotices() const {
     return QString::fromUtf8(file.readAll());
 }
 
-void ParentController::applySettings(wjs::Settings settings) {
+void ParentController::applySettings(sns::Settings settings) {
     settings = settings.normalized();
     // Only sounds of the phase can be ticked: held to it whenever it is known.
-    if (const wjs::PhaseIndex* index =
+    if (const sns::PhaseIndex* index =
             phases_ != nullptr ? phases_->find(settings.phase) : nullptr) {
-        settings = wjs::restrict_focus_sounds(std::move(settings), *index);
+        settings = sns::restrict_focus_sounds(std::move(settings), *index);
     }
     const bool changed = !(settings == store_->settings());
     // A setting that is already what it is asks nothing of the file.
@@ -525,18 +525,18 @@ void ParentController::applySettings(wjs::Settings settings) {
 
 bool ParentController::setSetting(const QString& key, const QVariant& value) {
     const EditScope edit_scope;
-    wjs::Settings s = store_->settings();
+    sns::Settings s = store_->settings();
 
     if (key == QLatin1String("help") && is_string(value)) {
-        const auto level = wjs::help_level_from_string(to_utf8(value.toString()));
+        const auto level = sns::help_level_from_string(to_utf8(value.toString()));
         if (!level) {
             return false;
         }
         s.help = *level;
     } else if (key == QLatin1String("board") && is_string(value)) {
-        const auto mode = wjs::board_mode_from_string(to_utf8(value.toString()));
+        const auto mode = sns::board_mode_from_string(to_utf8(value.toString()));
         // The Phonics board needs a phase's words.
-        if (!mode || (*mode == wjs::BoardMode::phonics && !phonicsAvailable())) {
+        if (!mode || (*mode == sns::BoardMode::phonics && !phonicsAvailable())) {
             return false;
         }
         s.board = *mode;
@@ -548,20 +548,20 @@ bool ParentController::setSetting(const QString& key, const QVariant& value) {
     } else if (key == QLatin1String("boardSize")) {
         const auto size = whole_number(value);
         // The standard board plays 3x3 to 6x6; the phonics board 3x3 and 4x4.
-        const int largest = s.board == wjs::BoardMode::standard ? wjs::largest_standard_board_size
-                                                                : wjs::largest_default_board_size;
-        if (!size || *size < wjs::smallest_default_board_size || *size > largest) {
+        const int largest = s.board == sns::BoardMode::standard ? sns::largest_standard_board_size
+                                                                : sns::largest_default_board_size;
+        if (!size || *size < sns::smallest_default_board_size || *size > largest) {
             return false;
         }
         s.board_size = *size;
     } else if (key == QLatin1String("soundItOut") && is_string(value)) {
-        const auto parsed = wjs::sound_it_out_from_string(to_utf8(value.toString()));
+        const auto parsed = sns::sound_it_out_from_string(to_utf8(value.toString()));
         if (!parsed) {
             return false;
         }
         s.sound_it_out = *parsed;
     } else if (key == QLatin1String("celebrationSounds") && is_string(value)) {
-        const auto parsed = wjs::celebration_sounds_from_string(to_utf8(value.toString()));
+        const auto parsed = sns::celebration_sounds_from_string(to_utf8(value.toString()));
         if (!parsed) {
             return false;
         }
@@ -573,36 +573,36 @@ bool ParentController::setSetting(const QString& key, const QVariant& value) {
     } else if (key == QLatin1String("shake") && is_bool(value)) {
         s.shake = value.toBool();
     } else if (key == QLatin1String("motion") && is_string(value)) {
-        const auto parsed = wjs::motion_from_string(to_utf8(value.toString()));
+        const auto parsed = sns::motion_from_string(to_utf8(value.toString()));
         if (!parsed) {
             return false;
         }
         s.motion = *parsed;
     } else if (key == QLatin1String("colourScheme") && is_string(value)) {
-        const auto parsed = wjs::colour_scheme_from_string(to_utf8(value.toString()));
+        const auto parsed = sns::colour_scheme_from_string(to_utf8(value.toString()));
         if (!parsed) {
             return false;
         }
         s.colour_scheme = *parsed;
     } else if (key == QLatin1String("timer") && is_string(value)) {
-        const auto parsed = wjs::solo_clock_from_string(to_utf8(value.toString()));
+        const auto parsed = sns::solo_clock_from_string(to_utf8(value.toString()));
         if (!parsed) {
             return false;
         }
         s.solo_clock = *parsed;
     } else if (key == QLatin1String("timerLength")) {
         const auto minutes = whole_number(value);
-        if (!minutes || std::find(std::begin(wjs::solo_clock_minutes_choices),
-                                  std::end(wjs::solo_clock_minutes_choices),
-                                  *minutes) == std::end(wjs::solo_clock_minutes_choices)) {
+        if (!minutes || std::find(std::begin(sns::solo_clock_minutes_choices),
+                                  std::end(sns::solo_clock_minutes_choices),
+                                  *minutes) == std::end(sns::solo_clock_minutes_choices)) {
             return false;
         }
         s.solo_clock_minutes = *minutes;
     } else if (key == QLatin1String("textSizePercent")) {
         const auto percent = whole_number(value);
         if (!percent ||
-            std::find(std::begin(wjs::text_size_percents), std::end(wjs::text_size_percents),
-                      *percent) == std::end(wjs::text_size_percents)) {
+            std::find(std::begin(sns::text_size_percents), std::end(sns::text_size_percents),
+                      *percent) == std::end(sns::text_size_percents)) {
             return false;
         }
         s.text_size_percent = *percent;
@@ -617,7 +617,7 @@ bool ParentController::setSetting(const QString& key, const QVariant& value) {
         std::string code = to_utf8(value.toString());
         std::transform(code.begin(), code.end(), code.begin(),
                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        if (!code.empty() && !wjs::is_valid_language(code)) {
+        if (!code.empty() && !sns::is_valid_language(code)) {
             return false;
         }
         s.language = code;
@@ -634,7 +634,7 @@ bool ParentController::toggleFocusSound(const QString& sound) {
     if (!focusChoices().contains(sound)) {
         return false;
     }
-    wjs::Settings s = store_->settings();
+    sns::Settings s = store_->settings();
     const std::string name = to_utf8(sound);
     const auto ticked = std::find(s.focus_sounds.begin(), s.focus_sounds.end(), name);
     if (ticked != s.focus_sounds.end()) {
@@ -660,4 +660,4 @@ void ParentController::resetStarsAndStickers() {
     emit storeEdited();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

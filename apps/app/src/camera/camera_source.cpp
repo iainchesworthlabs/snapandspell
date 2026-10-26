@@ -3,9 +3,9 @@
 
 #include <utility>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 CameraSource::CameraSource(QObject* parent) : CameraSource(make_camera_backend(), parent) {}
 
@@ -61,7 +61,7 @@ bool CameraSource::capture() {
     if (!backend_) {
         return false;
     }
-    std::optional<wjs::scan::OwnedFrame> frame = backend_->capture();
+    std::optional<sns::scan::OwnedFrame> frame = backend_->capture();
     if (!frame) {
         return false;
     }
@@ -70,13 +70,13 @@ bool CameraSource::capture() {
     frame_ = std::move(*frame);
     // A frame of the camera is a boundary in a profile, apart from the window's
     // own frames ("UI").
-    wjs::profiling::frame_mark("Capture");
+    sns::profiling::frame_mark("Capture");
     emit captured();
     return true;
 }
 
-std::optional<wjs::scan::OwnedFrame> CameraSource::takeFrame() {
-    std::optional<wjs::scan::OwnedFrame> frame = std::move(frame_);
+std::optional<sns::scan::OwnedFrame> CameraSource::takeFrame() {
+    std::optional<sns::scan::OwnedFrame> frame = std::move(frame_);
     frame_.reset();
     return frame;
 }
@@ -93,4 +93,4 @@ void CameraSource::detachPreview() {
     }
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

@@ -14,11 +14,11 @@
 
 #include "assist_game.hpp"
 #include "assist_model.hpp"
+#include "sns/calendar.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/settings.hpp"
+#include "sns/store.hpp"
 #include "test_support.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/settings.hpp"
-#include "wjs/store.hpp"
 
 // The Family Assistant's model (apps/app/src/scan/assist_model.*): what the screen
 // binds to over a confirmed board. The game's rules are AssistGame's case
@@ -32,13 +32,13 @@
 
 namespace {
 
-using wjs::app::AssistGame;
-using wjs::app::AssistModel;
+using sns::app::AssistGame;
+using sns::app::AssistModel;
 
-constexpr wjs::Day today = wjs::day_from_civil(2026, 10, 19);
+constexpr sns::Day today = sns::day_from_civil(2026, 10, 19);
 
-wjs::Dictionary dictionary_with(std::initializer_list<std::string_view> words) {
-    wjs::Dictionary dictionary;
+sns::Dictionary dictionary_with(std::initializer_list<std::string_view> words) {
+    sns::Dictionary dictionary;
     for (const std::string_view word : words) {
         static_cast<void>(dictionary.insert(word));
     }
@@ -61,8 +61,8 @@ struct Fixture {
     Fixture()
         : dictionary(dictionary_with({"SAT", "SIT", "PINT", "TAP", "PIN", "NIP"})),
           active(dictionary_with({"SAT", "SIT", "PINT"})),
-          store(wjs::Store::in_memory()) {
-        model = std::make_unique<AssistModel>([this](wjs::Board board) {
+          store(sns::Store::in_memory()) {
+        model = std::make_unique<AssistModel>([this](sns::Board board) {
             ++made;
             if (refuse) {
                 return std::unique_ptr<AssistGame>{};
@@ -72,9 +72,9 @@ struct Fixture {
         });
     }
 
-    wjs::Dictionary dictionary;
-    wjs::Dictionary active;
-    wjs::Store store;
+    sns::Dictionary dictionary;
+    sns::Dictionary active;
+    sns::Store store;
     bool refuse = false;
     int made = 0;
     std::unique_ptr<AssistModel> model;
@@ -166,7 +166,7 @@ TEST_CASE("a tile holding a space or a slash cannot change the grid's shape",
 }
 
 TEST_CASE("without a maker there is no round", "[app][scan][assist]") {
-    AssistModel model{wjs::app::AssistGameMaker{}};
+    AssistModel model{sns::app::AssistGameMaker{}};
     CHECK_FALSE(model.begin(3, 3, the_tiles));
     CHECK_FALSE(model.active());
 }
@@ -421,8 +421,8 @@ TEST_CASE("the start tile is offered only while the parent allows it", "[app][sc
     CHECK(seen.help == 2);
 
     // The parent turns the help off: the model offers nothing and shows nothing.
-    wjs::Settings off = fixture.store.settings();
-    off.help = wjs::HelpLevel::off;
+    sns::Settings off = fixture.store.settings();
+    off.help = sns::HelpLevel::off;
     fixture.store.update_settings(off);
     CHECK_FALSE(model.helpAllowed());
     const int helps = seen.help;
@@ -432,20 +432,20 @@ TEST_CASE("the start tile is offered only while the parent allows it", "[app][sc
 }
 
 TEST_CASE("a board the store cannot keep is told as a save failure, once", "[app][scan][assist]") {
-    wjs::app::test::TempDirectory directory{"wjs_assist_model_test"};
+    sns::app::test::TempDirectory directory{"sns_assist_model_test"};
     // The store's folder does not exist yet, so the store opens as created and
     // writes when it first has something; a file in the folder's place then makes
     // every write fail.
     const std::filesystem::path blocked = directory.path() / "blocked";
-    wjs::OpenResult opened = wjs::Store::open(blocked / "store.txt");
+    sns::OpenResult opened = sns::Store::open(blocked / "store.txt");
     REQUIRE(opened.store.persistent());
     {
         std::ofstream file(blocked);
         file << "not a folder";
     }
 
-    const wjs::Dictionary dictionary = dictionary_with({"SAT", "SIT"});
-    AssistModel model([&](wjs::Board board) {
+    const sns::Dictionary dictionary = dictionary_with({"SAT", "SIT"});
+    AssistModel model([&](sns::Board board) {
         return std::make_unique<AssistGame>(std::move(board), dictionary, opened.store,
                                             [] { return today; });
     });

@@ -41,7 +41,7 @@ the CLI do not use it). The window links Qt under the LGPL-3.0 and draws its boa
 
 ## The project's own licence
 
-WordJewelsSolver is licensed under the GNU General Public License, version 3,
+SnapAndSpell is licensed under the GNU General Public License, version 3,
 or (at your option) any later version. The text is in `LICENSE` and is the
 unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
 
@@ -67,7 +67,7 @@ unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
 
 | Component | Licence | Role | In a build you distribute |
 | --- | --- | --- | --- |
-| WordJewelsSolver (`libs/`, `apps/`, `tests/`, `tools/`, `cmake/`, `docs/`) | GPL-3.0-or-later [V] | This project | Yes |
+| SnapAndSpell (`libs/`, `apps/`, `tests/`, `tools/`, `cmake/`, `docs/`) | GPL-3.0-or-later [V] | This project | Yes |
 | `apps/app/translations/*.ts` (the interface's catalogues) | GPL-3.0-or-later, the project's own text [V] | The eight languages' wording | Yes, compiled into the application |
 | vcpkg (the labs' fork, a separate clone found through `VCPKG_ROOT`) | MIT, Copyright Microsoft Corporation [V: `LICENSE.txt` in the vcpkg clone] | Fetches and builds dependencies | No: a build tool |
 | vcpkg helper ports `vcpkg-cmake`, `vcpkg-cmake-config` | MIT [V: installed `share/*/copyright`] | Build helpers | No |
@@ -120,7 +120,7 @@ that starts shipping means a new fragment, its licence text in
 
 Qt is a prebuilt dependency found through `CMAKE_PREFIX_PATH` or `QT_ROOT_DIR`;
 it is not part of the repository and is not built by vcpkg. Today only the
-optional window (`WJS_BUILD_APP`) uses it. The modules it links are Core, Gui,
+optional window (`SNS_BUILD_APP`) uses it. The modules it links are Core, Gui,
 Qml, Quick, Quick Controls 2, Quick Shapes, Multimedia, Sensors and TextToSpeech, which Qt
 offers under the LGPL-3.0 as well as the GPL (2 or 3) and a commercial licence. The board
 scene was 3D until 2026-10-24, with **Quick 3D**, which Qt offers only as commercial or
@@ -162,7 +162,7 @@ The solver needs a word list. The one in the repository is **ENABLE**
 Its originators released it into the public domain; where it was fetched from,
 when, and its SHA-256 are in [data/README.md](https://github.com/iainchesworthlabs/wordjewelssolver/blob/main/data/README.md).
 That the notice is genuine is taken from the list's published statement and has
-not been independently verified [I][L]. `wjs-cli` and the window look for
+not been independently verified [I][L]. `sns-cli` and the window look for
 `dictionaries/en.txt` beside the executable, and a build copies it there.
 
 The sentences that follow are why the choice of list was a decision at all, and

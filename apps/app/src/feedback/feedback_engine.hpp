@@ -5,16 +5,16 @@
 #include <QString>
 #include <QVariantMap>
 
+#include "sns/feedback.hpp"
+#include "sns/phase_data.hpp"
 #include "sound_engine.hpp"
 #include "sound_sequence_player.hpp"
 #include "speech.hpp"
-#include "wjs/feedback.hpp"
-#include "wjs/phase_data.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // The one object the window's feedback seam talks to: it takes the cue the
-// screens and models already emit, asks wjs::plan_cue() what the moment comes
+// screens and models already emit, asks sns::plan_cue() what the moment comes
 // to, and carries it out through the sound engine, the platform's voice and
 // the platform's haptics. The settings are the parent area's map, bound from
 // Main.qml, so the Sound, Celebration sounds, Sound it out, Vibration and Shake
@@ -65,7 +65,7 @@ public:
     // setting, and the sequence player walks them. With none, or on the standard
     // board (the settings' "board"), or for a word the phase does not hold, the
     // word is said whole at once. Not owned; it outlives the engine.
-    void usePhase(const wjs::PhaseIndex* phase) noexcept { phase_ = phase; }
+    void usePhase(const sns::PhaseIndex* phase) noexcept { phase_ = phase; }
 
     // The engines behind the cues, for a test or a tool to put its own output on
     // (SoundEngine::setOutput, Speech::setOutput) so that nothing is heard, and
@@ -85,11 +85,11 @@ private:
     SoundEngine sound_;
     Speech speech_;
     SoundSequencePlayer sequence_;
-    const wjs::PhaseIndex* phase_ = nullptr;
+    const sns::PhaseIndex* phase_ = nullptr;
     bool phonics_board_ = false;
     QVariantMap settings_map_;
-    wjs::FeedbackSettings settings_;
+    sns::FeedbackSettings settings_;
     int haptics_requested_ = 0;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

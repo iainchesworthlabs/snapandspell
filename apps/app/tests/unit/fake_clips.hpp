@@ -15,10 +15,10 @@
 // ones it is given; a clip that is started ends when the test says so. Test support:
 // nothing in libs or apps links it.
 
-namespace wjs::app::test {
+namespace sns::app::test {
 
 // Clips that exist are the ones in `have`; a started clip ends when the test says.
-class FakeClips final : public wjs::app::ClipPlayer {
+class FakeClips final : public sns::app::ClipPlayer {
 public:
     explicit FakeClips(std::set<std::string> have, std::vector<std::string>& log)
         : have_(std::move(have)), log_(log) {}
@@ -62,4 +62,4 @@ private:
     std::function<void()> finish_;
 };
 
-}  // namespace wjs::app::test
+}  // namespace sns::app::test

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The one modal of the application: the history of boards, the letter picker,
 // the finish summary, a reset confirmation. One scrim rule, one shape.

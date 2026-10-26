@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
-import WordJewelsSolver.Scan
+import SnapAndSpell
+import SnapAndSpell.Scan
 import "SizeMatrix.js" as SizeMatrix
 
 // Mode A's way in (apps/app/qml/scan/ScanScreen.qml and CheckScreen.qml): the

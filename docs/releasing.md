@@ -19,7 +19,7 @@ required check. The iOS and Android builds are described in [CI](ci.md#ios).
 4. Tag the merge commit and push the tag:
 
    ```sh
-   git tag -s v0.1.0 -m "WordJewelsSolver 0.1.0"
+   git tag -s v0.1.0 -m "SnapAndSpell 0.1.0"
    git push origin v0.1.0
    ```
 
@@ -35,15 +35,15 @@ that is no longer there.
 
 | Platform | Built on | Packages |
 | --- | --- | --- |
-| Windows x64 | `windows-2025-vs2026`, MSVC, Qt 6.12.0 | `WordJewelsSolver-<v>-win64<s>.zip`, `...-win64<s>.exe` (NSIS installer): the application and `wjs-cli`. `<s>` is `-unsigned`, `-testsigned` or nothing ([Windows signing](#windows-signing)) |
-| Linux x64, the application | `ubuntu-26.04`, GCC, Qt 6.12.0 | `WordJewelsSolver-<v>-x86_64.AppImage`, with Qt inside |
-| Linux x64, the solver | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` of `wjs-cli` only |
-| macOS arm64 | `macos-26`, AppleClang, Qt 6.12.0 | `WordJewelsSolver-<v>-Darwin.dmg`: the application bundle and `wjs-cli`; signed and notarised when the Apple secrets are set |
+| Windows x64 | `windows-2025-vs2026`, MSVC, Qt 6.12.0 | `SnapAndSpell-<v>-win64<s>.zip`, `...-win64<s>.exe` (NSIS installer): the application and `sns-cli`. `<s>` is `-unsigned`, `-testsigned` or nothing ([Windows signing](#windows-signing)) |
+| Linux x64, the application | `ubuntu-26.04`, GCC, Qt 6.12.0 | `SnapAndSpell-<v>-x86_64.AppImage`, with Qt inside |
+| Linux x64, the solver | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` of `sns-cli` only |
+| macOS arm64 | `macos-26`, AppleClang, Qt 6.12.0 | `SnapAndSpell-<v>-Darwin.dmg`: the application bundle and `sns-cli`; signed and notarised when the Apple secrets are set |
 | iPhone / iPad | `macos-26`, Xcode, Qt's iOS kit | no file: the build goes to TestFlight, when `SIGN_IOS_UPLOAD` is true ([iOS](ci.md#ios)) |
 | Android arm64 | `ubuntu-26.04`, Qt's Android kit | `...-android-arm64.apk` and `.aab`, when the four keystore secrets are set ([Android](ci.md#android)) |
-| Any | the tagged commit | `WordJewelsSolver-<v>-source.tar.gz` (`git archive`, so `.gitattributes` decides what stays out) |
+| Any | the tagged commit | `SnapAndSpell-<v>-source.tar.gz` (`git archive`, so `.gitattributes` decides what stays out) |
 
-Beside them: `WordJewelsSolver-<v>.cdx.json` (the CycloneDX 1.6 SBOM, [below](#the-sbom)),
+Beside them: `SnapAndSpell-<v>.cdx.json` (the CycloneDX 1.6 SBOM, [below](#the-sbom)),
 `SHA512SUMS`, and a detached `.asc` signature for every file. A pre-release's files carry its version
 (`...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1`, an rpm release `0.rc.1`).
 
@@ -80,7 +80,7 @@ The same workflow, started by hand or weekly (Sunday 03:23 UTC), builds, tests, 
 SBOM, and signs and publishes nothing. The files are the run's `package-*` artifacts for 14 days. The
 `ios` and `android` inputs (default true, by hand only) also build those packages with the real
 secrets; untick them to rehearse the desktop packages alone. Unpack each package on its platform and
-run it: `wjs-cli`, and `WordJewelsSolver --smoke 10` for the application. The weekly run exists so
+run it: `sns-cli`, and `SnapAndSpell --smoke 10` for the application. The weekly run exists so
 that a Release build that has quietly stopped working is found on a Sunday, not on the day of a release.
 
 ## What the author sets up once
@@ -119,7 +119,7 @@ shared `sign-windows` action of icl-common-infra:
 | `SIGN_WINDOWS` | What the leg does | Package names |
 | --- | --- | --- |
 | `false` (the default; unset counts as `false`) | nothing is signed | `...-win64-unsigned.zip`, `...-win64-unsigned.exe` |
-| `test` | `WordJewelsSolver.exe` and `wjs-cli.exe` are signed where they are built, so the ZIP and the installer carry the signed files; the installer is signed too; every signature has an RFC 3161 timestamp | `...-win64-testsigned.zip`, `...-win64-testsigned.exe` |
+| `test` | `SnapAndSpell.exe` and `sns-cli.exe` are signed where they are built, so the ZIP and the installer carry the signed files; the installer is signed too; every signature has an RFC 3161 timestamp | `...-win64-testsigned.zip`, `...-win64-testsigned.exe` |
 | `production` | the action fails until a signing service is chosen and wired (D17, open) | none |
 
 `test` needs the organisation secrets `WIN_TESTSIGN_PFX_BASE64` and `WIN_TESTSIGN_PFX_PASSWORD`: the
@@ -139,7 +139,7 @@ gpg --import docs/signing-key.asc
 gpg --fingerprint FD13CB8CAC8316648CD974D08149254C41894DBE   # compare with SECURITY.md
 gpg --verify SHA512SUMS.asc SHA512SUMS
 sha512sum -c SHA512SUMS
-gh attestation verify WordJewelsSolver-0.1.0-win64-unsigned.zip --repo iainchesworthlabs/wordjewelssolver
+gh attestation verify SnapAndSpell-0.1.0-win64-unsigned.zip --repo iainchesworthlabs/wordjewelssolver
 ```
 
 ## The SBOM
@@ -147,7 +147,7 @@ gh attestation verify WordJewelsSolver-0.1.0-win64-unsigned.zip --repo iainchesw
 `tools/release/generate_sbom.ps1` writes a CycloneDX 1.6 document from what the repository already
 records, not from a scan of the binaries:
 
-- the application and `wjs-cli` (both GPL-3.0-or-later), with the
+- the application and `sns-cli` (both GPL-3.0-or-later), with the
   commit and the repository;
 - Qt by module at the version in `.github/toolchain-versions.json`, under the licence it is used
   under, only if a ZIP in the release carries `Qt6Core.dll` or a package is an AppImage, a disk image
@@ -172,7 +172,7 @@ documents of the Qt kit describe. The output is deterministic for a given tag an
 | `... does not point at a commit on develop` | A tag is made on a commit that `develop` contains. For a try-out, use a `-rc` tag on `develop`. |
 | `missing organisation secrets` | The organisation secrets are not available to this repository (`docs/secrets.md` in `icl-common-infra`). |
 | `docs/signing-key.asc is missing`, or a signature does not verify against it | The committed key is not the key that signed. |
-| `WJS_ENABLE_TRACY is 'ON'` / `contains the profiler` | A Release configuration or package has Tracy in it. The presets decide; `tests/profiling/check_presets.cmake` should have failed first. |
+| `SNS_ENABLE_TRACY is 'ON'` / `contains the profiler` | A Release configuration or package has Tracy in it. The presets decide; `tests/profiling/check_presets.cmake` should have failed first. |
 | `no package ending .rpm` (and similar) | CPack dropped a generator because its tool was missing at configure time. Read the configure log's `Packaging:` line. |
 | `makensis.exe is not in ...` | The NSIS install failed. NSIS is pinned to 3.13.0 from Chocolatey. |
 

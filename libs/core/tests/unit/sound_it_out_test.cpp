@@ -8,10 +8,10 @@
 #include <utility>
 #include <vector>
 
+#include "sns/phase_data.hpp"
+#include "sns/settings.hpp"
+#include "sns/sound_it_out.hpp"
 #include "support/test_support.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/settings.hpp"
-#include "wjs/sound_it_out.hpp"
 
 // TEST DATA. One phase written for these tests, with placeholder sounds and
 // clips: not a phase of the application and not content for a child. It has
@@ -21,9 +21,9 @@
 namespace {
 
 using namespace std::chrono_literals;
-using wjs::SoundItOut;
-using wjs::SoundStep;
-using wjs::SoundStepKind;
+using sns::SoundItOut;
+using sns::SoundStep;
+using sns::SoundStepKind;
 
 constexpr std::string_view graphemes =
     "# phase: A\n"
@@ -48,30 +48,30 @@ constexpr std::string_view words =
     "sat   s a t\n"
     "the   tricky\n";
 
-const wjs::PhaseIndex& phase() {
-    static const wjs::PhaseSet set = [] {
+const sns::PhaseIndex& phase() {
+    static const sns::PhaseSet set = [] {
         std::istringstream graphemes_in{std::string(graphemes)};
         std::istringstream words_in{std::string(words)};
-        auto parsed_graphemes = wjs::parse_graphemes(graphemes_in, "a.graphemes");
-        auto parsed_words = wjs::parse_words(words_in, "a.words");
+        auto parsed_graphemes = sns::parse_graphemes(graphemes_in, "a.graphemes");
+        auto parsed_words = sns::parse_words(words_in, "a.words");
         REQUIRE(parsed_graphemes.has_value());
         REQUIRE(parsed_words.has_value());
-        const wjs::Dictionary english =
-            wjs::test::dictionary_of({"cake", "pot", "rain", "sat", "the"});
-        auto built = wjs::PhaseSet::build({*parsed_graphemes}, {*parsed_words}, english);
+        const sns::Dictionary english =
+            sns::test::dictionary_of({"cake", "pot", "rain", "sat", "the"});
+        auto built = sns::PhaseSet::build({*parsed_graphemes}, {*parsed_words}, english);
         REQUIRE(built.has_value());
         return *std::move(built);
     }();
     return *set.find("A");
 }
 
-wjs::SoundSequence sequence_of(std::string_view word, SoundItOut setting = SoundItOut::full) {
-    auto sequence = wjs::sound_it_out_sequence(phase(), word, setting);
+sns::SoundSequence sequence_of(std::string_view word, SoundItOut setting = SoundItOut::full) {
+    auto sequence = sns::sound_it_out_sequence(phase(), word, setting);
     REQUIRE(sequence.has_value());
     return *std::move(sequence);
 }
 
-std::vector<SoundStepKind> kinds_of(const wjs::SoundSequence& sequence) {
+std::vector<SoundStepKind> kinds_of(const sns::SoundSequence& sequence) {
     std::vector<SoundStepKind> kinds;
     for (const SoundStep& step : sequence.steps) {
         kinds.push_back(step.kind);
@@ -83,8 +83,8 @@ std::vector<SoundStepKind> kinds_of(const wjs::SoundSequence& sequence) {
 
 TEST_CASE("the timings are the design's: 150 ms between sounds and a blend of 380",
           "[sound_it_out]") {
-    CHECK(wjs::segment_gap == 150ms);
-    CHECK(wjs::blend_duration == 380ms);
+    CHECK(sns::segment_gap == 150ms);
+    CHECK(sns::blend_duration == 380ms);
 }
 
 TEST_CASE("sounding out is each sound, the blend, the word and the cheer, in that order",
@@ -213,18 +213,18 @@ TEST_CASE("off is a sequence of no steps, for a tricky word too", "[sound_it_out
 }
 
 TEST_CASE("a word the phase does not hold is told, not sounded", "[sound_it_out]") {
-    const auto sequence = wjs::sound_it_out_sequence(phase(), "dog", SoundItOut::full);
+    const auto sequence = sns::sound_it_out_sequence(phase(), "dog", SoundItOut::full);
 
     REQUIRE_FALSE(sequence.has_value());
-    CHECK(sequence.error() == wjs::SoundSequenceError::not_in_phase);
-    CHECK_FALSE(wjs::to_string(sequence.error()).empty());
+    CHECK(sequence.error() == sns::SoundSequenceError::not_in_phase);
+    CHECK_FALSE(sns::to_string(sequence.error()).empty());
 }
 
 TEST_CASE("the time the sequence fixes is its gaps and its blend", "[sound_it_out]") {
     // Three sounds: two gaps between them, one before the blend, and the blend.
-    CHECK(wjs::fixed_time(sequence_of("rain")) == 3 * 150ms + 380ms);
-    CHECK(wjs::fixed_time(sequence_of("the")) == 0ms);
-    CHECK(wjs::fixed_time(sequence_of("rain", SoundItOut::off)) == 0ms);
+    CHECK(sns::fixed_time(sequence_of("rain")) == 3 * 150ms + 380ms);
+    CHECK(sns::fixed_time(sequence_of("the")) == 0ms);
+    CHECK(sns::fixed_time(sequence_of("rain", SoundItOut::off)) == 0ms);
 }
 
 TEST_CASE("the same word under the same setting is the same sequence", "[sound_it_out]") {
@@ -235,6 +235,6 @@ TEST_CASE("the same word under the same setting is the same sequence", "[sound_i
 TEST_CASE("every step kind has a name", "[sound_it_out]") {
     for (const SoundStepKind kind :
          {SoundStepKind::sound, SoundStepKind::blend, SoundStepKind::say, SoundStepKind::cheer}) {
-        CHECK_FALSE(wjs::to_string(kind).empty());
+        CHECK_FALSE(sns::to_string(kind).empty());
     }
 }

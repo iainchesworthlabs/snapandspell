@@ -15,25 +15,25 @@
 
 #include "demo_data.hpp"
 #include "parent_controller.hpp"
+#include "sns/calendar.hpp"
+#include "sns/scoring.hpp"
+#include "sns/settings.hpp"
+#include "sns/store.hpp"
 #include "test_support.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/scoring.hpp"
-#include "wjs/settings.hpp"
-#include "wjs/store.hpp"
 
 namespace {
 
-using wjs::app::ParentController;
+using sns::app::ParentController;
 
-constexpr wjs::Day friday = 20742;  // 2026-10-16
+constexpr sns::Day friday = 20742;  // 2026-10-16
 
 // A directory of its own that is gone when the case ends.
-using TempDirectory = wjs::app::test::TempDirectory;
+using TempDirectory = sns::app::test::TempDirectory;
 
 // A controller on the made-up play of the demo data, as of a Friday.
 struct Fixture {
-    wjs::PhaseSet phases = wjs::app::demo::phases();
-    wjs::Store store = wjs::app::demo::busy_store(friday);
+    sns::PhaseSet phases = sns::app::demo::phases();
+    sns::Store store = sns::app::demo::busy_store(friday);
     ParentController controller;
 
     Fixture() {
@@ -157,7 +157,7 @@ TEST_CASE("opening the gate computes the dashboard as of that moment", "[app][pa
     const QVariantMap before = map(f.controller.dashboard());
 
     // Something happens behind the screen's back.
-    wjs::BoardSnapshot board;
+    sns::BoardSnapshot board;
     board.size = 3;
     board.tiles = "Q Q Q/P I N/T A P";
     board.viable_total = 5;
@@ -215,7 +215,7 @@ TEST_CASE("the week follows the calendar the controller was given", "[app][paren
     Fixture f;
     // A find on the Sunday before the Friday: the first day of a Sunday-first week
     // and the last of the Monday-first week before.
-    wjs::BoardSnapshot sunday;
+    sns::BoardSnapshot sunday;
     sunday.size = 3;
     sunday.tiles = "Q Q Q/P I N/T A P";
     sunday.viable_total = 5;
@@ -271,7 +271,7 @@ TEST_CASE("the settings map has the table's defaults", "[app][parent][settings]"
     CHECK(s.value("motion").toString() == "system");
     CHECK(s.value("colourScheme").toString() == "system");
     CHECK(s.value("timer").toString() == "off");
-    CHECK(s.value("timerLength").toInt() == wjs::default_solo_clock_minutes);
+    CHECK(s.value("timerLength").toInt() == sns::default_solo_clock_minutes);
     CHECK(s.value("textSizePercent").toInt() == 100);
     CHECK(s.value("schoolFont").toString().isEmpty());
     CHECK(s.value("language").toString().isEmpty());
@@ -298,18 +298,18 @@ TEST_CASE("each setting can be changed by its name and is kept in the store",
     CHECK(f.controller.setSetting("textSizePercent", 150));
     CHECK(f.controller.setSetting("language", "he"));
 
-    const wjs::Settings& s = f.store.settings();
-    CHECK(s.help == wjs::HelpLevel::off);
+    const sns::Settings& s = f.store.settings();
+    CHECK(s.help == sns::HelpLevel::off);
     CHECK(s.phase == "A");
     CHECK(s.board_size == 4);
-    CHECK(s.sound_it_out == wjs::SoundItOut::word_only);
-    CHECK(s.celebration_sounds == wjs::CelebrationSounds::quiet);
+    CHECK(s.sound_it_out == sns::SoundItOut::word_only);
+    CHECK(s.celebration_sounds == sns::CelebrationSounds::quiet);
     CHECK_FALSE(s.sound);
     CHECK_FALSE(s.vibration);
     CHECK_FALSE(s.shake);
-    CHECK(s.motion == wjs::MotionSetting::reduced);
-    CHECK(s.colour_scheme == wjs::ColourScheme::dark);
-    CHECK(s.solo_clock == wjs::SoloClock::count_down);
+    CHECK(s.motion == sns::MotionSetting::reduced);
+    CHECK(s.colour_scheme == sns::ColourScheme::dark);
+    CHECK(s.solo_clock == sns::SoloClock::count_down);
     CHECK(s.solo_clock_minutes == 20);
     CHECK(s.text_size_percent == 150);
     CHECK(s.language == "he");
@@ -408,7 +408,7 @@ TEST_CASE("the phonics board cannot be chosen without its words", "[app][parent]
     CHECK_FALSE(controller.phonicsAvailable());
     CHECK_FALSE(controller.setSetting("board", "phonics"));
 
-    wjs::PhaseSet phases = wjs::app::demo::phases();
+    sns::PhaseSet phases = sns::app::demo::phases();
     controller.usePhases(&phases);
 
     CHECK(controller.phonicsAvailable());
@@ -420,7 +420,7 @@ TEST_CASE("the phases on offer are the data's, or two generic names", "[app][par
     ParentController controller;
     CHECK(controller.phases() == QStringList{"A", "B"});
 
-    wjs::PhaseSet phases = wjs::app::demo::phases();
+    sns::PhaseSet phases = sns::app::demo::phases();
     controller.usePhases(&phases);
 
     CHECK(controller.phases() == QStringList{"A", "B"});
@@ -520,7 +520,7 @@ TEST_CASE("the board size the parent offers is the mode's", "[app][parent][setti
     CHECK(controller.settings().value("boardSize").toInt() == 6);
     CHECK_FALSE(controller.setSetting("boardSize", 7));
 
-    wjs::PhaseSet phases = wjs::app::demo::phases();
+    sns::PhaseSet phases = sns::app::demo::phases();
     controller.usePhases(&phases);
     REQUIRE(controller.setSetting("board", "phonics"));
     // Phonics: 4 is its largest, and 5 is refused rather than clamped.
@@ -602,7 +602,7 @@ TEST_CASE("a store in memory is said not to be saved", "[app][parent][store]") {
 
 TEST_CASE("a store in a file is kept, and what is set is there next time", "[app][parent][store]") {
     const TempDirectory dir;
-    const auto file = dir.path() / "store.wjs";
+    const auto file = dir.path() / "store.sns";
     {
         ParentController controller;
         controller.openStore(file);
@@ -620,7 +620,7 @@ TEST_CASE("a store in a file is kept, and what is set is there next time", "[app
 TEST_CASE("a store that could not be read says so, and the old file is kept",
           "[app][parent][store]") {
     const TempDirectory dir;
-    const auto file = dir.path() / "store.wjs";
+    const auto file = dir.path() / "store.sns";
     {
         std::ofstream out(file, std::ios::binary);
         out << "not a store";
@@ -630,13 +630,13 @@ TEST_CASE("a store that could not be read says so, and the old file is kept",
     controller.openStore(file);
 
     CHECK(controller.storeNote() == "unreadable");
-    CHECK(std::filesystem::exists(dir.path() / "store.wjs.unreadable"));
+    CHECK(std::filesystem::exists(dir.path() / "store.sns.unreadable"));
 }
 
 TEST_CASE("a store from a newer version says so, and is left alone", "[app][parent][store]") {
     const TempDirectory dir;
-    const auto file = dir.path() / "store.wjs";
-    const std::string later = "wjs-store 9\nsomething new\nend 0000000000000000\n";
+    const auto file = dir.path() / "store.sns";
+    const std::string later = "sns-store 9\nsomething new\nend 0000000000000000\n";
     {
         std::ofstream out(file, std::ios::binary);
         out << later;
@@ -757,8 +757,8 @@ TEST_CASE("the totals the collection screen shows are the store's", "[app][paren
     CHECK(f.controller.boardsKept() > 0);
 
     int points = 0;
-    for (const wjs::VaultWord& word : f.store.data().vault) {
-        points += wjs::word_points(word.word) * static_cast<int>(word.found);
+    for (const sns::VaultWord& word : f.store.data().vault) {
+        points += sns::word_points(word.word) * static_cast<int>(word.found);
     }
     CHECK(f.controller.lifetimePoints() == points);
     CHECK(f.controller.lifetimePoints() > 0);
@@ -774,11 +774,11 @@ TEST_CASE("the totals the collection screen shows are the store's", "[app][paren
 
 TEST_CASE("the longest word is the longest, and the first alphabetically of equals",
           "[app][parent][totals]") {
-    wjs::Store store = wjs::app::demo::empty_store();
+    sns::Store store = sns::app::demo::empty_store();
     ParentController controller;
     controller.useStore(&store);
 
-    wjs::BoardSnapshot board;
+    sns::BoardSnapshot board;
     board.size = 3;
     board.tiles = "A A A/B B B/C C C";
     board.viable_total = 9;
@@ -795,18 +795,18 @@ TEST_CASE("the longest word is the longest, and the first alphabetically of equa
 
 TEST_CASE("the boards kept are listed newest first, with their words and tiers",
           "[app][parent][totals]") {
-    wjs::Store store = wjs::app::demo::empty_store();
+    sns::Store store = sns::app::demo::empty_store();
     ParentController controller;
     controller.useStore(&store);
 
-    wjs::BoardSnapshot first;
+    sns::BoardSnapshot first;
     first.size = 3;
     first.tiles = "S A T/P I N/X Y Z";
     first.viable_total = 4;
     first.finds = {
         {"sat", false, friday, 1}, {"pint", true, friday, 2}, {"paints", false, friday, 3}};
     static_cast<void>(store.record(first, friday));
-    wjs::BoardSnapshot second;
+    sns::BoardSnapshot second;
     second.size = 3;
     second.tiles = "T A P/S I N/Z Y X";
     second.viable_total = 2;
@@ -833,20 +833,20 @@ TEST_CASE("the boards kept are listed newest first, with their words and tiers",
     CHECK(by_word.value("paints").value("tier").toString() == "mega");
     CHECK(by_word.value("pint").value("assisted").toBool());
     CHECK_FALSE(by_word.value("sat").value("assisted").toBool());
-    CHECK(by_word.value("sat").value("points").toInt() == wjs::word_points("sat"));
+    CHECK(by_word.value("sat").value("points").toInt() == sns::word_points("sat"));
 }
 
 TEST_CASE("the timer lengths on offer are the table's", "[app][parent][settings]") {
     ParentController controller;
 
     const QVariantList choices = controller.timerLengthChoices();
-    REQUIRE(choices.size() == static_cast<qsizetype>(wjs::solo_clock_minutes_choices.size()));
+    REQUIRE(choices.size() == static_cast<qsizetype>(sns::solo_clock_minutes_choices.size()));
     for (qsizetype i = 0; i < choices.size(); ++i) {
         CHECK(choices.at(i).toInt() ==
-              wjs::solo_clock_minutes_choices[static_cast<std::size_t>(i)]);
+              sns::solo_clock_minutes_choices[static_cast<std::size_t>(i)]);
     }
     CHECK(controller.soloClock() == "off");
-    CHECK(controller.soloClockMinutes() == wjs::default_solo_clock_minutes);
+    CHECK(controller.soloClockMinutes() == sns::default_solo_clock_minutes);
 }
 
 TEST_CASE("the licence notices are the installed text, or say where it is", "[app][parent]") {
@@ -877,7 +877,7 @@ TEST_CASE("a save that fails is said, and trying again says when it works",
     const TempDirectory dir;
     const auto folder = dir.path() / "kept";
     ParentController controller;
-    controller.openStore(folder / "store.wjs");
+    controller.openStore(folder / "store.sns");
     REQUIRE(controller.storeNote().isEmpty());
 
     // A file where the folder should be: every write after this fails.
@@ -907,7 +907,7 @@ TEST_CASE("a save that fails is said, and trying again says when it works",
 
 TEST_CASE("a setting that is already what it is does not touch the file", "[app][parent][store]") {
     const TempDirectory dir;
-    const auto file = dir.path() / "store.wjs";
+    const auto file = dir.path() / "store.sns";
     ParentController controller;
     controller.openStore(file);
     REQUIRE(controller.setSetting("help", "start"));

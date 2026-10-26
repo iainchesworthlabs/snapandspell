@@ -8,7 +8,7 @@ Everything the program reads that a person or another program may have written h
 two phonics files, the store file, and the camera frame the scanner is handed. A reader returns an error for
 a bad input and never crashes; the fuzzers are there to find the input for which that is not true.
 
-| Library | Targets (`wjs_fuzz_<name>`) |
+| Library | Targets (`sns_fuzz_<name>`) |
 | --- | --- |
 | `libs/core/fuzz` | `board` (`Board::parse`: every position a board says it has holds a tile of one to three letters), `dictionary` (`Dictionary::load`), `dice_set` (`DiceSet::parse`, and the roll of a set with a square number of dice), `phase_graphemes` and `phase_words` (the phonics files; every problem is reported and can be written out), `store` (`parse_store`; a store that reads writes out again and reads back as the same data) |
 | `libs/scan/fuzz` | `frame_reader` (`read_board` over a frame: the first five bytes of the input are the pixel format, the width and the height, each up to 256, and a stride; the rest are the pixels, so the buffer is as short or as long as the input makes it) |
@@ -19,7 +19,7 @@ not get past the first check to the records. The rule is copied into the harness
 (`libs/core/fuzz/store.cpp`); if the format changes, the seeds stop reaching the record parser and the
 coverage of that target drops.
 
-Not fuzzed: the command line of `wjs-cli`, whose argument parser is in `apps/cli/src/main.cpp` and is not
+Not fuzzed: the command line of `sns-cli`, whose argument parser is in `apps/cli/src/main.cpp` and is not
 a function a harness can call; and the application's QML. Moving the parser into the library would add it.
 
 Each target has a directory of **seed inputs** (`corpus/<name>/`), written by
@@ -45,7 +45,7 @@ from:
 
 ```sh
 mkdir -p /tmp/work
-build/linux-fuzz/bin/wjs_fuzz_store -max_total_time=300 /tmp/work \
+build/linux-fuzz/bin/sns_fuzz_store -max_total_time=300 /tmp/work \
     libs/core/fuzz/corpus/store libs/core/fuzz/regressions/store
 ```
 

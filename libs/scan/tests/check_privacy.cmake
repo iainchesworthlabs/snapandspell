@@ -15,7 +15,7 @@
 #   - nothing is sent: no network class or socket header.
 #
 # It reads what the scanner is made of: everything under libs/scan, the camera and
-# board_reader files of every platform (libs/platforms/interfaces/wjs/platform/camera.hpp,
+# board_reader files of every platform (libs/platforms/interfaces/sns/platform/camera.hpp,
 # board_reader.hpp, and any camera_* or board_reader_* beside a platform's sources,
 # which includes the iOS ones when they are written), and Mode A's camera source
 # and its backends (apps/app/src/camera, apps/app/src/variants/camera-*), which is where the
@@ -36,8 +36,8 @@ file(GLOB_RECURSE _scanner_sources
 file(GLOB_RECURSE _platform_sources
     "${REPO_ROOT}/libs/platforms/*/camera_*"
     "${REPO_ROOT}/libs/platforms/*/board_reader_*"
-    "${REPO_ROOT}/libs/platforms/interfaces/wjs/platform/camera.hpp"
-    "${REPO_ROOT}/libs/platforms/interfaces/wjs/platform/board_reader.hpp")
+    "${REPO_ROOT}/libs/platforms/interfaces/sns/platform/camera.hpp"
+    "${REPO_ROOT}/libs/platforms/interfaces/sns/platform/board_reader.hpp")
 file(GLOB_RECURSE _app_camera_sources
     "${REPO_ROOT}/apps/app/src/camera/*"
     "${REPO_ROOT}/apps/app/src/variants/camera-*/*")

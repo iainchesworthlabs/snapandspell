@@ -14,8 +14,8 @@
 // Test support: nothing in libs and apps link it. The Qt Multimedia half and the none half are
 // two files; apps/app/tests/media/CMakeLists.txt compiles the one the kit calls for.
 
-namespace wjs::app::test {
+namespace sns::app::test {
 
 [[nodiscard]] bool mediaBackendAvailable();
 
-}  // namespace wjs::app::test
+}  // namespace sns::app::test

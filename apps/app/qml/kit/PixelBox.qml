@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Shapes
-import WordJewelsSolver
+import SnapAndSpell
 
 // A Toybox box: a fill, an ink outline, and a hard drop shadow with no blur (docs/design/toybox/DESIGN.md,
 // sections 3 and 6). A button, a panel, a dialog and a chip are each one of these. The shadow is drawn

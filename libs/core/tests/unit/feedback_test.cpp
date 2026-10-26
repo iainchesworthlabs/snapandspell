@@ -2,8 +2,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <string_view>
 
-#include "wjs/feedback.hpp"
-#include "wjs/settings.hpp"
+#include "sns/feedback.hpp"
+#include "sns/settings.hpp"
 
 // The cue policy of docs/design/application.md, "Audio and touch feedback": a
 // cue, the parent's settings and the cue's detail in, and what is played, said
@@ -12,16 +12,16 @@
 
 namespace {
 
-using wjs::CelebrationSounds;
-using wjs::CuePlan;
-using wjs::FeedbackCue;
-using wjs::FeedbackSettings;
-using wjs::HapticCue;
-using wjs::SoundItOut;
+using sns::CelebrationSounds;
+using sns::CuePlan;
+using sns::FeedbackCue;
+using sns::FeedbackSettings;
+using sns::HapticCue;
+using sns::SoundItOut;
 
 [[nodiscard]] CuePlan plan(FeedbackCue cue, std::string_view detail = {},
                            FeedbackSettings settings = {}) {
-    return wjs::plan_cue(cue, detail, settings);
+    return sns::plan_cue(cue, detail, settings);
 }
 
 }  // namespace
@@ -31,14 +31,14 @@ TEST_CASE("every cue kind has its name, and a name it does not know is nothing",
                                 FeedbackCue::tile,  FeedbackCue::tile_landed, FeedbackCue::word,
                                 FeedbackCue::tick,  FeedbackCue::chime,       FeedbackCue::cleared};
     for (const FeedbackCue cue : cues) {
-        const auto parsed = wjs::feedback_cue_from_string(wjs::to_string(cue));
+        const auto parsed = sns::feedback_cue_from_string(sns::to_string(cue));
         REQUIRE(parsed.has_value());
         CHECK(*parsed == cue);
     }
-    CHECK_FALSE(wjs::feedback_cue_from_string("").has_value());
-    CHECK_FALSE(wjs::feedback_cue_from_string("tile-landed ").has_value());
-    CHECK(wjs::feedback_cue_from_string("tile-landed") == FeedbackCue::tile_landed);
-    CHECK(wjs::feedback_cue_from_string("rattle") == FeedbackCue::rattle);
+    CHECK_FALSE(sns::feedback_cue_from_string("").has_value());
+    CHECK_FALSE(sns::feedback_cue_from_string("tile-landed ").has_value());
+    CHECK(sns::feedback_cue_from_string("tile-landed") == FeedbackCue::tile_landed);
+    CHECK(sns::feedback_cue_from_string("rattle") == FeedbackCue::rattle);
 }
 
 TEST_CASE("a cue with a sound names its asset and the master switch silences it", "[feedback]") {
@@ -73,10 +73,10 @@ TEST_CASE("a celebration has its own switch, and quiet lowers it", "[feedback]")
     quiet.celebration_sounds = CelebrationSounds::quiet;
     const CuePlan cheer = plan(FeedbackCue::word, "sat", quiet);
     CHECK(cheer.sound);
-    CHECK(cheer.volume == wjs::quiet_volume);
+    CHECK(cheer.volume == sns::quiet_volume);
     CHECK(cheer.speak_word);
-    CHECK(plan(FeedbackCue::chime, {}, quiet).volume == wjs::quiet_volume);
-    CHECK(plan(FeedbackCue::cleared, {}, quiet).volume == wjs::quiet_volume);
+    CHECK(plan(FeedbackCue::chime, {}, quiet).volume == sns::quiet_volume);
+    CHECK(plan(FeedbackCue::cleared, {}, quiet).volume == sns::quiet_volume);
 
     FeedbackSettings off;
     off.celebration_sounds = CelebrationSounds::off;

@@ -14,13 +14,13 @@
 #include "language_manager.hpp"
 #include "parent_controller.hpp"
 #include "scan_model.hpp"
+#include "sns/calendar.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/store.hpp"
 #include "solo_model.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/store.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 class CameraSource;
 }
 
@@ -96,7 +96,7 @@ public:
     // the no-camera screen, as the program on a desktop with no webcam does.
     Q_INVOKABLE void useCamera();
 
-    // The directory capture_screens.qml writes its pictures into: WJS_SHOTS_DIR, else `screenshots`
+    // The directory capture_screens.qml writes its pictures into: SNS_SHOTS_DIR, else `screenshots`
     // in the working directory. Made if it is not there.
     Q_INVOKABLE QString shotsDirectory() const;
 
@@ -107,18 +107,18 @@ private:
     // controller over them. Held together because the controller points at the
     // other two by address.
     struct ParentData {
-        wjs::PhaseSet phases = wjs::app::demo::phases();
-        wjs::Store store = wjs::Store::in_memory();
-        wjs::app::ParentController controller;
+        sns::PhaseSet phases = sns::app::demo::phases();
+        sns::Store store = sns::Store::in_memory();
+        sns::app::ParentController controller;
     };
 
     // The dictionary and store a confirmed Family Assistant board is played
     // over, for as long as the maker that hands them out is installed.
     struct AssistData {
-        wjs::Dictionary dictionary;
-        wjs::Store store = wjs::Store::in_memory();
+        sns::Dictionary dictionary;
+        sns::Store store = sns::Store::in_memory();
         // The day a round records its finds on (the suites' fixed Friday).
-        wjs::Day today = wjs::day_from_civil(2026, 10, 16);
+        sns::Day today = sns::day_from_civil(2026, 10, 16);
     };
 
     void resetSolo();
@@ -127,25 +127,25 @@ private:
     void resetAssist();
     void setContextProperty(const char* name, QObject* object);
 
-    std::unique_ptr<wjs::app::SoloModel> solo_;
-    std::vector<std::unique_ptr<wjs::app::SoloModel>> retired_solos_;
+    std::unique_ptr<sns::app::SoloModel> solo_;
+    std::vector<std::unique_ptr<sns::app::SoloModel>> retired_solos_;
 
     std::unique_ptr<ParentData> parent_;
     std::vector<std::unique_ptr<ParentData>> retired_parents_;
 
-    std::unique_ptr<wjs::app::ScanModel> scan_;
-    std::vector<std::unique_ptr<wjs::app::ScanModel>> retired_scans_;
+    std::unique_ptr<sns::app::ScanModel> scan_;
+    std::vector<std::unique_ptr<sns::app::ScanModel>> retired_scans_;
     // Declared before the scans so it is destroyed after them: a model's
     // destructor stops its camera, and the source has to outlive it.
-    std::vector<std::unique_ptr<wjs::app::CameraSource>> cameras_;
+    std::vector<std::unique_ptr<sns::app::CameraSource>> cameras_;
 
-    std::unique_ptr<wjs::app::AssistModel> assist_;
-    std::vector<std::unique_ptr<wjs::app::AssistModel>> retired_assists_;
+    std::unique_ptr<sns::app::AssistModel> assist_;
+    std::vector<std::unique_ptr<sns::app::AssistModel>> retired_assists_;
     std::vector<std::shared_ptr<AssistData>> assist_data_;
-    std::optional<wjs::app::ScopedAssistGameMaker> assist_maker_;
+    std::optional<sns::app::ScopedAssistGameMaker> assist_maker_;
 
-    std::unique_ptr<wjs::app::LanguageManager> language_;
+    std::unique_ptr<sns::app::LanguageManager> language_;
     QQmlEngine* engine_ = nullptr;
     qint64 clock_ = 1000;
-    wjs::Day today_ = wjs::day_from_civil(2026, 10, 16);
+    sns::Day today_ = sns::day_from_civil(2026, 10, 16);
 };

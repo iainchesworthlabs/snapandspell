@@ -8,13 +8,13 @@
 #include <string_view>
 #include <vector>
 
+#include "sns/board.hpp"
+#include "sns/deal.hpp"
+#include "sns/dice.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/game_rules.hpp"
+#include "sns/solver.hpp"
 #include "support/test_support.hpp"
-#include "wjs/board.hpp"
-#include "wjs/deal.hpp"
-#include "wjs/dice.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/game_rules.hpp"
-#include "wjs/solver.hpp"
 
 // The project's own dice, data/dice/<n>x<n>.txt, made by tools/data/make_dice.ps1
 // from a fixed Scrabble-style English letter-frequency table. These cases read
@@ -26,7 +26,7 @@
 namespace {
 
 // data/ in this checkout, as a path CMake passes in.
-constexpr std::string_view data_directory = WJS_DATA_DIRECTORY;
+constexpr std::string_view data_directory = SNS_DATA_DIRECTORY;
 
 [[nodiscard]] bool is_vowel_face(const std::string& face) {
     return face == "A" || face == "E" || face == "I" || face == "O" || face == "U";
@@ -55,14 +55,14 @@ std::filesystem::path dice_file(std::size_t side) {
            (std::to_string(side) + "x" + std::to_string(side) + ".txt");
 }
 
-wjs::DiceSet load(std::size_t side) {
-    auto set = wjs::DiceSet::load_file(dice_file(side));
+sns::DiceSet load(std::size_t side) {
+    auto set = sns::DiceSet::load_file(dice_file(side));
     REQUIRE(set.has_value());
     return *std::move(set);
 }
 
-const wjs::Dictionary& english() {
-    return wjs::test::shipped_english();
+const sns::Dictionary& english() {
+    return sns::test::shipped_english();
 }
 
 }  // namespace
@@ -160,7 +160,7 @@ TEST_CASE("the placements of a roll are the faces of the shipped dice that are u
         const auto set = load(side);
 
         for (std::uint32_t seed = 1; seed <= 300; ++seed) {
-            const auto rolled = wjs::roll_with_placements(set, seed);
+            const auto rolled = sns::roll_with_placements(set, seed);
 
             INFO("side " << side << " seed " << seed);
             REQUIRE(rolled.has_value());
@@ -188,21 +188,21 @@ TEST_CASE("a dealt standard board has the dice that its seed rolls", "[dice][dat
     // The deal rolls again until a board holds a word and says the seed of the
     // roll it kept (DealtBoard::seed). The scene is given the dice of that roll,
     // so the roll of that seed must be the dealt board, die for die.
-    const auto words = wjs::WordSets::standard(english());
+    const auto words = sns::WordSets::standard(english());
     for (const std::size_t side : {3U, 4U}) {
         const auto set = load(side);
 
         for (std::uint32_t seed = 1; seed <= 40; ++seed) {
-            const auto dealt = wjs::deal_standard_board(set, words, seed);
+            const auto dealt = sns::deal_standard_board(set, words, seed);
             REQUIRE(dealt.has_value());
-            const auto rolled = wjs::roll_with_placements(set, dealt->seed);
+            const auto rolled = sns::roll_with_placements(set, dealt->seed);
             REQUIRE(rolled.has_value());
 
             INFO("side " << side << " seed " << seed << " dealt from " << dealt->seed);
             bool same = rolled->board.rows() == dealt->board.rows() &&
                         rolled->board.columns() == dealt->board.columns();
             for (std::size_t tile = 0; tile < side * side && same; ++tile) {
-                const wjs::Position at{tile / side, tile % side};
+                const sns::Position at{tile / side, tile % side};
                 const auto& placement = rolled->placements[tile];
                 same = rolled->board.tile(at) == dealt->board.tile(at) &&
                        set.die(placement.die)[placement.face] == dealt->board.tile(at);
@@ -239,10 +239,10 @@ TEST_CASE("boards rolled from the shipped dice hold about the words a random boa
         std::size_t without_words = 0;
         constexpr std::uint32_t boards = 300;
         for (std::uint32_t seed = 1; seed <= boards; ++seed) {
-            const auto board = wjs::roll(set, seed);
+            const auto board = sns::roll(set, seed);
             REQUIRE(board.has_value());
             REQUIRE(board->rows() == expect.side);
-            const auto found = wjs::solve(*board, english());
+            const auto found = sns::solve(*board, english());
             total += static_cast<double>(found.size());
             if (found.empty()) {
                 ++without_words;
@@ -260,7 +260,7 @@ TEST_CASE("a seed rolls the same board from the shipped dice on every compiler",
     // Pinned, as the seeding's boards are: a roll is std::mt19937 taken modulo and a
     // shuffle of the library's own. The dice files are fixed by the tool's seed,
     // so these change only if the dice or the roll do.
-    const auto text = [](const wjs::Board& board) {
+    const auto text = [](const sns::Board& board) {
         std::string result;
         for (std::size_t row = 0; row < board.rows(); ++row) {
             if (row > 0) {
@@ -276,11 +276,11 @@ TEST_CASE("a seed rolls the same board from the shipped dice on every compiler",
         return result;
     };
 
-    CHECK(text(*wjs::roll(load(3), 1)) == "T A E/H T Y/D A A");
-    CHECK(text(*wjs::roll(load(4), 1)) == "C A T E/S C O D/T L A L/I Y T H");
+    CHECK(text(*sns::roll(load(3), 1)) == "T A E/H T Y/D A A");
+    CHECK(text(*sns::roll(load(4), 1)) == "C A T E/S C O D/T L A L/I Y T H");
 
     // The same boards from the function that returns the placements, which
     // must not have moved a board: a board of today is a board of before.
-    CHECK(text(wjs::roll_with_placements(load(3), 1)->board) == "T A E/H T Y/D A A");
-    CHECK(text(wjs::roll_with_placements(load(4), 1)->board) == "C A T E/S C O D/T L A L/I Y T H");
+    CHECK(text(sns::roll_with_placements(load(3), 1)->board) == "T A E/H T Y/D A A");
+    CHECK(text(sns::roll_with_placements(load(4), 1)->board) == "C A T E/S C O D/T L A L/I Y T H");
 }

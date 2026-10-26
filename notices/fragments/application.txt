@@ -1,7 +1,7 @@
-WordJewelsSolver, the application binary
+SnapAndSpell, the application binary
 -----------------------------------------
 
-THE APPLICATION BINARY, WordJewelsSolver, IS CONVEYED UNDER GPL-3.0 OR LATER,
+THE APPLICATION BINARY, SnapAndSpell, IS CONVEYED UNDER GPL-3.0 OR LATER,
 like the source files it is built from. It links Qt under the GNU Lesser General
 Public License, version 3, which the GPL version 3 allows it to be combined with;
 the Qt section below says which modules and how. The board is drawn in 2D with Qt

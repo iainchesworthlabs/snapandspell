@@ -9,7 +9,7 @@
 // What the libFuzzer harnesses (libs/<lib>/fuzz) share: the bytes libFuzzer hands over, as the
 // text the readers take. Test support: nothing in libs and apps link it.
 
-namespace wjs::test {
+namespace sns::test {
 
 [[nodiscard]] inline std::string_view fuzz_text(const std::uint8_t* data,
                                                 std::size_t size) noexcept {
@@ -20,4 +20,4 @@ namespace wjs::test {
     return std::string(fuzz_text(data, size));
 }
 
-}  // namespace wjs::test
+}  // namespace sns::test

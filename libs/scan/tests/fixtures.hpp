@@ -9,9 +9,9 @@
 #include <map>
 
 #include "scene.hpp"
-#include "wjs/scan/reader.hpp"
+#include "sns/scan/reader.hpp"
 
-namespace wjs::scan::fixtures {
+namespace sns::scan::fixtures {
 
 // The frame for a spec, drawn on first use.
 [[nodiscard]] inline const synth::Rendered& frame(const synth::Spec& spec) {
@@ -47,4 +47,4 @@ namespace wjs::scan::fixtures {
     return found->second;
 }
 
-}  // namespace wjs::scan::fixtures
+}  // namespace sns::scan::fixtures

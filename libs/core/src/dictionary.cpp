@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/dictionary.hpp"
+#include "sns/dictionary.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -7,9 +7,9 @@
 #include <string>
 
 #include "ascii.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 using ascii::to_upper;
@@ -174,4 +174,4 @@ bool Dictionary::is_word(Cursor at) const noexcept {
     return at != no_node && nodes_[at].terminal;
 }
 
-}  // namespace wjs
+}  // namespace sns

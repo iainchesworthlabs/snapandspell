@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The question asked when "Start playing" is pressed with ringed tiles left: the
 // reader was not sure about them, and the press is the grown-up's statement that

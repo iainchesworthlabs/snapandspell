@@ -6,7 +6,7 @@
 // leaves out on purpose: Qt Quick 3D (no longer used anywhere), Qt Test (the UI
 // suites'), Qt Multimedia (the camera's) and the other four Qt Quick Controls styles. Each of those
 // is megabytes of WebAssembly that a child waits for, so the scan is off (platform.cmake,
-// QT_QML_MODULE_NO_IMPORT_SCAN) and the modules are named here and in WJS_WEB_QML_PLUGIN_TARGETS.
+// QT_QML_MODULE_NO_IMPORT_SCAN) and the modules are named here and in SNS_WEB_QML_PLUGIN_TARGETS.
 //
 // tests/platform/check_web.cmake holds this list to the imports of the application's QML: a module
 // imported and not named here is a build that fails the check, not a page that fails to start.
@@ -25,6 +25,6 @@ Q_IMPORT_QML_PLUGIN(QtQuickControls2BasicStylePlugin)
 Q_IMPORT_QML_PLUGIN(QtQuickControls2BasicStyleImplPlugin)
 
 // The project's: the parent area, the Family Assistant's screens and the board scene.
-Q_IMPORT_QML_PLUGIN(WordJewelsSolver_ParentPlugin)
-Q_IMPORT_QML_PLUGIN(WordJewelsSolver_ScanPlugin)
-Q_IMPORT_QML_PLUGIN(WordJewelsSolver_ScenePlugin)
+Q_IMPORT_QML_PLUGIN(SnapAndSpell_ParentPlugin)
+Q_IMPORT_QML_PLUGIN(SnapAndSpell_ScanPlugin)
+Q_IMPORT_QML_PLUGIN(SnapAndSpell_ScenePlugin)

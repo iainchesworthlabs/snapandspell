@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
-import WordJewelsSolver.Parent
+import SnapAndSpell
+import SnapAndSpell.Parent
 
 // The parent area (apps/app/qml/parent/): the gate, the dashboard, the settings
 // and the two resets, driven through the application's own ParentController over

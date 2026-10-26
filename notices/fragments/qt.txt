@@ -1,7 +1,7 @@
 Qt {{QT_VERSION}}
 ------------------
 
-The WordJewelsSolver package includes the Qt {{QT_VERSION}} libraries, plugins
+The SnapAndSpell package includes the Qt {{QT_VERSION}} libraries, plugins
 and QML modules the application loads: the Qt6*.dll files beside the program,
 and the platforms/, imageformats/, iconengines/, multimedia/, sensors/,
 texttospeech/ and qml/ directories, which the program finds through the qt.conf

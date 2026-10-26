@@ -3,7 +3,7 @@
 
 #include <utility>
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 AssistGameMaker& installed() {
@@ -21,11 +21,11 @@ ScopedAssistGameMaker::~ScopedAssistGameMaker() {
     installed() = nullptr;
 }
 
-std::unique_ptr<AssistGame> make_assist_game(wjs::Board board) {
+std::unique_ptr<AssistGame> make_assist_game(sns::Board board) {
     if (const AssistGameMaker& maker = installed()) {
         return maker(std::move(board));
     }
     return nullptr;
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

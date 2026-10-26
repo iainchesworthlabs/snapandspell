@@ -34,18 +34,18 @@ struct Counts {
     int availability = 0;
 };
 
-void count(wjs::app::MotionSource& motion, Counts& counts) {
-    QObject::connect(&motion, &wjs::app::MotionSource::sample,
+void count(sns::app::MotionSource& motion, Counts& counts) {
+    QObject::connect(&motion, &sns::app::MotionSource::sample,
                      [&counts](qreal, qreal, qreal, qreal, qreal, qreal) { ++counts.samples; });
-    QObject::connect(&motion, &wjs::app::MotionSource::shakeDetected,
+    QObject::connect(&motion, &sns::app::MotionSource::shakeDetected,
                      [&counts] { ++counts.shakes; });
-    QObject::connect(&motion, &wjs::app::MotionSource::availableChanged,
+    QObject::connect(&motion, &sns::app::MotionSource::availableChanged,
                      [&counts] { ++counts.availability; });
 }
 
 // A device lying flat, pushed along x for a second and a half: one shake (the
 // library's trace, libs/core/tests/unit/motion_test.cpp).
-void play_one_shake(wjs::app::MotionSource& motion, double offset = 0.0) {
+void play_one_shake(sns::app::MotionSource& motion, double offset = 0.0) {
     constexpr double rate = 100.0;
     for (std::size_t i = 0; i < 300; ++i) {
         const double t = static_cast<double>(i) / rate;
@@ -53,7 +53,7 @@ void play_one_shake(wjs::app::MotionSource& motion, double offset = 0.0) {
         if (t >= 0.5 && t <= 2.0) {
             push = 2.5 * std::sin(2.0 * pi * 4.0 * (t - 0.5));
         }
-        wjs::DeviceMotion sample;
+        sns::DeviceMotion sample;
         sample.t = offset + t;
         sample.ax = push * standard_gravity;
         sample.az = standard_gravity;
@@ -65,8 +65,8 @@ void play_one_shake(wjs::app::MotionSource& motion, double offset = 0.0) {
 }  // namespace
 
 TEST_CASE("a desktop motion source has no accelerometer and stops safely", "[app][motion]") {
-    wjs::app::test::GuiApplication app;
-    wjs::app::MotionSource motion;
+    sns::app::test::GuiApplication app;
+    sns::app::MotionSource motion;
 
     CHECK_FALSE(motion.available());
     CHECK_FALSE(motion.active());
@@ -90,13 +90,13 @@ TEST_CASE("a desktop motion source has no accelerometer and stops safely", "[app
 }
 
 TEST_CASE("the first sample makes the source available, once", "[app][motion]") {
-    wjs::app::test::GuiApplication app;
-    wjs::app::MotionSource motion;
+    sns::app::test::GuiApplication app;
+    sns::app::MotionSource motion;
     Counts counts;
     count(motion, counts);
     REQUIRE_FALSE(motion.available());
 
-    wjs::DeviceMotion sample;
+    sns::DeviceMotion sample;
     sample.t = 0.0;
     sample.az = standard_gravity;
     motion.accept(sample);
@@ -112,8 +112,8 @@ TEST_CASE("the first sample makes the source available, once", "[app][motion]") 
 
 TEST_CASE("a shake rolls the box only while Shake is on, and samples flow either way",
           "[app][motion]") {
-    wjs::app::test::GuiApplication app;
-    wjs::app::MotionSource motion;
+    sns::app::test::GuiApplication app;
+    sns::app::MotionSource motion;
     Counts counts;
     count(motion, counts);
 
@@ -133,8 +133,8 @@ TEST_CASE("a shake rolls the box only while Shake is on, and samples flow either
 }
 
 TEST_CASE("starting the sensors again is a new trace", "[app][motion]") {
-    wjs::app::test::GuiApplication app;
-    wjs::app::MotionSource motion;
+    sns::app::test::GuiApplication app;
+    sns::app::MotionSource motion;
     Counts counts;
     count(motion, counts);
 

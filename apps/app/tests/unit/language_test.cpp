@@ -2,7 +2,7 @@
 // The interface's languages (docs/design/application.md, "Languages"):
 // the catalogues in apps/app/translations/, the LanguageManager's direction and fallback, that a
 // catalogue is really installed, and that the app's font chain carries the
-// glyphs of all eight languages. Built with the application, in wjs_app_tests.
+// glyphs of all eight languages. Built with the application, in sns_app_tests.
 
 #include <QCoreApplication>
 #include <QDir>
@@ -22,16 +22,16 @@
 #include <vector>
 
 #include "language_manager.hpp"
+#include "sns/settings.hpp"
 #include "test_support.hpp"
-#include "wjs/settings.hpp"
 
 namespace {
 
-using wjs::app::LanguageManager;
+using sns::app::LanguageManager;
 
 // A GUI application on the platform the entry's environment names: offscreen,
 // with the fonts directory the platform's fragment gives it (tests/CMakeLists.txt).
-using TestApplication = wjs::app::test::GuiApplication;
+using TestApplication = sns::app::test::GuiApplication;
 
 // One catalogue as the completeness check reads it.
 struct Catalogue {
@@ -150,19 +150,19 @@ struct Sample {
 
 TEST_CASE("every language has a complete catalogue, and all eight are there",
           "[app][i18n][catalogue]") {
-    const QDir directory(QStringLiteral(WJS_I18N_DIRECTORY));
+    const QDir directory(QStringLiteral(SNS_I18N_DIRECTORY));
     REQUIRE(directory.exists());
 
-    const QStringList found = directory.entryList({QStringLiteral("wjs_*.ts")}, QDir::Files);
-    const QStringList expected = LanguageManager::languages();  // the same order as wjs::languages
+    const QStringList found = directory.entryList({QStringLiteral("sns_*.ts")}, QDir::Files);
+    const QStringList expected = LanguageManager::languages();  // the same order as sns::languages
     CHECK(found.size() == expected.size());
     for (const QString& code : expected) {
-        CHECK(found.contains(QStringLiteral("wjs_%1.ts").arg(code)));
+        CHECK(found.contains(QStringLiteral("sns_%1.ts").arg(code)));
     }
 
     // English is the source language: it is the catalogue every other one is
     // counted against.
-    const QString source_path = directory.filePath(QStringLiteral("wjs_en.ts"));
+    const QString source_path = directory.filePath(QStringLiteral("sns_en.ts"));
     REQUIRE(QFile::exists(source_path));
     const Catalogue source = read_catalogue(source_path, QStringLiteral("en"));
     for (const QString& problem : source.problems) {
@@ -172,7 +172,7 @@ TEST_CASE("every language has a complete catalogue, and all eight are there",
     CHECK(source.messages > 0);
 
     for (const QString& code : expected) {
-        const QString path = directory.filePath(QStringLiteral("wjs_%1.ts").arg(code));
+        const QString path = directory.filePath(QStringLiteral("sns_%1.ts").arg(code));
         INFO(path.toStdString());
         if (!QFile::exists(path)) {
             CHECK(false);
@@ -282,7 +282,7 @@ TEST_CASE("Hebrew and Yiddish are right to left and the other six left to right"
     CHECK(LanguageManager::language_from_locale(QString()) == "en");
     // No setting is the device's own language, and it is one of the eight.
     CHECK(LanguageManager::resolved(QString()) == LanguageManager::system_language());
-    CHECK(wjs::is_valid_language(LanguageManager::system_language().toStdString()));
+    CHECK(sns::is_valid_language(LanguageManager::system_language().toStdString()));
     // A code this program does not have is English.
     CHECK(LanguageManager::resolved(QStringLiteral("tlh")) == "en");
 }
@@ -336,7 +336,7 @@ namespace {
 [[nodiscard]] QSet<char32_t> catalogue_characters(const QString& code) {
     QSet<char32_t> found;
     QFile file(
-        QDir(QStringLiteral(WJS_I18N_DIRECTORY)).filePath(QStringLiteral("wjs_%1.ts").arg(code)));
+        QDir(QStringLiteral(SNS_I18N_DIRECTORY)).filePath(QStringLiteral("sns_%1.ts").arg(code)));
     REQUIRE(file.open(QIODevice::ReadOnly | QIODevice::Text));
     QXmlStreamReader reader(&file);
     while (!reader.atEnd()) {
@@ -355,7 +355,7 @@ namespace {
 
 [[nodiscard]] QRawFont bundled_face(const char* file) {
     const QRawFont face(
-        QDir(QStringLiteral(WJS_FONTS_DIRECTORY)).filePath(QString::fromLatin1(file)), 16);
+        QDir(QStringLiteral(SNS_FONTS_DIRECTORY)).filePath(QString::fromLatin1(file)), 16);
     REQUIRE(face.isValid());
     return face;
 }

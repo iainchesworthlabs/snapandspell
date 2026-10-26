@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "fake_clips.hpp"
+#include "sns/sound_it_out.hpp"
 #include "sound_sequence_player.hpp"
-#include "wjs/sound_it_out.hpp"
 
 // The player of the sound-it-out sequence (apps/app/src/feedback/sound_sequence_player.*)
 // over a fake clip player and a clock the test winds by hand: no sound is made and
@@ -23,17 +23,17 @@
 
 namespace {
 
+using sns::SoundSequence;
+using sns::SoundStep;
+using sns::SoundStepKind;
+using sns::app::test::FakeClips;
 using std::chrono::milliseconds;
-using wjs::SoundSequence;
-using wjs::SoundStep;
-using wjs::SoundStepKind;
-using wjs::app::test::FakeClips;
 
 // The clock: waits are collected, and the test runs the next.
 struct Clock {
     std::vector<std::pair<milliseconds, std::function<void()>>> waits;
 
-    wjs::app::SoundSequencePlayer::Scheduler scheduler() {
+    sns::app::SoundSequencePlayer::Scheduler scheduler() {
         return [this](milliseconds delay, std::function<void()> then) {
             waits.emplace_back(delay, std::move(then));
         };
@@ -64,12 +64,12 @@ SoundSequence pain() {
     SoundSequence sequence;
     sequence.word = "pain";
     sequence.steps.push_back(sound(0, "p", "t1", milliseconds{0}));
-    sequence.steps.push_back(sound(1, "ai", "t7", wjs::segment_gap));
-    sequence.steps.push_back(sound(2, "n", "t3", wjs::segment_gap));
+    sequence.steps.push_back(sound(1, "ai", "t7", sns::segment_gap));
+    sequence.steps.push_back(sound(2, "n", "t3", sns::segment_gap));
     SoundStep blend;
     blend.kind = SoundStepKind::blend;
-    blend.gap_before = wjs::segment_gap;
-    blend.duration = wjs::blend_duration;
+    blend.gap_before = sns::segment_gap;
+    blend.duration = sns::blend_duration;
     blend.letters = "pain";
     blend.clips = {"t1", "t7", "t3"};
     sequence.steps.push_back(blend);
@@ -93,11 +93,11 @@ struct Rig {
               said_volume = volume;
           }) {
         player.setScheduler(clock.scheduler());
-        QObject::connect(&player, &wjs::app::SoundSequencePlayer::stepStarted, &player,
+        QObject::connect(&player, &sns::app::SoundSequencePlayer::stepStarted, &player,
                          [this](const QString& kind, int block) {
                              steps.push_back(kind + ":" + QString::number(block));
                          });
-        QObject::connect(&player, &wjs::app::SoundSequencePlayer::finished, &player,
+        QObject::connect(&player, &sns::app::SoundSequencePlayer::finished, &player,
                          [this] { ++finished; });
     }
 
@@ -115,7 +115,7 @@ struct Rig {
     double said_volume = -1.0;
     int finished = 0;
     Clock clock;
-    wjs::app::SoundSequencePlayer player;
+    sns::app::SoundSequencePlayer player;
 };
 
 }  // namespace
@@ -152,16 +152,16 @@ TEST_CASE("clips play one after another, with the gap between them, and the word
     // 150 ms of silence, then the second.
     REQUIRE(rig.clock.waits.size() == 1);
     CHECK(rig.log.size() == 1);
-    CHECK(rig.clock.run_next() == wjs::segment_gap);
+    CHECK(rig.clock.run_next() == sns::segment_gap);
     CHECK(rig.log.back() == "clip t7");
 
     clips->end();
-    CHECK(rig.clock.run_next() == wjs::segment_gap);
+    CHECK(rig.clock.run_next() == sns::segment_gap);
     CHECK(rig.log.back() == "clip t3");
 
     // The blend: the same sounds again, back to back, after the gap.
     clips->end();
-    CHECK(rig.clock.run_next() == wjs::segment_gap);
+    CHECK(rig.clock.run_next() == sns::segment_gap);
     CHECK(rig.log.back() == "clip t1");
     clips->end();
     CHECK(rig.log.back() == "clip t7");
@@ -183,7 +183,7 @@ TEST_CASE("a clip that is not there takes no time and no gap", "[app][feedback][
 
     rig.player.start(pain(), 1.0);
     clips->end();  // p was heard, so the gap before the next sound is waited
-    CHECK(rig.clock.run_next() == wjs::segment_gap);
+    CHECK(rig.clock.run_next() == sns::segment_gap);
     // The digraph has no clip: it takes no time, and the sound after it follows at
     // once, with no gap, because a gap is silence after a sound that was heard.
     CHECK(rig.log == std::vector<std::string>{"clip t1", "missing t7", "clip t3"});

@@ -5,15 +5,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <type_traits>
 
-#include "wjs/board.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/scan/confirmation.hpp"
-#include "wjs/solver.hpp"
+#include "sns/board.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/scan/confirmation.hpp"
+#include "sns/solver.hpp"
 
 namespace {
 
-using namespace wjs;
-using namespace wjs::scan;
+using namespace sns;
+using namespace sns::scan;
 
 // A reading of a 2 x 3 board, as a reader might make it:
 //

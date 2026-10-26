@@ -14,7 +14,7 @@
 # hand. This is the check that the policy holds, and it runs in every ctest,
 # which is every CI leg:
 #
-#   1. Resolving `inherits` the way CMake does, WJS_ENABLE_TRACY is ON for a
+#   1. Resolving `inherits` the way CMake does, SNS_ENABLE_TRACY is ON for a
 #      configure preset exactly when the preset is a debug or profiling one
 #      (the hidden `debug` / `profiling` presets, or named *-debug /
 #      *-profiling). The *-release and *-coverage presets, which are what a
@@ -60,14 +60,14 @@ foreach(_i RANGE 0 ${_last})
     # What the preset itself sets (empty: it says nothing about Tracy).
     set(_value "")
     string(JSON _type ERROR_VARIABLE _error TYPE "${_presets}" configurePresets ${_i}
-        cacheVariables WJS_ENABLE_TRACY)
+        cacheVariables SNS_ENABLE_TRACY)
     if(_error STREQUAL "NOTFOUND")
         if(_type STREQUAL "OBJECT")
             string(JSON _value GET "${_presets}" configurePresets ${_i}
-                cacheVariables WJS_ENABLE_TRACY value)
+                cacheVariables SNS_ENABLE_TRACY value)
         else()
             string(JSON _value GET "${_presets}" configurePresets ${_i}
-                cacheVariables WJS_ENABLE_TRACY)
+                cacheVariables SNS_ENABLE_TRACY)
         endif()
     endif()
     set("_VALUE_${_name}" "${_value}")
@@ -130,11 +130,11 @@ foreach(_name IN LISTS _names)
 
     # ON is allowed exactly for the debug and profiling presets.
     if(_on AND NOT (_is_debug_name OR _is_profiling_name))
-        _fail("configure preset '${_name}' turns WJS_ENABLE_TRACY on; only the *-debug and *-profiling presets may")
+        _fail("configure preset '${_name}' turns SNS_ENABLE_TRACY on; only the *-debug and *-profiling presets may")
     endif()
     # The policy itself: a debug preset IS instrumented.
     if(_is_debug_name AND NOT _on)
-        _fail("the debug preset '${_name}' does not resolve WJS_ENABLE_TRACY to ON; a Debug build is instrumented by default")
+        _fail("the debug preset '${_name}' does not resolve SNS_ENABLE_TRACY to ON; a Debug build is instrumented by default")
     endif()
     # Nothing a package or a coverage report is made from may be.
     if(_name MATCHES "release" AND _on)
@@ -149,25 +149,25 @@ foreach(_name IN LISTS _names)
 endforeach()
 
 if(NOT _instrumented_presets)
-    _fail("no preset turns WJS_ENABLE_TRACY on, so an instrumented build cannot be made from a preset")
+    _fail("no preset turns SNS_ENABLE_TRACY on, so an instrumented build cannot be made from a preset")
 endif()
 
 # ---- 2. the option's default -------------------------------------------------
 
 file(READ "${REPO_ROOT}/CMakeLists.txt" _root_cmake)
-if(NOT _root_cmake MATCHES "option\\(WJS_ENABLE_TRACY")
-    _fail("the top-level CMakeLists.txt does not declare option(WJS_ENABLE_TRACY ...); the manifest feature must be chosen before project()")
+if(NOT _root_cmake MATCHES "option\\(SNS_ENABLE_TRACY")
+    _fail("the top-level CMakeLists.txt does not declare option(SNS_ENABLE_TRACY ...); the manifest feature must be chosen before project()")
 endif()
-if(NOT _root_cmake MATCHES "if\\(CMAKE_CONFIGURATION_TYPES\\)[\r\n \t]+set\\(_wjs_tracy_default OFF\\)")
-    _fail("the top-level CMakeLists.txt does not default WJS_ENABLE_TRACY to OFF for multi-config generators")
+if(NOT _root_cmake MATCHES "if\\(CMAKE_CONFIGURATION_TYPES\\)[\r\n \t]+set\\(_sns_tracy_default OFF\\)")
+    _fail("the top-level CMakeLists.txt does not default SNS_ENABLE_TRACY to OFF for multi-config generators")
 endif()
-if(NOT _root_cmake MATCHES "elseif\\(CMAKE_BUILD_TYPE STREQUAL \"Debug\"\\)[\r\n \t]+set\\(_wjs_tracy_default ON\\)")
-    _fail("the top-level CMakeLists.txt does not default WJS_ENABLE_TRACY to ON for a Debug build type")
+if(NOT _root_cmake MATCHES "elseif\\(CMAKE_BUILD_TYPE STREQUAL \"Debug\"\\)[\r\n \t]+set\\(_sns_tracy_default ON\\)")
+    _fail("the top-level CMakeLists.txt does not default SNS_ENABLE_TRACY to ON for a Debug build type")
 endif()
 
 file(READ "${REPO_ROOT}/cmake/Tracy.cmake" _tracy_cmake)
-if(_tracy_cmake MATCHES "option\\(WJS_ENABLE_TRACY")
-    _fail("cmake/Tracy.cmake declares a second default for WJS_ENABLE_TRACY; the top-level CMakeLists.txt is its one declaration")
+if(_tracy_cmake MATCHES "option\\(SNS_ENABLE_TRACY")
+    _fail("cmake/Tracy.cmake declares a second default for SNS_ENABLE_TRACY; the top-level CMakeLists.txt is its one declaration")
 endif()
 
 # ---- 3. the manifest ---------------------------------------------------------
@@ -241,8 +241,8 @@ endif()
 
 file(READ "${REPO_ROOT}/CMakeLists.txt" _root)
 string(REGEX MATCHALL "[^\n]*\"profiling\"[^\n]*" _mentions "${_root}")
-if(NOT _root MATCHES "if\\(WJS_ENABLE_TRACY\\)[ \t\r\n]*list\\(APPEND VCPKG_MANIFEST_FEATURES \"profiling\"\\)")
-    _fail("CMakeLists.txt does not add the 'profiling' feature under if(WJS_ENABLE_TRACY) alone")
+if(NOT _root MATCHES "if\\(SNS_ENABLE_TRACY\\)[ \t\r\n]*list\\(APPEND VCPKG_MANIFEST_FEATURES \"profiling\"\\)")
+    _fail("CMakeLists.txt does not add the 'profiling' feature under if(SNS_ENABLE_TRACY) alone")
 endif()
 list(LENGTH _mentions _mention_count)
 if(_mention_count GREATER 1)
@@ -254,9 +254,9 @@ endif()
 file(GLOB _workflows "${REPO_ROOT}/.github/workflows/*.yml" "${REPO_ROOT}/.github/workflows/*.yaml")
 foreach(_workflow IN LISTS _workflows)
     file(READ "${_workflow}" _text)
-    if(_text MATCHES "WJS_ENABLE_TRACY=")
+    if(_text MATCHES "SNS_ENABLE_TRACY=")
         get_filename_component(_file "${_workflow}" NAME)
-        _fail("${_file} sets WJS_ENABLE_TRACY by hand; the presets and the option's default decide")
+        _fail("${_file} sets SNS_ENABLE_TRACY by hand; the presets and the option's default decide")
     endif()
 endforeach()
 

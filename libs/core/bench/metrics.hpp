@@ -11,7 +11,7 @@
 #include <string_view>
 #include <vector>
 
-namespace wjs::perf {
+namespace sns::perf {
 
 // A seed that is not one corpus board: a total, or something that has no board
 // behind it.
@@ -150,7 +150,7 @@ struct Metric {
 // of each kind of path for each mode, and a finger's path on a 6x6.
 [[nodiscard]] std::vector<Metric> data_timing_metrics();
 
-// --- the scanner, counted (wjs/scan/work.hpp) ---------------------------------
+// --- the scanner, counted (sns/scan/work.hpp) ---------------------------------
 
 // What reading four fixed synthetic frames costs the reader (a 4x4, a 5x5, a 6x6
 // and a 4x4 under glare): the frames and pixels, which pin the corpus, and the
@@ -176,4 +176,4 @@ struct Metric {
 // against the light calibration. One deal's ratio.
 [[nodiscard]] std::vector<Metric> standard_session_timing_metrics();
 
-}  // namespace wjs::perf
+}  // namespace sns::perf

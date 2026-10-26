@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // A thin handle on the trailing edge of a scrolling list, drawn only while the
 // list holds more than it shows: where the list stands, and that it goes on. It

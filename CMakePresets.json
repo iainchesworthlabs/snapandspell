@@ -14,7 +14,7 @@
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "WJS_BUILD_APP": "AUTO"
+        "SNS_BUILD_APP": "AUTO"
       }
     },
     {
@@ -22,19 +22,19 @@
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "WJS_ENABLE_TRACY": "ON"
+        "SNS_ENABLE_TRACY": "ON"
       }
     },
     {
       "name": "release",
       "hidden": true,
-      "description": "What a package is made from: Release, the Qt Quick application built (a missing Qt is an error, not a command-line-only package), no Tracy, no sanitizer runtime, reviewed phonics data required. A job that only wants the solver passes -DWJS_BUILD_APP=OFF.",
+      "description": "What a package is made from: Release, the Qt Quick application built (a missing Qt is an error, not a command-line-only package), no Tracy, no sanitizer runtime, reviewed phonics data required. A job that only wants the solver passes -DSNS_BUILD_APP=OFF.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "WJS_BUILD_APP": "ON",
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_ENABLE_SANITIZERS": "OFF",
-        "WJS_REQUIRE_REVIEWED_PHONICS": "ON"
+        "SNS_BUILD_APP": "ON",
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_ENABLE_SANITIZERS": "OFF",
+        "SNS_REQUIRE_REVIEWED_PHONICS": "ON"
       }
     },
     {
@@ -43,10 +43,10 @@
       "inherits": ["debug"],
       "description": "ThreadSanitizer instead of AddressSanitizer and UBSan (the runtimes cannot be combined), and Tracy off. The Qt kit is prebuilt without instrumentation and would report races that are not there, so the application is not built: the solver, the scanner and the command line are, with their unit, integration and system tests.",
       "cacheVariables": {
-        "WJS_ENABLE_SANITIZERS": "OFF",
-        "WJS_ENABLE_TSAN": "ON",
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_BUILD_APP": "OFF"
+        "SNS_ENABLE_SANITIZERS": "OFF",
+        "SNS_ENABLE_TSAN": "ON",
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_BUILD_APP": "OFF"
       }
     },
     {
@@ -63,8 +63,8 @@
         "fastdebug"
       ],
       "cacheVariables": {
-        "WJS_ENABLE_TRACY": "ON",
-        "WJS_ENABLE_SANITIZERS": "OFF"
+        "SNS_ENABLE_TRACY": "ON",
+        "SNS_ENABLE_SANITIZERS": "OFF"
       }
     },
     {
@@ -128,11 +128,11 @@
       },
       "cacheVariables": {
         "VCPKG_TARGET_TRIPLET": "x64-windows",
-        "WJS_BUILD_APP": "AUTO",
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_ENABLE_COVERAGE": "ON",
-        "WJS_ENABLE_SANITIZERS": "OFF",
-        "WJS_REQUIRE_REVIEWED_PHONICS": "OFF"
+        "SNS_BUILD_APP": "AUTO",
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_ENABLE_COVERAGE": "ON",
+        "SNS_ENABLE_SANITIZERS": "OFF",
+        "SNS_REQUIRE_REVIEWED_PHONICS": "OFF"
       }
     },
     {
@@ -143,11 +143,11 @@
         "debug"
       ],
       "cacheVariables": {
-        "WJS_BUILD_APP": "OFF",
-        "WJS_BUILD_TESTS": "OFF",
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_ENABLE_SANITIZERS": "OFF",
-        "WJS_ENABLE_MSVC_ANALYSIS": "ON"
+        "SNS_BUILD_APP": "OFF",
+        "SNS_BUILD_TESTS": "OFF",
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_ENABLE_SANITIZERS": "OFF",
+        "SNS_ENABLE_MSVC_ANALYSIS": "ON"
       }
     },
     {
@@ -159,10 +159,10 @@
         "debug"
       ],
       "cacheVariables": {
-        "WJS_BUILD_APP": "OFF",
-        "WJS_BUILD_TESTS": "OFF",
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_ENABLE_SANITIZERS": "OFF",
+        "SNS_BUILD_APP": "OFF",
+        "SNS_BUILD_TESTS": "OFF",
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_ENABLE_SANITIZERS": "OFF",
         "CMAKE_CXX_SCAN_FOR_MODULES": "OFF"
       }
     },
@@ -214,9 +214,9 @@
         "debug"
       ],
       "cacheVariables": {
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_ENABLE_COVERAGE": "ON",
-        "WJS_ENABLE_SANITIZERS": "OFF"
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_ENABLE_COVERAGE": "ON",
+        "SNS_ENABLE_SANITIZERS": "OFF"
       }
     },
     {
@@ -260,13 +260,13 @@
         "debug"
       ],
       "cacheVariables": {
-        "WJS_ENABLE_FUZZING": "ON",
-        "WJS_ENABLE_SANITIZERS": "OFF",
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_ENABLE_HARDENING": "OFF",
-        "WJS_BUILD_APP": "OFF",
-        "WJS_BUILD_CLI": "OFF",
-        "WJS_BUILD_TESTS": "OFF",
+        "SNS_ENABLE_FUZZING": "ON",
+        "SNS_ENABLE_SANITIZERS": "OFF",
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_ENABLE_HARDENING": "OFF",
+        "SNS_BUILD_APP": "OFF",
+        "SNS_BUILD_CLI": "OFF",
+        "SNS_BUILD_TESTS": "OFF",
         "CMAKE_CXX_SCAN_FOR_MODULES": "OFF"
       }
     },
@@ -312,7 +312,7 @@
     {
       "name": "ios-base",
       "hidden": true,
-      "description": "An iPhone or iPad (arm64), built by Xcode from a Mac with Qt's iOS kit (QT_ROOT_DIR) and a desktop Qt of the same version for its host tools (QT_HOST_PATH). vcpkg's toolchain is the CMAKE_TOOLCHAIN_FILE like everywhere else and chains to Qt's; the manifest has no dependency without the tests or Tracy, so vcpkg installs nothing. Unsigned unless WJS_IOS_SIGNING_TEAM and WJS_IOS_SIGNING_PROFILE are given (docs/building.md, iOS).",
+      "description": "An iPhone or iPad (arm64), built by Xcode from a Mac with Qt's iOS kit (QT_ROOT_DIR) and a desktop Qt of the same version for its host tools (QT_HOST_PATH). vcpkg's toolchain is the CMAKE_TOOLCHAIN_FILE like everywhere else and chains to Qt's; the manifest has no dependency without the tests or Tracy, so vcpkg installs nothing. Unsigned unless SNS_IOS_SIGNING_TEAM and SNS_IOS_SIGNING_PROFILE are given (docs/building.md, iOS).",
       "inherits": [
         "base"
       ],
@@ -331,8 +331,8 @@
         "CMAKE_OSX_ARCHITECTURES": "arm64",
         "CMAKE_OSX_DEPLOYMENT_TARGET": "18.0",
         "CMAKE_XCODE_GENERATE_SCHEME": "ON",
-        "WJS_BUILD_CLI": "OFF",
-        "WJS_BUILD_TESTS": "OFF",
+        "SNS_BUILD_CLI": "OFF",
+        "SNS_BUILD_TESTS": "OFF",
         "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED": "NO",
         "CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED": "NO",
         "CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY": ""
@@ -360,11 +360,11 @@
         "ANDROID_SDK_ROOT": "$env{ANDROID_SDK_ROOT}",
         "ANDROID_NDK_ROOT": "$env{ANDROID_NDK_ROOT}",
         "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
-        "WJS_BUILD_APP": "ON",
-        "WJS_BUILD_CLI": "OFF",
-        "WJS_BUILD_TESTS": "OFF",
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_ENABLE_SANITIZERS": "OFF"
+        "SNS_BUILD_APP": "ON",
+        "SNS_BUILD_CLI": "OFF",
+        "SNS_BUILD_TESTS": "OFF",
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_ENABLE_SANITIZERS": "OFF"
       }
     },
     {
@@ -400,12 +400,12 @@
         "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{QT_WEB_DIR}/lib/cmake/Qt6/qt.toolchain.cmake",
         "QT_HOST_PATH": "$env{QT_HOST_PATH}",
         "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
-        "WJS_BUILD_APP": "ON",
-        "WJS_BUILD_CLI": "OFF",
-        "WJS_BUILD_TESTS": "OFF",
-        "WJS_ENABLE_TRACY": "OFF",
-        "WJS_ENABLE_SANITIZERS": "OFF",
-        "WJS_ENABLE_HARDENING": "OFF"
+        "SNS_BUILD_APP": "ON",
+        "SNS_BUILD_CLI": "OFF",
+        "SNS_BUILD_TESTS": "OFF",
+        "SNS_ENABLE_TRACY": "OFF",
+        "SNS_ENABLE_SANITIZERS": "OFF",
+        "SNS_ENABLE_HARDENING": "OFF"
       }
     },
     {
@@ -435,14 +435,14 @@
     { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" },
     { "name": "linux-clang-tsan", "configurePreset": "linux-clang-tsan" },
     { "name": "linux-fuzz", "configurePreset": "linux-fuzz" },
-    { "name": "ios-release", "configurePreset": "ios-release", "configuration": "Release", "targets": ["WordJewelsSolver"] },
+    { "name": "ios-release", "configurePreset": "ios-release", "configuration": "Release", "targets": ["SnapAndSpell"] },
     { "name": "android-arm64-release", "configurePreset": "android-arm64-release", "targets": ["apk"] },
     { "name": "android-arm64-debuggable", "configurePreset": "android-arm64-debuggable", "targets": ["apk"] },
     {
       "name": "web-release",
       "configurePreset": "web-release",
       "targets": [
-        "WordJewelsSolver"
+        "SnapAndSpell"
       ]
     }
   ],
@@ -528,7 +528,7 @@
       "hidden": true,
       "inherits": ["base"],
       "filter": { "include": { "label": "perf" } },
-      "environment": { "WJS_PERF_TIMING": "1" }
+      "environment": { "SNS_PERF_TIMING": "1" }
     },
     { "name": "windows-msvc-perf", "configurePreset": "windows-msvc-release", "inherits": ["perf"] },
     { "name": "linux-gcc-perf", "configurePreset": "linux-gcc-release", "inherits": ["perf"] },

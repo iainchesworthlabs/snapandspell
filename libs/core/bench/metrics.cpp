@@ -17,12 +17,12 @@
 #include "metric_builders.hpp"
 #include "perf_build.hpp"
 #include "scene.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/scan/reader.hpp"
-#include "wjs/scan/work.hpp"
-#include "wjs/seeding.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/scan/reader.hpp"
+#include "sns/scan/work.hpp"
+#include "sns/seeding.hpp"
 
-namespace wjs::perf {
+namespace sns::perf {
 namespace {
 
 [[nodiscard]] std::string size_label(std::size_t size) {
@@ -51,7 +51,7 @@ constexpr std::array<ScanFrame, 4> kScanFrames = {{
 // the four frames are all the same size, so no counted read allocates a pixel
 // buffer, the height search reads its sample cells once at the winning height,
 // and the pool's hand-outs are bounded. The numbers were measured with
-// wjs_perf_tests "[.perf-report]" and moved only with that run's figures.
+// sns_perf_tests "[.perf-report]" and moved only with that run's figures.
 
 [[nodiscard]] scan::synth::Rendered draw_scan_frame(const ScanFrame& which) {
     scan::synth::Spec spec;
@@ -65,7 +65,7 @@ constexpr std::array<ScanFrame, 4> kScanFrames = {{
 }  // namespace
 
 std::vector<Metric> dictionary_metrics() {
-    const wjs::Dictionary& dictionary = english();
+    const sns::Dictionary& dictionary = english();
     return {
         exact("dictionary.words", BoardMode::standard, dictionary.size(), budget::kDictionaryWords,
               "words"),
@@ -75,7 +75,7 @@ std::vector<Metric> dictionary_metrics() {
 }
 
 std::vector<Metric> random_board_metrics() {
-    const wjs::Dictionary& dictionary = english();
+    const sns::Dictionary& dictionary = english();
     std::vector<Metric> metrics;
     for (std::size_t which = 0; which < kSizes.size(); ++which) {
         const std::size_t size = kSizes[which];
@@ -95,7 +95,7 @@ std::vector<Metric> random_board_metrics() {
 }
 
 std::vector<Metric> special_board_metrics() {
-    const wjs::Dictionary& dictionary = english();
+    const sns::Dictionary& dictionary = english();
     std::vector<Metric> metrics;
     for (std::size_t i = 0; i < kRichBoards.size(); ++i) {
         const RichBoard& rich = kRichBoards[i];
@@ -183,24 +183,24 @@ std::vector<Metric> scan_metrics() {
 }
 
 std::uint64_t corpus_digest() {
-    const wjs::Dictionary& dictionary = english();
+    const sns::Dictionary& dictionary = english();
     Digest digest;
     for (const std::size_t size : kSizes) {
         for (unsigned index = 0; index < kBoardsPerSize; ++index) {
-            digest.add(wjs::solve(random_board(size, index), dictionary));
+            digest.add(sns::solve(random_board(size, index), dictionary));
         }
     }
     for (const RichBoard& rich : kRichBoards) {
-        digest.add(wjs::solve(rich_board(rich), dictionary));
+        digest.add(sns::solve(rich_board(rich), dictionary));
     }
     for (const RichBoard& empty : kEmptyBoards) {
-        digest.add(wjs::solve(rich_board(empty), dictionary));
+        digest.add(sns::solve(rich_board(empty), dictionary));
     }
     return digest.value();
 }
 
 std::vector<Metric> dice_board_metrics() {
-    const wjs::Dictionary& dictionary = english();
+    const sns::Dictionary& dictionary = english();
     std::vector<Metric> metrics;
     for (std::size_t which = 0; which < kSizes.size(); ++which) {
         const std::size_t size = kSizes[which];
@@ -220,11 +220,11 @@ std::vector<Metric> dice_board_metrics() {
 }
 
 std::uint64_t dice_digest() {
-    const wjs::Dictionary& dictionary = english();
+    const sns::Dictionary& dictionary = english();
     Digest digest;
     for (const std::size_t size : kSizes) {
         for (unsigned index = 0; index < kBoardsPerSize; ++index) {
-            digest.add(wjs::solve(dice_board(size, index), dictionary));
+            digest.add(sns::solve(dice_board(size, index), dictionary));
         }
     }
     return digest.value();
@@ -255,8 +255,8 @@ struct SeedCorpus {
 // readings of the same seedings, and a seeding is the slow part of this tier.
 [[nodiscard]] const SeedCorpus& seed_corpus() {
     static const SeedCorpus corpus = [] {
-        const wjs::PhaseIndex& phase = phonics_phase();
-        const wjs::SeedOptions defaults;
+        const sns::PhaseIndex& phase = phonics_phase();
+        const sns::SeedOptions defaults;
         SeedCorpus made;
         Digest digest;
         for (std::size_t which = 0; which < kSizes.size(); ++which) {
@@ -265,7 +265,7 @@ struct SeedCorpus {
             for (unsigned index = 0; index < kSeedsPerSize; ++index) {
                 const unsigned seed = corpus_seed(size, index);
                 const SeedRun run = measure_seed(phase, size, seed);
-                const wjs::SeededBoard& board = run.board;
+                const sns::SeededBoard& board = run.board;
 
                 totals.tries += board.tries;
                 totals.solves += board.solves;
@@ -294,7 +294,7 @@ struct SeedCorpus {
 
 std::vector<Metric> seeding_metrics() {
     constexpr BoardMode mode = BoardMode::phonics;
-    const wjs::PhaseIndex& phase = phonics_phase();
+    const sns::PhaseIndex& phase = phonics_phase();
     const SeedCorpus& corpus = seed_corpus();
 
     std::vector<Metric> metrics;
@@ -405,7 +405,7 @@ template <typename Measure>
             totals.restore_visits += run.restore_visits;
             totals.restore_solves += run.restore_solves;
             // Every board the session handed out says what the deal did.
-            const bool standard = run.mode == wjs::BoardMode::standard;
+            const bool standard = run.mode == sns::BoardMode::standard;
             const bool says_so = run.after_first_find.board.has_value() &&
                                  run.after_first_find.mode == run.mode &&
                                  run.after_first_find.board->mode == run.mode &&
@@ -426,7 +426,7 @@ template <typename Measure>
 
 [[nodiscard]] const SessionCorpus& session_corpus() {
     static const SessionCorpus corpus = [] {
-        const wjs::PhaseIndex& phase = phonics_phase();
+        const sns::PhaseIndex& phase = phonics_phase();
         return make_session_corpus(kSessionSizes, [&](std::size_t size, unsigned seed) {
             return measure_session(phase, size, seed);
         });
@@ -561,7 +561,7 @@ std::vector<Metric> binder_metrics() {
 std::vector<Metric> load_timing_metrics() {
     const RelativeTime time = time_against_calibration(
         [] {
-            const auto loaded = wjs::Dictionary::load_file(std::string(kDictionaryPath));
+            const auto loaded = sns::Dictionary::load_file(std::string(kDictionaryPath));
             return loaded ? loaded->size() : 0U;
         },
         budget::kLoadRuns, Weight::heavy);
@@ -569,7 +569,7 @@ std::vector<Metric> load_timing_metrics() {
 }
 
 std::vector<Metric> solve_timing_metrics() {
-    const wjs::Dictionary& dictionary = english();
+    const sns::Dictionary& dictionary = english();
     std::vector<Metric> metrics;
     const struct {
         std::size_t rich;
@@ -577,12 +577,12 @@ std::vector<Metric> solve_timing_metrics() {
     } cases[] = {{0, budget::kSolveRich4Time}, {2, budget::kSolveRich6Time}};
     for (const auto& one : cases) {
         const RichBoard& rich = kRichBoards[one.rich];
-        const wjs::Board board = rich_board(rich);
+        const sns::Board board = rich_board(rich);
         const RelativeTime time = time_against_calibration(
             [&] {
                 std::size_t words = 0;
                 for (int i = 0; i < budget::kSolvesPerRun; ++i) {
-                    words += wjs::solve(board, dictionary).size();
+                    words += sns::solve(board, dictionary).size();
                 }
                 return words;
             },
@@ -600,7 +600,7 @@ std::vector<Metric> solve_timing_metrics() {
 }
 
 std::vector<Metric> session_timing_metrics() {
-    const wjs::PhaseIndex& phase = phonics_phase();
+    const sns::PhaseIndex& phase = phonics_phase();
     const budget::TimeBudget* const allowed[] = {&budget::kDeal3Time, &budget::kDeal4Time};
 
     std::vector<Metric> metrics;
@@ -682,4 +682,4 @@ std::vector<Metric> scan_timing_metrics() {
     return metrics;
 }
 
-}  // namespace wjs::perf
+}  // namespace sns::perf

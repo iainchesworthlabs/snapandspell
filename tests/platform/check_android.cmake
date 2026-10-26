@@ -58,7 +58,7 @@ endforeach()
 
 # ---- the manifest ---------------------------------------------------------------
 
-wjs_check_android_manifest("${REPO_ROOT}/${_dir}/packaging/package-source/AndroidManifest.xml" _manifest_failures)
+sns_check_android_manifest("${REPO_ROOT}/${_dir}/packaging/package-source/AndroidManifest.xml" _manifest_failures)
 foreach(_problem IN LISTS _manifest_failures)
     _fail("AndroidManifest.xml: ${_problem}")
 endforeach()
@@ -66,23 +66,23 @@ endforeach()
 # ---- the fragment: the platform levels ---------------------------------------------
 
 _read("${_dir}/platform.cmake" _fragment)
-if(_fragment MATCHES "set[(]WJS_ANDROID_MIN_SDK ([0-9]+)[)]")
+if(_fragment MATCHES "set[(]SNS_ANDROID_MIN_SDK ([0-9]+)[)]")
     if(CMAKE_MATCH_1 LESS 28)
         _fail("platform.cmake sets the minimum SDK to ${CMAKE_MATCH_1}; Qt 6.12 supports 28 and later")
     endif()
 else()
-    _fail("platform.cmake does not set WJS_ANDROID_MIN_SDK")
+    _fail("platform.cmake does not set SNS_ANDROID_MIN_SDK")
 endif()
-if(_fragment MATCHES "set[(]WJS_ANDROID_TARGET_SDK ([0-9]+)[)]")
+if(_fragment MATCHES "set[(]SNS_ANDROID_TARGET_SDK ([0-9]+)[)]")
     if(CMAKE_MATCH_1 LESS 35)
         _fail("platform.cmake sets the target SDK to ${CMAKE_MATCH_1}; Google Play wants 35 or later")
     endif()
 else()
-    _fail("platform.cmake does not set WJS_ANDROID_TARGET_SDK")
+    _fail("platform.cmake does not set SNS_ANDROID_TARGET_SDK")
 endif()
 # Tracy listens on the network; nothing in the fragment turns it on.
-if(_fragment MATCHES "WJS_ENABLE_TRACY")
-    _fail("platform.cmake mentions WJS_ENABLE_TRACY; no Android build has Tracy (its client listens on the network)")
+if(_fragment MATCHES "SNS_ENABLE_TRACY")
+    _fail("platform.cmake mentions SNS_ENABLE_TRACY; no Android build has Tracy (its client listens on the network)")
 endif()
 
 # ---- the presets ------------------------------------------------------------------
@@ -124,11 +124,11 @@ if(DEFINED _INDEX_android-arm64-base)
     endif()
     foreach(_pair IN ITEMS
             "VCPKG_TARGET_TRIPLET=arm64-android"
-            "WJS_BUILD_APP=ON"
-            "WJS_BUILD_CLI=OFF"
-            "WJS_BUILD_TESTS=OFF"
-            "WJS_ENABLE_TRACY=OFF"
-            "WJS_ENABLE_SANITIZERS=OFF")
+            "SNS_BUILD_APP=ON"
+            "SNS_BUILD_CLI=OFF"
+            "SNS_BUILD_TESTS=OFF"
+            "SNS_ENABLE_TRACY=OFF"
+            "SNS_ENABLE_SANITIZERS=OFF")
         string(FIND "${_pair}" "=" _equals)
         string(SUBSTRING "${_pair}" 0 ${_equals} _key)
         math(EXPR _start "${_equals} + 1")
@@ -310,7 +310,7 @@ if(NOT "${_release_job}" STREQUAL "")
             "verify_apk.sh"
             "--release --signed"
             "name: package-android"
-            "rm -f \"$RUNNER_TEMP/wjs-upload.p12\"")
+            "rm -f \"$RUNNER_TEMP/sns-upload.p12\"")
         string(FIND "${_release_job}" "${_needle}" _at)
         if(_at EQUAL -1)
             _fail("the android job of release.yml does not contain '${_needle}'")

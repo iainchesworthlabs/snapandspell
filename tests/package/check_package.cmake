@@ -48,9 +48,9 @@ function(_expect variable value)
     endif()
 endfunction()
 
-_expect(CPACK_PACKAGE_NAME "WordJewelsSolver")
+_expect(CPACK_PACKAGE_NAME "SnapAndSpell")
 # The version a package carries is the project's, plus the prerelease
-# identifier when one was configured (WJS_PACKAGE_PRERELEASE).
+# identifier when one was configured (SNS_PACKAGE_PRERELEASE).
 if(PRERELEASE)
     _expect(CPACK_PACKAGE_VERSION "${VERSION}-${PRERELEASE}")
 else()
@@ -75,14 +75,14 @@ if(DEFINED EXPECT_TRACY)
     else()
         set(_tracy_on OFF)
     endif()
-    if(NOT "${CPACK_WJS_TRACY}" STREQUAL "${_tracy_on}")
+    if(NOT "${CPACK_SNS_TRACY}" STREQUAL "${_tracy_on}")
         list(APPEND _failures
-            "CPack thinks Tracy is '${CPACK_WJS_TRACY}' but the build has it ${_tracy_on}")
+            "CPack thinks Tracy is '${CPACK_SNS_TRACY}' but the build has it ${_tracy_on}")
     endif()
 endif()
-if(CPACK_WJS_ALLOW_DEV_PACKAGE)
+if(CPACK_SNS_ALLOW_DEV_PACKAGE)
     list(APPEND _failures
-        "CPACK_WJS_ALLOW_DEV_PACKAGE is on in CPackConfig.cmake; a development "
+        "CPACK_SNS_ALLOW_DEV_PACKAGE is on in CPackConfig.cmake; a development "
         "package has to be asked for on the cpack command line, not configured")
 endif()
 
@@ -122,11 +122,11 @@ endforeach()
 # The programs this build makes, and the files they read beside themselves.
 set(_required_entries)
 if(EXPECT_CLI)
-    list(APPEND _required_entries "wjs-cli")
+    list(APPEND _required_entries "sns-cli")
 endif()
 if(EXPECT_APP)
     list(APPEND _required_entries
-        "WordJewelsSolver"
+        "SnapAndSpell"
         "dice/3x3.txt"
         "dice/4x4.txt"
         "dice/5x5.txt"
@@ -166,13 +166,13 @@ endif()
 # (`tools/package/check_package.ps1`) then requires both directories in the
 # package itself.
 if(EXPECT_MULTIMEDIA)
-    set(_import_scan "${BUILD_DIR}/apps/app/.qt/qml_imports/WordJewelsSolver_build.rsp")
+    set(_import_scan "${BUILD_DIR}/apps/app/.qt/qml_imports/SnapAndSpell_build.rsp")
     if(NOT EXISTS "${_import_scan}")
         list(APPEND _failures
             "the application's QML import scan input is missing: ${_import_scan}")
     else()
         file(READ "${_import_scan}" _import_scan_text)
-        string(FIND "${_import_scan_text}" "wjs_camera_import" _camera_import)
+        string(FIND "${_import_scan_text}" "sns_camera_import" _camera_import)
         if(_camera_import EQUAL -1)
             list(APPEND _failures
                 "the application's QML import scan does not read the camera's "

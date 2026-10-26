@@ -10,7 +10,7 @@
 // changed to write both branches rather than memset, and the summed-area table
 // writes its own zero border). A buffer grows only when a larger picture than
 // any before it is asked for; a growth is a counted allocation
-// (wjs/scan/work.hpp), and every other hand-out is a counted reuse, so the
+// (sns/scan/work.hpp), and every other hand-out is a counted reuse, so the
 // performance tier can hold "a warm read allocates no pixel buffers" exactly.
 //
 // The pool is thread-local, not shared: two threads reading at once keep their
@@ -22,12 +22,12 @@
 #include <span>
 #include <vector>
 
-#include "wjs/scan/board_finder.hpp"
-#include "wjs/scan/image.hpp"
-#include "wjs/scan/segment.hpp"
-#include "wjs/scan/work.hpp"
+#include "sns/scan/board_finder.hpp"
+#include "sns/scan/image.hpp"
+#include "sns/scan/segment.hpp"
+#include "sns/scan/work.hpp"
 
-namespace wjs::scan::detail {
+namespace sns::scan::detail {
 
 struct Scratch {
     // The pipeline's owned pictures, in the order the reader makes them.
@@ -120,4 +120,4 @@ void warp_into(GrayImage& out, const GrayImage& source, const Quad& corners, int
 std::optional<BoardFind> find_board_using(const GrayImage& image, std::size_t min_dice,
                                           Scratch& scratch);
 
-}  // namespace wjs::scan::detail
+}  // namespace sns::scan::detail

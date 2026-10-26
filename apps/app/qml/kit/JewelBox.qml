@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma ComponentBehavior: Bound
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The jewel box: a deep tray, cream dice and a soft lid. It is 2D on purpose:
 // it is the object a child sees before the shake, and the calm object on the

@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The box's panel: choose a board, see how the game works, and shake. The sizes
 // are one segmented row of 64 dp targets (every size in a line, none wrapping

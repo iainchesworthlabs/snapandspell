@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // Place, Check, Play: the grown-up's three steps, as three numbered badges joined
 // by a line. The step they are on is filled emerald, the ones behind them carry a

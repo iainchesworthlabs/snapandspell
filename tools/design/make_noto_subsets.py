@@ -61,8 +61,8 @@ HEBREW_BLOCKS = ((0x0590, 0x05FF), (0xFB1D, 0xFB4F))
 
 
 def catalogue_text(code: str) -> str:
-    """Every translation of apps/app/translations/wjs_<code>.ts, as one string."""
-    root = ET.parse(TRANSLATIONS / f"wjs_{code}.ts").getroot()
+    """Every translation of apps/app/translations/sns_<code>.ts, as one string."""
+    root = ET.parse(TRANSLATIONS / f"sns_{code}.ts").getroot()
     parts: list[str] = []
     for translation in root.iter("translation"):
         if translation.text:

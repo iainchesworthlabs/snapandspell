@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The size matrix over the kit's own components (KitGallery) and a Sheet over a
 // screen (SheetGallery): 900x620, 900x1200, 1024x768, 2400x1200 and 150% text.

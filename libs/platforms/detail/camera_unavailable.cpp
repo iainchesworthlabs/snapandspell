@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/platform/camera.hpp"
+#include "sns/platform/camera.hpp"
 
-namespace wjs::platform::camera {
+namespace sns::platform::camera {
 
 // A platform with no native camera backend. Named by the platform.cmake of every
 // platform that has none (today the three desktops): a platform's own capture API
@@ -31,4 +31,4 @@ bool is_capturing() noexcept {
     return false;
 }
 
-}  // namespace wjs::platform::camera
+}  // namespace sns::platform::camera

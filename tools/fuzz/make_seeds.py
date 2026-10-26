@@ -119,7 +119,7 @@ def phase_seeds() -> None:
 
 
 GOLDEN = (
-    "wjs-store 3\n"
+    "sns-store 3\n"
     "settings help=off board=phonics phase=B focus=ai,ee size=4 sound_it_out=full "
     "celebration=full sound=1 vibration=1 shake=1 motion=system colour=dark timer=down "
     "timer_minutes=15 text=125 font=- language=-\n"
@@ -149,10 +149,10 @@ def store_seeds() -> None:
     d = CORE / "corpus" / "store"
     write(d, "golden-v3.txt", seal(GOLDEN))
     write(d, "golden-v3-no-checksum.txt", GOLDEN)
-    write(d, "migrate-v2.txt", seal("wjs-store 2\n" + V2_SETTINGS))
-    write(d, "minimal-v3.txt", seal("wjs-store 3\n" + V2_SETTINGS.replace("language=zh", "language=-")))
-    write(d, "header-only.txt", "wjs-store 3\n")
-    write(d, "newer-version.txt", seal("wjs-store 99\n"))
+    write(d, "migrate-v2.txt", seal("sns-store 2\n" + V2_SETTINGS))
+    write(d, "minimal-v3.txt", seal("sns-store 3\n" + V2_SETTINGS.replace("language=zh", "language=-")))
+    write(d, "header-only.txt", "sns-store 3\n")
+    write(d, "newer-version.txt", seal("sns-store 99\n"))
     write(d, "crlf-v3.txt", seal(GOLDEN).replace("\n", "\r\n"))
 
 

@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <random>
 
-namespace wjs::scan::synth {
+namespace sns::scan::synth {
 
 class Rng {
 public:
@@ -40,4 +40,4 @@ private:
     std::mt19937 engine_;
 };
 
-}  // namespace wjs::scan::synth
+}  // namespace sns::scan::synth

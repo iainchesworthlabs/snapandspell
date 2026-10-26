@@ -31,14 +31,14 @@
 #include "measure.hpp"
 #include "metric_builders.hpp"
 #include "metrics.hpp"
-#include "wjs/dashboard.hpp"
-#include "wjs/game_session.hpp"
-#include "wjs/path.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/session_store.hpp"
-#include "wjs/store.hpp"
+#include "sns/dashboard.hpp"
+#include "sns/game_session.hpp"
+#include "sns/path.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/session_store.hpp"
+#include "sns/store.hpp"
 
-namespace wjs::perf {
+namespace sns::perf {
 namespace {
 
 [[nodiscard]] std::string mode_label(BoardMode mode) {
@@ -59,7 +59,7 @@ TempDirectory::TempDirectory() {
     static unsigned counter = 0;
     const auto stamp = Clock::now().time_since_epoch().count();
     path_ = std::filesystem::temp_directory_path() /
-            std::format("wjs-perf-{}-{}", static_cast<long long>(stamp), counter++);
+            std::format("sns-perf-{}-{}", static_cast<long long>(stamp), counter++);
     std::filesystem::create_directories(path_);
 }
 
@@ -72,10 +72,10 @@ namespace {
 
 // The sessions a kept store is made of, played to the resting screen and recorded
 // the way the application records them (snapshot_of, then Store::record).
-[[nodiscard]] std::vector<wjs::BoardSnapshot> kept_snapshots(BoardMode mode) {
-    std::vector<wjs::BoardSnapshot> snapshots;
+[[nodiscard]] std::vector<sns::BoardSnapshot> kept_snapshots(BoardMode mode) {
+    std::vector<sns::BoardSnapshot> snapshots;
     for (unsigned index = 0; index < kKeptBoards; ++index) {
-        std::optional<wjs::BoardRecord> record;
+        std::optional<sns::BoardRecord> record;
         if (mode == BoardMode::standard) {
             const std::size_t size = kSizes[index % kSizes.size()];
             record = measure_standard_session(size, corpus_seed(size, index)).at_rest.board;
@@ -86,7 +86,7 @@ namespace {
         if (!record) {
             std::abort();
         }
-        const std::optional<wjs::BoardSnapshot> snapshot = wjs::snapshot_of(*record);
+        const std::optional<sns::BoardSnapshot> snapshot = sns::snapshot_of(*record);
         if (!snapshot) {
             std::abort();
         }
@@ -98,16 +98,16 @@ namespace {
 [[nodiscard]] KeptStore make_kept_store(BoardMode mode) {
     KeptStore kept;
     kept.snapshots = kept_snapshots(mode);
-    wjs::Store store = wjs::Store::in_memory();
+    sns::Store store = sns::Store::in_memory();
     for (std::size_t which = 0; which < kept.snapshots.size(); ++which) {
         // Three boards a day, so that the days and the week are not one.
-        const wjs::Day day = kKeptFirstDay + static_cast<wjs::Day>(which / 3);
+        const sns::Day day = kKeptFirstDay + static_cast<sns::Day>(which / 3);
         if (!store.record(kept.snapshots[which], day).stored) {
             std::abort();
         }
     }
     kept.data = store.data();
-    kept.text = wjs::serialize_store(kept.data);
+    kept.text = sns::serialize_store(kept.data);
     return kept;
 }
 
@@ -119,8 +119,8 @@ const KeptStore& kept_store(BoardMode mode) {
     return stores[index_of(mode)];
 }
 
-wjs::StoreData heaviest_store() {
-    wjs::StoreData data;
+sns::StoreData heaviest_store() {
+    sns::StoreData data;
     data.stars = 123'456;
     data.next_board = 1'000'000;
     for (const int size : {3, 4, 5, 6}) {
@@ -136,41 +136,41 @@ wjs::StoreData heaviest_store() {
         return word;
     };
     // The longest words the store keeps, as they take the most room.
-    for (std::size_t number = 0; number < wjs::max_vault_words; ++number) {
-        data.vault.push_back({word_of(number, wjs::store_max_word_letters), kKeptFirstDay,
+    for (std::size_t number = 0; number < sns::max_vault_words; ++number) {
+        data.vault.push_back({word_of(number, sns::store_max_word_letters), kKeptFirstDay,
                               kKeptFirstDay + 30, 4'000'000'000U, 3'999'999'999U});
     }
-    for (std::size_t which = 0; which < wjs::max_stored_boards; ++which) {
-        wjs::StoredBoard board;
+    for (std::size_t which = 0; which < sns::max_stored_boards; ++which) {
+        sns::StoredBoard board;
         board.serial = static_cast<std::uint32_t>(999'000 + which);
-        board.day = kKeptFirstDay + static_cast<wjs::Day>(which);
+        board.day = kKeptFirstDay + static_cast<sns::Day>(which);
         board.size = 6;
         board.phase = "A";
         board.tiles =
             "QU,QU,QU,QU,QU,QU/QU,QU,QU,QU,QU,QU/QU,QU,QU,QU,QU,QU/"
             "QU,QU,QU,QU,QU,QU/QU,QU,QU,QU,QU,QU/QU,QU,QU,QU,QU,QU";
         board.viable_total = 99'999;
-        for (std::size_t listed = 0; listed < wjs::max_listed_viable_words; ++listed) {
-            board.viable.push_back(word_of(which * 100 + listed, wjs::store_max_word_letters));
+        for (std::size_t listed = 0; listed < sns::max_listed_viable_words; ++listed) {
+            board.viable.push_back(word_of(which * 100 + listed, sns::store_max_word_letters));
         }
         board.found = 99;
         board.stars = 99'999;
         board.cleared = true;
         data.boards.push_back(std::move(board));
     }
-    for (std::size_t which = 0; which < wjs::max_stored_finds; ++which) {
-        wjs::FindRecord find;
-        find.word = word_of(which, wjs::store_max_word_letters);
-        find.stars = wjs::max_find_stars;
+    for (std::size_t which = 0; which < sns::max_stored_finds; ++which) {
+        sns::FindRecord find;
+        find.word = word_of(which, sns::store_max_word_letters);
+        find.stars = sns::max_find_stars;
         find.board_size = 6;
         find.phase = "A";
-        find.day = kKeptFirstDay + static_cast<wjs::Day>(which % wjs::max_stored_days);
+        find.day = kKeptFirstDay + static_cast<sns::Day>(which % sns::max_stored_days);
         find.start_tile_used = (which % 2) == 0;
         find.board = data.boards[which % data.boards.size()].serial;
         data.finds.push_back(std::move(find));
     }
-    for (std::size_t which = 0; which < wjs::max_stored_days; ++which) {
-        data.days.push_back({kKeptFirstDay + static_cast<wjs::Day>(which), 99'999U, 99'999U});
+    for (std::size_t which = 0; which < sns::max_stored_days; ++which) {
+        data.days.push_back({kKeptFirstDay + static_cast<sns::Day>(which), 99'999U, 99'999U});
     }
     return data;
 }
@@ -187,47 +187,47 @@ PhaseDirectory::PhaseDirectory() {
 }
 
 PlayingSession::PlayingSession(BoardMode mode, std::size_t size, unsigned seed_index) {
-    wjs::SessionOptions options;
-    options.mode = mode == BoardMode::standard ? wjs::BoardMode::standard : wjs::BoardMode::phonics;
-    const auto board_size = wjs::board_size_for(size);
+    sns::SessionOptions options;
+    options.mode = mode == BoardMode::standard ? sns::BoardMode::standard : sns::BoardMode::phonics;
+    const auto board_size = sns::board_size_for(size);
     if (!board_size) {
         std::abort();
     }
     options.size = *board_size;
     options.seed = corpus_seed(size, seed_index);
-    const wjs::SessionData data =
+    const sns::SessionData data =
         mode == BoardMode::standard
-            ? wjs::SessionData{.dictionary = english(), .dice = &dice_sets()}
-            : wjs::SessionData{.dictionary = english(), .phase = &phonics_phase()};
-    auto created = wjs::GameSession::create(data, options);
+            ? sns::SessionData{.dictionary = english(), .dice = &dice_sets()}
+            : sns::SessionData{.dictionary = english(), .phase = &phonics_phase()};
+    auto created = sns::GameSession::create(data, options);
     if (!created) {
         std::abort();
     }
-    session_ = std::make_unique<wjs::GameSession>(*std::move(created));
+    session_ = std::make_unique<sns::GameSession>(*std::move(created));
     if (!session_->shake() || !session_->still() || !session_->landed()) {
         std::abort();
     }
-    const wjs::Dictionary& active =
+    const sns::Dictionary& active =
         mode == BoardMode::standard ? english() : phonics_phase().dictionary();
-    const std::vector<wjs::FoundWord> words = wjs::solve(*session_->board(), active);
+    const std::vector<sns::FoundWord> words = sns::solve(*session_->board(), active);
     if (words.empty()) {
         std::abort();
     }
     found_path_ = words.front().path;
-    if (session_->trace(found_path_, 1).kind != wjs::TraceKind::found) {
+    if (session_->trace(found_path_, 1).kind != sns::TraceKind::found) {
         std::abort();
     }
     // A path along the first row that is no word of the board: tracing it makes
     // nothing, however often it is traced.
-    const wjs::Board& board = *session_->board();
+    const sns::Board& board = *session_->board();
     for (std::size_t length = board.columns(); length >= 3 && miss_path_.empty(); --length) {
-        std::vector<wjs::Position> candidate;
+        std::vector<sns::Position> candidate;
         for (std::size_t column = 0; column < length; ++column) {
             candidate.push_back({0, column});
         }
-        const auto spelled = wjs::validate_path(board, candidate);
+        const auto spelled = sns::validate_path(board, candidate);
         const bool is_viable =
-            spelled && std::any_of(words.begin(), words.end(), [&](const wjs::FoundWord& word) {
+            spelled && std::any_of(words.begin(), words.end(), [&](const sns::FoundWord& word) {
                 return word.word == *spelled;
             });
         if (spelled && !is_viable) {
@@ -241,11 +241,11 @@ PlayingSession::PlayingSession(BoardMode mode, std::size_t size, unsigned seed_i
     miss_kind_ = session_->trace(miss_path_, 2).kind;
 }
 
-wjs::TraceKind PlayingSession::submit_miss(wjs::Stamp when) {
+sns::TraceKind PlayingSession::submit_miss(sns::Stamp when) {
     return session_->trace(miss_path_, when).kind;
 }
 
-wjs::TraceKind PlayingSession::submit_again(wjs::Stamp when) {
+sns::TraceKind PlayingSession::submit_again(sns::Stamp when) {
     return session_->trace(found_path_, when).kind;
 }
 
@@ -265,10 +265,10 @@ namespace {
 
 StoreWrites write_through(const KeptStore& kept) {
     TempDirectory directory;
-    auto opened = wjs::Store::open(directory.path() / "store.wjs");
+    auto opened = sns::Store::open(directory.path() / "store.sns");
     StoreWrites writes;
     for (std::size_t which = 0; which < kept.snapshots.size(); ++which) {
-        const wjs::Day day = kKeptFirstDay + static_cast<wjs::Day>(which / 3);
+        const sns::Day day = kKeptFirstDay + static_cast<sns::Day>(which / 3);
         (void)opened.store.record(kept.snapshots[which], day);
         // The file is the whole store, rewritten: its size after a change is the
         // bytes that change wrote.
@@ -280,7 +280,7 @@ StoreWrites write_through(const KeptStore& kept) {
         std::ifstream in(opened.store.file(), std::ios::binary);
         const std::string text((std::istreambuf_iterator<char>(in)),
                                std::istreambuf_iterator<char>());
-        return text == wjs::serialize_store(opened.store.data());
+        return text == sns::serialize_store(opened.store.data());
     }();
     return writes;
 }
@@ -314,24 +314,24 @@ std::vector<Metric> store_metrics() {
     }
 
     // The heaviest store the format allows, which lists words: the phonics board's.
-    const wjs::StoreData heaviest = heaviest_store();
-    const std::string text = wjs::serialize_store(heaviest);
+    const sns::StoreData heaviest = heaviest_store();
+    const std::string text = sns::serialize_store(heaviest);
     metrics.push_back(at_most("store.heaviest.bytes", BoardMode::phonics, text.size(),
                               budget::kStoreHeaviestBytes, "bytes"));
     metrics.push_back(at_most("store.heaviest.of_cap", BoardMode::phonics, text.size(),
-                              wjs::max_store_bytes, "bytes"));
+                              sns::max_store_bytes, "bytes"));
     return metrics;
 }
 
 std::vector<Metric> dashboard_metrics() {
     constexpr BoardMode mode = BoardMode::phonics;
     const KeptStore& kept = kept_store(mode);
-    const wjs::Dashboard dashboard =
-        wjs::build_dashboard(kept.data, &phonics_phase(), kKeptFirstDay + 7, 1);
+    const sns::Dashboard dashboard =
+        sns::build_dashboard(kept.data, &phonics_phase(), kKeptFirstDay + 7, 1);
 
     std::uint64_t met = 0;
     std::uint64_t found = 0;
-    for (const wjs::SoundRow& row : dashboard.sounds) {
+    for (const sns::SoundRow& row : dashboard.sounds) {
         met += static_cast<std::uint64_t>(row.boards_met);
         found += static_cast<std::uint64_t>(row.words_found);
     }
@@ -354,11 +354,11 @@ std::vector<Metric> dashboard_metrics() {
 std::vector<Metric> phase_load_metrics() {
     constexpr BoardMode mode = BoardMode::phonics;
     const PhaseDirectory directory;
-    auto loaded = wjs::PhaseSet::load_directory(directory.path(), english());
+    auto loaded = sns::PhaseSet::load_directory(directory.path(), english());
     if (!loaded) {
         std::abort();
     }
-    const wjs::PhaseIndex* index = loaded->find("A");
+    const sns::PhaseIndex* index = loaded->find("A");
     if (index == nullptr) {
         std::abort();
     }
@@ -385,10 +385,10 @@ std::vector<Metric> submit_metrics() {
         std::uint64_t finds_before = playing.session().finds().size();
         std::uint64_t misses_not_ignored = 0;
         std::uint64_t again_not_found_again = 0;
-        for (wjs::Stamp when = 10; when < 110; ++when) {
-            misses_not_ignored += playing.submit_miss(when) == wjs::TraceKind::found ? 1U : 0U;
+        for (sns::Stamp when = 10; when < 110; ++when) {
+            misses_not_ignored += playing.submit_miss(when) == sns::TraceKind::found ? 1U : 0U;
             again_not_found_again +=
-                playing.submit_again(when) == wjs::TraceKind::found_again ? 0U : 1U;
+                playing.submit_again(when) == sns::TraceKind::found_again ? 0U : 1U;
         }
         metrics.push_back(
             exact("submit.found_by_a_miss." + label, mode, misses_not_ignored, 0, "finds"));
@@ -406,19 +406,19 @@ std::vector<Metric> submit_metrics() {
 
 std::vector<Metric> data_timing_metrics() {
     std::vector<Metric> metrics;
-    const wjs::StoreData heaviest = heaviest_store();
-    const std::string heaviest_text = wjs::serialize_store(heaviest);
+    const sns::StoreData heaviest = heaviest_store();
+    const std::string heaviest_text = sns::serialize_store(heaviest);
 
     // The save a find waits for, at its heaviest, and the parse that start-up does.
     metrics.push_back(
         ratio("time.store.serialize", BoardMode::phonics,
-              time_against_calibration([&] { return wjs::serialize_store(heaviest).size(); },
+              time_against_calibration([&] { return sns::serialize_store(heaviest).size(); },
                                        budget::kDataRuns, Weight::light),
               budget::kStoreSerializeTime));
     metrics.push_back(ratio("time.store.parse", BoardMode::phonics,
                             time_against_calibration(
                                 [&] {
-                                    const auto parsed = wjs::parse_store(heaviest_text);
+                                    const auto parsed = sns::parse_store(heaviest_text);
                                     return parsed ? parsed->data.finds.size() : 0U;
                                 },
                                 budget::kDataRuns, Weight::light),
@@ -427,13 +427,13 @@ std::vector<Metric> data_timing_metrics() {
         // The whole save to a file: the serialised text to a temporary file, flushed
         // and moved over the store.
         TempDirectory directory;
-        const std::filesystem::path file = directory.path() / "store.wjs";
+        const std::filesystem::path file = directory.path() / "store.sns";
         {
             std::ofstream out(file, std::ios::binary);
             out << heaviest_text;
         }
-        auto opened = wjs::Store::open(file);
-        if (opened.status != wjs::LoadStatus::loaded) {
+        auto opened = sns::Store::open(file);
+        if (opened.status != sns::LoadStatus::loaded) {
             std::abort();
         }
         metrics.push_back(
@@ -448,7 +448,7 @@ std::vector<Metric> data_timing_metrics() {
     metrics.push_back(ratio("time.dashboard.build", BoardMode::phonics,
                             time_against_calibration(
                                 [&] {
-                                    const wjs::Dashboard dashboard = wjs::build_dashboard(
+                                    const sns::Dashboard dashboard = sns::build_dashboard(
                                         kept.data, &phonics_phase(), kKeptFirstDay + 7, 1);
                                     return dashboard.sounds.size() + dashboard.vault.size();
                                 },
@@ -460,7 +460,7 @@ std::vector<Metric> data_timing_metrics() {
         metrics.push_back(ratio("time.phase.load", BoardMode::phonics,
                                 time_against_calibration(
                                     [&] {
-                                        auto loaded = wjs::PhaseSet::load_directory(
+                                        auto loaded = sns::PhaseSet::load_directory(
                                             directory.path(), english());
                                         return loaded ? loaded->phases().size() : 0U;
                                     },
@@ -470,7 +470,7 @@ std::vector<Metric> data_timing_metrics() {
 
     for (const BoardMode mode : {BoardMode::standard, BoardMode::phonics}) {
         PlayingSession playing(mode, 4, 0);
-        wjs::Stamp when = 100;
+        sns::Stamp when = 100;
         metrics.push_back(
             ratio("time.submit." + mode_label(mode), mode,
                   time_against_calibration(
@@ -489,8 +489,8 @@ std::vector<Metric> data_timing_metrics() {
     {
         // A finger's path over the largest board the game plays, as the trace layer
         // hands it: every tile of the first row and the one below it, in turn.
-        const wjs::Board board = random_board(6, 0);
-        std::vector<wjs::Position> path;
+        const sns::Board board = random_board(6, 0);
+        std::vector<sns::Position> path;
         for (std::size_t row = 0; row < 2; ++row) {
             for (std::size_t column = 0; column < board.columns(); ++column) {
                 path.push_back({row, row == 0 ? column : board.columns() - 1 - column});
@@ -501,7 +501,7 @@ std::vector<Metric> data_timing_metrics() {
                                     [&] {
                                         std::size_t sum = 0;
                                         for (int trace = 0; trace < budget::kPathsPerRun; ++trace) {
-                                            const auto spelled = wjs::validate_path(board, path);
+                                            const auto spelled = sns::validate_path(board, path);
                                             sum += spelled ? spelled->size() : 0U;
                                         }
                                         return sum;
@@ -512,4 +512,4 @@ std::vector<Metric> data_timing_metrics() {
     return metrics;
 }
 
-}  // namespace wjs::perf
+}  // namespace sns::perf

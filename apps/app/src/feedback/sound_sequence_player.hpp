@@ -9,9 +9,9 @@
 #include <memory>
 #include <string>
 
-#include "wjs/sound_it_out.hpp"
+#include "sns/sound_it_out.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // Plays the clips of the sound-it-out sequence. A clip is a pre-recorded phoneme
 // (docs/design/phonics.md, "Where the sounds come from"); none is in the tree yet,
@@ -43,8 +43,8 @@ public:
     void stop() override {}
 };
 
-// Walks a wjs::SoundSequence: the list of steps the library makes of a word, a
-// phase and the parent's setting (wjs/sound_it_out.hpp). It plays nothing itself.
+// Walks a sns::SoundSequence: the list of steps the library makes of a word, a
+// phase and the parent's setting (sns/sound_it_out.hpp). It plays nothing itself.
 // A `sound` or `blend` step is played through the ClipPlayer, one clip after
 // another, each starting when the one before has ended; the `say` step is the
 // whole word, handed to the voice. The `cheer` is a recorded phrase whose wording
@@ -78,7 +78,7 @@ public:
     // Starts the sequence at `volume` (0 to 1), after stopping the one under way.
     // The steps up to the first wait run before this returns, so a sequence with
     // no clips has said its word by then.
-    void start(wjs::SoundSequence sequence, double volume);
+    void start(sns::SoundSequence sequence, double volume);
 
     // Stops the sequence and its clip. Safe when none is running.
     void cancel();
@@ -102,7 +102,7 @@ private:
     SayWord say_;
     std::unique_ptr<ClipPlayer> clips_;
     Scheduler scheduler_;
-    wjs::SoundSequence sequence_;
+    sns::SoundSequence sequence_;
     double volume_ = 1.0;
     std::size_t next_ = 0;        // the next step to begin
     std::size_t blend_clip_ = 0;  // the next clip of the blend under way
@@ -113,4 +113,4 @@ private:
     std::uint64_t serial_ = 0;  // a callback of an older sequence finds this changed
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

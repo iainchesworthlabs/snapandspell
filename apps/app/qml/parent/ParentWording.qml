@@ -26,8 +26,8 @@ import QtQuick
 // the sentence is this file's and not the code's.
 QtObject {
     // --- the screens ------------------------------------------------------
-    readonly property string wordmarkTitle: qsTr("Word Jewels")
-    readonly property string appName: qsTr("Word Jewels Solver")
+    readonly property string wordmarkTitle: qsTr("Snap and Spell")
+    readonly property string appName: qsTr("Snap and Spell")
     readonly property string tagline: qsTr("A word-finding game for young readers, played with a grown-up.")
     readonly property string parentArea: qsTr("Parent area")
     readonly property string back: qsTr("Back")
@@ -240,7 +240,7 @@ QtObject {
     readonly property string privacySummary: qsTr("Kept on this device. No recording, no network. Nothing moves between devices.")
 
     function version(v) {
-        return qsTr("Word Jewels Solver, version %1").arg(v);
+        return qsTr("Snap and Spell, version %1").arg(v);
     }
 
     readonly property string licenceNotice: qsTr("This program is free software. You can redistribute it and change it under the terms of the GNU General Public License, version 3, or (at your option) any later version.")

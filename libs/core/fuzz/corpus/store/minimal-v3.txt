@@ -1,4 +1,4 @@
-wjs-store 3
+sns-store 3
 settings help=1 board=standard phase=A focus=- size=3 sound_it_out=full celebration=full sound=1 vibration=1 shake=1 motion=system colour=system text=100 font=- language=-
 total stars=0 next_board=1
 end 5beeaee16f7cfcf3

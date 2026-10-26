@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace wjs::app {
+namespace sns::app {
 
 // Why Mode A's camera is not working (or no longer is). Inside the program it is
 // this enum; QML is given the code, a lower-case word, and ScanWording.qml turns
@@ -21,7 +21,7 @@ enum class CameraProblem : std::uint8_t {
     no_camera,   // no camera on the device or in the kit: a fact, not a fault
     permission,  // the person said no
     failed,      // the device or the platform failed
-    // The platform interface's (wjs/platform/camera.hpp).
+    // The platform interface's (sns/platform/camera.hpp).
     unavailable,        // the platform has no camera backend
     permission_denied,  // the person said no
     no_such_device,
@@ -56,4 +56,4 @@ enum class CameraProblem : std::uint8_t {
     return QString::fromUtf8(text.data(), static_cast<qsizetype>(text.size()));
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

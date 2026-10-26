@@ -18,15 +18,15 @@ ends the board). It is a setting behind the gate; the store keeps no duration.
 
 | Piece | Where | Qt? |
 | --- | --- | --- |
-| Days and the week | `wjs/calendar.hpp` | No |
-| Settings, and which values are allowed | `wjs/settings.hpp`, `settings.cpp` | No |
-| The store: records, file format, migration, damage, atomic write | `wjs/store.hpp`, `store.cpp`, `store_format.cpp` | No |
-| The gate | `wjs/parent_gate.hpp`, `parent_gate.cpp` | No |
-| The copy between the game session's values and the store's | `wjs/session_store.hpp`, `session_store.cpp` | No |
-| The dashboard's numbers, the focus sounds | `wjs/dashboard.hpp`, `dashboard.cpp` | No |
-| Where the file goes | `wjs::platform::user_data_directory()`, one definition per platform under `libs/platforms` | No |
+| Days and the week | `sns/calendar.hpp` | No |
+| Settings, and which values are allowed | `sns/settings.hpp`, `settings.cpp` | No |
+| The store: records, file format, migration, damage, atomic write | `sns/store.hpp`, `store.cpp`, `store_format.cpp` | No |
+| The gate | `sns/parent_gate.hpp`, `parent_gate.cpp` | No |
+| The copy between the game session's values and the store's | `sns/session_store.hpp`, `session_store.cpp` | No |
+| The dashboard's numbers, the focus sounds | `sns/dashboard.hpp`, `dashboard.cpp` | No |
+| Where the file goes | `sns::platform::user_data_directory()`, one definition per platform under `libs/platforms` | No |
 | The controller: gate events, dashboard and settings as maps, the resets, the clock | `apps/app/src/parent/parent_controller.*` | Yes |
-| The screens | `apps/app/qml/parent/*.qml`, a QML module `WordJewelsSolver.Parent` | Yes |
+| The screens | `apps/app/qml/parent/*.qml`, a QML module `SnapAndSpell.Parent` | Yes |
 | Every sentence a parent reads | `apps/app/qml/parent/ParentWording.qml` | Yes |
 | A stub shell to try the screens in | `apps/app/tests/unit/parent_ui` (test support, not part of the application) | Yes |
 
@@ -46,7 +46,7 @@ The parent area is routed from the Solo Play window, on one store.
   back, and shuts the gate again. The gate is the parent area's own and nothing in
   the shell opens it: `ParentArea` shows the gate until the controller says it is
   unlocked.
-- **The store.** `main.cpp` opens **one** `wjs::Store` for the program before
+- **The store.** `main.cpp` opens **one** `sns::Store` for the program before
   anything else: `--store <file>`, otherwise the per-user file, otherwise (no place
   to keep one) a store that is never written. `SoloGameSetup` holds it by reference
   and `ParentController::useStore()` is given it with the status it was opened with
@@ -115,7 +115,7 @@ The parent area is routed from the Solo Play window, on one store.
 
 ## The store
 
-One small text file, `store.wjs`, in Qt's per-user application data directory
+One small text file, `store.sns`, in Qt's per-user application data directory
 (`QStandardPaths::AppLocalDataLocation`, which follows the organisation and
 application names: under `%LOCALAPPDATA%` on Windows, `$XDG_DATA_HOME` or
 `~/.local/share` on Linux, `~/Library/Application Support` on macOS; the last two
@@ -175,26 +175,26 @@ is read. A store of a busy few months (100 phonics boards) is under 32 KiB (a te
 
 ### Versioned, migrated, safe against damage
 
-The first line is `wjs-store <version>`; the last is `end <checksum>` (FNV-1a over
+The first line is `sns-store <version>`; the last is `end <checksum>` (FNV-1a over
 the lines before it). The version is **2**. Version 2 lets the saved game in
 progress be a standard board: its saved board carries the count of its words and
 no list of them. A version 1 file could not hold one, so the step from version 1
-rewrites nothing, and the file as it was is still kept as `store.wjs.v1` beside
+rewrites nothing, and the file as it was is still kept as `store.sns.v1` beside
 the new one. A test holds the mechanism to a pretend older format
-(`wjs::MigrationStep`: a step rewrites a version `n` file as `n + 1`, on the lines
+(`sns::MigrationStep`: a step rewrites a version `n` file as `n + 1`, on the lines
 as words, so the code that read the old layout is not kept).
 
 | What is found | What happens |
 | --- | --- |
 | No file | A new store; nothing written until the first change |
 | A file of this version | Read |
-| A file of an older version | Migrated; the file as it was is **kept** as `store.wjs.v<n>` before the next save replaces it. If it cannot be kept, nothing replaces it |
-| A file that is damaged (cut, changed, not a store, too large, a record the bounds do not allow, a migration that refuses it) | **Moved aside, whole**, as `store.wjs.unreadable` (then `.1`, `.2`, never over an earlier one) and the program goes on with a new store. The parent is told |
+| A file of an older version | Migrated; the file as it was is **kept** as `store.sns.v<n>` before the next save replaces it. If it cannot be kept, nothing replaces it |
+| A file that is damaged (cut, changed, not a store, too large, a record the bounds do not allow, a migration that refuses it) | **Moved aside, whole**, as `store.sns.unreadable` (then `.1`, `.2`, never over an earlier one) and the program goes on with a new store. The parent is told |
 | A file of a **newer** version | **Left exactly as it is**; the program goes on in memory and saves nothing. The parent is told |
 | A file that cannot be opened | Left alone; nothing is saved. The parent is told |
 | A disk that refuses a write | Noted; the game goes on |
 
-A save is written whole to `store.wjs.tmp` and renamed over `store.wjs`, so a program
+A save is written whole to `store.sns.tmp` and renamed over `store.sns`, so a program
 stopped half way leaves the old file or the new one. Nothing else is ever left in
 the directory (a test lists it). The rename over an existing file is checked on
 Windows; it is **not checked** on Linux or macOS here.
@@ -205,7 +205,7 @@ Windows; it is **not checked** on Linux or macOS here.
 `Store::save_session(SavedSession)` for the game in progress. Both are plain values
 of strings, numbers and flags with the field names of the game session's own
 `BoardRecord` and `SessionSnapshot`, so the copy between them is mechanical; the store
-does not include the game's headers, and the copy is its own file, `wjs/session_store.hpp`
+does not include the game's headers, and the copy is its own file, `sns/session_store.hpp`
 (`snapshot_of`, `record_of`, `saved_session_of`, `session_snapshot_of`), which is the one
 place that knows both sets of types. A find's moment is a `Day`, the unit the game gives
 as its `Stamp`. The same board's snapshot may be sent again and again: only what is new
@@ -355,7 +355,7 @@ checked now:
 | No network capability | The same scan for the network classes and headers, a URL literal in code, the Qt modules whose job is the network, the manifest permissions | `privacy.sources` |
 | Zero export | The same scan for printing, sharing, saving through a dialog, the clipboard, a URL handed to the system, mail, a launched program, and any file written outside `libs/core/src/store.cpp` | `privacy.sources` |
 | The checks themselves | Cases on throw-away trees: each rule finds its violation and leaves alone a comment, the store's own source, the prototype, a name inside a longer word | `privacy.sources.selftest` |
-| Local store | Round trip, migration, damage, newer version, nothing left in the directory | the `[store]` cases of `wjs_unit_tests` |
+| Local store | Round trip, migration, damage, newer version, nothing left in the directory | the `[store]` cases of `sns_unit_tests` |
 | Store size cap | The worst case the bounds allow is under the cap and reads back; a file over it is refused; a busy few months is under 32 KiB | the `[bounds]` cases |
 | Nothing but what the design says | The file has only the lines the design lists, and no time of day (no colon, no ten-digit number) | the `[privacy]` cases |
 | What a parent reads | The wording, source and as drawn | `parent.wording`, `parent.wording.selftest`, `parent.screens` |

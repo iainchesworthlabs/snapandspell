@@ -13,20 +13,20 @@
 #include <system_error>
 #include <utility>
 
-#include "wjs/board.hpp"
-#include "wjs/dictionary.hpp"
+#include "sns/board.hpp"
+#include "sns/dictionary.hpp"
 
 // What the unit tests share, so that each file does not carry its own copy.
-// Header only, in namespace wjs::test; include it as "support/test_support.hpp".
+// Header only, in namespace sns::test; include it as "support/test_support.hpp".
 // It holds no test data: the words and phases of a case stay in the file that
 // uses them.
 
-namespace wjs::test {
+namespace sns::test {
 
 // The board as text, rows by '/', tiles by `separator` ("C A T/X X X" by
 // default; "" for the tiles run together, which is how two boards are compared
 // when only the letters matter).
-[[nodiscard]] inline std::string text_of(const wjs::Board& board,
+[[nodiscard]] inline std::string text_of(const sns::Board& board,
                                          std::string_view separator = " ") {
     std::string text;
     for (std::size_t row = 0; row < board.rows(); ++row) {
@@ -44,15 +44,15 @@ namespace wjs::test {
 }
 
 // A board from its text; the case fails if the text is not a board.
-[[nodiscard]] inline wjs::Board board_of(std::string_view text) {
-    auto board = wjs::Board::parse(text);
+[[nodiscard]] inline sns::Board board_of(std::string_view text) {
+    auto board = sns::Board::parse(text);
     REQUIRE(board.has_value());
     return *std::move(board);
 }
 
 // A dictionary of these words; the case fails if the dictionary refuses one.
-[[nodiscard]] inline wjs::Dictionary dictionary_of(std::initializer_list<std::string_view> words) {
-    wjs::Dictionary dictionary;
+[[nodiscard]] inline sns::Dictionary dictionary_of(std::initializer_list<std::string_view> words) {
+    sns::Dictionary dictionary;
     for (const std::string_view word : words) {
         REQUIRE(dictionary.insert(word));
     }
@@ -60,10 +60,10 @@ namespace wjs::test {
 }
 
 // The shipped English dictionary, read once from the checkout's data directory
-// (WJS_DATA_DIRECTORY, defined for the unit tests by tests/CMakeLists.txt).
-[[nodiscard]] inline const wjs::Dictionary& shipped_english() {
-    static const wjs::Dictionary dictionary = [] {
-        auto loaded = wjs::Dictionary::load_file(std::filesystem::path(WJS_DATA_DIRECTORY) /
+// (SNS_DATA_DIRECTORY, defined for the unit tests by tests/CMakeLists.txt).
+[[nodiscard]] inline const sns::Dictionary& shipped_english() {
+    static const sns::Dictionary dictionary = [] {
+        auto loaded = sns::Dictionary::load_file(std::filesystem::path(SNS_DATA_DIRECTORY) /
                                                  "dictionaries" / "en.txt");
         REQUIRE(loaded.has_value());
         return *std::move(loaded);
@@ -81,7 +81,7 @@ public:
         const std::filesystem::path base = std::filesystem::temp_directory_path();
         for (int attempt = 0; attempt < 100; ++attempt) {
             const std::uint64_t token = (std::uint64_t{random()} << 32) | random();
-            path_ = base / ("wjs_test_" + std::to_string(token));
+            path_ = base / ("sns_test_" + std::to_string(token));
             std::error_code error;
             if (std::filesystem::create_directory(path_, error) && !error) {
                 return;
@@ -127,4 +127,4 @@ inline void spit(const std::filesystem::path& file, std::string_view text) {
     out << text;
 }
 
-}  // namespace wjs::test
+}  // namespace sns::test

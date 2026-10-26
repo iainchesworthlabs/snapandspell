@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/settings.hpp"
+#include "sns/settings.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -7,9 +7,9 @@
 #include <string_view>
 
 #include "ascii.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 namespace {
 
@@ -292,4 +292,4 @@ Settings Settings::normalized() const {
     return result;
 }
 
-}  // namespace wjs
+}  // namespace sns

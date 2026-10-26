@@ -19,7 +19,7 @@
 // as every other test that starts Qt Quick does, so no case sets the environment
 // from inside the process and a case run by hand is told how (docs/testing.md).
 
-namespace wjs::app::test {
+namespace sns::app::test {
 
 // A QCoreApplication for a case that needs an event loop, a timer or a queued
 // connection. Made inside the case, so the cases that need none create none.
@@ -29,7 +29,7 @@ public:
 
 private:
     static inline int argc_ = 1;
-    static inline char name_[] = "wjs_app_tests";
+    static inline char name_[] = "sns_app_tests";
     static inline char* argv_[] = {name_, nullptr};
 
     QCoreApplication application_;
@@ -43,7 +43,7 @@ public:
 
 private:
     static inline int argc_ = 1;
-    static inline char name_[] = "wjs_app_tests";
+    static inline char name_[] = "sns_app_tests";
     static inline char* argv_[] = {name_, nullptr};
 
     QGuiApplication application_;
@@ -75,7 +75,7 @@ inline void pause(int milliseconds) {
 // counter so that two runs of a case, here or in another worktree, never share it.
 class TempDirectory {
 public:
-    explicit TempDirectory(const std::string& prefix = "wjs_app_test") {
+    explicit TempDirectory(const std::string& prefix = "sns_app_test") {
         static int counter = 0;
         const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
         path_ = std::filesystem::temp_directory_path() /
@@ -95,4 +95,4 @@ private:
     std::filesystem::path path_;
 };
 
-}  // namespace wjs::app::test
+}  // namespace sns::app::test

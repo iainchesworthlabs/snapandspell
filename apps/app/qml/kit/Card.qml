@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // A titled card: the pattern behind the panel's Words and Hint cards, the
 // dashboard's sections and the jewels page. Toybox: the card colour, a 4 px ink outline, an 18 px

@@ -24,7 +24,7 @@
 
 namespace {
 
-using wjs::app::FeedbackEngine;
+using sns::app::FeedbackEngine;
 
 [[nodiscard]] QVariantMap parent_settings(bool sound, bool vibration, const QString& celebration,
                                           const QString& sound_it_out) {
@@ -313,7 +313,7 @@ namespace {
 struct SoundItOutRig {
     explicit SoundItOutRig(const QString& sound_it_out = QStringLiteral("full"),
                            const QString& board = QStringLiteral("phonics"))
-        : phases(wjs::app::demo::phases()) {
+        : phases(sns::app::demo::phases()) {
         engine.usePhase(phases.find("B"));
         listen(engine, heard);
         QVariantMap settings = parent_settings(true, false, QStringLiteral("full"), sound_it_out);
@@ -323,13 +323,13 @@ struct SoundItOutRig {
             [this](std::chrono::milliseconds, std::function<void()> then) {
                 waits.push_back(std::move(then));
             });
-        QObject::connect(&engine.soundSequence(), &wjs::app::SoundSequencePlayer::stepStarted,
+        QObject::connect(&engine.soundSequence(), &sns::app::SoundSequencePlayer::stepStarted,
                          &engine, [this](const QString& kind, int block) {
                              steps.push_back(kind + QStringLiteral(":") + QString::number(block));
                          });
     }
 
-    wjs::PhaseSet phases;
+    sns::PhaseSet phases;
     FeedbackEngine engine;
     Heard heard;
     QStringList steps;
@@ -401,9 +401,9 @@ TEST_CASE("Sound it out off says and sounds nothing out", "[app][feedback][seque
 TEST_CASE("with clips the word waits for the sounds, and the next word stops them",
           "[app][feedback][sequence]") {
     SoundItOutRig rig;
-    auto clips = std::make_unique<wjs::app::test::FakeClips>(
+    auto clips = std::make_unique<sns::app::test::FakeClips>(
         std::set<std::string>{"t3", "t4", "t5", "t6", "t7"}, rig.log);
-    wjs::app::test::FakeClips* fake = clips.get();
+    sns::app::test::FakeClips* fake = clips.get();
     rig.engine.soundSequence().setClipPlayer(std::move(clips));
 
     rig.engine.cue(QStringLiteral("word"), QStringLiteral("pain"));

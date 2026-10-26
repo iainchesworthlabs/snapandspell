@@ -9,10 +9,10 @@
 #include <string>
 #include <vector>
 
+#include "sns/dictionary.hpp"
+#include "sns/grapheme_binder.hpp"
+#include "sns/solver.hpp"
 #include "solo_game.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/grapheme_binder.hpp"
-#include "wjs/solver.hpp"
 
 // A stand-in for the library's game session, for the tests (a game that never
 // surprises). It follows the flow of docs/design/game.md and nothing else.
@@ -23,7 +23,7 @@
 // published by it. The real game is RealSoloGame (real_solo_game.hpp); which of the
 // two is played is decided in solo_game_factory.cpp.
 
-namespace wjs::app {
+namespace sns::app {
 
 class FakeSoloGame final : public SoloGame {
 public:
@@ -73,7 +73,7 @@ private:
     bool help_allowed_ = true;
 
     SoloBoard board_;
-    std::vector<wjs::FoundWord> viable_;
+    std::vector<sns::FoundWord> viable_;
     std::vector<SoloFound> found_;
     int stars_ = 0;
     bool saved_ = false;
@@ -88,4 +88,4 @@ private:
     std::vector<SoloHistoryEntry> history_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // What a parent sees (docs/design/dashboard.md, "What the dashboard shows"):
 // this week, the sounds, the vault and the best, computed on the device when

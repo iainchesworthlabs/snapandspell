@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/scan/reader.hpp"
+#include "sns/scan/reader.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -7,14 +7,14 @@
 #include <utility>
 
 #include "scratch.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/scan/board_finder.hpp"
-#include "wjs/scan/glyph_reader.hpp"
-#include "wjs/scan/image.hpp"
-#include "wjs/scan/stroke_font.hpp"
-#include "wjs/scan/work.hpp"
+#include "sns/profiling.hpp"
+#include "sns/scan/board_finder.hpp"
+#include "sns/scan/glyph_reader.hpp"
+#include "sns/scan/image.hpp"
+#include "sns/scan/stroke_font.hpp"
+#include "sns/scan/work.hpp"
 
-namespace wjs::scan {
+namespace sns::scan {
 
 std::string_view to_string(ReadError error) noexcept {
     switch (error) {
@@ -286,4 +286,4 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
     return reading;
 }
 
-}  // namespace wjs::scan
+}  // namespace sns::scan

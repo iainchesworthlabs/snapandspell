@@ -16,10 +16,10 @@
 #include <string>
 #include <vector>
 
-#include "wjs/scan/geometry.hpp"
-#include "wjs/scan/image.hpp"
+#include "sns/scan/geometry.hpp"
+#include "sns/scan/image.hpp"
 
-namespace wjs::scan::synth {
+namespace sns::scan::synth {
 
 inline constexpr int kFrameWidth = 960;
 inline constexpr int kFrameHeight = 720;
@@ -103,4 +103,4 @@ inline constexpr std::size_t kNegativeKindCount = 3;
 // The same frame as three bytes a pixel, red, green, blue equal.
 [[nodiscard]] std::vector<unsigned char> to_rgb(const GrayImage& image);
 
-}  // namespace wjs::scan::synth
+}  // namespace sns::scan::synth

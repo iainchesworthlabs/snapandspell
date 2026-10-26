@@ -8,9 +8,9 @@
 #include <string_view>
 #include <vector>
 
+#include "sns/board.hpp"
+#include "sns/dice.hpp"
 #include "support/test_support.hpp"
-#include "wjs/board.hpp"
-#include "wjs/dice.hpp"
 
 // TEST DATA. The dice below were written for these tests: nine dice whose faces
 // are letters so that each die is told apart, not a set that anyone plays.
@@ -31,17 +31,17 @@ constexpr std::string_view nine_dice =
     "q r s t u v\n"
     "w x y z a b\n";
 
-wjs::DiceSet nine() {
-    auto set = wjs::DiceSet::parse(nine_dice);
+sns::DiceSet nine() {
+    auto set = sns::DiceSet::parse(nine_dice);
     REQUIRE(set.has_value());
     return *std::move(set);
 }
 
-using wjs::test::text_of;
+using sns::test::text_of;
 
 // "die:face" for each tile, row-major, space separated: a placement pin that
 // reads as itself when it fails.
-std::string placements_text(const wjs::RolledBoard& rolled) {
+std::string placements_text(const sns::RolledBoard& rolled) {
     std::string text;
     for (const auto& placement : rolled.placements) {
         if (!text.empty()) {
@@ -64,7 +64,7 @@ TEST_CASE("a set of dice is read one die a line", "[dice]") {
 
 TEST_CASE("faces are stored upper-case, may be several letters and may be separated by commas",
           "[dice]") {
-    const auto set = wjs::DiceSet::parse("a, Qu, e\r\nQU i o\n");
+    const auto set = sns::DiceSet::parse("a, Qu, e\r\nQU i o\n");
 
     REQUIRE(set.has_value());
     CHECK(set->size() == 2);
@@ -73,7 +73,7 @@ TEST_CASE("faces are stored upper-case, may be several letters and may be separa
 }
 
 TEST_CASE("comments, blank lines and a byte-order mark are skipped", "[dice]") {
-    const auto set = wjs::DiceSet::parse("\xEF\xBB\xBF# header\n\n  \n# another\na b\n");
+    const auto set = sns::DiceSet::parse("\xEF\xBB\xBF# header\n\n  \n# another\na b\n");
 
     REQUIRE(set.has_value());
     CHECK(set->size() == 1);
@@ -81,34 +81,34 @@ TEST_CASE("comments, blank lines and a byte-order mark are skipped", "[dice]") {
 
 TEST_CASE("a set that cannot be read is refused with a reason", "[dice]") {
     const auto error_of = [](std::string_view text) {
-        const auto set = wjs::DiceSet::parse(text);
+        const auto set = sns::DiceSet::parse(text);
         REQUIRE_FALSE(set.has_value());
         return set.error();
     };
 
-    CHECK(error_of("") == wjs::DiceError::empty);
-    CHECK(error_of("# only a header\n") == wjs::DiceError::empty);
-    CHECK(error_of("a b 7\n") == wjs::DiceError::bad_face);
-    CHECK(error_of("a bcde f\n") == wjs::DiceError::bad_face);
-    CHECK(error_of("a b c d e f g h i j k l m\n") == wjs::DiceError::bad_die);
+    CHECK(error_of("") == sns::DiceError::empty);
+    CHECK(error_of("# only a header\n") == sns::DiceError::empty);
+    CHECK(error_of("a b 7\n") == sns::DiceError::bad_face);
+    CHECK(error_of("a bcde f\n") == sns::DiceError::bad_face);
+    CHECK(error_of("a b c d e f g h i j k l m\n") == sns::DiceError::bad_die);
 }
 
 TEST_CASE("a set with a number of dice that is not a square makes no board", "[dice]") {
-    const auto set = wjs::DiceSet::parse("a b\nc d\ne f\n");
+    const auto set = sns::DiceSet::parse("a b\nc d\ne f\n");
     REQUIRE(set.has_value());
 
-    const auto board = wjs::roll(*set, 1);
+    const auto board = sns::roll(*set, 1);
 
     CHECK(set->side() == 0);
     REQUIRE_FALSE(board.has_value());
-    CHECK(board.error() == wjs::DiceError::not_square);
+    CHECK(board.error() == sns::DiceError::not_square);
 }
 
 TEST_CASE("a roll puts each die on one tile and shows one of its faces", "[dice]") {
     const auto set = nine();
 
     for (std::uint32_t seed = 1; seed <= 50; ++seed) {
-        const auto board = wjs::roll(set, seed);
+        const auto board = sns::roll(set, seed);
 
         INFO("seed " << seed);
         REQUIRE(board.has_value());
@@ -146,8 +146,8 @@ TEST_CASE("the same set and seed make the same board and other seeds make others
 
     std::set<std::string> boards;
     for (std::uint32_t seed = 1; seed <= 40; ++seed) {
-        const auto first = wjs::roll(set, seed);
-        const auto second = wjs::roll(set, seed);
+        const auto first = sns::roll(set, seed);
+        const auto second = sns::roll(set, seed);
         REQUIRE(first.has_value());
         REQUIRE(second.has_value());
         CHECK(text_of(*first) == text_of(*second));
@@ -163,15 +163,15 @@ TEST_CASE("a seed gives the board it gave when the roll was written", "[dice]") 
     // did, and a recorded board changes with it.
     const auto set = nine();
 
-    CHECK(text_of(*wjs::roll(set, 1)) == "F K G/J U R/X S Y");
-    CHECK(text_of(*wjs::roll(set, 2)) == "O J E/L X X/B V B");
+    CHECK(text_of(*sns::roll(set, 1)) == "F K G/J U R/X S Y");
+    CHECK(text_of(*sns::roll(set, 2)) == "O J E/L X X/B V B");
 }
 
 TEST_CASE("a roll says which die is on each tile and which of its faces is up", "[dice]") {
     const auto set = nine();
 
     for (std::uint32_t seed = 1; seed <= 50; ++seed) {
-        const auto rolled = wjs::roll_with_placements(set, seed);
+        const auto rolled = sns::roll_with_placements(set, seed);
 
         INFO("seed " << seed);
         REQUIRE(rolled.has_value());
@@ -200,16 +200,16 @@ TEST_CASE("roll gives the board that roll_with_placements does, for the same see
     const auto set = nine();
 
     for (std::uint32_t seed = 1; seed <= 200; ++seed) {
-        const auto board = wjs::roll(set, seed);
-        const auto rolled = wjs::roll_with_placements(set, seed);
+        const auto board = sns::roll(set, seed);
+        const auto rolled = sns::roll_with_placements(set, seed);
 
         INFO("seed " << seed);
         REQUIRE(board.has_value());
         REQUIRE(rolled.has_value());
         CHECK(text_of(*board) == text_of(rolled->board));
     }
-    CHECK(text_of(wjs::roll_with_placements(set, 1)->board) == "F K G/J U R/X S Y");
-    CHECK(text_of(wjs::roll_with_placements(set, 2)->board) == "O J E/L X X/B V B");
+    CHECK(text_of(sns::roll_with_placements(set, 1)->board) == "F K G/J U R/X S Y");
+    CHECK(text_of(sns::roll_with_placements(set, 2)->board) == "O J E/L X X/B V B");
 }
 
 TEST_CASE("a seed gives the placements it gave when they were first returned", "[dice]") {
@@ -218,20 +218,20 @@ TEST_CASE("a seed gives the placements it gave when they were first returned", "
     // draws, which a board does not. Written die:face for each tile, row-major.
     const auto set = nine();
 
-    CHECK(placements_text(*wjs::roll_with_placements(set, 1)) ==
+    CHECK(placements_text(*sns::roll_with_placements(set, 1)) ==
           "0:5 6:0 5:2 1:3 7:4 2:5 8:1 3:0 4:0");
-    CHECK(placements_text(*wjs::roll_with_placements(set, 2)) ==
+    CHECK(placements_text(*sns::roll_with_placements(set, 2)) ==
           "2:2 1:3 5:0 6:1 3:5 8:1 4:3 7:5 0:1");
 }
 
 TEST_CASE("a set that makes no board makes no placements", "[dice]") {
-    const auto set = wjs::DiceSet::parse("a b\nc d\ne f\n");
+    const auto set = sns::DiceSet::parse("a b\nc d\ne f\n");
     REQUIRE(set.has_value());
 
-    const auto rolled = wjs::roll_with_placements(*set, 1);
+    const auto rolled = sns::roll_with_placements(*set, 1);
 
     REQUIRE_FALSE(rolled.has_value());
-    CHECK(rolled.error() == wjs::DiceError::not_square);
+    CHECK(rolled.error() == sns::DiceError::not_square);
 }
 
 TEST_CASE("each face of each die is shown, over many rolls", "[dice]") {
@@ -239,7 +239,7 @@ TEST_CASE("each face of each die is shown, over many rolls", "[dice]") {
 
     std::set<std::string> seen;
     for (std::uint32_t seed = 1; seed <= 300; ++seed) {
-        const auto board = wjs::roll(set, seed);
+        const auto board = sns::roll(set, seed);
         REQUIRE(board.has_value());
         for (std::size_t row = 0; row < 3; ++row) {
             for (std::size_t column = 0; column < 3; ++column) {
@@ -255,20 +255,20 @@ TEST_CASE("each face of each die is shown, over many rolls", "[dice]") {
 TEST_CASE("a set is read from a file", "[dice]") {
     std::istringstream in{std::string(nine_dice)};
 
-    const auto set = wjs::DiceSet::load(in);
+    const auto set = sns::DiceSet::load(in);
 
     REQUIRE(set.has_value());
     CHECK(set->size() == 9);
 
-    const auto missing = wjs::DiceSet::load_file("this-file-does-not-exist.txt");
+    const auto missing = sns::DiceSet::load_file("this-file-does-not-exist.txt");
     REQUIRE_FALSE(missing.has_value());
-    CHECK(missing.error() == wjs::DiceError::unreadable);
+    CHECK(missing.error() == sns::DiceError::unreadable);
 }
 
 TEST_CASE("each dice error has a message", "[dice]") {
     for (const auto error :
-         {wjs::DiceError::empty, wjs::DiceError::bad_die, wjs::DiceError::bad_face,
-          wjs::DiceError::not_square, wjs::DiceError::wrong_count, wjs::DiceError::unreadable}) {
-        CHECK_FALSE(wjs::to_string(error).empty());
+         {sns::DiceError::empty, sns::DiceError::bad_die, sns::DiceError::bad_face,
+          sns::DiceError::not_square, sns::DiceError::wrong_count, sns::DiceError::unreadable}) {
+        CHECK_FALSE(sns::to_string(error).empty());
     }
 }

@@ -12,14 +12,14 @@
 #include <system_error>
 #include <vector>
 
-#include "wjs/board.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/platform/console.hpp"
-#include "wjs/platform/paths.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/scoring.hpp"
-#include "wjs/solver.hpp"
-#include "wjs/version.hpp"
+#include "sns/board.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/platform/console.hpp"
+#include "sns/platform/paths.hpp"
+#include "sns/profiling.hpp"
+#include "sns/scoring.hpp"
+#include "sns/solver.hpp"
+#include "sns/version.hpp"
 
 namespace {
 
@@ -34,7 +34,7 @@ constexpr int exit_internal = 4;  // an exception the program did not foresee
 constexpr int exit_output = 5;    // the result could not be written to standard output
 
 constexpr std::string_view usage_text =
-    "Usage: wjs-cli [options] <row>...\n"
+    "Usage: sns-cli [options] <row>...\n"
     "\n"
     "Finds every word on a Boggle board. Each <row> is one row of the board. A row\n"
     "with no spaces is read one letter per tile (TAPE); otherwise tiles are\n"
@@ -53,7 +53,7 @@ constexpr std::string_view usage_text =
 
 struct Arguments {
     std::optional<std::filesystem::path> dictionary;
-    wjs::SolveOptions options;
+    sns::SolveOptions options;
     std::size_t repeat = 1;
     std::string board_text;
     bool help = false;
@@ -113,9 +113,9 @@ struct Arguments {
                 return std::unexpected(scheme.error());
             }
             if (*scheme == "boggle") {
-                parsed.options.scoring = wjs::ScoringScheme::standard_boggle;
+                parsed.options.scoring = sns::ScoringScheme::standard_boggle;
             } else if (*scheme == "rarity") {
-                parsed.options.scoring = wjs::ScoringScheme::letter_rarity;
+                parsed.options.scoring = sns::ScoringScheme::letter_rarity;
             } else {
                 return std::unexpected(
                     std::format("'{}' is not a scoring scheme (boggle or rarity)", *scheme));
@@ -130,7 +130,7 @@ struct Arguments {
     return parsed;
 }
 
-[[nodiscard]] std::string describe_path(const std::vector<wjs::Position>& path) {
+[[nodiscard]] std::string describe_path(const std::vector<sns::Position>& path) {
     std::string text;
     for (const auto& position : path) {
         if (!text.empty()) {
@@ -151,35 +151,35 @@ struct Arguments {
 [[nodiscard]] int finish_output() {
     std::cout.flush();
     if (!std::cout) {
-        std::cerr << "wjs-cli: the result could not be written to standard output\n";
+        std::cerr << "sns-cli: the result could not be written to standard output\n";
         return exit_output;
     }
     return 0;
 }
 
 [[nodiscard]] int run(const Arguments& arguments) {
-    auto zone = wjs::profiling::zone<"cli.run">();
+    auto zone = sns::profiling::zone<"cli.run">();
 
-    const auto board = wjs::Board::parse(arguments.board_text);
+    const auto board = sns::Board::parse(arguments.board_text);
     if (!board) {
-        std::cerr << std::format("wjs-cli: {}\n", wjs::to_string(board.error()));
+        std::cerr << std::format("sns-cli: {}\n", sns::to_string(board.error()));
         return exit_board;
     }
 
     const auto dictionary_path = arguments.dictionary.value_or(
-        wjs::platform::executable_path().parent_path() / "dictionaries" / "en.txt");
-    const auto dictionary = wjs::Dictionary::load_file(dictionary_path);
+        sns::platform::executable_path().parent_path() / "dictionaries" / "en.txt");
+    const auto dictionary = sns::Dictionary::load_file(dictionary_path);
     if (!dictionary) {
-        std::cerr << std::format("wjs-cli: {}: {}\n", dictionary_path.string(),
-                                 wjs::to_string(dictionary.error()));
+        std::cerr << std::format("sns-cli: {}: {}\n", dictionary_path.string(),
+                                 sns::to_string(dictionary.error()));
         return exit_dictionary;
     }
 
     // One result is printed whatever the count: the repeats are for a clock
     // or a profiler (docs/profiling.md), not for the person reading the list.
-    auto words = wjs::solve(*board, *dictionary, arguments.options);
+    auto words = sns::solve(*board, *dictionary, arguments.options);
     for (std::size_t again = 1; again < arguments.repeat; ++again) {
-        words = wjs::solve(*board, *dictionary, arguments.options);
+        words = sns::solve(*board, *dictionary, arguments.options);
     }
 
     int total = 0;
@@ -193,8 +193,8 @@ struct Arguments {
 }
 
 int run_cli(int argc, char** argv) {
-    wjs::platform::use_utf8_console();
-    wjs::profiling::thread_name("main");
+    sns::platform::use_utf8_console();
+    sns::profiling::thread_name("main");
 
     std::vector<std::string> args;
     for (int i = 1; i < argc; ++i) {
@@ -203,11 +203,11 @@ int run_cli(int argc, char** argv) {
 
     const auto arguments = parse_arguments(args);
     if (!arguments) {
-        std::cerr << std::format("wjs-cli: {}\n\n{}", arguments.error(), usage_text);
+        std::cerr << std::format("sns-cli: {}\n\n{}", arguments.error(), usage_text);
         return exit_usage;
     }
     if (arguments->version) {
-        std::cout << std::format("wjs-cli {} ({})\n", wjs::project_version, wjs::target_platform);
+        std::cout << std::format("sns-cli {} ({})\n", sns::project_version, sns::target_platform);
         return finish_output();
     }
     if (arguments->help) {
@@ -232,10 +232,10 @@ int main(int argc, char** argv) {
     try {
         return run_cli(argc, argv);
     } catch (const std::exception& error) {
-        std::cerr << "wjs-cli: " << error.what() << '\n';
+        std::cerr << "sns-cli: " << error.what() << '\n';
         return exit_internal;
     } catch (...) {
-        std::cerr << "wjs-cli: unknown error\n";
+        std::cerr << "sns-cli: unknown error\n";
         return exit_internal;
     }
 }

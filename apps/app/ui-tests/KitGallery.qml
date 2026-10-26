@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // Every interactive component of the kit, laid out as a screen would: the size
 // matrix's subject for the kit itself (tst_sizematrix.qml). It is deliberately

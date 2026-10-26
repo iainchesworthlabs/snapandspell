@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/platform/board_reader.hpp"
+#include "sns/platform/board_reader.hpp"
 
-#include "wjs/scan/reader.hpp"
+#include "sns/scan/reader.hpp"
 
-namespace wjs::platform::board_reader {
+namespace sns::platform::board_reader {
 
 // The portable reader, for the platforms that have no recogniser of their own
 // (today the three desktops). It is the library's pipeline, unchanged.
@@ -21,4 +21,4 @@ std::expected<scan::BoardReading, scan::ReadError> read(const scan::Frame& frame
     return scan::read_board(frame, options);
 }
 
-}  // namespace wjs::platform::board_reader
+}  // namespace sns::platform::board_reader

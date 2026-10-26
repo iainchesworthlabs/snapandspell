@@ -15,8 +15,8 @@
 
 namespace {
 
-using wjs::app::FakeSoloGame;
-using wjs::app::SoloModel;
+using sns::app::FakeSoloGame;
+using sns::app::SoloModel;
 
 // Everything a screen is told, in order.
 struct Heard {
@@ -609,7 +609,7 @@ TEST_CASE("the board's clock is off until the parent sets one, and ticks only wh
           "[app][solo][clock]") {
     Fixture f;
     CHECK(f.model.clockMode() == "off");
-    CHECK(f.model.clockMinutes() == wjs::default_solo_clock_minutes);
+    CHECK(f.model.clockMinutes() == sns::default_solo_clock_minutes);
     CHECK(f.model.clockText() == "0:00");
 
     f.model.setClockMode("up");
@@ -692,7 +692,7 @@ TEST_CASE("a clock set while a board is in play starts from the board's beginnin
 }
 
 TEST_CASE("the clock's own timer counts the time that really went by", "[app][solo][clock]") {
-    wjs::app::test::CoreApplication application;
+    sns::app::test::CoreApplication application;
     Fixture f;
     f.model.setClockMode("up");
     f.play();
@@ -700,13 +700,13 @@ TEST_CASE("the clock's own timer counts the time that really went by", "[app][so
     QObject::connect(&f.model, &SoloModel::clockSecondsChanged, [&changes] { ++changes; });
 
     // Not active: the timer is not running and the clock does not move.
-    CHECK_FALSE(wjs::app::test::spin_until([&f] { return f.model.clockSeconds() > 0; }, 1300));
+    CHECK_FALSE(sns::app::test::spin_until([&f] { return f.model.clockSeconds() > 0; }, 1300));
     CHECK(changes == 0);
 
     // Active: the model's own timer counts seconds of wall time, with no call to
     // tickClock. One real second and a margin is the cost of proving it.
     f.model.setClockActive(true);
-    REQUIRE(wjs::app::test::spin_until([&f] { return f.model.clockSeconds() >= 1; }, 3000));
+    REQUIRE(sns::app::test::spin_until([&f] { return f.model.clockSeconds() >= 1; }, 3000));
     CHECK(f.model.clockSeconds() == 1);
     CHECK(changes == 1);
     CHECK(f.model.clockText() == "0:01");
@@ -715,7 +715,7 @@ TEST_CASE("the clock's own timer counts the time that really went by", "[app][so
     f.model.setClockActive(false);
     const int held = f.model.clockSeconds();
     CHECK_FALSE(
-        wjs::app::test::spin_until([&f, held] { return f.model.clockSeconds() != held; }, 1300));
+        sns::app::test::spin_until([&f, held] { return f.model.clockSeconds() != held; }, 1300));
 }
 
 TEST_CASE("a stalled interface does not lose the clock's time", "[app][solo][clock]") {
@@ -789,7 +789,7 @@ namespace {
 // 4x4 to be offered first, and how many it has made.
 struct ParentChoices {
     int made = 0;
-    wjs::app::ScopedSoloGameMaker installed{[this] {
+    sns::app::ScopedSoloGameMaker installed{[this] {
         ++made;
         auto game = std::make_unique<FakeSoloGame>();
         game->setHelpAllowed(false);
@@ -885,7 +885,7 @@ TEST_CASE("with no edit the game goes on as it is, whatever the maker would make
 TEST_CASE("a new game that was brought back is shown as the constructor shows one",
           "[app][solo][edited]") {
     int made = 0;
-    const wjs::app::ScopedSoloGameMaker installed([&made] {
+    const sns::app::ScopedSoloGameMaker installed([&made] {
         ++made;
         auto game = std::make_unique<FakeSoloGame>();
         game->shake();

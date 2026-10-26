@@ -21,15 +21,15 @@
 #include "fake_camera.hpp"
 #include "frame_conversion.hpp"
 #include "scan_model.hpp"
+#include "sns/scan/frame.hpp"
 #include "test_support.hpp"
-#include "wjs/scan/frame.hpp"
 
 namespace {
 
-using wjs::app::CameraSource;
-using wjs::app::ScanModel;
-using wjs::app::test::FakeCameraBackend;
-using wjs::scan::PixelFormat;
+using sns::app::CameraSource;
+using sns::app::ScanModel;
+using sns::app::test::FakeCameraBackend;
+using sns::scan::PixelFormat;
 
 // A CameraSource over a fake backend, with the backend kept for the test to
 // drive. The source owns the backend, as it does the real one.
@@ -45,8 +45,8 @@ struct FakeCamera {
 };
 
 // A small RGB frame with known bytes, for the model's frame path.
-wjs::scan::OwnedFrame small_frame() {
-    wjs::scan::OwnedFrame frame;
+sns::scan::OwnedFrame small_frame() {
+    sns::scan::OwnedFrame frame;
     frame.width = 2;
     frame.height = 2;
     frame.stride = 6;
@@ -57,7 +57,7 @@ wjs::scan::OwnedFrame small_frame() {
 
 // A QCoreApplication is needed by the model's frame timer and by the reader's
 // answer. It is made inside the case, so the cases that need neither make none.
-using TestApplication = wjs::app::test::CoreApplication;
+using TestApplication = sns::app::test::CoreApplication;
 
 }  // namespace
 
@@ -71,7 +71,7 @@ TEST_CASE("an image becomes a packed RGB24 frame, row by row", "[app][scan][came
     image.setPixelColor(1, 1, QColor(130, 140, 150));
     image.setPixelColor(2, 1, QColor(160, 170, 180));
 
-    const std::optional<wjs::scan::OwnedFrame> frame = wjs::app::frame_from_image(image);
+    const std::optional<sns::scan::OwnedFrame> frame = sns::app::frame_from_image(image);
     REQUIRE(frame.has_value());
     CHECK(frame->width == 3);
     CHECK(frame->height == 2);
@@ -109,7 +109,7 @@ TEST_CASE("a grey image becomes an RGB frame with equal channels", "[app][scan][
     // convert it through qGray, which is not the same value.
     image.fill(128);
 
-    const std::optional<wjs::scan::OwnedFrame> frame = wjs::app::frame_from_image(image);
+    const std::optional<sns::scan::OwnedFrame> frame = sns::app::frame_from_image(image);
     REQUIRE(frame.has_value());
     CHECK(frame->width == 1);
     CHECK(frame->height == 1);
@@ -128,7 +128,7 @@ TEST_CASE("an ARGB32 image, the live camera's format, drops the alpha and keeps 
     image.setPixel(0, 0, qRgba(10, 20, 30, 128));
     image.setPixel(1, 0, qRgba(40, 50, 60, 0));
 
-    const std::optional<wjs::scan::OwnedFrame> frame = wjs::app::frame_from_image(image);
+    const std::optional<sns::scan::OwnedFrame> frame = sns::app::frame_from_image(image);
     REQUIRE(frame.has_value());
     CHECK(frame->width == 2);
     CHECK(frame->height == 1);
@@ -147,7 +147,7 @@ TEST_CASE("an RGB32 and a premultiplied image become the same picture", "[app][s
     QImage rgb32(1, 1, QImage::Format_RGB32);
     REQUIRE_FALSE(rgb32.isNull());
     rgb32.setPixel(0, 0, qRgb(70, 80, 90));
-    const std::optional<wjs::scan::OwnedFrame> from_rgb32 = wjs::app::frame_from_image(rgb32);
+    const std::optional<sns::scan::OwnedFrame> from_rgb32 = sns::app::frame_from_image(rgb32);
     REQUIRE(from_rgb32.has_value());
     REQUIRE(from_rgb32->pixels.size() == 3);
     CHECK(from_rgb32->pixels[0] == 70);
@@ -159,8 +159,8 @@ TEST_CASE("an RGB32 and a premultiplied image become the same picture", "[app][s
     QImage premultiplied(1, 1, QImage::Format_ARGB32_Premultiplied);
     REQUIRE_FALSE(premultiplied.isNull());
     premultiplied.setPixel(0, 0, qRgba(70, 80, 90, 255));
-    const std::optional<wjs::scan::OwnedFrame> from_premultiplied =
-        wjs::app::frame_from_image(premultiplied);
+    const std::optional<sns::scan::OwnedFrame> from_premultiplied =
+        sns::app::frame_from_image(premultiplied);
     REQUIRE(from_premultiplied.has_value());
     REQUIRE(from_premultiplied->pixels.size() == 3);
     CHECK(from_premultiplied->pixels[0] == 70);
@@ -170,7 +170,7 @@ TEST_CASE("an RGB32 and a premultiplied image become the same picture", "[app][s
 
 TEST_CASE("a null image is not a frame", "[app][scan][camera]") {
     const QImage none;
-    CHECK_FALSE(wjs::app::frame_from_image(none).has_value());
+    CHECK_FALSE(sns::app::frame_from_image(none).has_value());
 }
 
 TEST_CASE("a camera source with no device says no_camera and hands over nothing",
@@ -205,13 +205,13 @@ TEST_CASE("the preview item is handed to the backend and taken back", "[app][sca
 }
 
 TEST_CASE("a source with no backend answers no camera and does nothing", "[app][scan][camera]") {
-    CameraSource source{std::unique_ptr<wjs::app::CameraBackend>{}};
+    CameraSource source{std::unique_ptr<sns::app::CameraBackend>{}};
     QObject item;
 
     CHECK_FALSE(source.available());
     CHECK(source.devices().isEmpty());
     CHECK(source.problem() == "no_camera");
-    CHECK(source.problemKind() == wjs::app::CameraProblem::no_camera);
+    CHECK(source.problemKind() == sns::app::CameraProblem::no_camera);
     CHECK_FALSE(source.running());
     CHECK_FALSE(source.start());
     CHECK_FALSE(source.capture());
@@ -224,7 +224,7 @@ TEST_CASE("a source with no backend answers no camera and does nothing", "[app][
 TEST_CASE("a capture says so, and starting and stopping tell QML", "[app][scan][camera]") {
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(wjs::app::CameraProblem::none);
+    camera.fake->setProblem(sns::app::CameraProblem::none);
     camera.fake->setFrame(small_frame());
 
     int changed = 0;
@@ -250,7 +250,7 @@ TEST_CASE("a capture says so, and starting and stopping tell QML", "[app][scan][
 TEST_CASE("a refused camera reports permission and does not run", "[app][scan][camera]") {
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(wjs::app::CameraProblem::permission);
+    camera.fake->setProblem(sns::app::CameraProblem::permission);
 
     CHECK(camera.source->available());
     CHECK(camera.source->devices().size() == 1);
@@ -263,7 +263,7 @@ TEST_CASE("a running camera hands its frame over once and a failure is reported"
           "[app][scan][camera]") {
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(wjs::app::CameraProblem::none);
+    camera.fake->setProblem(sns::app::CameraProblem::none);
     camera.fake->setFrame(small_frame());
 
     int changed = 0;
@@ -275,7 +275,7 @@ TEST_CASE("a running camera hands its frame over once and a failure is reported"
     CHECK(camera.source->problem().isEmpty());
 
     CHECK(camera.source->capture());
-    std::optional<wjs::scan::OwnedFrame> frame = camera.source->takeFrame();
+    std::optional<sns::scan::OwnedFrame> frame = camera.source->takeFrame();
     REQUIRE(frame.has_value());
     CHECK(frame->width == 2);
     CHECK(frame->height == 2);
@@ -284,7 +284,7 @@ TEST_CASE("a running camera hands its frame over once and a failure is reported"
     CHECK_FALSE(camera.source->takeFrame().has_value());
     CHECK_FALSE(camera.source->capture());
 
-    camera.fake->fail(wjs::app::CameraProblem::failed);
+    camera.fake->fail(sns::app::CameraProblem::failed);
     CHECK_FALSE(camera.source->running());
     CHECK(camera.source->problem() == "failed");
     CHECK(changed > 0);
@@ -314,8 +314,8 @@ TEST_CASE("a frame from the camera source opens the check screen", "[app][scan][
     TestApplication application;
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(wjs::app::CameraProblem::none);
-    camera.fake->setFrame(wjs::app::test::synthetic_board_frame());
+    camera.fake->setProblem(sns::app::CameraProblem::none);
+    camera.fake->setFrame(sns::app::test::synthetic_board_frame());
 
     ScanModel model;
     model.setCameraSource(camera.source.get());
@@ -325,7 +325,7 @@ TEST_CASE("a frame from the camera source opens the check screen", "[app][scan][
 
     model.capture();
     // The read is on the scanner's thread; the answer arrives through the loop.
-    REQUIRE(wjs::app::test::spin_until([&model] { return model.state() != "reading"; }));
+    REQUIRE(sns::app::test::spin_until([&model] { return model.state() != "reading"; }));
     CHECK(model.state() == "check");
     CHECK(model.rows() == 4);
     CHECK(model.columns() == 4);
@@ -342,7 +342,7 @@ TEST_CASE("a camera that never delivers a frame returns the screen to ready",
     TestApplication application;
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(wjs::app::CameraProblem::none);
+    camera.fake->setProblem(sns::app::CameraProblem::none);
 
     ScanModel model;
     // Three looks, five milliseconds apart: the screen waits four seconds, which a
@@ -371,7 +371,7 @@ TEST_CASE("a camera that never delivers a frame returns the screen to ready",
 TEST_CASE("a camera that fails while the ready screen waits is described", "[app][scan][camera]") {
     FakeCamera camera;
     camera.fake->setAvailable(true);
-    camera.fake->setProblem(wjs::app::CameraProblem::none);
+    camera.fake->setProblem(sns::app::CameraProblem::none);
 
     ScanModel model;
     model.setCameraSource(camera.source.get());
@@ -382,7 +382,7 @@ TEST_CASE("a camera that fails while the ready screen waits is described", "[app
     QObject::connect(&model, &ScanModel::cameraChanged, &model,
                      [&camera_changes] { ++camera_changes; });
 
-    camera.fake->fail(wjs::app::CameraProblem::failed);
+    camera.fake->fail(sns::app::CameraProblem::failed);
     CHECK_FALSE(model.cameraCapturing());
     CHECK_FALSE(model.cameraAvailable());
     CHECK(model.cameraProblem() == "failed");
@@ -397,7 +397,7 @@ TEST_CASE("a camera source destroyed while a capture waits returns the screen to
     {
         FakeCamera camera;
         camera.fake->setAvailable(true);
-        camera.fake->setProblem(wjs::app::CameraProblem::none);
+        camera.fake->setProblem(sns::app::CameraProblem::none);
         model.setCameraSource(camera.source.get());
         model.open();
         REQUIRE(model.cameraCapturing());
@@ -419,7 +419,7 @@ TEST_CASE("a camera source that is destroyed leaves the model with none", "[app]
     {
         FakeCamera camera;
         camera.fake->setAvailable(true);
-        camera.fake->setProblem(wjs::app::CameraProblem::none);
+        camera.fake->setProblem(sns::app::CameraProblem::none);
         model.setCameraSource(camera.source.get());
         model.open();
         REQUIRE(model.cameraAvailable());

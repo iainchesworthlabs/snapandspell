@@ -9,7 +9,7 @@ and which test shows it is in [Requirements and traceability](requirements.md).
 
 ## 1. What is being built
 
-WordJewelsSolver is a Boggle game and companion for 5- and 6-year-olds, on
+SnapAndSpell is a Boggle game and companion for 5- and 6-year-olds, on
 tablets first, then phones, the web (WebAssembly) and desktop (macOS, Linux and
 Windows). Two modes:
 
@@ -27,12 +27,12 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | Area | State | How it was checked |
 | --- | --- | --- |
 | Solver library (board, trie dictionary, scoring, depth-first search) | Done | Catch2 cases; the 3x3 reference board checked by hand |
-| `wjs-cli` | Done | Run end to end on Windows |
+| `sns-cli` | Done | Run end to end on Windows |
 | Platform isolation (`libs/platforms`, one CMake selector, enforcing check) | Done | `platform.isolation` and `platform.fragments` ctests |
 | Solo Play in Qt Quick: home, the box, the 3D shake and drop, play (tracing and tapping), the summary card, My jewels, earlier boards | Built on the Windows desktop, on the design kit; **never run on a tablet** | Quick Test suites over a stub scene and a fake game, the size matrix, the offscreen `--smoke` run in CI; driven by hand on a desktop with a GPU. Confetti, sparkle and the Mega burst are **not built** |
 | The parent area: gate, dashboard, settings, About and licences, eight languages with right-to-left | Built | Library and app tests, the wording and privacy checks, the screens run in all eight languages. The gate is one press-and-hold ([D9](#4-decisions-that-gate-the-plan)); the translations are mechanical and unreviewed |
 | Windows build (MSVC 19.51, Qt 6.12.0, `/W4 /WX`, ASan) | Verified | CI, Debug: the whole ctest, the application's smoke, a Release package job that checks the ZIP |
-| Linux (GCC 15.2) and macOS (Apple clang 21) builds | The library, `wjs-cli` and their tests verified in CI | Debug, warnings as errors, sanitizers. The Qt application is built on neither in `ci.yml`; `release.yml` builds it (an AppImage and a macOS bundle) and has **never run** |
+| Linux (GCC 15.2) and macOS (Apple clang 21) builds | The library, `sns-cli` and their tests verified in CI | Debug, warnings as errors, sanitizers. The Qt application is built on neither in `ci.yml`; `release.yml` builds it (an AppImage and a macOS bundle) and has **never run** |
 | iOS and Android builds of this app | iOS: platform section, preset, unsigned compile check and signed ad-hoc release job written: the unsigned compile has passed on a hosted runner, the signing and the install have **never run** ([CI](ci.md#ios)). Android: **in progress** on a separate branch; `cmake/Platform.cmake` still refuses it | CountdownSolver has both working: a signed Android APK, and an ad-hoc signed iOS IPA that has been installed and run on your iPhone and iPad |
 | Releases | `release.yml` written: Release packages, SBOM, GPG signatures, attestations, a draft release verified from the public side | **Has never run on GitHub**: `main` is behind `develop`, so scheduled and manually dispatched workflows cannot start yet ([CI](ci.md#releases)) |
 | CI, repository rules, documentation | Running; rulesets applied and enforced | Required checks on every pull request; the docs build strictly (`docs.yml`); the nightly analysis jobs are written and wait for `develop` to reach `main` |
@@ -71,7 +71,7 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | D3 | UI toolkit on tablets | Qt Quick everywhere, as now. | One UI, the shell exists, and Cubeulator already ships the mobile build plumbing. The library is Qt-free, so a native iPad UI over it stays possible if D2 forces it. |
 | D4 | Source of word metadata | Candidates: a pronouncing dictionary (syllables, phonemes), a lexical database with hypernyms (categories), published sight-word lists. | **Licence of each must be checked before use**; none is assumed. Metadata is data, kept out of the code. |
 | D5 | Audio | Record phoneme sounds and the words yourself or with a family voice; use speech synthesis only for words and sentences. | Recordings you make carry no third-party licence. A child hears a phoneme, not a letter name. |
-| D6 | Name | **Decided 2026-10-16: WordJewelsSolver**, as the repository, CMake project and CLI already have it. The brief's working name, WordJuels, is retired. | Settled before any public release. |
+| D6 | Name | **Decided 2026-10-16: SnapAndSpell**, as the repository, CMake project and CLI already have it. The brief's working name, WordJuels, is retired. | Settled before any public release. |
 | D7 | Engine word list | **Done:** ENABLE, unmodified. The child-facing layer is an allow-list (categories and a core tier), not a filter over it, so nothing unsuitable can appear by omission. **Amended 2026-10-21:** the MVP standard board plays the full ENABLE list with no block list (accepted risk, decided 2026-10-16 and pinned by a test), so on it any ENABLE word can be shown and spoken; the allow-list is the phonics board's and the lexicon's, and nothing reads the lexicon yet. | See G2 and [MVP library](design/mvp-library.md). |
 | D8 | A board clock | **Decided 2026-10-21: the parent-set clock stays.** Settings: Time on the board = off (default), count up, or count down for 1 to 30 minutes, which ends the board and keeps everything found. No duration is stored. Amends PRD 12.3 "no timers or limits" | The clock was built in the October 2026 play-through passes and tested, and the author kept it. *Weakness:* a clock a child can see is a pull, and a count-down is a limit; both are the parent's behind the gate, and the app never starts one. Pages amended: PRD 10, 12.3, 12.5; [Game](design/game.md), [Application](design/application.md), [Parent area](design/parent-area.md), [Dashboard](design/dashboard.md). |
 | D9 | The parental gate | **Decided 2026-10-21: one press-and-hold.** A single large button, held two seconds (Space or Enter by keyboard), puts both of the gate's virtual touches down. Amends "two fingers on two spots" | The two-spot gate asked a parent to discover that two touches, or a mouse on one circle and Space on the keyboard, had to coincide. *Weakness:* a determined child passes it with one finger; [the Dashboard page](design/dashboard.md#the-gate) rated a plain long press "too weak alone". It guards the settings, the dashboard and the scanner, none of which is a purchase, a network or an export, so it is a brake against accidents and not security. Reconsider before a store listing (G6). |
@@ -122,7 +122,7 @@ it, and collect a jewel.
   tried.
 - Dice model, shake detection, `validate_path`, with unit tests. All three are
   done (the Qt Quick game and the board scene on top of them are built too): the dice
-  model reads a set of dice and rolls a board (`wjs::roll`), and
+  model reads a set of dice and rolls a board (`sns::roll`), and
   the project's own dice for 3x3 to 6x6 are in `data/dice`, made from a fixed
   Scrabble-style English tile-frequency table.
 - Touch tracing with generous tolerance, tested on a real tablet with small
@@ -252,7 +252,7 @@ variant headers, so the macro API never reaches a call site; see
 [Performance](design/performance.md)); a performance
 budget for dictionary load and solve on a low-end tablet. Measured so far, on
 Windows, Release build:
-the whole `wjs-cli` process (load 172,823 words, solve, print) takes about 76 ms
+the whole `sns-cli` process (load 172,823 words, solve, print) takes about 76 ms
 on 3x3, 4x4 and 5x5 boards, with load dominating and solving below the noise
 (a Debug build with AddressSanitizer takes several seconds, which is why
 performance is measured in Release). Tablet hardware is **unmeasured**.

@@ -15,9 +15,9 @@
 #include <cstddef>
 #include <vector>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 QElapsedTimer& process_clock() {
@@ -169,7 +169,7 @@ struct FrameProfiler::State {
             return;
         }
         if (!render_thread_named_.exchange(true)) {
-            wjs::profiling::thread_name("render");
+            sns::profiling::thread_name("render");
         }
     }
 
@@ -184,7 +184,7 @@ struct FrameProfiler::State {
                 render_.push(elapsed, at);
             }
         }
-        wjs::profiling::plot("render.frame_ms", elapsed);
+        sns::profiling::plot("render.frame_ms", elapsed);
     }
 
     void on_sync_begin() { sync_begin_ = now_ms(); }
@@ -199,7 +199,7 @@ struct FrameProfiler::State {
                 sync_.push(elapsed, at);
             }
         }
-        wjs::profiling::plot("ui.sync_ms", elapsed);
+        sns::profiling::plot("ui.sync_ms", elapsed);
     }
 
     void on_record_begin() { record_begin_ = now_ms(); }
@@ -213,7 +213,7 @@ struct FrameProfiler::State {
                 record_.push(elapsed, at);
             }
         }
-        wjs::profiling::plot("render.record_ms", elapsed);
+        sns::profiling::plot("render.record_ms", elapsed);
     }
 
     // GUI thread: the event loop woke up, and is about to sleep. What it did in
@@ -249,7 +249,7 @@ struct FrameProfiler::State {
                 animate_.push(elapsed, at);
             }
         }
-        wjs::profiling::plot("ui.animate_ms", elapsed);
+        sns::profiling::plot("ui.animate_ms", elapsed);
     }
 
     void on_swapped() {
@@ -290,13 +290,13 @@ struct FrameProfiler::State {
             }
         }
 
-        wjs::profiling::frame_mark("UI");
+        sns::profiling::frame_mark("UI");
         if (first) {
             // Launch to first frame: the one number a frame interval cannot hold,
             // because it is the wait before the first of them.
-            wjs::profiling::plot("ui.first_frame_ms", at);
+            sns::profiling::plot("ui.first_frame_ms", at);
         } else {
-            wjs::profiling::plot("ui.frame_ms", interval);
+            sns::profiling::plot("ui.frame_ms", interval);
         }
     }
 
@@ -576,4 +576,4 @@ QString FrameProfiler::report_text() const {
     return text;
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

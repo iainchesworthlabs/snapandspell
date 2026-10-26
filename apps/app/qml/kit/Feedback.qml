@@ -7,7 +7,7 @@ import QtQuick
 // spoken name or a tap of the hand calls cue(); Main.qml installs the
 // application's FeedbackEngine here, and the engine turns the cue and the
 // parent's settings into a short asset, a spoken word and a haptic pattern
-// (wjs/feedback.hpp has the mapping). Output only: the app has no audio input.
+// (sns/feedback.hpp has the mapping). Output only: the app has no audio input.
 //
 // kinds: "speak" (detail: the picture's or word's name), "tap" (a UI press),
 // "rattle", "tile" (the tile's letters), "tile-landed" (the pitch), "word"

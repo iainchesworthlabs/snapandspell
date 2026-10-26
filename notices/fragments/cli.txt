@@ -1,5 +1,5 @@
-wjs-cli
+sns-cli
 -------
 
-The command-line program, wjs-cli, is conveyed under the project's licence:
+The command-line program, sns-cli, is conveyed under the project's licence:
 GPL-3.0-or-later.

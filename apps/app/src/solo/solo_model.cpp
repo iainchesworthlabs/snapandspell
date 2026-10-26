@@ -6,10 +6,10 @@
 #include <utility>
 
 #include "qt_text.hpp"
+#include "sns/profiling.hpp"
 #include "solo_game_factory.hpp"
-#include "wjs/profiling.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 [[nodiscard]] QString tier_name(WordTier tier) {
@@ -192,7 +192,7 @@ QVariantList SoloModel::path() const {
     // tile and once a path line, and a rebuild per read is the pointer's jank.
     // The zone is the one build, which nests inside the QML seam's `ui.trace`.
     if (path_dirty_) {
-        const auto zone = wjs::profiling::zone<"solo.path">();
+        const auto zone = sns::profiling::zone<"solo.path">();
         path_cache_ = indices(tracer_.path());
         path_dirty_ = false;
     }
@@ -201,7 +201,7 @@ QVariantList SoloModel::path() const {
 
 QVariantList SoloModel::blocks() const {
     if (blocks_dirty_) {
-        const auto zone = wjs::profiling::zone<"solo.blocks">();
+        const auto zone = sns::profiling::zone<"solo.blocks">();
         QVariantList list;
         if (!tracer_.path().empty()) {
             for (const auto& block : game_->blocks(tracer_.path())) {
@@ -257,7 +257,7 @@ QString SoloModel::helpLevel() const {
 
 void SoloModel::setHelpLevel(const QString& level) {
     const std::string name = level.toStdString();
-    const auto parsed = wjs::help_level_from_string(name);
+    const auto parsed = sns::help_level_from_string(name);
     if (!parsed || *parsed == help_level_) {
         return;
     }
@@ -281,7 +281,7 @@ int SoloModel::helpTile() const {
 void SoloModel::refreshHistory() {
     // Every stored board is parsed here, on the GUI thread, so the sheet's
     // open is not a stall; the zone is the whole rebuild.
-    const auto zone = wjs::profiling::zone<"solo.history">();
+    const auto zone = sns::profiling::zone<"solo.history">();
     QVariantList list;
     for (const auto& entry : game_->history()) {
         QVariantMap map;
@@ -382,7 +382,7 @@ constexpr int kMaxClockMinutes = 24 * 60;
 
 void SoloModel::setClockMode(const QString& mode) {
     const std::string name = mode.toStdString();
-    const auto parsed = wjs::solo_clock_from_string(name);
+    const auto parsed = sns::solo_clock_from_string(name);
     if (!parsed) {
         return;
     }
@@ -555,7 +555,7 @@ void SoloModel::submitPath() {
     // The whole synchronous moment of a word handed in: the tracer, the game's
     // answer and (in the real game) the store's writes, which the profile of
     // this zone shows. The value is the path's tiles.
-    auto zone = wjs::profiling::zone<"solo.submit">();
+    auto zone = sns::profiling::zone<"solo.submit">();
     const std::vector<Position> path = tracer_.path();
     const QVariantList traced_path = indices(path);
     zone.Value(static_cast<std::uint64_t>(traced_path.size()));
@@ -851,4 +851,4 @@ void SoloModel::renewGameIfDue() {
     emit stateChanged();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

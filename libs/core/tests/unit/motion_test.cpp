@@ -5,11 +5,11 @@
 #include <limits>
 #include <vector>
 
-#include "wjs/motion.hpp"
+#include "sns/motion.hpp"
 
-// The device's motion processing (wjs::MotionProcessor): the accelerometer's
+// The device's motion processing (sns::MotionProcessor): the accelerometer's
 // metres per second squared become the scene's g, the gyroscope passes through,
-// and the same samples go through wjs::detect_shakes so only a real shake is
+// and the same samples go through sns::detect_shakes so only a real shake is
 // reported - and reported once.
 //
 // The traces are synthetic, as libs/core/tests/unit/shake_test.cpp's are: a device lying
@@ -31,9 +31,9 @@ struct Burst {
 };
 
 // A device lying flat: gravity along z, and an optional push along x.
-std::vector<wjs::DeviceMotion> make_trace(double duration, double rate,
+std::vector<sns::DeviceMotion> make_trace(double duration, double rate,
                                           const std::vector<Burst>& bursts = {}) {
-    std::vector<wjs::DeviceMotion> samples;
+    std::vector<sns::DeviceMotion> samples;
     const auto count = static_cast<std::size_t>(duration * rate);
     samples.reserve(count);
     for (std::size_t i = 0; i < count; ++i) {
@@ -44,7 +44,7 @@ std::vector<wjs::DeviceMotion> make_trace(double duration, double rate,
                 push += burst.amplitude * std::sin(2.0 * pi * burst.frequency * (t - burst.from));
             }
         }
-        wjs::DeviceMotion sample;
+        sns::DeviceMotion sample;
         sample.t = t;
         sample.ax = push * standard_gravity;
         sample.ay = 0;
@@ -61,8 +61,8 @@ std::vector<wjs::DeviceMotion> make_trace(double duration, double rate,
 }  // namespace
 
 TEST_CASE("the scene is given g and the gyroscope's radians a second", "[motion][processor]") {
-    wjs::MotionProcessor processor;
-    wjs::DeviceMotion sample;
+    sns::MotionProcessor processor;
+    sns::DeviceMotion sample;
     sample.t = 0.5;
     sample.ax = standard_gravity;
     sample.ay = -standard_gravity / 2.0;
@@ -71,7 +71,7 @@ TEST_CASE("the scene is given g and the gyroscope's radians a second", "[motion]
     sample.wy = -1.5;
     sample.wz = 3.0;
 
-    const wjs::MotionOutput output = processor.push(sample);
+    const sns::MotionOutput output = processor.push(sample);
 
     CHECK(output.ax == 1.0);
     CHECK(output.ay == -0.5);
@@ -83,45 +83,45 @@ TEST_CASE("the scene is given g and the gyroscope's radians a second", "[motion]
 }
 
 TEST_CASE("a sample that is not finite, or goes back in time, is not used", "[motion][processor]") {
-    wjs::MotionProcessor processor;
-    wjs::DeviceMotion good;
+    sns::MotionProcessor processor;
+    sns::DeviceMotion good;
     good.t = 1.0;
     good.az = standard_gravity;
-    const wjs::MotionOutput first = processor.push(good);
+    const sns::MotionOutput first = processor.push(good);
     CHECK(first.az == 1.0);
 
-    wjs::DeviceMotion nan = good;
+    sns::DeviceMotion nan = good;
     nan.t = 2.0;
     nan.ax = std::numeric_limits<double>::quiet_NaN();
-    const wjs::MotionOutput from_nan = processor.push(nan);
+    const sns::MotionOutput from_nan = processor.push(nan);
     CHECK(from_nan.ax == 0.0);
     CHECK(from_nan.az == 0.0);
     CHECK_FALSE(from_nan.shake);
 
-    wjs::DeviceMotion earlier = good;
+    sns::DeviceMotion earlier = good;
     earlier.t = 0.5;
     earlier.ax = 2.0 * standard_gravity;
-    const wjs::MotionOutput from_earlier = processor.push(earlier);
+    const sns::MotionOutput from_earlier = processor.push(earlier);
     CHECK(from_earlier.ax == 0.0);
     CHECK_FALSE(from_earlier.shake);
 
     // The next good sample is still processed, with the scene's numbers.
-    wjs::DeviceMotion next = good;
+    sns::DeviceMotion next = good;
     next.t = 1.01;
-    const wjs::MotionOutput from_next = processor.push(next);
+    const sns::MotionOutput from_next = processor.push(next);
     CHECK(from_next.az == 1.0);
 }
 
 TEST_CASE("a device lying still is not shaken", "[motion][processor]") {
-    wjs::MotionProcessor processor;
-    for (const wjs::DeviceMotion& sample : make_trace(3.0, 100.0)) {
+    sns::MotionProcessor processor;
+    for (const sns::DeviceMotion& sample : make_trace(3.0, 100.0)) {
         CHECK_FALSE(processor.push(sample).shake);
     }
 }
 
 TEST_CASE("a vigorous shake is reported once, on the sample that completes it",
           "[motion][processor]") {
-    wjs::MotionProcessor processor;
+    sns::MotionProcessor processor;
     const auto trace = make_trace(3.0, 100.0, {{0.5, 2.0, 2.5, 4.0}});
 
     int reports = 0;
@@ -139,9 +139,9 @@ TEST_CASE("a vigorous shake is reported once, on the sample that completes it",
 }
 
 TEST_CASE("two shakes are two events, and a reset forgets the first", "[motion][processor]") {
-    wjs::MotionProcessor processor;
+    sns::MotionProcessor processor;
     int reports = 0;
-    for (const wjs::DeviceMotion& sample :
+    for (const sns::DeviceMotion& sample :
          make_trace(4.0, 100.0, {{0.4, 1.4, 2.5, 4.0}, {2.0, 3.0, 2.5, 4.0}})) {
         if (processor.push(sample).shake) {
             ++reports;
@@ -150,9 +150,9 @@ TEST_CASE("two shakes are two events, and a reset forgets the first", "[motion][
     CHECK(reports == 2);
 
     processor.reset();
-    CHECK_FALSE(processor.push(wjs::DeviceMotion{}).shake);
+    CHECK_FALSE(processor.push(sns::DeviceMotion{}).shake);
     reports = 0;
-    for (const wjs::DeviceMotion& sample : make_trace(2.0, 100.0, {{0.5, 1.5, 2.5, 4.0}})) {
+    for (const sns::DeviceMotion& sample : make_trace(2.0, 100.0, {{0.5, 1.5, 2.5, 4.0}})) {
         if (processor.push(sample).shake) {
             ++reports;
         }

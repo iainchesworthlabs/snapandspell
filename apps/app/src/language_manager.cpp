@@ -8,31 +8,31 @@
 #include <algorithm>
 #include <string_view>
 
-#include "wjs/profiling.hpp"
-#include "wjs/settings.hpp"
+#include "sns/profiling.hpp"
+#include "sns/settings.hpp"
 
-// The catalogues are a resource of the wjs_i18n library. A resource is linked
+// The catalogues are a resource of the sns_i18n library. A resource is linked
 // out of a static library unless something refers to it, and this is that
 // reference. It is made at global scope because Q_INIT_RESOURCE declares its
-// extern function where it is expanded: inside wjs::app it would declare
-// wjs::app::qInitResources_..., while the generated object defines the global
+// extern function where it is expanded: inside sns::app it would declare
+// sns::app::qInitResources_..., while the generated object defines the global
 // one, and clang-cl + lld-link reject that link.
 static void init_translations_resource() {
-    Q_INIT_RESOURCE(wjs_translations);
+    Q_INIT_RESOURCE(sns_translations);
 }
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 // A code from the library's list as Qt text, so the eight are named once
-// (wjs/settings.hpp) and the store and the catalogue cannot drift apart.
+// (sns/settings.hpp) and the store and the catalogue cannot drift apart.
 [[nodiscard]] QString code_text(std::string_view code) {
     return QString::fromLatin1(code.data(), static_cast<qsizetype>(code.size()));
 }
 
 // The code in the library's list that `code` names, whatever its case, or empty.
 [[nodiscard]] QString canonical(const QString& code) {
-    return code_text(wjs::canonical_language(code.toUtf8().toStdString()));
+    return code_text(sns::canonical_language(code.toUtf8().toStdString()));
 }
 
 }  // namespace
@@ -52,7 +52,7 @@ LanguageManager::~LanguageManager() {
 
 QStringList LanguageManager::languages() {
     QStringList codes;
-    for (const std::string_view code : wjs::languages) {
+    for (const std::string_view code : sns::languages) {
         codes.append(code_text(code));
     }
     return codes;
@@ -78,7 +78,7 @@ QString LanguageManager::language_from_locale(const QString& locale_name) {
         return exact;
     }
     const QString language = name.section(QLatin1Char('_'), 0, 0).toLower();
-    for (const std::string_view known : wjs::languages) {
+    for (const std::string_view known : sns::languages) {
         const QString code = code_text(known);
         if (code.section(QLatin1Char('_'), 0, 0) == language) {
             return code;
@@ -133,7 +133,7 @@ void LanguageManager::install(const QString& code) {
     // The catalogue's read and install, on the GUI thread: it is a resource, so
     // it is quick, and it is timed so a trace shows when a language change pays
     // it (once per change, not per frame).
-    auto zone = wjs::profiling::zone<"data.load_catalogue">();
+    auto zone = sns::profiling::zone<"data.load_catalogue">();
     if (translator_) {
         QCoreApplication::removeTranslator(translator_.get());
         translator_.reset();
@@ -141,7 +141,7 @@ void LanguageManager::install(const QString& code) {
     auto translator = std::make_unique<QTranslator>();
     // A catalogue that is not there is not fatal: the source strings are
     // English and the catalogue check and the language smoke would say so.
-    if (!translator->load(QStringLiteral(":/i18n/wjs_%1.qm").arg(code))) {
+    if (!translator->load(QStringLiteral(":/i18n/sns_%1.qm").arg(code))) {
         qWarning("LanguageManager: no catalogue for '%s'; the source wording is used.",
                  qPrintable(code));
     }
@@ -151,4 +151,4 @@ void LanguageManager::install(const QString& code) {
     translator_ = std::move(translator);
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

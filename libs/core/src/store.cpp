@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/store.hpp"
+#include "sns/store.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -14,17 +14,17 @@
 #include <utility>
 #include <vector>
 
-#include "wjs/board.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/board.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 namespace {
 
 // ---- the files ------------------------------------------------------------
 
 // A name beside `file` that nothing has, made from `file`'s name and a suffix:
-// store.wjs.unreadable, then store.wjs.unreadable.1, and so on. Empty if the
+// store.sns.unreadable, then store.sns.unreadable.1, and so on. Empty if the
 // first hundred are taken, in which case the caller leaves the file where it is.
 [[nodiscard]] std::filesystem::path unused_sibling(const std::filesystem::path& file,
                                                    const std::string& suffix) {
@@ -577,4 +577,4 @@ void Store::reset_stars_and_stickers() {
     persist();
 }
 
-}  // namespace wjs
+}  // namespace sns

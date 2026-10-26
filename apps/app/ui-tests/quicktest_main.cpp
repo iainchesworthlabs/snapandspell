@@ -56,12 +56,12 @@ int main(int argc, char* argv[]) {
 
     QuickFixture fixture;
     const int result =
-        quick_test_main_with_setup(argc, argv, "wjs_quick_tests", QUICK_TEST_SOURCE_DIR, &fixture);
+        quick_test_main_with_setup(argc, argv, "sns_quick_tests", QUICK_TEST_SOURCE_DIR, &fixture);
 
     qInstallMessageHandler(g_previous);
     if (g_warnings != 0) {
         std::fprintf(stderr,
-                     "wjs_quick_tests: %d Qt warning(s) during the run; a warning fails the "
+                     "sns_quick_tests: %d Qt warning(s) during the run; a warning fails the "
                      "suite (docs/testing.md, \"The interactive QML\").\n",
                      g_warnings);
         return 1;

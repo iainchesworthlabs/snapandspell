@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // One of the parent area's two resets (docs/design/dashboard.md, "Reset"): a
 // button that names what it clears, and, once pressed, says what it will do and

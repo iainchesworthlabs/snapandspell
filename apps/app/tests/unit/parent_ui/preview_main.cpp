@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // The parent area's screens in a stub shell: to look at them, and to check them.
 //
-//   wjs_parent_preview                          a window, with made-up play
-//   wjs_parent_preview --check [--out <dir>]    no window shown: walks the gate,
+//   sns_parent_preview                          a window, with made-up play
+//   sns_parent_preview --check [--out <dir>]    no window shown: walks the gate,
 //                                               the dashboard, the settings and
 //                                               the about page, checks what they
 //                                               say and that QML complained of
@@ -36,8 +36,8 @@
 #include "demo_data.hpp"
 #include "language_manager.hpp"
 #include "parent_controller.hpp"
+#include "sns/calendar.hpp"
 #include "test_fonts.hpp"
-#include "wjs/calendar.hpp"
 
 namespace {
 
@@ -138,22 +138,22 @@ void check_no_forbidden_words(const QStringList& texts, const QString& screen) {
 }
 
 int run_check(const QString& out) {
-    const wjs::Day today = wjs::day_from_civil(2026, 10, 16);
+    const sns::Day today = sns::day_from_civil(2026, 10, 16);
 
-    wjs::PhaseSet phases = wjs::app::demo::phases();
-    wjs::Store store = wjs::app::demo::busy_store(today);
+    sns::PhaseSet phases = sns::app::demo::phases();
+    sns::Store store = sns::app::demo::busy_store(today);
 
-    wjs::app::ParentController controller;
+    sns::app::ParentController controller;
     controller.useCalendar([] { return today; }, 1);
     controller.useClock([] { return g_now; });
     controller.useStore(&store);
     controller.usePhases(&phases);
 
-    wjs::app::LanguageManager language;
+    sns::app::LanguageManager language;
     language.apply(QStringLiteral("en"));
 
     QQmlApplicationEngine engine;
-    QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+    QObject::connect(&language, &sns::app::LanguageManager::languageChanged, &engine,
                      &QQmlEngine::retranslate);
     engine.setInitialProperties({
         {QStringLiteral("controller"), QVariant::fromValue(&controller)},
@@ -267,14 +267,14 @@ int run_check(const QString& out) {
 
     // A setting changes what is shown, and what is kept.
     check(controller.setSetting("help", "start"), "the help can be its middle level");
-    check(store.settings().help == wjs::HelpLevel::start, "and the store keeps it");
+    check(store.settings().help == sns::HelpLevel::start, "and the store keeps it");
     pump();
     check(controller.toggleFocusSound("s"), "a sound of the phase can be ticked");
     pump();
     // The board's clock: a count-down of the length the parent chose.
     check(controller.setSetting("timer", "down"), "the board's clock can count down");
     check(controller.setSetting("timerLength", 10), "and its length can be chosen");
-    check(store.settings().solo_clock == wjs::SoloClock::count_down &&
+    check(store.settings().solo_clock == sns::SoloClock::count_down &&
               store.settings().solo_clock_minutes == 10,
           "and the store keeps both");
     check(!controller.setSetting("timer", "sideways"), "a clock that is not offered is refused");
@@ -310,7 +310,7 @@ int run_check(const QString& out) {
     check(any_contains(texts, "GNU General Public License"), "the licences page has the licence");
     // The full third-party notices: embedded, and shown in the page's own
     // scroll box. The resource is the one a package's application carries
-    // (cmake/Notices.cmake, wjs_add_notices_resource).
+    // (cmake/Notices.cmake, sns_add_notices_resource).
     check(QFile::exists(QStringLiteral(":/notices/NOTICES.txt")),
           "the third-party notices are embedded as :/notices/NOTICES.txt");
     check(any_contains(texts, "GPL-3.0 OR LATER"),
@@ -341,15 +341,15 @@ int run_check(const QString& out) {
 
 // A store with nothing, for the empty screens.
 int run_empty_check(const QString& out) {
-    wjs::app::ParentController controller;
-    wjs::Store store = wjs::app::demo::empty_store();
+    sns::app::ParentController controller;
+    sns::Store store = sns::app::demo::empty_store();
     controller.useStore(&store);
 
-    wjs::app::LanguageManager language;
+    sns::app::LanguageManager language;
     language.apply(QStringLiteral("en"));
 
     QQmlApplicationEngine engine;
-    QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+    QObject::connect(&language, &sns::app::LanguageManager::languageChanged, &engine,
                      &QQmlEngine::retranslate);
     engine.setInitialProperties({
         {QStringLiteral("controller"), QVariant::fromValue(&controller)},
@@ -398,14 +398,14 @@ int run_empty_check(const QString& out) {
 // the translated one, and for the seven it is not the English), and Hebrew and
 // Yiddish turn the layout around while the other six leave it as it was.
 int run_language_check(const QString& out) {
-    const wjs::Day today = wjs::day_from_civil(2026, 10, 16);
+    const sns::Day today = sns::day_from_civil(2026, 10, 16);
     QSet<QString> english;
 
-    for (const QString& code : wjs::app::LanguageManager::languages()) {
+    for (const QString& code : sns::app::LanguageManager::languages()) {
         const int warnings_before = g_warnings;
         const int failures_before = g_failures;
 
-        wjs::app::LanguageManager language;
+        sns::app::LanguageManager language;
         language.apply(code);
         const bool right_to_left = language.rightToLeft();
         check(language.code() == code, "the language in force is " + code);
@@ -415,16 +415,16 @@ int run_language_check(const QString& out) {
                   (right_to_left ? Qt::RightToLeft : Qt::LeftToRight),
               "the application's layout direction follows the language: " + code);
 
-        wjs::PhaseSet phases = wjs::app::demo::phases();
-        wjs::Store store = wjs::app::demo::busy_store(today);
-        wjs::app::ParentController controller;
+        sns::PhaseSet phases = sns::app::demo::phases();
+        sns::Store store = sns::app::demo::busy_store(today);
+        sns::app::ParentController controller;
         controller.useCalendar([] { return today; }, 1);
         controller.useClock([] { return g_now; });
         controller.useStore(&store);
         controller.usePhases(&phases);
 
         QQmlApplicationEngine engine;
-        QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+        QObject::connect(&language, &sns::app::LanguageManager::languageChanged, &engine,
                          &QQmlEngine::retranslate);
         engine.setInitialProperties({
             {QStringLiteral("controller"), QVariant::fromValue(&controller)},
@@ -551,7 +551,7 @@ int main(int argc, char* argv[]) {
     }
     QGuiApplication application(argc, argv);
     // The faces the screens name, as the application registers them before its engine loads.
-    static_cast<void>(wjs::app::test::load_house_fonts());
+    static_cast<void>(sns::app::test::load_house_fonts());
 
     if (is_check) {
         const int first = run_check(out);
@@ -567,18 +567,18 @@ int main(int argc, char* argv[]) {
     }
 
     // Interactive: made-up play, as of today, in a stub shell.
-    wjs::PhaseSet phases = wjs::app::demo::phases();
-    wjs::Store store = wjs::app::demo::busy_store(
-        static_cast<wjs::Day>(QDate::currentDate().toJulianDay() - 2440588));
-    wjs::app::ParentController controller;
+    sns::PhaseSet phases = sns::app::demo::phases();
+    sns::Store store = sns::app::demo::busy_store(
+        static_cast<sns::Day>(QDate::currentDate().toJulianDay() - 2440588));
+    sns::app::ParentController controller;
     controller.useStore(&store);
     controller.usePhases(&phases);
 
-    wjs::app::LanguageManager language;
+    sns::app::LanguageManager language;
     language.apply(QString());
 
     QQmlApplicationEngine engine;
-    QObject::connect(&language, &wjs::app::LanguageManager::languageChanged, &engine,
+    QObject::connect(&language, &sns::app::LanguageManager::languageChanged, &engine,
                      &QQmlEngine::retranslate);
     engine.setInitialProperties({
         {QStringLiteral("controller"), QVariant::fromValue(&controller)},

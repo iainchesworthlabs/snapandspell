@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 import "SizeMatrix.js" as SizeMatrix
 
 // The size matrix as a test case. A suite for a screen or a kit component is

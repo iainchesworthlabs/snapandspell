@@ -4,7 +4,7 @@
 #include <QImage>
 #include <optional>
 
-#include "wjs/scan/frame.hpp"
+#include "sns/scan/frame.hpp"
 
 // The one conversion from a camera's picture to the scanner's frame, away from
 // the backend so it can be tested without a camera. The backend has already
@@ -17,10 +17,10 @@
 // the returned frame is memory, and the caller drops it after the read
 // (docs/design/application.md, "Privacy, built in and checked").
 
-namespace wjs::app {
+namespace sns::app {
 
 // A copy of the image as an RGB24 frame, or nothing for a null or empty image.
 // The QImage's own row padding is not part of the frame.
-[[nodiscard]] std::optional<wjs::scan::OwnedFrame> frame_from_image(const QImage& image);
+[[nodiscard]] std::optional<sns::scan::OwnedFrame> frame_from_image(const QImage& image);
 
-}  // namespace wjs::app
+}  // namespace sns::app

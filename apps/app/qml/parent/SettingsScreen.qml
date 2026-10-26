@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // What a parent sets (docs/design/dashboard.md, "Settings"). Every value is one
 // the table allows; the controller refuses any other, and the store holds the

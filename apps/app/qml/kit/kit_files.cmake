@@ -6,12 +6,12 @@
 # a new component is added once.
 #
 #   include("${PROJECT_SOURCE_DIR}/apps/app/qml/kit/kit_files.cmake")
-#   foreach(_file IN LISTS WJS_KIT_QML_FILES) ... qml/kit/${_file}
+#   foreach(_file IN LISTS SNS_KIT_QML_FILES) ... qml/kit/${_file}
 #
 # The singletons are the tokens (Theme), the sound and touch seam (Feedback) and
 # the navigation state (Navigation).
 
-set(WJS_KIT_QML_FILES
+set(SNS_KIT_QML_FILES
     ActionBar.qml
     AppBar.qml
     AppButton.qml
@@ -39,7 +39,7 @@ set(WJS_KIT_QML_FILES
     TileMark.qml
     Wordmark.qml)
 
-set(WJS_KIT_QML_SINGLETONS
+set(SNS_KIT_QML_SINGLETONS
     Feedback.qml
     Navigation.qml
     Theme.qml)

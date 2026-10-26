@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <catch2/catch_test_macros.hpp>
 
-#include "wjs/platform/haptics.hpp"
+#include "sns/platform/haptics.hpp"
 
 // The haptics interface, as the three desktops answer it
 // (libs/platforms/detail/haptics_none.cpp): every pattern is a call the platform
@@ -13,8 +13,8 @@
 // being safe where there is nothing to buzz.
 
 TEST_CASE("every haptic pattern is answered, and a desktop has no engine", "[platform][haptics]") {
-    using wjs::platform::HapticPattern;
-    using wjs::platform::vibrate;
+    using sns::platform::HapticPattern;
+    using sns::platform::vibrate;
 
     // Twice each, because a cue may arrive at any time and a second call must
     // be as harmless as the first.

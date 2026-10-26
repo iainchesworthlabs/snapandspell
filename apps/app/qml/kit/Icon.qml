@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 import "PixelArt.js" as PixelArt
 
 // Pixel icons on a 12 x 12 grid (PixelArt.js), one colour, taking a colour token. A picture, never

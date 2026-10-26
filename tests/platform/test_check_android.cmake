@@ -22,12 +22,12 @@ string(REPLACE "\r\n" "\n" _manifest "${_manifest}")
 
 set(_failures "")
 set(_cases 0)
-set(_p "${WJS_ANDROID_PERMISSION_PREFIX}")
+set(_p "${SNS_ANDROID_PERMISSION_PREFIX}")
 
-# wjs_case(<label> <expected> <old> <new>): the real manifest with <old> replaced by
+# sns_case(<label> <expected> <old> <new>): the real manifest with <old> replaced by
 # <new> (the first occurrence; <old> must be there), checked. <expected> is a phrase
 # the findings must contain, or CLEAN when there must be none.
-function(wjs_case label expected old new)
+function(sns_case label expected old new)
     string(FIND "${_manifest}" "${old}" _at)
     if(_at EQUAL -1)
         set(_failures "${_failures}\n  ${label}: the case text '${old}' is not in the real manifest" PARENT_SCOPE)
@@ -36,7 +36,7 @@ function(wjs_case label expected old new)
     string(REPLACE "${old}" "${new}" _changed "${_manifest}")
     file(MAKE_DIRECTORY "${WORK_DIR}")
     file(WRITE "${WORK_DIR}/AndroidManifest.xml" "${_changed}")
-    wjs_check_android_manifest("${WORK_DIR}/AndroidManifest.xml" _found)
+    sns_check_android_manifest("${WORK_DIR}/AndroidManifest.xml" _found)
 
     math(EXPR _next "${_cases} + 1")
     set(_cases ${_next} PARENT_SCOPE)
@@ -55,33 +55,33 @@ endfunction()
 
 set(_camera "<uses-permission android:name=\"${_p}CAMERA\" />")
 
-wjs_case("the real manifest" CLEAN "<manifest" "<manifest")
-wjs_case("a network permission" "INTERNET" "${_camera}"
+sns_case("the real manifest" CLEAN "<manifest" "<manifest")
+sns_case("a network permission" "INTERNET" "${_camera}"
     "${_camera}\n    <uses-permission android:name=\"${_p}INTERNET\" />")
-wjs_case("a network state permission" "ACCESS_NETWORK_STATE" "${_camera}"
+sns_case("a network state permission" "ACCESS_NETWORK_STATE" "${_camera}"
     "${_camera}\n    <uses-permission android:name=\"${_p}ACCESS_NETWORK_STATE\" />")
-wjs_case("a microphone permission" "${WJS_ANDROID_MICROPHONE_NAME}" "${_camera}"
-    "${_camera}\n    <uses-permission android:name=\"${_p}${WJS_ANDROID_MICROPHONE_NAME}\" />")
-wjs_case("a storage permission" "WRITE_EXTERNAL_STORAGE" "${_camera}"
+sns_case("a microphone permission" "${SNS_ANDROID_MICROPHONE_NAME}" "${_camera}"
+    "${_camera}\n    <uses-permission android:name=\"${_p}${SNS_ANDROID_MICROPHONE_NAME}\" />")
+sns_case("a storage permission" "WRITE_EXTERNAL_STORAGE" "${_camera}"
     "${_camera}\n    <uses-permission android:name=\"${_p}WRITE_EXTERNAL_STORAGE\" />")
-wjs_case("a vibration permission (not asked for until haptics are built)" "VIBRATE" "${_camera}"
+sns_case("a vibration permission (not asked for until haptics are built)" "VIBRATE" "${_camera}"
     "${_camera}\n    <uses-permission android:name=\"${_p}VIBRATE\" />")
-wjs_case("a permission removed by an edit rule" "INTERNET" "${_camera}"
+sns_case("a permission removed by an edit rule" "INTERNET" "${_camera}"
     "${_camera}\n    <uses-permission android:name=\"${_p}INTERNET\" xmlns:tools=\"http://schemas.android.com/tools\" tools:node=\"remove\" />")
-wjs_case("no camera permission" "does not ask for the camera" "${_camera}" "")
-wjs_case("Qt's permissions placeholder" "placeholder" "<!-- %%INSERT_FEATURES -->"
+sns_case("no camera permission" "does not ask for the camera" "${_camera}" "")
+sns_case("Qt's permissions placeholder" "placeholder" "<!-- %%INSERT_FEATURES -->"
     "<!-- %%INSERT_PERMISSIONS -->\n    <!-- %%INSERT_FEATURES -->")
-wjs_case("a camera that is required" "android.hardware.camera is not declared as an optional"
+sns_case("a camera that is required" "android.hardware.camera is not declared as an optional"
     "<uses-feature android:name=\"android.hardware.camera\" android:required=\"false\" />"
     "<uses-feature android:name=\"android.hardware.camera\" android:required=\"true\" />")
-wjs_case("an accelerometer that is required" "accelerometer is not declared as an optional"
+sns_case("an accelerometer that is required" "accelerometer is not declared as an optional"
     "android:name=\"android.hardware.sensor.accelerometer\" android:required=\"false\""
     "android:name=\"android.hardware.sensor.accelerometer\" android:required=\"true\"")
-wjs_case("backup on" "allowBackup" "android:allowBackup=\"false\"" "android:allowBackup=\"true\"")
-wjs_case("a second exported component" "components are exported" "android:exported=\"false\""
+sns_case("backup on" "allowBackup" "android:allowBackup=\"false\"" "android:allowBackup=\"true\"")
+sns_case("a second exported component" "components are exported" "android:exported=\"false\""
     "android:exported=\"true\"")
 # What prose may say: a permission named in a comment is not asked for.
-wjs_case("a permission named in a comment" CLEAN "<uses-feature android:name=\"android.hardware.touchscreen\""
+sns_case("a permission named in a comment" CLEAN "<uses-feature android:name=\"android.hardware.touchscreen\""
     "<!-- ${_p}INTERNET is not asked for -->\n    <uses-feature android:name=\"android.hardware.touchscreen\"")
 
 if(_failures)

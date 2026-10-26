@@ -6,7 +6,7 @@
 #include <random>
 #include <vector>
 
-#include "wjs/shake.hpp"
+#include "sns/shake.hpp"
 
 // The traces below are synthetic: a device lying flat (gravity along z) with a
 // little noise, and sinusoidal pushes along x for a shake. They are not
@@ -36,7 +36,7 @@ struct TraceSpec {
     std::vector<Burst> bursts;
 };
 
-std::vector<wjs::AccelerationSample> make_trace(const TraceSpec& spec) {
+std::vector<sns::AccelerationSample> make_trace(const TraceSpec& spec) {
     // Deterministic noise: mt19937 taken modulo, as the library does.
     std::mt19937 rng(12345);
     const auto noise = [&](double size) {
@@ -44,7 +44,7 @@ std::vector<wjs::AccelerationSample> make_trace(const TraceSpec& spec) {
         return unit * size;
     };
 
-    std::vector<wjs::AccelerationSample> samples;
+    std::vector<sns::AccelerationSample> samples;
     const auto count = static_cast<std::size_t>(spec.duration * spec.rate);
     for (std::size_t i = 0; i < count; ++i) {
         const double nominal = static_cast<double>(i) / spec.rate;
@@ -57,7 +57,7 @@ std::vector<wjs::AccelerationSample> make_trace(const TraceSpec& spec) {
                     burst.amplitude * std::sin(2.0 * pi * burst.frequency * (nominal - burst.from));
             }
         }
-        wjs::AccelerationSample sample;
+        sns::AccelerationSample sample;
         sample.t = t;
         sample.ax = (push + noise(spec.noise)) * spec.unit;
         sample.ay = noise(spec.noise) * spec.unit;
@@ -67,8 +67,8 @@ std::vector<wjs::AccelerationSample> make_trace(const TraceSpec& spec) {
     return samples;
 }
 
-wjs::ShakeOptions options_in(double unit) {
-    wjs::ShakeOptions options;
+sns::ShakeOptions options_in(double unit) {
+    sns::ShakeOptions options;
     options.gravity = unit;
     return options;
 }
@@ -79,21 +79,21 @@ TEST_CASE("a device lying still is not shaken", "[shake]") {
     TraceSpec spec;
     spec.duration = 5.0;
 
-    CHECK(wjs::detect_shakes(make_trace(spec)).empty());
+    CHECK(sns::detect_shakes(make_trace(spec)).empty());
 }
 
 TEST_CASE("no samples and one sample hold no shake", "[shake]") {
-    CHECK(wjs::detect_shakes({}).empty());
+    CHECK(sns::detect_shakes({}).empty());
 
-    const std::vector<wjs::AccelerationSample> one = {{0.0, 0.0, 0.0, 9.8}};
-    CHECK(wjs::detect_shakes(one).empty());
+    const std::vector<sns::AccelerationSample> one = {{0.0, 0.0, 0.0, 9.8}};
+    CHECK(sns::detect_shakes(one).empty());
 }
 
 TEST_CASE("a vigorous shake is one shake, found where it is", "[shake]") {
     TraceSpec spec;
     spec.bursts = {{1.0, 2.5, 2.5, 4.0}};
 
-    const auto shakes = wjs::detect_shakes(make_trace(spec));
+    const auto shakes = sns::detect_shakes(make_trace(spec));
 
     REQUIRE(shakes.size() == 1);
     CHECK(shakes[0].start >= 1.0);
@@ -112,7 +112,7 @@ TEST_CASE("the peak of a shake follows how hard it was", "[shake]") {
     const auto peak_of = [](double amplitude) {
         TraceSpec spec;
         spec.bursts = {{1.0, 2.5, amplitude, 4.0}};
-        const auto shakes = wjs::detect_shakes(make_trace(spec));
+        const auto shakes = sns::detect_shakes(make_trace(spec));
         REQUIRE(shakes.size() == 1);
         return shakes[0].peak;
     };
@@ -130,7 +130,7 @@ TEST_CASE("a shake the trace ends in the middle of is ongoing", "[shake]") {
     spec.duration = 2.0;
     spec.bursts = {{1.0, 3.0, 2.5, 4.0}};
 
-    const auto shakes = wjs::detect_shakes(make_trace(spec));
+    const auto shakes = sns::detect_shakes(make_trace(spec));
 
     REQUIRE(shakes.size() == 1);
     CHECK(shakes[0].ongoing);
@@ -142,17 +142,17 @@ TEST_CASE("a shake is reported only once it has enough jolts", "[shake]") {
     // Four jolts take two cycles of a 4 hertz shake, about a quarter of a second.
     spec.bursts = {{1.0, 1.1, 2.5, 4.0}};
 
-    CHECK(wjs::detect_shakes(make_trace(spec)).empty());
+    CHECK(sns::detect_shakes(make_trace(spec)).empty());
 
     spec.bursts = {{1.0, 1.6, 2.5, 4.0}};
-    CHECK(wjs::detect_shakes(make_trace(spec)).size() == 1);
+    CHECK(sns::detect_shakes(make_trace(spec)).size() == 1);
 }
 
 TEST_CASE("a gentle movement below the threshold is not a shake", "[shake]") {
     TraceSpec spec;
     spec.bursts = {{0.5, 2.5, 0.7, 3.0}};
 
-    CHECK(wjs::detect_shakes(make_trace(spec)).empty());
+    CHECK(sns::detect_shakes(make_trace(spec)).empty());
 }
 
 TEST_CASE("walking is not a shake", "[shake]") {
@@ -160,7 +160,7 @@ TEST_CASE("walking is not a shake", "[shake]") {
     spec.duration = 6.0;
     spec.bursts = {{0.0, 6.0, 0.5, 2.0}};
 
-    CHECK(wjs::detect_shakes(make_trace(spec)).empty());
+    CHECK(sns::detect_shakes(make_trace(spec)).empty());
 }
 
 TEST_CASE("one knock is not a shake", "[shake]") {
@@ -169,7 +169,7 @@ TEST_CASE("one knock is not a shake", "[shake]") {
     samples[60].ax += 4.0 * standard_gravity;
     samples[61].ax += 3.0 * standard_gravity;
 
-    CHECK(wjs::detect_shakes(samples).empty());
+    CHECK(sns::detect_shakes(samples).empty());
 }
 
 TEST_CASE("turning the device over is not a shake", "[shake]") {
@@ -179,7 +179,7 @@ TEST_CASE("turning the device over is not a shake", "[shake]") {
         samples[i].az = -samples[i].az;
     }
 
-    CHECK(wjs::detect_shakes(samples).empty());
+    CHECK(sns::detect_shakes(samples).empty());
 }
 
 TEST_CASE("tilting the device slowly is not a shake", "[shake]") {
@@ -193,7 +193,7 @@ TEST_CASE("tilting the device slowly is not a shake", "[shake]") {
         sample.az = along * std::cos(angle);
     }
 
-    CHECK(wjs::detect_shakes(samples).empty());
+    CHECK(sns::detect_shakes(samples).empty());
 }
 
 TEST_CASE("two shakes with a still moment between them are two", "[shake]") {
@@ -201,7 +201,7 @@ TEST_CASE("two shakes with a still moment between them are two", "[shake]") {
     spec.duration = 5.0;
     spec.bursts = {{0.5, 1.5, 2.5, 4.0}, {3.0, 4.0, 2.5, 4.0}};
 
-    const auto shakes = wjs::detect_shakes(make_trace(spec));
+    const auto shakes = sns::detect_shakes(make_trace(spec));
 
     REQUIRE(shakes.size() == 2);
     CHECK(shakes[0].end < shakes[1].start);
@@ -215,12 +215,12 @@ TEST_CASE("a short pause inside a shake does not end it and a long one does", "[
 
     SECTION("a pause of a tenth of a second between the pushes") {
         spec.bursts = {{0.5, 1.5, 2.5, 4.0}, {1.6, 2.6, 2.5, 4.0}};
-        CHECK(wjs::detect_shakes(make_trace(spec)).size() == 1);
+        CHECK(sns::detect_shakes(make_trace(spec)).size() == 1);
     }
 
     SECTION("a pause of most of a second") {
         spec.bursts = {{0.5, 1.5, 2.5, 4.0}, {2.3, 3.3, 2.5, 4.0}};
-        CHECK(wjs::detect_shakes(make_trace(spec)).size() == 2);
+        CHECK(sns::detect_shakes(make_trace(spec)).size() == 2);
     }
 }
 
@@ -233,7 +233,7 @@ TEST_CASE("the sample rate and a little timing jitter make no difference", "[sha
             spec.bursts = {{1.0, 2.5, 2.5, 4.0}};
 
             INFO("rate " << rate << " jitter " << jitter);
-            CHECK(wjs::detect_shakes(make_trace(spec)).size() == 1);
+            CHECK(sns::detect_shakes(make_trace(spec)).size() == 1);
         }
     }
 }
@@ -245,11 +245,11 @@ TEST_CASE("the unit of the samples is the one the options name", "[shake]") {
     const auto samples = make_trace(spec);
 
     SECTION("told the samples are in g") {
-        CHECK(wjs::detect_shakes(samples, options_in(1.0)).size() == 1);
+        CHECK(sns::detect_shakes(samples, options_in(1.0)).size() == 1);
     }
 
     SECTION("read as metres per second squared the same push is too small") {
-        CHECK(wjs::detect_shakes(samples, options_in(standard_gravity)).empty());
+        CHECK(sns::detect_shakes(samples, options_in(standard_gravity)).empty());
     }
 }
 
@@ -259,10 +259,10 @@ TEST_CASE("a threshold can be raised to ask for a harder shake", "[shake]") {
     const auto samples = make_trace(spec);
 
     auto options = options_in(standard_gravity);
-    CHECK(wjs::detect_shakes(samples, options).size() == 1);
+    CHECK(sns::detect_shakes(samples, options).size() == 1);
 
     options.jolt_threshold = 2.5;
-    CHECK(wjs::detect_shakes(samples, options).empty());
+    CHECK(sns::detect_shakes(samples, options).empty());
 }
 
 TEST_CASE("samples that are out of order or not numbers are skipped", "[shake]") {
@@ -277,7 +277,7 @@ TEST_CASE("samples that are out of order or not numbers are skipped", "[shake]")
     samples[120].ax = std::numeric_limits<double>::quiet_NaN();
     samples[130].t = std::numeric_limits<double>::infinity();
 
-    const auto shakes = wjs::detect_shakes(samples);
+    const auto shakes = sns::detect_shakes(samples);
 
     REQUIRE(shakes.size() == 1);
     CHECK(shakes[0].jolts >= 8);
@@ -288,8 +288,8 @@ TEST_CASE("the same trace gives the same shakes", "[shake]") {
     spec.bursts = {{1.0, 2.5, 2.5, 4.0}};
     const auto samples = make_trace(spec);
 
-    const auto first = wjs::detect_shakes(samples);
-    const auto second = wjs::detect_shakes(samples);
+    const auto first = sns::detect_shakes(samples);
+    const auto second = sns::detect_shakes(samples);
 
     REQUIRE(first.size() == second.size());
     for (std::size_t i = 0; i < first.size(); ++i) {

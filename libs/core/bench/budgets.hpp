@@ -8,7 +8,7 @@
 // above what the corpus measures today, so that a change that really does cost
 // more is a failure with a name on it, and a change that costs a little more
 // is a conscious edit of a number in this file, not a surprise.
-// `wjs_perf_tests "[.perf-report]"` prints what each metric measures now beside
+// `sns_perf_tests "[.perf-report]"` prints what each metric measures now beside
 // its budget, and how much room is left.
 //
 // A work budget is exact on every machine and compiler, so it may be tight. A
@@ -24,7 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace wjs::perf::budget {
+namespace sns::perf::budget {
 
 // ---------------------------------------------------------------------------
 // The dictionary: ENABLE, data/dictionaries/en.txt
@@ -36,7 +36,7 @@ inline constexpr std::uint64_t kDictionaryWords = 172'823;
 inline constexpr std::uint64_t kDictionaryNodes = 387'889;
 
 // ---------------------------------------------------------------------------
-// The solver, counted in visits (wjs/solver_work.hpp)
+// The solver, counted in visits (sns/solver_work.hpp)
 // ---------------------------------------------------------------------------
 
 // The most visits any one of the kBoardsPerSize random boards of each size
@@ -109,7 +109,7 @@ inline constexpr std::uint64_t kDiceDigest = 8038812626269854397ULL;
 inline constexpr std::uint64_t kPhonicsWords = 249;
 
 // What seeding spent over kSeedsPerSize seeds of each size on that phase, with
-// the options of wjs::phonics_board_options (guided fill, targets of three
+// the options of sns::phonics_board_options (guided fill, targets of three
 // letters at most, every letter but the dead one as filler), the range 3 to 5
 // and 20 tries: each a quarter above what it measured, by size, kSizes order.
 //
@@ -342,7 +342,7 @@ inline constexpr int kDealRuns = 9;
 // (a board holds tens to hundreds, and the store keeps their count); the PHONICS
 // board's lists its own, up to 24, which is most of what a kept board costs.
 struct StoreBudget {
-    std::uint64_t boards;         // kept boards (exact: wjs::max_stored_boards)
+    std::uint64_t boards;         // kept boards (exact: sns::max_stored_boards)
     std::uint64_t finds;          // finds kept over them (exact)
     std::uint64_t vault_words;    // words ever found (exact)
     std::uint64_t bytes;          // the file after the twenty boards: one save, whole
@@ -458,7 +458,7 @@ inline constexpr std::uint64_t kScenePlay6x6Ms = 2'200;  // computed 2,061
 // A report with no refresh rate (0, from a screen that does not say) is held to
 // 60 Hz. Measured by apps/app/tests/unit/frame_timing_test.cpp, which runs the window: a
 // debug, a Tracy or a coverage build cannot take a clock reading and skips it, and
-// it is opt-in (WJS_PERF_FRAME_TIMING=1), so a shared runner never runs it.
+// it is opt-in (SNS_PERF_FRAME_TIMING=1), so a shared runner never runs it.
 inline constexpr double kFrameFallbackHz = 60.0;
 inline constexpr double kFrameP50RoomMs = 0.3;
 inline constexpr double kFrameP95RoomMs = 2.0;
@@ -478,7 +478,7 @@ inline constexpr double kFrameMaxMs = 33.0;
 }
 
 // ---------------------------------------------------------------------------
-// The scanner, counted (wjs/scan/work.hpp)
+// The scanner, counted (sns/scan/work.hpp)
 // ---------------------------------------------------------------------------
 
 // Reading four fixed synthetic frames (a 4x4, a 5x5, a 6x6, a 4x4 under glare,
@@ -531,4 +531,4 @@ inline constexpr TimeBudget kScanRead6Time = {4.0};
 inline constexpr TimeBudget kScanReadGlareTime = {4.0};
 inline constexpr int kScanRuns = 7;
 
-}  // namespace wjs::perf::budget
+}  // namespace sns::perf::budget

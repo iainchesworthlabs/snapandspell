@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
-import WordJewelsSolver
+import SnapAndSpell
 
 // The replica of the real board in `assist.playing` (docs/design/game.md, "The
 // MVP: one capture"): the tiles as they were confirmed, the path being traced,

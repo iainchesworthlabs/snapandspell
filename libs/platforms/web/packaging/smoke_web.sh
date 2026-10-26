@@ -7,7 +7,7 @@
 # The bundle is served over HTTP from a throwaway local server (a file:// page cannot fetch a
 # .wasm), Chrome loads index.html with software WebGL and a virtual clock that runs a minute of
 # page time, and the page's DOM is read back. The game came up if the page's loading panel is
-# hidden (wjs-boot.js hides it when Qt reports the program loaded) and the page is not marked
+# hidden (sns-boot.js hides it when Qt reports the program loaded) and the page is not marked
 # `failed` (what it does when the program cannot start or exits). It does not read a picture: a
 # headless Chrome's screenshot is taken before a WebGL canvas has painted and comes out blank.
 #

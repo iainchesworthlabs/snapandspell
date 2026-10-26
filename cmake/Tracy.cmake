@@ -2,11 +2,11 @@
 # ---------------------------------------------------------------------------
 # Tracy.cmake
 #
-# Defines an INTERFACE target `wjs::tracy` that, when WJS_ENABLE_TRACY is on,
+# Defines an INTERFACE target `sns::tracy` that, when SNS_ENABLE_TRACY is on,
 # links Tracy's client library. The profiling calls the sources make
-# (wjs/profiling.hpp) are one of two headers with the same path under
+# (sns/profiling.hpp) are one of two headers with the same path under
 # libs/core/variants/; libs/core/CMakeLists.txt puts exactly one of them on
-# wjs::lib's include path, chosen by this option and not by an #if, so every
+# sns::lib's include path, chosen by this option and not by an #if, so every
 # instrumented call site compiles unchanged either way. The disabled variant
 # holds empty functions: a build without Tracy pays nothing for the
 # instrumentation and does not need Tracy present.
@@ -24,7 +24,7 @@
 # connected to at any time; their timings are not numbers about the code
 # (the sanitizers and no optimisation dominate), which is what the
 # *-profiling presets (RelWithDebInfo) are for. A Release build can be
-# instrumented by hand with -DWJS_ENABLE_TRACY=ON, for data from a real
+# instrumented by hand with -DSNS_ENABLE_TRACY=ON, for data from a real
 # session.
 #
 # The feature also builds Tracy's command-line tools for the HOST
@@ -37,19 +37,19 @@
 # (tests/profiling/check_presets.cmake) holds that.
 # ---------------------------------------------------------------------------
 
-add_library(wjs_tracy INTERFACE)
-add_library(wjs::tracy ALIAS wjs_tracy)
+add_library(sns_tracy INTERFACE)
+add_library(sns::tracy ALIAS sns_tracy)
 
-# Which wjs/profiling.hpp wjs::lib's users see.
-if(WJS_ENABLE_TRACY)
-    set(WJS_PROFILING_VARIANT_DIR "${PROJECT_SOURCE_DIR}/libs/core/variants/profiling-enabled")
+# Which sns/profiling.hpp sns::lib's users see.
+if(SNS_ENABLE_TRACY)
+    set(SNS_PROFILING_VARIANT_DIR "${PROJECT_SOURCE_DIR}/libs/core/variants/profiling-enabled")
 else()
-    set(WJS_PROFILING_VARIANT_DIR "${PROJECT_SOURCE_DIR}/libs/core/variants/profiling-disabled")
+    set(SNS_PROFILING_VARIANT_DIR "${PROJECT_SOURCE_DIR}/libs/core/variants/profiling-disabled")
 endif()
 
-if(WJS_ENABLE_TRACY)
+if(SNS_ENABLE_TRACY)
     find_package(Tracy CONFIG REQUIRED)
-    target_link_libraries(wjs_tracy INTERFACE Tracy::TracyClient)
+    target_link_libraries(sns_tracy INTERFACE Tracy::TracyClient)
 
     # The Debug client is built with the clock for its timer, not the CPU's cycle counter
     # (cmake/vcpkg-ports/tracy/portfile.cmake: the cycle counter is calibrated by a sleep of
@@ -57,7 +57,7 @@ if(WJS_ENABLE_TRACY)
     # timer is read inline from Tracy's headers, so the code that includes them has to be
     # built with the same two definitions as the client; the Release client, and the
     # *-profiling presets that link it, keep the cycle counter.
-    target_compile_definitions(wjs_tracy INTERFACE
+    target_compile_definitions(sns_tracy INTERFACE
         "$<$<CONFIG:Debug>:TRACY_TIMER_FALLBACK;TRACY_DISALLOW_HW_TIMER>")
 
     # Coverage and Tracy measure the same program and would talk over each
@@ -65,9 +65,9 @@ if(WJS_ENABLE_TRACY)
     # will say so. A Debug build with Tracy is the default now, so it gets a
     # note instead of a warning: connect the profiler freely, and read timings
     # from a *-profiling preset.
-    if(WJS_ENABLE_COVERAGE)
+    if(SNS_ENABLE_COVERAGE)
         message(WARNING
-            "WJS_ENABLE_TRACY and WJS_ENABLE_COVERAGE are both on. Coverage "
+            "SNS_ENABLE_TRACY and SNS_ENABLE_COVERAGE are both on. Coverage "
             "and profiler instrumentation dominate each other's numbers; "
             "turn one of them off for a build worth reading.")
     elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -80,17 +80,17 @@ if(WJS_ENABLE_TRACY)
     endif()
 endif()
 
-# The one interface that makes wjs/profiling.hpp real: the library's public
+# The one interface that makes sns/profiling.hpp real: the library's public
 # include path (the wrapper is a library header, and its types header lives
 # beside the others), the chosen variant's include path and, with Tracy on, its
-# client. wjs::lib carries it PUBLIC, so every target that links the library is
+# client. sns::lib carries it PUBLIC, so every target that links the library is
 # instrumented the same way; a target that does not link the library but calls
 # the wrapper (the board scene, which is Qt-only) links this instead. There is
 # still no second door to Tracy.
-add_library(wjs_profiling INTERFACE)
-add_library(wjs::profiling ALIAS wjs_profiling)
-target_include_directories(wjs_profiling INTERFACE
+add_library(sns_profiling INTERFACE)
+add_library(sns::profiling ALIAS sns_profiling)
+target_include_directories(sns_profiling INTERFACE
     "${PROJECT_SOURCE_DIR}/libs/core/include"
     "${PROJECT_BINARY_DIR}/generated"
-    "${WJS_PROFILING_VARIANT_DIR}")
-target_link_libraries(wjs_profiling INTERFACE wjs::tracy)
+    "${SNS_PROFILING_VARIANT_DIR}")
+target_link_libraries(sns_profiling INTERFACE sns::tracy)

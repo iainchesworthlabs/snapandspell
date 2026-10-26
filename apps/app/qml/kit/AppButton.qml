@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The one button of the application, a child's and a parent's. A child's button
 // carries a picture and a word, and speaks the word when pressed; a parent's is

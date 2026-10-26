@@ -2,8 +2,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
-import WordJewelsSolver
-import WordJewelsSolver.Scene
+import SnapAndSpell
+import SnapAndSpell.Scene
 
 // The flat board the child reads and traces. It is 2D on purpose: the 3D scene
 // is the shake and the drop, and this is what settles afterwards. The tray is

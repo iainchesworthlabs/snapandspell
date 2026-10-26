@@ -15,13 +15,13 @@
          writes the package to <build>/packages/;
       2. lists the archive, its size and its required entries;
       3. writes SHA256SUMS beside it, in sha256sum's format;
-      4. unpacks it and runs the packaged wjs-cli on a board with no -d, so the
+      4. unpacks it and runs the packaged sns-cli on a board with no -d, so the
          dictionary beside the program is the one it uses;
       5. fails if the package holds a development leftover - a TracyClient
          library, an AddressSanitizer runtime (clang_rt.asan*) or a .pdb - which
          a Release package must never carry (-ForbidTracy, on by default for a
          Release build tree);
-      6. runs the packaged WordJewelsSolver with the offscreen platform plugin,
+      6. runs the packaged SnapAndSpell with the offscreen platform plugin,
          so a Windows runner with no display proves the installed tree carries
          Qt's runtime and its QML modules (skip with
          -NoSmoke).
@@ -51,7 +51,7 @@
     package when the build tree is a Release one, and let cpack refuse a tree
     that has Tracy in it. Yes: always. No: a development package (a Debug tree
     packaged to check the packaging itself): cpack is told so with
-    -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON, and the package may carry the profiler.
+    -D CPACK_SNS_ALLOW_DEV_PACKAGE=ON, and the package may carry the profiler.
 
 .PARAMETER NoSmoke
     Do not run the packaged application. For a host with no way to run it.
@@ -64,7 +64,7 @@
 
 .EXAMPLE
     cpack -G ZIP --config build/windows-msvc-release/CPackConfig.cmake
-    ./tools/package/check_package.ps1 -Build build/windows-msvc-release -Archive build/windows-msvc-release/packages/WordJewelsSolver-0.1.0-win64.zip
+    ./tools/package/check_package.ps1 -Build build/windows-msvc-release -Archive build/windows-msvc-release/packages/SnapAndSpell-0.1.0-win64.zip
 #>
 [CmdletBinding()]
 param(
@@ -134,7 +134,7 @@ if (-not $Archive) {
     Push-Location -LiteralPath $buildDirectory
     try {
         $cpackArguments = @('-G', $Generator, '--config', $cpackConfig)
-        if (-not $forbid) { $cpackArguments += @('-D', 'CPACK_WJS_ALLOW_DEV_PACKAGE=ON') }
+        if (-not $forbid) { $cpackArguments += @('-D', 'CPACK_SNS_ALLOW_DEV_PACKAGE=ON') }
         & cpack @cpackArguments
         if ($LASTEXITCODE -ne 0) {
             Fail "cpack exited $LASTEXITCODE"
@@ -223,14 +223,14 @@ else {
 
 $executableSuffix = if ($IsWindows) { '.exe' } else { '' }
 $required = @(
-    "bin/wjs-cli$executableSuffix",
+    "bin/sns-cli$executableSuffix",
     'bin/dictionaries/en.txt',
     'bin/NOTICES.txt',
     'bin/LICENSE.txt'
 )
 # The window and what it reads: only a tree that was configured with the
 # application has them.
-$withApplication = Test-Packaged "bin/WordJewelsSolver$executableSuffix"
+$withApplication = Test-Packaged "bin/SnapAndSpell$executableSuffix"
 if ($withApplication) {
     $required += @(
         'bin/dice/3x3.txt',
@@ -321,29 +321,29 @@ New-Item -ItemType Directory -Path $extract -Force | Out-Null
 Write-Step "Unpacking into $extract"
 [System.IO.Compression.ZipFile]::ExtractToDirectory($archiveFile.FullName, $extract)
 
-$cli = @(Get-ChildItem -LiteralPath $extract -Recurse -File -Filter "wjs-cli$executableSuffix")[0]
+$cli = @(Get-ChildItem -LiteralPath $extract -Recurse -File -Filter "sns-cli$executableSuffix")[0]
 if (-not $cli) {
-    Fail "no wjs-cli$executableSuffix in the unpacked package"
+    Fail "no sns-cli$executableSuffix in the unpacked package"
 }
 $binDirectory = $cli.Directory.FullName
 Write-Host "    programs: $binDirectory"
 
 # The solver, with the dictionary the package installed beside it: no -d, so a
 # missing or stale dictionaries/en.txt is a failure and not a silent fallback.
-Write-Step 'The packaged wjs-cli solves a board with its own dictionary'
+Write-Step 'The packaged sns-cli solves a board with its own dictionary'
 $cliOutput = & $cli.FullName CAT ORE DGS 2>&1
 $cliExit = $LASTEXITCODE
 $cliOutput | Select-Object -First 12 | ForEach-Object { Write-Host "    $_" }
 if ($cliExit -ne 0) {
-    Fail "the packaged wjs-cli exited $cliExit"
+    Fail "the packaged sns-cli exited $cliExit"
 }
 foreach ($word in @('CAT', 'CARE', 'TAR')) {
     if (-not ($cliOutput -match "(?m)^$word\s")) {
-        Fail "the packaged wjs-cli did not find $word using dictionaries/en.txt"
+        Fail "the packaged sns-cli did not find $word using dictionaries/en.txt"
     }
 }
 
-$application = Join-Path $binDirectory "WordJewelsSolver$executableSuffix"
+$application = Join-Path $binDirectory "SnapAndSpell$executableSuffix"
 if (-not (Test-Path -LiteralPath $application)) {
     Write-Host '    No application in this package: the offscreen smoke is skipped.'
 }
@@ -351,7 +351,7 @@ elseif ($NoSmoke) {
     Write-Host '    -NoSmoke: the packaged application is not run.'
 }
 else {
-    Write-Step 'The packaged WordJewelsSolver starts and presents frames, offscreen'
+    Write-Step 'The packaged SnapAndSpell starts and presents frames, offscreen'
     # The store in the unpacked tree, so the check leaves the profile alone.
     $store = Join-Path $extract 'smoke-store.txt'
     $previous = @{}
@@ -391,10 +391,10 @@ else {
     }
     $smokeOutput | ForEach-Object { Write-Host "    $_" }
     if ($smokeExit -ne 0) {
-        Fail "the packaged WordJewelsSolver --smoke 10 exited $smokeExit"
+        Fail "the packaged SnapAndSpell --smoke 10 exited $smokeExit"
     }
     if (-not ($smokeOutput -match 'smoke: frames=(\d+)')) {
-        Fail 'the packaged WordJewelsSolver printed no frame report'
+        Fail 'the packaged SnapAndSpell printed no frame report'
     }
 }
 

@@ -1,6 +1,6 @@
 # Profiling with Tracy
 
-WordJewelsSolver can be profiled with [Tracy](https://github.com/wolfpld/tracy),
+SnapAndSpell can be profiled with [Tracy](https://github.com/wolfpld/tracy),
 the profiler its sibling projects use ([Cubeulator](https://github.com/iainchesworthlabs/cubeulator)
 has the same document and the same workflow), so a trace from any of them is
 captured, exported and read the same way.
@@ -17,15 +17,15 @@ What counts as fast enough, and the tests that hold it, are in
 [Testing](testing.md#performance-tests) and the
 [performance design](design/performance.md). The work budgets skip in a build that
 is not optimised, and a skip is not a failure, so `profiling.perf_budgets_ran`
-fails a Release leg (or any leg with `WJS_REQUIRE_PERF_BUDGETS=1` in its
+fails a Release leg (or any leg with `SNS_REQUIRE_PERF_BUDGETS=1` in its
 environment) that ran none of them, and reports itself skipped, with the
 reason, in the others. **No required CI leg holds them:** the three required
 build legs are Debug, where the budgets skip and this check reports itself
-skipped, no workflow sets `WJS_REQUIRE_PERF_BUDGETS`, and the one automatic
+skipped, no workflow sets `SNS_REQUIRE_PERF_BUDGETS`, and the one automatic
 Release leg (`Performance (Linux, GCC)`) is not a required check (the other
 place they run is the release workflow's Release build). The wall-time
-checks (`WJS_PERF_TIMING`) and the window's frame check
-(`WJS_PERF_FRAME_TIMING`) run in no automatic leg at all
+checks (`SNS_PERF_TIMING`) and the window's frame check
+(`SNS_PERF_FRAME_TIMING`) run in no automatic leg at all
 ([Testing](testing.md#performance-tests)).
 
 ## Building a profiling binary
@@ -40,10 +40,10 @@ others): connect the profiler to it for development, without any option. Its
 timings are a shape, not a number — the sanitizers and no optimisation dominate
 them. The `*-profiling` presets are the same instrumentation in RelWithDebInfo
 (optimised, with symbols: the right shape for a profiler), with
-`WJS_ENABLE_TRACY=ON` and the sanitizers off, so their timings are numbers about
+`SNS_ENABLE_TRACY=ON` and the sanitizers off, so their timings are numbers about
 the code. That one option does everything:
 
-- It selects the real `wjs/profiling.hpp` (below) instead of the empty one.
+- It selects the real `sns/profiling.hpp` (below) instead of the empty one.
 - It adds the `profiling` feature to the vcpkg manifest, which supplies the Tracy
   **client** (`tracy[on-demand]`, with its crash handler off) that the programs
   link, and Tracy's **command-line tools** (`tracy-capture`, `tracy-csvexport`),
@@ -71,7 +71,7 @@ takes several minutes (6 in a clean container), and vcpkg's binary cache makes
 the next one quick. The tools are in
 `build/<preset>/vcpkg_installed/<triplet>/tools/tracy/`.
 
-To instrument a Release build, pass `-DWJS_ENABLE_TRACY=ON` (the default is
+To instrument a Release build, pass `-DSNS_ENABLE_TRACY=ON` (the default is
 already `ON` for a Debug build type). Read a Debug build's trace for structure
 and connection, not for timings: the sanitizers' cost dominates every number
 there. The perf tests treat a Tracy build as not fit for wall-time checks (they
@@ -97,7 +97,7 @@ runs; the release presets and the packages made from them exclude the client
   workflow sets the option by hand.
 - `cpack` refuses a tree configured with Tracy (`cmake/PackagePreflight.cmake`)
   unless asked for a development package by name
-  (`cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON`), and
+  (`cpack -D CPACK_SNS_ALLOW_DEV_PACKAGE=ON`), and
   `tools/package/check_package.ps1` fails a package of a Release tree that holds
   `TracyClient*`, the AddressSanitizer runtime or a `.pdb`. CI's Windows Debug
   package is a development package on purpose (its artefact is named
@@ -117,7 +117,7 @@ zone. Two consequences:
 
 - Events that happen before the profiler connects are not recorded.
 - **A profiler takes about a second to find a freshly started program**
-  (measured: 0.7 s). `wjs-cli` solves a board in a tenth of a second, so on its
+  (measured: 0.7 s). `sns-cli` solves a board in a tenth of a second, so on its
   own it is over before a capture can attach. Give it work to do for the capture
   with `--repeat <n>` (it solves the board `n` times and prints one result).
 
@@ -134,7 +134,7 @@ profiler" can be satisfied by a capture of something else.
 Give the program a port of its own, and the capture the same one:
 
 ```sh
-TRACY_PORT=18086 build/windows-msvc-profiling/bin/wjs-cli --repeat 4000 "S E R S/P A T G/L I N E/S E R S" &
+TRACY_PORT=18086 build/windows-msvc-profiling/bin/sns-cli --repeat 4000 "S E R S/P A T G/L I N E/S E R S" &
 $TOOLS/tracy-capture -o solve.tracy -a 127.0.0.1 -p 18086 -f
 ```
 
@@ -156,7 +156,7 @@ TOOLS=build/windows-msvc-profiling/vcpkg_installed/x64-windows/tools/tracy   # x
 # start the capture first; it waits for the program to appear (use TRACY_PORT and -p
 # below if anything else with Tracy in it is running)
 $TOOLS/tracy-capture -o solve.tracy -a 127.0.0.1 -f &
-build/windows-msvc-profiling/bin/wjs-cli --repeat 4000 "S E R S/P A T G/L I N E/S E R S"
+build/windows-msvc-profiling/bin/sns-cli --repeat 4000 "S E R S/P A T G/L I N E/S E R S"
 
 # the capture ends when the program exits; then export it
 $TOOLS/tracy-csvexport solve.tracy                 # one row per zone: count, total, mean, min, max
@@ -179,13 +179,13 @@ an existing file, `-s <seconds>` stop after that long. `tracy-csvexport`: `-f
 <text>` filters zone names (so `-f solver.` is the solver), `-e` reports self
 time rather than inclusive.
 
-The dictionary load is over before the capture attaches in a `wjs-cli` run, so
+The dictionary load is over before the capture attaches in a `sns-cli` run, so
 its zone is missing from the capture above. The performance-test binary does
 the load several times, which is how to see it:
 
 ```sh
 $TOOLS/tracy-capture -o perf.tracy -a 127.0.0.1 -f &
-build/windows-msvc-profiling/bin/wjs_perf_tests "[.perf-report-timing]"
+build/windows-msvc-profiling/bin/sns_perf_tests "[.perf-report-timing]"
 $TOOLS/tracy-csvexport perf.tracy
 ```
 
@@ -201,7 +201,7 @@ The application is captured the same way, with its smoke run for a workload
 
 ```sh
 $TOOLS/tracy-capture -o app.tracy -a 127.0.0.1 -f &
-build/windows-msvc-profiling/bin/WordJewelsSolver.exe --smoke 600 --store build/smoke-store.wjs > build/smoke.txt
+build/windows-msvc-profiling/bin/SnapAndSpell.exe --smoke 600 --store build/smoke-store.sns > build/smoke.txt
 $TOOLS/tracy-csvexport app.tracy
 $TOOLS/tracy-csvexport -u -p -f "no zone" app.tracy    # the plots: ui.frame_ms, render.frame_ms, ...
 ```
@@ -266,7 +266,7 @@ the CSV and the GUI show, so a rename is deliberate. Two checks hold them:
   time by `BoardScene.stageZone()`, so they are pinned as string literals in the
   QML.
 - `profiling.trace_cli` and `profiling.trace_app` read a **trace**. They run
-  `wjs-cli --repeat` and the application's `--smoke` (offscreen) with the
+  `sns-cli --repeat` and the application's `--smoke` (offscreen) with the
   capture attached on a port of their own, export the trace and assert that the
   zones and plots a trace of the program is made of are in it: what the sources
   cannot tell, a zone in code that never runs or a name only a run chooses.
@@ -296,11 +296,11 @@ as the finger moves. The column below says which.
 
 | Name | Kind | Mode | Where | Carries |
 | --- | --- | --- | --- | --- |
-| `solver.solve` | zone | both | `wjs::solve`, once per call | the words found |
+| `solver.solve` | zone | both | `sns::solve`, once per call | the words found |
 | `solver.visits` | plot | both | the same, once per call | the visits of that search |
-| `data.load_dictionary` | zone | both (on the path to the first board of the standard one) | `wjs::Dictionary::load`, so every file or stream load | the words loaded |
-| `board.roll` | zone | standard | `wjs::roll`, once per board | the dice rolled (the tiles) |
-| `board.seed` | zone | phonics | `wjs::seed_board`, once per board | the verifications it spent (1 to `max_tries`) |
+| `data.load_dictionary` | zone | both (on the path to the first board of the standard one) | `sns::Dictionary::load`, so every file or stream load | the words loaded |
+| `board.roll` | zone | standard | `sns::roll`, once per board | the dice rolled (the tiles) |
+| `board.seed` | zone | phonics | `sns::seed_board`, once per board | the verifications it spent (1 to `max_tries`) |
 | `board.verify` | zone | phonics | each verification inside `board.seed` | the words of the phase found on that board |
 | `phonics.bind` | zone | phonics | `GraphemeBinder::bind`, so every call that binds a path | the comparisons it made: a grapheme held against the tiles at a block |
 | `board.deal` | zone | both | `GameSession::shake`, once per board | the seedings it spent on the phonics board (1 to `max_seedings`), the rolls on the standard board (1 to `max_rolls`) |
@@ -330,7 +330,7 @@ so). They are not repeated from the table above.
 | --- | --- | --- |
 | `app` | `app.fonts` | `main()` in `apps/app/src/main.cpp`: the six bundled font files read before the first screen |
 | `assist` | `assist.confirm`, `assist.solve` | `AssistModel::begin` in `apps/app/src/scan/assist_model.cpp` and `solve_board` in `apps/app/src/scan/assist_game.cpp` (Mode A: the grown-up's "yes, play", which parses the board, makes the game and records the old round; the game's own solve is `assist.solve`) |
-| `board` | `board.deal_playable`, `board.parse` | `wjs::deal_playable` (`libs/core/src/deal.cpp`: the standard board's roll-until-it-holds-a-word loop) and `Board::parse` |
+| `board` | `board.deal_playable`, `board.parse` | `sns::deal_playable` (`libs/core/src/deal.cpp`: the standard board's roll-until-it-holds-a-word loop) and `Board::parse` |
 | `camera` | `camera.convert_frame` | `frame_from_image` in `apps/app/src/camera/frame_conversion.cpp`: a Qt image into the scanner's frame |
 | `cli` | `cli.run` | `apps/cli/src/main.cpp`, around the whole run |
 | `data` | `data.load_store`, `data.save_store`, `data.build_dashboard`, `data.load_catalogue` | the store's file load and save (`libs/core/src/store.cpp`), `build_dashboard`, and `LanguageManager::install` (a translation catalogue) |
@@ -342,7 +342,7 @@ so). They are not repeated from the table above.
 | `parent` | `parent.edit` | `ParentController`'s one edit scope, `EditScope` in `apps/app/src/parent/parent_controller.cpp`: every slot that changes the store is timed under this one name |
 | `path` | `path.validate`, `rules.classify` | `validate_path` and `classify_path` |
 | `phonics` | `phonics.sound_it_out` | `sound_it_out_sequence`: the sequence of sounds for a word of the phase |
-| `scan` | `scan.find_board`, `scan.bright_mask`, `scan.box_blur`, `scan.find_blobs`, `scan.decode_frame`, `scan.convert_working`, `scan.warp_board`, `scan.read_tiles`, `scan.read_glyphs`, `scan.process_frame` | the stages of `wjs::scan::find_board` and of `read_board` (`libs/scan/src/`); `scan.process_frame` wraps the whole `board_reader::read` in `apps/app/src/scan/scan_model.cpp`, on the scan thread (below) |
+| `scan` | `scan.find_board`, `scan.bright_mask`, `scan.box_blur`, `scan.find_blobs`, `scan.decode_frame`, `scan.convert_working`, `scan.warp_board`, `scan.read_tiles`, `scan.read_glyphs`, `scan.process_frame` | the stages of `sns::scan::find_board` and of `read_board` (`libs/scan/src/`); `scan.process_frame` wraps the whole `board_reader::read` in `apps/app/src/scan/scan_model.cpp`, on the scan thread (below) |
 | `session` | `session.finish` | `GameSession::make_record`: the board's record, which the store keeps and every snapshot carries |
 | `settings` | `settings.normalize` | `Settings::normalized` |
 | `solo` | `solo.path`, `solo.blocks`, `solo.history`, `solo.submit`, `solo.help`, `solo.words_with_start`, `solo.again` | `SoloModel` (path and blocks refresh, history refresh, `submitPath`) and `RealSoloGame` (`startTile`, `wordsWithStart`, `again`) |
@@ -357,7 +357,7 @@ touch-to-sound ([performance design](design/performance.md#budgets)).
 **Frame sets and threads.** The frame set `UI` is the window's (the frame clock,
 below) and `Capture` is the camera's: `CameraSource::capture` marks one for every
 frame it takes, apart from the window's. The threads are named `main` (the
-application's and `wjs-cli`'s), `render` (the scene graph's thread when it is
+application's and `sns-cli`'s), `render` (the scene graph's thread when it is
 not the GUI thread) and `scan`. **The scan read runs on a worker thread named
 `scan`** (a `QThreadPool` of one in `ScanModel`; the reading comes back through
 the event loop), so a trace of Mode A shows `scan.process_frame` and the
@@ -372,7 +372,7 @@ is the fill's cost and `board.verify`'s is the verifications'. A seeding of a
 (the [performance design](design/performance.md#the-game-rows) has the
 figures).
 
-What a capture of the report shows (`wjs_perf_tests "[.perf-report]"` in the
+What a capture of the report shows (`sns_perf_tests "[.perf-report]"` in the
 profiling build, headless as above; MSVC, the same desktop, the profiler
 attached for the run, which costs tens of nanoseconds a zone):
 
@@ -392,7 +392,7 @@ digest); and `phonics.bind` is the three paths. A mean of a zone under a
 profiler is a little above the same zone's cost without one, and a bind is a
 microsecond, so the zone is a few percent of it.
 
-`wjs-cli` names its thread `main`.
+`sns-cli` names its thread `main`.
 
 Visits are the tile steps that stayed inside the dictionary's trie: the measure
 of a search that does not depend on the machine, and the one the
@@ -459,8 +459,8 @@ nothing in the application is a moment without a duration.
 ## QML and the scene
 
 Tracy's API is macros, QML has no preprocessor, and the rule here is that only
-`wjs/profiling.hpp` speaks to Tracy. So the QML seam is a QML **singleton**,
-`Profiler`, in the scene's own module (`WordJewelsSolver.Scene`,
+`sns/profiling.hpp` speaks to Tracy. So the QML seam is a QML **singleton**,
+`Profiler`, in the scene's own module (`SnapAndSpell.Scene`,
 `apps/app/src/scene/profiler.cpp`), over a zone the wrapper can name at run time:
 
 ```qml
@@ -490,7 +490,7 @@ Profiler.mark("ui.screen")             // a moment with no work: a zero-length z
 
 **The names come from QML**, so the compile-time rule that a zone's name is a
 string literal cannot hold there. The wrapper's
-`wjs::profiling::RuntimeScope` opens a zone the way Tracy's own transient zones
+`sns::profiling::RuntimeScope` opens a zone the way Tracy's own transient zones
 do (its `ZoneTransient` macro): the name goes with the zone, and the profiler
 registers the location itself. The location is therefore the seam's own —
 function and file `QML`, line 0 — and a name used again is the same name in the
@@ -516,7 +516,7 @@ side of a zone's `Value()`.
 > gone with the simulation. A new set of figures wants a run on a desktop with a display.
 
 ```sh
-build/windows-msvc-profiling/bin/WordJewelsSolver.exe --smoke 300 --store build/smoke-store.wjs
+build/windows-msvc-profiling/bin/SnapAndSpell.exe --smoke 300 --store build/smoke-store.sns
 ```
 
 `--smoke [<frames>]` runs the window as a capture workload and as the frame
@@ -624,7 +624,7 @@ the budget is for.
   down to a 60 Hz display and Windows' timer quantisation; that was a
   guess, and the measurements above do not support it. The report now says
   which screen (`screen=`, `refresh_hz=`), and the budget follows it. The
-  check is opt-in (`WJS_PERF_FRAME_TIMING=1`) and runs in no CI leg.
+  check is opt-in (`SNS_PERF_FRAME_TIMING=1`) and runs in no CI leg.
 
 **Those numbers are a real offscreen run, and they are not the 3D scene's** (the one the History note above speaks of).
 Under `QT_QPA_PLATFORM=offscreen` with `QSG_RHI_BACKEND=opengl`, Qt Quick runs
@@ -693,7 +693,7 @@ and on a desktop with a display `--smoke 300` prints the line to read.
 **A profiler gets its moment.** A build with Tracy's `--smoke` waits up to five
 seconds for a profiler to connect before it loads anything, then calls
 `connected()` until one does or the time is up. A normal launch can ask for the
-same wait with `--wait-for-profiler` or by setting `WJS_WAIT_FOR_PROFILER` (to
+same wait with `--wait-for-profiler` or by setting `SNS_WAIT_FOR_PROFILER` (to
 anything), so a real session's start-up can be captured too. That is what puts
 `app.startup`, `app.load_qml` and `data.load_phase` in a capture: they run once,
 before a profiler started alongside the program could otherwise have found it
@@ -714,7 +714,7 @@ never reports an empty measurement as a result. The exit codes
 (`apps/app/src/startup_failure.hpp`) are 0 for a report, 2 when the game could not be
 set up (the word list, the dice or the phase directory), 3 when no frame was
 presented and 4 when the window did not load; 1 is left to the toolkit and to a
-crash. A failed start-up shows a dialog on Windows; `WJS_NO_DIALOGS=1`, or the
+crash. A failed start-up shows a dialog on Windows; `SNS_NO_DIALOGS=1`, or the
 `offscreen` or `minimal` platform, suppresses it.
 
 **A window that is not presented.** On the machine this package was built on
@@ -733,20 +733,20 @@ and read the zones and the frame plots out of the trace.
 
 ## Adding instrumentation
 
-Include `"wjs/profiling.hpp"`. It is on `wjs::lib`'s public include path, so
+Include `"sns/profiling.hpp"`. It is on `sns::lib`'s public include path, so
 every target that links the library already has it. Nothing else of Tracy's
 API is reachable from the sources, on purpose: this is what compiles to
 nothing.
 
 | Call | Use |
 | --- | --- |
-| `auto zone = wjs::profiling::zone<"layer.name">();` | A zone for the rest of the C++ scope. The name is a template argument. `zone.Value(n)` attaches a number (a count, a size) and `zone.Text(ptr, size)` some text; the names are Tracy's own |
-| `wjs::profiling::RuntimeScope scope{"layer.name"};` | The same for a name known only at run time, held in a `std::optional` where the scope ends later than its declaration. What the QML seam is built on: a transient zone, so the location is `QML`, line 0, and the name carries it |
-| `wjs::profiling::frame_mark()` / `frame_mark("Name")` | A frame boundary on the default set / a named one |
-| `wjs::profiling::plot("name", n)` | A number on a timeline. Integer, floating point or `bool` |
-| `wjs::profiling::message("text")` | A discrete event. The text is copied |
-| `wjs::profiling::thread_name("name")` | Names the calling thread, **once** per thread: every call adds a table entry, so never in a per-frame or per-task path |
-| `wjs::profiling::connected()` | Whether a profiler is attached now (Tracy's on-demand state). For a workload that has to wait for one, as `--smoke` does |
+| `auto zone = sns::profiling::zone<"layer.name">();` | A zone for the rest of the C++ scope. The name is a template argument. `zone.Value(n)` attaches a number (a count, a size) and `zone.Text(ptr, size)` some text; the names are Tracy's own |
+| `sns::profiling::RuntimeScope scope{"layer.name"};` | The same for a name known only at run time, held in a `std::optional` where the scope ends later than its declaration. What the QML seam is built on: a transient zone, so the location is `QML`, line 0, and the name carries it |
+| `sns::profiling::frame_mark()` / `frame_mark("Name")` | A frame boundary on the default set / a named one |
+| `sns::profiling::plot("name", n)` | A number on a timeline. Integer, floating point or `bool` |
+| `sns::profiling::message("text")` | A discrete event. The text is copied |
+| `sns::profiling::thread_name("name")` | Names the calling thread, **once** per thread: every call adds a table entry, so never in a per-frame or per-task path |
+| `sns::profiling::connected()` | Whether a profiler is attached now (Tracy's on-demand state). For a workload that has to wait for one, as `--smoke` does |
 
 Rules that keep it honest:
 
@@ -771,7 +771,7 @@ Rules that keep it honest:
 - **Do not name anything after one of Tracy's macros.** Its header defines
   `ZoneName`, `ZoneText`, `ZoneValue`, `ZoneColor`, `FrameMark`, `FrameImage`,
   `LockMark` and everything that begins `Tracy`, in every file that includes the
-  real `wjs/profiling.hpp`. This was found, not guessed: the first version of the
+  real `sns/profiling.hpp`. This was found, not guessed: the first version of the
   wrapper had a type called `ZoneName`.
 
 ## Why there are no macros
@@ -780,20 +780,20 @@ The repository holds no `#define` and no `#if` in first-party C++
 ([Platform isolation](platform-isolation.md)), and Tracy's API is macros. What
 its macros do is ordinary C++ in namespace `tracy`, so the wrapper calls that:
 
-- `libs/core/variants/profiling-enabled/wjs/profiling.hpp` includes Tracy and
+- `libs/core/variants/profiling-enabled/sns/profiling.hpp` includes Tracy and
   aliases `tracy::SourceLocationData` and `tracy::ScopedZone`. `zone<"name">()`
   makes a function-local `static` `SourceLocationData` from the call site's
   `std::source_location` (a default argument is evaluated at the call) and
   returns a `ScopedZone` built in place, as Tracy's `ZoneNamedN` does with a
   `static constexpr` and a local.
-- `libs/core/variants/profiling-disabled/wjs/profiling.hpp` has the same
+- `libs/core/variants/profiling-disabled/sns/profiling.hpp` has the same
   interface with an empty zone and empty functions.
-- CMake puts exactly one of the two directories on `wjs::lib`'s include path
+- CMake puts exactly one of the two directories on `sns::lib`'s include path
   (`cmake/Tracy.cmake`, `libs/core/CMakeLists.txt`). No source file asks which.
 - `TRACY_ENABLE` and `TRACY_ON_DEMAND` are compile definitions of Tracy's own
-  CMake target, which `wjs::tracy` links; they are not written in any source.
+  CMake target, which `sns::tracy` links; they are not written in any source.
 
-`wjs::profiling::enabled` says which variant a build has, and a unit test pins
+`sns::profiling::enabled` says which variant a build has, and a unit test pins
 it against the CMake option.
 
 ## In the browser and elsewhere

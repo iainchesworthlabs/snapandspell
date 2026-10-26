@@ -18,7 +18,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $script = Join-Path $PSScriptRoot '../../tools/package/check_package.ps1'
-$work = Join-Path ([System.IO.Path]::GetTempPath()) ("wjs-forbid-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
+$work = Join-Path ([System.IO.Path]::GetTempPath()) ("sns-forbid-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Path $work | Out-Null
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $failures = 0
@@ -58,13 +58,13 @@ try {
     $debug = New-Tree 'debug' 'Debug'
 
     $dirty = Join-Path $work 'dirty.zip'
-    New-Zip $dirty @('p-0.1.0/bin/wjs-cli.exe', 'p-0.1.0/bin/TracyClient.dll')
+    New-Zip $dirty @('p-0.1.0/bin/sns-cli.exe', 'p-0.1.0/bin/TracyClient.dll')
     $asan = Join-Path $work 'asan.zip'
-    New-Zip $asan @('p-0.1.0/bin/wjs-cli.exe', 'p-0.1.0/bin/clang_rt.asan_dynamic-x86_64.dll')
+    New-Zip $asan @('p-0.1.0/bin/sns-cli.exe', 'p-0.1.0/bin/clang_rt.asan_dynamic-x86_64.dll')
     $symbols = Join-Path $work 'symbols.zip'
-    New-Zip $symbols @('p-0.1.0/bin/wjs-cli.exe', 'p-0.1.0/bin/WordJewelsSolver.pdb')
+    New-Zip $symbols @('p-0.1.0/bin/sns-cli.exe', 'p-0.1.0/bin/SnapAndSpell.pdb')
     $clean = Join-Path $work 'clean.zip'
-    New-Zip $clean @('p-0.1.0/bin/wjs-cli.exe', 'p-0.1.0/bin/Qt6Core.dll')
+    New-Zip $clean @('p-0.1.0/bin/sns-cli.exe', 'p-0.1.0/bin/Qt6Core.dll')
 
     Test-Case 'a Release package with TracyClient.dll is refused' $release $dirty @() $true
     Test-Case 'a Release package with an AddressSanitizer runtime is refused' $release $asan @() $true

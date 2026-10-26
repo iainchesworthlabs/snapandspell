@@ -6,7 +6,7 @@
 # `integration`, `system` and `ui` (docs/testing.md, "The tiers").
 #
 # Their scripts live in the topic directories beside this one (tests/notices,
-# tests/privacy, ...), by path from WJS_TESTS_DIR; the registrations are here so
+# tests/privacy, ...), by path from SNS_TESTS_DIR; the registrations are here so
 # that the whole tier, and the one list of what carries the label, is in one
 # file. (app.scene_contract and app.qml_lint are the same tier, registered in
 # apps/app/tests/unit because they read what that build generates.)
@@ -18,12 +18,12 @@
 # to carry either.
 add_test(NAME notices.sections
     COMMAND "${CMAKE_COMMAND}"
-        "-DNOTICES=${WJS_NOTICES_FILE}"
+        "-DNOTICES=${SNS_NOTICES_FILE}"
         "-DVERSION=${PROJECT_VERSION}"
-        "-DEXPECT_CLI=${WJS_BUILD_CLI}"
-        "-DEXPECT_QT=${WJS_BUILD_APP}"
+        "-DEXPECT_CLI=${SNS_BUILD_CLI}"
+        "-DEXPECT_QT=${SNS_BUILD_APP}"
         "-DQT_VERSION=${Qt6_VERSION}"
-        -P "${WJS_TESTS_DIR}/notices/check_notices.cmake")
+        -P "${SNS_TESTS_DIR}/notices/check_notices.cmake")
 
 # The CPack configuration and the install rules it packages: both programs this
 # build makes, the files they read, and the notices. It reads the generated
@@ -34,21 +34,21 @@ add_test(NAME package.config
     COMMAND "${CMAKE_COMMAND}"
         "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
         "-DVERSION=${PROJECT_VERSION}"
-        "-DPRERELEASE=${WJS_PACKAGE_PRERELEASE}"
-        "-DEXPECT_TRACY=${WJS_ENABLE_TRACY}"
-        "-DEXPECT_CLI=${WJS_BUILD_CLI}"
-        "-DEXPECT_APP=${WJS_BUILD_APP}"
-        "-DEXPECT_QT_DEPLOY=${WJS_PLATFORM_QT_DEPLOY_AT_INSTALL}"
-        "-DEXPECT_MULTIMEDIA=${WJS_QT_HAS_MULTIMEDIA}"
-        "-DNOTICES=${WJS_NOTICES_FILE}"
-        -P "${WJS_TESTS_DIR}/package/check_package.cmake")
+        "-DPRERELEASE=${SNS_PACKAGE_PRERELEASE}"
+        "-DEXPECT_TRACY=${SNS_ENABLE_TRACY}"
+        "-DEXPECT_CLI=${SNS_BUILD_CLI}"
+        "-DEXPECT_APP=${SNS_BUILD_APP}"
+        "-DEXPECT_QT_DEPLOY=${SNS_PLATFORM_QT_DEPLOY_AT_INSTALL}"
+        "-DEXPECT_MULTIMEDIA=${SNS_QT_HAS_MULTIMEDIA}"
+        "-DNOTICES=${SNS_NOTICES_FILE}"
+        -P "${SNS_TESTS_DIR}/package/check_package.cmake")
 
 # Every platform fragment satisfies the platform contract, on whichever host
 # this runs (a build only includes the one fragment for its own platform).
 add_test(NAME platform.fragments
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/platform/check_fragments.cmake")
+        -P "${SNS_TESTS_DIR}/platform/check_fragments.cmake")
 
 # The Android target, held together: the manifest asks for the camera and nothing
 # else (Qt's core module would add network and storage permissions at its
@@ -63,12 +63,12 @@ add_test(NAME platform.fragments
 add_test(NAME platform.apk
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/platform/check_android.cmake")
+        -P "${SNS_TESTS_DIR}/platform/check_android.cmake")
 add_test(NAME platform.apk.selftest
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/platform-apk"
-        -P "${WJS_TESTS_DIR}/platform/test_check_android.cmake")
+        -P "${SNS_TESTS_DIR}/platform/test_check_android.cmake")
 
 # The web target, held together: its files, the one name of the persistent directory in the
 # fragment, the page's boot script and the program's paths, the QML modules the application
@@ -79,7 +79,7 @@ add_test(NAME platform.apk.selftest
 add_test(NAME platform.web
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/platform/check_web.cmake")
+        -P "${SNS_TESTS_DIR}/platform/check_web.cmake")
 
 # The Tracy policy: Debug builds are instrumented by default, and nothing that
 # ships has it - the *-debug and *-profiling presets turn the option on, the
@@ -90,7 +90,7 @@ add_test(NAME platform.web
 add_test(NAME profiling.shipped_presets
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/profiling/check_presets.cmake")
+        -P "${SNS_TESTS_DIR}/profiling/check_presets.cmake")
 
 # Every zone is named <layer>.<thing> and once: one name is one source location,
 # and the zones a trace of the application's work is made of exist (the check
@@ -98,7 +98,7 @@ add_test(NAME profiling.shipped_presets
 add_test(NAME profiling.zone_names
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/profiling/check_zone_names.cmake")
+        -P "${SNS_TESTS_DIR}/profiling/check_zone_names.cmake")
 
 # Tracy is built for any machine of its architecture: the repository's tracy port
 # (an overlay on the fork's) passes NO_ISA_EXTENSIONS, since a vcpkg cache built on
@@ -107,7 +107,7 @@ add_test(NAME profiling.zone_names
 add_test(NAME profiling.tracy_portable
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/profiling/check_tracy_port.cmake")
+        -P "${SNS_TESTS_DIR}/profiling/check_tracy_port.cmake")
 
 # A trace of the program holds the names the documents say it does: the program
 # is run with the Tracy capture attached and the exported trace is read
@@ -119,41 +119,41 @@ add_test(NAME profiling.tracy_portable
 # themselves skipped (exit 4) with the reason. A port of its own for each, since
 # every Tracy client listens on 8086 and a capture attaches to whichever program
 # started first (docs/profiling.md, "Which program the capture attaches to").
-set(WJS_TRACY_TOOLS_DIR "")
-if(WJS_ENABLE_TRACY)
-    set(WJS_TRACY_TOOLS_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/tracy")
+set(SNS_TRACY_TOOLS_DIR "")
+if(SNS_ENABLE_TRACY)
+    set(SNS_TRACY_TOOLS_DIR "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/tracy")
 endif()
-set(WJS_TRACE_TESTS "")
-if(WJS_BUILD_CLI)
+set(SNS_TRACE_TESTS "")
+if(SNS_BUILD_CLI)
     add_test(NAME profiling.trace_cli
         COMMAND "${CMAKE_COMMAND}"
             -DCASE=cli
-            "-DTRACY_TOOLS=${WJS_TRACY_TOOLS_DIR}"
-            "-DPROGRAM=$<TARGET_FILE:wjs-cli>"
+            "-DTRACY_TOOLS=${SNS_TRACY_TOOLS_DIR}"
+            "-DPROGRAM=$<TARGET_FILE:sns-cli>"
             "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
             -DPORT=18086
             "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
-            -P "${WJS_TESTS_DIR}/profiling/check_trace.cmake")
-    list(APPEND WJS_TRACE_TESTS profiling.trace_cli)
+            -P "${SNS_TESTS_DIR}/profiling/check_trace.cmake")
+    list(APPEND SNS_TRACE_TESTS profiling.trace_cli)
 endif()
-if(WJS_BUILD_APP)
+if(SNS_BUILD_APP)
     add_test(NAME profiling.trace_app
         COMMAND "${CMAKE_COMMAND}"
             -DCASE=app
-            "-DTRACY_TOOLS=${WJS_TRACY_TOOLS_DIR}"
-            "-DPROGRAM=$<TARGET_FILE:WordJewelsSolver>"
+            "-DTRACY_TOOLS=${SNS_TRACY_TOOLS_DIR}"
+            "-DPROGRAM=$<TARGET_FILE:SnapAndSpell>"
             "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
             -DPORT=18087
             "-DEXE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}"
-            -P "${WJS_TESTS_DIR}/profiling/check_trace.cmake")
-    list(APPEND WJS_TRACE_TESTS profiling.trace_app)
+            -P "${SNS_TESTS_DIR}/profiling/check_trace.cmake")
+    list(APPEND SNS_TRACE_TESTS profiling.trace_app)
 endif()
-if(WJS_TRACE_TESTS)
+if(SNS_TRACE_TESTS)
     # One at a time, but not alone: the two use ports of their own and share a disk (the
     # lock keeps them apart), and a capture finds a program in about a second, which the
     # other tests running beside it do not stop (they were run alone, with every other
     # core idle for the 48 s they take; see docs/testing.md, "Test cost").
-    set_tests_properties(${WJS_TRACE_TESTS} PROPERTIES
+    set_tests_properties(${SNS_TRACE_TESTS} PROPERTIES
         SKIP_RETURN_CODE 4
         RESOURCE_LOCK tracy_capture
         COST 25
@@ -165,14 +165,14 @@ endif()
 # stands aside (SKIP) in a build that is not optimised, and a skip is not a
 # failure, so a leg of Debug builds passes with the whole tier skipped. This runs
 # the work cases and fails when an optimised build (or a workflow that sets
-# WJS_REQUIRE_PERF_BUDGETS=1) ran none; in any other build it reports itself
+# SNS_REQUIRE_PERF_BUDGETS=1) ran none; in any other build it reports itself
 # skipped (exit 4) with the reason, so it is never a pass that checked nothing.
 add_test(NAME profiling.perf_budgets_ran
     COMMAND "${CMAKE_COMMAND}"
-        "-DPERF_TESTS=$<TARGET_FILE:wjs_perf_tests>"
+        "-DPERF_TESTS=$<TARGET_FILE:sns_perf_tests>"
         "-DEXPECT_RUN=$<IF:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>,1,0>"
         "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/profiling"
-        -P "${WJS_TESTS_DIR}/profiling/check_perf_ran.cmake")
+        -P "${SNS_TESTS_DIR}/profiling/check_perf_ran.cmake")
 set_tests_properties(profiling.perf_budgets_ran PROPERTIES
     SKIP_RETURN_CODE 4
     TIMEOUT 300)
@@ -183,7 +183,7 @@ set_tests_properties(profiling.perf_budgets_ran PROPERTIES
 add_test(NAME toolchain.versions
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/toolchain/check_versions.cmake")
+        -P "${SNS_TESTS_DIR}/toolchain/check_versions.cmake")
 
 # The version is one number: project(VERSION), vcpkg.json and the newest
 # CHANGELOG.md release agree (and the release job runs the same script with the
@@ -193,12 +193,12 @@ add_test(NAME toolchain.version
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         "-DVERSION=${PROJECT_VERSION}"
-        -P "${WJS_TESTS_DIR}/toolchain/check_version.cmake")
+        -P "${SNS_TESTS_DIR}/toolchain/check_version.cmake")
 add_test(NAME toolchain.version.selftest
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/toolchain-version"
-        -P "${WJS_TESTS_DIR}/toolchain/test_check_version.cmake")
+        -P "${SNS_TESTS_DIR}/toolchain/test_check_version.cmake")
 
 # The nightly analysis integration: the presets the workflow names exist with
 # their settings, the workflow is scheduled and stays out of merge_group, and
@@ -207,7 +207,7 @@ add_test(NAME toolchain.version.selftest
 add_test(NAME analysis.config
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/analysis/check_analysis.cmake")
+        -P "${SNS_TESTS_DIR}/analysis/check_analysis.cmake")
 
 # The design's tokens (docs/design/toybox) and the Theme that spends them say the same thing, and the font
 # files are one list in four places (tests/design/check_tokens.cmake). Reads files only, so it runs on every
@@ -215,7 +215,7 @@ add_test(NAME analysis.config
 add_test(NAME design.tokens
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/design/check_tokens.cmake")
+        -P "${SNS_TESTS_DIR}/design/check_tokens.cmake")
 
 # The privacy rules of the first release that the source can say whether they
 # hold (docs/design/application.md, "Privacy, built in and checked"): no audio
@@ -224,7 +224,7 @@ add_test(NAME design.tokens
 add_test(NAME privacy.sources
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/privacy/check_sources.cmake")
+        -P "${SNS_TESTS_DIR}/privacy/check_sources.cmake")
 
 # The scan held to a table of cases on throw-away trees, so that a pattern that
 # stopped matching is a failure and not a pass.
@@ -232,7 +232,7 @@ add_test(NAME privacy.sources.selftest
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/privacy"
-        -P "${WJS_TESTS_DIR}/privacy/test_check_sources.cmake")
+        -P "${SNS_TESTS_DIR}/privacy/test_check_sources.cmake")
 
 # The sentences of the parent area are in one file and are the design's, with
 # none of the words an assessment, a grade or a gap is made of
@@ -240,14 +240,14 @@ add_test(NAME privacy.sources.selftest
 add_test(NAME parent.wording
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/parent/check_wording.cmake")
+        -P "${SNS_TESTS_DIR}/parent/check_wording.cmake")
 add_test(NAME parent.wording.selftest
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/parent-wording"
-        -P "${WJS_TESTS_DIR}/parent/test_check_wording.cmake")
+        -P "${SNS_TESTS_DIR}/parent/test_check_wording.cmake")
 
-set(WJS_QUALITY_TESTS
+set(SNS_QUALITY_TESTS
     design.tokens
     notices.sections
     package.config
@@ -268,23 +268,23 @@ set(WJS_QUALITY_TESTS
     parent.wording
     parent.wording.selftest)
 
-if(WJS_BUILD_APP)
+if(SNS_BUILD_APP)
     # The catalogues in apps/app/translations/ are what lupdate makes from the QML sources now:
     # a qsTr() added (or a line moved) without regenerating them is a failure.
     # It needs the kit's lupdate, so it reports itself skipped (exit 4) when Qt's
     # Linguist tools were not found (docs/ci.md, "The interface's languages").
-    set(WJS_LUPDATE_PATH "")
+    set(SNS_LUPDATE_PATH "")
     if(TARGET Qt6::lupdate)
-        set(WJS_LUPDATE_PATH "$<TARGET_FILE:Qt6::lupdate>")
+        set(SNS_LUPDATE_PATH "$<TARGET_FILE:Qt6::lupdate>")
     endif()
     add_test(NAME i18n.catalogues
         COMMAND "${CMAKE_COMMAND}"
-            "-DLUPDATE=${WJS_LUPDATE_PATH}"
+            "-DLUPDATE=${SNS_LUPDATE_PATH}"
             "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
             "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/i18n-drift"
-            -P "${WJS_TESTS_DIR}/i18n/check_catalogues.cmake")
+            -P "${SNS_TESTS_DIR}/i18n/check_catalogues.cmake")
     set_tests_properties(i18n.catalogues PROPERTIES SKIP_RETURN_CODE 4)
-    list(APPEND WJS_QUALITY_TESTS i18n.catalogues)
+    list(APPEND SNS_QUALITY_TESTS i18n.catalogues)
 endif()
 
 # The release build's phonics gate (tools/data/check_phonics_review.cmake): a
@@ -296,13 +296,13 @@ add_test(NAME data.phonics.review_gate.selftest
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/phonics-review"
         -P "${PROJECT_SOURCE_DIR}/tools/data/test_check_phonics_review.cmake")
-list(APPEND WJS_QUALITY_TESTS data.phonics.review_gate.selftest)
-if(WJS_REQUIRE_REVIEWED_PHONICS)
+list(APPEND SNS_QUALITY_TESTS data.phonics.review_gate.selftest)
+if(SNS_REQUIRE_REVIEWED_PHONICS)
     add_test(NAME data.phonics.review_gate
         COMMAND "${CMAKE_COMMAND}"
             "-DROOT=${PROJECT_SOURCE_DIR}"
             -P "${PROJECT_SOURCE_DIR}/tools/data/check_phonics_review.cmake")
-    list(APPEND WJS_QUALITY_TESTS data.phonics.review_gate)
+    list(APPEND SNS_QUALITY_TESTS data.phonics.review_gate)
 endif()
 
 # The requirements matrix (docs/requirements.md and docs/requirements/): every test
@@ -314,32 +314,32 @@ endif()
 add_test(NAME requirements.matrix
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
-        -P "${WJS_TESTS_DIR}/requirements/check_requirements.cmake")
+        -P "${SNS_TESTS_DIR}/requirements/check_requirements.cmake")
 add_test(NAME requirements.matrix.selftest
     COMMAND "${CMAKE_COMMAND}"
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/requirements-selftest"
-        -P "${WJS_TESTS_DIR}/requirements/test_check_requirements.cmake")
-list(APPEND WJS_QUALITY_TESTS requirements.matrix requirements.matrix.selftest)
+        -P "${SNS_TESTS_DIR}/requirements/test_check_requirements.cmake")
+list(APPEND SNS_QUALITY_TESTS requirements.matrix requirements.matrix.selftest)
 
 # The script checks that run a PowerShell tool over the tree. No preprocessor
 # conditionals or defines, no OS headers outside the platform section, no OS
 # tests in CMake outside the selector: CI runs the isolation check as its own
 # job too; this is the same check, so a developer sees it fail locally.
-find_program(WJS_PWSH NAMES pwsh)
-if(WJS_PWSH)
+find_program(SNS_PWSH NAMES pwsh)
+if(SNS_PWSH)
     # The word lists: lowercase a-z, sorted, unique, and every category and
     # tier word is in the dictionary.
     # The project's dice are what tools/data/make_dice.ps1 makes from the
     # published Scrabble-style letter table: the method and the dice both have
     # to match.
     add_test(NAME data.dice
-        COMMAND "${WJS_PWSH}" -NoProfile -File
+        COMMAND "${SNS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/make_dice.ps1"
             -Root "${PROJECT_SOURCE_DIR}" -Check)
 
     add_test(NAME data.wordlists
-        COMMAND "${WJS_PWSH}" -NoProfile -File
+        COMMAND "${SNS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/check_wordlists.ps1"
             -Root "${PROJECT_SOURCE_DIR}")
 
@@ -347,7 +347,7 @@ if(WJS_PWSH)
     # placeholders are committed, and a hand-edited one (or a name the script
     # does not know) is a failed test rather than a game with a missing cue.
     add_test(NAME data.sounds
-        COMMAND "${WJS_PWSH}" -NoProfile -File
+        COMMAND "${SNS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/sounds/make_sounds.ps1"
             -Root "${PROJECT_SOURCE_DIR}" -Check)
 
@@ -355,29 +355,29 @@ if(WJS_PWSH)
     # is none yet: the files have to be written and reviewed by a person
     # qualified to do it. With the review gate on (a release configuration),
     # a file without its review header fails here as well as in the build.
-    set(WJS_PHONICS_CHECK_ARGS "")
-    if(WJS_REQUIRE_REVIEWED_PHONICS)
-        list(APPEND WJS_PHONICS_CHECK_ARGS -RequireReviewed)
+    set(SNS_PHONICS_CHECK_ARGS "")
+    if(SNS_REQUIRE_REVIEWED_PHONICS)
+        list(APPEND SNS_PHONICS_CHECK_ARGS -RequireReviewed)
     endif()
     add_test(NAME data.phonics
-        COMMAND "${WJS_PWSH}" -NoProfile -File
+        COMMAND "${SNS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/check_phonics.ps1"
-            -Root "${PROJECT_SOURCE_DIR}" ${WJS_PHONICS_CHECK_ARGS})
+            -Root "${PROJECT_SOURCE_DIR}" ${SNS_PHONICS_CHECK_ARGS})
 
     # The checker held to a table of cases on throw-away data: the review gate
     # must refuse what it should, so the gate itself is tested.
     add_test(NAME data.phonics.checker
-        COMMAND "${WJS_PWSH}" -NoProfile -File
+        COMMAND "${SNS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/data/test_check_phonics.ps1")
 
     # The local commit-msg hook's text policy, held to a table of cases: a
     # policy that passes everything is worse than none.
     add_test(NAME policy.text
-        COMMAND "${WJS_PWSH}" -NoProfile -File
+        COMMAND "${SNS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/policy/test_check_text_policy.ps1")
 
     add_test(NAME platform.isolation
-        COMMAND "${WJS_PWSH}" -NoProfile -File
+        COMMAND "${SNS_PWSH}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/checks/check_platform_isolation.ps1"
             -Root "${PROJECT_SOURCE_DIR}")
 
@@ -386,14 +386,14 @@ if(WJS_PWSH)
     # git and pwsh; without them it skips (exit 77) rather than fails, and
     # release-tooling.yml runs it on a runner that has them (docs/ci.md, "Releases").
     add_test(NAME release.tooling
-        COMMAND "${WJS_PWSH}" -NoProfile -File
-            "${WJS_TESTS_DIR}/package/run_release_tools_test.ps1")
+        COMMAND "${SNS_PWSH}" -NoProfile -File
+            "${SNS_TESTS_DIR}/package/run_release_tools_test.ps1")
     set_tests_properties(release.tooling PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300 COST 60)
     # Both start a program for each of their cases; started first, they are not the last
     # thing a -j run waits for (a COST is what ctest orders by when it has no timing).
     set_tests_properties(data.phonics.checker PROPERTIES COST 40)
 
-    list(APPEND WJS_QUALITY_TESTS
+    list(APPEND SNS_QUALITY_TESTS
         data.dice data.wordlists data.sounds data.phonics data.phonics.checker
         policy.text platform.isolation release.tooling)
 endif()
@@ -402,19 +402,19 @@ endif()
 # from the ELF file: PIE, relro with immediate binding, a stack protector and, on x86-64,
 # the control-flow protection note (read from the game library: the linker drops the note from
 # a program when a startup file of the distribution lacks it). Where programs are ELF files
-# (WJS_PLATFORM_EXECUTABLE_FORMAT) and readelf is there to ask.
-if(WJS_ENABLE_HARDENING AND WJS_BUILD_CLI AND WJS_PLATFORM_EXECUTABLE_FORMAT STREQUAL "elf")
-    find_program(WJS_READELF NAMES readelf)
-    if(WJS_READELF)
+# (SNS_PLATFORM_EXECUTABLE_FORMAT) and readelf is there to ask.
+if(SNS_ENABLE_HARDENING AND SNS_BUILD_CLI AND SNS_PLATFORM_EXECUTABLE_FORMAT STREQUAL "elf")
+    find_program(SNS_READELF NAMES readelf)
+    if(SNS_READELF)
         add_test(NAME hardening.binary
             COMMAND "${CMAKE_COMMAND}"
-                "-DPROGRAM=$<TARGET_FILE:wjs-cli>"
-                "-DREADELF=${WJS_READELF}"
+                "-DPROGRAM=$<TARGET_FILE:sns-cli>"
+                "-DREADELF=${SNS_READELF}"
                 "-DARCH=${CMAKE_SYSTEM_PROCESSOR}"
-                "-DARCHIVE=$<TARGET_FILE:wjs_lib>"
-                -P "${WJS_TESTS_DIR}/hardening/check_binary.cmake")
-        list(APPEND WJS_QUALITY_TESTS hardening.binary)
+                "-DARCHIVE=$<TARGET_FILE:sns_lib>"
+                -P "${SNS_TESTS_DIR}/hardening/check_binary.cmake")
+        list(APPEND SNS_QUALITY_TESTS hardening.binary)
     endif()
 endif()
 
-set_tests_properties(${WJS_QUALITY_TESTS} PROPERTIES LABELS "quality")
+set_tests_properties(${SNS_QUALITY_TESTS} PROPERTIES LABELS "quality")

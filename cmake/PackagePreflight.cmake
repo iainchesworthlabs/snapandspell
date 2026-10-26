@@ -15,21 +15,21 @@
 # packages its Debug build, to check the packaging itself), so it has to be asked
 # for by name:
 #
-#   cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON
+#   cpack -D CPACK_SNS_ALLOW_DEV_PACKAGE=ON
 #
 # The two variables below are written into CPackConfig.cmake by
 # cmake/Packaging.cmake; CPack's own -D overrides the second.
 # ---------------------------------------------------------------------------
-if(CPACK_WJS_TRACY AND NOT CPACK_WJS_ALLOW_DEV_PACKAGE)
+if(CPACK_SNS_TRACY AND NOT CPACK_SNS_ALLOW_DEV_PACKAGE)
     message(FATAL_ERROR
         "Refusing to package this build: it was configured with the Tracy profiler "
-        "(WJS_ENABLE_TRACY=ON), which listens on the network. A package is made "
+        "(SNS_ENABLE_TRACY=ON), which listens on the network. A package is made "
         "from a Release preset (the *-release ones in CMakePresets.json), "
         "where it is off.\n"
         "To make a DEVELOPMENT package on purpose (for example to check the "
-        "packaging itself), run: cpack -D CPACK_WJS_ALLOW_DEV_PACKAGE=ON")
+        "packaging itself), run: cpack -D CPACK_SNS_ALLOW_DEV_PACKAGE=ON")
 endif()
-if(CPACK_WJS_TRACY)
+if(CPACK_SNS_TRACY)
     message(WARNING
         "This is a development package: the Tracy profiler is in it. Do not "
         "publish it.")

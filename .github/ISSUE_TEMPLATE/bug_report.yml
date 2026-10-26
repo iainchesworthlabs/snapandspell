@@ -15,9 +15,9 @@ body:
     attributes:
       label: Version
       description: >
-        From `wjs-cli --version`. If you built from source, include the commit
+        From `sns-cli --version`. If you built from source, include the commit
         hash instead.
-      placeholder: "wjs-cli 0.1.0 (Windows)"
+      placeholder: "sns-cli 0.1.0 (Windows)"
     validations:
       required: true
 

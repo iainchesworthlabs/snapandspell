@@ -24,7 +24,7 @@ phonics content. Details are in [Architecture](../architecture.md) and
 | --- | --- | --- |
 | `validate_path`, `are_neighbours` | `path.hpp` | `path_test.cpp` |
 | A reader and checker for the two phase file kinds, the review header, the cumulative `PhaseSet` | `phase_data.hpp` | `phase_data_test.cpp` |
-| `tools/data/check_phonics.ps1`, its self-test, the `WJS_REQUIRE_REVIEWED_PHONICS` build gate | `tools/data`, `CMakeLists.txt` | `data.phonics`, `data.phonics.checker` |
+| `tools/data/check_phonics.ps1`, its self-test, the `SNS_REQUIRE_REVIEWED_PHONICS` build gate | `tools/data`, `CMakeLists.txt` | `data.phonics`, `data.phonics.checker` |
 | `seed_board`, `RecentTargets` | `seeding.hpp` | `seeding_test.cpp` |
 | `GraphemeBinder` | `grapheme_binder.hpp` | `grapheme_binder_test.cpp` |
 | `detect_shakes` | `shake.hpp` | `shake_test.cpp` |
@@ -206,13 +206,13 @@ The library has the solver, the path check, the shake detector and the scanner's
 seam (`Board::parse`). A standard board needed three things, all MVP scope now,
 where the design put them after it. After the author's answers:
 
-1. **A dice model: built.** `wjs::DiceSet` and `wjs::roll`, and the project's own
+1. **A dice model: built.** `sns::DiceSet` and `sns::roll`, and the project's own
    dice for 3x3 to 6x6 in `data/dice`, made by `tools/data/make_dice.ps1` from a
    fixed Scrabble-style English tile-frequency table (2026-10-19), with the
    table, the method and the seed in each header. The tool keeps six different
    letters to a die, one to three vowels and at most one of J K Q V X Z on each,
    30% to 40% vowels and at most 8% S in a set, and Q as `QU`; every shipped size
-   carries a `QU` tile. `wjs::roll_with_placements` returns, with the board, the
+   carries a `QU` tile. `sns::roll_with_placements` returns, with the board, the
    die on each tile and the face of it that is up, which is what a scene that
    draws six faces to a die needs ([Board](board.md#what-the-scene-is-given)).
    Boards from them hold about 32, 102, 194 and 322 dictionary words on average,

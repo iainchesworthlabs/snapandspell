@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/deal.hpp"
+#include "sns/deal.hpp"
 
 #include <random>
 #include <utility>
 
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 std::string_view to_string(DealError error) noexcept {
     switch (error) {
@@ -62,4 +62,4 @@ std::expected<DealtBoard, DealError> deal_standard_board(const DiceSet& dice, co
     return deal_playable(words, rolled, seed, options);
 }
 
-}  // namespace wjs
+}  // namespace sns

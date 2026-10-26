@@ -4,9 +4,9 @@
 #include <filesystem>
 #include <string>
 
-#include "wjs/platform/paths.hpp"
+#include "sns/platform/paths.hpp"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 std::filesystem::path executable_path() {
     // MAX_PATH is not a limit on a long path, so grow until the name fits.
@@ -44,4 +44,4 @@ std::filesystem::path user_data_directory() {
     return path.is_absolute() ? path : std::filesystem::path{};
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

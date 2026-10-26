@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The small capital line above a heading or beside a count: IBM Plex Mono 12,
 // capitals, 0.08 em apart. The capitals come from `font.capitalization`, not

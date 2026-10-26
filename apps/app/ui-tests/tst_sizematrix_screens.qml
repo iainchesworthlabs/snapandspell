@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
-import WordJewelsSolver.Parent
+import SnapAndSpell
+import SnapAndSpell.Parent
 
 // The size matrix over Home, My jewels and the parent area's screens (the gate,
 // the dashboard, the settings, About and Licences): 900x620, 900x1200, 1024x768,

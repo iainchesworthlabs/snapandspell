@@ -8,11 +8,11 @@
 # have their suites; this is the executable's start-up contract - a return code
 # and a sentence on stderr - which nothing else runs.
 #
-# Only registered when WJS_BUILD_APP is on. `QT_QPA_PLATFORM=offscreen` keeps it
+# Only registered when SNS_BUILD_APP is on. `QT_QPA_PLATFORM=offscreen` keeps it
 # display-free; the window may present no frame there, which is exactly what the smoke
 # case asserts (exit 3 and the sentence, not a hang).
 #
-#   -DAPP=<WordJewelsSolver> -DWORK_DIR=<build>/system/app -DCASE=<case>
+#   -DAPP=<SnapAndSpell> -DWORK_DIR=<build>/system/app -DCASE=<case>
 # ---------------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.28)
@@ -47,7 +47,7 @@ endfunction()
 
 function(fail message)
     message(FATAL_ERROR
-        "WordJewelsSolver ${CASE}: ${message}\n"
+        "SnapAndSpell ${CASE}: ${message}\n"
         "  exit: ${RUN_CODE}\n"
         "  stdout:\n${RUN_OUT}\n"
         "  stderr:\n${RUN_ERR}")
@@ -80,7 +80,7 @@ elseif(CASE STREQUAL "damaged-store")
     # said once, and the run goes on - here to the missing word list, which is
     # the next thing that stops it.
     set(_store "${_work}/damaged.store")
-    file(WRITE "${_store}" "this is not a WordJewelsSolver store\n")
+    file(WRITE "${_store}" "this is not a SnapAndSpell store\n")
     run_app(30
         --dictionary "${_work}/no-such-list.txt"
         --store "${_store}")

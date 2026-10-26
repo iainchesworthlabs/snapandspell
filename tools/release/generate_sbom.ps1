@@ -10,8 +10,8 @@
     from the facts the repository already keeps rather than from a scan of the
     binaries (a scan of Qt's DLLs finds Qt, nothing more):
 
-      * the application, wjs-cli and their licences: CMakeLists.txt's version,
-        and notices/fragments (the application binary, the library and wjs-cli
+      * the application, sns-cli and their licences: CMakeLists.txt's version,
+        and notices/fragments (the application binary, the library and sns-cli
         are all GPL-3.0-or-later, and Qt is used under the LGPL);
       * Qt, by module, at the version in .github/toolchain-versions.json and
         under the licence each module is used under - but only if a ZIP in
@@ -62,7 +62,7 @@
     The repository checkout. Default: this script's repository.
 
 .EXAMPLE
-    ./tools/release/generate_sbom.ps1 -Tag v0.1.0 -PackagesDir dist -Output dist/WordJewelsSolver-0.1.0.cdx.json
+    ./tools/release/generate_sbom.ps1 -Tag v0.1.0 -PackagesDir dist -Output dist/SnapAndSpell-0.1.0.cdx.json
 #>
 [CmdletBinding()]
 param(
@@ -157,12 +157,12 @@ $dependsOn = [System.Collections.Generic.List[string]]::new()
 
 $components.Add([ordered]@{
         type        = 'application'
-        'bom-ref'   = 'wjs-cli'
-        name        = 'wjs-cli'
+        'bom-ref'   = 'sns-cli'
+        name        = 'sns-cli'
         version     = $version
         description = 'The command-line solver, built from the same tree and shipped in every desktop package.'
         licenses    = @(New-License 'GPL-3.0-or-later')
-        purl        = "$appRef#wjs-cli"
+        purl        = "$appRef#sns-cli"
     })
 
 if ($hasQt) {
@@ -309,8 +309,8 @@ $references = @(
 $dependsOnSorted = @($dependsOn | Sort-Object -Unique)
 $application = [ordered]@{
     type               = 'application'
-    'bom-ref'          = 'wordjewelssolver'
-    name               = 'WordJewelsSolver'
+    'bom-ref'          = 'snapandspell'
+    name               = 'SnapAndSpell'
     version            = $version
     description        = 'Finds every word on a Boggle board.'
     supplier           = [ordered]@{ name = 'Iain Chesworth'; url = @("https://github.com/$Repository") }
@@ -318,9 +318,9 @@ $application = [ordered]@{
     purl               = $appRef
     externalReferences = $references
     properties         = @(
-        [ordered]@{ name = 'wjs:commit'; value = $Commit },
-        [ordered]@{ name = 'wjs:tracy'; value = 'off' },
-        [ordered]@{ name = 'wjs:licence-note'; value = 'The window binary, the sources and wjs-cli are GPL-3.0-or-later; Qt is used under the LGPL-3.0.' }
+        [ordered]@{ name = 'sns:commit'; value = $Commit },
+        [ordered]@{ name = 'sns:tracy'; value = 'off' },
+        [ordered]@{ name = 'sns:licence-note'; value = 'The window binary, the sources and sns-cli are GPL-3.0-or-later; Qt is used under the LGPL-3.0.' }
     )
 }
 
@@ -342,12 +342,12 @@ $document = [ordered]@{
     }
     components   = @($components)
     dependencies = @(
-        [ordered]@{ ref = 'wordjewelssolver'; dependsOn = @($dependsOnSorted) },
-        [ordered]@{ ref = 'wjs-cli'; dependsOn = @() }
+        [ordered]@{ ref = 'snapandspell'; dependsOn = @($dependsOnSorted) },
+        [ordered]@{ ref = 'sns-cli'; dependsOn = @() }
     )
     compositions = @([ordered]@{
             aggregate  = 'incomplete_third_party_only'
-            assemblies = @('wordjewelssolver')
+            assemblies = @('snapandspell')
         })
 }
 

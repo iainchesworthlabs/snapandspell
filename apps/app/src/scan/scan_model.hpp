@@ -19,11 +19,11 @@
 
 #include "camera_problem.hpp"
 #include "camera_source.hpp"
-#include "wjs/board.hpp"
-#include "wjs/scan/confirmation.hpp"
-#include "wjs/scan/reading.hpp"
+#include "sns/board.hpp"
+#include "sns/scan/confirmation.hpp"
+#include "sns/scan/reading.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 // Why the last capture did not become a reading. QML is given the code
 // (readProblem), and ScanWording.qml the sentence; `none` is the empty code.
@@ -31,7 +31,7 @@ enum class ReadProblem : std::uint8_t {
     none,
     no_camera,  // there was no running camera to capture from
     no_frame,   // the camera gave no frame in the time the screen waits
-    // The reader's own (wjs::scan::ReadError).
+    // The reader's own (sns::scan::ReadError).
     invalid_frame,
     board_not_found,
     size_not_found,
@@ -63,7 +63,7 @@ enum class ReadProblem : std::uint8_t {
 }
 
 // The check screen's model (`scan.ready`, `scan.reading` and `scan.check`): the
-// wjs::scan::BoardDraft a grown-up confirms, the camera's little lifecycle, and
+// sns::scan::BoardDraft a grown-up confirms, the camera's little lifecycle, and
 // nothing else. It is the on-device path of docs/design/game.md, "Mode A":
 //
 //   ready ──capture()──▶ reading ──the reader's reading──▶ check
@@ -76,7 +76,7 @@ enum class ReadProblem : std::uint8_t {
 // for the live view and the capture; a stub shell or a test that does not uses
 // the platform's camera interface instead, which is still the native backend's
 // seam. Frames are read through the platform's board_reader
-// (libs/platforms/interfaces/wjs/platform/board_reader.hpp) and are never kept:
+// (libs/platforms/interfaces/sns/platform/board_reader.hpp) and are never kept:
 // the frame is taken, read and forgotten, and only the BoardReading's letters
 // and doubts remain. A device with no camera offers "Type in your board" with
 // an empty grid (docs/design/game.md, "No camera"); the reading path is the same
@@ -133,7 +133,7 @@ class ScanModel : public QObject {
     // live view's source and the capture path when it can start. Null when the
     // application or a stub shell has none, and then the platform interface is
     // used, as every desktop did before there was a CameraSource.
-    Q_PROPERTY(wjs::app::CameraSource* cameraSource READ cameraSource WRITE setCameraSource NOTIFY
+    Q_PROPERTY(sns::app::CameraSource* cameraSource READ cameraSource WRITE setCameraSource NOTIFY
                    cameraSourceChanged)
 
 public:
@@ -209,10 +209,10 @@ public:
 
     // The reading the camera path fills the draft with, as the reader gave it.
     // Public for the camera path and for the tests: a screen never calls it.
-    bool useReading(const wjs::scan::BoardReading& reading);
+    bool useReading(const sns::scan::BoardReading& reading);
 
     // The confirmed board, for a test to read what "Yes, play" made.
-    [[nodiscard]] const std::optional<wjs::Board>& confirmedBoard() const noexcept {
+    [[nodiscard]] const std::optional<sns::Board>& confirmedBoard() const noexcept {
         return confirmed_;
     }
 
@@ -234,7 +234,7 @@ private:
     // the answer back. The read is the one long piece of work Mode A does
     // (the scanner's budget is in docs/design/scanner.md), and the window keeps
     // drawing while it runs.
-    void readFrame(wjs::scan::OwnedFrame frame);
+    void readFrame(sns::scan::OwnedFrame frame);
     void readFinished();
     void cancelRead();
     void refreshCameraState();
@@ -244,9 +244,9 @@ private:
     [[nodiscard]] bool on_grid(int index) const;
 
     State state_ = State::ready;
-    std::optional<wjs::scan::BoardDraft> draft_;
+    std::optional<sns::scan::BoardDraft> draft_;
     bool draft_from_camera_ = false;
-    std::optional<wjs::Board> confirmed_;
+    std::optional<sns::Board> confirmed_;
 
     QPointer<CameraSource> camera_source_;
     bool camera_available_ = false;
@@ -256,8 +256,8 @@ private:
     // The reader's thread (one, named "scan" in a profile) and the answer it
     // brings back for the frame being read.
     struct ReadResult {
-        std::expected<wjs::scan::BoardReading, wjs::scan::ReadError> reading{
-            std::unexpected(wjs::scan::ReadError::board_not_found)};
+        std::expected<sns::scan::BoardReading, sns::scan::ReadError> reading{
+            std::unexpected(sns::scan::ReadError::board_not_found)};
     };
     QThreadPool reader_pool_;
     QFutureWatcher<ReadResult> reader_;
@@ -266,4 +266,4 @@ private:
     int max_frame_polls_ = 40;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

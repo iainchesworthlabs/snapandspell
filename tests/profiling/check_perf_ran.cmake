@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # A leg that says it holds the work budgets ran them.
 #
-#   cmake -DPERF_TESTS=<wjs_perf_tests> -DEXPECT_RUN=<1|0> -DWORK_DIR=<dir>
+#   cmake -DPERF_TESTS=<sns_perf_tests> -DEXPECT_RUN=<1|0> -DWORK_DIR=<dir>
 #         -P tests/profiling/check_perf_ran.cmake
 #
 # Every case of the performance tier's work budgets stands aside (SKIP) in a
@@ -13,7 +13,7 @@
 # the work cases, and counts those that did not skip.
 #
 #   EXPECT_RUN=1  the build is optimised (CMake says so, from the configuration), or
-#                 the environment variable WJS_REQUIRE_PERF_BUDGETS is set to
+#                 the environment variable SNS_REQUIRE_PERF_BUDGETS is set to
 #                 something other than "" or "0" (a workflow that declares "this leg
 #                 holds the budgets", whatever its configuration). Fails when no case
 #                 ran, and says why.
@@ -35,8 +35,8 @@ foreach(_required IN ITEMS PERF_TESTS EXPECT_RUN WORK_DIR)
 endforeach()
 
 set(_forced FALSE)
-if(DEFINED ENV{WJS_REQUIRE_PERF_BUDGETS} AND NOT "$ENV{WJS_REQUIRE_PERF_BUDGETS}" STREQUAL ""
-        AND NOT "$ENV{WJS_REQUIRE_PERF_BUDGETS}" STREQUAL "0")
+if(DEFINED ENV{SNS_REQUIRE_PERF_BUDGETS} AND NOT "$ENV{SNS_REQUIRE_PERF_BUDGETS}" STREQUAL ""
+        AND NOT "$ENV{SNS_REQUIRE_PERF_BUDGETS}" STREQUAL "0")
     set(_forced TRUE)
 endif()
 if(EXPECT_RUN OR _forced)
@@ -53,7 +53,7 @@ if(NOT _expect)
     message(STATUS
         "SKIPPED: this build is not optimised, so the performance tier's work budgets stand "
         "aside by design; its counts are held by the optimised legs. Set "
-        "WJS_REQUIRE_PERF_BUDGETS=1 in a leg that is meant to hold them.")
+        "SNS_REQUIRE_PERF_BUDGETS=1 in a leg that is meant to hold them.")
     cmake_language(EXIT 4)
 endif()
 
@@ -93,11 +93,11 @@ if(_ran EQUAL 0)
         "This leg is meant to hold the performance tier's work budgets and none of its "
         "${_skipped} cases ran: every one skipped. A budget that does not run holds nothing. "
         "Either the build is not optimised (use a Release or RelWithDebInfo build), or the "
-        "leg should not claim to hold them (unset WJS_REQUIRE_PERF_BUDGETS).")
+        "leg should not claim to hold them (unset SNS_REQUIRE_PERF_BUDGETS).")
 endif()
 if(NOT _skipped EQUAL 0)
     message(FATAL_ERROR
         "${_skipped} of the performance tier's work cases skipped in a build that is meant "
         "to run them all. The only reason the tier stands aside is that a build is not "
-        "optimised; find which case skips and why (wjs_perf_tests \"[perf]~[timing]\" -s).")
+        "optimised; find which case skips and why (sns_perf_tests \"[perf]~[timing]\" -s).")
 endif()

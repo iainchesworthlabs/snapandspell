@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // A titled block of a parent screen: a rule, a heading and the content. The
 // heading is a Heading to assistive technology (Label's role does that), and a

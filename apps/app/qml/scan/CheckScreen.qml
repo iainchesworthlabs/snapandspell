@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // scan.check (docs/design/game.md, "The check screen"): the replica of the real
 // board, upright, with the reader's doubtful tiles ringed, a letter picker, the

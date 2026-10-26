@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // The size matrix over Solo Play's screens: the box, a board in play with a path
 // in hand, the summary sheet and the boards sheet, at 900x620, 900x1200, 1024x768,

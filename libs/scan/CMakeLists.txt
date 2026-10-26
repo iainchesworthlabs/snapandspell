@@ -3,7 +3,7 @@
 # third-party dependency (docs/design/scanner.md, "No image dependency"). It links
 # the game library for Board and nothing else, and the game library does not link
 # it, so the solver stays free of image code.
-add_library(wjs_scan STATIC
+add_library(sns_scan STATIC
     src/board_finder.cpp
     src/confirmation.cpp
     src/geometry.cpp
@@ -12,18 +12,18 @@ add_library(wjs_scan STATIC
     src/reader.cpp
     src/segment.cpp
     src/stroke_font.cpp)
-add_library(wjs::scan ALIAS wjs_scan)
+add_library(sns::scan ALIAS sns_scan)
 
-target_include_directories(wjs_scan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_compile_features(wjs_scan PUBLIC cxx_std_23)
-target_link_libraries(wjs_scan
+target_include_directories(sns_scan PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_compile_features(sns_scan PUBLIC cxx_std_23)
+target_link_libraries(sns_scan
     PUBLIC
-        wjs::lib
+        sns::lib
     PRIVATE
-        wjs::warnings
-        wjs::hardening
-        wjs::sanitizers
-        wjs::coverage)
-if(WJS_ENABLE_FUZZING)
+        sns::warnings
+        sns::hardening
+        sns::sanitizers
+        sns::coverage)
+if(SNS_ENABLE_FUZZING)
     add_subdirectory(fuzz)
 endif()

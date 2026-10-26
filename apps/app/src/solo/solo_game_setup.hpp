@@ -10,12 +10,12 @@
 #include <string>
 #include <vector>
 
+#include "sns/calendar.hpp"
+#include "sns/dice_sets.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/phase_data.hpp"
+#include "sns/store.hpp"
 #include "solo_game.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/dice_sets.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/phase_data.hpp"
-#include "wjs/store.hpp"
 
 // What the real game needs to exist, loaded and owned in one place for the
 // program's whole run: the English word list always, the dice of the standard
@@ -32,7 +32,7 @@
 // docs/design/phonics.md), and a phase given that way is reported as test data
 // unless every file in it carries a complete review header.
 
-namespace wjs::app {
+namespace sns::app {
 
 struct SoloGameOptions {
     // The directory of phase-<x>.graphemes.txt and phase-<x>.words.txt files.
@@ -49,7 +49,7 @@ struct SoloGameOptions {
     // makes a run repeat, which a test and a screenshot want.
     std::optional<std::uint32_t> seed;
     // The device's calendar day. Required: open() refuses without it.
-    std::function<wjs::Day()> today;
+    std::function<sns::Day()> today;
 };
 
 class SoloGameSetup {
@@ -60,7 +60,7 @@ public:
     // them, or it cannot make a board. `store` is the program's own, which must
     // outlive the setup.
     [[nodiscard]] static std::expected<std::unique_ptr<SoloGameSetup>, std::string> open(
-        const SoloGameOptions& options, wjs::Store& store);
+        const SoloGameOptions& options, sns::Store& store);
 
     SoloGameSetup(const SoloGameSetup&) = delete;
     SoloGameSetup& operator=(const SoloGameSetup&) = delete;
@@ -86,14 +86,14 @@ public:
 
     // The phase the game plays; null when no phase directory was given (the
     // standard board).
-    [[nodiscard]] const wjs::PhaseIndex* phase() const noexcept { return phase_; }
+    [[nodiscard]] const sns::PhaseIndex* phase() const noexcept { return phase_; }
     // The English word list every game is played against, and the Family
     // Assistant's words too: the program's Mode A maker is made from the same
     // list (main.cpp).
-    [[nodiscard]] const wjs::Dictionary& dictionary() const noexcept { return dictionary_; }
+    [[nodiscard]] const sns::Dictionary& dictionary() const noexcept { return dictionary_; }
     // Every phase of the directory, which the parent area chooses among. Empty
     // when no phase directory was given.
-    [[nodiscard]] const wjs::PhaseSet& phases() const noexcept { return phases_; }
+    [[nodiscard]] const sns::PhaseSet& phases() const noexcept { return phases_; }
     // Every phase file carried a complete review; otherwise the files are test
     // data. True when no phase directory was given (there is no file to check).
     [[nodiscard]] bool reviewed() const noexcept {
@@ -104,17 +104,17 @@ public:
     }
 
 private:
-    SoloGameSetup(wjs::Dictionary dictionary, wjs::DiceSets dice, wjs::PhaseSet phases,
-                  std::string phase, wjs::Store& store, std::optional<std::uint32_t> seed,
-                  std::function<wjs::Day()> today);
+    SoloGameSetup(sns::Dictionary dictionary, sns::DiceSets dice, sns::PhaseSet phases,
+                  std::string phase, sns::Store& store, std::optional<std::uint32_t> seed,
+                  std::function<sns::Day()> today);
 
-    wjs::Dictionary dictionary_;
-    wjs::DiceSets dice_;
-    wjs::PhaseSet phases_;
-    const wjs::PhaseIndex* phase_;
-    wjs::Store& store_;
+    sns::Dictionary dictionary_;
+    sns::DiceSets dice_;
+    sns::PhaseSet phases_;
+    const sns::PhaseIndex* phase_;
+    sns::Store& store_;
     std::optional<std::uint32_t> seed_;
-    std::function<wjs::Day()> today_;
+    std::function<sns::Day()> today_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "solo_layout.hpp"
 
-#include "wjs/board.hpp"
+#include "sns/board.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
 [[nodiscard]] std::size_t count(int size) {
@@ -80,4 +80,4 @@ qreal BoardGeometry::side(qreal width, qreal height, int size) const {
     return board_metrics(width, height, count(size)).side;
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

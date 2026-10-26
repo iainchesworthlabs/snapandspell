@@ -9,19 +9,19 @@
 #include <vector>
 
 #include "qt_text.hpp"
-#include "wjs/board.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/board.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 namespace {
 
-[[nodiscard]] QString tier_name(wjs::Tier tier) {
+[[nodiscard]] QString tier_name(sns::Tier tier) {
     switch (tier) {
-        case wjs::Tier::spark:
+        case sns::Tier::spark:
             return QStringLiteral("spark");
-        case wjs::Tier::power:
+        case sns::Tier::power:
             return QStringLiteral("power");
-        case wjs::Tier::mega:
+        case sns::Tier::mega:
             return QStringLiteral("mega");
     }
     return QStringLiteral("spark");
@@ -36,14 +36,14 @@ namespace {
 }
 
 // The board as Board::parse reads it: spaces between tiles, '/' between rows.
-[[nodiscard]] std::optional<wjs::Board> board_from(int rows, int columns,
+[[nodiscard]] std::optional<sns::Board> board_from(int rows, int columns,
                                                    const QStringList& letters) {
     if (rows <= 0 || columns <= 0) {
         return std::nullopt;
     }
     // A grid no larger than the library's boards: the product below cannot wrap.
-    if (rows > static_cast<int>(wjs::Board::max_dimension) ||
-        columns > static_cast<int>(wjs::Board::max_dimension)) {
+    if (rows > static_cast<int>(sns::Board::max_dimension) ||
+        columns > static_cast<int>(sns::Board::max_dimension)) {
         return std::nullopt;
     }
     const auto height = static_cast<std::size_t>(rows);
@@ -70,7 +70,7 @@ namespace {
             text.append(bytes.constData(), static_cast<std::size_t>(bytes.size()));
         }
     }
-    auto board = wjs::Board::parse(text);
+    auto board = sns::Board::parse(text);
     // The grid that was asked for, and no other.
     if (!board || board->rows() != height || board->columns() != width) {
         return std::nullopt;
@@ -81,7 +81,7 @@ namespace {
 }  // namespace
 
 AssistModel::AssistModel(QObject* parent)
-    : AssistModel([](wjs::Board board) { return make_assist_game(std::move(board)); }, parent) {}
+    : AssistModel([](sns::Board board) { return make_assist_game(std::move(board)); }, parent) {}
 
 AssistModel::AssistModel(AssistGameMaker maker, QObject* parent)
     : QObject(parent), maker_(std::move(maker)) {}
@@ -103,7 +103,7 @@ QStringList AssistModel::tiles() const {
     if (!game_) {
         return list;
     }
-    const wjs::Board& board = game_->board();
+    const sns::Board& board = game_->board();
     list.reserve(static_cast<qsizetype>(board.rows() * board.columns()));
     for (std::size_t row = 0; row < board.rows(); ++row) {
         for (std::size_t column = 0; column < board.columns(); ++column) {
@@ -119,7 +119,7 @@ QVariantList AssistModel::indices() const {
         return list;
     }
     const std::size_t columns = game_->board().columns();
-    for (const wjs::Position& position : tracer_.path()) {
+    for (const sns::Position& position : tracer_.path()) {
         list.append(static_cast<int>(position.row * columns + position.column));
     }
     return list;
@@ -129,7 +129,7 @@ QString AssistModel::lettersAt(Position position) const {
     if (!game_) {
         return {};
     }
-    const wjs::Board& board = game_->board();
+    const sns::Board& board = game_->board();
     if (!board.contains(position)) {
         return {};
     }
@@ -190,7 +190,7 @@ void AssistModel::resetTracer() {
         last_path_size_ = 0;
         return;
     }
-    const wjs::Board& board = game_->board();
+    const sns::Board& board = game_->board();
     std::vector<bool> usable(board.rows() * board.columns(), true);
     tracer_.setBoard(board.rows(), board.columns(), std::move(usable));
     last_path_size_ = 0;
@@ -199,7 +199,7 @@ void AssistModel::resetTracer() {
 void AssistModel::refreshHelp() {
     int tile = -1;
     if (game_) {
-        if (const std::optional<wjs::Position> lit = game_->litTile()) {
+        if (const std::optional<sns::Position> lit = game_->litTile()) {
             tile = static_cast<int>(lit->row * game_->board().columns() + lit->column);
         }
     }
@@ -213,11 +213,11 @@ bool AssistModel::begin(int rows, int columns, const QStringList& letters) {
     // "Yes, play": the grown-up waits for the whole of this, which is the board's
     // parsing, the game's making (its solve is assist.solve) and the old round's
     // record.
-    const auto zone = wjs::profiling::zone<"assist.confirm">();
+    const auto zone = sns::profiling::zone<"assist.confirm">();
     if (!maker_) {
         return false;
     }
-    std::optional<wjs::Board> board = board_from(rows, columns, letters);
+    std::optional<sns::Board> board = board_from(rows, columns, letters);
     if (!board) {
         return false;
     }
@@ -288,7 +288,7 @@ void AssistModel::submitPath() {
         emit pathChanged();
         return;
     }
-    const std::vector<wjs::Position> path = tracer_.path();
+    const std::vector<sns::Position> path = tracer_.path();
     const QVariantList traced_path = indices();
     tracer_.clear();
     last_path_size_ = 0;
@@ -371,4 +371,4 @@ void AssistModel::askHelp() {
     refreshHelp();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

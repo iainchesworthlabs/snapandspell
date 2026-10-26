@@ -213,8 +213,8 @@ jobs:
       contents: read
     env:
       # What each leg builds with; the steps read these where they used to read the matrix.
-      WJS_PRESET: ${{ fromJSON('{"windows":"windows-msvc-debug","linux":"linux-gcc-debug","macos":"macos-clang-debug","profiling-windows":"windows-msvc-profiling","profiling-linux":"linux-gcc-profiling","profiling-macos":"macos-clang-profiling"}')[matrix.leg] }}
-      WJS_TRIPLET: ${{ fromJSON('{"windows":"x64-windows","linux":"x64-linux","macos":"arm64-osx","profiling-windows":"x64-windows","profiling-linux":"x64-linux","profiling-macos":"arm64-osx"}')[matrix.leg] }}
+      SNS_PRESET: ${{ fromJSON('{"windows":"windows-msvc-debug","linux":"linux-gcc-debug","macos":"macos-clang-debug","profiling-windows":"windows-msvc-profiling","profiling-linux":"linux-gcc-profiling","profiling-macos":"macos-clang-profiling"}')[matrix.leg] }}
+      SNS_TRIPLET: ${{ fromJSON('{"windows":"x64-windows","linux":"x64-linux","macos":"arm64-osx","profiling-windows":"x64-windows","profiling-linux":"x64-linux","profiling-macos":"arm64-osx"}')[matrix.leg] }}
     strategy:
       fail-fast: false
       matrix:
@@ -247,7 +247,7 @@ jobs:
         id: vcpkg-cache
         uses: ./.github/actions/vcpkg-cache/restore
         with:
-          triplet: ${{ env.WJS_TRIPLET }}
+          triplet: ${{ env.SNS_TRIPLET }}
 
       - name: Install CMake 4 + Ninja
         uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
@@ -303,7 +303,7 @@ jobs:
         id: ccache
         uses: ./.github/actions/ccache/setup
         with:
-          preset: ${{ env.WJS_PRESET }}
+          preset: ${{ env.SNS_PRESET }}
 
       # GCC 16, the floor in the standard, from the pin in .github/toolchain-versions.json.
       # Ubuntu 26.04 carries it as a pre-release snapshot until the release is
@@ -341,16 +341,16 @@ jobs:
       - name: Configure
         shell: bash
         env:
-          CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          CMAKE_PRESET: ${{ env.SNS_PRESET }}
           LEG: ${{ matrix.leg }}
           QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
         run: |
           if [ "$LEG" = "windows" ]; then
             # /Z7 puts the debug information in the objects, which is what
             # ccache can store (a shared .pdb it cannot).
-            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
+            cmake --preset "$CMAKE_PRESET" -DSNS_BUILD_APP=ON               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
           else
-            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF
+            cmake --preset "$CMAKE_PRESET" -DSNS_BUILD_APP=OFF
           fi
 
       # vcpkg has built whatever was missing by the end of Configure, so the
@@ -361,13 +361,13 @@ jobs:
       - name: Save vcpkg binaries (built, before the build)
         uses: ./.github/actions/vcpkg-cache/save
         with:
-          triplet: ${{ env.WJS_TRIPLET }}
+          triplet: ${{ env.SNS_TRIPLET }}
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
       - name: Build
         shell: bash
         env:
-          CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          CMAKE_PRESET: ${{ env.SNS_PRESET }}
         run: cmake --build --preset "$CMAKE_PRESET"
 
       # Offered as soon as the objects exist, not in the last step: the test run
@@ -377,7 +377,7 @@ jobs:
         if: ${{ always() && matrix.leg == 'windows' }}
         uses: ./.github/actions/ccache/save
         with:
-          preset: ${{ env.WJS_PRESET }}
+          preset: ${{ env.SNS_PRESET }}
 
       # The test preset errors out when no test is found, so an empty suite
       # cannot pass. The offscreen platform lets the Qt Quick screens run on a
@@ -385,7 +385,7 @@ jobs:
       - name: Test
         shell: bash
         env:
-          CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          CMAKE_PRESET: ${{ env.SNS_PRESET }}
           QT_QPA_PLATFORM: offscreen
           # The offscreen plugin draws text with the fonts in this directory and
           # finds none of its own on Windows: the screen checks and the glyph
@@ -412,7 +412,7 @@ jobs:
         if: matrix.leg == 'windows'
         shell: bash
         env:
-          CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          CMAKE_PRESET: ${{ env.SNS_PRESET }}
         run: ctest --preset "$CMAKE_PRESET" -R '^i18n\.catalogues$' --output-on-failure
 
       # The window starts, loads every screen and presents frames, on the leg
@@ -423,10 +423,10 @@ jobs:
         if: matrix.leg == 'windows'
         shell: bash
         env:
-          CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          CMAKE_PRESET: ${{ env.SNS_PRESET }}
           QT_QPA_PLATFORM: offscreen
           QSG_RHI_BACKEND: opengl
-        run: build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
+        run: build/"$CMAKE_PRESET"/bin/SnapAndSpell.exe --smoke 60
 
       # A picture of every screen and dialog, from the offscreen app, for a reviewer to look at
       # (docs/testing.md, "Screenshots"): the Toybox restyle is checked against its mockups with
@@ -437,17 +437,17 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          CMAKE_PRESET: ${{ env.SNS_PRESET }}
           QT_QPA_PLATFORM: offscreen
           QSG_RHI_BACKEND: opengl
-        run: cmake --build --preset "$CMAKE_PRESET" --target wjs_screenshots
+        run: cmake --build --preset "$CMAKE_PRESET" --target sns_screenshots
 
       - name: Upload the screenshots (Windows)
         if: matrix.leg == 'windows' && !cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: screenshots
-          path: build/${{ env.WJS_PRESET }}/screenshots/*.png
+          path: build/${{ env.SNS_PRESET }}/screenshots/*.png
           if-no-files-found: ignore
           retention-days: 14
 
@@ -459,7 +459,7 @@ jobs:
       # ZIP with CPack, checks the archive carries the two programs, Qt's DLLs,
       # plugins and QML modules, the dictionary, the dice,
       # NOTICES.txt and LICENSE.txt, writes SHA256SUMS, unpacks it, solves a
-      # board with the packaged wjs-cli and runs the packaged window's offscreen
+      # board with the packaged sns-cli and runs the packaged window's offscreen
       # smoke (docs/building.md#checking-a-package). This leg packages its
       # Debug build, so the artifact is a development build and carries
       # TracyClient.dll by design; the packages that ship come from the
@@ -471,7 +471,7 @@ jobs:
         if: matrix.leg == 'windows'
         shell: pwsh
         env:
-          CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          CMAKE_PRESET: ${{ env.SNS_PRESET }}
         run: ./tools/package/check_package.ps1 -Build "build/$env:CMAKE_PRESET"
 
       - name: Upload the package (Windows)
@@ -480,10 +480,10 @@ jobs:
         with:
           # A development package: Debug, with Tracy and the ASan runtime. The
           # name says so, so that it is never taken for the release one.
-          name: wordjewelssolver-windows-x64-debug-dev
+          name: snapandspell-windows-x64-debug-dev
           path: |
-            build/${{ env.WJS_PRESET }}/packages/*.zip
-            build/${{ env.WJS_PRESET }}/packages/SHA256SUMS
+            build/${{ env.SNS_PRESET }}/packages/*.zip
+            build/${{ env.SNS_PRESET }}/packages/SHA256SUMS
           if-no-files-found: error
 
       # Saved even when a later step fails: otherwise a red leg throws away
@@ -493,7 +493,7 @@ jobs:
         if: ${{ always() }}
         uses: ./.github/actions/vcpkg-cache/save
         with:
-          triplet: ${{ env.WJS_TRIPLET }}
+          triplet: ${{ env.SNS_TRIPLET }}
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
   # The performance tier's work budgets (libs/core/bench; docs/testing.md,
@@ -539,18 +539,18 @@ jobs:
           ninjaVersion: "1.13.2"
 
       - name: Configure
-        run: cmake --preset linux-gcc-release -DWJS_BUILD_APP=OFF
+        run: cmake --preset linux-gcc-release -DSNS_BUILD_APP=OFF
 
       - name: Build
         run: cmake --build --preset linux-gcc-release
 
       # Everything in ctest, so that the Release build is proven too: the unit
       # tests, the two repository checks and the work budgets. The wall-time
-      # cases skip themselves (WJS_PERF_TIMING is not set).
+      # cases skip themselves (SNS_PERF_TIMING is not set).
       - name: Test
         run: ctest --preset linux-gcc-release -j "$(nproc)" --timeout 900
 
-      # Only by hand: the *-perf test preset sets WJS_PERF_TIMING and selects
+      # Only by hand: the *-perf test preset sets SNS_PERF_TIMING and selects
       # the perf label, and the timing cases run alone (RUN_SERIAL).
       - name: Wall-time checks (manual runs only)
         if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -748,7 +748,7 @@ jobs:
         shell: bash
         env:
           QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/msvc2022_64
-        run: cmake --preset windows-msvc-release -DWJS_BUILD_TESTS=OFF -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        run: cmake --preset windows-msvc-release -DSNS_BUILD_TESTS=OFF -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: cmake --build --preset windows-msvc-release
@@ -772,7 +772,7 @@ jobs:
       - name: Upload the package
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: wordjewelssolver-windows-x64
+          name: snapandspell-windows-x64
           path: |
             build/windows-msvc-release/packages/*.zip
             build/windows-msvc-release/packages/SHA256SUMS
@@ -853,14 +853,14 @@ jobs:
           fi
 
       - name: Configure
-        run: cmake --preset linux-gcc-coverage -DWJS_BUILD_APP=OFF
+        run: cmake --preset linux-gcc-coverage -DSNS_BUILD_APP=OFF
 
       - name: Build
         run: cmake --build --preset linux-gcc-coverage
 
       # Every tier except the ones that need a window, a camera or a quiet machine: the
       # unit, integration and system tiers of the library, the scanner and the command
-      # line. The window's own tiers are not built here (-DWJS_BUILD_APP=OFF).
+      # line. The window's own tiers are not built here (-DSNS_BUILD_APP=OFF).
       - name: Tests (unit, integration and system tiers)
         run: ctest --preset linux-gcc-coverage -LE "gui|perf|camera" -j "$(nproc)" --timeout 900
 

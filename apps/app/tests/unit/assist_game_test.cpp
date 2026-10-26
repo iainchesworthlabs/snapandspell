@@ -8,13 +8,13 @@
 #include <vector>
 
 #include "assist_game.hpp"
-#include "wjs/board.hpp"
-#include "wjs/calendar.hpp"
-#include "wjs/dictionary.hpp"
-#include "wjs/game_rules.hpp"
-#include "wjs/scan/confirmation.hpp"
-#include "wjs/session_store.hpp"
-#include "wjs/store.hpp"
+#include "sns/board.hpp"
+#include "sns/calendar.hpp"
+#include "sns/dictionary.hpp"
+#include "sns/game_rules.hpp"
+#include "sns/scan/confirmation.hpp"
+#include "sns/session_store.hpp"
+#include "sns/store.hpp"
 
 // The Family Assistant's port (apps/app/src/scan/assist_game.*): a typed board, as the
 // check screen makes one, through BoardDraft::confirm() to AssistGame. It holds
@@ -29,12 +29,12 @@
 
 namespace {
 
-using wjs::Position;
+using sns::Position;
 
-constexpr wjs::Day today = wjs::day_from_civil(2026, 10, 19);
+constexpr sns::Day today = sns::day_from_civil(2026, 10, 19);
 
-wjs::Dictionary dictionary_with(std::initializer_list<std::string_view> words) {
-    wjs::Dictionary dictionary;
+sns::Dictionary dictionary_with(std::initializer_list<std::string_view> words) {
+    sns::Dictionary dictionary;
     for (const std::string_view word : words) {
         REQUIRE(dictionary.insert(word));
     }
@@ -44,9 +44,9 @@ wjs::Dictionary dictionary_with(std::initializer_list<std::string_view> words) {
 // A board typed into an empty check screen: one letter a tile, one char a row.
 // This is the check screen's own road to a Board (BoardDraft::empty, set_tile,
 // confirm), not a Board made around it.
-wjs::Board typed_board(std::initializer_list<std::string_view> rows) {
+sns::Board typed_board(std::initializer_list<std::string_view> rows) {
     const std::size_t side = rows.size();
-    auto draft = wjs::scan::BoardDraft::empty(side, side);
+    auto draft = sns::scan::BoardDraft::empty(side, side);
     REQUIRE(draft.has_value());
     std::size_t row_index = 0;
     for (const std::string_view row : rows) {
@@ -68,7 +68,7 @@ wjs::Board typed_board(std::initializer_list<std::string_view> rows) {
 //   X Y Z
 //
 // SAT, SIT, PINT, TAP and PIN are traceable on it; SAP is not a word.
-wjs::Board the_board() {
+sns::Board the_board() {
     return typed_board({"SAT", "PIN", "XYZ"});
 }
 
@@ -84,10 +84,10 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
           "[app][scan][assist]") {
     // What counts on this board, and the English words that tell a real word from
     // a string of letters. Only SAT, SIT and PINT count here.
-    const wjs::Dictionary dictionary = dictionary_with({"SAT", "SIT", "PINT", "TAP", "PIN", "NIP"});
-    const wjs::Dictionary active = dictionary_with({"SAT", "SIT", "PINT"});
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::app::AssistGame game(the_board(), dictionary, active, store, [] { return today; });
+    const sns::Dictionary dictionary = dictionary_with({"SAT", "SIT", "PINT", "TAP", "PIN", "NIP"});
+    const sns::Dictionary active = dictionary_with({"SAT", "SIT", "PINT"});
+    sns::Store store = sns::Store::in_memory();
+    sns::app::AssistGame game(the_board(), dictionary, active, store, [] { return today; });
 
     CHECK(game.board().rows() == 3);
     CHECK(game.board().columns() == 3);
@@ -102,23 +102,23 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
     CHECK(game.litTile() == Position{0, 0});
 
     SECTION("viable, real-not-today's and not a word") {
-        const wjs::app::AssistTraceOutcome real = game.submit(tap);
-        CHECK(real.kind == wjs::app::AssistWordKind::realNotTodays);
+        const sns::app::AssistTraceOutcome real = game.submit(tap);
+        CHECK(real.kind == sns::app::AssistWordKind::realNotTodays);
         // The design never shows or reads a word that is not today's: the
         // outcome carries none.
         CHECK(real.found.word.empty());
         CHECK(game.found().empty());
 
-        const wjs::app::AssistTraceOutcome other = game.submit(sap);
-        CHECK(other.kind == wjs::app::AssistWordKind::notAWord);
+        const sns::app::AssistTraceOutcome other = game.submit(sap);
+        CHECK(other.kind == sns::app::AssistWordKind::notAWord);
         CHECK(other.found.word.empty());
         CHECK(game.found().empty());
 
         // A real word that counts: a jewel, its tier and its stars.
-        const wjs::app::AssistTraceOutcome found = game.submit(sat);
-        CHECK(found.kind == wjs::app::AssistWordKind::viable);
+        const sns::app::AssistTraceOutcome found = game.submit(sat);
+        CHECK(found.kind == sns::app::AssistWordKind::viable);
         CHECK(found.found.word == "sat");
-        CHECK(found.found.tier == wjs::Tier::spark);
+        CHECK(found.found.tier == sns::Tier::spark);
         CHECK(found.found.stars == 1);
         CHECK_FALSE(found.alreadyFound);
         // The start tile was lit for this word when it was found.
@@ -127,8 +127,8 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
         CHECK(game.stars() == 1);
 
         // The same word again: no new jewel.
-        const wjs::app::AssistTraceOutcome again = game.submit(sat);
-        CHECK(again.kind == wjs::app::AssistWordKind::viable);
+        const sns::app::AssistTraceOutcome again = game.submit(sat);
+        CHECK(again.kind == sns::app::AssistWordKind::viable);
         CHECK(again.alreadyFound);
         CHECK(game.found().size() == 1);
         CHECK(game.stars() == 1);
@@ -140,14 +140,14 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
         // The next shortest is SIT. Finding PINT while it is lit leaves the light
         // where it was: that word is not found.
         CHECK(game.showStart() == Position{0, 0});
-        const wjs::app::AssistTraceOutcome longer = game.submit(pint);
-        CHECK(longer.kind == wjs::app::AssistWordKind::viable);
+        const sns::app::AssistTraceOutcome longer = game.submit(pint);
+        CHECK(longer.kind == sns::app::AssistWordKind::viable);
         CHECK_FALSE(longer.found.assisted);
         CHECK(game.litTile() == Position{0, 0});
 
         // SIT at last; then nothing is left, and the same question answers
         // nothing rather than another word.
-        const wjs::app::AssistTraceOutcome shortest = game.submit(sit);
+        const sns::app::AssistTraceOutcome shortest = game.submit(sit);
         CHECK(shortest.found.assisted);
         CHECK_FALSE(game.litTile().has_value());
         CHECK_FALSE(game.showStart().has_value());
@@ -155,10 +155,10 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
     }
 
     SECTION("what a board leaves in the store") {
-        CHECK(game.submit(sat).kind == wjs::app::AssistWordKind::viable);
+        CHECK(game.submit(sat).kind == sns::app::AssistWordKind::viable);
         CHECK(game.showStart() == Position{0, 0});  // SIT
-        CHECK(game.submit(pint).kind == wjs::app::AssistWordKind::viable);
-        CHECK(game.submit(sit).kind == wjs::app::AssistWordKind::viable);
+        CHECK(game.submit(pint).kind == sns::app::AssistWordKind::viable);
+        CHECK(game.submit(sit).kind == sns::app::AssistWordKind::viable);
 
         CHECK(store.data().boards.empty());
         game.leave();
@@ -167,7 +167,7 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
         CHECK(game.recorded());
 
         REQUIRE(store.data().boards.size() == 1);
-        const wjs::StoredBoard& board = store.data().boards.front();
+        const sns::StoredBoard& board = store.data().boards.front();
         CHECK(board.size == 3);
         CHECK(board.phase.empty());  // the standard board's form
         CHECK(board.tiles == "S,A,T/P,I,N/X,Y,Z");
@@ -177,7 +177,7 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
         CHECK(board.stars == 4);
         CHECK(board.cleared);  // all three words that counted were found
 
-        const std::vector<wjs::FindRecord> finds = wjs::finds_on_board(store.data(), board.serial);
+        const std::vector<sns::FindRecord> finds = sns::finds_on_board(store.data(), board.serial);
         REQUIRE(finds.size() == 3);
         CHECK(finds[0].word == "sat");
         CHECK(finds[0].start_tile_used);
@@ -191,7 +191,7 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
         CHECK(store.data().stars == 4);
 
         // The panel's history: the board left, newest first, with its finds.
-        const std::vector<wjs::app::AssistHistoryEntry> history = game.history();
+        const std::vector<sns::app::AssistHistoryEntry> history = game.history();
         REQUIRE(history.size() == 1);
         CHECK(history.front().rows == 3);
         CHECK(history.front().columns == 3);
@@ -205,17 +205,17 @@ TEST_CASE("a typed board is played for the words that count, and one of today's 
 
 TEST_CASE("the standard board counts every real word and the middle state never arises",
           "[app][scan][assist]") {
-    const wjs::Dictionary dictionary = dictionary_with({"SAT", "SIT", "PINT", "TAP", "PIN", "NIP"});
-    wjs::Store store = wjs::Store::in_memory();
-    wjs::app::AssistGame game(the_board(), dictionary, store, [] { return today; });
+    const sns::Dictionary dictionary = dictionary_with({"SAT", "SIT", "PINT", "TAP", "PIN", "NIP"});
+    sns::Store store = sns::Store::in_memory();
+    sns::app::AssistGame game(the_board(), dictionary, store, [] { return today; });
 
     // Every word of the dictionary that is on the board counts: SAT, SIT, PINT,
     // TAP and PIN (NIP too).
     CHECK(game.viableCount() == 6);
 
     // A real word is viable here, and a string of letters still is not.
-    CHECK(game.submit(tap).kind == wjs::app::AssistWordKind::viable);
-    CHECK(game.submit(sap).kind == wjs::app::AssistWordKind::notAWord);
+    CHECK(game.submit(tap).kind == sns::app::AssistWordKind::viable);
+    CHECK(game.submit(sap).kind == sns::app::AssistWordKind::notAWord);
     CHECK(game.found().size() == 1);
     CHECK(game.found().front().word == "tap");
 

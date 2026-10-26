@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <emscripten.h>
 
-#include "wjs/platform/haptics.hpp"
+#include "sns/platform/haptics.hpp"
 
 // Emscripten's EM_ASM names its arguments $0, $1 ...; clang calls a dollar in an identifier an
 // extension and the project's warnings are errors.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 // The browser's Vibration API, which Chrome on Android has and Safari and the desktops do not:
 // where it is missing, or the browser refuses (it wants a tap first, and a page in the
@@ -27,6 +27,6 @@ bool vibrate(HapticPattern pattern) {
     // clang-format on
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform
 
 #pragma clang diagnostic pop

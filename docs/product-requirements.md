@@ -1,4 +1,4 @@
-# Product requirements: WordJewelsSolver
+# Product requirements: SnapAndSpell
 
 A Boggle game and companion for young children. This is the product document
 the [roadmap](roadmap.md) is built from. It records the author's brief as it
@@ -21,13 +21,13 @@ assumptions are questions (58 to 69) to confirm, not decisions.
 
 ## 1. Overview
 
-WordJewelsSolver is an interactive app for 5- and 6-year-olds (Kindergarten and
+SnapAndSpell is an interactive app for 5- and 6-year-olds (Kindergarten and
 Year 1) to build reading and vocabulary skills through the mechanics of Boggle.
 It has two functions: a standalone digital game, and a smart companion for
 physical family play. The goal is educational engagement: celebrating success
 and guiding young readers without doing all the work for them.
 
-The name is **WordJewelsSolver** (decided 2026-10-16). The brief's earlier
+The name is **SnapAndSpell** (decided 2026-10-16). The brief's earlier
 working name, WordJuels, is retired.
 
 Text is minimal and the interface is highly visual and audio-driven.
@@ -399,7 +399,7 @@ Cubeulator resolves it with macro-only variant headers chosen by CMake; here a
 macro-free route through Tracy's runtime source-location API is built and
 settled ([Performance](design/performance.md)), and the instrumented build
 listens on a TCP port, which is why no release carries it.
-The solver measures about 76 ms for a whole `wjs-cli` run (loading 172,823 words
+The solver measures about 76 ms for a whole `sns-cli` run (loading 172,823 words
 and solving) in a Release build on a desktop; nothing has been measured on a
 tablet.
 

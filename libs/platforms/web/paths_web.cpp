@@ -7,31 +7,31 @@
 #include <QString>
 #include <filesystem>
 
-#include "wjs/platform/paths.hpp"
+#include "sns/platform/paths.hpp"
 
-namespace wjs::platform {
+namespace sns::platform {
 
 namespace {
 
-// The resource tree the data was compiled into (wjs_platform_configure_app in
-// platform.cmake, WJS_WEB_DATA_RESOURCE_PREFIX): dictionaries/en.txt and dice/3x3.txt to
+// The resource tree the data was compiled into (sns_platform_configure_app in
+// platform.cmake, SNS_WEB_DATA_RESOURCE_PREFIX): dictionaries/en.txt and dice/3x3.txt to
 // 6x6.txt, the files a desktop build copies beside its executable.
-constexpr auto resource_root = ":/wjs-web-data";
+constexpr auto resource_root = ":/sns-web-data";
 
 // Where the data is laid down: a directory of the in-memory file system, which is empty at every
 // page load and so needs no check that a file is already the same. Not under the persistent
 // directory: the program's own files are not what a person keeps, and they would otherwise be
 // written to IndexedDB at every sync.
-constexpr auto data_directory = "/wjs-program-data";
+constexpr auto data_directory = "/sns-program-data";
 
 // The name the "executable" has in that directory. Only its directory is ever used: the program
 // looks for `dictionaries/` and `dice/` beside it.
-constexpr auto executable_name = "WordJewelsSolver";
+constexpr auto executable_name = "SnapAndSpell";
 
-// The directory the boot script (packaging/wjs-boot.js) mounts as IndexedDB before main() runs,
-// and the program's per-user data lives below it: wjs-boot.js sets XDG_DATA_HOME to it, which is
+// The directory the boot script (packaging/sns-boot.js) mounts as IndexedDB before main() runs,
+// and the program's per-user data lives below it: sns-boot.js sets XDG_DATA_HOME to it, which is
 // where Qt's AppLocalDataLocation (the store's directory, apps/app/src/main.cpp) comes from.
-// tests/platform/check_web.cmake holds this, platform.cmake and wjs-boot.js to one name.
+// tests/platform/check_web.cmake holds this, platform.cmake and sns-boot.js to one name.
 constexpr auto persistent_directory = "/persist";
 
 // Copies the resources to the in-memory file system and says where they are. The dictionary
@@ -66,7 +66,7 @@ std::filesystem::path user_data_directory() {
     // The person's own place: the persistent directory if the page mounted it, and the same
     // path in memory if it could not (IndexedDB is refused in some private windows), where the
     // game still works and keeps nothing past the page.
-    return std::filesystem::path{persistent_directory} / "wjs";
+    return std::filesystem::path{persistent_directory} / "sns";
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

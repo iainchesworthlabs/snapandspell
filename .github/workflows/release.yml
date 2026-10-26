@@ -147,11 +147,11 @@ jobs:
   # builds, runs the whole ctest suite, packages, smoke-tests what it packaged and
   # checks what is in it.
   #
-  #   windows    the Qt Quick application and wjs-cli: ZIP and NSIS installer
-  #   linux      wjs-cli: ZIP, tar.gz, deb, rpm (the distributions' own formats
+  #   windows    the Qt Quick application and sns-cli: ZIP and NSIS installer
+  #   linux      sns-cli: ZIP, tar.gz, deb, rpm (the distributions' own formats
   #              cannot carry a Qt 6.12 application, so they are the solver's)
   #   linux-app  the application as an AppImage that carries Qt
-  #   macos      the application bundle and wjs-cli: a disk image, signed and
+  #   macos      the application bundle and sns-cli: a disk image, signed and
   #              notarised when the signing secrets exist
   #
   # The Qt kit is the one in .github/toolchain-versions.json for each host. The
@@ -306,7 +306,7 @@ jobs:
           QT_ROOT_DIR: ${{ runner.temp }}/Qt/6.12.0/${{ matrix.qt-dir }}
           # rc.1 for v0.1.0-rc.1: the packages then carry 0.1.0-rc.1 and not 0.1.0.
           PRERELEASE: ${{ needs.prepare.outputs.suffix }}
-        run: cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP="$APP" -DWJS_PACKAGE_PRERELEASE="$PRERELEASE"
+        run: cmake --preset "$CMAKE_PRESET" -DSNS_BUILD_APP="$APP" -DSNS_PACKAGE_PRERELEASE="$PRERELEASE"
 
       - name: Build
         shell: bash
@@ -337,9 +337,9 @@ jobs:
           QSG_RHI_BACKEND: opengl
         run: |
           if [ "$RUNNER_OS" = Windows ]; then
-            build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
+            build/"$CMAKE_PRESET"/bin/SnapAndSpell.exe --smoke 60
           else
-            build/"$CMAKE_PRESET"/bin/WordJewelsSolver --smoke 60
+            build/"$CMAKE_PRESET"/bin/SnapAndSpell --smoke 60
           fi
 
       # Authenticode, behind the repository variable SIGN_WINDOWS (docs/releasing.md,
@@ -354,15 +354,15 @@ jobs:
         with:
           mode: ${{ vars.SIGN_WINDOWS || 'false' }}
           files: |
-            build/${{ matrix.preset }}/bin/WordJewelsSolver.exe
-            build/${{ matrix.preset }}/bin/wjs-cli.exe
+            build/${{ matrix.preset }}/bin/SnapAndSpell.exe
+            build/${{ matrix.preset }}/bin/sns-cli.exe
           rename: "false"
           pfx-base64: ${{ secrets.WIN_TESTSIGN_PFX_BASE64 }}
           pfx-password: ${{ secrets.WIN_TESTSIGN_PFX_PASSWORD }}
 
       # The ZIP, from the script a developer runs too: it checks the contents,
       # forbids a TracyClient, AddressSanitizer runtime or .pdb, unpacks it, solves a
-      # board with the packaged wjs-cli and runs the packaged window offscreen
+      # board with the packaged sns-cli and runs the packaged window offscreen
       # (docs/building.md#checking-a-package).
       - name: Package and check the ZIP (Windows)
         if: matrix.leg == 'windows'
@@ -388,18 +388,18 @@ jobs:
           } finally { Pop-Location }
           $installer = @(Get-ChildItem (Join-Path $build 'packages') -Filter *.exe)
           if ($installer.Count -ne 1) { throw "expected one installer, found $($installer.Count)" }
-          $target = Join-Path $env:RUNNER_TEMP 'wjs-installed'
+          $target = Join-Path $env:RUNNER_TEMP 'sns-installed'
           # /D= must be the last argument and is not quoted (NSIS).
           $process = Start-Process -FilePath $installer[0].FullName -ArgumentList '/S', "/D=$target" -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "the installer exited $($process.ExitCode)" }
-          foreach ($relative in 'bin\wjs-cli.exe', 'bin\WordJewelsSolver.exe', 'bin\Qt6Core.dll', 'bin\dictionaries\en.txt', 'bin\NOTICES.txt') {
+          foreach ($relative in 'bin\sns-cli.exe', 'bin\SnapAndSpell.exe', 'bin\Qt6Core.dll', 'bin\dictionaries\en.txt', 'bin\NOTICES.txt') {
             if (-not (Test-Path -LiteralPath (Join-Path $target $relative))) { throw "the installed tree has no $relative" }
           }
-          $solved = & (Join-Path $target 'bin\wjs-cli.exe') CAT ORE DGS
+          $solved = & (Join-Path $target 'bin\sns-cli.exe') CAT ORE DGS
           foreach ($word in 'CAT', 'CARE', 'TAR') {
-            if (-not ($solved -match "(?m)^$word\s")) { throw "the installed wjs-cli did not find $word" }
+            if (-not ($solved -match "(?m)^$word\s")) { throw "the installed sns-cli did not find $word" }
           }
-          Write-Host "installer ok: $($installer[0].Name) installs, and the installed wjs-cli solves a board"
+          Write-Host "installer ok: $($installer[0].Name) installs, and the installed sns-cli solves a board"
           $uninstaller = Join-Path $target 'Uninstall.exe'
           if (Test-Path -LiteralPath $uninstaller) {
             Start-Process -FilePath $uninstaller -ArgumentList '/S', "_?=$target" -Wait | Out-Null
@@ -711,9 +711,9 @@ jobs:
           BUILD_NUMBER: ${{ github.run_number }}
         run: >
           cmake --preset ios-release
-          -DWJS_IOS_BUILD_NUMBER="$BUILD_NUMBER"
-          -DWJS_IOS_SIGNING_TEAM="$TEAM_ID"
-          -DWJS_IOS_SIGNING_PROFILE="$PROFILE_NAME"
+          -DSNS_IOS_BUILD_NUMBER="$BUILD_NUMBER"
+          -DSNS_IOS_SIGNING_TEAM="$TEAM_ID"
+          -DSNS_IOS_SIGNING_PROFILE="$PROFILE_NAME"
 
       - name: Name the IPA
         id: name
@@ -727,7 +727,7 @@ jobs:
           [ -n "$project" ] || { echo "::error::CMake made no .xcodeproj under build/ios-release"; exit 1; }
           {
             echo "project=$project"
-            echo "ipa=ios-dist/WordJewelsSolver-$VERSION${SUFFIX:+-$SUFFIX}-ios-appstore.ipa"
+            echo "ipa=ios-dist/SnapAndSpell-$VERSION${SUFFIX:+-$SUFFIX}-ios-appstore.ipa"
           } >> "$GITHUB_OUTPUT"
 
       # `xcodebuild archive` and the App Store export.
@@ -736,7 +736,7 @@ jobs:
         uses: iainchesworthlabs/icl-common-infra/actions/export-ios-ipa@494f40c3f0565866317e3b0e98878ebbfc68b295 # v0.1.16 plus #31 and #33
         with:
           project: ${{ steps.name.outputs.project }}
-          scheme: WordJewelsSolver
+          scheme: SnapAndSpell
           bundle-id: ${{ env.BUNDLE_ID }}
           team-id: ${{ steps.signing.outputs.team-id }}
           profile-name: ${{ steps.signing.outputs.profile-name }}
@@ -931,8 +931,8 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/wjs-upload.p12"
-          echo "WJS_ANDROID_KEYSTORE=$RUNNER_TEMP/wjs-upload.p12" >> "$GITHUB_ENV"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/sns-upload.p12"
+          echo "SNS_ANDROID_KEYSTORE=$RUNNER_TEMP/sns-upload.p12" >> "$GITHUB_ENV"
 
       - name: Configure (Release, signed)
         if: steps.signing.outputs.have == 'true'
@@ -941,7 +941,7 @@ jobs:
       - name: Build the APK and the AAB
         if: steps.signing.outputs.have == 'true'
         env:
-          QT_ANDROID_KEYSTORE_PATH: ${{ env.WJS_ANDROID_KEYSTORE }}
+          QT_ANDROID_KEYSTORE_PATH: ${{ env.SNS_ANDROID_KEYSTORE }}
           QT_ANDROID_KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           QT_ANDROID_KEYSTORE_STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           QT_ANDROID_KEYSTORE_KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -956,10 +956,10 @@ jobs:
           [ -n "$apk" ] || { echo "::error::no release APK under build/android-arm64-release"; exit 1; }
           [ -n "$aab" ] || { echo "::error::no release AAB under build/android-arm64-release"; exit 1; }
           mkdir -p android-dist
-          stem="WordJewelsSolver-$VERSION${SUFFIX:+-$SUFFIX}-android-arm64"
+          stem="SnapAndSpell-$VERSION${SUFFIX:+-$SUFFIX}-android-arm64"
           cp "$apk" "android-dist/$stem.apk"
           cp "$aab" "android-dist/$stem.aab"
-          echo "WJS_ANDROID_APK=$stem.apk" >> "$GITHUB_ENV"
+          echo "SNS_ANDROID_APK=$stem.apk" >> "$GITHUB_ENV"
           ls -l android-dist
 
       # The signed APK, opened as a device would: the application id, the version, the
@@ -969,7 +969,7 @@ jobs:
         if: steps.signing.outputs.have == 'true'
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
-        run: libs/platforms/android/packaging/verify_apk.sh "android-dist/$WJS_ANDROID_APK" --version "$VERSION" --release --signed
+        run: libs/platforms/android/packaging/verify_apk.sh "android-dist/$SNS_ANDROID_APK" --version "$VERSION" --release --signed
 
       - name: Upload the APK and the AAB
         if: steps.signing.outputs.have == 'true'
@@ -983,7 +983,7 @@ jobs:
       # Whatever happened above, the keystore does not stay on the runner.
       - name: Remove the upload keystore
         if: ${{ always() }}
-        run: rm -f "$RUNNER_TEMP/wjs-upload.p12"
+        run: rm -f "$RUNNER_TEMP/sns-upload.p12"
 
   # The source archive and the SBOM, which describe the packages the build jobs
   # made. The iOS and Android jobs may have been left out of a rehearsal
@@ -1026,7 +1026,7 @@ jobs:
         run: |
           set -euo pipefail
           version="${TAG#v}"
-          prefix="WordJewelsSolver-${version}-source"
+          prefix="SnapAndSpell-${version}-source"
           mkdir -p extras
           git archive --format=tar --prefix="$prefix/" HEAD | gzip -n -9 > "extras/${prefix}.tar.gz"
           # No -q: grep -q leaves at the first match, and tar, still listing, is then written to a closed
@@ -1044,7 +1044,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $version = $env:TAG.Substring(1)
           ./tools/release/generate_sbom.ps1 -Tag $env:TAG -Commit $env:COMMIT -Repository $env:REPOSITORY `
-            -PackagesDir dist -VcpkgSpdxDir sbom-inputs -Output "extras/WordJewelsSolver-$version.cdx.json"
+            -PackagesDir dist -VcpkgSpdxDir sbom-inputs -Output "extras/SnapAndSpell-$version.cdx.json"
 
       - name: Summarise
         env:
@@ -1090,7 +1090,7 @@ jobs:
       artifact-pattern: "package-*"
       generate-sbom: false
       public-key: docs/signing-key.asc
-      title: WordJewelsSolver ${{ github.ref_name }}
+      title: SnapAndSpell ${{ github.ref_name }}
     secrets:
       REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
       REPO_GPG_PASSPHRASE: ${{ secrets.REPO_GPG_PASSPHRASE }}
@@ -1122,7 +1122,7 @@ jobs:
               echo
               echo "### Installing on an iPhone or iPad"
               echo
-              echo "This version is in TestFlight for the testers the owner has invited: install the TestFlight app, sign in with the Apple ID that was invited and open Word Jewels Solver there. There is no \`.ipa\` to download: a build that installs from a file would list the identifiers of the devices it is for, and this repository is public."
+              echo "This version is in TestFlight for the testers the owner has invited: install the TestFlight app, sign in with the Apple ID that was invited and open Snap and Spell there. There is no \`.ipa\` to download: a build that installs from a file would list the identifiers of the devices it is for, and this repository is public."
             } >> notes.md
           fi
           if grep -q -- '-android-arm64\.apk$' <<< "$assets"; then

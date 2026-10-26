@@ -3,10 +3,10 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Window
-import WordJewelsSolver
-import WordJewelsSolver.Parent
-import WordJewelsSolver.Scan
-import WordJewelsSolver.Scene
+import SnapAndSpell
+import SnapAndSpell.Parent
+import SnapAndSpell.Scan
+import SnapAndSpell.Scene
 
 // The window: a thin shell that shows the screen Navigation names. Add a screen as
 // one `case` and one `Component` line, and flip its availability on Navigation in
@@ -38,7 +38,7 @@ ApplicationWindow {
     minimumWidth: 900
     minimumHeight: 620
     visible: true
-    title: qsTr("Word Jewels Solver")
+    title: qsTr("Snap and Spell")
     color: Theme.page
 
     // The Solo Play game lives for the whole run, so a board in the box survives a

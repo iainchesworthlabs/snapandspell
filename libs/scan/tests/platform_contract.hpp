@@ -26,15 +26,15 @@
 
 #include "evaluate.hpp"
 #include "scene.hpp"
-#include "wjs/platform/board_reader.hpp"
-#include "wjs/platform/camera.hpp"
-#include "wjs/scan/confirmation.hpp"
-#include "wjs/scan/frame.hpp"
-#include "wjs/scan/reader.hpp"
+#include "sns/platform/board_reader.hpp"
+#include "sns/platform/camera.hpp"
+#include "sns/scan/confirmation.hpp"
+#include "sns/scan/frame.hpp"
+#include "sns/scan/reader.hpp"
 
-namespace wjs::scan::contract {
+namespace sns::scan::contract {
 
-namespace cam = wjs::platform::camera;
+namespace cam = sns::platform::camera;
 
 // --- the camera -----------------------------------------------------------------------
 
@@ -58,7 +58,7 @@ struct CameraOps {
     return std::string(cam::to_string(error));
 }
 
-// The rules of wjs/platform/camera.hpp that hold whether or not there is a camera, and,
+// The rules of sns/platform/camera.hpp that hold whether or not there is a camera, and,
 // when the platform lists one, those that hold while it runs. `has_device` says which it
 // was: false for a platform that answers `unavailable`, which has only the first.
 [[nodiscard]] inline std::vector<std::string> camera_violations(const CameraOps& camera,
@@ -315,7 +315,7 @@ using ReadFn =
            std::ranges::all_of(letters, [](char c) { return c >= 'A' && c <= 'Z'; });
 }
 
-// The rules of wjs/platform/board_reader.hpp, given a clear frame of a board it can read
+// The rules of sns/platform/board_reader.hpp, given a clear frame of a board it can read
 // (`board`) and the reader's own answer for it to be compared with. `min_correct` is how
 // many of its tiles the reader must get right: a platform's own recogniser has its own
 // accuracy tests, and the contract is about the shape of the answer.
@@ -407,4 +407,4 @@ using ReadFn =
     return bad;
 }
 
-}  // namespace wjs::scan::contract
+}  // namespace sns::scan::contract

@@ -5,7 +5,7 @@
 #include <QMediaFormat>
 #include <QtLogging>
 
-namespace wjs::app::test {
+namespace sns::app::test {
 
 bool mediaBackendAvailable() {
     static const bool available = [] {
@@ -20,4 +20,4 @@ bool mediaBackendAvailable() {
     return available;
 }
 
-}  // namespace wjs::app::test
+}  // namespace sns::app::test

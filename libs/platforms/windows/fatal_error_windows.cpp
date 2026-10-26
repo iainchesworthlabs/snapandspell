@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-#include "wjs/platform/fatal_error.hpp"
+#include "sns/platform/fatal_error.hpp"
 
 namespace {
 
@@ -30,7 +30,7 @@ namespace {
 
 }  // namespace
 
-namespace wjs::platform {
+namespace sns::platform {
 
 void show_fatal_error(std::string_view title, std::string_view message, bool interactive) {
     std::cerr << title << ": " << message << '\n';
@@ -47,4 +47,4 @@ void show_fatal_error(std::string_view title, std::string_view message, bool int
                   MB_OK | MB_ICONERROR | MB_SETFOREGROUND | MB_TASKMODAL);
 }
 
-}  // namespace wjs::platform
+}  // namespace sns::platform

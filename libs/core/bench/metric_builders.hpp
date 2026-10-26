@@ -14,7 +14,7 @@
 #include "measure.hpp"
 #include "metrics.hpp"
 
-namespace wjs::perf {
+namespace sns::perf {
 
 // Every metric states the board mode it is for, with no default to fall back
 // on: a figure for one mode says nothing about the other.
@@ -57,4 +57,4 @@ namespace wjs::perf {
     return metric;
 }
 
-}  // namespace wjs::perf
+}  // namespace sns::perf

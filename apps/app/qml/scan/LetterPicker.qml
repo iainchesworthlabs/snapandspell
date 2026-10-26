@@ -2,7 +2,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import WordJewelsSolver
+import SnapAndSpell
 
 // The letter picker: a tap on a tile of the check screen opens this, as the
 // kit's one Sheet. A suggestion the reader had comes first, then A to Z, "Qu",

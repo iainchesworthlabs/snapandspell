@@ -21,10 +21,10 @@
 //
 // Test support: nothing in libs and apps link it.
 
-namespace wjs::app::test {
+namespace sns::app::test {
 
 // Registers the five font files and sets the default font; the later calls do nothing. Returns
 // false (and warns) when a file does not load.
 bool load_house_fonts();
 
-}  // namespace wjs::app::test
+}  // namespace sns::app::test

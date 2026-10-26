@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import QtTest
-import WordJewelsSolver
+import SnapAndSpell
 
 // The kit's components (apps/app/qml/kit/) as they are used, not as they are
 // drawn: AppButton's three target sizes and its release-inside rule, HoldButton's

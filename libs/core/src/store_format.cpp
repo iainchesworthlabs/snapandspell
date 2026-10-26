@@ -15,15 +15,15 @@
 #include <utility>
 #include <vector>
 
-#include "wjs/board.hpp"
-#include "wjs/profiling.hpp"
-#include "wjs/store.hpp"
+#include "sns/board.hpp"
+#include "sns/profiling.hpp"
+#include "sns/store.hpp"
 
-namespace wjs {
+namespace sns {
 
 namespace {
 
-constexpr std::string_view header_tag = "wjs-store";
+constexpr std::string_view header_tag = "sns-store";
 constexpr std::string_view end_tag = "end";
 
 // ---- small readers --------------------------------------------------------
@@ -764,4 +764,4 @@ std::expected<ParsedStore, StoreError> parse_store(std::string_view text,
     return parsed;
 }
 
-}  // namespace wjs
+}  // namespace sns

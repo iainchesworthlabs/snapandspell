@@ -3,7 +3,7 @@
 // singleton (apps/app/src/scene/profiler.*) with no profiler behind it.
 //
 // The screens under test call Profiler.begin()/end() around a moment, and the
-// real singleton is in WordJewelsSolver.Scene because the scene and the
+// real singleton is in SnapAndSpell.Scene because the scene and the
 // application both import it. The Quick Test suites replace that whole module
 // with this stub (apps/app/ui-tests/scene_stub), so this file gives the calls an
 // implementation that does nothing: QML has no preprocessor, and no suite is

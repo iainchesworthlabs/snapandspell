@@ -10,14 +10,14 @@
 #include <limits>
 #include <vector>
 
-#include "wjs/scan/frame.hpp"
-#include "wjs/scan/image.hpp"
-#include "wjs/scan/segment.hpp"
-#include "wjs/scan/work.hpp"
+#include "sns/scan/frame.hpp"
+#include "sns/scan/image.hpp"
+#include "sns/scan/segment.hpp"
+#include "sns/scan/work.hpp"
 
 namespace {
 
-using namespace wjs::scan;
+using namespace sns::scan;
 using Catch::Approx;
 
 Frame frame_of(const std::vector<std::uint8_t>& bytes, std::size_t width, std::size_t height,

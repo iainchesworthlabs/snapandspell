@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/sound_it_out.hpp"
+#include "sns/sound_it_out.hpp"
 
 #include <algorithm>
 #include <numeric>
 #include <utility>
 
 #include "ascii.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 
 std::string_view to_string(SoundStepKind kind) noexcept {
     switch (kind) {
@@ -116,4 +116,4 @@ std::chrono::milliseconds fixed_time(const SoundSequence& sequence) noexcept {
                            });
 }
 
-}  // namespace wjs
+}  // namespace sns

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
-import WordJewelsSolver
+import SnapAndSpell
 
 // A large choice on the home screen: a picture, a verb and a short line. The
 // whole card is the target, so a child does not have to find a small button.

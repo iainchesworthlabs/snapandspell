@@ -6,13 +6,13 @@
 #include <functional>
 #include <memory>
 
-namespace wjs::app {
+namespace sns::app {
 
 // A short sound from assets/sounds, played through Qt Multimedia when the
 // application was built with it and silently doing nothing when it was not.
 //
 // Which asset a moment plays, and how loudly, is the pure policy in
-// wjs/feedback.hpp; this only carries it out. It never records anything: there
+// sns/feedback.hpp; this only carries it out. It never records anything: there
 // is no audio input in this class and none in the application (section 12.2).
 //
 // A missing audio device is not an error. A play() is counted and reported
@@ -53,4 +53,4 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-}  // namespace wjs::app
+}  // namespace sns::app

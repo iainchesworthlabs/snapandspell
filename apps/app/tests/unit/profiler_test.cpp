@@ -12,7 +12,7 @@
 // that closes the zone around it would put a moment's work into some other
 // moment's zone, in the trace of the build that has one.
 
-using wjs::scene::Profiler;
+using sns::scene::Profiler;
 
 TEST_CASE("every begin is matched by an end, named or not", "[scene][profiler]") {
     Profiler profiler;

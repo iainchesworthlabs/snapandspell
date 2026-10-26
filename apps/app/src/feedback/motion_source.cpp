@@ -4,26 +4,26 @@
 #include <functional>
 #include <utility>
 
-#include "wjs/app/motion_backend.hpp"
+#include "sns/app/motion_backend.hpp"
 
-namespace wjs::app {
+namespace sns::app {
 
 class MotionSource::Impl {
 public:
     Impl()
-        : backend([this](const wjs::DeviceMotion& sample) {
+        : backend([this](const sns::DeviceMotion& sample) {
               if (sink) {
                   sink(processor.push(sample));
               }
           }) {}
 
-    wjs::MotionProcessor processor;
+    sns::MotionProcessor processor;
     MotionBackend backend;
-    std::function<void(const wjs::MotionOutput&)> sink;
+    std::function<void(const sns::MotionOutput&)> sink;
 };
 
 MotionSource::MotionSource(QObject* parent) : QObject(parent), impl_(std::make_unique<Impl>()) {
-    impl_->sink = [this](const wjs::MotionOutput& output) {
+    impl_->sink = [this](const sns::MotionOutput& output) {
         if (!available_) {
             // The first real sample is what makes the sensors "available": a
             // registered type with no hardware never reaches this.
@@ -37,7 +37,7 @@ MotionSource::MotionSource(QObject* parent) : QObject(parent), impl_(std::make_u
     };
 }
 
-void MotionSource::accept(const wjs::DeviceMotion& motion) {
+void MotionSource::accept(const sns::DeviceMotion& motion) {
     if (impl_->sink) {
         impl_->sink(impl_->processor.push(motion));
     }
@@ -75,4 +75,4 @@ void MotionSource::setShakeEnabled(bool enabled) {
     emit shakeEnabledChanged();
 }
 
-}  // namespace wjs::app
+}  // namespace sns::app

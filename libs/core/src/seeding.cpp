@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "wjs/seeding.hpp"
+#include "sns/seeding.hpp"
 
 #include <algorithm>
 #include <array>
@@ -11,9 +11,9 @@
 
 #include "ascii.hpp"
 #include "draw.hpp"
-#include "wjs/profiling.hpp"
+#include "sns/profiling.hpp"
 
-namespace wjs {
+namespace sns {
 namespace {
 
 // A board is made around two or three words of the phase (phonics design,
@@ -577,4 +577,4 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
     return result;
 }
 
-}  // namespace wjs
+}  // namespace sns

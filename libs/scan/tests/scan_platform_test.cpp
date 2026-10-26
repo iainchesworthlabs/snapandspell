@@ -19,15 +19,15 @@
 
 #include "fixtures.hpp"
 #include "platform_contract.hpp"
-#include "wjs/platform/board_reader.hpp"
-#include "wjs/platform/camera.hpp"
+#include "sns/platform/board_reader.hpp"
+#include "sns/platform/camera.hpp"
 
 namespace {
 
-namespace camera = wjs::platform::camera;
-namespace board_reader = wjs::platform::board_reader;
-using namespace wjs::scan;
-using namespace wjs::scan::synth;
+namespace camera = sns::platform::camera;
+namespace board_reader = sns::platform::board_reader;
+using namespace sns::scan;
+using namespace sns::scan::synth;
 
 }  // namespace
 
@@ -128,7 +128,7 @@ TEST_CASE("a frame the camera hands out is a frame the reader can be given", "[s
 
 namespace {
 
-using namespace wjs::scan::contract;
+using namespace sns::scan::contract;
 
 // The platform's own camera, called through the free functions of the interface. A frame
 // is waited on by polling the mailbox, so one that has arrived is kept for the next pop().
