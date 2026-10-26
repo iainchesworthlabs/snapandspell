@@ -49,7 +49,7 @@ done
 [ -e "$target" ] || { echo "usage: verify_ipa.sh <app|ipa> [--version v] [--build n] [--signed] [--store]" >&2; exit 2; }
 fail() { echo "FAILED: $*" >&2; exit 1; }
 
-bundle_id="com.iainchesworthlabs.wordjewelssolver"
+bundle_id="com.iainchesworthlabs.snapandspell"
 
 work=""
 cleanup() { if [ -n "$work" ]; then rm -rf "$work"; fi; }

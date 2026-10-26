@@ -238,7 +238,7 @@ grep -q 'method: app-store' "$workflow" && grep -q 'actions/upload-testflight@[0
   && ok "the iOS job exports for the App Store, uploads with the shared action and runs only when SIGN_IOS_UPLOAD is true" || bad "the iOS job is not the TestFlight job"
 
 # One bundle identifier everywhere (it is the App ID the profile was made for).
-bundle_id="com.iainchesworthlabs.wordjewelssolver"
+bundle_id="com.iainchesworthlabs.snapandspell"
 for file in "$workflow" "$repo/libs/platforms/ios/platform.cmake" "$repo/libs/platforms/macos/platform.cmake" "$repo/libs/platforms/ios/packaging/verify_ipa.sh"; do
   grep -q "$bundle_id" "$file" && ok "$(basename "$file") says $bundle_id" || bad "$(basename "$file") does not say $bundle_id"
 done

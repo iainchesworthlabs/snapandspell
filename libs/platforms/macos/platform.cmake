@@ -56,7 +56,7 @@ function(wjs_platform_configure_app target)
         MACOSX_BUNDLE ON
         MACOSX_BUNDLE_INFO_PLIST "${WJS_MACOS_PACKAGING_DIR}/Info.plist.in"
         MACOSX_BUNDLE_BUNDLE_NAME "WordJewelsSolver"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.iainchesworthlabs.wordjewelssolver"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.iainchesworthlabs.snapandspell"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_ICON_FILE "AppIcon.icns"

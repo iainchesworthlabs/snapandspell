@@ -630,7 +630,7 @@ at a multiple.
 3. *Import the signing certificate and the provisioning profile*, with `icl-common-infra`'s `import-ios-signing` action
    (`docs/ios-signing.md` there) and `method: app-store`: a keychain made for the job (removed at the end, whatever happened),
    the `.p12` imported into it, the profile installed under its UUID. The profile is held to the bundle identifier
-   (`com.iainchesworthlabs.wordjewelssolver`: its App ID is `<team>.<that>`), to its expiry, and to listing **no devices**.
+   (`com.iainchesworthlabs.snapandspell`: its App ID is `<team>.<that>`), to its expiry, and to listing **no devices**.
    Its team ID and name come out as the step's outputs. Only counts and names are printed.
 4. *Configure (signed):* `cmake --preset ios-release` with `-DWJS_IOS_SIGNING_TEAM` and `-DWJS_IOS_SIGNING_PROFILE`, which sign the
    application target alone (the preset turns signing off for every other Xcode target: static libraries and Qt's resource

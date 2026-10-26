@@ -614,7 +614,7 @@ jobs:
       contents: read
     env:
       # The App ID registered with Apple; import-ios-signing refuses a profile that is for another.
-      BUNDLE_ID: com.iainchesworthlabs.wordjewelssolver
+      BUNDLE_ID: com.iainchesworthlabs.snapandspell
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

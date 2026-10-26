@@ -19,7 +19,7 @@ nor a workflow artifact is private here, so this repository does not make one. H
 1. Install **TestFlight** from the App Store on the iPhone or iPad.
 2. Be invited as an internal tester by the owner (App Store Connect, the app, TestFlight, Internal Testing). The Apple ID you
    sign in to TestFlight with must be the one that was invited.
-3. Open TestFlight, choose **ICL Word Jewels Solver** and tap Install (or Update). The app is called Word Jewels Solver on
+3. Open TestFlight, choose **ICL Snap and Spell** and tap Install (or Update). The app is called Snap and Spell on
    the Home Screen.
 
 It needs **iOS 18 or later**, which is the minimum Qt 6.12 supports and the build's deployment target (`CMakePresets.json`,
@@ -27,9 +27,9 @@ It needs **iOS 18 or later**, which is the minimum Qt 6.12 supports and the buil
 
 ## For the owner
 
-Set up once, in the Apple developer portal and App Store Connect: the identifier `com.iainchesworthlabs.wordjewelssolver`
-(Explicit, no capabilities), an **App Store Connect** distribution profile for it named `Word Jewels Solver App Store`
-(certificate `Apple Distribution`, no devices), the app record (a store name that is unique across the App Store, any SKU)
+Set up once, in the Apple developer portal and App Store Connect: the identifier `com.iainchesworthlabs.snapandspell`
+(Explicit, no capabilities), an **App Store Connect** distribution profile for it named `Snap and Spell App Store`
+(certificate `Apple Distribution`, no devices), the app record (the store name `ICL Snap and Spell` (the ICL only makes it unique across the App Store; the name under the icon is Snap and Spell), any SKU)
 and an Internal Testing group in its TestFlight tab. `docs/ios-signing.md` in `icl-common-infra` says where each comes from.
 
 In this repository the pieces are:
@@ -42,7 +42,7 @@ In this repository the pieces are:
 | The switch | repository variable | `SIGN_IOS_UPLOAD` = `true` |
 
 ```sh
-base64 -w0 Word_Jewels_Solver_App_Store.mobileprovision | gh secret set IOS_PROVISIONING_PROFILE_BASE64 -R iainchesworthlabs/wordjewelssolver
+base64 -w0 Snap_and_Spell_App_Store.mobileprovision | gh secret set IOS_PROVISIONING_PROFILE_BASE64 -R iainchesworthlabs/wordjewelssolver
 gh variable set SIGN_IOS_UPLOAD --body true -R iainchesworthlabs/wordjewelssolver
 ```
 
