@@ -17,7 +17,7 @@ name: Release
 #                        the day. It does not build iOS: that needs a macOS
 #                        runner and the Apple signing secrets, so it runs on a tag
 #                        and on a manual dispatch (the `ios` input), and only when the
-                        repository variable SIGN_IOS_UPLOAD is true. Nor does it
+#                        repository variable SIGN_IOS_UPLOAD is true. Nor does it
 #                        build Android (a download of several gigabytes of Qt kits),
 #                        which runs on a tag and on a manual dispatch (the `android`
 #                        input) and only when the four Android signing secrets are set.
