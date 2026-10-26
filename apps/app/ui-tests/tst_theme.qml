@@ -234,6 +234,26 @@ TestCase {
         compare(Theme.barHeight, Theme.appBarHeight)
     }
 
+    // Toybox's shape (DESIGN.md, sections 3 and 6; tests/design/check_tokens.cmake ties these to tokens.json).
+    function test_theShapeTokensAreToyboxs() {
+        compare(Theme.outlineControl, 3)
+        compare(Theme.outlinePanel, 4)
+        compare(Theme.outlineFrame, 6)
+        compare(Theme.shadowSmall, 3)
+        compare(Theme.shadowMedium, 4)
+        compare(Theme.shadowLarge, 6)
+        compare(Theme.shadowFrame, 12)
+        compare(Theme.pressDepth, 4)
+        compare(Theme.focusWidth, 4)
+        compare(Theme.focusGap, 3)
+        compare(Theme.radiusXs, 4)
+        compare(Theme.radiusSmall, 8)
+        compare(Theme.radiusControl, 10)
+        compare(Theme.radius, 14)
+        compare(Theme.radiusPanel, 18)
+        compare(Theme.radiusLarge, 20)
+    }
+
     function test_theJewelSizesSayTheirTier() {
         compare(Theme.jewelSpark, 26)
         compare(Theme.jewelPower, 34)

@@ -325,14 +325,14 @@ TestCase {
         compare(button.showChoice, true)
         compare(button.contentColor.toString(), Theme.selectedInk.toString())
         compare(button.Accessible.checked, true)
-        // The soft emerald fill and the emerald edge are the tokens; gold is
-        // nowhere in a chosen button.
-        const face = button.children.find(child => child.radius === button.radius && child.border !== undefined)
+        // The coral fill, the ink edge and the 4 px outline are the tokens; gold is nowhere in a chosen
+        // button.
+        const face = button.children.find(child => child.radius === button.radius && child.edgeWidth !== undefined)
         verify(face !== undefined)
-        compare(face.color.toString(), Theme.selectedFill.toString())
-        compare(face.border.color.toString(), Theme.selectedEdge.toString())
-        compare(face.border.width, Theme.heavy)
-        verify(face.border.color.toString() !== Theme.gold.toString())
+        compare(face.fill.toString(), Theme.selectedFill.toString())
+        compare(face.edge.toString(), Theme.selectedEdge.toString())
+        compare(face.edgeWidth, Theme.outlinePanel)
+        verify(face.edge.toString() !== Theme.gold.toString())
     }
 
     function test_aButtonWrapsItsLabelAndNeverFallsBelow48() {
@@ -436,8 +436,9 @@ TestCase {
                                              emptyTitle: "Your words will land here.", empty: true })
         compare(card.Accessible.role, Accessible.Grouping)
         compare(card.Accessible.name, "Words I found")
-        compare(card.radius, Theme.radius)
+        compare(card.radius, Theme.radiusPanel)
         compare(card.border.color.toString(), Theme.line.toString())
+        compare(card.border.width, Theme.outlinePanel)
         const texts = []
         const walk = item => {
             if (item.visible && typeof item.text === "string") {
