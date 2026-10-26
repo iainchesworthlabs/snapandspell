@@ -204,17 +204,17 @@ TestCase {
         const board = { rows: 4, columns: 4, faces: [], up: [],
                         tiles: ["S", "A", "T", "E", "P", "I", "N", "R", "O", "L", "D", "M", "U", "G", "H", "K"] }
         scene.show({ rows: 4, columns: 4, tiles: [], faces: [], up: [] })
-        frame(scene, "26-scene-closed-box")
+        frame(scene, "27-scene-closed-box")
         scene.play(board, 4242)
         wait(190)
-        frame(scene, "27-scene-shake")
+        frame(scene, "28-scene-shake")
         tryCompare(scene, "stage", "lid", 4000)
         wait(110)
-        frame(scene, "28-scene-lid")
+        frame(scene, "29-scene-lid")
         tryCompare(scene, "stage", "drop", 2000)
         wait(220)
-        frame(scene, "29-scene-drop")
+        frame(scene, "30-scene-drop")
         tryCompare(scene, "busy", false, 4000)
-        frame(scene, "30-scene-settled")
+        frame(scene, "31-scene-settled")
     }
 }
