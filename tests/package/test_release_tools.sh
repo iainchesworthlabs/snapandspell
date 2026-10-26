@@ -189,10 +189,10 @@ grep -q 'WJS_ENABLE_TRACY' "$workflow" && bad "release.yml mentions WJS_ENABLE_T
 grep -Eq '^permissions: \{\}$' "$workflow" && ok "no permissions at the top level" || bad "release.yml has top-level permissions"
 if awk '/^\s*run:/{r=1} r && /\$\{\{ *(github\.event|inputs|github\.head_ref)/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "no event or input data is interpolated into a run block"; else bad "event or input data in a run block"; fi
 grep -q 'persist-credentials: false' "$workflow" && ok "checkouts do not persist credentials" || bad "a checkout persists credentials"
-ios_secrets='IOS_DIST_CERTIFICATE_BASE64|IOS_DIST_CERTIFICATE_PASSWORD|IOS_PROVISIONING_PROFILE_BASE64|APPLE_TEAM_ID|APPLE_PROVISIONING_PROFILE_NAME'
+ios_secrets='IOS_DIST_CERT_P12_BASE64|IOS_DIST_CERT_PASSWORD|IOS_PROVISIONING_PROFILE_BASE64'
 android_secrets='ANDROID_KEYSTORE_BASE64|ANDROID_KEYSTORE_PASSWORD|ANDROID_KEY_ALIAS|ANDROID_KEY_PASSWORD'
 windows_secrets='WIN_TESTSIGN_PFX_BASE64|WIN_TESTSIGN_PFX_PASSWORD'
-if grep -E 'secrets\.' "$workflow" | grep -Ev "REPO_GPG_PRIVATE_KEY|REPO_GPG_PASSPHRASE|RELEASE_BOT_APP_ID|RELEASE_BOT_PRIVATE_KEY|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets|$windows_secrets" | grep -q .; then bad "release.yml uses a secret other than the organisation's release secrets and the macOS, iOS, Android and Windows signing secrets"; else ok "the only secrets are the organisation's four release secrets, the macOS ones, the five iOS ones, the four Android ones and the two Windows test-signing ones"; fi
+if grep -E 'secrets\.' "$workflow" | grep -Ev "REPO_GPG_PRIVATE_KEY|REPO_GPG_PASSPHRASE|RELEASE_BOT_APP_ID|RELEASE_BOT_PRIVATE_KEY|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets|$windows_secrets" | grep -q .; then bad "release.yml uses a secret other than the organisation's release secrets and the macOS, iOS, Android and Windows signing secrets"; else ok "the only secrets are the organisation's four release secrets, the macOS ones, the three iOS ones, the four Android ones and the two Windows test-signing ones"; fi
 # Windows signing (docs/releasing.md, "Windows signing"): the test-signing certificate reaches the
 # shared sign-windows action and nothing else, and every use of the mode is the repository variable,
 # read as false when it is unset.
@@ -233,6 +233,12 @@ for file in "$workflow" "$repo/.github/workflows/ios-build.yml"; do
   grep -Eq '^permissions: \{\}$' "$file" && ok "$name has no permissions at the top level" || bad "$name has top-level permissions"
 done
 grep -q 'name: package-ios' "$workflow" && grep -q 'pattern: package-\*' "$workflow" && ok "the IPA and its manifest are uploaded as package-ios, which the assemble job downloads with the other packages" || bad "package-ios is not uploaded, or the assemble job does not take package-*"
+# The iOS signing is icl-common-infra's actions, and the IPA reaches the public release only on purpose
+# (it carries a profile that lists the devices' UDIDs): package-ios is uploaded under IOS_IPA_ON_RELEASE.
+grep -q 'actions/import-ios-signing@[0-9a-f]\{40\}' "$workflow" && grep -q 'actions/export-ios-ipa@[0-9a-f]\{40\}' "$workflow" \
+  && ok "the iOS job signs with the shared import-ios-signing and export-ios-ipa actions" || bad "the iOS job does not use the shared signing actions"
+if awk '/^[ \t]*- /{u=""} /^[ \t]*(-[ \t]*)?uses:/{u=$0} /secrets\.IOS_/ && u !~ /import-ios-signing@/ && !/IOS_[A-Z0-9_]*:/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "the iOS secrets go to the shared import action and to the check of their names"; else bad "an iOS secret is used outside the shared action"; fi
+if grep -B6 'name: package-ios' "$workflow" | grep -q "vars.IOS_IPA_ON_RELEASE == 'true'"; then ok "package-ios (the IPA on the public release) is uploaded only when IOS_IPA_ON_RELEASE is true"; else bad "package-ios is not gated on IOS_IPA_ON_RELEASE"; fi
 if grep -E 'secrets\.' "$repo/.github/workflows/ios-build.yml" | grep -q .; then bad "ios-build.yml (the unsigned check) uses a secret"; else ok "ios-build.yml uses no secret"; fi
 # One bundle identifier everywhere (it is the App ID the profile was made for).
 bundle_id="org.iainchesworth.wordjewelssolver"
