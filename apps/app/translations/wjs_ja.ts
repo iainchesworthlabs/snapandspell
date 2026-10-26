@@ -861,7 +861,7 @@
         <translation>最後のサイコロをもう一度タップするか、「完了」を押します</translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+104"/>
         <source>1 word</source>
         <translation>1単語</translation>
     </message>

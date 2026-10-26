@@ -861,7 +861,7 @@
         <translation>הקש שוב על הקוביה האחרונה, או הקש על סיום</translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+104"/>
         <source>1 word</source>
         <translation>מילה אחת</translation>
     </message>

@@ -82,17 +82,7 @@ Item {
         return letters.join(" · ");
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.panel
-    }
-    Rectangle {
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: Theme.hair
-        color: Theme.line
-    }
+    // Toybox: the panel is the page with cards on it, not a strip of its own (the cards carry the outlines).
 
     Flickable {
         id: viewport
@@ -122,11 +112,19 @@ Item {
                 // Never a sliver: the heading, its counts and two whole rows.
                 Layout.minimumHeight: wordsColumn.implicitHeight + 2 * Theme.space3
                 Layout.preferredHeight: wordsColumn.implicitHeight + 2 * Theme.space3
-                radius: Theme.radius
+                radius: Theme.radiusPanel
                 color: Theme.card
-                border.width: Theme.hair
+                border.width: Theme.outlinePanel
                 border.color: Theme.line
-                clip: true
+
+                Rectangle {
+                    z: -1
+                    y: Theme.shadowLarge
+                    width: parent.width
+                    height: parent.height
+                    radius: parent.radius
+                    color: Theme.shadow
+                }
 
                 Accessible.role: Accessible.Grouping
                 Accessible.name: SoloWording.wordsFound
@@ -176,7 +174,7 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.topMargin: Theme.space1
-                        Layout.preferredHeight: Theme.hair
+                        Layout.preferredHeight: Theme.outlineControl
                         color: Theme.line
                     }
 

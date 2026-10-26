@@ -861,7 +861,7 @@
         <translation>Touche à nouveau le dernier dé ou appuie sur « Terminé ».</translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+104"/>
         <source>1 word</source>
         <translation>1 mot</translation>
     </message>
