@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../qml/scan/CheckScreen.qml" line="+382"/>
+        <location filename="../qml/scan/CheckScreen.qml" line="+348"/>
         <source>Turn</source>
         <translation>Doblar</translation>
     </message>

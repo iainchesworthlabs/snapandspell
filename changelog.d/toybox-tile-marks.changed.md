@@ -1,0 +1,1 @@
+**Dice say what they are with a little disc on the corner.** A die on your path shows its place (1, 2, 3), the help's start tile is sunshine with a play mark and its next letter with a square, a word you found turns the dice green with a check, a string that is not a word shakes sideways with a pink outline and a cross, and a letter the scanner is unsure of has a question mark.

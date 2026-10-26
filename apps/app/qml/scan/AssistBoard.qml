@@ -134,6 +134,8 @@ Item {
                 anchors.fill: parent
                 letters: ""
                 lit: root.isLit(cell.index)
+                order: root.assist.path.indexOf(cell.index) + 1
+                help: root.assist.litTile === cell.index ? 1 : 0
             }
 
             // "A, row 2, column 3": named by its letter and its place.
@@ -246,7 +248,8 @@ Item {
     }
 
     // --- the start tile: a ring, shape and not colour alone -----------------------
-    Rectangle {
+    // A dashed cream ring (the tray is ink); the die itself is sunshine with a play mark.
+    PixelBox {
         id: startRing
         objectName: "startRing"
         visible: root.assist.litTile >= 0
@@ -254,10 +257,12 @@ Item {
         y: root.assist.litTile >= 0 ? root.tileY(root.assist.litTile) - Theme.startRing : 0
         width: root.tile + 2 * Theme.startRing
         height: width
-        radius: Theme.radiusSmall + Theme.startRing
-        color: "transparent"
-        border.width: Theme.litEdge
-        border.color: Theme.gold
+        radius: Theme.radiusControl + Theme.startRing
+        fill: "transparent"
+        edge: Theme.die
+        edgeWidth: Theme.ringWidth
+        shadowOffset: 0
+        dashed: true
 
         Accessible.role: Accessible.Graphic
         Accessible.name: ScanWording.startHere

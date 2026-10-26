@@ -597,8 +597,8 @@ TestCase {
 
         const view = screen()
         waitForTiles(view)
-        const marks = allItems(view).filter(item => item.visible === true
-                                                   && item.text === ScanWording.doubtfulMark)
+        // A question mark in a sunshine disc at the corner of each doubtful die (TileMark).
+        const marks = allItems(view).filter(item => item.visible === true && item.kind === "doubtful")
         compare(marks.length, 3)
         verify(textsShown(view).indexOf(ScanWording.doubtfulHint) >= 0)
 

@@ -178,7 +178,7 @@ TestCase {
     }
 
     // --- the start tile ------------------------------------------------------
-    function test_theHelpLightsATileWithAGoldRing() {
+    function test_theHelpLightsATileWithADashedRing() {
         const view = screen()
         const ring = itemNamed(view, "startRing")
         verify(ring !== undefined)
@@ -190,7 +190,9 @@ TestCase {
         mouseClick(help, help.width / 2, help.height / 2)
         verify(assistModel.litTile >= 0)
         compare(ring.visible, true)
-        compare(ring.border.color, Theme.gold)
+        // A dashed cream ring (the tray is ink), and the die itself is sunshine with a play mark.
+        compare(ring.edge, Theme.die)
+        compare(ring.dashed, true)
         // The ring is round the tile the model lit, a few dp outside it.
         const board = find(view, item => item.coreWidth !== undefined)
         compare(ring.width, board.tile + 2 * Theme.startRing)
