@@ -51,12 +51,11 @@ and pass their tests in CI on Windows, Linux and macOS. The Qt Quick
 application (Solo Play, the parent area, the scanner screens) builds and is
 tested in CI on Windows, and `release.yml` builds it for Linux and macOS (it has
 never run). An iOS fragment, preset and ad-hoc signing job exist and have never
-run on a device. Nothing builds for Android or the browser yet:
-`cmake/Platform.cmake` refuses those targets until each has a platform fragment
-under `libs/platforms`, and the Android one is being written separately. The
-shared Qt 6.12.0 tree on the author's machine (`C:\Repos\common\qt\6.12.0`)
-has the Windows, WebAssembly (multithread) and Android kits, with Emscripten
-5.0.5 beside it; the iOS kit is installed by CI. Qt comes from there and from
+run on a device. The browser has a platform fragment (`libs/platforms/web`, built to
+WebAssembly with the single-threaded kit) and is built and started in CI as a check; Android's
+is being written separately. The shared Qt 6.12.0 tree on the author's machine
+(`C:\Repos\common\qt\6.12.0`) has the Windows, WebAssembly (multithread) and Android kits, with
+Emscripten 5.0.5 beside it; the iOS kit and the single-threaded WebAssembly kit are installed by CI. Qt comes from there and from
 `aqtinstall` in CI, not from vcpkg.
 
 **Amended 2026-10-21 (decision D11, [Roadmap](roadmap.md#4-decisions-that-gate-the-plan)).**

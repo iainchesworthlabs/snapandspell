@@ -128,6 +128,6 @@ trust:
   reader ([Application](requirements/application.md)).
 - **The Main.qml shell and the route into Mode A are tested only through stubs**
   ([Application](requirements/application.md), [Scanner](requirements/scanner.md)).
-- **Android and the web do not exist; iOS has never run** (R-PLT-04 to R-PLT-06).
+- **Android does not exist, the web has run in one desktop browser engine only, and iOS has never run** (R-PLT-04 to R-PLT-06).
 - **The gate is a brake and the board has no block list**: both by decision, both
   with the weakness stated.

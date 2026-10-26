@@ -226,12 +226,15 @@ The same application on the other targets named in the brief.
 - **Phone**: a layout of the same application, in portrait and landscape.
   The two-thirds / one-third arrangement of the PRD has to be answered for it
   (PRD section 11, question 12).
-- **Web (WebAssembly)**: a platform fragment for Emscripten. The Qt 6.12.0
-  `wasm_multithread` kit and Emscripten 5.0.5 are already in the shared tree
-  (`C:\Repos\common`) for Cubeulator; Cubeulator's `web-emscripten-*` presets
-  are the pattern. A browser has no camera device the way a tablet does, so
-  Solo Play is the natural whole of it there (question 15). Threads need
-  cross-origin isolation headers from the host.
+- **Web (WebAssembly)**: built (`libs/platforms/web`, the `web-release` preset, the
+  `web-build.yml` check; [Playing in a browser](web.md)). It uses the single-threaded
+  `wasm_singlethread` kit and Emscripten 5.0.5, because a page can use threads only
+  if its host sends cross-origin isolation headers and GitHub Pages cannot; the board
+  scene is the 2D one. A browser has no camera device the way a tablet does, so
+  Solo Play is the natural whole of it there (question 15); the scan screens say so
+  and offer typing the board. Left: sound and speech (a Web Audio and a
+  speech-synthesis variant), the Noto fonts for Hebrew, Chinese and Japanese, a
+  phone layout, a place to host it (needs the owner's choice), and a release package.
 - **Desktop application** for macOS, Linux and Windows: the platform fragments
   exist and the command-line solver is built and tested there. Packaging exists
   on all three (CPack: ZIP and NSIS on Windows, an AppImage and tar.gz on Linux,
