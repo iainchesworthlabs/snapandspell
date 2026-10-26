@@ -11,7 +11,7 @@ name: Docs
 # reports, which would hold every unrelated pull request.
 #
 # A push to main publishes the site, so the release that fast-forwards main is
-# what makes it exist, and the iOS install page (docs/install-ios.html) with it.
+# what makes it exist.
 # The repository's Pages source is "GitHub Actions" (admin/apply.sh sets it).
 
 on:

@@ -26,7 +26,7 @@ desktops) but it has never read a real board.
 > application, and CI builds and tests the library and the command-line solver
 > on Windows (MSVC), Linux (GCC) and macOS (AppleClang), and the application on
 > Windows. Release builds are packaged by `release.yml` for the three desktops;
-> an ad-hoc iOS build for the author's own devices is written and has **never run
+> an iOS build for TestFlight is written and has **never been uploaded or run
 > on a device**; an Android build is being worked on separately and does not exist
 > yet. The release pipeline (signing, SBOM, attestations) has not yet run on
 > GitHub. [CHANGELOG.md](CHANGELOG.md) says what is in and what is not proven,
@@ -49,7 +49,7 @@ A board in play, in Solo Play at its smallest window (more in
 | **The Solo Play game in Qt Quick**: home, the box, play (the board and the panel), the end-of-board summary, My jewels and the parent area (gate, dashboard, settings, about), playing the real standard board — the project's dice at 3x3 to 6x6 against the full dictionary — with the library's session and store; the phonics board behind a phase directory; the interface in eight languages (English, French, Spanish, German, Yiddish, Hebrew, Chinese and Japanese) with RTL for Hebrew and Yiddish; the feedback engines (Qt Multimedia sound, the device's own text-to-speech, Qt Sensors motion and a haptics platform interface) behind the parent's Sound, Celebration sounds, Sound it out, Vibration and Shake rows | `apps/app/src`, `libs/core` | Built when a prebuilt Qt 6.12 is found (`WJS_BUILD_APP=AUTO`; `ON` requires it, `OFF` skips it); model, touch, session, parent, settings, feedback and motion tests, the language and catalogue checks, a lint of the QML and the scene contract; built on the Windows leg of CI (the Linux and macOS legs build the library and the command-line solver; the release workflow builds the application on those two); installed and packaged with CPack, with its Qt runtime and the third-party notices. The three feedback modules are optional: a kit without them builds their silent variants |
 | A scanning library: finds a board in a camera frame, reads each die's letter, and a confirm-and-correct model so the solver sees only a confirmed board; the `camera` and `board_reader` interfaces, and a desktop camera over Qt Multimedia | `libs/scan`, `apps/app/src/scan`, `libs/platforms` | Unit tested and held to an accuracy target on **synthetic frames only**; the camera backend is never constructed in a test and has not read a real frame; never tried on a real board ([design](docs/design/scanner.md)) |
 | Catch2 unit, scanner, app and performance tests, Quick Test suites for the QML, and the repository checks (platform isolation, privacy, packaging, translations, toolchain pins) | `tests`, `tools/checks` | Pass in CI on Windows, Linux and macOS (what each leg runs: [docs/ci.md](docs/ci.md)) |
-| An ad-hoc iOS build for the author's own devices | `libs/platforms/ios`, `.github/workflows/release.yml` | Written; the signing and the install have **never run** ([docs/ios-install.md](docs/ios-install.md)) |
+| An iOS build for TestFlight | `libs/platforms/ios`, `.github/workflows/release.yml` | Written; the App Store signing, the upload and the install have **never run** ([docs/ios-install.md](docs/ios-install.md)) |
 
 The sound cues are placeholder WAVs owned by the project
 (`assets/sounds`, written by `tools/sounds/make_sounds.ps1`); the phoneme clips
@@ -239,7 +239,7 @@ check enforces it. See [docs/platform-isolation.md](docs/platform-isolation.md).
 | [docs/requirements.md](docs/requirements.md) | Each requirement, where it is built, the test that shows it, and what is left |
 | [docs/product-requirements.md](docs/product-requirements.md) | The product brief the roadmap is built from |
 | [docs/design/index.md](docs/design/index.md) | The game, board, phonics, application, parent-area and scanner design, as built and as still intended |
-| [docs/ios-install.md](docs/ios-install.md) | Installing the ad-hoc iOS build on the author's own devices |
+| [docs/ios-install.md](docs/ios-install.md) | Installing the iOS build from TestFlight, and the owner's set-up |
 | [docs/faq.md](docs/faq.md) | Short answers |
 
 The documentation is built with mkdocs-material (`mkdocs.yml`), strictly, by

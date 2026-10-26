@@ -16,7 +16,8 @@ name: Release
 #                        Windows/Linux/macOS Release build for the first time on
 #                        the day. It does not build iOS: that needs a macOS
 #                        runner and the Apple signing secrets, so it runs on a tag
-#                        and on a manual dispatch (the `ios` input). Nor does it
+#                        and on a manual dispatch (the `ios` input), and only when the
+#                        repository variable SIGN_IOS_UPLOAD is true. Nor does it
 #                        build Android (a download of several gigabytes of Qt kits),
 #                        which runs on a tag and on a manual dispatch (the `android`
 #                        input) and only when the four Android signing secrets are set.
@@ -36,10 +37,23 @@ on:
     inputs:
       ios:
         description: >-
-          Also build and sign the iOS ad-hoc IPA, with the Apple signing secrets
-          (it fails at once if they are not set). Untick it to rehearse the
-          desktop packages alone. A tag builds it too, unless the repository
-          variable RELEASE_WITHOUT_IOS is true.
+          Also build the iOS App Store IPA and have Apple validate it. It runs only if
+          the repository variable SIGN_IOS_UPLOAD is true (it fails at once if the
+          Apple secrets are not set). Untick it to rehearse the other packages alone.
+        type: boolean
+        default: true
+      upload_testflight:
+        description: >-
+          Upload the iOS build to TestFlight, where the internal testers get it. A tag
+          always uploads; a manual run only validates unless this is ticked. Needs
+          the iOS build above.
+        type: boolean
+        default: false
+      desktop:
+        description: >-
+          Build the desktop packages (Windows, Linux, macOS), the source archive and
+          the SBOM. Untick it to rehearse the iOS or Android build alone: a rehearsal
+          then produces no package, and it never publishes.
         type: boolean
         default: true
       android:
@@ -81,6 +95,7 @@ jobs:
       suffix: ${{ steps.plan.outputs.suffix }}
       ios: ${{ steps.plan.outputs.ios }}
       android: ${{ steps.plan.outputs.android }}
+      desktop: ${{ steps.plan.outputs.desktop }}
     steps:
       # The whole history: whether the tag is on main needs it.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -97,34 +112,32 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           IOS_INPUT: ${{ inputs.ios }}
           ANDROID_INPUT: ${{ inputs.android }}
-          RELEASE_WITHOUT_IOS: ${{ vars.RELEASE_WITHOUT_IOS }}
+          DESKTOP_INPUT: ${{ inputs.desktop }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
           if [ "$EVENT_NAME" = push ] && [ "$REF_TYPE" = tag ]; then
-            # A tag builds iOS, unless the author has said, with this repository
-            # variable, that a release is to go out without it (an iOS build that
-            # is broken must not hold the desktop packages back).
-            ios=true
-            if [ "${RELEASE_WITHOUT_IOS:-}" = true ]; then
-              ios=false
-              echo "::warning title=No iOS build::The repository variable RELEASE_WITHOUT_IOS is true, so this release has no iOS IPA. Delete the variable to build it again."
-            fi
+            # A tag builds iOS and Android (each does nothing, or is skipped, unless its
+            # own switch is on: SIGN_IOS_UPLOAD and the Android secrets).
             {
               echo "mode=release"
-              echo "ios=$ios"
+              echo "ios=true"
               echo "android=true"
+              echo "desktop=true"
             } >> "$GITHUB_OUTPUT"
             tools/release/check_release_ref.sh --tag "$REF_NAME"
           else
             ios=false
             android=false
+            desktop=true
             if [ "$EVENT_NAME" = workflow_dispatch ] && [ "$IOS_INPUT" != false ]; then ios=true; fi
             if [ "$EVENT_NAME" = workflow_dispatch ] && [ "$ANDROID_INPUT" != false ]; then android=true; fi
+            if [ "$EVENT_NAME" = workflow_dispatch ] && [ "$DESKTOP_INPUT" = false ]; then desktop=false; fi
             {
               echo "mode=dry-run"
               echo "ios=$ios"
               echo "android=$android"
+              echo "desktop=$desktop"
             } >> "$GITHUB_OUTPUT"
             tools/release/check_release_ref.sh --dry-run "dryrun.${RUN_NUMBER}"
           fi
@@ -148,6 +161,8 @@ jobs:
   build:
     name: Build ${{ matrix.name }}
     needs: prepare
+    # Unticked only by a manual rehearsal of the iOS or the Android build alone.
+    if: needs.prepare.outputs.desktop == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     permissions:
@@ -573,47 +588,59 @@ jobs:
           triplet: ${{ matrix.triplet }}
           restored: ${{ steps.vcpkg-cache.outputs.listing }}
 
-  # The iPhone/iPad application as an ad-hoc IPA: archived and exported by Xcode on
-  # a macOS runner with the Apple Distribution certificate and the ad-hoc
-  # provisioning profile (repository secrets), and a manifest.plist for the
-  # over-the-air install (docs/ios-install.md). Both go to `assemble` and then to
-  # Publish with the other packages, so they get the same checksums, GPG
-  # signatures, attestation and SBOM entry as every other file.
+  # The iPhone/iPad application for TestFlight: archived and exported by Xcode on a
+  # macOS runner as an App Store IPA, signed with the organisation's Apple
+  # Distribution certificate and this repository's App Store provisioning profile
+  # (no devices), checked, validated by Apple and, for a tag or a manual run that
+  # asks, uploaded to App Store Connect, where the internal testers get it in the
+  # TestFlight app (docs/ios-install.md). It is the only way an iOS build is
+  # distributed here: an IPA that lists devices (an ad-hoc one) would publish their
+  # identifiers in a public repository, and TestFlight builds list none.
   #
-  # An ad-hoc build installs only on the devices the profile lists. A tag always
-  # builds it; a manual run does unless its `ios` input is unticked; the weekly
-  # rehearsal does not (docs/ci.md, "iOS"). This job has not run yet: expect the
-  # first run to need fixes, and rehearse it with a dispatch before tagging.
+  # It runs only when the repository variable SIGN_IOS_UPLOAD is true. A run on a
+  # branch has Apple validate the build and uploads nothing; a tag, or a manual run
+  # with `upload_testflight` ticked, uploads it. The build number is the number of
+  # this run, because Apple refuses one that is not higher than every earlier
+  # build's. The weekly rehearsal does not build iOS (docs/ci.md, "iOS"). The
+  # IPA is not a release file: Publish takes only what the other jobs name
+  # `package-*`, and this one's file is a workflow artifact for 7 days.
   ios:
-    name: Build the iOS ad-hoc IPA
-    if: needs.prepare.outputs.ios == 'true'
+    name: Build the iOS App Store IPA for TestFlight
+    if: ${{ needs.prepare.outputs.ios == 'true' && vars.SIGN_IOS_UPLOAD == 'true' }}
     needs: prepare
     runs-on: macos-26
     timeout-minutes: 120
     permissions:
       contents: read
     env:
-      BUNDLE_ID: org.iainchesworth.wordjewelssolver
+      # The App ID registered with Apple; import-ios-signing refuses a profile that is for another.
+      BUNDLE_ID: com.iainchesworthlabs.snapandspell
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      # Before a Qt download of several gigabytes: the three secrets, by name. The
-      # certificate and its password are the organisation's, the profile is this
-      # repository's (docs/ci.md, "iOS"); the values are never printed.
+      # Before a Qt download of several gigabytes: the secrets, by name. The
+      # certificate, its password and the App Store Connect key are the organisation's,
+      # the profile is this repository's; the values are never printed.
       - name: Require the Apple signing secrets
         env:
           IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
           IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
         run: |
           missing=""
           [ -n "$IOS_DIST_CERT_P12_BASE64" ] || missing="$missing IOS_DIST_CERT_P12_BASE64 (organisation)"
           [ -n "$IOS_DIST_CERT_PASSWORD" ] || missing="$missing IOS_DIST_CERT_PASSWORD (organisation)"
           [ -n "$IOS_PROVISIONING_PROFILE_BASE64" ] || missing="$missing IOS_PROVISIONING_PROFILE_BASE64 (repository)"
+          [ -n "$APPSTORE_API_KEY_ID" ] || missing="$missing APPSTORE_API_KEY_ID (organisation)"
+          [ -n "$APPSTORE_API_ISSUER_ID" ] || missing="$missing APPSTORE_API_ISSUER_ID (organisation)"
+          [ -n "$APPSTORE_API_PRIVATE_KEY" ] || missing="$missing APPSTORE_API_PRIVATE_KEY (organisation)"
           if [ -n "$missing" ]; then
-            echo "::error title=iOS signing secrets missing::Secret(s) not set:$missing. The Apple Distribution certificate and its password are organisation secrets that must reach this repository; the ad-hoc provisioning profile is a repository secret. To release without iOS, dispatch this workflow with the ios input unticked. docs/ios-install.md and docs/ci.md, 'iOS'."
+            echo "::error title=Apple secrets missing::Secret(s) not set:$missing. The certificate and the App Store Connect key are organisation secrets that must reach this repository; the App Store provisioning profile is a repository secret. To release without iOS, leave the repository variable SIGN_IOS_UPLOAD unset. docs/ios-install.md and docs/ci.md, 'iOS'."
             exit 1
           fi
 
@@ -653,105 +680,122 @@ jobs:
           cmake --version | head -n 1
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
-          pwsh --version
           for kit in "$QT_ROOT_DIR/lib/cmake/Qt6/qt.toolchain.cmake" "$QT_HOST_PATH/lib/cmake/Qt6/Qt6Config.cmake"; do
             [ -e "$kit" ] || { echo "::error::$kit is not there: the Qt install put its kits somewhere else (look at the install step's log)"; exit 1; }
           done
 
       # The certificate goes into a keychain made for this job and the profile where
       # Xcode looks for it, and the profile is read and checked (the App ID against
-      # BUNDLE_ID, its expiry, that it lists devices) before anything is built. Its
-      # team ID and name come out as outputs, so no secret holds them. This and the
-      # export below are icl-common-infra's actions (docs/ios-signing.md there); the
-      # pin is the develop commit that added them, until a tag is cut.
+      # BUNDLE_ID, its expiry, and that an App Store profile lists no devices) before
+      # anything is built. Its team ID and name come out as outputs, so no secret
+      # holds them. This, the export and the upload are icl-common-infra's actions
+      # (docs/ios-signing.md there).
       - name: Import the signing certificate and the provisioning profile
         id: signing
-        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@12e535686b7dfbae15ab454fd5f2fd511c6734d6 # develop 12e5356 (iOS signing actions, untagged)
+        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@494f40c3f0565866317e3b0e98878ebbfc68b295 # v0.1.16 plus #31 and #33
         with:
           certificate-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
           certificate-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
           profile-base64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
           bundle-id: ${{ env.BUNDLE_ID }}
+          method: app-store
 
       # Unsigned for every target but the application: the preset turns signing off
-      # project-wide, and the two cache variables turn it on for the application
-      # alone (libs/platforms/ios/platform.cmake says why). The preset also asks for
-      # the Xcode scheme that the export archives.
+      # project-wide, and the cache variables turn it on for the application alone
+      # (libs/platforms/ios/platform.cmake says why). The preset also asks for the
+      # Xcode scheme that the export archives.
       - name: Configure (signed)
         env:
           TEAM_ID: ${{ steps.signing.outputs.team-id }}
           PROFILE_NAME: ${{ steps.signing.outputs.profile-name }}
-        run: cmake --preset ios-release -DWJS_IOS_SIGNING_TEAM="$TEAM_ID" -DWJS_IOS_SIGNING_PROFILE="$PROFILE_NAME"
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: >
+          cmake --preset ios-release
+          -DWJS_IOS_BUILD_NUMBER="$BUILD_NUMBER"
+          -DWJS_IOS_SIGNING_TEAM="$TEAM_ID"
+          -DWJS_IOS_SIGNING_PROFILE="$PROFILE_NAME"
 
       - name: Name the IPA
+        id: name
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           SUFFIX: ${{ needs.prepare.outputs.suffix }}
-        run: echo "WJS_IOS_IPA=WordJewelsSolver-$VERSION${SUFFIX:+-$SUFFIX}-ios-adhoc.ipa" >> "$GITHUB_ENV"
+        run: |
+          set -euo pipefail
+          # The scheme is the CMake target's name, and the project is the one CMake wrote.
+          project="$(find build/ios-release -maxdepth 1 -name '*.xcodeproj' | head -n 1)"
+          [ -n "$project" ] || { echo "::error::CMake made no .xcodeproj under build/ios-release"; exit 1; }
+          {
+            echo "project=$project"
+            echo "ipa=ios-dist/WordJewelsSolver-$VERSION${SUFFIX:+-$SUFFIX}-ios-appstore.ipa"
+          } >> "$GITHUB_OUTPUT"
 
-      # `xcodebuild archive` and the ad-hoc export. The scheme is the CMake target's
-      # name.
-      - name: Archive and export the ad-hoc IPA
-        uses: iainchesworthlabs/icl-common-infra/actions/export-ios-ipa@12e535686b7dfbae15ab454fd5f2fd511c6734d6 # develop 12e5356 (iOS signing actions, untagged)
+      # `xcodebuild archive` and the App Store export.
+      - name: Archive and export the App Store IPA
+        id: export
+        uses: iainchesworthlabs/icl-common-infra/actions/export-ios-ipa@494f40c3f0565866317e3b0e98878ebbfc68b295 # v0.1.16 plus #31 and #33
         with:
-          project: build/ios-release/WordJewelsSolver.xcodeproj
+          project: ${{ steps.name.outputs.project }}
           scheme: WordJewelsSolver
           bundle-id: ${{ env.BUNDLE_ID }}
           team-id: ${{ steps.signing.outputs.team-id }}
           profile-name: ${{ steps.signing.outputs.profile-name }}
-          output: ios-dist/${{ env.WJS_IOS_IPA }}
+          method: app-store
+          output: ${{ steps.name.outputs.ipa }}
 
-      # The signed IPA, opened as a user's device would: identifier, version, the
-      # camera text, the icon, the data, arm64, the signature and an ad-hoc profile.
+      # The signed IPA, opened as a device would: identifier, version, the build
+      # number, the camera text, the icon, the data, arm64, the signature, and an App
+      # Store profile (no devices, no debugger) for this identifier.
       - name: Check the IPA
         env:
+          IPA: ${{ steps.export.outputs.ipa }}
           VERSION: ${{ needs.prepare.outputs.version }}
-        run: libs/platforms/ios/packaging/verify_ipa.sh "ios-dist/$WJS_IOS_IPA" --version "$VERSION" --signed
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: libs/platforms/ios/packaging/verify_ipa.sh "$IPA" --version "$VERSION" --signed --store --build "$BUILD_NUMBER"
 
-      # The manifest Safari's itms-services link reads: it names the IPA's URL as a
-      # release asset, which does not exist until the publish job, so it is
-      # written from the tag (tools/release/make_ios_manifest.sh).
-      - name: Write the over-the-air install manifest
-        if: ${{ vars.IOS_IPA_ON_RELEASE == 'true' }}
-        env:
-          TAG: ${{ needs.prepare.outputs.tag }}
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          tools/release/make_ios_manifest.sh --out ios-dist/manifest.plist --ipa "$WJS_IOS_IPA" \
-            --repo "$GITHUB_REPOSITORY" --tag "$TAG" --version "$VERSION" --bundle-id "$BUNDLE_ID"
-          plutil -lint ios-dist/manifest.plist
-
-      # An ad-hoc IPA carries its provisioning profile, which lists the UDIDs of the
-      # devices, and this repository is public: attaching the IPA to the release
-      # publishes them. So the IPA and its manifest go to the release (as package-ios,
-      # which `assemble` and Publish take with the other packages) only when the
-      # repository variable IOS_IPA_ON_RELEASE is true; otherwise the IPA is a
-      # workflow artifact, kept 14 days, to install from a computer. docs/ci.md, "iOS".
-      - name: Upload the IPA and its manifest (for the release)
-        if: ${{ vars.IOS_IPA_ON_RELEASE == 'true' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      # Apple's own check of the icon, the property list, the signature and the privacy
+      # declarations of the libraries; and, for a tag or a manual run that asks, the
+      # upload to TestFlight.
+      - name: Validate with Apple, and upload to TestFlight
+        uses: iainchesworthlabs/icl-common-infra/actions/upload-testflight@494f40c3f0565866317e3b0e98878ebbfc68b295 # v0.1.16 plus #31 and #33
         with:
-          name: package-ios
-          path: ios-dist/*
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Upload the IPA (not for the release)
-        if: ${{ vars.IOS_IPA_ON_RELEASE != 'true' }}
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ios-adhoc
-          path: ios-dist/${{ env.WJS_IOS_IPA }}
-          if-no-files-found: error
-          retention-days: 14
+          ipa: ${{ steps.export.outputs.ipa }}
+          key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
+          issuer-id: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+          private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          validate-only: ${{ github.ref_type != 'tag' && inputs.upload_testflight != true }}
 
       # Whatever happened above, the certificate and the profile do not stay on the
       # runner.
       - name: Remove the signing keychain and the provisioning profile
         if: ${{ always() }}
-        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@12e535686b7dfbae15ab454fd5f2fd511c6734d6 # develop 12e5356 (iOS signing actions, untagged)
+        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@494f40c3f0565866317e3b0e98878ebbfc68b295 # v0.1.16 plus #31 and #33
         with:
           remove: "true"
+
+      # An App Store IPA lists no devices, so it is no secret; it is kept 7 days to look
+      # at, and it is not a release file (only `package-*` is published).
+      - name: Keep the IPA for a week
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-appstore
+          path: ios-dist/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Say what happened
+        env:
+          UPLOADED: ${{ github.ref_type == 'tag' || inputs.upload_testflight == true }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          {
+            echo "### iOS build for TestFlight"
+            if [ "$UPLOADED" = true ]; then
+              echo "Uploaded as build $BUILD_NUMBER. Apple processes it for a few minutes; then it is in the TestFlight app for the internal testers."
+            else
+              echo "Validated by Apple, not uploaded. Run the workflow with \`upload_testflight\` ticked (or push a tag) to upload build $BUILD_NUMBER."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # The Android application, as an APK and an AAB signed with the author's upload
   # key (repository secrets), which go to `assemble` and then to Publish with the
@@ -1051,16 +1095,12 @@ jobs:
       REPO_GPG_PRIVATE_KEY: ${{ secrets.REPO_GPG_PRIVATE_KEY }}
       REPO_GPG_PASSPHRASE: ${{ secrets.REPO_GPG_PASSPHRASE }}
       RELEASE_BOT_APP_ID: ${{ secrets.RELEASE_BOT_APP_ID }}
-      RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
-
-  # What only this project's release has: the install sections for the iPhone/iPad
-  # and Android files, added to the notes the shared job wrote. GitHub's
-  # release-notes renderer drops itms-services:// links, so the iOS link is to a
-  # page (docs/install-ios.html, on the documentation site) that makes the real
-  # one; it works only if that site is published.
+      RELEASE_BOT_PRIVATE_KEY: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}  # What only this project's release has: the install sections for the iPhone/iPad
+  # (a line saying the version is in TestFlight, when the iOS job ran) and the
+  # Android files, added to the notes the shared job wrote.
   install-notes:
     name: Add the install notes
-    needs: [prepare, publish]
+    needs: [prepare, ios, publish]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -1068,6 +1108,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ needs.prepare.outputs.tag }}
+      IOS_RESULT: ${{ needs.ios.result }}
     steps:
       - name: Append the sections the release needs
         shell: bash
@@ -1075,13 +1116,13 @@ jobs:
           set -euo pipefail
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
           assets="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
-          if grep -qx 'manifest.plist' <<< "$assets"; then
-            pages="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
+          # The iOS build is not a release file: it went to TestFlight, if its job ran.
+          if [ "$IOS_RESULT" = success ]; then
             {
               echo
               echo "### Installing on an iPhone or iPad"
               echo
-              echo "The \`.ipa\` is an ad-hoc build: it installs only on a device registered in its provisioning profile. On such a device, open this page in Safari and tap Install: $pages/install-ios.html?tag=$TAG. How it works, and how to add a device: $pages/ios-install/."
+              echo "This version is in TestFlight for the testers the owner has invited: install the TestFlight app, sign in with the Apple ID that was invited and open Word Jewels Solver there. There is no \`.ipa\` to download: a build that installs from a file would list the identifiers of the devices it is for, and this repository is public."
             } >> notes.md
           fi
           if grep -q -- '-android-arm64\.apk$' <<< "$assets"; then

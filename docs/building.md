@@ -375,8 +375,8 @@ unless `QT_ASSUME_STDERR_HAS_CONSOLE=1` is set.
 
 ## iOS
 
-An iPhone or iPad build is a device build for the author's own devices, ad hoc
-signed; [Installing on my iPhone/iPad](ios-install.md) is the install, and
+An iPhone or iPad build is a device build, signed for the App Store and distributed through
+TestFlight; [Installing on an iPhone or iPad](ios-install.md) is the install, and
 [CI](ci.md#ios) is how the release workflow makes it. It needs a Mac with Xcode 16
 or later (the iOS 18 SDK), because Xcode is what compiles, signs and archives it.
 The unsigned compile (configure, build and the bundle check below) passes on a GitHub
@@ -417,8 +417,8 @@ xcodebuild -exportArchive -archivePath build/ios-release/WordJewelsSolver.xcarch
     -exportPath build/ios-release/export -exportOptionsPlist ExportOptions.plist
 ```
 
-`ExportOptions.plist` is the one `release.yml` writes (method `ad-hoc`, the team, manual
-signing, `Apple Distribution`, the profile by name); read it there. The built `.app`
+`ExportOptions.plist` is the one the `export-ios-ipa` action writes (method `app-store`, the team, manual
+signing, `Apple Distribution`, the profile by name); read it in `icl-common-infra`. The built `.app`
 is where Xcode puts it, so the check above looks for it.
 
 ## Android

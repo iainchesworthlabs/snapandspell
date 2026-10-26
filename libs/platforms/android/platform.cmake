@@ -82,7 +82,7 @@ set(WJS_PLATFORM_COMPILE_DEFINITIONS "")
 set(WJS_ANDROID_PACKAGING_DIR "${CMAKE_CURRENT_LIST_DIR}/packaging")
 
 # The application id: the same reverse-domain name as the iOS bundle identifier.
-set(WJS_ANDROID_APPLICATION_ID "org.iainchesworth.wordjewelssolver")
+set(WJS_ANDROID_APPLICATION_ID "com.iainchesworthlabs.snapandspell")
 
 # The platform levels. 28 is the lowest Qt 6.12 supports (its toolchain file's
 # default). The target and compile level are the newest the Play Console takes: a level

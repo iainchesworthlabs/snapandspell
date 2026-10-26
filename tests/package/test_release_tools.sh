@@ -120,25 +120,6 @@ rm -rf "$pkgs"; mkdir -p "$pkgs"; printf 'deb\n' > "$pkgs/p.deb"
 pwsh -NoProfile -File "$tools/generate_sbom.ps1" -Tag v1.2.3 -Commit "$main_sha" -PackagesDir "$pkgs" -Output "$work/cli.cdx.json" -Root "$repo" >/dev/null 2>&1
 jq -e '[.components[].name] | index("qtbase") == null' "$work/cli.cdx.json" >/dev/null && ok "  a command-line-only release does not claim Qt" || bad "  Qt claimed without a Qt package"
 
-# --- the iOS over-the-air manifest -------------------------------------------------
-echo "make_ios_manifest.sh"
-manifest="$work/manifest.plist"
-ios_args=(--out "$manifest" --ipa WordJewelsSolver-1.2.3-rc.1-ios-adhoc.ipa --repo example/repo --tag v1.2.3-rc.1 --version 1.2.3)
-expect_status "a manifest is written" 0 "$tools/make_ios_manifest.sh" "${ios_args[@]}"
-grep -q '<string>https://github.com/example/repo/releases/download/v1.2.3-rc.1/WordJewelsSolver-1.2.3-rc.1-ios-adhoc.ipa</string>' "$manifest" \
-  && ok "  it names the release asset's URL" || bad "  the IPA's URL is wrong"
-grep -q '<string>org.iainchesworth.wordjewelssolver</string>' "$manifest" && ok "  it names the bundle identifier" || bad "  the bundle identifier is missing"
-grep -q '<key>bundle-version</key>' "$manifest" && grep -q '<string>1.2.3</string>' "$manifest" && ok "  it carries the plain version" || bad "  the version is missing"
-if command -v xmllint >/dev/null 2>&1; then
-  xmllint --noout "$manifest" 2>/dev/null && ok "  it is well-formed XML" || bad "  not well-formed XML"
-else
-  echo "  skip  the well-formedness check (no xmllint)"
-fi
-expect_status "a file name with a space is refused" 2 "$tools/make_ios_manifest.sh" --out "$work/x.plist" --ipa "a b.ipa" --repo example/repo --tag v1.2.3 --version 1.2.3
-expect_status "a tag that is not a release tag is refused" 2 "$tools/make_ios_manifest.sh" --out "$work/x.plist" --ipa a.ipa --repo example/repo --tag main --version 1.2.3
-expect_status "a version with a suffix is refused (the tag carries it)" 2 "$tools/make_ios_manifest.sh" --out "$work/x.plist" --ipa a.ipa --repo example/repo --tag v1.2.3 --version 1.2.3-rc.1
-expect_status "a repository that is not owner/name is refused" 2 "$tools/make_ios_manifest.sh" --out "$work/x.plist" --ipa a.ipa --repo 'a&b' --tag v1.2.3 --version 1.2.3
-
 # --- the package check's refusal of development leftovers ---------------------------
 echo "check_package.ps1"
 expect_status "a Release package must not carry Tracy, an ASan runtime or a pdb" 0 pwsh -NoProfile -File "$repo/tests/package/test_check_package_forbid.ps1"
@@ -189,10 +170,10 @@ grep -q 'WJS_ENABLE_TRACY' "$workflow" && bad "release.yml mentions WJS_ENABLE_T
 grep -Eq '^permissions: \{\}$' "$workflow" && ok "no permissions at the top level" || bad "release.yml has top-level permissions"
 if awk '/^\s*run:/{r=1} r && /\$\{\{ *(github\.event|inputs|github\.head_ref)/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "no event or input data is interpolated into a run block"; else bad "event or input data in a run block"; fi
 grep -q 'persist-credentials: false' "$workflow" && ok "checkouts do not persist credentials" || bad "a checkout persists credentials"
-ios_secrets='IOS_DIST_CERT_P12_BASE64|IOS_DIST_CERT_PASSWORD|IOS_PROVISIONING_PROFILE_BASE64'
+ios_secrets='IOS_DIST_CERT_P12_BASE64|IOS_DIST_CERT_PASSWORD|IOS_PROVISIONING_PROFILE_BASE64|APPSTORE_API_KEY_ID|APPSTORE_API_ISSUER_ID|APPSTORE_API_PRIVATE_KEY'
 android_secrets='ANDROID_KEYSTORE_BASE64|ANDROID_KEYSTORE_PASSWORD|ANDROID_KEY_ALIAS|ANDROID_KEY_PASSWORD'
 windows_secrets='WIN_TESTSIGN_PFX_BASE64|WIN_TESTSIGN_PFX_PASSWORD'
-if grep -E 'secrets\.' "$workflow" | grep -Ev "REPO_GPG_PRIVATE_KEY|REPO_GPG_PASSPHRASE|RELEASE_BOT_APP_ID|RELEASE_BOT_PRIVATE_KEY|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets|$windows_secrets" | grep -q .; then bad "release.yml uses a secret other than the organisation's release secrets and the macOS, iOS, Android and Windows signing secrets"; else ok "the only secrets are the organisation's four release secrets, the macOS ones, the three iOS ones, the four Android ones and the two Windows test-signing ones"; fi
+if grep -E 'secrets\.' "$workflow" | grep -Ev "REPO_GPG_PRIVATE_KEY|REPO_GPG_PASSPHRASE|RELEASE_BOT_APP_ID|RELEASE_BOT_PRIVATE_KEY|MACOS_CERTIFICATE|MACOS_SIGN_IDENTITY|NOTARY_APPLE_ID|NOTARY_TEAM_ID|NOTARY_PASSWORD|$ios_secrets|$android_secrets|$windows_secrets" | grep -q .; then bad "release.yml uses a secret other than the organisation's release secrets and the macOS, iOS, Android and Windows signing secrets"; else ok "the only secrets are the organisation's four release secrets, the macOS ones, the six iOS ones (the Apple certificate, its profile and the App Store Connect key), the four Android ones and the two Windows test-signing ones"; fi
 # Windows signing (docs/releasing.md, "Windows signing"): the test-signing certificate reaches the
 # shared sign-windows action and nothing else, and every use of the mode is the repository variable,
 # read as false when it is unset.
@@ -204,7 +185,7 @@ if [ "$sign_uses" -ge 1 ] && [ "$sign_uses" = "$sign_modes" ]; then ok "every si
 
 # --- the iOS job: its secrets, its kit and what it hands to the assemble job ---------
 echo "release.yml, iOS"
-for secret in IOS_DIST_CERT_P12_BASE64 IOS_DIST_CERT_PASSWORD IOS_PROVISIONING_PROFILE_BASE64; do
+for secret in IOS_DIST_CERT_P12_BASE64 IOS_DIST_CERT_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 APPSTORE_API_KEY_ID APPSTORE_API_ISSUER_ID APPSTORE_API_PRIVATE_KEY; do
   if [ "$(grep -c "secrets\.$secret" "$workflow")" -ge 2 ] && grep -q "\[ -n \"\$$secret\" \] || missing=" "$workflow"; then
     ok "$secret is required by name before anything is built, and used"
   else
@@ -232,16 +213,32 @@ for file in "$workflow" "$repo/.github/workflows/ios-build.yml"; do
   if grep -E '^\s*(-\s*)?uses:\s*[^./ ]' "$file" | grep -Ev '@[0-9a-f]{40}( |$)' | grep -q .; then bad "an action in $name is not pinned to a full commit SHA"; else ok "$name pins every action to a full commit SHA"; fi
   grep -Eq '^permissions: \{\}$' "$file" && ok "$name has no permissions at the top level" || bad "$name has top-level permissions"
 done
-grep -q 'name: package-ios' "$workflow" && grep -q 'pattern: package-\*' "$workflow" && ok "the IPA and its manifest are uploaded as package-ios, which the assemble job downloads with the other packages" || bad "package-ios is not uploaded, or the assemble job does not take package-*"
-# The iOS signing is icl-common-infra's actions, and the IPA reaches the public release only on purpose
-# (it carries a profile that lists the devices' UDIDs): package-ios is uploaded under IOS_IPA_ON_RELEASE.
+# The iOS signing, export and upload are icl-common-infra's actions, and the key reaches nothing else.
 grep -q 'actions/import-ios-signing@[0-9a-f]\{40\}' "$workflow" && grep -q 'actions/export-ios-ipa@[0-9a-f]\{40\}' "$workflow" \
   && ok "the iOS job signs with the shared import-ios-signing and export-ios-ipa actions" || bad "the iOS job does not use the shared signing actions"
 if awk '/^[ \t]*- /{u=""} /^[ \t]*(-[ \t]*)?uses:/{u=$0} /secrets\.IOS_/ && u !~ /import-ios-signing@/ && !/IOS_[A-Z0-9_]*:/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "the iOS secrets go to the shared import action and to the check of their names"; else bad "an iOS secret is used outside the shared action"; fi
-if grep -B6 'name: package-ios' "$workflow" | grep -q "vars.IOS_IPA_ON_RELEASE == 'true'"; then ok "package-ios (the IPA on the public release) is uploaded only when IOS_IPA_ON_RELEASE is true"; else bad "package-ios is not gated on IOS_IPA_ON_RELEASE"; fi
+if awk '/^[ \t]*- /{u=""} /^[ \t]*(-[ \t]*)?uses:/{u=$0} /secrets\.APPSTORE_/ && u !~ /upload-testflight@/ && !/APPSTORE_[A-Z0-9_]*:/ {print; bad=1} END{exit bad}' "$workflow" >/dev/null; then ok "the App Store Connect key goes only to the shared upload action and to the check of its names"; else bad "an App Store Connect secret is used outside the shared upload action"; fi
 if grep -E 'secrets\.' "$repo/.github/workflows/ios-build.yml" | grep -q .; then bad "ios-build.yml (the unsigned check) uses a secret"; else ok "ios-build.yml uses no secret"; fi
+# What App Store Connect and TestFlight need of the iOS build (docs/ios-install.md): the build number is a
+# cache variable the workflow gives the number of the run, the property list says it uses no encryption of
+# its own, the iPad is available in all four orientations (so UIRequiresFullScreen is not needed), and the
+# 1024 pixel icon has no alpha channel (colour type 2, RGB: the byte at offset 25 of a PNG).
+grep -q 'WJS_IOS_BUILD_NUMBER' "$repo/libs/platforms/ios/platform.cmake" && grep -q 'WJS_IOS_BUILD_NUMBER=' "$workflow" \
+  && ok "the iOS build number is a cache variable, and the release job gives it the number of the run" || bad "the iOS build number is not wired from the release job"
+grep -A1 'ITSAppUsesNonExemptEncryption' "$repo/libs/platforms/ios/packaging/Info.plist.in" | grep -q '<false/>' \
+  && ok "Info.plist says the program uses no encryption of its own" || bad "Info.plist does not set ITSAppUsesNonExemptEncryption to false"
+[ "$(grep -c 'UIInterfaceOrientation' "$repo/libs/platforms/ios/packaging/Info.plist.in")" -ge 7 ] \
+  && ok "the iPad is available in every orientation, so the app does not need UIRequiresFullScreen" || bad "the iPad orientations changed: does the app now need UIRequiresFullScreen?"
+icon="$repo/libs/platforms/ios/packaging/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
+[ "$(od -An -tu1 -j25 -N1 "$icon" | tr -d ' ')" = 2 ] && ok "the 1024 pixel app icon has no alpha channel" || bad "the app icon has an alpha channel, which App Store Connect refuses"
+# iOS is distributed through TestFlight only: an IPA that lists devices would publish them in a public repository.
+if grep -n 'ad-hoc\|ad hoc\|itms-services\|manifest.plist\|IOS_IPA_ON_RELEASE\|RELEASE_WITHOUT_IOS\|package-ios' "$workflow" | grep -v '^[0-9]*: *#' | grep -q .; then bad "release.yml still has an ad-hoc iOS path"; else ok "release.yml has no ad-hoc iOS path (no manifest, no itms-services link, no IPA on the release)"; fi
+if grep -q 'upload-artifact' <(sed -n '/^  ios:/,/^  android:/p' "$workflow") && sed -n '/^  ios:/,/^  android:/p' "$workflow" | grep -q 'name: ios-adhoc\|name: package-ios'; then bad "the iOS job keeps an IPA that could list devices"; else ok "the iOS job keeps no IPA that lists devices"; fi
+grep -q 'method: app-store' "$workflow" && grep -q 'actions/upload-testflight@[0-9a-f]\{40\}' "$workflow" && grep -q "vars.SIGN_IOS_UPLOAD == 'true'" "$workflow" \
+  && ok "the iOS job exports for the App Store, uploads with the shared action and runs only when SIGN_IOS_UPLOAD is true" || bad "the iOS job is not the TestFlight job"
+
 # One bundle identifier everywhere (it is the App ID the profile was made for).
-bundle_id="org.iainchesworth.wordjewelssolver"
+bundle_id="com.iainchesworthlabs.snapandspell"
 for file in "$workflow" "$repo/libs/platforms/ios/platform.cmake" "$repo/libs/platforms/macos/platform.cmake" "$repo/libs/platforms/ios/packaging/verify_ipa.sh"; do
   grep -q "$bundle_id" "$file" && ok "$(basename "$file") says $bundle_id" || bad "$(basename "$file") does not say $bundle_id"
 done

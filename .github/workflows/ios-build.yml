@@ -3,7 +3,7 @@ name: iOS build
 # An unsigned compile check of the application for an iPhone/iPad: Qt 6.12's iOS
 # kit, the `ios-release` preset, and a look inside the .app Xcode made
 # (libs/platforms/ios/packaging/verify_ipa.sh). It needs no Apple account and no
-# secret; the signed ad-hoc IPA is the `ios` job of release.yml (docs/ci.md,
+# secret; the signed App Store IPA is the `ios` job of release.yml (docs/ci.md,
 # "iOS").
 #
 # Not a required check, and not on the merge queue: it runs only when something
