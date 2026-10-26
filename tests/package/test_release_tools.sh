@@ -204,7 +204,7 @@ if [ "$sign_uses" -ge 1 ] && [ "$sign_uses" = "$sign_modes" ]; then ok "every si
 
 # --- the iOS job: its secrets, its kit and what it hands to the assemble job ---------
 echo "release.yml, iOS"
-for secret in IOS_DIST_CERTIFICATE_BASE64 IOS_DIST_CERTIFICATE_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 APPLE_TEAM_ID APPLE_PROVISIONING_PROFILE_NAME; do
+for secret in IOS_DIST_CERT_P12_BASE64 IOS_DIST_CERT_PASSWORD IOS_PROVISIONING_PROFILE_BASE64; do
   if [ "$(grep -c "secrets\.$secret" "$workflow")" -ge 2 ] && grep -q "\[ -n \"\$$secret\" \] || missing=" "$workflow"; then
     ok "$secret is required by name before anything is built, and used"
   else
