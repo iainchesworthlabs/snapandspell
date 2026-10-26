@@ -16,7 +16,6 @@ set(WJS_PLATFORM_CONTRACT_VARIABLES
     WJS_PLATFORM_DISPLAY_NAME
     WJS_PLATFORM_DESKTOP
     WJS_PLATFORM_EXECUTABLE_FORMAT
-    WJS_PLATFORM_SCENE
     WJS_PLATFORM_QT_SEARCH_ROOTS
     WJS_PLATFORM_QT_ARCH_DIRS
     WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT
@@ -36,7 +35,6 @@ set(WJS_PLATFORM_CONTRACT_HOOKS
 #   - every hook exists;
 #   - WJS_PLATFORM_DESKTOP is ON or OFF;
 #   - WJS_PLATFORM_EXECUTABLE_FORMAT is elf, pe, mach-o or wasm;
-#   - WJS_PLATFORM_SCENE is 3d or 2d;
 #   - every file the fragment compiles exists under <platforms_dir>.
 # `fragment` only names it in the message.
 function(wjs_platform_check_contract fragment platforms_dir)
@@ -67,12 +65,6 @@ function(wjs_platform_check_contract fragment platforms_dir)
         message(FATAL_ERROR
             "${fragment}: WJS_PLATFORM_EXECUTABLE_FORMAT must be elf, pe, mach-o or wasm, "
             "not '${WJS_PLATFORM_EXECUTABLE_FORMAT}'.")
-    endif()
-
-    if(NOT WJS_PLATFORM_SCENE MATCHES "^(3d|2d)$")
-        message(FATAL_ERROR
-            "${fragment}: WJS_PLATFORM_SCENE must be 3d or 2d, "
-            "not '${WJS_PLATFORM_SCENE}'.")
     endif()
 
     # An empty one would install the application's dictionary into the install

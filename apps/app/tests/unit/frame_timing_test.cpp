@@ -67,8 +67,8 @@ void skip_unless_frame_wanted() {
     if (qEnvironmentVariable("QT_QPA_PLATFORM")
             .startsWith(QStringLiteral("offscreen"), Qt::CaseInsensitive)) {
         SKIP(
-            "Quick 3D does not render on the offscreen platform plugin (docs/profiling.md, "
-            "\"The smoke mode\"): its frames are the 2D screens and not the scene");
+            "The window does not render on the offscreen platform plugin (docs/profiling.md, "
+            "\"The smoke mode\"): it presents no frames to time");
     }
 }
 
@@ -175,7 +175,7 @@ TEST_CASE("the window holds the frame budget through the smoke run's shakes", "[
         FAIL("the smoke run was killed or crashed");
     }
     if (process.exitCode() == 3) {
-        // The application says no frame was presented: Quick 3D needs a display,
+        // The application says no frame was presented: the window needs a display,
         // and there is not one here (docs/profiling.md, "The smoke mode").
         SKIP("the window could not present a frame: " << errors.toStdString());
     }

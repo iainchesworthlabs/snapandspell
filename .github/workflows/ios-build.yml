@@ -96,7 +96,7 @@ jobs:
           arch: ios
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          modules: "qtshadertools qtmultimedia qtsensors qtspeech"
           cache: false
 
       - name: Show the toolchain

@@ -33,8 +33,8 @@ not removed.
 | --- | --- |
 | [Game](game.md) | Mode B (Solo Play) and Mode A (the scanner): flow, words, stars, help, the end of a board, the check screen |
 | [Phonics](phonics.md) | The mechanism: phase data, seeding, grapheme blocks, "sound it out", the review gate. **No word list** |
-| [Board](board.md) | Sizes, where letters come from, layout and scaling, the tile, the shake, the licence cost of Qt Quick 3D |
-| [Shake prototype](shake-prototype.md) | The board scene built in Qt Quick 3D behind its seam, what it cost on one desktop, and what a 2D swap-in must keep |
+| [Board](board.md) | Sizes, where letters come from, layout and scaling, the tile, the shake (a 2D pixel scene) |
+
 | [Application](application.md) | Screens, touch targets, type and school fonts, languages and right-to-left, the Jewel Box design system, colour, motion, accessibility, sound, privacy built in and checked, the user-study plan, Qt modules |
 | [Dashboard](dashboard.md) | The parent area: the gate, what is shown and how it is worded, settings, what is deferred |
 | [Toybox Pixel restyle](toybox/DESIGN.md) | The new look (the Snake package's Toybox Pixel style): tokens shared with Snake and the ones added here, type and why the dice stay in Andika, tile states, every screen with its mockup (`toybox/gallery.html`), the web build, languages and fonts, the decisions. **Proposal until built** |
@@ -74,11 +74,9 @@ not removed.
    release build refuses a phase file that lacks its review header. The code
    binds a trace into blocks and sounds a word out; it knows no letter or sound.
    No phase file exists yet, so the shipped app plays the standard board.
-6. **The shake's outcome is decided, not simulated**: the dice move by a small
-   simulation of our own, and a guide takes each to its cell. The scene is one
-   component with a narrow interface. 3D (Qt Quick 3D) for the MVP's private build,
-   **decided by the author**, with the licence decision (GPL-3.0 only for a
-   build that links it) taken at D2 before any store.
+6. **The shake's outcome is decided, not simulated**: nothing simulates, and each die's fall is
+   a script that ends on its tile. The scene is one component with a narrow interface, drawn
+   in 2D as pixel art (the author, 2026-10-24; it was Qt Quick 3D, 2026-10-16).
 7. **Privacy is built in and checked in CI from the first build**: no audio
    input, no network capability, no export, a local store of a few kilobytes,
    no profiler in what ships.
@@ -94,9 +92,8 @@ not removed.
 
 ## Questions for the author
 
-**Decided.** The MVP's shake is 3D, in Qt Quick 3D, behind a one-component
-seam, with the licence decision left at D2 before any store (the author,
-2026-10-16; [Board](board.md#rendered-3d-or-drawn-in-2d)).
+**Decided.** The shake is a 2D pixel scene behind a one-component seam (the author, 2026-10-24;
+it was Qt Quick 3D from 2026-10-16; [Board](board.md#drawn-in-2d)).
 
 The rest, in the order they are best asked, each with the default this design
 uses so nothing waits.

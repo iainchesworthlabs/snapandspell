@@ -5,9 +5,9 @@ import WordJewelsSolver
 
 // solo.box (apps/app/qml/solo/SoloScreen.qml and SoloBox.qml): the board-size
 // choice, the Shake button and Space. The screen is the application's own; the
-// 3D board scene it imports is replaced by the harness's stub (apps/app/ui-tests/
-// scene_stub), which records the play(board, seed) a shake hands it and settles
-// at once - no display and no Quick 3D in a test.
+// board scene it is given is the harness's stub (apps/app/ui-tests/
+// StubBoardScene.qml), which records the play(board, seed) a shake hands it and settles
+// at once, so no test waits for a drop.
 TestCase {
     id: testCase
     name: "Box"
@@ -17,7 +17,8 @@ TestCase {
     width: 1100
     height: 700
 
-    Component { id: screenComponent; SoloScreen { } }
+    Component { id: stubScene; StubBoardScene { } }
+    Component { id: screenComponent; SoloScreen { sceneComponent: stubScene } }
     Component { id: boxComponent; SoloBox { } }
     Component { id: layoutComponent; SoloLayout { } }
     Component { id: historyComponent; HistorySheet { } }
@@ -95,7 +96,7 @@ TestCase {
         return screen
     }
 
-    // The 3D scene is made by an asynchronous Loader, so a test that needs it
+    // The scene is made by an asynchronous Loader, so a test that needs it
     // waits a moment rather than finding the stub before it exists.
     function sceneOf(screen) {
         tryVerify(() => findChild(screen, "boardSceneStub") !== null, 5000)

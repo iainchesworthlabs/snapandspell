@@ -25,9 +25,8 @@
 #     the Android build does. What the person keeps (the one store file) lives under /persist,
 #     which wjs-boot.js mounts as IndexedDB before the program starts, so progress survives a
 #     reload in the same browser profile and is gone with that profile's site data.
-#   * Quick 3D is heavy on WebGL, and the web has no rigid-body dice: the board scene is the
-#     drawn 2D one (WJS_PLATFORM_SCENE), so the web program is not GPL-3.0 only on Quick 3D's
-#     account, loads no 3D shaders and starts faster.
+#   * The board scene is the drawn 2D one on every platform (Qt Quick alone), so the web
+#     program loads no 3D pipeline and no shaders.
 #
 # Needs the Qt for WebAssembly kit (QT_WEB_DIR / the `web-release` preset), a desktop Qt of the
 # same version for the host tools (QT_HOST_PATH) and the Emscripten SDK the kit was built with
@@ -39,7 +38,6 @@ set(WJS_PLATFORM_DISPLAY_NAME "Web")
 # No installers and no command-line program: the bundle is a directory of static files.
 set(WJS_PLATFORM_DESKTOP OFF)
 set(WJS_PLATFORM_EXECUTABLE_FORMAT "wasm")
-set(WJS_PLATFORM_SCENE "2d")
 
 # A web build is never `cmake --install`ed; this is the name an install rule would use, and
 # the name of the resource prefix paths_web.cpp unpacks.
@@ -131,7 +129,7 @@ function(wjs_platform_configure_app target)
     target_link_options(${target} PRIVATE "SHELL:-s DYNAMIC_EXECUTION=0")
 
     # The QML modules are named by hand (qml_plugins_web.cpp), not found by the import scan: the scan
-    # reads every .qml under apps/app, tests and the 3D scene's files included, and links what it
+    # reads every .qml under apps/app, the tests' included, and links what it
     # finds. tests/platform/check_web.cmake holds the list to the application's imports.
     set_target_properties(${target} PROPERTIES QT_QML_MODULE_NO_IMPORT_SCAN TRUE)
     target_sources(${target} PRIVATE "${PROJECT_SOURCE_DIR}/libs/platforms/web/qml_plugins_web.cpp")

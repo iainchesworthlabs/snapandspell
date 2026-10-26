@@ -20,7 +20,7 @@
 # (docs/licensing.md, "Notices").
 #
 # The fragments are plain text in notices/fragments/, one section each: the
-# header and the project's own licence, Qt and Quick 3D, the word list, the
+# header and the project's own licence, Qt, the word list, the
 # translations, the assets, and the tools that are only used to build and test.
 # A fragment that describes what a PACKAGE contains is included only when that
 # package is built - Qt and the translations only with the application - so a
@@ -158,13 +158,12 @@ function(wjs_write_notices)
     set(qt_version "")
     set(qt_series "")
     if(WJS_BUILD_APP)
-        # The web program draws the 2D scene and does not link Quick 3D, so it neither is
-        # GPL-3.0-only on Quick 3D's account nor carries its section; what it carries
-        # instead is the web fragments' (statically linked Qt, and Qt's loader script).
-        if(WJS_PLATFORM_SCENE STREQUAL "3d")
-            list(APPEND fragments application qt qt-quick3d)
-        else()
+        # The web program carries the web fragments' text: Qt statically linked, and Qt's loader
+        # script, which Qt offers under the GPL-3.0 only.
+        if(WJS_PLATFORM_EXECUTABLE_FORMAT STREQUAL "wasm")
             list(APPEND fragments application-web qt-web)
+        else()
+            list(APPEND fragments application qt)
         endif()
         set(qt_version "${Qt6_VERSION}")
         string(REGEX MATCH "^[0-9]+\\.[0-9]+" qt_series "${Qt6_VERSION}")

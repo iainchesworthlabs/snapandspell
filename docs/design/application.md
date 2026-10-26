@@ -51,7 +51,7 @@ table below remains the product's target.
 ### Qt modules
 
 **As built, checked in the shared Qt 6.12.0 tree:** the Windows kit has Core,
-Gui, Qml, Quick, QuickControls2, Quick3D, ShaderTools, Svg, **Multimedia,
+Gui, Qml, Quick, QuickControls2, Quick3D (no longer used), ShaderTools, Svg, **Multimedia,
 Sensors and TextToSpeech** for the feedback engines; the module archives for the
 last three were fetched from the Qt repository and merged into the kit
 (docs/building.md, "The Qt Quick window"). The iOS kit is installed by the iOS
@@ -63,7 +63,7 @@ builds the silent variants of the sound, speech and motion backends
 | --- | --- | --- | --- |
 | Quick, Controls 2 | The UI | Yes | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 (**checked**, SBOM) |
 | QuickShapes, QuickParticles | Paths, confetti | Yes | The same (**checked**) |
-| Quick3D, ShaderTools | The 3D board | Yes | Quick3D: Commercial or GPL-3.0-only (**checked**) |
+| ShaderTools | Multimedia's build dependency | Yes | The same as Quick (**checked**). Quick3D, which the first build's 3D board used, is Commercial or GPL-3.0-only and is no longer linked |
 | Multimedia | The short feedback assets; the camera on some targets | **Yes**, optional | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 (**checked**, the kit's `sbom/qtmultimedia-6.12.0.spdx`) |
 | Sensors | The accelerometer and gyroscope | **Yes**, optional | The same (**checked**, `qtsensors`) |
 | TextToSpeech | Whole words and sentences, on the platform's engine | **Yes**, optional | The same (**checked**, `qtspeech`) |
@@ -71,7 +71,7 @@ builds the silent variants of the sound, speech and motion backends
 The rule in [Licensing](../licensing.md#qt) holds: check how Qt offers a module
 before adding it. All three are offered under the LGPL-3.0 as well as the GPL
 and commercial options, so none changes the application binary's licence; it is
-GPL-3.0-only because of Quick 3D, as before.
+GPL-3.0-or-later like the sources (Quick 3D, which made it GPL-3.0-only, is gone).
 
 ## Screens and navigation
 
@@ -151,9 +151,8 @@ with real children, not a finding.
   its place ("A, row 2, column 3"); the panel's words are a list, each named
   "pain, found". **Not built:** the polite live announcement when a word is found
   (WCAG 4.1.3): the list changes and the word is spoken aloud, and nothing is
-  sent to a screen reader. The 3D scene is opaque, so the tiles' accessible
-  items are a 2D layer over it, as Cubeulator's instruction block is the
-  alternative to its cube.
+  sent to a screen reader. The scene is a picture of the shake, so the
+  tiles' accessible items are the flat board's, over it.
 
 ## Type
 
@@ -272,7 +271,7 @@ the parent area's rows and choices order from it, the gate's words follow it,
 and the two-thirds/one-third
 split puts the panel on the trailing side (the left) and the board on the
 leading side (the right). The **board never mirrors**: the dice, the tiles, the
-trace path and the 2D and 3D scenes keep their reading order and their
+trace path and the board and its scene keep their reading order and their
 coordinates in every language (`LayoutMirroring.enabled: false` on the board
 containers). Numbers and dates use the locale.
 
@@ -359,8 +358,7 @@ the system is made of and which rules the tests hold it to.
   2400x1200 and at 150 % text and checks that every focusable item is at least
   48 dp, inside its window, not truncated and not overlapping another control; and
   `quick.kit` and `quick.theme` pin the components and tokens.
-- **Where it is not finished.** The 3D scene still reads some colours of its own
-  rather than the tokens; the parent area's bare `Text` items are on the lint
+- **Where it is not finished.** The parent area's bare `Text` items are on the lint
   allow-list; at 150 % text on the smallest window the playing panel scrolls
   (Clear and Done are reachable below the fold).
 
@@ -407,7 +405,7 @@ brief's strong effects are limited, because they are strong for a young child
 | Resting screen | Fades in over 600 ms, then still | A cut |
 | Anything that loops | Never for more than 5 seconds (WCAG 2.2.2) | Nothing loops |
 
-**What is built and what is not.** The shake, lid and drop of the 3D scene, the
+**What is built and what is not.** The shake, lid and drop of the pixel scene, the
 page and sheet transitions, and the reduced-motion behaviour of all of them are
 built. **Not built:** the sparkle and rainbow trail on a word, the Mega burst
 and bounce, confetti and the particle layer, the "single slow glow when the board
@@ -431,10 +429,9 @@ source stays unavailable and the drag that stands in for one remains
 (docs/testing.md), not on hardware: the detector's starting values still have
 to be tuned on a tablet.
 
-**The shake and the drop are the 3D board scene**
+**The shake and the drop are the pixel board scene**
 ([Board](board.md#the-shake-and-the-drop)). With reduced motion the scene keeps
-the box still, cross-fades the lid and fades the dice in on the faces the roll
-left up; nothing tumbles, and the board appears and plays as it does otherwise.
+the box still, cross-fades the lid and fades the dice in; nothing hops or falls, and the board appears and plays as it does otherwise.
 The scene draws no particles of its own.
 
 ## Accessibility
@@ -590,8 +587,8 @@ only when a test or a recorded check shows it.
   button is 64 dp and not 96, and word rows in the tray are shorter than 64 dp.
 - [ ] **Keyboard play of the board** (arrows, Space, Enter, Escape, Backspace),
   including under right-to-left, has no test.
-- [ ] **Screens never run on a device.** TalkBack and VoiceOver reading the 2D
-  layer over the 3D scene; the camera screens by a screen reader; reduced motion
+- [ ] **Screens never run on a device.** TalkBack and VoiceOver reading the
+  flat board over the scene; the camera screens by a screen reader; reduced motion
   on a screen that is open when the system setting changes.
 
 ## User study plan (open)
@@ -644,8 +641,8 @@ any time; no audio or video without separate consent (the app records nothing an
 the study follows it); codes, not names; notes kept on the local device and
 deleted after; a familiar adult in the room; a thank-you that creates no pressure
 to finish. **What would change the plan:** if the product is mainly a parent tool,
-the home hierarchy flips; if 3D cannot be made reliable, play moves to the 2D
-board and 3D stays an optional shake; if the phonics content is not ready, the
+the home hierarchy flips; if the shake cannot be made reliable, play moves to the flat
+board and the shake stays optional; if the phonics content is not ready, the
 app is a word-finding game with a start-tile hint, not a phonics tutor.
 
 ## Decisions
@@ -686,8 +683,8 @@ author's confirmation.
 
 ## Unknowns
 
-- Whether the 3D board runs well on the author's iPad, and which iPad it is.
-- Whether VoiceOver reads the 2D tile layer over a 3D scene well.
+- Whether the board and its scene run well on the author's iPad, and which iPad it is.
+- Whether VoiceOver reads the flat board over the scene well.
 - Whether an iPad can give any haptic feedback (see above).
 - Whether the tablet's Qt Sensors backend reports an accelerometer and
   gyroscope the way the scene expects, and the detector's starting values on

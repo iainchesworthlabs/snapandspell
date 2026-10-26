@@ -9,7 +9,7 @@
 # and a sentence on stderr - which nothing else runs.
 #
 # Only registered when WJS_BUILD_APP is on. `QT_QPA_PLATFORM=offscreen` keeps it
-# display-free; Quick 3D cannot render there, which is exactly what the smoke
+# display-free; the window may present no frame there, which is exactly what the smoke
 # case asserts (exit 3 and the sentence, not a hang).
 #
 #   -DAPP=<WordJewelsSolver> -DWORK_DIR=<build>/system/app -DCASE=<case>

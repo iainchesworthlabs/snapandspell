@@ -3,7 +3,7 @@
 
 // The QML modules the application imports, linked into the .wasm. Qt's own finalisation would find
 // them by scanning every .qml file under apps/app, and that scan also finds what the web build
-// leaves out on purpose: Qt Quick 3D (the 3D scene's, which is not built here), Qt Test (the UI
+// leaves out on purpose: Qt Quick 3D (no longer used anywhere), Qt Test (the UI
 // suites'), Qt Multimedia (the camera's) and the other four Qt Quick Controls styles. Each of those
 // is megabytes of WebAssembly that a child waits for, so the scan is off (platform.cmake,
 // QT_QML_MODULE_NO_IMPORT_SCAN) and the modules are named here and in WJS_WEB_QML_PLUGIN_TARGETS.

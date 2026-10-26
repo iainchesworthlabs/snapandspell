@@ -74,7 +74,6 @@ set(_layer_registry
     rules      # the game rules
     scan       # reading a board from a camera frame
     scene      # the 3D board scene, C++ and QML
-    scene2d    # the 2D fallback scene kept in apps/app/qml/scene/fallback: not built, so not required
     settings   # normalising the settings
     shake      # shake detection
     solo       # Solo Play's model
@@ -286,7 +285,6 @@ set(_required_zones
     scan.read_glyphs
     scan.read_tiles
     scan.warp_board
-    scene.step
     session.finish
     settings.normalize
     shake.detect

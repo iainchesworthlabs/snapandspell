@@ -11,8 +11,8 @@
     binaries (a scan of Qt's DLLs finds Qt, nothing more):
 
       * the application, wjs-cli and their licences: CMakeLists.txt's version,
-        and notices/fragments (the application binary is GPL-3.0-only because
-        it links Qt Quick 3D; the library and wjs-cli are GPL-3.0-or-later);
+        and notices/fragments (the application binary, the library and wjs-cli
+        are all GPL-3.0-or-later, and Qt is used under the LGPL);
       * Qt, by module, at the version in .github/toolchain-versions.json and
         under the licence each module is used under - but only if a ZIP in
         -PackagesDir actually carries Qt6Core.dll, or a package is an AppImage, a
@@ -166,15 +166,14 @@ $components.Add([ordered]@{
     })
 
 if ($hasQt) {
-    # Which Qt module is used under which licence: notices/fragments/qt.txt and
-    # qt-quick3d.txt. The repositories are Qt's own module names.
+    # Which Qt module is used under which licence: notices/fragments/qt.txt. The
+    # repositories are Qt's own module names.
     $qtModules = @(
         @{ Name = 'qtbase'; Description = 'Qt Core and Qt Gui'; License = 'LGPL-3.0-only' },
         @{ Name = 'qtdeclarative'; Description = 'Qt Qml, Qt Quick and Qt Quick Controls 2'; License = 'LGPL-3.0-only' },
         @{ Name = 'qtmultimedia'; Description = 'Qt Multimedia (the camera preview and the feedback sounds)'; License = 'LGPL-3.0-only' },
         @{ Name = 'qtsensors'; Description = 'Qt Sensors (shake)'; License = 'LGPL-3.0-only' },
-        @{ Name = 'qtspeech'; Description = 'Qt TextToSpeech'; License = 'LGPL-3.0-only' },
-        @{ Name = 'qtquick3d'; Description = 'Qt Quick 3D (the board scene). Offered under GPL-3.0 or a commercial licence only, never the LGPL; it is why the application binary is GPL-3.0-only.'; License = 'GPL-3.0-only' }
+        @{ Name = 'qtspeech'; Description = 'Qt TextToSpeech'; License = 'LGPL-3.0-only' }
     )
     foreach ($module in $qtModules) {
         $ref = "qt-$($module.Name)"
@@ -315,13 +314,13 @@ $application = [ordered]@{
     version            = $version
     description        = 'Finds every word on a Boggle board.'
     supplier           = [ordered]@{ name = 'Iain Chesworth'; url = @("https://github.com/$Repository") }
-    licenses           = @(New-License 'GPL-3.0-only')
+    licenses           = @(New-License 'GPL-3.0-or-later')
     purl               = $appRef
     externalReferences = $references
     properties         = @(
         [ordered]@{ name = 'wjs:commit'; value = $Commit },
         [ordered]@{ name = 'wjs:tracy'; value = 'off' },
-        [ordered]@{ name = 'wjs:licence-note'; value = 'The window binary is GPL-3.0-only (it links Qt Quick 3D); the sources and wjs-cli are GPL-3.0-or-later.' }
+        [ordered]@{ name = 'wjs:licence-note'; value = 'The window binary, the sources and wjs-cli are GPL-3.0-or-later; Qt is used under the LGPL-3.0.' }
     )
 }
 

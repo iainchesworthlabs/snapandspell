@@ -2,19 +2,17 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import WordJewelsSolver
+import WordJewelsSolver.Scene
 import "SceneScript.js" as Script
 
-// THE board scene (docs/design/board.md, "The shake and the drop"): given a
-// finished board and a seed, play the shake and the drop, and say when the dice are
-// settled. Nothing else in the application touches it, and no game rule is in it:
-// a tile is an opaque string and "" is a dead jewel.
+// THE board scene (docs/design/board.md, "The shake and the drop"): given a finished board and a seed,
+// play the shake and the drop, and say when the dice are settled. Nothing else in the application
+// touches it, and no game rule is in it: a tile is an opaque string and "" is a dead jewel.
 //
-// This is the plain 2D implementation of the interface, kept as the fallback if
-// D2 goes against Qt Quick 3D (docs/design/shake-prototype.md, "If a 2D
-// implementation is swapped in"). It is NOT built: the application's scene is
-// ../BoardScene.qml, the 3D one, in the same module. It carries the same name and
-// members so a build can pick this file instead, and
-// apps/app/tests/unit/check_scene_contract.cmake holds it to the same list.
+// It is drawn in 2D as pixel art (docs/design/toybox/DESIGN.md, "Motion"): the closed box jumps in
+// stepped hops, its lid lifts in four steps, and each die falls through six flip-book frames. Nothing
+// is smooth and nothing is lit, so it runs in a browser as it does on a desktop. The poses are pure
+// functions of the board's size, the seed and the time (SceneScript.js).
 //
 //   play(board, seed)   shake, lid, drop, settle, for board = { rows, columns, tiles,
 //                       faces, up }; while busy it restarts
@@ -37,33 +35,18 @@ import "SceneScript.js" as Script
 //   busy, rows, columns, tileSize, tileGap, boardRect   read-only: the geometry by the
 //                       layout rule, for the 2D layer that traces over the scene
 //   overdraw            read-only: 0, this scene draws inside its item
+//   trayInset           in: how far the tray stands off the tiles (the flat board's)
 Item {
     id: root
 
     // --- the seam ------------------------------------------------------------
     property bool reducedMotion: false
-
-    // The colours and the tray's reach the screen hands the scene, so that the scene and the flat
-    // board it cross-fades with are one colour (the 3D scene takes them as its materials). The
-    // 2D dice are the kit's TileFace and the jewels the kit's, which draw from the same tokens,
-    // so the die and jewel colours are accepted for the interface and not needed here; the tray,
-    // its rim and the lid are drawn with theirs. Defaults are the tokens.
-    property color trayColor: Theme.tray
-    property color rimColor: Theme.trayEdge
-    property color dieColor: Theme.die
-    property color dieEdgeColor: Theme.dieEdge
-    property color dieInkColor: Theme.dieInk
-    property color jewelColor: Theme.jewelDead
-    property color lidColor: Theme.lid
-    // How far the tray stands off the tiles, 0 for the scene's own (a share of the inset).
-    property real trayInset: 0
-
     property real agitation: 0
     property vector2d tilt: Qt.vector2d(0, 0)
+    property real trayInset: Theme.trayOutset(tile)
 
-    // One sample of the device's motion (the interface of the board scene, as the
-    // 3D scene takes it): how far the reading is from still is how hard the device
-    // is shaken, and where gravity is in it is which way it leans.
+    // One sample of the device's motion (the interface of the board scene): how far the reading is
+    // from still is how hard the device is shaken, and where gravity is in it is which way it leans.
     function pushMotion(ax, ay, az, wx, wy, wz) {
         agitation = Math.min(1, Math.sqrt(ax * ax + ay * ay + (az - 1) * (az - 1)) / 1.2);
         tilt = Qt.vector2d(Math.max(-1, Math.min(1, -ax / 0.14)),
@@ -80,19 +63,17 @@ Item {
     readonly property real tileSize: tile
     readonly property real tileGap: gap
     readonly property rect boardRect: Qt.rect((width - spanX) / 2, (height - spanY) / 2, spanX, spanY)
-    // A 2D scene draws inside its item; the 3D one draws a little past it.
+    // The scene draws inside its item.
     readonly property real overdraw: 0
 
-    // The 3D scene draws the board's faces a frame ahead; this one has none to
-    // draw, so the board is drawn when it arrives, as it always was.
+    // The faces are drawn when the board arrives, as the flat board draws them.
     function prepare(board) {
+        Profiler.begin("scene.prepare");
+        Profiler.end();
     }
 
     function play(board, seed) {
-        // The application's seam for the profiling calls is the same for this
-        // scene, so a trace says which implementation it is: this one's names
-        // are scene2d.*, and it is not built (docs/profiling.md).
-        Profiler.begin("scene2d.play");
+        Profiler.begin("scene.play");
         setBoard(board);
         script = Script.create(boardRows * boardColumns, seed, reducedMotion);
         landedCount = 0;
@@ -108,7 +89,7 @@ Item {
     }
 
     function show(board) {
-        Profiler.begin("scene2d.show");
+        Profiler.begin("scene.show");
         setBoard(board);
         script = null;
         stage = "idle";
@@ -134,13 +115,14 @@ Item {
     property real stageMs: 0
     property var script: null
     property var poses: []
-    property real boxTilt: 0
+    property point boxHop: Qt.point(0, 0)
     property real lidOpen: 1
     property int landedCount: 0
     property var landedMask: []
     property real rattleClock: 0
 
     readonly property bool boxClosed: boardTiles.length === 0
+    readonly property bool lidShown: boxClosed || stage === "shake" || stage === "lid"
 
     function setBoard(board) {
         boardRows = board.rows;
@@ -153,13 +135,26 @@ Item {
         stageMs = 0;
     }
 
+    // The zone a frame of the stage is timed in (docs/profiling.md, "QML and the scene").
+    function stageZone() {
+        switch (stage) {
+        case "shake":
+        case "lid":
+            return "scene.shake";
+        case "drop":
+            return "scene.drop";
+        case "settle":
+            return "scene.settle";
+        default:
+            return "";
+        }
+    }
+
     function step(dtMs) {
         if (stage === "idle" || script === null) {
             return;
         }
-        // The frame's script calls: every die's pose, the box's tilt and the lid,
-        // as Script.pose and its neighbours work them out (SceneScript.js).
-        Profiler.begin("scene2d.step");
+        Profiler.begin(stageZone());
         stageMs += Math.min(dtMs, 50);
 
         if (stage === "shake") {
@@ -193,8 +188,8 @@ Item {
                 stage = "idle";
                 stageMs = 0;
                 apply();
-                settled();
                 Profiler.end();
+                settled();
                 return;
             }
         }
@@ -207,15 +202,15 @@ Item {
         const next = [];
         const count = boardRows * boardColumns;
         for (let i = 0; i < count; ++i) {
-            next.push(script === null ? { x: 0, y: 0, tilt: 0, scale: 1, opacity: 1, shadow: 0 }
+            next.push(script === null ? { x: 0, y: 0, fall: 0, opacity: 1, frame: Script.FRAMES }
                                       : Script.pose(script, stage, stageMs, i, tile));
         }
         poses = next;
-        boxTilt = script === null ? 0 : Script.boxTilt(script, stage, stageMs, agitation, tilt.x);
+        const hop = script === null ? { x: 0, y: 0 }
+                                    : Script.boxHop(script, stage, stageMs, agitation, tilt.x);
+        boxHop = Qt.point(hop.x, hop.y);
         lidOpen = script === null ? (boxClosed ? 0 : 1) : Script.lidOpen(script, stage, stageMs);
     }
-
-    onTileChanged: apply()
 
     FrameAnimation {
         running: root.busy
@@ -223,41 +218,28 @@ Item {
     }
 
     // --- what is drawn -----------------------------------------------------------
-    // The box: a dark tray with a rim, which rattles as a whole.
+    // The box: the tray with its teal well, which hops as a whole.
     Item {
         id: box
-        x: root.boardRect.x
-        y: root.boardRect.y
-        width: root.boardRect.width
-        height: root.boardRect.height
-        rotation: root.boxTilt
-        transformOrigin: Item.Center
+        x: root.boxHop.x
+        y: root.boxHop.y
+        width: root.width
+        height: root.height
 
-        Rectangle {
-            readonly property real rim: root.trayInset > 0 ? root.trayInset : root.inset * 0.6
-            x: -rim
-            y: -rim
-            width: parent.width + 2 * rim
-            height: parent.height + 2 * rim
-            color: root.trayColor
-            border.width: Theme.rule
-            border.color: root.rimColor
+        BoardTray {
+            x: root.boardRect.x - root.trayInset
+            y: root.boardRect.y - root.trayInset
+            width: root.boardRect.width + 2 * root.trayInset
+            height: root.boardRect.height + 2 * root.trayInset
         }
 
-        // The empty wells of the box with its lid on: a picture of the size chosen.
-        Repeater {
-            model: root.boxClosed ? root.boardRows * root.boardColumns : 0
-
-            Rectangle {
-                required property int index
-                x: (index % root.boardColumns) * root.pitch
-                y: Math.floor(index / root.boardColumns) * root.pitch
-                width: root.tile
-                height: root.tile
-                color: "transparent"
-                border.width: Theme.rule
-                border.color: Theme.well
-            }
+        BoardWell {
+            x: root.boardRect.x
+            y: root.boardRect.y
+            rows: root.boardRows
+            columns: root.boardColumns
+            tile: root.tile
+            pitch: root.pitch
         }
 
         Repeater {
@@ -267,32 +249,43 @@ Item {
                 required property int index
                 readonly property var pose: root.poses[index] !== undefined
                                             ? root.poses[index]
-                                            : { x: 0, y: 0, tilt: 0, scale: 1, opacity: 1, shadow: 0 }
-                x: (index % root.boardColumns) * root.pitch + pose.x
-                y: Math.floor(index / root.boardColumns) * root.pitch + pose.y
+                                            : { x: 0, y: 0, fall: 0, opacity: 1, frame: 6 }
+                x: root.boardRect.x + (index % root.boardColumns) * root.pitch + pose.x
+                y: root.boardRect.y + Math.floor(index / root.boardColumns) * root.pitch
+                   + Math.round(pose.fall * root.tile)
                 width: root.tile
                 height: root.tile
-                rotation: pose.tilt
-                scale: pose.scale
                 opacity: root.boxClosed ? 0 : pose.opacity
                 letters: root.boardTiles[index] !== undefined ? root.boardTiles[index] : ""
-                shadow: pose.shadow
             }
         }
 
-        // The lid: a translucent pane over the box that lifts and tilts away.
-        Rectangle {
-            readonly property real rim: root.trayInset > 0 ? root.trayInset : root.inset * 0.6
-            x: -rim
-            y: -rim - root.lidOpen * root.tile * 0.4
-            width: parent.width + 2 * rim
-            height: parent.height + 2 * rim
-            visible: root.lidOpen < 1
-            color: root.lidColor
-            opacity: 0.55 * (1 - root.lidOpen)
-            rotation: -6 * root.lidOpen
-            border.width: Theme.rule
-            border.color: root.rimColor
+        // The lid: a cream slab with an ink outline, a hard shadow and a coral label, which lifts away
+        // in four steps. With reduced motion it does not move: it fades.
+        PixelBox {
+            readonly property real lift: root.reducedMotion ? 0 : root.lidOpen * root.tile * 0.8
+
+            x: root.boardRect.x - root.trayInset
+            y: root.boardRect.y - root.trayInset - lift
+            width: root.boardRect.width + 2 * root.trayInset
+            height: root.boardRect.height + 2 * root.trayInset
+            visible: root.lidShown && root.lidOpen < 1
+            opacity: root.reducedMotion ? 1 - root.lidOpen : 1
+            radius: Theme.radiusLarge
+            fill: Theme.lid
+            edge: Theme.trayEdge
+            edgeWidth: Theme.outlineFrame
+            shadowOffset: Theme.shadowFrame
+
+            Rectangle {
+                anchors.centerIn: parent
+                width: Math.min(parent.width * 0.3, Theme.space16 * 2)
+                height: Math.max(Theme.space4, width * 0.34)
+                radius: Theme.radiusXs
+                color: Theme.coral
+                border.width: Theme.outlineControl
+                border.color: Theme.trayEdge
+            }
         }
     }
 }

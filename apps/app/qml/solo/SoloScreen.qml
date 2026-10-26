@@ -3,7 +3,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import WordJewelsSolver
-import WordJewelsSolver.Scene
 
 // Solo Play, Mode B. The closed jewel box and the flat board are 2D; the 3D
 // scene is used only for the shake and the drop. A persistent app bar holds the
@@ -123,7 +122,10 @@ FocusScope {
     property bool feedbackWord: false
     // The scene, typed for the rest of the screen; null while the loader is
     // still making it. Once made it is kept for the run (sceneMade).
-    readonly property BoardScene scene: sceneLoader.item
+    // The board scene, a Component so that a suite can give the screen a scene that records what it is
+    // asked and settles at once (apps/app/ui-tests/StubBoardScene.qml).
+    property Component sceneComponent: boardScene
+    readonly property var scene: sceneLoader.item
     property bool sceneMade: false
 
     function startPendingPlay() {
@@ -322,12 +324,11 @@ FocusScope {
             wrapMode: Text.WordWrap
         }
 
-        // The 3D theatre: the shake and the drop only. It is made by a Loader,
-        // asynchronously and only once Solo Play is entered (the closed box),
-        // so its first creation - the scene graph, the light probe and the
-        // materials, whose shaders are made and cached on first use - happens
-        // while the child reads the box instead of blocking the first shake.
-        // It then lives for the rest of the run, so later shakes pay nothing.
+        // The theatre: the shake and the drop only, in pixel art. It is made by a
+        // Loader, asynchronously and only once Solo Play is entered (the closed
+        // box), so its first creation happens while the child reads the box
+        // instead of blocking the first shake. It then lives for the rest of the
+        // run, so later shakes pay nothing.
         Loader {
             id: sceneLoader
             objectName: "sceneLoader"
@@ -350,7 +351,7 @@ FocusScope {
             opacity: root.shaking ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.base } }
 
-            sourceComponent: boardScene
+            sourceComponent: root.sceneComponent
 
             onLoaded: {
                 root.sceneMade = true;
@@ -373,24 +374,26 @@ FocusScope {
             id: boardScene
             BoardScene {
                 // Exactly the flat board's rectangle, with no inset: the settled
-                // 3D dice and the flat dice have to occupy the same pixels for
-                // the cross-fade to read as one object changing surface.
+                // dice and the flat dice have to occupy the same pixels for the
+                // cross-fade to read as one object changing surface.
                 reducedMotion: Theme.reducedMotion
                 LayoutMirroring.enabled: false
-                // The flat board's own colours, so the cross-fade between the
-                // two does not change colour.
-                trayColor: Theme.tray
-                rimColor: Theme.trayEdge
-                dieColor: Theme.die
-                dieEdgeColor: Theme.dieEdge
-                dieInkColor: Theme.dieInk
-                jewelColor: Theme.jewelDead
-                lidColor: Theme.lid
                 trayInset: root.trayInset
+            }
+        }
 
-                onSettled: root.solo.sceneSettled()
-                onLanded: (index, pitch) => Feedback.cue("tile-landed", String(pitch))
-                onRattled: Feedback.cue("rattle", "")
+        // What the scene says, whichever scene it is (the stub of a suite says the same).
+        Connections {
+            target: sceneLoader.item
+
+            function onSettled() {
+                root.solo.sceneSettled();
+            }
+            function onLanded(index, pitch) {
+                Feedback.cue("tile-landed", String(pitch));
+            }
+            function onRattled() {
+                Feedback.cue("rattle", "");
             }
         }
 

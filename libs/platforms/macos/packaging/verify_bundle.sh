@@ -10,7 +10,7 @@
 #   * Info.plist is valid, names the identifier, version, icon and the camera usage
 #     text (a program that asks for the camera without it is ended by macOS);
 #   * the icon, the Qt frameworks and plugins (the cocoa platform plugin) and the
-#     QML modules (QtQuick, QtQuick3D) are in the bundle - Qt's deploy script put
+#     QML modules (QtQuick) are in the bundle - Qt's deploy script put
 #     them there, and this is the proof;
 #   * nothing in the bundle links to a path outside the system and the bundle: no
 #     /Users/runner, no Qt kit directory (otool -L over every Mach-O file);
@@ -84,10 +84,8 @@ done
 for required in \
     "Contents/Frameworks/QtCore.framework" \
     "Contents/Frameworks/QtQuick.framework" \
-    "Contents/Frameworks/QtQuick3D.framework" \
     "Contents/PlugIns/platforms/libqcocoa.dylib" \
-    "Contents/Resources/qml/QtQuick" \
-    "Contents/Resources/qml/QtQuick3D"; do
+    "Contents/Resources/qml/QtQuick"; do
   [ -e "$app/$required" ] || fail "the bundle has no $required: Qt was not deployed into it"
 done
 echo "    Qt: frameworks, the cocoa platform plugin and the QML modules are in the bundle"

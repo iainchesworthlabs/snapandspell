@@ -108,6 +108,16 @@ Item {
         height: root.boardRect.height + 2 * root.trayInset
     }
 
+    // The teal well behind the dice, as the scene draws it.
+    BoardWell {
+        x: root.boardRect.x
+        y: root.boardRect.y
+        rows: root.rows
+        columns: root.columns
+        tile: root.tileSize
+        pitch: root.pitch
+    }
+
     // --- the die faces ------------------------------------------------------------
     Repeater {
         model: root.solo.tiles

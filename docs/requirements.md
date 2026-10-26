@@ -27,7 +27,7 @@ page without one.
 | [Performance, constraints and licensing](requirements/performance.md) | 67 | 29 | 25 | 4 | 5 | 2 | 2 |
 | **All** | **453** | **250** | **119** | **29** | **26** | **20** | **9** |
 
-Rows with no test: **31** (Implemented or Partial rows whose "Demonstrated by"
+Rows with no test: **28** (Implemented or Partial rows whose "Demonstrated by"
 cell is empty). The check holds this number to the pages: it may fall only by a
 test being cited, and rise never.
 

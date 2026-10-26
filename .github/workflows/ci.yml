@@ -205,7 +205,7 @@ jobs:
     needs: plan
     if: ${{ needs.plan.outputs.legs != '[]' }}
     runs-on: ${{ fromJSON('{"windows":"windows-2025-vs2026","linux":"ubuntu-26.04","macos":"macos-26","profiling-windows":"windows-2025-vs2026","profiling-linux":"ubuntu-26.04","profiling-macos":"macos-26"}')[matrix.leg] }}
-    # The Windows leg builds the application and its prototype with the
+    # The Windows leg builds the application with the
     # sanitizers on and then runs about a thousand tests; on a hosted runner
     # that is 40 minutes or more, so 45 cancelled it in its last step.
     timeout-minutes: 75
@@ -263,8 +263,8 @@ jobs:
 
       # The Qt Quick application, on the one leg whose platform has had it
       # built: Qt 6.12.0 through install-qt-action, the same prebuilt kit
-      # pattern as the shared tree (docs/building.md). The application and the
-      # 3D board-scene prototype are built and their tests run, so the QML
+      # pattern as the shared tree (docs/building.md). The application is
+      # built and its tests run, so the QML
       # screens, the scene contract and qmllint are held on every push
       # (docs/ci.md). The base kit carries lupdate and lrelease (from Qt 6.12 qttools is an
       # archive of the base package, no longer a module): the
@@ -291,7 +291,7 @@ jobs:
           # $RUNNER_WORKSPACE instead.
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          modules: "qtshadertools qtmultimedia qtsensors qtspeech"
           cache: true
 
       # A compiler cache for the Windows build, which is where the minutes are
@@ -335,8 +335,7 @@ jobs:
         if: runner.os == 'Linux'
         uses: ./.github/actions/linux-tracy-tools
 
-      # The Windows leg also builds the Qt Quick application and its 3D scene
-      # prototype, so the app tests, the QML lint and the scene contract run
+      # The Windows leg also builds the Qt Quick application, so the app tests, the QML lint and the scene contract run
       # here (docs/ci.md). Every other leg builds the library, CLI and scan
       # layers alone, which is all their hosts have Qt installed for.
       - name: Configure
@@ -349,7 +348,7 @@ jobs:
           if [ "$LEG" = "windows" ]; then
             # /Z7 puts the debug information in the objects, which is what
             # ccache can store (a shared .pdb it cannot).
-            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
+            cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=ON               -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded
           else
             cmake --preset "$CMAKE_PRESET" -DWJS_BUILD_APP=OFF
           fi
@@ -435,7 +434,7 @@ jobs:
       # `Package (Windows, Release)` job below): the
       # script a developer runs too (tools/package/check_package.ps1) packs a
       # ZIP with CPack, checks the archive carries the two programs, Qt's DLLs,
-      # plugins and QML modules (Quick 3D included), the dictionary, the dice,
+      # plugins and QML modules, the dictionary, the dice,
       # NOTICES.txt and LICENSE.txt, writes SHA256SUMS, unpacks it, solves a
       # board with the packaged wjs-cli and runs the packaged window's offscreen
       # smoke (docs/building.md#checking-a-package). This leg packages its
@@ -713,7 +712,7 @@ jobs:
           arch: win64_msvc2022_64
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          modules: "qtshadertools qtmultimedia qtsensors qtspeech"
           cache: true
 
       # The same compiler cache as the Windows leg, under its own preset's key.

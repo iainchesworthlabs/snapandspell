@@ -61,7 +61,6 @@ endforeach()
 _read("${_dir}/platform.cmake" _fragment)
 foreach(_pair IN ITEMS
         "WJS_PLATFORM_EXECUTABLE_FORMAT|wasm"
-        "WJS_PLATFORM_SCENE|2d"
         "WJS_PLATFORM_DESKTOP|OFF"
         "WJS_PLATFORM_QT_DEPLOY_AT_INSTALL|OFF"
         "WJS_PLATFORM_QT_ARCH_DIRS|wasm_singlethread")
@@ -83,13 +82,6 @@ endif()
 if(_fragment MATCHES "Quick3D|quick3d")
     _fail("platform.cmake mentions Quick 3D; the web build draws the 2D scene")
 endif()
-# Every other platform says 3d, and says so: the contract variable is not optional.
-foreach(_other IN ITEMS linux windows macos ios android)
-    _read("libs/platforms/${_other}/platform.cmake" _other_fragment)
-    if(NOT _other_fragment MATCHES "set[(]WJS_PLATFORM_SCENE \"3d\"[)]")
-        _fail("libs/platforms/${_other}/platform.cmake does not set WJS_PLATFORM_SCENE to 3d")
-    endif()
-endforeach()
 
 # ---- the persistent directory has one name ----------------------------------------
 
@@ -174,8 +166,8 @@ if(NOT _import_count EQUAL _module_count)
     _fail("qml_plugins_web.cpp imports ${_import_count} plugins and this check knows ${_module_count} modules: keep them in step")
 endif()
 
-# The application's QML, its modules' QML and the kit's. The tests' QML (apps/app/ui-tests), the
-# prototype's and the 3D scene's are not shipped on the web, so they are not read here. The camera
+# The application's QML, its modules' QML and the kit's. The tests' QML (apps/app/ui-tests) is
+# not shipped on the web, so it is not read here. The camera
 # variant is not either: QtMultimedia is not in the kit, and the variant that is built is camera-none.
 file(GLOB_RECURSE _qml_files
     "${REPO_ROOT}/apps/app/qml/*.qml"
@@ -185,9 +177,6 @@ file(GLOB_RECURSE _qml_files
     "${REPO_ROOT}/apps/app/src/variants/*-silent/*.qml")
 set(_shipped_imports "")
 foreach(_qml IN LISTS _qml_files)
-    if(_qml MATCHES "/apps/app/qml/scene/(BoardScene|Die|FaceAtlas)[.]qml$")
-        continue()  # the 3D scene's files, which the 2D scene replaces
-    endif()
     file(STRINGS "${_qml}" _import_lines REGEX "^[ \t]*import[ \t]+[A-Za-z]")
     foreach(_line IN LISTS _import_lines)
         string(REGEX REPLACE "^[ \t]*import[ \t]+([A-Za-z0-9_.]+).*$" "\\1" _imported "${_line}")

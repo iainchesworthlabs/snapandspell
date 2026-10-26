@@ -247,7 +247,7 @@ jobs:
           arch: ${{ matrix.qt-arch }}
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          modules: "qtshadertools qtmultimedia qtsensors qtspeech"
           cache: true
 
       # CPack's NSIS settings are decided at configure time, when makensis is
@@ -325,8 +325,8 @@ jobs:
         run: ctest --preset "$CMAKE_PRESET"
 
       # The window starts, loads every screen and presents frames (docs/profiling.md,
-      # "The smoke mode"). Quick 3D cannot render offscreen, so this is the start-up
-      # path and the 2D graph. The macOS bundle and the AppImage are smoked again from
+      # "The smoke mode"). The window may present no frame offscreen, so this is the
+      # start-up path and the 2D graph. The macOS bundle and the AppImage are smoked again from
       # the package they end up in.
       - name: Application smoke
         if: matrix.leg == 'windows' || matrix.leg == 'linux-app'
@@ -901,7 +901,7 @@ jobs:
           arch: android_arm64_v8a
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          modules: "qtshadertools qtmultimedia qtsensors qtspeech"
           cache: false
 
       - name: Name the Qt kits
