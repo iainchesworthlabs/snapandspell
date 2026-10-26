@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../qml/scan/CheckScreen.qml" line="+382"/>
+        <location filename="../qml/scan/CheckScreen.qml" line="+348"/>
         <source>Turn</source>
         <translation>Turn</translation>
     </message>
@@ -807,7 +807,19 @@
         <translation>Two letters</translation>
     </message>
     <message>
-        <location line="+80"/>
+        <location line="+81"/>
+        <source>Licence and source</source>
+        <extracomment>The heading of the About block that says under what licence the program is and where its source is.</extracomment>
+        <translation>Licence and source</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The source code is public. This version is the release and the commit shown above, at:</source>
+        <extracomment>Under the licence notice. The release and the commit of this build are shown above it; the address is shown after it.</extracomment>
+        <translation>The source code is public. This version is the release and the commit shown above, at:</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Privacy</source>
         <translation>Privacy</translation>
     </message>

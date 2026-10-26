@@ -36,6 +36,7 @@ set(WJS_KIT_QML_FILES
     TabletArt.qml
     Theme.qml
     TileFace.qml
+    TileMark.qml
     Wordmark.qml)
 
 set(WJS_KIT_QML_SINGLETONS

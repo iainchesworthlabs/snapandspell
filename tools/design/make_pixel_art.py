@@ -173,10 +173,72 @@ def icon_shake() -> Grid:
     return g
 
 
+def _from_rows(rows: tuple[str, ...]) -> Grid:
+    g = Grid(12)
+    for y, row in enumerate(rows):
+        assert len(row) == 12, row
+        for x, ch in enumerate(row):
+            if ch == "#":
+                g.put(x, y)
+    return g
+
+
+def icon_play() -> Grid:
+    return _from_rows((
+        "............",
+        "...##.......",
+        "...####.....",
+        "...######...",
+        "...#######..",
+        "...########.",
+        "...########.",
+        "...#######..",
+        "...######...",
+        "...####.....",
+        "...##.......",
+        "............",
+    ))
+
+
+def icon_square() -> Grid:
+    return _from_rows((
+        "............",
+        "............",
+        "............",
+        "...######...",
+        "...######...",
+        "...######...",
+        "...######...",
+        "...######...",
+        "...######...",
+        "............",
+        "............",
+        "............",
+    ))
+
+
+def icon_question() -> Grid:
+    return _from_rows((
+        "............",
+        "...######...",
+        "..##....##..",
+        "..##....##..",
+        "........##..",
+        ".......##...",
+        "......##....",
+        ".....##.....",
+        ".....##.....",
+        "............",
+        ".....##.....",
+        ".....##.....",
+    ))
+
+
 ICONS = {
     "back": icon_back, "forward": icon_forward, "close": icon_close, "done": icon_done,
     "parent": icon_parent, "history": icon_history, "jewel": icon_jewel, "hint": icon_hint,
-    "again": icon_again, "shake": icon_shake,
+    "again": icon_again, "shake": icon_shake, "play": icon_play, "square": icon_square,
+    "question": icon_question,
 }
 
 

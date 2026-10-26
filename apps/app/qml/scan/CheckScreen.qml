@@ -203,47 +203,13 @@ FocusScope {
                 height: width
                 activeFocusOnTab: true
 
+                // The reader doubted this tile and no one has settled it: a question mark in a
+                // sunshine disc at the corner of the die (TileFace's `doubtful`).
                 TileFace {
                     anchors.fill: parent
                     letters: cell.modelData.letters
                     lit: false
-                }
-
-                // The reader doubted this tile and no one has settled it: a cream
-                // ring round the die, and a "?" on a cream badge at its corner.
-                // Cream, not ink: the ring stands on the dark tray.
-                Rectangle {
-                    visible: cell.modelData.doubtful
-                    anchors.fill: parent
-                    anchors.margins: -Theme.space1
-                    radius: Theme.radiusSmall + Theme.space1
-                    color: "transparent"
-                    border.width: Theme.litEdge
-                    border.color: Theme.die
-                }
-                Rectangle {
-                    visible: cell.modelData.doubtful
-                    anchors.top: parent.top
-                    anchors.right: parent.right
-                    anchors.topMargin: -Theme.space2
-                    anchors.rightMargin: -Theme.space2
-                    width: Math.max(Theme.iconMd, cell.width * 0.3)
-                    height: width
-                    radius: width / 2
-                    color: Theme.die
-                    border.width: Theme.heavy
-                    border.color: Theme.dieEdge
-
-                    Label {
-                        anchors.centerIn: parent
-                        decorative: true
-                        role: "label"
-                        size: Math.max(Theme.smallSize, parent.width * 0.62)
-                        lineRatio: 1.0
-                        font.weight: Font.Bold
-                        color: Theme.dieInk
-                        text: ScanWording.doubtfulMark
-                    }
+                    doubtful: cell.modelData.doubtful
                 }
 
                 // Tab reaches a tile (a press does not take focus), and the ring says which.

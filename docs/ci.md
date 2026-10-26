@@ -208,6 +208,10 @@ frames, and the run fails if they do not (docs/profiling.md, "The smoke mode").
 The window may present no frame offscreen, so this is the start-up path and the 2D graph;
 the frame budget is a desktop check.
 
+It also **takes a picture of every screen** (`cmake --build --target wjs_screenshots`, offscreen;
+docs/testing.md, "Screenshots") and keeps the PNG files for 14 days as the run's `screenshots`
+artifact, so a change to the look can be seen from the pull request. The step never fails the leg.
+
 That leg then **packages what it built** and proves the package is usable:
 `tools/package/check_package.ps1` (docs/building.md, "Checking a package") runs
 `cpack -G ZIP`, checks the archive carries the two programs, Qt's DLLs, plugins

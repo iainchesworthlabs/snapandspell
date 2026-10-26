@@ -127,19 +127,28 @@ Item {
             required property int index
             required property string modelData
 
-            x: root.tileX(cell.index)
+            x: root.tileX(cell.index) + root.shakeOf(cell.index)
             y: root.tileY(cell.index)
             width: root.tileSize
             height: root.tileSize
 
             readonly property bool dead: modelData === ""
+            // Where the die is on the path being made, or -1.
+            readonly property int place: root.pathList.indexOf(cell.index)
+            // In the word that was found, shown for a moment.
+            readonly property bool found: root.presenting && root.solo.litPath.indexOf(cell.index) >= 0
+            // 1 for the start tile of a help, 2 for the next letter, else 0.
+            readonly property int helpRung: root.accepting ? root.solo.helpTiles.indexOf(cell.index) + 1 : 0
 
             TileFace {
                 anchors.fill: parent
                 // The letter is drawn again above the path, so the face is only
                 // the die itself here.
                 letters: ""
-                lit: root.isLit(cell.index)
+                lit: cell.place >= 0 && !cell.found
+                order: cell.place + 1
+                valid: cell.found
+                help: cell.helpRung
             }
 
             // A dead tile is a die of six jewels in the scene; on the flat board
@@ -204,6 +213,20 @@ Item {
     // A path that was not a word fades where it was.
     property var ghostPath: []
     property string ghostKind: ""
+    // A string that is not a word shakes sideways in two steps (whole pixels, not with reduced
+    // motion): to the right, to the left, and back.
+    property real shake: 0
+    function shakeOf(index) {
+        return root.ghostKind === "fade" && root.ghostPath.indexOf(index) >= 0 ? root.shake : 0;
+    }
+    SequentialAnimation {
+        id: shakeSteps
+        PropertyAction { target: root; property: "shake"; value: 6 }
+        PauseAnimation { duration: 60 }
+        PropertyAction { target: root; property: "shake"; value: -6 }
+        PauseAnimation { duration: 60 }
+        PropertyAction { target: root; property: "shake"; value: 0 }
+    }
     Connections {
         target: root.solo
         function onTraced(kind, path) {
@@ -211,6 +234,9 @@ Item {
                 root.ghostPath = path;
                 root.ghostKind = kind;
                 ghostFade.restart();
+                if (kind === "fade" && !Theme.reducedMotion) {
+                    shakeSteps.restart();
+                }
             }
         }
     }
@@ -246,6 +272,30 @@ Item {
             joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.ghostPoints }
         }
+
+        // Not a word: each die of it has a pink outline and a cross, which fade with the trail.
+        Repeater {
+            model: root.ghostKind === "fade" ? root.ghostPath : []
+
+            Item {
+                required property int modelData
+                x: root.tileX(modelData) + root.shake
+                y: root.tileY(modelData)
+                width: root.tileSize
+                height: root.tileSize
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Theme.radiusControl
+                    color: "transparent"
+                    border.width: Theme.outlinePanel
+                    border.color: Theme.danger
+                }
+                TileMark {
+                    kind: "invalid"
+                }
+            }
+        }
     }
     NumberAnimation {
         id: ghostFade
@@ -267,7 +317,7 @@ Item {
             required property int index
             required property string modelData
             visible: modelData !== ""
-            x: root.tileX(index)
+            x: root.tileX(index) + root.shakeOf(index)
             y: root.tileY(index)
             width: root.tileSize
             height: root.tileSize
@@ -299,15 +349,14 @@ Item {
         border.color: Theme.die
     }
 
-    // The start tile, and the second letter when the child asks for more. One
-    // ring for the first rung; two for the second, the second a size smaller so
-    // the two never merge. Each is a gold band with a thin dark line outside it,
-    // which holds 3:1 on the cream dice and on the tray. The word itself is never
-    // shown or spoken here.
+    // The start tile, and the second letter when the child asks for more: a dashed cream ring round
+    // the die (the tray is ink, so an ink ring would vanish), one for the first rung and a smaller
+    // one for the second, so the two never merge. The die itself is sunshine with a play mark or a
+    // square (TileFace's `help`). The word itself is never shown or spoken here.
     Repeater {
         model: root.solo.helpTiles
 
-        Rectangle {
+        PixelBox {
             id: ring
             required property int index
             required property var modelData
@@ -317,22 +366,14 @@ Item {
             y: modelData >= 0 ? root.tileY(modelData) - ring.reach : 0
             width: root.tileSize + 2 * ring.reach
             height: width
-            radius: Theme.radiusSmall + ring.reach
-            color: "transparent"
-            border.width: Theme.hair
-            border.color: Theme.dieEdge
+            radius: Theme.radiusControl + ring.reach
+            fill: "transparent"
+            edge: Theme.die
+            edgeWidth: ring.index === 0 ? Theme.ringWidth : Theme.ringWidthSecond
+            shadowOffset: 0
+            dashed: true
             Accessible.role: Accessible.Graphic
             Accessible.name: ring.index === 0 ? SoloWording.startHere : SoloWording.nextLetter
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: Theme.hair
-                radius: parent.radius - Theme.hair
-                color: "transparent"
-                border.width: ring.index === 0 ? Theme.ringWidth : Theme.ringWidthSecond
-                border.color: Theme.gold
-                Accessible.ignored: true
-            }
 
             SequentialAnimation on scale {
                 running: ring.visible && !Theme.reducedMotion

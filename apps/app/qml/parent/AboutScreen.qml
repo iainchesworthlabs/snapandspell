@@ -3,8 +3,8 @@ import QtQuick
 import QtQuick.Layouts
 import WordJewelsSolver
 
-// About and privacy (docs/design/dashboard.md, "Settings"). Plain text: no link
-// to anywhere, because the application has nowhere to go. The licences have
+// About, the licence and where the source is, and privacy (docs/design/dashboard.md, "Settings"),
+// in three Toybox cards. Plain text: no link to anywhere, because the application has nowhere to go. The licences have
 // their own page (LicencesScreen.qml), a tab of the bar beside this one, so the
 // legal text is not the longest thing on this page and nothing here repeats the
 // tab.
@@ -57,9 +57,8 @@ Flickable {
 
         // The version and the build's provenance: no heading, because the page
         // title above is the name they belong to.
-        ColumnLayout {
+        Card {
             Layout.fillWidth: true
-            spacing: Theme.space2
             Paragraph {
                 text: ParentWording.version(root.controller.version)
             }
@@ -77,9 +76,30 @@ Flickable {
             }
         }
 
+        // The licence and where the source is: text only, because the program has nowhere to
+        // go (it opens no address). The full notices are the Licences tab's.
+        Card {
+            Layout.fillWidth: true
+            title: ParentWording.licenceAndSourceHeading
+            Paragraph {
+                text: ParentWording.licenceNotice
+            }
+            Paragraph {
+                text: ParentWording.sourceSays
+            }
+            Label {
+                objectName: "sourceAddress"
+                Layout.fillWidth: true
+                role: "caption"
+                text: "github.com/iainchesworthlabs/wordjewelssolver"
+                font.family: Theme.monoFont
+                wrapMode: Text.WrapAnywhere
+            }
+        }
+
         // The one privacy section: the summary line, then what is kept and
         // what is never done.
-        Section {
+        Card {
             Layout.fillWidth: true
             title: ParentWording.privacyHeading
             Paragraph {
