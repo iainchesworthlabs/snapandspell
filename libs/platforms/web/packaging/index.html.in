@@ -1,0 +1,64 @@
+<!doctype html>
+<!--
+  SPDX-License-Identifier: GPL-3.0-or-later
+  The page of the web build (libs/platforms/web/packaging/index.html.in). It is written at
+  configure time; wjs-boot.js starts the program.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="theme-color" content="#FFC93C">
+    <meta name="color-scheme" content="light dark">
+    <!-- Nothing but this site's own files, no network request but to it (R-PLT-14), and
+         WebAssembly compiled from them. The page's one <style> is inline. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; connect-src 'self' data: blob:; manifest-src 'self'; worker-src 'self' blob:; base-uri 'none'; form-action 'none'">
+    <title>@WJS_WEB_PAGE_TITLE@</title>
+    <meta name="description" content="A word-finding game for young readers: shake the jewel box, find words and collect the jewels.">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="64x64" href="icon-64.png">
+    <link rel="apple-touch-icon" href="icon-256.png">
+    <style>
+      /* Toybox Pixel's page colours (docs/design/toybox/tokens.json): sunshine and cream by day,
+         deep purple at night. Nothing here is the game's; it is what shows while the game loads. */
+      :root { --page: #FFC93C; --ink: #2B1D52; --panel: #FFF1D6; }
+      @media (prefers-color-scheme: dark) {
+        :root { --page: #1A1035; --ink: #FFF1D6; --panel: #2B1D52; }
+      }
+      html, body { margin: 0; padding: 0; height: 100%; background: var(--page); color: var(--ink); }
+      body { font: 18px/1.4 system-ui, sans-serif; overflow: auto; }
+      /* The application's least window is 900 x 620 (apps/app/qml/Main.qml); a smaller viewport
+         scrolls instead of squeezing the layout below what it was designed for. */
+      #screen { width: 100%; height: 100%; min-width: 900px; min-height: 620px; }
+      #loading { position: fixed; inset: 0; display: flex; flex-direction: column;
+                 align-items: center; justify-content: center; gap: 24px; text-align: center; }
+      #loading[hidden] { display: none; }
+      /* Four square cells that take turns, a pixel loader that needs no image. */
+      .cells { display: grid; grid-template-columns: repeat(2, 28px); gap: 6px; }
+      .cells i { width: 28px; height: 28px; background: var(--panel); border: 3px solid var(--ink);
+                 box-shadow: 0 4px 0 var(--ink); animation: blink 1.2s steps(1) infinite; }
+      .cells i:nth-child(2) { animation-delay: .3s; }
+      .cells i:nth-child(4) { animation-delay: .6s; }
+      .cells i:nth-child(3) { animation-delay: .9s; }
+      @keyframes blink { 0%, 100% { background: var(--panel); } 25% { background: #FF6B4A; } }
+      @media (prefers-reduced-motion: reduce) { .cells i { animation: none; } }
+      h1 { font-size: 28px; margin: 0; }
+      #status { max-width: 32em; padding: 0 16px; min-height: 1.4em; }
+      body.failed .cells { display: none; }
+      body.failed #status { background: var(--panel); border: 4px solid var(--ink); padding: 16px; }
+      a { color: inherit; }
+    </style>
+  </head>
+  <body data-app="@WJS_WEB_APP_NAME@" data-entry="@WJS_WEB_ENTRY_NAME@">
+    <div id="loading" role="status">
+      <h1>@WJS_WEB_PAGE_TITLE@</h1>
+      <div class="cells" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div id="status">Loading the game&hellip;</div>
+      <noscript>This game needs JavaScript. Please turn it on for this page.</noscript>
+    </div>
+    <div id="screen"></div>
+    <script src="@WJS_WEB_APP_NAME@.js"></script>
+    <script src="qtloader.js"></script>
+    <script src="wjs-boot.js"></script>
+  </body>
+</html>

@@ -30,7 +30,10 @@ set(_members
     "overdraw, read-only|readonly[ \t]+property[ \t]+real[ \t]+overdraw"
     "play(board, seed)|function[ \t]+play[ \t]*\\([ \t]*board[ \t]*,[ \t]*seed[ \t]*\\)"
     "show(board)|function[ \t]+show[ \t]*\\([ \t]*board[ \t]*\\)"
-    "prepare(board)|function[ \t]+prepare[ \t]*\\([ \t]*board[ \t]*\\)")
+    "prepare(board)|function[ \t]+prepare[ \t]*\\([ \t]*board[ \t]*\\)"
+    # What the screen hands the scene so that its tray is the flat board's
+    # (apps/app/qml/solo/SoloScreen.qml): a scene that lacks it fails to load the screen.
+    "trayInset, in|property[ \t]+real[ \t]+trayInset")
 
 set(_failed FALSE)
 set(_checked 0)

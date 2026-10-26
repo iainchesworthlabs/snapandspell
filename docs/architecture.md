@@ -1156,8 +1156,9 @@ display. See [The parent area as built](design/parent-area.md).
   (0.1 is those three desktops and an ad-hoc iOS build for the author's own devices,
   [D11](roadmap.md#4-decisions-that-gate-the-plan)). The iOS build is written
   (`libs/platforms/ios`, `ios-build.yml`) and has never run on a device. Android is in
-  progress and not built; there is no web build and no phone layout. In CI the window
-  is built for Windows, and for iOS as a compile check ([CI](ci.md#not-here-yet)).
+  progress and not built; there is a web build (WebAssembly, [Web](web.md)) and no phone
+  layout. In CI the window is built for Windows, and for iOS and the web as compile checks
+  ([CI](ci.md#not-here-yet)).
 
 ## Not built yet
 
@@ -1193,9 +1194,9 @@ These do not exist, and nothing in the tree stands in for them:
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
   early-reader tier lists (animals, colours, shapes, and so on); nothing reads
   them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.
-- **A run on a device, Android, the web and phones.** iOS is written and has never run
-  on a device; Android is in progress and not built; web and phone layouts come after
-  0.1. Packaging is written for all three desktops: the Windows leg installs, packages
+- **A run on a device, Android and phones.** iOS is written and has never run
+  on a device; Android is in progress and not built; phone layouts come after 0.1. The web
+  build exists ([Playing in a browser](web.md)) and has been run in one desktop browser engine only. Packaging is written for all three desktops: the Windows leg installs, packages
   and checks a ZIP ([Building](building.md#packaging)) and `release.yml` is written to
   make the installer, an AppImage, command-line packages and a macOS disk image, but it
   has never run, and the application has only been built on Windows in CI

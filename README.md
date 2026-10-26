@@ -58,7 +58,7 @@ sequence is built but has no sounds to play. Haptics is a no-op on the desktops
 and its Android/iOS backends wait for those targets. Nothing captures audio.
 
 Not built or not proven: reading letters from a real picture (the reader is tested
-on drawn frames only), a published release, an Android or browser target, phone
+on drawn frames only), a published release, an Android target, a published browser version, phone
 layouts, the tablet's sensor and haptic backends, and the phonics content (it needs
 a literacy reviewer, so the shipped game plays the standard board). The English
 word list is ENABLE, which is in `data/dictionaries/`: see

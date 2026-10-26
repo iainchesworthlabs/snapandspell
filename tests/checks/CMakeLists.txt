@@ -70,6 +70,17 @@ add_test(NAME platform.apk.selftest
         "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/platform-apk"
         -P "${WJS_TESTS_DIR}/platform/test_check_android.cmake")
 
+# The web target, held together: its files, the one name of the persistent directory in the
+# fragment, the page's boot script and the program's paths, the QML modules the application
+# imports against the plugins the program links (the web build turns Qt's import scan off, so a
+# module nobody lists is a page that does not start), the presets, and the pins of the SDK and the
+# kit against the workflow. It reads files only, so it runs on every host; the build itself and
+# the browser run are .github/workflows/web-build.yml's.
+add_test(NAME platform.web
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${WJS_TESTS_DIR}/platform/check_web.cmake")
+
 # The Tracy policy: Debug builds are instrumented by default, and nothing that
 # ships has it - the *-debug and *-profiling presets turn the option on, the
 # release and coverage presets keep it off, and the manifest feature that
@@ -243,6 +254,7 @@ set(WJS_QUALITY_TESTS
     platform.fragments
     platform.apk
     platform.apk.selftest
+    platform.web
     profiling.perf_budgets_ran
     profiling.shipped_presets
     profiling.tracy_portable

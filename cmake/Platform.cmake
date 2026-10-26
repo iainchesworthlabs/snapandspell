@@ -23,19 +23,20 @@
 # Facts:
 #   WJS_PLATFORM_DISPLAY_NAME     How the platform is written in the version
 #                                 block ("Windows", "macOS", "Linux", "iOS",
-#                                 "Android").
+#                                 "Android", "Web").
 #   WJS_PLATFORM_DESKTOP          ON where CPack installers exist (the three
 #                                 desktops). OFF on iOS, whose application is
 #                                 archived and exported by Xcode, and on
 #                                 Android, whose package is made by Qt's
-#                                 androiddeployqt, so no CPack configuration is
-#                                 written.
+#                                 androiddeployqt, and on the web, whose bundle is
+#                                 what Emscripten links, so no CPack configuration
+#                                 is written.
 #   WJS_PLATFORM_EXECUTABLE_FORMAT
 #                                 The format of the platform's programs: elf
-#                                 (Linux, Android), pe (Windows) or mach-o
-#                                 (macOS, iOS). The tests that read a built
-#                                 program back with a format's own tool are
-#                                 registered where it is elf.
+#                                 (Linux, Android), pe (Windows), mach-o
+#                                 (macOS, iOS) or wasm (the web). The tests that
+#                                 read a built program back with a format's own
+#                                 tool are registered where it is elf.
 #   WJS_PLATFORM_QT_SEARCH_ROOTS, WJS_PLATFORM_QT_ARCH_DIRS
 #                                 Where cmake/FindQt6.cmake looks for an
 #                                 aqtinstall-style Qt when none is on
@@ -101,17 +102,13 @@ include_guard(GLOBAL)
 # fragment is read.
 include(GNUInstallDirs)
 
-# The browser is not a target yet (docs/roadmap.md). Saying so here is clearer
-# than a missing-fragment error further down.
+# EMSCRIPTEN first: Emscripten's toolchain file sets UNIX too, and a browser is
+# not a Linux machine. IOS before APPLE: an iOS build is an Apple build too.
+# ANDROID before UNIX: the NDK's toolchain file sets UNIX as well, and an
+# Android build is not a Linux one.
 if(EMSCRIPTEN)
-    message(FATAL_ERROR
-        "Only Windows, macOS and Linux desktops, iOS and Android are supported "
-        "targets. Web is on the roadmap (docs/roadmap.md).")
-endif()
-
-# IOS before APPLE: an iOS build is an Apple build too. ANDROID before UNIX: the
-# NDK's toolchain file sets UNIX as well, and an Android build is not a Linux one.
-if(IOS)
+    set(WJS_PLATFORM web)
+elseif(IOS)
     set(WJS_PLATFORM ios)
 elseif(ANDROID)
     set(WJS_PLATFORM android)

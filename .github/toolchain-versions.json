@@ -12,7 +12,8 @@
       "linux": { "host": "linux", "arch": "linux_gcc_64", "dir": "gcc_64" },
       "macos": { "host": "mac", "arch": "clang_64", "dir": "macos" },
       "ios": { "host": "mac", "arch": "ios", "dir": "ios", "hostdir": "macos" },
-      "android": { "host": "all_os", "arch": "android_arm64_v8a", "dir": "android_arm64_v8a", "hostdir": "gcc_64" }
+      "android": { "host": "all_os", "arch": "android_arm64_v8a", "dir": "android_arm64_v8a", "hostdir": "gcc_64" },
+      "web": { "host": "all_os", "arch": "wasm_singlethread", "dir": "wasm_singlethread", "hostdir": "gcc_64" }
     },
     "modules": "qtshadertools qtmultimedia qtsensors qtspeech",
     "action": "jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125",
@@ -24,6 +25,11 @@
     "platform": "android-36",
     "build_tools": "36.0.0",
     "jdk": "17"
+  },
+  "emscripten": {
+    "$comment": "What the web build installs beside Qt's WebAssembly kit. The version is the one the kit asks for (its QtPublicWasmToolchainHelpers.cmake: QT_EMCC_RECOMMENDED_VERSION, 5.0.5 for Qt 6.12.0), not the newest the infra's setup-emscripten action defaults to; the commit is the emsdk repository's tag of that version (git ls-remote --tags https://github.com/emscripten-core/emsdk.git). The kit is the single-threaded one: a page can use threads only if it is served with cross-origin isolation headers, which GitHub Pages cannot send (docs/building.md, 'Web').",
+    "version": "5.0.5",
+    "emsdk_commit": "c9ef2c9d6000341d667a32a807ba47ca489d1e1b"
   },
   "vcpkg": {
     "pin_file": "cmake/vcpkg-commit.txt"

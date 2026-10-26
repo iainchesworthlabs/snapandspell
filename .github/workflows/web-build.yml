@@ -1,0 +1,174 @@
+name: Web build
+
+# The web application: the program built to WebAssembly on a hosted Linux runner with Qt 6.12's
+# single-threaded WebAssembly kit and the Emscripten SDK that kit asks for, bundled into a directory
+# of static files, looked inside (libs/platforms/web/packaging/verify_web.sh: the files, no outside
+# requests, one thread, the size budget) and started in a headless Chrome
+# (libs/platforms/web/packaging/smoke_web.sh: the page comes up and says it did not fail). The
+# bundle is uploaded as an artifact: serve the directory over HTTP and open index.html
+# (docs/building.md, "Web"). It needs no secret and publishes nothing.
+#
+# Not a required check, and not on the merge queue: it runs only when something the web build
+# reads changes (a required check that a path filter keeps from running never reports, which would
+# hold every unrelated pull request), and the Qt kit and the Emscripten SDK are a download of
+# several hundred megabytes. Dispatch it by hand to run it anywhere:
+#   gh workflow run web-build.yml --ref <branch>
+#
+# What the browser run does not show is listed in docs/ci.md ("What the web has and has not
+# shown"): nothing here plays a game, and no mobile browser runs it.
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "libs/**"
+      - "apps/**"
+      - "cmake/**"
+      - "data/**"
+      - "assets/**"
+      - "apps/app/translations/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "vcpkg.json"
+      - ".github/toolchain-versions.json"
+      - ".github/actions/vcpkg-setup/**"
+      - ".github/workflows/web-build.yml"
+  push:
+    branches: [main, develop]
+    paths:
+      - "libs/**"
+      - "apps/**"
+      - "cmake/**"
+      - "data/**"
+      - "assets/**"
+      - "apps/app/translations/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "vcpkg.json"
+      - ".github/toolchain-versions.json"
+      - ".github/actions/vcpkg-setup/**"
+      - ".github/workflows/web-build.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: web-build-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' && github.ref != 'refs/heads/main' }}
+
+# No job gets more than it names below.
+permissions: {}
+
+env:
+  VCPKG_DISABLE_METRICS: "1"
+
+jobs:
+  web-build:
+    name: Web (WebAssembly, one thread)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The vcpkg toolchain is the CMAKE_TOOLCHAIN_FILE of every preset, the web's included (it
+      # chains to Qt's, which chains to Emscripten's). With no tests and no Tracy the manifest has
+      # no dependency, so nothing is built or cached through it.
+      - name: Set up vcpkg
+        uses: ./.github/actions/vcpkg-setup
+
+      - name: Install CMake 4 + Ninja
+        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        with:
+          cmakeVersion: "4.4.2"
+          ninjaVersion: "1.13.2"
+
+      # The SDK that Qt 6.12.0's WebAssembly kit asks for (QT_EMCC_RECOMMENDED_VERSION), at the
+      # emsdk repository's commit of that tag: the pins are .github/toolchain-versions.json's
+      # (emscripten.*; tests/platform/check_web.cmake holds this file to them). The action's own
+      # default is a newer SDK that this kit refuses.
+      - name: Install Emscripten
+        uses: iainchesworthlabs/icl-common-infra/actions/setup-emscripten@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+        with:
+          emsdk-version: "5.0.5"
+          emsdk-repo-commit: "c9ef2c9d6000341d667a32a807ba47ca489d1e1b"
+
+      # Two kits: Qt's WebAssembly kit, and, installed alongside it by aqtinstall's --autodesktop
+      # (the action adds it), the Linux kit that supplies the host tools a cross build runs (moc,
+      # rcc, qmlcachegen, lrelease). The repository is `all_os`. No module is added: the web build
+      # has no Qt Quick 3D, Multimedia, Sensors or Speech (libs/platforms/web/platform.cmake). The
+      # pins are .github/toolchain-versions.json's (qt.kits.web). Not cached: the kits are large,
+      # and the repository's cache quota is better spent on the builds that run on every push.
+      - name: Install Qt (WebAssembly kit and Linux host kit)
+        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        with:
+          version: "6.12.0"
+          host: all_os
+          target: wasm
+          arch: wasm_singlethread
+          dir: ${{ runner.temp }}
+          aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
+          cache: false
+
+      # Where the action put the two kits, which the preset reads (the runner context is not
+      # available in a job-level env).
+      - name: Name the Qt kits
+        shell: bash
+        run: |
+          echo "QT_WEB_DIR=$RUNNER_TEMP/Qt/6.12.0/wasm_singlethread" >> "$GITHUB_ENV"
+          echo "QT_HOST_PATH=$RUNNER_TEMP/Qt/6.12.0/gcc_64" >> "$GITHUB_ENV"
+
+      - name: Show the toolchain
+        shell: bash
+        run: |
+          cmake --version | head -n 1
+          ninja --version
+          emcc --version | head -n 1
+          df -h "$RUNNER_TEMP" .
+          for kit in "$QT_WEB_DIR/lib/cmake/Qt6/qt.toolchain.cmake" "$QT_HOST_PATH/lib/cmake/Qt6/Qt6Config.cmake"; do
+            [ -e "$kit" ] || { echo "::error::$kit is not there: the Qt install put its kits somewhere else (look at the install step's log)"; exit 1; }
+          done
+          # The kit says which SDK it wants; the SDK installed above has to be that one.
+          wanted="$(sed -n 's/.*QT_EMCC_RECOMMENDED_VERSION "\([0-9.]*\)".*/\1/p' "$QT_WEB_DIR/lib/cmake/Qt6/QtPublicWasmToolchainHelpers.cmake" | head -n 1)"
+          have="$(emcc --version | head -n 1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)"
+          echo "the kit wants Emscripten $wanted, and this is $have"
+          [ "$wanted" = "$have" ] || { echo "::error::Qt's WebAssembly kit wants Emscripten $wanted, but $have is installed: update emscripten.* in .github/toolchain-versions.json and this workflow"; exit 1; }
+
+      - name: Configure
+        run: cmake --preset web-release
+
+      # The bundle is <build>/web-bundle, written by the program's own post-build step.
+      - name: Build
+        run: cmake --build --preset web-release
+
+      - name: Check the bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^ *VERSION \([0-9][0-9.]*\)$/\1/p' CMakeLists.txt | head -n 1)"
+          [ -n "$version" ] || { echo "::error::could not read the project version from CMakeLists.txt"; exit 1; }
+          libs/platforms/web/packaging/verify_web.sh build/web-release/web-bundle --version "$version"
+
+      # The runner image carries Google Chrome. The script needs nothing else (no browser
+      # driver): it serves the bundle, loads it and reads the page back.
+      - name: Start it in Chrome
+        shell: bash
+        run: libs/platforms/web/packaging/smoke_web.sh build/web-release/web-bundle
+
+      - name: Zip the bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^ *VERSION \([0-9][0-9.]*\)$/\1/p' CMakeLists.txt | head -n 1)"
+          mkdir -p web-dist
+          (cd build/web-release/web-bundle && cmake -E tar cf "$GITHUB_WORKSPACE/web-dist/WordJewelsSolver-$version-web.zip" --format=zip .)
+          ls -l web-dist
+
+      - name: Upload the bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-bundle
+          path: web-dist/*.zip
+          if-no-files-found: error
+          retention-days: 14

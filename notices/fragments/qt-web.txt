@@ -1,0 +1,34 @@
+Qt {{QT_VERSION}}
+------------------
+
+WordJewelsSolver.wasm contains the Qt {{QT_VERSION}} libraries and plugins the
+application uses, built for WebAssembly with Emscripten and linked statically
+into the one file, with the QML modules the application imports: QtQuick,
+QtQuick.Controls (the Basic style), QtQuick.Layouts, QtQuick.Shapes,
+QtQuick.Window and QtQml.Models. The bundle also carries qtloader.js, Qt's
+loader for the page.
+
+Copyright (C) The Qt Company Ltd. and other contributors.
+
+The modules the program uses are used under the GNU Lesser General Public
+License, version 3, reproduced at the end of this file; Qt also offers them
+under the GPL version 2 or 3, or a commercial licence. Because Qt is linked
+statically here, the program as a whole is offered under the GPL and its
+complete source is public, so everything needed to build it again with another
+build of Qt is: the repository at the version this bundle was made from, and the
+build instructions in docs/building.md ("Web"). The complete corresponding source
+of Qt {{QT_VERSION}} is published by The Qt Company at
+https://download.qt.io/archive/qt/{{QT_SERIES}}/{{QT_VERSION}}/single/ and this
+project will also supply it on request, through the repository's issue
+tracker, for as long as this bundle is offered.
+
+Qt's attribution for the third-party code inside it (FreeType, HarfBuzz, libpng,
+libjpeg, PCRE2 and zlib among them), with the full text of every licence
+named, is at https://doc.qt.io/qt-6/licenses-used-in-qt.html and in the SPDX
+documents of the Qt {{QT_VERSION}} kit (sbom/*.spdx.json).
+
+No Qt translation catalogue (qtbase_*.qm and the rest) is merged: the
+interface's translations are the project's own, and its catalogue is embedded
+in the program.
+
+{{FILE:LGPL3}}
