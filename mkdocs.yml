@@ -54,6 +54,7 @@ nav:
       - Releasing: releasing.md
       - Branch protection: branch-protection.md
       - Installing on my iPhone/iPad: ios-install.md
+      - Playing in a browser: web.md
   - How it works:
       - Architecture: architecture.md
       - Platform isolation: platform-isolation.md

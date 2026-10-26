@@ -158,7 +158,14 @@ function(wjs_write_notices)
     set(qt_version "")
     set(qt_series "")
     if(WJS_BUILD_APP)
-        list(APPEND fragments application qt qt-quick3d)
+        # The web program draws the 2D scene and does not link Quick 3D, so it neither is
+        # GPL-3.0-only on Quick 3D's account nor carries its section; what it carries
+        # instead is the web fragments' (statically linked Qt, and Qt's loader script).
+        if(WJS_PLATFORM_SCENE STREQUAL "3d")
+            list(APPEND fragments application qt qt-quick3d)
+        else()
+            list(APPEND fragments application-web qt-web)
+        endif()
         set(qt_version "${Qt6_VERSION}")
         string(REGEX MATCH "^[0-9]+\\.[0-9]+" qt_series "${Qt6_VERSION}")
         if(NOT qt_version OR NOT qt_series)

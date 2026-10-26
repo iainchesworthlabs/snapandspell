@@ -1,0 +1,15 @@
+{
+  "name": "@WJS_WEB_PAGE_TITLE@",
+  "short_name": "Word Jewels",
+  "description": "A word-finding game for young readers.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#FFC93C",
+  "theme_color": "#FFC93C",
+  "icons": [
+    { "src": "icon-64.png", "sizes": "64x64", "type": "image/png" },
+    { "src": "icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any" }
+  ]
+}

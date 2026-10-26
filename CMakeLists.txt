@@ -161,7 +161,13 @@ else()
         "build the application).")
 endif()
 
-set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 QuickLayouts QuickShapes Quick3D LinguistTools)
+set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 QuickLayouts QuickShapes LinguistTools)
+# The 3D scene is Quick 3D's; a platform that draws the 2D scene (the web:
+# WJS_PLATFORM_SCENE in libs/platforms/web/platform.cmake) needs no Quick 3D, and
+# its application is not GPL-3.0 only on that account.
+if(WJS_PLATFORM_SCENE STREQUAL "3d")
+    list(APPEND WJS_QT_COMPONENTS Quick3D)
+endif()
 if(_wjs_qt_requirement)
     find_package(Qt6 6.12 ${_wjs_qt_requirement} COMPONENTS ${WJS_QT_COMPONENTS})
 endif()

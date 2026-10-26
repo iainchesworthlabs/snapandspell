@@ -33,6 +33,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS the ad-hoc iOS IPA and, when its signing secrets are set, the signed Android APK and AAB, source archive and SBOM, then the shared publish job (checksums, GPG signatures, attestations, a GitHub Release, `main`); by hand or weekly: the packages without publishing ([Releasing](releasing.md)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
 | `android-build.yml` | the debug-signed Android APK, built and looked inside, only when what Android reads changes; no secret, not required ([Android](#android)) | yes |
 | `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
+| `web-build.yml` | the web application (WebAssembly) built, looked inside and started in a headless Chrome, only when what the web build reads changes; no secret, not required ([Web](#web)) | yes |
 | `docs.yml` | `mkdocs build --strict` of the documentation site, and its publication to GitHub Pages on every push to `main` that changes the docs ([Documentation site](#documentation-site)) | yes (the build; the publication needs Pages) |
 | `release-tooling.yml` | lints the workflows (actionlint, ShellCheck) and self-tests the release scripts with a throw-away key; only when those files change (anything under `.github/`, `tools/release`, `tools/package`, a platform's `packaging/`, `tests/package`, the packaging CMake, the version files) | yes |
 | `codeql.yml` | nightly CodeQL static analysis of the C++, a call of the shared `codeql.yml` of icl-common-infra | no - skipped |
@@ -80,6 +81,7 @@ GitHub's default. The limits, by workflow:
 | `release.yml` | `SBOM, checksums and signatures` / `Attest provenance and SBOM` / `Publish the release` | 20 / 10 / 20 |
 | `ios-build.yml` | `iOS (device, unsigned compile)` | 90 |
 | `android-build.yml` | `Android (arm64-v8a, debug-signed APK)` | 90 |
+| `web-build.yml` | `Web (WebAssembly, one thread)` | 60 |
 | `docs.yml` | `Build the documentation (strict)`, `Publish to GitHub Pages` | 20 / 10 (the shared workflows') |
 | `release-tooling.yml` | `Lint the workflows and release scripts` / `Release tooling self-test` | 10 / 15 |
 | `scorecard.yml` | `Analyze` | 15 |
@@ -153,6 +155,13 @@ the `quality` label:
 - `platform.fragments`: every platform fragment satisfies the platform
   contract, on whichever host this is, including that every interface header in
   `libs/platforms/interfaces` has an implementation in the fragment's sources.
+- `platform.web`: the web target held together (files only, so on every host): the
+  persistent directory has one name in the fragment, the boot script and `paths_web.cpp`; every
+  QML module the application imports is named in `qml_plugins_web.cpp` and linked by the
+  fragment (the web build turns Qt's import scan off); the `web-*` presets and the
+  Emscripten and Qt kit pins agree with `web-build.yml`; and the fragment names the
+  single-threaded kit, the 2D scene and no Quick 3D. Run against changes made on purpose to
+  each of those, it names the one that is wrong.
 - `platform.isolation`: the same script as the `platform-isolation` job; it
   needs `pwsh`, which every hosted image has.
 - `profiling.shipped_presets` (no preset that ships has Tracy in it),
@@ -919,6 +928,65 @@ camera prompt and Mode A, rotation and split-screen, the parent area and that it
 survives closing the app from the recents list, the settings *App info → Permissions* (the camera
 alone, no network access listed), and uninstall.
 
+### Web
+
+`web-build.yml` is the web counterpart of `android-build.yml`: not a required check, not on the merge
+queue, run only when something the web build reads changes (`libs/`, `apps/`, `cmake/`, `data/`,
+`assets/`, the translations, the presets, the pins file, the vcpkg setup, the workflow), and by hand
+(`gh workflow run web-build.yml --ref <branch>`). It needs no secret and publishes nothing. In order:
+
+1. vcpkg, CMake and Ninja at the pins. The vcpkg toolchain is the CMake toolchain file here too, chaining
+   to Qt's, which chains to Emscripten's; the manifest has no dependency without tests or Tracy, so
+   nothing is built through it.
+2. **Emscripten 5.0.5**, with `icl-common-infra`'s `setup-emscripten` action at the commit and version
+   `emscripten.*` in `.github/toolchain-versions.json` name. 5.0.5 is the version Qt 6.12.0's
+   WebAssembly kit asks for (`QT_EMCC_RECOMMENDED_VERSION`); the action's own default is a newer one, which
+   the kit refuses. A step compares the two and fails with both numbers if they ever differ.
+3. **Qt 6.12.0 for WebAssembly** (`wasm_singlethread`) and the Linux host kit it needs, installed by the
+   pinned `install-qt-action`. No module is added: the web build has no Qt Quick 3D, Multimedia, Sensors or
+   Speech. About 360 MB of kit, not cached.
+4. `cmake --preset web-release` and `cmake --build --preset web-release`: the bundle is
+   `build/web-release/web-bundle`.
+5. **Check the bundle** with `libs/platforms/web/packaging/verify_web.sh`: the files the page needs are
+   there and it names only those; the page and its scripts fetch nothing from another site; the program is
+   a WebAssembly module with no `SharedArrayBuffer` (single-threaded) and without Quick 3D, Qt Multimedia
+   or Qt Test in it; it is inside its size budget (40 MB as built, 14 MB gzipped; about 32 and 11 today);
+   the manifest is JSON and names icons that are there; and the program carries the project's version.
+6. **Start it in Chrome** with `libs/platforms/web/packaging/smoke_web.sh`: the runner image's Google
+   Chrome, headless, with software WebGL, loads the bundle from a throw-away local server for a minute
+   of page time and the script reads the page back. The game came up if the page's loading panel is hidden
+   (the boot script hides it when Qt reports the program loaded) and the page is not marked failed. No
+   browser driver and no package is installed for this.
+7. Zip the bundle as `WordJewelsSolver-<version>-web.zip` and upload it as the `web-bundle` artifact
+   (14 days).
+
+[Playing in a browser](web.md) says what the page keeps, what it lacks and what hosting it needs.
+
+#### What the web has and has not shown
+
+Verified here, on a Linux machine with Emscripten 5.0.5 and Qt 6.12.0's `wasm_singlethread` kit
+installed without a module: `platform.web` (and the mutations above), `platform.fragments` and the
+other fragment checks pass; the 2D scene declares the interface and the colours the screen hands it
+(`app.scene_contract`); the program **configures, compiles, links and bundles** (31 MB, 11 MB gzipped;
+43 and 15 MB before the import scan was turned off), also against a kit with no module added;
+`verify_web.sh` passes and fails on a bundle with a file removed or a URL added; and in a headless
+Chromium (Playwright's, software WebGL, 1100 x 700) the program started, drew Home with the bundled
+fonts, opened Solo Play's box screen, shook, dropped the dice of the 2D scene and settled on the board,
+opened the parent gate (held for two seconds), the dashboard and Mode A's setup (which says "No camera"
+and offers typing the board), and wrote its store under `/persist`, which was there, with the same
+size, after a reload (IndexedDB). `smoke_web.sh` passed against Chrome's headless shell.
+
+On a hosted runner (`ubuntu-24.04`, run 40280996137, the pull request that added the workflow): the
+Emscripten and Qt installs, the configure and the build, the bundle check and the start in the
+runner's Google Chrome all passed, in about 10½ minutes; the program was 31 MB and 11 MB gzipped
+there too.
+
+**Not shown:** Safari, Firefox and any phone or tablet browser; a real GPU; touch
+input; a game played to the end; the frame rate and the first-load time on a slow device; the install as a
+home-screen app; that GitHub Pages compresses a `.wasm`. The `smoke_web.sh` run cannot draw a picture
+(a headless Chrome's screenshot is taken before the canvas has painted), so a person has to look at the page
+once per release.
+
 ## Documentation site
 
 `docs.yml` calls the shared `docs.yml` and `docs-deploy.yml` of
@@ -1206,7 +1274,9 @@ is red in the pull request. (The iOS compile check is the exception: it builds t
 application against Qt's iOS kit on macOS, [iOS](#ios).) Also not here: Android
 (in progress on a separate branch; [Releases](#releases)), the iOS haptics (the
 desktops and iOS answer with the shared no-op), a signed iOS build, an install or a
-run on a device ([iOS](#ios) says what is unverified), and web. The Windows clang-cl
+run on a device ([iOS](#ios) says what is unverified), a web build in a release package
+([Web](#web): it is built and checked on every change that touches it, and is not a release file yet), and
+sound and speech in the browser. The Windows clang-cl
 coverage preset (`windows-clang-coverage`, with `coverage-unit` and `coverage-ui`) is
 available for a local run but is not a CI job: the Linux GCC job runs the same unit
 gate. Each remaining item is a new job or a flag flip, not a redesign.

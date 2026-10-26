@@ -2,6 +2,7 @@
 #include "wjs/game_rules.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <tuple>
 #include <utility>
 
@@ -103,12 +104,15 @@ bool FoundWords::insert(std::string_view word) {
 
 std::size_t FoundWords::CaseBlindHash::operator()(std::string_view word) const noexcept {
     // FNV-1a over the upper-case letters, so every case of a word hashes alike.
-    std::size_t hash = 14695981039346656037ULL;
+    // 64 bits whatever the width of size_t: a 32-bit target (the browser's WebAssembly) would
+    // otherwise be handed a constant that does not fit. Where size_t is 64 bits the value is the
+    // same as it was.
+    std::uint64_t hash = 14695981039346656037ULL;
     for (const char c : word) {
         hash ^= static_cast<unsigned char>(ascii::to_upper(c));
         hash *= 1099511628211ULL;
     }
-    return hash;
+    return static_cast<std::size_t>(hash);
 }
 
 bool FoundWords::CaseBlindEqual::operator()(std::string_view lhs,
