@@ -15,7 +15,7 @@ a board from the camera, though the reader has only been tested on drawn frames.
     been read**: the reader is tested on drawn frames only
     ([Scanner design](design/scanner.md)). CI builds and tests the library and
     `wjs-cli` on Windows, Linux and macOS and the application on Windows; the
-    release workflow builds packages for all three desktops and an ad-hoc iOS build
+    release workflow builds packages for all three desktops and an iOS build for TestFlight
     for the author's own devices, and has never run on GitHub. Android is in
     progress and does not exist yet. The English word list is ENABLE. It has not been
     tried with children. [Architecture](architecture.md) says what is built,

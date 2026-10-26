@@ -39,7 +39,7 @@ that is no longer there.
 | Linux x64, the application | `ubuntu-26.04`, GCC, Qt 6.12.0 | `WordJewelsSolver-<v>-x86_64.AppImage`, with Qt inside |
 | Linux x64, the solver | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` of `wjs-cli` only |
 | macOS arm64 | `macos-26`, AppleClang, Qt 6.12.0 | `WordJewelsSolver-<v>-Darwin.dmg`: the application bundle and `wjs-cli`; signed and notarised when the Apple secrets are set |
-| iPhone / iPad | `macos-26`, Xcode, Qt's iOS kit | `...-ios-adhoc.ipa` and `manifest.plist`, for the devices in the provisioning profile ([iOS](ci.md#ios)) |
+| iPhone / iPad | `macos-26`, Xcode, Qt's iOS kit | no file: the build goes to TestFlight, when `SIGN_IOS_UPLOAD` is true ([iOS](ci.md#ios)) |
 | Android arm64 | `ubuntu-26.04`, Qt's Android kit | `...-android-arm64.apk` and `.aab`, when the four keystore secrets are set ([Android](ci.md#android)) |
 | Any | the tagged commit | `WordJewelsSolver-<v>-source.tar.gz` (`git archive`, so `.gitattributes` decides what stays out) |
 
@@ -62,7 +62,7 @@ warns on first run; the GPG signature and the attestation prove who built a file
 | --- | --- |
 | `Prepare the release` | Decides the mode. For a tag, `tools/release/check_release_ref.sh` requires `vMAJOR.MINOR.PATCH[-prerelease]` and the same version in `CMakeLists.txt` and `vcpkg.json`. |
 | `Build ...` (Windows, Linux solver, Linux application, macOS) | Configures the Release preset, builds, runs all of ctest, packages, smoke-tests what it packaged and checks what is in it (`check_release_build.ps1`: Tracy and sanitizers off, the expected packages present). |
-| `Build the iOS ad-hoc IPA`, `Build the signed Android packages` | A tag, or a manual run unless its input is unticked. |
+| `Build the iOS App Store IPA for TestFlight`, `Build the signed Android packages` | A tag, or a manual run unless its input is unticked (the iOS one only when `SIGN_IOS_UPLOAD` is true; a manual run uploads to TestFlight only with `upload_testflight`). |
 | `Source archive and SBOM` | Downloads the packages, archives the source, writes the SBOM. A rehearsal ends here. |
 | `Publish` | The shared workflow. `Verify tag`: semver, on `develop`, the release has notes. `Sign and publish` (the `release` environment): `SHA512SUMS`, signatures checked against `docs/signing-key.asc`, attestations, the GitHub Release. `Fast-forward release branch`: for a final release, the release bot moves `main`. |
 | `Add the install notes` | Appends the iPhone and Android install sections to the notes, when those files exist. |
@@ -95,12 +95,12 @@ README in the same commit; old releases keep verifying against the old key, whic
 
 This repository adds:
 
-- **iOS**: the organisation's `IOS_DIST_CERT_P12_BASE64` and `IOS_DIST_CERT_PASSWORD` (they must
-  reach this repository) and one repository secret, `IOS_PROVISIONING_PROFILE_BASE64`, from the
-  Apple developer portal. The profile lists the registered devices and expires 2027-07-16
-  ([Installing on my iPhone/iPad](ios-install.md#add-a-device)). The IPA is attached to a
-  release only when the repository variable `IOS_IPA_ON_RELEASE` is `true`: it lists the devices'
-  UDIDs and the repository is public ([iOS](ci.md#ios)).
+- **iOS** (TestFlight): the organisation's `IOS_DIST_CERT_P12_BASE64`, `IOS_DIST_CERT_PASSWORD`,
+  `APPSTORE_API_KEY_ID`, `APPSTORE_API_ISSUER_ID` and `APPSTORE_API_PRIVATE_KEY` (they must reach this
+  repository), one repository secret, `IOS_PROVISIONING_PROFILE_BASE64` (an App Store profile, no devices; it
+  lasts until the certificate expires, 2027-07-16), and the repository variable `SIGN_IOS_UPLOAD=true`
+  ([Installing on an iPhone or iPad](ios-install.md#for-the-owner)). There is no iOS file on a release: a
+  build that installs from a file would list its devices' identifiers, and the repository is public.
 - **Android**: four repository secrets for the upload keystore, made with
   `tools/release/new_android_keystore.sh` ([Android](ci.md#android)). With none set the release has no
   Android file; with some set and not all, the job fails.

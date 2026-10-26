@@ -58,6 +58,12 @@
     <key>NSCameraUsageDescription</key>
     <string>WordJewelsSolver uses the camera to read the letters of a board you point it at. The picture stays on this device.</string>
 
+    <!-- The program uses no encryption of its own (no network, no files but its own store),
+         so App Store Connect is told once, here, instead of asking about every build in
+         TestFlight. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
     <!-- A launch screen in the property list: without one iOS runs the program
          in a legacy 320 x 480 window and scales it up. The colour is the
          page colour of the light and dark themes (Assets.xcassets,

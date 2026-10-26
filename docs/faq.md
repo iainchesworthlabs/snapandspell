@@ -60,8 +60,7 @@ The code is written for Windows, Linux and macOS, with the differences between
 them kept in `libs/platforms`. CI builds and tests the library and `wjs-cli` on
 Windows (MSVC), Linux (GCC) and macOS (AppleClang); the Qt application is built and
 tested in CI on Windows, and built for Linux and macOS by the release workflow,
-which has never run. An ad-hoc iOS build for the author's own devices is written
-and has never run on a device. Android is being worked on separately and is not
+which has never run. An iOS build for TestFlight is written and has never been uploaded or run on a device. Android is being worked on separately and is not
 built; there is no web build. See [Building](building.md).
 
 **Is this the 2013 program?**

@@ -61,7 +61,7 @@ plist="$app/Contents/Info.plist"
 plutil -lint "$plist" >/dev/null || fail "Info.plist is not a valid property list"
 key() { /usr/libexec/PlistBuddy -c "Print :$1" "$plist" 2>/dev/null || true; }
 
-[ "$(key CFBundleIdentifier)" = "org.iainchesworth.wordjewelssolver" ] || fail "CFBundleIdentifier is '$(key CFBundleIdentifier)'"
+[ "$(key CFBundleIdentifier)" = "com.iainchesworthlabs.wordjewelssolver" ] || fail "CFBundleIdentifier is '$(key CFBundleIdentifier)'"
 [ "$(key CFBundleExecutable)" = "WordJewelsSolver" ] || fail "CFBundleExecutable is '$(key CFBundleExecutable)'"
 [ -n "$(key NSCameraUsageDescription)" ] || fail "Info.plist has no NSCameraUsageDescription"
 [ "$(key CFBundleIconFile)" = "AppIcon.icns" ] || fail "CFBundleIconFile is '$(key CFBundleIconFile)'"

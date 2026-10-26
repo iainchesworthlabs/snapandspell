@@ -38,7 +38,7 @@ done
 [ -n "$apk" ] || { echo "usage: verify_apk.sh <package.apk> [--version x.y.z] [--release] [--signed]" >&2; exit 2; }
 [ -f "$apk" ] || { echo "verify_apk.sh: $apk is not a file" >&2; exit 2; }
 
-application_id="org.iainchesworth.wordjewelssolver"
+application_id="com.iainchesworthlabs.wordjewelssolver"
 library="lib/arm64-v8a/libWordJewelsSolver_arm64-v8a.so"
 
 # aapt2 and apksigner: on PATH, or the newest build-tools of the SDK.

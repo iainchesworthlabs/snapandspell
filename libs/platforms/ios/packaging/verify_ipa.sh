@@ -3,7 +3,7 @@
 # Check that an iOS application (a built .app, or an exported .ipa) is complete.
 #
 #   libs/platforms/ios/packaging/verify_ipa.sh <WordJewelsSolver.app | package.ipa>
-#       [--version <x.y.z>] [--signed]
+#       [--version <x.y.z>] [--build <n>] [--signed] [--store]
 #
 # What it looks for:
 #
@@ -16,9 +16,15 @@
 #   * the executable is for arm64 and links nothing outside the system: Qt is
 #     static on iOS, so a link to a Qt framework or to a path on the build
 #     machine means the wrong kit was used;
-#   * with --signed: the code signature verifies, the profile is embedded, it is an
-#     ad-hoc one (it names devices and does not allow a debugger to attach) and it
-#     belongs to this bundle identifier.
+#   * with --build: CFBundleVersion is that number (TestFlight refuses a build whose
+#     number is not higher than every earlier one, and the release workflow gives it
+#     the number of the run);
+#   * with --signed: the code signature verifies, the profile is embedded, it does not
+#     allow a debugger to attach and it belongs to this bundle identifier;
+#   * with --store (an App Store IPA, for TestFlight): the profile names no devices (an
+#     IPA that lists devices would publish their identifiers), and Info.plist says
+#     ITSAppUsesNonExemptEncryption is false (otherwise App Store Connect asks about
+#     encryption for every build).
 #
 # macOS only (plutil, otool, codesign, security). Unverified until a hosted macOS
 # run has built the application (docs/ci.md, "What iOS has and has not shown").
@@ -26,20 +32,24 @@ set -euo pipefail
 
 target=""
 version=""
+build=""
 signed=false
+store=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --version) version="${2:?}"; shift 2 ;;
+    --build) build="${2:?}"; shift 2 ;;
     --signed) signed=true; shift ;;
-    -h|--help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --store) store=true; shift ;;
+    -h|--help) sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "verify_ipa.sh: unknown argument '$1'" >&2; exit 2 ;;
     *) target="$1"; shift ;;
   esac
 done
-[ -e "$target" ] || { echo "usage: verify_ipa.sh <app|ipa> [--version v] [--signed]" >&2; exit 2; }
+[ -e "$target" ] || { echo "usage: verify_ipa.sh <app|ipa> [--version v] [--build n] [--signed] [--store]" >&2; exit 2; }
 fail() { echo "FAILED: $*" >&2; exit 1; }
 
-bundle_id="org.iainchesworth.wordjewelssolver"
+bundle_id="com.iainchesworthlabs.wordjewelssolver"
 
 work=""
 cleanup() { if [ -n "$work" ]; then rm -rf "$work"; fi; }
@@ -71,7 +81,15 @@ key() { /usr/libexec/PlistBuddy -c "Print :$1" "$plist" 2>/dev/null || true; }
 if [ -n "$version" ]; then
   [ "$(key CFBundleShortVersionString)" = "$version" ] || fail "CFBundleShortVersionString is '$(key CFBundleShortVersionString)', expected $version"
 fi
-echo "    Info.plist: identifier, executable, version, icon, camera text, launch screen, iOS $(key MinimumOSVersion) or later"
+# TestFlight needs a build number that grows; without --build any non-empty one will do here.
+[ -n "$(key CFBundleVersion)" ] || fail "Info.plist has no CFBundleVersion"
+if [ -n "$build" ]; then
+  [ "$(key CFBundleVersion)" = "$build" ] || fail "CFBundleVersion is '$(key CFBundleVersion)', expected the build number $build"
+fi
+if $store; then
+  [ "$(key ITSAppUsesNonExemptEncryption)" = "false" ] || fail "ITSAppUsesNonExemptEncryption is '$(key ITSAppUsesNonExemptEncryption)', expected false (the program uses no encryption of its own)"
+fi
+echo "    Info.plist: identifier, executable, version $(key CFBundleShortVersionString) build $(key CFBundleVersion), icon, camera text, launch screen, iOS $(key MinimumOSVersion) or later"
 
 for required in \
     "$app/WordJewelsSolver" \
@@ -101,9 +119,11 @@ if $signed; then
     *) fail "the profile is for '$(pkey Entitlements:application-identifier)', not $bundle_id" ;;
   esac
   devices="$(/usr/libexec/PlistBuddy -c "Print :ProvisionedDevices" "$decoded" 2>/dev/null | grep -c '^    ' || true)"
-  [ "$devices" -gt 0 ] || fail "the profile names no devices: it is not an ad-hoc profile"
+  if $store; then
+    [ "$devices" -eq 0 ] || fail "the profile names $devices device(s): it is not an App Store profile, and an IPA that lists devices must not be kept in a public repository"
+  fi
   [ "$(pkey Entitlements:get-task-allow)" = "false" ] || fail "the profile allows a debugger to attach (get-task-allow): it is a development profile"
-  echo "    signed: the signature verifies; ad-hoc profile '$(pkey Name)' for $devices device(s), expires $(pkey ExpirationDate)"
+  echo "    signed: the signature verifies; profile '$(pkey Name)' for $bundle_id, $devices device(s), expires $(pkey ExpirationDate)"
   rm -f "$decoded"
 fi
 echo "OK: $target"

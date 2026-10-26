@@ -2,8 +2,8 @@
 # iOS and iPadOS, for a device (arm64). Included by cmake/Platform.cmake; the
 # contract it fills in is described at the top of that file.
 #
-# This is a private build for the author's own devices, installed ad hoc
-# (docs/ios-install.md, docs/ci.md "iOS"), not a store build. The configure
+# This is a build signed for the App Store and distributed through TestFlight
+# (docs/ios-install.md, docs/ci.md "iOS"). The configure
 # is the `ios-release` preset, which needs a Mac with Xcode: Qt's iOS kit (a
 # static Qt) and a desktop Qt of the same version for the host tools
 # (QT_HOST_PATH). Nothing here has run on a Mac yet; the first hosted run is
@@ -12,7 +12,7 @@
 set(WJS_PLATFORM_DISPLAY_NAME "iOS")
 
 # A phone and a tablet have no installers and no command-line program, and the
-# application is built by Xcode, not packaged by CPack: the ad-hoc IPA comes
+# application is built by Xcode, not packaged by CPack: the App Store IPA comes
 # from `xcodebuild archive` and `-exportArchive` (release.yml).
 set(WJS_PLATFORM_DESKTOP OFF)
 set(WJS_PLATFORM_EXECUTABLE_FORMAT "mach-o")
@@ -57,17 +57,30 @@ set(WJS_PLATFORM_COMPILE_DEFINITIONS "")
 # inside a function CMAKE_CURRENT_LIST_DIR is the caller's).
 set(WJS_IOS_PACKAGING_DIR "${CMAKE_CURRENT_LIST_DIR}/packaging")
 
-# Code signing, for the signed ad-hoc build only. Both are empty for the unsigned
+# Code signing, for the signed App Store build only. Both are empty for the unsigned
 # compile check, which needs no Apple account, and both are given together on the
-# configure line by release.yml (APPLE_TEAM_ID and APPLE_PROVISIONING_PROFILE_NAME;
-# the profile specifier is the profile's NAME in the Apple portal, not its file).
+# configure line by release.yml (the team and the name of the profile are read out of
+# the provisioning profile by import-ios-signing; the profile specifier is the
+# profile's NAME in the Apple portal, not its file).
 # They sign the application target alone: signing every Xcode target, as a
 # project-wide setting does, makes Xcode demand a bundle identifier of the static
 # libraries and Qt's resource targets, which have none.
 set(WJS_IOS_SIGNING_TEAM "" CACHE STRING
     "Apple team ID the application is signed for (empty: an unsigned build)")
 set(WJS_IOS_SIGNING_PROFILE "" CACHE STRING
-    "Name of the ad-hoc provisioning profile the application is signed with (empty: an unsigned build)")
+    "Name of the App Store provisioning profile the application is signed with (empty: an unsigned build)")
+
+# The build number, CFBundleVersion. App Store Connect refuses a build whose number is not
+# higher than every earlier one for the same version, so release.yml gives it the number of
+# the workflow run (the version, the short string, stays the project's). Empty: the project's
+# version, which is right for the unsigned compile check.
+set(WJS_IOS_BUILD_NUMBER "" CACHE STRING
+    "CFBundleVersion of the iOS application (empty: the project version)")
+if(WJS_IOS_BUILD_NUMBER AND NOT WJS_IOS_BUILD_NUMBER MATCHES "^[1-9][0-9]*$")
+    message(FATAL_ERROR
+        "WJS_IOS_BUILD_NUMBER is '${WJS_IOS_BUILD_NUMBER}': a build number is a whole number "
+        "without a leading zero, because App Store Connect compares them as numbers.")
+endif()
 
 # The kit's plugin targets that carry no QT_DEFAULT_PLUGIN property: Qt's plugin
 # auto-linking reads it unwrapped as an operand of $<AND:...>, and an empty value
@@ -124,12 +137,16 @@ endfunction()
 # step (apps/app/CMakeLists.txt).
 function(wjs_platform_configure_app target)
     set(_assets "${WJS_IOS_PACKAGING_DIR}/Assets.xcassets")
+    set(_build_number "${PROJECT_VERSION}")
+    if(WJS_IOS_BUILD_NUMBER)
+        set(_build_number "${WJS_IOS_BUILD_NUMBER}")
+    endif()
     set_target_properties(${target} PROPERTIES
         MACOSX_BUNDLE ON
         MACOSX_BUNDLE_INFO_PLIST "${WJS_IOS_PACKAGING_DIR}/Info.plist.in"
         MACOSX_BUNDLE_BUNDLE_NAME "WordJewelsSolver"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "org.iainchesworth.wordjewelssolver"
-        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.iainchesworthlabs.wordjewelssolver"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${_build_number}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_COPYRIGHT "Copyright (C) Iain Chesworth and contributors"
         # iPhone and iPad.

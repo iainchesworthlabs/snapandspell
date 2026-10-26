@@ -30,7 +30,7 @@ Install the hooks once per clone with `git config core.hooksPath tools/hooks`.
 | `fuzz.yml` | the libFuzzer harnesses of the readers ([Fuzzing](fuzzing.md)): 60 seconds a target on a push to `develop`, 10 minutes a target nightly (03:47 UTC) with the corpus kept between runs; a nightly crash opens the `nightly-analysis` issue; not required | yes |
 | `osv-scanner.yml` | nightly (04:17 UTC) and by hand: OSV-Scanner over the repository's lockfiles and manifests ([Known vulnerabilities](#known-vulnerabilities)); a finding fails the run, goes to code scanning and opens the `nightly-analysis` issue; not required | no - skipped (the SARIF upload needs code scanning) |
 | `analysis.yml` | nightly, on `develop`: `clang-tidy`, MSVC `/analyze` and a Clang AddressSanitizer + UBSan build and test; no required checks | yes (the SARIF upload is skipped) |
-| `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS the ad-hoc iOS IPA and, when its signing secrets are set, the signed Android APK and AAB, source archive and SBOM, then the shared publish job (checksums, GPG signatures, attestations, a GitHub Release, `main`); by hand or weekly: the packages without publishing ([Releasing](releasing.md)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
+| `release.yml` | on a `v*` tag: Release packages for Windows, Linux and macOS, the iOS build for TestFlight when `SIGN_IOS_UPLOAD` is true and, when its signing secrets are set, the signed Android APK and AAB, source archive and SBOM, then the shared publish job (checksums, GPG signatures, attestations, a GitHub Release, `main`); by hand or weekly: the packages without publishing ([Releasing](releasing.md)) | yes (the build, test and signing steps; publishing needs a tag; the iOS job needs the Apple secrets, the Android job its own four) |
 | `android-build.yml` | the debug-signed Android APK, built and looked inside, only when what Android reads changes; no secret, not required ([Android](#android)) | yes |
 | `ios-build.yml` | an unsigned compile of the application for an iPhone/iPad, only when what iOS reads changes; no secret, not required ([iOS](#ios)) | yes |
 | `web-build.yml` | the web application (WebAssembly) built, looked inside and started in a headless Chrome, only when what the web build reads changes; no secret, not required ([Web](#web)) | yes |
@@ -77,7 +77,7 @@ GitHub's default. The limits, by workflow:
 | `ci.yml` | `Package (Windows, Release)` | 60 |
 | `analysis.yml` | `clang-tidy` / `MSVC /analyze` / `Sanitizers (Linux, Clang)` | 30 / 60 / 45 |
 | `codeql.yml` | `CodeQL / Analyze (cpp)` (the shared workflow's job) | 90 |
-| `release.yml` | `Prepare the release` / the four `Build ...` legs / `Build the iOS ad-hoc IPA` / `Build the signed Android packages` | 10 / 90 / 120 / 120 |
+| `release.yml` | `Prepare the release` / the four `Build ...` legs / `Build the iOS App Store IPA for TestFlight` / `Build the signed Android packages` | 10 / 90 / 120 / 120 |
 | `release.yml` | `SBOM, checksums and signatures` / `Attest provenance and SBOM` / `Publish the release` | 20 / 10 / 20 |
 | `ios-build.yml` | `iOS (device, unsigned compile)` | 90 |
 | `android-build.yml` | `Android (arm64-v8a, debug-signed APK)` | 90 |
@@ -573,10 +573,10 @@ the mobile builds.
 
 ### iOS
 
-The iPhone/iPad application is a private, ad-hoc build for the author's own devices
-(decisions D1 and D11 in [the roadmap](roadmap.md#4-decisions-that-gate-the-plan)): not the App Store, not TestFlight.
-Installing it, adding a device and renewing the signing are in
-[Installing on my iPhone/iPad](ios-install.md). Here is how it is built.
+The iPhone/iPad application is distributed through **TestFlight** (decisions D1 and D11 in
+[the roadmap](roadmap.md#4-decisions-that-gate-the-plan) were for a private ad-hoc build; this repository is public, and an
+ad-hoc IPA carries the identifiers of its devices, so it is TestFlight now). Installing it, the owner's set-up and renewing the
+signing are in [Installing on an iPhone or iPad](ios-install.md). Here is how it is built.
 
 **What is in the tree.** A platform section, `libs/platforms/ios/` (`platform.cmake`,
 its paths implementation, `packaging/Info.plist.in`, the asset catalogue with the
@@ -594,7 +594,7 @@ installs both, the second through aqtinstall's `--autodesktop` with the same
 modules, and the jobs name them `QT_ROOT_DIR` (`.../Qt/6.12.0/ios`) and
 `QT_HOST_PATH` (`.../Qt/6.12.0/macos`), which the preset reads. Checked with the
 pinned aqtinstall (`aqt list-qt mac ios`): Qt 6.12.0 has an `ios` architecture with
-all five modules the application uses (`qtquick3d qtshadertools qtmultimedia
+the modules the application uses (`qtshadertools qtmultimedia
 qtsensors qtspeech`), and the macOS desktop kit has them too. The versions are
 `.github/toolchain-versions.json`'s (`qt.kits.ios`). The iOS kit is several
 gigabytes, so the jobs do not cache it: a cache of that size would evict the
@@ -616,124 +616,85 @@ presets and vcpkg manifest, the toolchain pins, the `vcpkg-setup` action, the wo
 reason every path-filtered workflow here is not, and because a macOS runner is billed
 at a multiple.
 
-**`release.yml`, job `Build the iOS ad-hoc IPA`.** In order:
+**`release.yml`, job `Build the iOS App Store IPA for TestFlight`.** It runs only when the repository variable
+`SIGN_IOS_UPLOAD` is `true`. In order:
 
-1. *Require the Apple signing secrets.* The three secrets, by name, before anything
-   is downloaded: the organisation's `IOS_DIST_CERT_P12_BASE64` and `IOS_DIST_CERT_PASSWORD`
-   (one Apple Distribution certificate signs every app of the team; the organisation
-   restricts them to the repositories that build for iOS) and this repository's own
-   `IOS_PROVISIONING_PROFILE_BASE64`. Any missing is a red job with one message naming
-   them and where they come from. The team ID and the profile's name are not secrets:
-   they are read out of the profile.
-2. vcpkg (the presets' toolchain file chains to Qt's; the manifest has no dependency
-   without the tests or Tracy, so nothing is built through it), CMake and Ninja at
-   the pins, and the two Qt kits.
-3. *Import the signing certificate and the provisioning profile*, with
-   `icl-common-infra`'s `import-ios-signing` action (`docs/ios-signing.md` there): a
-   keychain made for the job (removed at the end, whatever happened), the `.p12`
-   imported into it, the profile installed under its UUID. The profile is held to
-   the bundle identifier: its App ID is `<team>.org.iainchesworth.wordjewelssolver`, it
-   lists devices (it is ad hoc) and has not expired. Its team ID and name come out as
-   the step's outputs. Only counts and names are printed.
-4. *Configure (signed):* `cmake --preset ios-release` with
-   `-DWJS_IOS_SIGNING_TEAM` and `-DWJS_IOS_SIGNING_PROFILE`, which sign the
-   application target alone (the preset turns signing off for every other Xcode
-   target: static libraries and Qt's resource targets have no bundle identifier
-   and cannot be signed).
-5. *Archive and export* with the `export-ios-ipa` action (`xcodebuild archive`,
-   scheme `WordJewelsSolver`, then `xcodebuild -exportArchive` with method `ad-hoc`,
-   the team, manual signing, `Apple Distribution` and the profile by name). The file is
-   `WordJewelsSolver-<v>-ios-adhoc.ipa`.
-6. *Check the IPA* with `verify_ipa.sh --signed --version <v>`: as the build check,
-   plus the signature, the embedded profile, that it names devices, that it does not
-   allow a debugger to attach and that it is for this bundle identifier.
-7. *Write the manifest* (only when the IPA goes to the release, below) with
-   `tools/release/make_ios_manifest.sh`: `manifest.plist`, whose URL for the IPA is the
-   release asset's, known from the tag before the release exists. Its tests are in
-   `tests/package/test_release_tools.sh`.
-8. Upload the IPA, and remove the keychain and the profile.
+1. *Require the Apple secrets.* The six secrets, by name, before anything is downloaded: the organisation's
+   `IOS_DIST_CERT_P12_BASE64` and `IOS_DIST_CERT_PASSWORD` (one Apple Distribution certificate signs every app of the team) and
+   `APPSTORE_API_KEY_ID`, `APPSTORE_API_ISSUER_ID` and `APPSTORE_API_PRIVATE_KEY` (the App Store Connect key), which the
+   organisation restricts to the repositories that build for iOS, and this repository's own `IOS_PROVISIONING_PROFILE_BASE64`.
+   Any missing is a red job with one message naming them and where they come from. The team ID and the profile's name are not
+   secrets: they are read out of the profile.
+2. vcpkg (the presets' toolchain file chains to Qt's; the manifest has no dependency without the tests or Tracy, so nothing
+   is built through it), CMake and Ninja at the pins, and the two Qt kits.
+3. *Import the signing certificate and the provisioning profile*, with `icl-common-infra`'s `import-ios-signing` action
+   (`docs/ios-signing.md` there) and `method: app-store`: a keychain made for the job (removed at the end, whatever happened),
+   the `.p12` imported into it, the profile installed under its UUID. The profile is held to the bundle identifier
+   (`com.iainchesworthlabs.wordjewelssolver`: its App ID is `<team>.<that>`), to its expiry, and to listing **no devices**.
+   Its team ID and name come out as the step's outputs. Only counts and names are printed.
+4. *Configure (signed):* `cmake --preset ios-release` with `-DWJS_IOS_SIGNING_TEAM` and `-DWJS_IOS_SIGNING_PROFILE`, which sign the
+   application target alone (the preset turns signing off for every other Xcode target: static libraries and Qt's resource
+   targets have no bundle identifier and cannot be signed), and `-DWJS_IOS_BUILD_NUMBER`, the number of the workflow run:
+   `CFBundleVersion`, which App Store Connect requires to be higher than every earlier build's for the version.
+5. *Archive and export* with the `export-ios-ipa` action (`xcodebuild archive`, scheme `WordJewelsSolver`, the CMake target's
+   name; then `xcodebuild -exportArchive` with method `app-store`, the team, manual signing, `Apple Distribution` and the
+   profile by name). The file is `WordJewelsSolver-<v>-ios-appstore.ipa`.
+6. *Check the IPA* with `verify_ipa.sh --signed --store --version <v> --build <n>`: as the build check, plus the signature, the
+   embedded profile, that it names no devices and does not allow a debugger to attach, that it is for this bundle identifier,
+   that `ITSAppUsesNonExemptEncryption` is false and that `CFBundleVersion` is the run number.
+7. *Validate with Apple, and upload*, with the `upload-testflight` action (`xcrun altool` and the App Store Connect key).
+   Apple's validation checks the icon, the property list, the signature and the privacy declarations of the libraries. On a
+   branch, or a manual run that does not tick `upload_testflight`, it is `validate-only`: Apple's check and nothing uploaded.
+   A tag, or a manual run with `upload_testflight` ticked, uploads the build; TestFlight shows it a few minutes later.
+8. Remove the keychain and the profile (always), keep the IPA 7 days as the workflow artifact `ios-appstore` (an App Store IPA
+   lists no devices; it is not a release file, because Publish takes only `package-*`), and write what happened to the run's
+   summary.
 
-**Whether the IPA goes on the release.** An ad-hoc IPA carries its provisioning
-profile, which lists the UDIDs of the devices, and this repository is public, so
-attaching the IPA to a release publishes them. The repository variable
-`IOS_IPA_ON_RELEASE` decides, on purpose: when it is `true` the IPA and the manifest
-are uploaded as `package-ios` and published with the other files; when it is not set
-(the default) the IPA is the workflow artifact `ios-adhoc`, kept 14 days, to download
-and install from a computer, and the release has no iOS file and no iOS install note.
-`gh variable set IOS_IPA_ON_RELEASE --body true` turns publishing on.
+**Why not ad hoc.** An ad-hoc IPA carries its provisioning profile, which lists the UDIDs of the devices, and neither a release
+asset nor a workflow artifact is private in a public repository. So this repository has no ad-hoc path at all: no
+`manifest.plist`, no `itms-services` link, no install page, no `IOS_IPA_ON_RELEASE` and no `RELEASE_WITHOUT_IOS`. A release
+carries no iOS file; its notes say that the version is in TestFlight (the `Add the install notes` job, when the iOS job ran).
 
-**The pin.** The two actions are `icl-common-infra`'s, pinned to the develop commit
-that added them (`12e5356`); move the pin to the tag when one is cut with
-`python3 tools/ci/repin.py`.
+**The pin.** The three actions are `icl-common-infra`'s, pinned to the develop commit that added the upload
+(`494f40c`, "v0.1.16 plus #31 and #33"); move the pin to the tag when one is cut with `python3 tools/ci/repin.py`.
 
-`Source archive and SBOM` downloads `package-*`, so a published IPA and its manifest get the same
-checksums, GPG signatures, attestations and SBOM entry as everything else (an `.ipa` counts as
-carrying Qt, like an AppImage and a disk image). `Add the install notes` adds an install section
-to the notes when there is a manifest.
-
-**When it runs.** A `v*` tag builds iOS, so a release never lacks it by accident,
-and never publishes unless the iOS job passed. A manual run builds it unless its
-`ios` input is unticked. The weekly rehearsal does not: it would spend a macOS
-runner and a signing identity every Sunday. The `assemble` job tolerates a skipped iOS
-job and refuses a failed one. If iOS is broken and a desktop release cannot wait, set
-the repository variable `RELEASE_WITHOUT_IOS` to `true` (`gh variable set
-RELEASE_WITHOUT_IOS --body true`): a tag then skips the job, with a warning, and the
-notes have no iOS section. Delete the variable afterwards. Dispatch a rehearsal of the iOS job before the first
-tag, because the first run is expected to fail somewhere
-([below](#what-ios-has-and-has-not-shown)).
-
-**The install page.** Safari installs an ad-hoc app from an `itms-services://` link
-to an HTTPS manifest, and a release's notes cannot carry that link (GitHub strips the
-scheme), so `docs/install-ios.html` builds it in the browser from `?tag=` (or finds the
-newest release with a `manifest.plist`). MkDocs copies a non-Markdown file in `docs/`
-into the site unchanged, so the page needs no nav entry and passes `mkdocs build
---strict`; it is deployed with the docs, so it exists only once
-[the site is published](#documentation-site): a merge to `main` publishes it, so the
-merge that precedes the first release makes the install link work. The release
-workflow does not wait for it.
+**When it runs.** A `v*` tag runs the job when `SIGN_IOS_UPLOAD` is `true` and skips it, with nothing said, when it is not; the
+weekly rehearsal never does (it would spend a macOS runner and a signing identity every Sunday). A manual run builds it unless
+its `ios` input is unticked, and `desktop` unticked leaves out the Windows, Linux and macOS packages, the source archive and
+the SBOM, so the iOS (or the Android) build can be tried alone in a quarter of an hour. The `assemble` job tolerates a skipped
+iOS job and refuses a failed one: a tag release is not published when iOS was asked for and failed. If iOS is broken and a
+desktop release cannot wait, unset `SIGN_IOS_UPLOAD` (`gh variable delete SIGN_IOS_UPLOAD`) for that release and set it again
+afterwards.
 
 #### What iOS has and has not shown
 
-Verified here, without a Mac: the platform fragment satisfies the contract
-(`platform.fragments`), the isolation check passes with the new platform in the selector,
-the presets' Tracy policy (`profiling.shipped_presets`) holds for `ios-release`, the
-manifest generator and its refusals, the workflow files (actionlint with ShellCheck) and
-the self-test of the pins (`test_release_tools.sh`: the five secrets, the kit, SHA pins,
-no secret in the compile check, one bundle identifier, the camera text equal to
-macOS's), `Info.plist.in` through `configure_file`, and the documentation build.
-Qt 6.12.0's iOS kit and its five modules exist for the pinned aqtinstall.
+Verified here, without a Mac: the platform fragment satisfies the contract (`platform.fragments`), the isolation check passes
+with the new platform in the selector, the presets' Tracy policy (`profiling.shipped_presets`) holds for `ios-release`, the
+workflow files (actionlint with ShellCheck) and the self-test of the pins (`test_release_tools.sh`: the six secrets and where
+they go, the kit, SHA pins, no secret in the compile check, one bundle identifier, the camera text equal to macOS's, the
+build number, the encryption key, the icon without alpha, and no ad-hoc path), `Info.plist.in` through `configure_file`, and the
+documentation build. Qt 6.12.0's iOS kit and its modules exist for the pinned aqtinstall.
 
-Verified on GitHub by `ios-build.yml` (green on pull requests and on pushes to
-`develop` since 2026-10-21): the configure (vcpkg's toolchain chaining to Qt's iOS
-toolchain, `arm64-ios`, `find_package(Qt6)` with the host kit), the Xcode generate,
-the compile and link against the static Qt kit with the warnings as errors, and the
-unsigned checks of `verify_ipa.sh` on the bundle Xcode makes (identifier, executable,
-version, icon, camera text, launch screen, the data beside the executable, arm64, links
-only the system).
+Verified on GitHub: by `ios-build.yml` (green on pull requests and on pushes to `develop` since 2026-10-21) the configure
+(vcpkg's toolchain chaining to Qt's iOS toolchain, `arm64-ios`, `find_package(Qt6)` with the host kit), the Xcode generate, the
+compile and link against the static Qt kit with the warnings as errors, and the unsigned checks of `verify_ipa.sh` on the
+bundle Xcode makes; and by a rehearsal of this repository's earlier ad-hoc job (2026-10-26, run 40279691000) the keychain and
+profile handling of `import-ios-signing`, the archive and the export with Xcode on `macos-26`, and the signed checks of
+`verify_ipa.sh`, for an ad-hoc profile.
 
-Not verified, because nothing has run it: **everything that signs, archives or runs on a
-device.** Specifically, and in the order it is likely to fail:
+Not verified, because nothing has run it: **the App Store signing and export, Apple's validation, the upload, and everything
+that runs on a device.** Specifically, and in the order it is likely to fail:
 
-- `xcodebuild archive` finding the application (it relies on the
-  `install(TARGETS ... BUNDLE DESTINATION .)` rule), then `-exportArchive`. The method
-  is spelled `ad-hoc`, the name Xcode deprecated for `release-testing`; both are
-  accepted on recent Xcode, and if `ad-hoc` is not, that is the one-word fix;
-- that the application's post-build copy of the dictionary and the dice lands before
-  Xcode signs the bundle (the unsigned check proves the files are there, not that
-  signing seals them);
-- the keychain and profile handling (macOS tools that could not be run), the profile
-  checks (PlistBuddy key paths), and `base64 --decode` on the runner;
-- the signed checks of `verify_ipa.sh --signed` (the signature, the embedded profile,
-  that it names devices and does not allow a debugger to attach);
-- that Safari accepts the manifest at a GitHub release URL (it redirects to GitHub's
-  asset host; CountdownSolver's flow did the same and installed), the install page,
-  and the app starting on a device: Quick 3D on Metal, the shake, the camera and its
-  permission prompt, the data directory in the container. **Nothing built for iOS has
-  run on a device.**
+- the profile checks for an App Store profile (no devices) and `xcodebuild -exportArchive` with `app-store`;
+- Apple's validation of the static Qt libraries' privacy declarations and of the icon (`altool --validate-app` names what is
+  wrong), and the upload with the organisation's App Store Connect key;
+- TestFlight accepting the build number (the run number only grows, so it should);
+- the app starting on a device: the window on Metal, the shake, the camera and its permission prompt, the data directory in the
+  container. **Nothing built for iOS has run on a device.**
 
-The first signed run is expected to need fixes. A red `Build the iOS ad-hoc IPA` job
-blocks a tag release (by design: a release should not quietly lack iOS), which is why
-the rehearsal comes first, and why there is `RELEASE_WITHOUT_IOS`.
+A red `Build the iOS App Store IPA for TestFlight` job blocks a tag release when `SIGN_IOS_UPLOAD` is `true` (by design: a
+release should not quietly lack the iOS build it was asked to make), which is why the rehearsal, with `upload_testflight`
+unticked, comes first.
 
 ### Android
 
@@ -1002,13 +963,8 @@ so it is not a required check.
 The repository's Pages source is "GitHub Actions" (`admin/apply.sh` sets it). A
 push to `main` that changes the docs deploys the site.
 
-`docs/install-ios.html` is not a page: it is the iOS install link's page
-([iOS](#ios)), a static file that MkDocs copies into the site as it is, so it is
-deployed with the docs and the iOS install link works only once the site is published.
-
 The site is at `https://iainchesworthlabs.github.io/wordjewelssolver/` (`site_url`
-in `mkdocs.yml`). The release that fast-forwards `main` is what first makes it, and
-the install page, exist. A build of a pull request is never deployed.
+in `mkdocs.yml`). The release that fast-forwards `main` is what first makes it exist. A build of a pull request is never deployed.
 
 ## Required checks and their staging
 
@@ -1295,5 +1251,5 @@ NSIS installer, the Linux AppImage of the application and the Linux solver's ZIP
 tar.gz, deb and rpm, and the macOS disk image. The Linux and macOS application
 builds, the AppImage, the bundle and the signing path have not yet run on GitHub.
 iOS has a platform section, an unsigned compile check (which passes on GitHub) and a
-signed ad-hoc release job (which has not run); nothing has run on a device
+TestFlight release job (its signing ran for an ad-hoc profile, the App Store export and the upload have not run); nothing has run on a device
 ([iOS](#ios)). Android has none of these in this tree.

@@ -854,8 +854,8 @@ An OS service the program needs is declared in a header under
 
 Linux, macOS and iOS share `posix/console_posix.cpp`, named by their
 `platform.cmake` files; each platform names the files in `detail/` that it does not
-replace. `libs/platforms/ios` is the fragment for the ad-hoc build for the author's own
-devices (`paths_ios.cpp`, `platform.cmake`, the Info.plist and asset catalogue): it
+replace. `libs/platforms/ios` is the fragment for the iOS build, signed for the App Store and distributed
+through TestFlight (`paths_ios.cpp`, `platform.cmake`, the Info.plist and asset catalogue): it
 uses the same `detail/` camera stub, portable board reader and no-op haptics as the
 desktops, and Mode A's camera is the Qt Multimedia one below. **It has never run on a
 device.** An iOS camera (AVFoundation) and a Vision-based reader, which would be
@@ -1157,7 +1157,7 @@ display. See [The parent area as built](design/parent-area.md).
 - One word list is loaded for a run; there is no per-language handling.
 - The board is at most 16 by 16 and a tile holds at most three letters.
 - The front ends are the CLI and the Qt Quick window, for Windows, Linux and macOS
-  (0.1 is those three desktops and an ad-hoc iOS build for the author's own devices,
+  (0.1 is those three desktops and an iOS build for TestFlight,
   [D11](roadmap.md#4-decisions-that-gate-the-plan)). The iOS build is written
   (`libs/platforms/ios`, `ios-build.yml`) and has never run on a device. Android is in
   progress and not built; there is a web build (WebAssembly, [Web](web.md)) and no phone
@@ -1172,7 +1172,7 @@ These do not exist, and nothing in the tree stands in for them:
   (`apps/app/src/camera`) over Qt Multimedia, with a `camera-none` variant for a kit
   without the module, a live `VideoOutput` preview and one-frame capture through
   the reader. **No camera is attached to the machine it was built on**, so no
-  device has been opened and no real picture has been read (the ad-hoc iOS build,
+  device has been opened and no real picture has been read (the iOS build,
   which carries the same Qt Multimedia camera, has not run on a device either); the iPad's
   `AVCaptureSession` backend and the platform interface's implementations are
   still not written. Mode A's screens and its **typed-board fallback are built**
