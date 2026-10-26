@@ -212,8 +212,8 @@ tools/
   package/        check_package.ps1, the packaged programs' check
   policy/         check_text_policy.ps1, the rule for commit and PR text
   release/ repo/  signing, SBOM and release checks; the repository rulesets
-  lightprobe/ scan/ sounds/
-                  the 3D scene's light probe, the scanner's corpus renderer,
+  design/ scan/ sounds/
+                  the Toybox fonts and pixel art, the scanner's corpus renderer,
                   the feedback sounds
 .github/          CI workflows, rulesets and pinned requirements
 docs/             this documentation (mkdocs-material)
@@ -264,9 +264,9 @@ reported privately, as the [security policy](SECURITY.md) says.
 
 ## Licence
 
-GPL-3.0-or-later. A build of the window is GPL-3.0 only, because it links Qt
-Quick 3D; each package states that plainly in its `NOTICES.txt`, which the
-About screen also shows. See [LICENSE](LICENSE) and
+GPL-3.0-or-later, the window included: the board is drawn in 2D with Qt Quick,
+and Qt is used under the LGPL. Each package states that plainly in its
+`NOTICES.txt`, which the About screen also shows. See [LICENSE](LICENSE) and
 [docs/licensing.md](docs/licensing.md), which also says what is not covered:
 the English word list is ENABLE, a separate work that its originators released
 into the public domain (provenance in [data/README.md](data/README.md)).

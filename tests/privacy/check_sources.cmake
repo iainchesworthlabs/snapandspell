@@ -176,14 +176,11 @@ file(GLOB _top RELATIVE "${REPO_ROOT}" "${REPO_ROOT}/CMakeLists.txt" "${REPO_ROO
 list(APPEND _files ${_top})
 list(REMOVE_DUPLICATES _files)
 
-# The checker and its self-test name every forbidden thing: not scanned. Nor is
-# apps/app/src/prototype/, which is a program of its own for trying the 3D board
-# (docs/design/shake-prototype.md), never part of the application, and writes
-# its frames to disk to look at them. Nor are the scanner's own privacy checker and
+# The checker and its self-test name every forbidden thing: not scanned. Nor are the scanner's own privacy checker and
 # its deliberate leak (libs/scan/tests): the checker names what the scanner must not do
 # as patterns, as this one does, and the fixture is the leak it must catch.
 list(FILTER _files EXCLUDE REGEX
-    "^(tests/privacy|apps/app/src/prototype|libs/scan/tests/privacy_fixture)/|^libs/scan/tests/check_privacy[.]cmake$")
+    "^(tests/privacy|libs/scan/tests/privacy_fixture)/|^libs/scan/tests/check_privacy[.]cmake$")
 
 set(_store_source "libs/core/src/store.cpp")
 

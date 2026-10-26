@@ -189,45 +189,38 @@ phones, which have no layout yet.
 
 ## The shake and the drop
 
-The brief expects "a 3D dice shake in a virtual 3D container", with the
-accelerometer as an optional way to shake it, haptics and an audio cue (section
-3), and "the same style as the Rubik's cube in Cubeulator" (section 7).
+The brief expected "a 3D dice shake in a virtual 3D container" in "the same style as the Rubik's
+cube in Cubeulator". The first build drew it in Qt Quick 3D. On 2026-10-24 the owner chose, for
+the Toybox Pixel restyle, a **2D pixel scene** instead ([Drawn in 2D](#drawn-in-2d)): flat dice
+with a hard shadow, a box that jumps in whole steps and a die that falls through six frames. The
+stages, the seam and the seeded order are the same; what changed is how it is drawn and how long
+each stage takes.
 
 ### The stages
 
-All numbers are **starting values to tune on a device**. The 120 ms and 380 ms
-are Cubeulator's own motion tokens (`quick`, `turn`).
+All numbers are **starting values to tune on a device**. They are `apps/app/qml/solo/SceneScript.js`'s
+and `docs/design/toybox/DESIGN.md`'s ("Motion"); `scene_script_test.cpp` holds them.
 
 | Stage | Full motion | Reduced motion |
 | --- | --- | --- |
-| Shake | The box rattles through about 8 degrees, 0.7 s at least (**as built** the weighted script's floor is 0.4 s) and while the device shakes, 3 s at most. A looped rattle; haptic taps, no more than 8 a second | The box is still; one soft rattle, 0.3 s |
-| Lid | Lifts and tilts away, 250 ms | Cross-fades, 120 ms |
-| Drop | Each die falls from one tile above, 280 to 420 ms, started in a fixed pseudo-random order. The gap between starts is the smaller of 30 ms and 700 ms divided by the number of dice. A small overshoot on landing. One click each, pitched a little differently | All dice fade in together, 120 ms |
-| Settle | Letters straighten, 150 ms | None |
+| Shake | The closed box hops in whole steps of 6 px, one every 75 ms (eight in 600 ms, a harder shake a little faster), 0.6 s at least and while the device shakes, 3 s at most. A rattle signalled no more than 8 a second for the sound and the haptic taps | The box is still; one soft rattle, 0.3 s |
+| Lid | Lifts away in four steps, 250 ms | Cross-fades, 120 ms |
+| Drop | Each die falls through six frames in 380 ms, started in a fixed pseudo-random order. The gap between starts is the smaller of 40 ms and 700 ms divided by the number of dice. One click each when it lands (the fourth frame), pitched a little differently | All dice fade in together, 120 ms |
+| Settle | A hold of 150 ms, then the flat board | None |
 | Layout | The board slides to the leading two-thirds and the panel slides in, 380 ms | Cross-fade, 120 ms |
-| Total after the shake | About 1.7 s (4x4) and 1.9 s (6x6) | Under 0.6 s |
+| Total after the shake | About 1.4 s (4x4) and 1.5 s (6x6) | Under 0.6 s |
 
 ### No physics engine decides the board
 
-The board is decided by the library first. So:
-
-- A physics engine would decide where each die lands, and the game would have to
-  read the board back from the simulation. The game already has the board, and
-  in Mode B it is a *seeded* board that must hold three to five words. So the
-  physics never decides where a die ends: when the shaking stops, each die is
-  given a cell and is guided to it, hopping and sliding past the others.
-- A shake would not repeat. A seeded simulation in fixed steps replays exactly,
-  on one build, which is what a test, a recording and a "play this board again"
-  need.
-- The rattle answers the device, and in the prototype it is a physical model.
-  The dice are rigid cubes in a box, simulated from first principles by about
-  fourteen hundred lines of our own plain C++ (no third-party engine, and no Qt in it),
-  accelerated by minus what the accelerometer reads and by the gyroscope's
-  turning, and colliding, sliding and tumbling with mass, inertia and friction.
-  This is the "fun" of the brief and it does not decide anything. See
-  [Shake prototype](shake-prototype.md#the-two-scripts).
-- Qt Quick 3D Physics, the engine in Qt's own set, is GPL-only like Qt Quick 3D
-  (below) and is not in the shared tree.
+The board is decided by the library first. So nothing simulates: where each die ends is its tile,
+and the fall is a script of whole pixels. A game would otherwise have to read the board back from
+a simulation, and in Mode B the board is a *seeded* one that must hold three to five words. The
+script is a pure function of the board's size, the seed and the time, so a seeded play replays
+exactly, in any build, which is what a test, a recording and a "play this board again" need. The
+rattle answers the device only in how fast the box hops (`pushMotion`'s two numbers, `agitation`
+and `tilt`); it never changes where a die lands. (The first build simulated rigid cubes in about
+fourteen hundred lines of plain C++, and Qt Quick 3D Physics, which is GPL-only, was never an
+option. Both are gone with the 3D scene.)
 
 ### What the scene is given
 
@@ -247,96 +240,50 @@ scene.play(board, seed)         board = { rows, columns, tiles, faces, up }
     up[t]:    which of the six is up, so that faces[t][up[t]] == tiles[t]
 ```
 
-The scene draws each die with its six faces, so the other letters are seen while
-it tumbles, and lands it with the face that is up on top, the letter upright.
-It decides nothing and reads no letter: the faces are the library's, passed
-through, and a library test holds that the face a placement names is the tile's
-letters, for 300 boards of each shipped size. A dead jewel (the phonics board's)
-is a die whose six faces are all the jewel. Which of a die's faces are
-neighbours, how a die lies in the box and how it turns over are for show and
-seeded in the scene: they are not part of the roll, and nothing in the game
-reads a face that is not up. What faces the phonics board's dice have is an open
-choice (the dice-and-faces design page, on its own branch at the time of
-writing); the scene takes whatever six it is given.
-
-The faces of a board are drawn into one texture, which the frame in which the
-board arrives would otherwise make and draw. The scene therefore also takes
-`scene.prepare(board)`, with the board about to be played, a frame or more before
-`play` or `show` of it: it draws the texture ahead and changes nothing on screen.
-A board that was not prepared is drawn when it arrives, so the meaning of `play`
-and `show` is the same with or without it. What it saves is in
-[Shake prototype](shake-prototype.md#the-real-faces). The application gives the
-dealt board to `prepare` and starts the play on the next frame.
+The pixel scene draws the die's upright letter and nothing else: `faces` and `up` are the 3D
+dice's and the scene ignores them (a board without them, from the phonics game or the store, is
+drawn like any other). It decides nothing and reads no letter: the tile strings are the library's,
+passed through, and a library test holds that the face a placement names is the tile's letters,
+for 300 boards of each shipped size. A dead jewel (the phonics board's) is a die with a pixel
+jewel on it. `scene.prepare(board)` is kept in the seam and does nothing: there is no texture to
+draw ahead.
 
 **Built.** `SoloBoard` (`apps/app/src/solo/solo_game.hpp`) carries `faces` and `up`
 beside the tiles. `RealSoloGame::board()` takes them from
 `wjs::roll_with_placements` with the dealt board's seed on the standard board;
 the phonics board and the fake game carry none, and a game brought back from the
-store carries none (its board's roll seed was not kept). The scene is the QML
-module `WordJewelsSolver.Scene` (`apps/app/src/scene`, QML in
-`apps/app/qml/scene/`), and the 2D implementation of the same interface is kept
-at `apps/app/qml/scene/fallback/` for D2 and is not built.
+store carries none (its board's roll seed was not kept). The scene is the application's own QML,
+`apps/app/qml/solo/BoardScene.qml` with `SceneDie.qml` and `SceneScript.js`; the Quick Test suites
+of the Solo screen give it a stub of the same interface instead.
 
-### Rendered 3D, or drawn in 2D
+### Drawn in 2D
 
-| | A: Qt Quick 3D | B: 2D Qt Quick, scripted |
+| | A: Qt Quick 3D (the first build) | B: 2D Qt Quick, scripted (**chosen**) |
 | --- | --- | --- |
-| Look | Lit, glossy dice in a box: the brief's "3D container" and Cubeulator's cube | Flat tiles with a faceted edge, tilted by transforms |
+| Look | Lit, glossy dice in a box: the brief's "3D container" and Cubeulator's cube | Flat pixel dice with a hard shadow, a box that hops in steps: Toybox Pixel |
 | Licence the build can carry | GPL-3.0 only | GPL-3.0-or-later, Qt under the LGPL or GPL |
-| Private builds and GPL downloads | Unaffected | Unaffected |
-| Apple's store | Open, and the binary can no longer be "or later" | Open, as it is for the project's own GPL |
-| Roadmap D2 | Settled toward GPL-3.0 for any build that links it | Stays open |
-| Cost | Cubeulator measured about 140 ms to create each of its 3D cube views, and 10 to 16 s of light-probe work on a software renderer before it baked the probe in advance (its `docs/performance.md`) | Small |
+| Runs in a browser | Heavily (WebGL 2, large) | Yes, Qt Quick alone |
+| Cost | About 140 ms to create each 3D view in Cubeulator, and a baked light probe | Small |
 
-**Fact, checked in the Qt 6.12.0 SBOMs of the Windows kit in the shared tree
-(`C:\Repos\common\qt\6.12.0\msvc2022_64\sbom`):** `Quick3D` and
-`Quick3DParticles` are `LicenseRef-Qt-Commercial OR GPL-3.0-only`; `Quick`,
-`QuickShapes`, `QuickParticles` and `QuickEffects` are `LicenseRef-Qt-Commercial
-OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only`. **Read, from Cubeulator's
-licensing paper, not re-checked:** Qt Quick 3D Physics is on the same GPL-only
-list; Shader Tools' runtime library has the LGPL option; a binary that links
-Quick 3D can be conveyed only under GPL-3.0, so "or later" stops being true of
-it though the source files stay "or later"; and leaving Quick 3D out does not
-cure the Apple store question, because the LGPL has its own conflict with
-stores.
+**Fact, checked in the Qt 6.12.0 SBOMs of the Windows kit:** `Quick3D` and `Quick3DParticles`
+are `LicenseRef-Qt-Commercial OR GPL-3.0-only`; `Quick`, `QuickShapes`, `QuickParticles` and
+`QuickEffects` are `LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only`.
 
-**Decided (the author, 2026-10-16): A for the MVP, behind a seam, with the choice
-taken at D2.** The MVP is a private ad-hoc build on the author's iPad, which the
-roadmap says no licence rule touches. The author expects 3D and a lit solid is
-what Cubeulator has. The cost comes only at a store submission, so:
-
-1. The board scene is one component with a narrow interface: *given a finished
-   board, the six faces of the die on each tile and which of them is up, and a
-   seed, play the shake and the drop, and report when the dice are settled*.
-   Nothing else in the application touches the scene; the game rules stay in the
-   library.
-2. The scene is written in Qt Quick 3D first. **Built:** it is the QML module
-   `WordJewelsSolver.Scene`, used by Solo Play. A 2D implementation of the same
-   interface is kept for the fallback if D2 goes the other way
-   (`apps/app/qml/scene/fallback/`, not built), and the tile, the path and the
-   panel are 2D in both.
-3. Before any store submission D2 is decided with the interface in hand, and the
-   cost of B is a rewrite of one component, not of the game.
-
-What this commits the MVP to: the application links Qt Quick 3D and Shader Tools,
-so a build of it is GPL-3.0 only, which a private build does not mind and a store
-submission would. It does not decide D2: that is taken before any store, with
-the seam in hand. The feedback engines' modules (Multimedia, Sensors and
-TextToSpeech) are now in the shared kit and found optionally; see
-[Application design](application.md#qt-modules).
+**Decided (the author, 2026-10-16): A for the MVP, behind a seam, with the choice taken at D2.**
+**Decided (the author, 2026-10-24, Stage 2 of the Toybox restyle): B.** The seam made it a rewrite
+of one component and not of the game. The 3D scene, its dice simulation, its face atlas, its light
+probe and the harness that measured it are removed; the binary is GPL-3.0-or-later again, and D2
+no longer has the licence cost to weigh ([Licensing](../licensing.md#qt)).
 
 ### How it is drawn
 
-- **3D (A).** One `View3D`; each die a `Model` sharing one six-sided cube mesh
-  and a face atlas with a block of six cells for each die; a box and a lid; a light probe **baked in advance**, as
-  Cubeulator did (its `tools/lightprobe`, 128 x 128 texels a face, 1 MB), so Qt
-  does no prefiltering at run time. No materials beyond a plain lit one. The
-  view is created once and kept, not created for each screen (Cubeulator
-  measured 140 ms to create each of its views).
-- **2D (B).** A die is two items (a rectangle and a text); a shadow is a flat
-  ellipse that grows as the die falls. Only `x`, `y`, `rotation`, `scale` and
-  `opacity` are animated. No shaders, no effect layers, no blur. At most 36 dice
-  are alive at once.
+A die is the kit's `TileFace` (a cream face, a 3 px ink outline, a hard 4 px shadow, the Andika
+letter) or the same face with a pixel jewel; the tray is the kit's `BoardTray` (a 6 px outline, a
+12 px hard drop) and `BoardWell` (a teal checker, a cell behind each die); the lid is a cream slab
+with an ink outline, a hard shadow and a coral label. They are the flat board's own components, at
+the flat board's own positions, so when the scene settles and the flat board takes over nothing
+changes by a pixel. Only whole-pixel `x` and `y` and `opacity` are animated; no shaders, no effect
+layers, no blur, no rotation. At most 36 dice are alive at once.
 
 Confetti and stars are a 2D particle emitter (Qt Quick Particles, LGPL set) laid
 over the view. **Reduced motion** removes it, and its flash rate is at most
@@ -344,14 +291,12 @@ three a second (see [Application design](application.md#motion)).
 
 ## Unknowns
 
-- Whether the tumble reads well at a child's eye height, in 3D or in 2D: the
-  cheapest thing to prototype and the first thing to show. The 3D scene was
-  prototyped and measured on one desktop, not on a device; see
-  [Shake prototype](shake-prototype.md).
+- Whether the fall reads well at a child's eye height: the cheapest thing to look at and the
+  first thing to show. The pixel scene has been seen in pictures and tested, not on a device.
 - The tolerance for tracing on a 51 dp tile with a small finger. On an iPad the
   tiles are large and this matters on phones.
 - Whether dead jewels are acceptable to the literacy reviewer, or whether a
   board with untaught letters is what a classroom would expect. It is a
   question for the review (G7).
-- Whether Qt's 3D scene runs well on the author's iPad. Nothing was measured on
-  a device, and the shared tree has no iOS kit.
+- Whether the window, the scene included, runs well on the author's iPad. Nothing has been measured on
+  a device.

@@ -146,7 +146,7 @@ What the levels are, and what each does, is open (section 11).
 - It is for a child, so it has **big buttons**.
 - It must be **responsive**.
 
-**Fact, from Cubeulator.** It draws its cube with Qt Quick 3D. Qt Quick 3D is
+**Fact, from Cubeulator** (and this project's first build, until 2026-10-24, when its scene went 2D). It draws its cube with Qt Quick 3D. Qt Quick 3D is
 offered only under GPL-3.0-only or a commercial licence, which is why
 Cubeulator recorded, and deferred, the Apple-store question. Its design
 documents set a 48 px minimum touch target, 56 px on the scan screen and 96 px

@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # The board scene is one component with one interface (docs/design/board.md, "The
-# shake and the drop"; docs/design/shake-prototype.md, "The interface"): given a
+# shake and the drop"): given a
 # finished board and a seed, play the shake and the drop and say when the dice are
 # settled. QML has no interface type, so the contract is a list of members and this
-# check: every file that is a BoardScene (the application's 3D scene, and the 2D
-# fallback kept for D2) has to declare them all, under the same names.
+# check: every file that is a BoardScene (the application's scene, and the stub the
+# Quick Test suites give the Solo Play screen) has to declare them all, under the same names.
 #
 # Run as: cmake -DSCENES="<file>;<file>" -P check_scene_contract.cmake
 # A file in the list that does not exist is reported and skipped, so a scene that is
@@ -31,15 +31,8 @@ set(_members
     "play(board, seed)|function[ \t]+play[ \t]*\\([ \t]*board[ \t]*,[ \t]*seed[ \t]*\\)"
     "show(board)|function[ \t]+show[ \t]*\\([ \t]*board[ \t]*\\)"
     "prepare(board)|function[ \t]+prepare[ \t]*\\([ \t]*board[ \t]*\\)"
-    # What the screen hands the scene so that it and the flat board are one colour
-    # (apps/app/qml/solo/SoloScreen.qml): a scene that lacks one fails to load the screen.
-    "trayColor, in|property[ \t]+color[ \t]+trayColor"
-    "rimColor, in|property[ \t]+color[ \t]+rimColor"
-    "dieColor, in|property[ \t]+color[ \t]+dieColor"
-    "dieEdgeColor, in|property[ \t]+color[ \t]+dieEdgeColor"
-    "dieInkColor, in|property[ \t]+color[ \t]+dieInkColor"
-    "jewelColor, in|property[ \t]+color[ \t]+jewelColor"
-    "lidColor, in|property[ \t]+color[ \t]+lidColor"
+    # What the screen hands the scene so that its tray is the flat board's
+    # (apps/app/qml/solo/SoloScreen.qml): a scene that lacks it fails to load the screen.
     "trayInset, in|property[ \t]+real[ \t]+trayInset")
 
 set(_failed FALSE)
@@ -66,6 +59,6 @@ if(_checked EQUAL 0)
     message(FATAL_ERROR "no scene file was found among: ${SCENES}")
 endif()
 if(_failed)
-    message(FATAL_ERROR "a board scene does not match the interface of docs/design/shake-prototype.md")
+    message(FATAL_ERROR "a board scene does not match the interface of docs/design/board.md")
 endif()
 message(STATUS "${_checked} board scene(s) declare the whole interface")

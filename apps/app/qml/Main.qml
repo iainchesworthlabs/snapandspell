@@ -223,9 +223,8 @@ ApplicationWindow {
         LayoutMirroring.childrenInherit: true
 
         // Solo Play's screen is made once, at start-up, and kept for the run: its
-        // board scene is the 3D one, whose View3D is created once (docs/design/
-        // shake-prototype.md, "What was built"), behind home and not on the
-        // Shake press. Hidden, it is not drawn; its dice and script stay.
+        // board scene is made by a Loader behind home and not on the Shake press.
+        // Hidden, it is not drawn; its dice and script stay.
         SoloScreen {
             id: soloScreen
 

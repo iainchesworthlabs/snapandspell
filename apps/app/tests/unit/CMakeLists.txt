@@ -116,48 +116,39 @@ catch_discover_tests(wjs_app_tests
     ADD_TAGS_AS_LABELS
     PROPERTIES ${_wjs_app_test_properties})
 
-# The 3D board scene's script (apps/app/qml/scene/ShakeScript.js) in Qt's own
-# JavaScript engine, so what is tested is the file the scene plays and not a
-# copy, with the dice simulation (DiceSim) it drives. The checks are in
-# shake_script_check.js. They are about the dice's faces: that a die lands with
-# the face the library's roll says is up, shows other faces on the way, and that
-# none of it moves a die before it is sent home. Built with the application,
-# whose scene the script is.
-# With it, the scene's two QML objects that take what a script gives them:
-# DiceSim (dice_sim_test.cpp) and the profiler seam (profiler_test.cpp).
-add_executable(wjs_shake_script_tests
-    dice_sim_test.cpp
+# The board scene's script (apps/app/qml/solo/SceneScript.js) in Qt's own JavaScript engine, so
+# what is tested is the file the scene plays and not a copy: the stepped hops of the box, the lid's
+# quarters, the six frames of a die's fall, the seeded order and the length of a play. With it, the
+# profiler seam (profiler_test.cpp), the QML object that opens and closes a Tracy zone. Built with the
+# application, whose scene the script is.
+add_executable(wjs_scene_script_tests
     profiler_test.cpp
-    shake_script_test.cpp
-    "${PROJECT_SOURCE_DIR}/apps/app/src/scene/dice_sim.cpp"
+    scene_script_test.cpp
     "${PROJECT_SOURCE_DIR}/apps/app/src/scene/profiler.cpp")
-set_target_properties(wjs_shake_script_tests PROPERTIES AUTOMOC ON)
-target_include_directories(wjs_shake_script_tests PRIVATE
+set_target_properties(wjs_scene_script_tests PROPERTIES AUTOMOC ON)
+target_include_directories(wjs_scene_script_tests PRIVATE
     "${PROJECT_SOURCE_DIR}/apps/app/src/scene"
-    # budgets.hpp: the scene's work budgets are in the tier's one file.
+    # budgets.hpp: the scene's play budget is in the tier's one file.
     "${PROJECT_SOURCE_DIR}/libs/core/bench")
-target_compile_definitions(wjs_shake_script_tests PRIVATE
-    "WJS_SHAKE_SCRIPT=\"${PROJECT_SOURCE_DIR}/apps/app/qml/scene/ShakeScript.js\""
-    "WJS_SHAKE_SCRIPT_CHECK=\"${CMAKE_CURRENT_SOURCE_DIR}/shake_script_check.js\"")
-target_link_libraries(wjs_shake_script_tests
+target_compile_definitions(wjs_scene_script_tests PRIVATE
+    "WJS_SCENE_SCRIPT=\"${PROJECT_SOURCE_DIR}/apps/app/qml/solo/SceneScript.js\"")
+target_link_libraries(wjs_scene_script_tests
     PRIVATE
         Qt6::Core
         Qt6::Qml
-        wjs_dice_world
-        # DiceSim's scene.step zone resolves to wjs/profiling.hpp.
         wjs::profiling
         wjs::warnings
         wjs::sanitizers
         wjs::coverage
         Catch2::Catch2WithMain)
-wjs_deploy_sanitizer_runtime(wjs_shake_script_tests)
-wjs_platform_deploy_qt_runtime(wjs_shake_script_tests "")
-# Every tag is a CTest label, so the scene's work budget (tagged perf) is
-# part of `ctest -L perf` as the tier's own cases are.
-catch_discover_tests(wjs_shake_script_tests
+wjs_deploy_sanitizer_runtime(wjs_scene_script_tests)
+wjs_platform_deploy_qt_runtime(wjs_scene_script_tests "")
+# Every tag is a CTest label, so the scene's play budget (tagged perf) is part of `ctest -L perf` as
+# the tier's own cases are.
+catch_discover_tests(wjs_scene_script_tests
     TEST_PREFIX "integration."
     ADD_TAGS_AS_LABELS
-    PROPERTIES COST 12)
+    PROPERTIES COST 4)
 
 # The window's frame budget (apps/app/tests/unit/frame_timing_test.cpp): the
 # application's own smoke run in a child process, and the report it prints.
@@ -460,26 +451,23 @@ set_tests_properties(scan.languages PROPERTIES
     TIMEOUT 240
     LABELS "system;ui;gui")
 
-# The board scene is one component with one interface; the application's 3D
-# scene and the 2D fallback kept for D2 are each held to it
-# (docs/design/shake-prototype.md, "The interface"). QML has no interface type.
+# The board scene is one component with one interface; the application's scene and the stub
+# that the Quick Test suites give the Solo Play screen are each held to it
+# (docs/design/board.md, "The shake and the drop"). QML has no interface type.
 add_test(NAME app.scene_contract
     COMMAND "${CMAKE_COMMAND}"
-        "-DSCENES=${PROJECT_SOURCE_DIR}/apps/app/qml/scene/BoardScene.qml;${PROJECT_SOURCE_DIR}/apps/app/qml/scene/fallback/BoardScene.qml"
+        "-DSCENES=${PROJECT_SOURCE_DIR}/apps/app/qml/solo/BoardScene.qml;${PROJECT_SOURCE_DIR}/apps/app/ui-tests/StubBoardScene.qml"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/check_scene_contract.cmake")
 set_tests_properties(app.scene_contract PROPERTIES LABELS "quality")
 
-# No warning from qmllint over the application's QML, or over the board
-# scene's module. It needs the types the build generates, so it skips itself
-# (exit 4) when the application is not built.
+# No warning from qmllint over the application's QML (the board scene is part of it). It needs the
+# types the build generates, so it skips itself (exit 4) when the application is not built.
 if(TARGET Qt6::qmllint)
     add_test(NAME app.qml_lint
         COMMAND "${CMAKE_COMMAND}"
             "-DQMLLINT=$<TARGET_FILE:Qt6::qmllint>"
             "-DRESPONSE=${PROJECT_BINARY_DIR}/apps/app/.rcc/qmllint/WordJewelsSolver.rsp"
             "-DTYPES=${PROJECT_BINARY_DIR}/apps/app/WordJewelsSolver/WordJewelsSolver.qmltypes"
-            "-DSCENE_RESPONSE=${PROJECT_BINARY_DIR}/apps/app/src/scene/.rcc/qmllint/wjs_scene.rsp"
-            "-DSCENE_TYPES=${PROJECT_BINARY_DIR}/apps/app/src/scene/WordJewelsSolver/Scene/wjs_scene.qmltypes"
             "-DSCAN_RESPONSE=${PROJECT_BINARY_DIR}/apps/app/src/scan/.rcc/qmllint/wjs_scan_ui.rsp"
             "-DSCAN_TYPES=${PROJECT_BINARY_DIR}/apps/app/src/scan/WordJewelsSolver/Scan/wjs_scan_ui.qmltypes"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/run_qmllint.cmake")

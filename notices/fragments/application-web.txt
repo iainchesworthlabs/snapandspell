@@ -5,14 +5,12 @@ WordJewelsSolver.wasm, with the page and scripts around it, is the application
 built for a web browser (docs/web.md in the source). Its source files are under
 the GNU General Public License, version 3 or (at your option) any later version.
 
-This program does not link Qt Quick 3D: the web build draws the board with the
-2D scene. The bundle does carry one file of Qt's that is not LGPL:
+The program links Qt under the LGPL, as the desktop application does. The bundle
+does carry one file of Qt's that is not LGPL:
 qtloader.js, which The Qt Company offers under the GNU General Public License
 version 3 only, or commercially. Because of it the bundle as a whole is
 conveyed under GPL-3.0 only, without the "or later"; the source files in the
-repository remain GPL-3.0-or-later. This follows the reasoning of the author's
-recorded decision of 2026-10-16 for the desktop application (docs/licensing.md
-in the source), applied to a different file, and has not been separately
-confirmed for the web.
+repository remain GPL-3.0-or-later, and so is the desktop application. This has
+not been separately confirmed for the web by the project's owner.
 
 The page loads nothing from another site, and the program has no network code.

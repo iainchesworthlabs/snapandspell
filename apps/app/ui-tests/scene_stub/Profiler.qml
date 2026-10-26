@@ -7,7 +7,7 @@
 // application both import it. The Quick Test suites replace that whole module
 // with this stub (apps/app/ui-tests/scene_stub), so this file gives the calls an
 // implementation that does nothing: QML has no preprocessor, and no suite is
-// about a Tracy zone (apps/app/tests/unit/shake_script_test.cpp and the profiling tier are).
+// about a Tracy zone (apps/app/tests/unit/profiler_test.cpp and the profiling tier are).
 pragma Singleton
 import QtQuick
 

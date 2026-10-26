@@ -23,15 +23,16 @@
 # Main.qml itself is not here: it imports the parent, scan and scene modules and
 # makes the window, and the suites test the screens it would show.
 #
-# What is test support rather than the application is the Scene module.
-# WordJewelsSolver.Scene is the 3D scene and needs a display (and Qt Quick 3D),
-# so a static QML module of the same URI is built here from scene_stub: a
-# BoardScene that draws nothing, keeps the same interface (prepare/show/play/
-# pushMotion/settled/busy/boardRect/tileSize/tileGap) and records the board and
-# seed it is handed. apps/app/tests/unit/check_scene_contract.cmake already holds the two
-# real BoardScenes to that interface; no suite needs the 3D one. The stub
-# imports nothing from the application, so it can be built before the module
-# that imports it.
+# What is test support rather than the application is the Scene module and the
+# stub scene. WordJewelsSolver.Scene is the profiling seam, a C++ singleton, so a
+# static QML module of the same URI is built here from scene_stub (a Profiler that
+# does nothing). The board scene is the application's own QML (qml/solo/BoardScene.qml)
+# and is tested as it is (tst_scene.qml); the suites of the Solo Play screen give
+# the screen StubBoardScene.qml instead, through its `sceneComponent`: a scene that
+# draws nothing, keeps the same interface (prepare/show/play/pushMotion/settled/
+# busy/boardRect/tileSize/tileGap) and records the board and seed it is handed, so
+# a suite does not wait for a drop. apps/app/tests/unit/check_scene_contract.cmake
+# holds the real scene and the stub to that interface.
 #
 # QT_QPA_PLATFORM is set in the harness's main() before the application is
 # created as well as on every ctest entry, so running the binary by hand behaves
@@ -42,9 +43,6 @@ find_package(Qt6 6.12 REQUIRED COMPONENTS QuickTest)
 qt_policy(SET QTP0001 NEW)
 
 set(WJS_QUICK_TEST_SCENE_IMPORT "${CMAKE_CURRENT_BINARY_DIR}/quick-scene")
-set_source_files_properties(
-    "${CMAKE_CURRENT_SOURCE_DIR}/scene_stub/BoardScene.qml"
-    PROPERTIES QT_RESOURCE_ALIAS "BoardScene.qml")
 set_source_files_properties(
     "${CMAKE_CURRENT_SOURCE_DIR}/scene_stub/Profiler.qml"
     PROPERTIES QT_RESOURCE_ALIAS "Profiler.qml" QT_QML_SINGLETON_TYPE TRUE)
@@ -58,7 +56,6 @@ qt_add_qml_module(wjs_quick_test_scene
     VERSION 1.0
     OUTPUT_DIRECTORY "${WJS_QUICK_TEST_SCENE_IMPORT}/WordJewelsSolver/Scene"
     QML_FILES
-        "${CMAKE_CURRENT_SOURCE_DIR}/scene_stub/BoardScene.qml"
         "${CMAKE_CURRENT_SOURCE_DIR}/scene_stub/Profiler.qml")
 
 # GCC rejects qmlcachegen's output under -Werror, so generated files are built without it.
@@ -130,12 +127,15 @@ foreach(_file IN LISTS WJS_QUICK_TEST_KIT_FILES)
 endforeach()
 
 set(WJS_QUICK_TEST_SOLO_FILES
+    BoardScene.qml
     BoardThumb.qml
     FlatBoard.qml
     HistorySheet.qml
     JewelsScreen.qml
     JewelsWording.qml
     PlayingPanel.qml
+    SceneDie.qml
+    SceneScript.js
     ScrollCue.qml
     SoloBox.qml
     SoloScreen.qml
@@ -151,6 +151,11 @@ foreach(_file IN ITEMS Home.qml HomeWording.qml)
         PROPERTIES QT_RESOURCE_ALIAS "${_file}")
     list(APPEND WJS_QUICK_TEST_QML_SOURCES "${WJS_QUICK_TEST_QML_DIR}/${_file}")
 endforeach()
+
+# The stub scene is test support: part of the test module, beside the screens that take it.
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/StubBoardScene.qml"
+    PROPERTIES QT_RESOURCE_ALIAS "StubBoardScene.qml")
+list(APPEND WJS_QUICK_TEST_QML_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/StubBoardScene.qml")
 
 # The kit's and the screens' singletons are singletons in this module too: a
 # pragma Singleton file is not one without this.

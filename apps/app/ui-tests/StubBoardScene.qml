@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // TEST SUPPORT, not part of the application: the board scene the Quick Test
-// suites give the Solo Play screen in place of the 3D one.
+// suites give the Solo Play screen (through its `sceneComponent`) in place of the
+// real one.
 //
-// The application's WordJewelsSolver.Scene (apps/app/qml/scene) draws a View3D and
-// needs a display and Qt Quick 3D, so no suite can start it. This stub is the
-// same component under the same interface - the one apps/app/tests/unit/
-// check_scene_contract.cmake holds the 3D scene and the 2D fallback to:
+// The application's BoardScene (apps/app/qml/solo/BoardScene.qml) plays a shake and
+// a drop that take a second and a half; a suite of the screen's flow does not want
+// to wait for it (tst_scene.qml tests the real one). This stub is the same
+// component under the same interface - the one apps/app/tests/unit/
+// check_scene_contract.cmake holds both to:
 //
 //   prepare(board)          what a shaking screen asks for a frame ahead
 //   play(board, seed)       the shake and the drop; the test reads what arrived
@@ -19,8 +21,7 @@
 // It draws nothing and knows no dice: a play is recorded in `plays`, then
 // `settled` after settleMs so the screen's own flow continues. The geometry
 // rule is the same one BoardGeometry (SoloLayout, apps/app/src/solo/board_layout.*)
-// applies, repeated in JavaScript because this module must not import the
-// module under test: the module under test imports this one.
+// applies, repeated in JavaScript.
 pragma ComponentBehavior: Bound
 import QtQuick
 
@@ -32,15 +33,7 @@ Item {
 
     property bool reducedMotion: false
 
-    // The colours the screen hands the real scene (Theme's tray, gold, die and lid
-    // tokens), so the screen's bindings have something to bind to.
-    property color trayColor: "transparent"
-    property color rimColor: "transparent"
-    property color dieColor: "transparent"
-    property color dieEdgeColor: "transparent"
-    property color dieInkColor: "transparent"
-    property color jewelColor: "transparent"
-    property color lidColor: "transparent"
+    // What the screen hands the real scene, so its bindings have something to bind to.
     property real trayInset: 0
 
     signal settled

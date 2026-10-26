@@ -37,11 +37,11 @@ put the game on a web address. How it is built is in [Building](building.md#web)
 ## The licence it carries
 
 The bundle has `LICENSE.txt` (the GPL) and `NOTICES.txt` (the same third-party notices the program shows
-under About, Licences). Its notices differ from the desktop's in one respect: the web program **does not
-link Qt Quick 3D**, which is why the desktop binary is GPL-3.0 only ([Licensing](licensing.md)). The bundle
-does carry Qt's `qtloader.js`, which The Qt Company offers under GPL-3.0 only or commercially, and
-`NOTICES.txt` says the bundle is conveyed under GPL version 3 for that reason. That is the desktop's
-reasoning applied to another file, written by the build's author and not yet confirmed by the owner.
+under About, Licences). Its notices differ from the desktop's in one respect: the desktop program is
+GPL-3.0-or-later ([Licensing](licensing.md)), but the web bundle carries Qt's `qtloader.js`, which The Qt
+Company offers under GPL-3.0 only or commercially, and `NOTICES.txt` says the bundle is conveyed under GPL
+version 3 for that reason. That is the one GPL-only file in any package of this project, written by the
+web build's author and not yet confirmed by the owner (a loader of the project's own would remove it).
 
 ## What it keeps, and where
 

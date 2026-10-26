@@ -5,7 +5,6 @@
 set(WJS_PLATFORM_DISPLAY_NAME "Linux")
 set(WJS_PLATFORM_DESKTOP ON)
 set(WJS_PLATFORM_EXECUTABLE_FORMAT "elf")
-set(WJS_PLATFORM_SCENE "3d")
 
 # The application looks for its dictionary and dice beside its own executable,
 # and an installed executable is in the bindir.
@@ -56,7 +55,7 @@ endfunction()
 # when the tool that writes one is there, so a machine without dpkg-dev or rpm
 # still gets a ZIP and a TGZ rather than a failed configure (docs/building.md,
 # "Packaging"), and only for the command-line solver: the application needs a
-# Qt 6.12 with Quick 3D that no distribution package provides, so it is
+# Qt 6.12 that no distribution package provides, so it is
 # distributed as an AppImage that carries Qt (packaging/build_appimage.sh), and a
 # deb or rpm of it would declare dependencies nobody can satisfy. dpkg-shlibdeps
 # is asked for beside dpkg-deb because the DEB generator is configured to work

@@ -37,13 +37,6 @@
 #                                 (macOS, iOS) or wasm (the web). The tests that
 #                                 read a built program back with a format's own
 #                                 tool are registered where it is elf.
-#   WJS_PLATFORM_SCENE            Which board scene the application is built
-#                                 with: "3d" (Qt Quick 3D, the rigid-body dice;
-#                                 GPL-3.0 only) or "2d" (the drawn scene in
-#                                 apps/app/qml/scene/fallback, which needs no
-#                                 Quick 3D and no WebGL-heavy 3D pipeline). Every
-#                                 platform but the web says "3d"; the web says
-#                                 "2d" (docs/design/toybox/DESIGN.md, 12.1).
 #   WJS_PLATFORM_QT_SEARCH_ROOTS, WJS_PLATFORM_QT_ARCH_DIRS
 #                                 Where cmake/FindQt6.cmake looks for an
 #                                 aqtinstall-style Qt when none is on

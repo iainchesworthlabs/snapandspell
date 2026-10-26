@@ -60,7 +60,6 @@ other CMake file reads what the fragment declared:
 | Compile definitions, for `wjs_platform` only (Windows: `WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE`) | `WJS_PLATFORM_COMPILE_DEFINITIONS` | `libs/platforms/CMakeLists.txt` |
 | The name in the version block (`Windows`, `Linux`, `macOS`) | `WJS_PLATFORM_DISPLAY_NAME` | `libs/core` (generated `version.hpp`), the configure summary |
 | Whether this is a desktop (CPack installers exist; `OFF` on iOS, whose application Xcode archives and exports) | `WJS_PLATFORM_DESKTOP` | `cmake/Packaging.cmake` (no CPack configuration where it is `OFF`) |
-| Which board scene the application is built with: `3d` (Qt Quick 3D) or `2d` (the drawn scene; the web) | `WJS_PLATFORM_SCENE` | `CMakeLists.txt` (Quick 3D is a required Qt component only for `3d`), `apps/app/src/scene/CMakeLists.txt`, `apps/app/CMakeLists.txt` |
 | The format of the platform's programs (`elf`, `pe`, `mach-o` or `wasm`) | `WJS_PLATFORM_EXECUTABLE_FORMAT` | `tests/checks/CMakeLists.txt` (`hardening.binary` is registered where it is `elf`) |
 | Where an installed Qt lives | `WJS_PLATFORM_QT_SEARCH_ROOTS`, `WJS_PLATFORM_QT_ARCH_DIRS` | `cmake/FindQt6.cmake` |
 | `NAME=value` entries a Qt Quick test needs to run without a display, besides `QT_QPA_PLATFORM=offscreen` (`""` for none) | `WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT` | `tests/CMakeLists.txt` |

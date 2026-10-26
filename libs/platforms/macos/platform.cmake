@@ -5,7 +5,6 @@
 set(WJS_PLATFORM_DISPLAY_NAME "macOS")
 set(WJS_PLATFORM_DESKTOP ON)
 set(WJS_PLATFORM_EXECUTABLE_FORMAT "mach-o")
-set(WJS_PLATFORM_SCENE "3d")
 
 # The application is a bundle (below), and it looks for its dictionary and dice
 # beside its own executable: inside the bundle, in Contents/MacOS, not in the

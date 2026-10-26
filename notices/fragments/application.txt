@@ -1,12 +1,9 @@
 WordJewelsSolver, the application binary
 -----------------------------------------
 
-THE APPLICATION BINARY, WordJewelsSolver, IS CONVEYED UNDER GPL-3.0 ONLY,
-without the "or later". It links Qt Quick 3D, which The Qt Company offers only
-under the GNU General Public License version 3 or a commercial licence, with no
-LGPL option. A part that is GPL-3.0-only cannot be combined into a work that
-stays "or later", so this binary stops at version 3 of the GPL. The source
-files in the repository remain GPL-3.0-or-later; it is the combined binary, the
-one a package carries, that is GPL-3.0-only. This is the author's recorded
-decision of 2026-10-16 (docs/design/board.md and docs/licensing.md in the
-source).
+THE APPLICATION BINARY, WordJewelsSolver, IS CONVEYED UNDER GPL-3.0 OR LATER,
+like the source files it is built from. It links Qt under the GNU Lesser General
+Public License, version 3, which the GPL version 3 allows it to be combined with;
+the Qt section below says which modules and how. The board is drawn in 2D with Qt
+Quick alone: the program does not link Qt Quick 3D, which The Qt Company offers
+only under the GPL version 3 or a commercial licence.

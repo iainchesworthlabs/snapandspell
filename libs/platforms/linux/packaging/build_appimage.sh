@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Build the Linux application as an AppImage: one file that carries Qt (the Qt Quick
-# runtime, Quick 3D, the QML modules and the plugins the application loads) and runs
+# runtime, the QML modules and the plugins the application loads) and runs
 # on a distribution without any of it.
 #
 #   libs/platforms/linux/packaging/build_appimage.sh
@@ -107,7 +107,7 @@ fi
 
 # --- 3. linuxdeploy ------------------------------------------------------------
 # QML_SOURCES_PATHS is every directory with QML in it: the plugin reads the
-# imports there to know which QML modules to copy (Quick 3D, Controls, Layouts,
+# imports there to know which QML modules to copy (Controls, Layouts, Shapes,
 # Multimedia for the camera's live view).
 qml_paths="$(find "$repo/apps/app/src" -name '*.qml' -printf '%h\n' | sort -u | paste -sd: -)"
 export QMAKE="$qt_prefix/bin/qmake"
