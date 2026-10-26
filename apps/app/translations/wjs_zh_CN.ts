@@ -807,7 +807,19 @@
         <translation>两个字母</translation>
     </message>
     <message>
-        <location line="+80"/>
+        <location line="+81"/>
+        <source>Licence and source</source>
+        <extracomment>The heading of the About block that says under what licence the program is and where its source is.</extracomment>
+        <translation>许可证和源代码</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The source code is public. This version is the release and the commit shown above, at:</source>
+        <extracomment>Under the licence notice. The release and the commit of this build are shown above it; the address is shown after it.</extracomment>
+        <translation>源代码是公开的。此版本即上面显示的发布版本和提交，位于：</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Privacy</source>
         <translation>隐私</translation>
     </message>

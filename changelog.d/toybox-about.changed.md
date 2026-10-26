@@ -1,0 +1,1 @@
+**About says what the licence is and where the source is.** The parent area's About page has three cards: the version, "Licence and source" (the licence in words, and the address of the public source, with this build's release and commit above it) and privacy. The Chinese, Japanese and Hebrew faces gained the few characters the new words need.

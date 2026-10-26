@@ -807,7 +807,19 @@
         <translation>Dos letras</translation>
     </message>
     <message>
-        <location line="+80"/>
+        <location line="+81"/>
+        <source>Licence and source</source>
+        <extracomment>The heading of the About block that says under what licence the program is and where its source is.</extracomment>
+        <translation>Licencia y código fuente</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>The source code is public. This version is the release and the commit shown above, at:</source>
+        <extracomment>Under the licence notice. The release and the commit of this build are shown above it; the address is shown after it.</extracomment>
+        <translation>El código fuente es público. Esta versión es la publicación y el commit que se muestran arriba, en:</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Privacy</source>
         <translation>Privacidad</translation>
     </message>

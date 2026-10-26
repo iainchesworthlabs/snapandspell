@@ -232,6 +232,10 @@ QtObject {
 
     // --- about -----------------------------------------------------------------------
     readonly property string licencesHeading: qsTr("Licences")
+    //: The heading of the About block that says under what licence the program is and where its source is.
+    readonly property string licenceAndSourceHeading: qsTr("Licence and source")
+    //: Under the licence notice. The release and the commit of this build are shown above it; the address is shown after it.
+    readonly property string sourceSays: qsTr("The source code is public. This version is the release and the commit shown above, at:")
     readonly property string privacyHeading: qsTr("Privacy")
     readonly property string privacySummary: qsTr("Kept on this device. No recording, no network. Nothing moves between devices.")
 
