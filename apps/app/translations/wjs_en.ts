@@ -4,12 +4,12 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../qml/kit/AppBar.qml" line="+35"/>
+        <location filename="../qml/kit/AppBar.qml" line="+37"/>
         <source>Back</source>
         <translation>Back</translation>
     </message>
     <message>
-        <location line="+99"/>
+        <location line="+102"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>My boards</translation>
@@ -51,12 +51,7 @@
         <translation>Shake. Find. Collect.</translation>
     </message>
     <message>
-        <location line="+12"/>
-        <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
-        <translation>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</translation>
-    </message>
-    <message>
-        <location line="+25"/>
+        <location line="+24"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>Shake the box. Find words. Collect jewels.</translation>
     </message>
@@ -66,12 +61,12 @@
         <translation>Play</translation>
     </message>
     <message>
-        <location line="-45"/>
+        <location line="-32"/>
         <source>A word-finding game for young readers</source>
         <translation>A word-finding game for young readers</translation>
     </message>
     <message>
-        <location line="+65"/>
+        <location line="+52"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</translation>
     </message>
@@ -1590,14 +1585,14 @@
 <context>
     <name>Wordmark</name>
     <message>
-        <location filename="../qml/kit/Wordmark.qml" line="+17"/>
-        <location line="+17"/>
+        <location filename="../qml/kit/Wordmark.qml" line="+19"/>
+        <location line="+35"/>
         <source>Word Jewels</source>
         <translation>Word Jewels</translation>
     </message>
     <message>
-        <location line="-17"/>
-        <location line="+24"/>
+        <location line="-35"/>
+        <location line="+43"/>
         <source>SOLVER</source>
         <translation>SOLVER</translation>
     </message>

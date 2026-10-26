@@ -43,6 +43,8 @@ Rectangle {
     signal clicked
 
     // The art's room above the words, and the words' own height under it.
+    // The way-in button's height under the words.
+    readonly property real buttonHeight: primary ? Theme.targetPrimary : Theme.targetChild
     readonly property real wordsBlock: words.implicitHeight + Theme.space6
     implicitHeight: Theme.space4 + Theme.cardArt + Theme.space3 + wordsBlock
     readonly property real minimumHeight: Theme.space4 + Theme.cardArtMin + Theme.space3 + wordsBlock
@@ -157,21 +159,32 @@ Rectangle {
                 decorative: true
             }
         }
-        Row {
-            spacing: Theme.space2
-            Label {
-                anchors.verticalCenter: parent.verticalCenter
-                role: "label"
-                text: root.actionLabel
-                color: Theme.accentText
-                decorative: true
-            }
-            Icon {
-                anchors.verticalCenter: parent.verticalCenter
-                name: "forward"
-                width: Theme.iconSm
-                height: width
-                color: Theme.accentText
+        // The way in, drawn as the button it stands for: the card is the one target, so this has no
+        // handlers of its own. 96 dp for the child's card, 64 dp for the grown-ups'.
+        Item {
+            width: parent.width
+            height: root.buttonHeight + Theme.shadowMedium
+
+            PixelBox {
+                width: parent.width
+                height: root.buttonHeight
+                radius: Theme.radius
+                fill: root.primary ? Theme.buttonFill
+                                   : (taps.pressed ? Theme.pressWash : (hover.hovered ? Theme.hoverWash : Theme.card))
+                edge: Theme.line
+                edgeWidth: Theme.outlineControl
+                shadowOffset: Theme.shadowMedium
+                sunk: taps.pressed
+
+                Label {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: taps.pressed ? Theme.shadowMedium : 0
+                    role: "child"
+                    size: root.primary ? Theme.childLabelSize : Theme.bodySize
+                    text: root.actionLabel
+                    color: root.primary ? Theme.buttonInk : Theme.ink
+                    decorative: true
+                }
             }
         }
     }

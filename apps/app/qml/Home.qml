@@ -10,8 +10,7 @@ import WordJewelsSolver
 // cards say what the app is without asking a child to read a menu.
 //
 // The page is sized from the window it is given. At the 900 x 620 minimum the
-// hero loses its lede and the cards lose height rather than sliding under the
-// bottom edge; below 900 the two cards stack and the page scrolls. In a window
+// cards lose height rather than sliding under the bottom edge; below 900 the two cards stack and the page scrolls. In a window
 // far larger than the design the column grows (to 1.5 times) and, when it is
 // still shorter than the window, sits in the middle of it: the bar spans the
 // width, so the content is never left top-left over an empty lower half. The
@@ -63,6 +62,7 @@ FocusScope {
         anchors.right: parent.right
         anchors.top: parent.top
         showBack: false
+        transparent: true
         showWordmark: true
         showParent: true
         // Always there: a child who has just started can open it and see the
@@ -112,19 +112,6 @@ FocusScope {
                     Layout.fillWidth: true
                     role: root.small ? "title" : "display"
                     text: qsTr("Shake. Find. Collect.")
-                    wrapMode: Text.WordWrap
-                }
-                Label {
-                    // At the minimum height the two ways in matter more than a
-                    // second sentence; it comes back as soon as there is room.
-                    visible: !root.small
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: Theme.measure
-                    role: "body"
-                    learning: true
-                    size: Theme.headingSize
-                    text: qsTr("A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.")
-                    color: Theme.inkSecondary
                     wrapMode: Text.WordWrap
                 }
             }

@@ -4,12 +4,12 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../qml/kit/AppBar.qml" line="+35"/>
+        <location filename="../qml/kit/AppBar.qml" line="+37"/>
         <source>Back</source>
         <translation>もどる</translation>
     </message>
     <message>
-        <location line="+99"/>
+        <location line="+102"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>わたしのボード</translation>
@@ -51,12 +51,7 @@
         <translation>シェイク。探す。集める。</translation>
     </message>
     <message>
-        <location line="+12"/>
-        <source>A calm word game for little readers. Shake the jewel box, find words, and collect the jewels.</source>
-        <translation>小さな読者のための穏やかな言葉遊び。宝石箱を振って言葉を見つけて宝石を集めましょう。</translation>
-    </message>
-    <message>
-        <location line="+25"/>
+        <location line="+24"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>箱を振ります。言葉を見つけてください。宝石を集めましょう。</translation>
     </message>
@@ -66,12 +61,12 @@
         <translation>遊ぶ</translation>
     </message>
     <message>
-        <location line="-45"/>
+        <location line="-32"/>
         <source>A word-finding game for young readers</source>
         <translation>若い読者のための言葉探しゲーム</translation>
     </message>
     <message>
-        <location line="+65"/>
+        <location line="+52"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>カメラを使うか、ボードを入力します。大人が設定します。</translation>
     </message>
@@ -1590,14 +1585,14 @@
 <context>
     <name>Wordmark</name>
     <message>
-        <location filename="../qml/kit/Wordmark.qml" line="+17"/>
-        <location line="+17"/>
+        <location filename="../qml/kit/Wordmark.qml" line="+19"/>
+        <location line="+35"/>
         <source>Word Jewels</source>
         <translation>Word Jewels</translation>
     </message>
     <message>
-        <location line="-17"/>
-        <location line="+24"/>
+        <location line="-35"/>
+        <location line="+43"/>
         <source>SOLVER</source>
         <translation>SOLVER</translation>
     </message>
