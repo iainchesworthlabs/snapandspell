@@ -1,0 +1,1 @@
+**The icons and the jewels are drawn in pixels.** Back, Close, Done, Again, the grown-up, the history boards, the hint ring and the shake die are pixel icons, and a found word's jewel is a pixel diamond, a cut gem or a star, so the tier is the shape as well as the size.

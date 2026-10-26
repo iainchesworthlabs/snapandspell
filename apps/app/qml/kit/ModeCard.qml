@@ -172,7 +172,6 @@ Rectangle {
                 width: Theme.iconSm
                 height: width
                 color: Theme.accentText
-                strokeWidth: Theme.litEdge - 0.5
             }
         }
     }
