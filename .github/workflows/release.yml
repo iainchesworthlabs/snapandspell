@@ -599,24 +599,21 @@ jobs:
         with:
           persist-credentials: false
 
-      # Before a Qt download of several gigabytes: the five secrets, by name. The
-      # values are never printed.
+      # Before a Qt download of several gigabytes: the three secrets, by name. The
+      # certificate and its password are the organisation's, the profile is this
+      # repository's (docs/ci.md, "iOS"); the values are never printed.
       - name: Require the Apple signing secrets
         env:
-          IOS_DIST_CERTIFICATE_BASE64: ${{ secrets.IOS_DIST_CERTIFICATE_BASE64 }}
-          IOS_DIST_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DIST_CERTIFICATE_PASSWORD }}
+          IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
           IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_PROVISIONING_PROFILE_NAME: ${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}
         run: |
           missing=""
-          [ -n "$IOS_DIST_CERTIFICATE_BASE64" ] || missing="$missing IOS_DIST_CERTIFICATE_BASE64"
-          [ -n "$IOS_DIST_CERTIFICATE_PASSWORD" ] || missing="$missing IOS_DIST_CERTIFICATE_PASSWORD"
-          [ -n "$IOS_PROVISIONING_PROFILE_BASE64" ] || missing="$missing IOS_PROVISIONING_PROFILE_BASE64"
-          [ -n "$APPLE_TEAM_ID" ] || missing="$missing APPLE_TEAM_ID"
-          [ -n "$APPLE_PROVISIONING_PROFILE_NAME" ] || missing="$missing APPLE_PROVISIONING_PROFILE_NAME"
+          [ -n "$IOS_DIST_CERT_P12_BASE64" ] || missing="$missing IOS_DIST_CERT_P12_BASE64 (organisation)"
+          [ -n "$IOS_DIST_CERT_PASSWORD" ] || missing="$missing IOS_DIST_CERT_PASSWORD (organisation)"
+          [ -n "$IOS_PROVISIONING_PROFILE_BASE64" ] || missing="$missing IOS_PROVISIONING_PROFILE_BASE64 (repository)"
           if [ -n "$missing" ]; then
-            echo "::error title=iOS signing secrets missing::Repository secret(s) not set:$missing. They come from the Apple developer portal: the Apple Distribution certificate as a .p12 (base64) and its password, the ad-hoc provisioning profile (base64), the team ID and the profile's name. To release without iOS, dispatch this workflow with the ios input unticked. docs/ios-install.md and docs/ci.md, 'iOS'."
+            echo "::error title=iOS signing secrets missing::Secret(s) not set:$missing. The Apple Distribution certificate and its password are organisation secrets that must reach this repository; the ad-hoc provisioning profile is a repository secret. To release without iOS, dispatch this workflow with the ios input unticked. docs/ios-install.md and docs/ci.md, 'iOS'."
             exit 1
           fi
 
@@ -661,127 +658,48 @@ jobs:
             [ -e "$kit" ] || { echo "::error::$kit is not there: the Qt install put its kits somewhere else (look at the install step's log)"; exit 1; }
           done
 
-      # The distribution certificate goes into a keychain made for this job (never
-      # the runner's login keychain) and the profile where Xcode looks for it, by
-      # its UUID. The profile is checked against the secrets before anything is
-      # built, so a stale or mismatched one says so here and not as an Xcode error
-      # an hour in. Only counts and names are printed, never a device or a secret.
+      # The certificate goes into a keychain made for this job and the profile where
+      # Xcode looks for it, and the profile is read and checked (the App ID against
+      # BUNDLE_ID, its expiry, that it lists devices) before anything is built. Its
+      # team ID and name come out as outputs, so no secret holds them. This and the
+      # export below are icl-common-infra's actions (docs/ios-signing.md there); the
+      # pin is the develop commit that added them, until a tag is cut.
       - name: Import the signing certificate and the provisioning profile
-        env:
-          IOS_DIST_CERTIFICATE_BASE64: ${{ secrets.IOS_DIST_CERTIFICATE_BASE64 }}
-          IOS_DIST_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DIST_CERTIFICATE_PASSWORD }}
-          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_PROVISIONING_PROFILE_NAME: ${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}
-        run: |
-          set -euo pipefail
-          keychain="$RUNNER_TEMP/wjs-ios.keychain-db"
-          password="$(openssl rand -hex 24)"
-          echo "::add-mask::$password"
-          echo "WJS_IOS_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
-
-          printf '%s' "$IOS_DIST_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/dist.p12"
-          printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$RUNNER_TEMP/wjs.mobileprovision"
-
-          security create-keychain -p "$password" "$keychain"
-          security set-keychain-settings -lut 21600 "$keychain"
-          security unlock-keychain -p "$password" "$keychain"
-          security import "$RUNNER_TEMP/dist.p12" -k "$keychain" -P "$IOS_DIST_CERTIFICATE_PASSWORD" \
-            -T /usr/bin/codesign -T /usr/bin/security
-          rm -f "$RUNNER_TEMP/dist.p12"
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" > /dev/null
-          # shellcheck disable=SC2046  # the existing list is words without spaces
-          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
-
-          identities="$(security find-identity -v -p codesigning "$keychain" | grep -c 'Apple Distribution' || true)"
-          if [ "$identities" -lt 1 ]; then
-            echo "::error title=No Apple Distribution certificate::IOS_DIST_CERTIFICATE_BASE64 holds no 'Apple Distribution' identity with its private key (or IOS_DIST_CERTIFICATE_PASSWORD is wrong). Export the certificate from Keychain Access as a .p12 including its private key, and base64 it."
-            exit 1
-          fi
-
-          profile="$RUNNER_TEMP/wjs.mobileprovision"
-          security cms -D -i "$profile" > "$RUNNER_TEMP/profile.plist"
-          pb() { /usr/libexec/PlistBuddy -c "Print :$1" "$RUNNER_TEMP/profile.plist"; }
-          uuid="$(pb UUID)"
-          name="$(pb Name)"
-          team="$(pb TeamIdentifier:0)"
-          appid="$(pb Entitlements:application-identifier)"
-          expires="$(plutil -extract ExpirationDate raw -o - "$RUNNER_TEMP/profile.plist")"
-          devices="$(/usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$RUNNER_TEMP/profile.plist" 2>/dev/null | grep -c '^    ' || true)"
-          now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-          fail() { echo "::error title=Provisioning profile does not fit::$*"; exit 1; }
-          [ "$name" = "$APPLE_PROVISIONING_PROFILE_NAME" ] || fail "The profile in IOS_PROVISIONING_PROFILE_BASE64 is named '$name', but APPLE_PROVISIONING_PROFILE_NAME says '$APPLE_PROVISIONING_PROFILE_NAME'. Set the secret to the profile's name exactly as the Apple developer portal shows it."
-          [ "$team" = "$APPLE_TEAM_ID" ] || fail "The profile belongs to team $team, but APPLE_TEAM_ID is $APPLE_TEAM_ID."
-          [ "$appid" = "$team.$BUNDLE_ID" ] || fail "The profile is for '$appid', not $team.$BUNDLE_ID. Make an ad-hoc profile for the App ID $BUNDLE_ID."
-          [ "$devices" -gt 0 ] || fail "The profile lists no devices, so it is not an ad-hoc profile (a store profile cannot install on a device)."
-          [[ "$expires" > "$now" ]] || fail "The profile expired on $expires. Regenerate it in the Apple developer portal and set IOS_PROVISIONING_PROFILE_BASE64 again."
-
-          dir="$HOME/Library/MobileDevice/Provisioning Profiles"
-          mkdir -p "$dir"
-          cp "$profile" "$dir/$uuid.mobileprovision"
-          echo "WJS_IOS_PROFILE_FILE=$dir/$uuid.mobileprovision" >> "$GITHUB_ENV"
-          echo "profile '$name' (team $team) lists $devices device(s) and expires $expires"
+        id: signing
+        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@12e535686b7dfbae15ab454fd5f2fd511c6734d6 # develop 12e5356 (iOS signing actions, untagged)
+        with:
+          certificate-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          certificate-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          profile-base64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          bundle-id: ${{ env.BUNDLE_ID }}
 
       # Unsigned for every target but the application: the preset turns signing off
       # project-wide, and the two cache variables turn it on for the application
-      # alone (libs/platforms/ios/platform.cmake says why).
+      # alone (libs/platforms/ios/platform.cmake says why). The preset also asks for
+      # the Xcode scheme that the export archives.
       - name: Configure (signed)
         env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_PROVISIONING_PROFILE_NAME: ${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}
-        run: cmake --preset ios-release -DWJS_IOS_SIGNING_TEAM="$APPLE_TEAM_ID" -DWJS_IOS_SIGNING_PROFILE="$APPLE_PROVISIONING_PROFILE_NAME"
+          TEAM_ID: ${{ steps.signing.outputs.team-id }}
+          PROFILE_NAME: ${{ steps.signing.outputs.profile-name }}
+        run: cmake --preset ios-release -DWJS_IOS_SIGNING_TEAM="$TEAM_ID" -DWJS_IOS_SIGNING_PROFILE="$PROFILE_NAME"
 
-      # xcodebuild directly: `cmake --build` has no archive action.
-      - name: Archive
-        run: |
-          set -euo pipefail
-          xcodebuild archive \
-            -project build/ios-release/WordJewelsSolver.xcodeproj \
-            -scheme WordJewelsSolver \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            -archivePath "$RUNNER_TEMP/WordJewelsSolver.xcarchive"
-          ls "$RUNNER_TEMP/WordJewelsSolver.xcarchive/Products/Applications/WordJewelsSolver.app" > /dev/null
-
-      - name: Export the ad-hoc IPA
+      - name: Name the IPA
         env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_PROVISIONING_PROFILE_NAME: ${{ secrets.APPLE_PROVISIONING_PROFILE_NAME }}
           VERSION: ${{ needs.prepare.outputs.version }}
           SUFFIX: ${{ needs.prepare.outputs.suffix }}
-        run: |
-          set -euo pipefail
-          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>ad-hoc</string>
-            <key>teamID</key>
-            <string>$APPLE_TEAM_ID</string>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>signingCertificate</key>
-            <string>Apple Distribution</string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>$BUNDLE_ID</key>
-              <string>$APPLE_PROVISIONING_PROFILE_NAME</string>
-            </dict>
-          </dict>
-          </plist>
-          PLIST
-          xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/WordJewelsSolver.xcarchive" \
-            -exportPath "$RUNNER_TEMP/export" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
-          mkdir -p ios-dist
-          ipa="WordJewelsSolver-$VERSION${SUFFIX:+-$SUFFIX}-ios-adhoc.ipa"
-          mv "$RUNNER_TEMP"/export/*.ipa "ios-dist/$ipa"
-          echo "WJS_IOS_IPA=$ipa" >> "$GITHUB_ENV"
-          ls -l ios-dist
+        run: echo "WJS_IOS_IPA=WordJewelsSolver-$VERSION${SUFFIX:+-$SUFFIX}-ios-adhoc.ipa" >> "$GITHUB_ENV"
+
+      # `xcodebuild archive` and the ad-hoc export. The scheme is the CMake target's
+      # name.
+      - name: Archive and export the ad-hoc IPA
+        uses: iainchesworthlabs/icl-common-infra/actions/export-ios-ipa@12e535686b7dfbae15ab454fd5f2fd511c6734d6 # develop 12e5356 (iOS signing actions, untagged)
+        with:
+          project: build/ios-release/WordJewelsSolver.xcodeproj
+          scheme: WordJewelsSolver
+          bundle-id: ${{ env.BUNDLE_ID }}
+          team-id: ${{ steps.signing.outputs.team-id }}
+          profile-name: ${{ steps.signing.outputs.profile-name }}
+          output: ios-dist/${{ env.WJS_IOS_IPA }}
 
       # The signed IPA, opened as a user's device would: identifier, version, the
       # camera text, the icon, the data, arm64, the signature and an ad-hoc profile.
@@ -794,6 +712,7 @@ jobs:
       # release asset, which does not exist until the publish job, so it is
       # written from the tag (tools/release/make_ios_manifest.sh).
       - name: Write the over-the-air install manifest
+        if: ${{ vars.IOS_IPA_ON_RELEASE == 'true' }}
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
           VERSION: ${{ needs.prepare.outputs.version }}
@@ -802,7 +721,14 @@ jobs:
             --repo "$GITHUB_REPOSITORY" --tag "$TAG" --version "$VERSION" --bundle-id "$BUNDLE_ID"
           plutil -lint ios-dist/manifest.plist
 
-      - name: Upload the IPA and its manifest
+      # An ad-hoc IPA carries its provisioning profile, which lists the UDIDs of the
+      # devices, and this repository is public: attaching the IPA to the release
+      # publishes them. So the IPA and its manifest go to the release (as package-ios,
+      # which `assemble` and Publish take with the other packages) only when the
+      # repository variable IOS_IPA_ON_RELEASE is true; otherwise the IPA is a
+      # workflow artifact, kept 14 days, to install from a computer. docs/ci.md, "iOS".
+      - name: Upload the IPA and its manifest (for the release)
+        if: ${{ vars.IOS_IPA_ON_RELEASE == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: package-ios
@@ -810,14 +736,22 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Upload the IPA (not for the release)
+        if: ${{ vars.IOS_IPA_ON_RELEASE != 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-adhoc
+          path: ios-dist/${{ env.WJS_IOS_IPA }}
+          if-no-files-found: error
+          retention-days: 14
+
       # Whatever happened above, the certificate and the profile do not stay on the
       # runner.
       - name: Remove the signing keychain and the provisioning profile
         if: ${{ always() }}
-        run: |
-          if [ -n "${WJS_IOS_KEYCHAIN:-}" ]; then security delete-keychain "$WJS_IOS_KEYCHAIN" || true; fi
-          if [ -n "${WJS_IOS_PROFILE_FILE:-}" ]; then rm -f "$WJS_IOS_PROFILE_FILE"; fi
-          rm -f "$RUNNER_TEMP/dist.p12" "$RUNNER_TEMP/wjs.mobileprovision" "$RUNNER_TEMP/profile.plist"
+        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@12e535686b7dfbae15ab454fd5f2fd511c6734d6 # develop 12e5356 (iOS signing actions, untagged)
+        with:
+          remove: "true"
 
   # The Android application, as an APK and an AAB signed with the author's upload
   # key (repository secrets), which go to `assemble` and then to Publish with the
