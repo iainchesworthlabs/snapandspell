@@ -133,7 +133,7 @@ QtObject {
     readonly property color die: cream
     readonly property color dieInk: nightPurple
     readonly property color dieEdge: nightPurple
-    readonly property color dieLit: sunshine
+    readonly property color dieLit: coral
     readonly property color dieLitInk: nightPurple
     readonly property color bevelLight: "#FFFFFF"
     readonly property color bevelShade: deepPurple
@@ -239,6 +239,16 @@ QtObject {
     function ribbonEdgeWidth(tile) {
         return Math.max(ribbonEdgeMin, tile * pathCasingShare);
     }
+    // The trail's dashes: square on the casing (`on` of its width, then the gap), and the same lengths
+    // on the narrower core, so the cream centre sits in the ink dash.
+    readonly property real trailOn: 0.9
+    readonly property real trailOff: 0.7
+    function trailDashes(casing) {
+        return [trailOn, trailOff];
+    }
+    function trailCoreDashes(casing, core) {
+        return [trailOn * casing / core, trailOff * casing / core];
+    }
     function ribbonLineWidth(tile) {
         return ribbonEdgeWidth(tile) + 2 * heavy;
     }
@@ -326,7 +336,7 @@ QtObject {
     // passed - see trayOutset().
     readonly property real trayInsetMin: 10
     readonly property real trayInsetShare: 0.08
-    readonly property real trayRim: heavy
+    readonly property real trayRim: outlineFrame
     readonly property real trayWellInset: 6
     function trayOutset(tile, limit) {
         const wanted = Math.max(trayInsetMin, tile * trayInsetShare);

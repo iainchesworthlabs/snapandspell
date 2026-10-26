@@ -156,36 +156,37 @@ Item {
     }
 
     // --- the path -----------------------------------------------------------------
-    // A ribbon through the dice's middles, under the letters: a gold edge round a
-    // pale core, as wide as the die allows (14 and 22 px on a 200 px die), with a
-    // thin dark line outside the gold.
+    // A dotted trail through the dice's middles: square ink dashes with a cream centre, as wide as the
+    // die allows (14 and 22 px on a 200 px die). The gaps leave the letters readable.
     Shape {
         anchors.fill: parent
         visible: root.linePath.length > 1
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
-            strokeColor: Theme.ribbonLine
+            strokeColor: "transparent"
             strokeWidth: root.ribbonLine
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
             PathPolyline { path: root.linePoints }
         }
         ShapePath {
             strokeColor: Theme.ribbonEdge
             strokeWidth: root.ribbonEdge
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
+            strokeStyle: ShapePath.DashLine
+            dashPattern: Theme.trailDashes(root.ribbonEdge)
+            capStyle: ShapePath.FlatCap
+            joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.linePoints }
         }
         ShapePath {
             strokeColor: Theme.ribbonCore
             strokeWidth: root.ribbonCore
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
+            strokeStyle: ShapePath.DashLine
+            dashPattern: Theme.trailCoreDashes(root.ribbonEdge, root.ribbonCore)
+            capStyle: ShapePath.FlatCap
+            joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.linePoints }
         }
     }
@@ -210,27 +211,29 @@ Item {
         visible: opacity > 0 && root.ghostPath.length > 1
         preferredRendererType: Shape.CurveRenderer
         ShapePath {
-            strokeColor: Theme.ribbonLine
+            strokeColor: "transparent"
             strokeWidth: root.ribbonLine
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
             PathPolyline { path: root.ghostPoints }
         }
         ShapePath {
             strokeColor: Theme.ribbonEdge
             strokeWidth: root.ribbonEdge
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
+            strokeStyle: ShapePath.DashLine
+            dashPattern: Theme.trailDashes(root.ribbonEdge)
+            capStyle: ShapePath.FlatCap
+            joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.ghostPoints }
         }
         ShapePath {
             strokeColor: Theme.ribbonCore
             strokeWidth: root.ribbonCore
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
+            strokeStyle: ShapePath.DashLine
+            dashPattern: Theme.trailCoreDashes(root.ribbonEdge, root.ribbonCore)
+            capStyle: ShapePath.FlatCap
+            joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.ghostPoints }
         }
     }

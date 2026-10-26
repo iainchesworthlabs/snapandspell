@@ -2,10 +2,9 @@
 import QtQuick
 import WordJewelsSolver
 
-// The face of a die: a cream tile with an Andika letter, a soft bevel and a dark
-// edge. On the path it keeps its face and letter; a gold rim, a slight lift and
-// a small order badge show that it is selected. Lit is a shape as well as a
-// colour, and the path never crosses the letter.
+// The face of a die, Toybox: a cream tile with a 3 px ink outline, a hard 4 px shadow and an Andika
+// letter in ink. On the path it turns coral, sinks 3 px onto its shadow and loses it, so lit is a shape
+// as well as a colour, and the path never crosses the letter.
 Item {
     id: root
 
@@ -18,40 +17,31 @@ Item {
 
     readonly property string shown: letters === "QU" ? "Qu" : letters
 
+    // The hard shadow, under the face; a die on the path has sunk onto it.
     Rectangle {
-        objectName: "face"
-        anchors.fill: parent
-        radius: Theme.radiusSmall
-        color: Theme.die
-        border.width: root.lit ? Theme.litEdge : Theme.rule
-        border.color: root.lit ? Theme.gold : Theme.dieEdge
+        visible: !root.lit
+        y: Theme.shadowMedium
+        width: parent.width
+        height: parent.height
+        radius: Theme.radiusControl
+        color: Theme.shadow
     }
 
-    // The top of the die catches the light; the foot sits in its shadow.
     Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 2
-        height: 2
-        radius: 1
-        color: Theme.bevelLight
-        opacity: 0.55
-    }
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: 2
-        height: 3
-        radius: 1
-        color: Theme.bevelShade
-        opacity: 0.12
+        objectName: "face"
+        y: root.lit ? Theme.shadowSmall : 0
+        width: parent.width
+        height: parent.height
+        radius: Theme.radiusControl
+        color: root.lit ? Theme.dieLit : Theme.die
+        border.width: Theme.outlineControl
+        border.color: Theme.dieEdge
     }
 
     Label {
         objectName: "letter"
         anchors.centerIn: parent
+        anchors.verticalCenterOffset: root.lit ? Theme.shadowSmall : 0
         decorative: true
         text: root.shown
         font.family: Theme.fontFamily

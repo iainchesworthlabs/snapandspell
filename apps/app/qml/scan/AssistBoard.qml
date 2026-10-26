@@ -146,7 +146,7 @@ Item {
         }
     }
 
-    // --- the path: a pale casing over a dark core, over the dice, under the letters
+    // --- the path: a dotted trail of ink dashes with a cream centre, over the dice
     Shape {
         anchors.fill: parent
         visible: root.assist.path.length > 1
@@ -156,16 +156,20 @@ Item {
             strokeColor: Theme.pathCasing
             strokeWidth: root.casingWidth
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
+            strokeStyle: ShapePath.DashLine
+            dashPattern: Theme.trailDashes(root.casingWidth)
+            capStyle: ShapePath.FlatCap
+            joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.linePoints }
         }
         ShapePath {
             strokeColor: Theme.pathCore
             strokeWidth: root.coreWidth
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
+            strokeStyle: ShapePath.DashLine
+            dashPattern: Theme.trailCoreDashes(root.casingWidth, root.coreWidth)
+            capStyle: ShapePath.FlatCap
+            joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.linePoints }
         }
     }
@@ -182,16 +186,20 @@ Item {
             strokeColor: Theme.pathCasing
             strokeWidth: root.casingWidth
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
+            strokeStyle: ShapePath.DashLine
+            dashPattern: Theme.trailDashes(root.casingWidth)
+            capStyle: ShapePath.FlatCap
+            joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.ghostPoints }
         }
         ShapePath {
             strokeColor: Theme.pathCore
             strokeWidth: root.coreWidth
             fillColor: "transparent"
-            capStyle: ShapePath.RoundCap
-            joinStyle: ShapePath.RoundJoin
+            strokeStyle: ShapePath.DashLine
+            dashPattern: Theme.trailCoreDashes(root.casingWidth, root.coreWidth)
+            capStyle: ShapePath.FlatCap
+            joinStyle: ShapePath.MiterJoin
             PathPolyline { path: root.ghostPoints }
         }
     }
