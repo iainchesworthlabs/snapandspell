@@ -1585,14 +1585,14 @@
 <context>
     <name>Wordmark</name>
     <message>
-        <location filename="../qml/kit/Wordmark.qml" line="+19"/>
-        <location line="+35"/>
+        <location filename="../qml/kit/Wordmark.qml" line="+21"/>
+        <location line="+37"/>
         <source>Word Jewels</source>
         <translation>Word Jewels</translation>
     </message>
     <message>
-        <location line="-35"/>
-        <location line="+43"/>
+        <location line="-37"/>
+        <location line="+46"/>
         <source>SOLVER</source>
         <translation>SOLVER</translation>
     </message>

@@ -388,15 +388,39 @@ TestCase {
     function test_aLabelFollowsTheTextSizeAndLearningSetsAndika() {
         const body = createTemporaryObject(labelComponent, testCase, { role: "body", text: "x" })
         compare(body.font.pixelSize, 18)
-        compare(body.font.family, "Andika")
+        compare(body.face, "Andika")
         Theme.textScale = 1.5
         compare(body.font.pixelSize, 27)
         Theme.textScale = 1.0
         // A parent's button label is the chrome's face; set for a child to read it is Andika.
         const label = createTemporaryObject(labelComponent, testCase, { role: "label", text: "x" })
-        compare(label.font.family, "Pixelify Sans")
+        compare(label.face, "Pixelify Sans")
         label.learning = true
-        compare(label.font.family, "Andika")
+        compare(label.face, "Andika")
+    }
+
+    // Chinese, Japanese, Hebrew and Yiddish are set in the bundled Noto face of the language, for the chrome
+    // and for the sentences; the board's words and numerals stay Andika.
+    function test_aLabelIsSetInTheBundledNotoFaceOfItsLanguage() {
+        const faces = {zh_CN: "Noto Sans SC", ja: "Noto Sans JP", he: "Noto Sans Hebrew", yi: "Noto Sans Hebrew"}
+        const roles = ["display", "title", "heading", "child", "label", "body", "caption", "eyebrow"]
+        for (const language in faces) {
+            Theme.language = language
+            for (const role of roles) {
+                const label = createTemporaryObject(labelComponent, testCase, { role: role, text: "x" })
+                compare(label.font.family, faces[language], language + " " + role)
+            }
+            for (const role of ["word", "numeral"]) {
+                const label = createTemporaryObject(labelComponent, testCase, { role: role, text: "x" })
+                compare(label.font.family, "Andika", language + " " + role + " stays Andika")
+            }
+        }
+        for (const language of ["en", "fr", "es", "de"]) {
+            Theme.language = language
+            const label = createTemporaryObject(labelComponent, testCase, { role: "title", text: "x" })
+            compare(label.font.family, "Pixelify Sans", language)
+        }
+        Theme.language = "en"
     }
 
     function test_trackingIsInEmAndNotAppliedToARightToLeftLanguage() {

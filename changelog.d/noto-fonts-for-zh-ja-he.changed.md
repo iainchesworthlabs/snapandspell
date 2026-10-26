@@ -1,0 +1,1 @@
+**Chinese, Japanese, Hebrew and Yiddish text is set in a typeface that comes with the app.** It no longer depends on the fonts a computer happens to have: the app carries Noto Sans for each of these languages (0.86 MB in all), so the screens look the same everywhere, including in a browser.

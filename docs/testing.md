@@ -559,7 +559,7 @@ Not tested anywhere, so that no row above is read as covering it:
 ### Screenshots
 
 `cmake --build --preset <preset> --target wjs_screenshots` takes a picture of every screen and dialog of
-the application from the offscreen platform and writes 25 PNG files into `<build>/screenshots` (or the
+the application from the offscreen platform and writes 26 PNG files into `<build>/screenshots` (or the
 directory named by `WJS_SHOTS_DIR`). `apps/app/ui-tests/capture_screens.qml` drives the same screens the
 suites test, through the same fixture, in this order: Home, Solo Play (the box, playing, a word in progress,
 the summary), My jewels, the parent gate and the four tabs, the real-board screens (no camera, a live camera,
