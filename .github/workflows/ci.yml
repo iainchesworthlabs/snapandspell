@@ -417,8 +417,8 @@ jobs:
 
       # The window starts, loads every screen and presents frames, on the leg
       # that builds it: the application's smoke mode (docs/profiling.md). Quick
-      # 3D cannot render offscreen, so this exercises the start-up path and the
-      # 2D graph; the frame budget itself is a desktop check.
+      # the window may present no frame offscreen, so this exercises the start-up
+      # path and the 2D graph; the frame budget itself is a desktop check.
       - name: Application smoke (Windows)
         if: matrix.leg == 'windows'
         shell: bash
@@ -427,6 +427,29 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QSG_RHI_BACKEND: opengl
         run: build/"$CMAKE_PRESET"/bin/WordJewelsSolver.exe --smoke 60
+
+      # A picture of every screen and dialog, from the offscreen app, for a reviewer to look at
+      # (docs/testing.md, "Screenshots"): the Toybox restyle is checked against its mockups with
+      # them. It is not a check, so it never fails the leg; a step that cannot take them says so
+      # in its log and the upload finds nothing.
+      - name: Screenshots (Windows)
+        if: matrix.leg == 'windows'
+        continue-on-error: true
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ env.WJS_PRESET }}
+          QT_QPA_PLATFORM: offscreen
+          QSG_RHI_BACKEND: opengl
+        run: cmake --build --preset "$CMAKE_PRESET" --target wjs_screenshots
+
+      - name: Upload the screenshots (Windows)
+        if: matrix.leg == 'windows' && !cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshots
+          path: build/${{ env.WJS_PRESET }}/screenshots/*.png
+          if-no-files-found: ignore
+          retention-days: 14
 
       # A repeatable package from the same build, and proof it is usable (as a
       # DEVELOPMENT package: check_package.ps1 tells cpack, because this tree is

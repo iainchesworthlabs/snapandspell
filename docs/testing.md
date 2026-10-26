@@ -556,12 +556,14 @@ Not tested anywhere, so that no row above is read as covering it:
 ### Screenshots
 
 `cmake --build --preset <preset> --target wjs_screenshots` takes a picture of every screen and dialog of
-the application from the offscreen platform and writes 25 PNG files into `<build>/screenshots` (or the
+the application from the offscreen platform and writes 31 PNG files into `<build>/screenshots` (or the
 directory named by `WJS_SHOTS_DIR`). `apps/app/ui-tests/capture_screens.qml` drives the same screens the
 suites test, through the same fixture, in this order: Home, Solo Play (the box, playing, a word in progress,
 the summary), My jewels, the parent gate and the four tabs, the real-board screens (no camera, a live camera,
 the check screen, the assistant), the kit gallery and a sheet, then Home in the dark scheme, at 150 % text
-and in Hebrew and Chinese. It is not a test (the file is not called `tst_*.qml`, so nothing registers it) and
+and in Hebrew, Chinese and Japanese, and five frames of the board scene. CI takes them on the
+Windows leg (`Screenshots (Windows)`, which never fails the leg) and keeps them 14 days as the
+`screenshots` artifact of the run. It is not a test (the file is not called `tst_*.qml`, so nothing registers it) and
 it is not part of `all`. It is how a change to the look is compared with the one before it, and the
 Toybox restyle ([design](design/toybox/DESIGN.md)) is checked against its mockups with it.
 
