@@ -861,7 +861,7 @@
         <translation>Toca otra vez el último dado o pulsa «Listo».</translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+104"/>
         <source>1 word</source>
         <translation>1 palabra</translation>
     </message>

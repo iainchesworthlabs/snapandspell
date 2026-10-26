@@ -861,7 +861,7 @@
         <translation>Tap the last die again, or press Done</translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+104"/>
         <source>1 word</source>
         <translation>1 word</translation>
     </message>

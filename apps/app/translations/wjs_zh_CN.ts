@@ -861,7 +861,7 @@
         <translation>再次点击最后一个骰子，或按“完成”</translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+104"/>
         <source>1 word</source>
         <translation>1 个字</translation>
     </message>

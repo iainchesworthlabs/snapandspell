@@ -861,7 +861,7 @@
         <translation>צאַפּן ווידער אויף די לעצטע מאָל אָדער דריקן געטאן</translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+104"/>
         <source>1 word</source>
         <translation>1 וואָרט</translation>
     </message>
