@@ -12,11 +12,12 @@
 
 #include "budgets.hpp"
 
-// The board scene's script (apps/app/qml/solo/SceneScript.js) in Qt's own JavaScript engine, so what is
-// tested is the file the scene plays and not a copy. The script is pure functions of the board's size,
-// the seed and the time. Toybox is pixel art, so what is held here is that nothing is smooth: the box
-// hops in whole steps of 6 px, the lid lifts in quarters, a die falls through six frames in whole
-// pixels, and a play has the length the design gives it (docs/design/toybox/DESIGN.md, "Motion").
+// The board scene's script (apps/app/qml/solo/SceneScript.js) in Qt's own JavaScript engine, so
+// what is tested is the file the scene plays and not a copy. The script is pure functions of the
+// board's size, the seed and the time. Toybox is pixel art, so what is held here is that nothing is
+// smooth: the box hops in whole steps of 6 px, the lid lifts in quarters, a die falls through six
+// frames in whole pixels, and a play has the length the design gives it
+// (docs/design/toybox/DESIGN.md, "Motion").
 
 namespace {
 
@@ -34,7 +35,8 @@ QCoreApplication& application() {
 class Script {
 public:
     Script() {
-        QFile file(QString::fromUtf8(script_path.data(), static_cast<qsizetype>(script_path.size())));
+        QFile file(
+            QString::fromUtf8(script_path.data(), static_cast<qsizetype>(script_path.size())));
         REQUIRE(file.open(QIODevice::ReadOnly));
         QString text = QString::fromUtf8(file.readAll());
         // QML reads this line; a plain script engine does not.
@@ -76,18 +78,22 @@ TEST_CASE("a play has the length of its stages", "[scene]") {
 TEST_CASE("the longest play stays within the budget", "[scene][perf]") {
     Script s;
     s.eval("var b = create(36, 1, false);");
-    const double play = s.number("stageLength(b, 'shake') + stageLength(b, 'lid') + "
-                                 "stageLength(b, 'drop') + stageLength(b, 'settle')");
+    const double play = s.number(
+        "stageLength(b, 'shake') + stageLength(b, 'lid') + "
+        "stageLength(b, 'drop') + stageLength(b, 'settle')");
     CHECK(play <= static_cast<double>(wjs::perf::budget::kScenePlay6x6Ms));
 }
 
 TEST_CASE("the same seed gives the same play and another seed another", "[scene]") {
     Script s;
     CHECK(s.truth("JSON.stringify(create(16, 5, false)) === JSON.stringify(create(16, 5, false))"));
-    CHECK(s.truth("JSON.stringify(create(16, 5, false).order) !== JSON.stringify(create(16, 6, false).order)"));
+    CHECK(
+        s.truth("JSON.stringify(create(16, 5, false).order) !== JSON.stringify(create(16, 6, "
+                "false).order)"));
     // The order is a permutation of the dice.
-    CHECK(s.truth("create(16, 9, false).order.slice().sort(function (x, y) { return x - y; })"
-                  ".every(function (v, i) { return v === i; })"));
+    CHECK(
+        s.truth("create(16, 9, false).order.slice().sort(function (x, y) { return x - y; })"
+                ".every(function (v, i) { return v === i; })"));
 }
 
 TEST_CASE("the box hops in whole steps of 6 px and never stands still", "[scene]") {
@@ -95,7 +101,9 @@ TEST_CASE("the box hops in whole steps of 6 px and never stands still", "[scene]
     for (int seed = 1; seed <= 20; ++seed) {
         s.eval(QStringLiteral("var h = create(16, %1, false);").arg(seed));
         CHECK(s.truth("h.hopX.length === 8 && h.hopY.length === 8"));
-        CHECK(s.truth("h.hopX.concat(h.hopY).every(function (v) { return v === -6 || v === 0 || v === 6; })"));
+        CHECK(
+            s.truth("h.hopX.concat(h.hopY).every(function (v) { return v === -6 || v === 0 || v "
+                    "=== 6; })"));
         CHECK(s.truth("h.hopX.every(function (v, i) { return v !== 0 || h.hopY[i] !== 0; })"));
     }
 }
@@ -103,19 +111,21 @@ TEST_CASE("the box hops in whole steps of 6 px and never stands still", "[scene]
 TEST_CASE("the box's position is whole pixels, and only in the shake", "[scene]") {
     Script s;
     s.eval("var a = create(16, 3, false);");
-    CHECK(s.truth("(function () {"
-                  "  for (var t = 0; t < 3000; t += 7) {"
-                  "    var h = boxHop(a, 'shake', t, t % 3 / 2, (t % 5 - 2) / 2);"
-                  "    if (h.x !== Math.round(h.x) || h.y !== Math.round(h.y)) return false;"
-                  "  }"
-                  "  return true; })()"));
+    CHECK(
+        s.truth("(function () {"
+                "  for (var t = 0; t < 3000; t += 7) {"
+                "    var h = boxHop(a, 'shake', t, t % 3 / 2, (t % 5 - 2) / 2);"
+                "    if (h.x !== Math.round(h.x) || h.y !== Math.round(h.y)) return false;"
+                "  }"
+                "  return true; })()"));
     for (const char* stage : {"idle", "lid", "drop", "settle"}) {
         CHECK(s.truth(QStringLiteral("var h = boxHop(a, '%1', 100, 1, 1); h.x === 0 && h.y === 0")
                           .arg(stage)));
     }
     // It holds one hop for a whole step (75 ms), then moves on.
-    CHECK(s.truth("var p = boxHop(a, 'shake', 5, 0, 0), q = boxHop(a, 'shake', 70, 0, 0);"
-                  "p.x === q.x && p.y === q.y"));
+    CHECK(
+        s.truth("var p = boxHop(a, 'shake', 5, 0, 0), q = boxHop(a, 'shake', 70, 0, 0);"
+                "p.x === q.x && p.y === q.y"));
 }
 
 TEST_CASE("the lid lifts in four steps, or cross-fades when motion is reduced", "[scene]") {
@@ -123,10 +133,11 @@ TEST_CASE("the lid lifts in four steps, or cross-fades when motion is reduced", 
     s.eval("var a = create(16, 3, false), r = create(16, 3, true);");
     CHECK(s.number("lidOpen(a, 'shake', 400)") == 0);
     CHECK(s.number("lidOpen(a, 'drop', 0)") == 1);
-    CHECK(s.truth("(function () {"
-                  "  var seen = {};"
-                  "  for (var t = 0; t < 250; t += 5) { seen[lidOpen(a, 'lid', t)] = true; }"
-                  "  return Object.keys(seen).sort().join() === '0,0.25,0.5,0.75'; })()"));
+    CHECK(
+        s.truth("(function () {"
+                "  var seen = {};"
+                "  for (var t = 0; t < 250; t += 5) { seen[lidOpen(a, 'lid', t)] = true; }"
+                "  return Object.keys(seen).sort().join() === '0,0.25,0.5,0.75'; })()"));
     CHECK(s.truth("lidOpen(r, 'lid', 30) === 30 / 120"));
 }
 
@@ -134,20 +145,21 @@ TEST_CASE("a die falls through six frames, in whole pixels, one after another", 
     Script s;
     s.eval("var a = create(16, 11, false); var tile = 100;");
     // Before its start a die is not seen; then its frames run 0 to 5; then it is down.
-    CHECK(s.truth("(function () {"
-                  "  for (var i = 0; i < 16; ++i) {"
-                  "    var last = -2, frames = {};"
-                  "    for (var t = 0; t <= stageLength(a, 'drop'); t += 5) {"
-                  "      var p = pose(a, 'drop', t, i, tile);"
-                  "      if (p.frame < last) return 'frames went back for die ' + i;"
-                  "      last = p.frame; frames[p.frame] = true;"
-                  "      if (p.x !== Math.round(p.x) || p.y !== Math.round(p.y) || p.y > 0) return 'bad y';"
-                  "      if ((p.frame < 0) !== (p.opacity === 0)) return 'opacity';"
-                  "    }"
-                  "    if (Object.keys(frames).sort().join() !== '-1,0,1,2,3,4,5,6' && i !== a.order[0])"
-                  "      return 'frames ' + Object.keys(frames).join() + ' for die ' + i;"
-                  "  }"
-                  "  return true; })() === true"));
+    CHECK(s.truth(
+        "(function () {"
+        "  for (var i = 0; i < 16; ++i) {"
+        "    var last = -2, frames = {};"
+        "    for (var t = 0; t <= stageLength(a, 'drop'); t += 5) {"
+        "      var p = pose(a, 'drop', t, i, tile);"
+        "      if (p.frame < last) return 'frames went back for die ' + i;"
+        "      last = p.frame; frames[p.frame] = true;"
+        "      if (p.x !== Math.round(p.x) || p.y !== Math.round(p.y) || p.y > 0) return 'bad y';"
+        "      if ((p.frame < 0) !== (p.opacity === 0)) return 'opacity';"
+        "    }"
+        "    if (Object.keys(frames).sort().join() !== '-1,0,1,2,3,4,5,6' && i !== a.order[0])"
+        "      return 'frames ' + Object.keys(frames).join() + ' for die ' + i;"
+        "  }"
+        "  return true; })() === true"));
     // The first die falls from 90 percent of a tile up and ends at its place.
     CHECK(s.number("var f = a.order[0]; pose(a, 'drop', 0, f, tile).y") == -90);
     CHECK(s.number("pose(a, 'drop', 379, a.order[0], tile).y") == 0);
@@ -156,8 +168,11 @@ TEST_CASE("a die falls through six frames, in whole pixels, one after another", 
     CHECK(s.number("landingTime(a, a.order[1]) - landingTime(a, a.order[0])") == 40);
     CHECK(s.number("frame(a, landingTime(a, 4), 4)") == 3);
     // In the shake and the lid the dice are inside the closed box.
-    CHECK(s.truth("pose(a, 'shake', 100, 3, tile).opacity === 0 && pose(a, 'lid', 100, 3, tile).opacity === 0"));
-    CHECK(s.truth("var p = pose(a, 'settle', 10, 3, tile); p.x === 0 && p.y === 0 && p.opacity === 1"));
+    CHECK(
+        s.truth("pose(a, 'shake', 100, 3, tile).opacity === 0 && pose(a, 'lid', 100, 3, "
+                "tile).opacity === 0"));
+    CHECK(s.truth(
+        "var p = pose(a, 'settle', 10, 3, tile); p.x === 0 && p.y === 0 && p.opacity === 1"));
 }
 
 TEST_CASE("with reduced motion the dice fade in together and nothing hops", "[scene]") {

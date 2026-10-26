@@ -428,8 +428,8 @@ inline constexpr int kPathsPerRun = 200;
 
 // A play of the board scene from the first hop of the box to the settled board: the shake's least
 // length, the lid, the drop and the settle (apps/app/qml/solo/SceneScript.js). It is a number of
-// milliseconds that the script computes from the board's size, the same on every machine, and a child
-// waits for it: the budget is the 6x6 board's play, the longest, and it is 2.2 s.
+// milliseconds that the script computes from the board's size, the same on every machine, and a
+// child waits for it: the budget is the 6x6 board's play, the longest, and it is 2.2 s.
 inline constexpr std::uint64_t kScenePlay6x6Ms = 2'200;  // computed 2,061
 
 // The window's frame, during a smoke run's shake cycle (docs/profiling.md,
