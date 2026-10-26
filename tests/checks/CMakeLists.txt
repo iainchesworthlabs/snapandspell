@@ -198,6 +198,14 @@ add_test(NAME analysis.config
         "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
         -P "${WJS_TESTS_DIR}/analysis/check_analysis.cmake")
 
+# The design's tokens (docs/design/toybox) and the Theme that spends them say the same thing, and the font
+# files are one list in four places (tests/design/check_tokens.cmake). Reads files only, so it runs on every
+# host and in every CI leg.
+add_test(NAME design.tokens
+    COMMAND "${CMAKE_COMMAND}"
+        "-DREPO_ROOT=${PROJECT_SOURCE_DIR}"
+        -P "${WJS_TESTS_DIR}/design/check_tokens.cmake")
+
 # The privacy rules of the first release that the source can say whether they
 # hold (docs/design/application.md, "Privacy, built in and checked"): no audio
 # captured, no network used, nothing exported, one file written and only by the
@@ -229,6 +237,7 @@ add_test(NAME parent.wording.selftest
         -P "${WJS_TESTS_DIR}/parent/test_check_wording.cmake")
 
 set(WJS_QUALITY_TESTS
+    design.tokens
     notices.sections
     package.config
     platform.fragments

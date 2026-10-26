@@ -349,10 +349,13 @@ FocusScope {
                     Layout.fillWidth: true
                     spacing: Theme.space2
 
+                    // The two are as tall as the taller: a label that wraps in a wide face makes one
+                    // taller, and the other stands as tall, not beside it.
                     AppButton {
                         id: historyButton
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
+                        Layout.preferredHeight: Math.max(implicitHeight, newBoardButton.implicitHeight)
                         size: "min"
                         variant: "ghost"
                         wrap: true
@@ -365,6 +368,7 @@ FocusScope {
                         id: newBoardButton
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
+                        Layout.preferredHeight: Math.max(implicitHeight, historyButton.implicitHeight)
                         size: "min"
                         variant: "ghost"
                         wrap: true

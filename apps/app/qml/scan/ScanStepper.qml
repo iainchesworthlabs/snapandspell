@@ -54,14 +54,15 @@ Item {
                     radius: width / 2
                     color: entry.status === "current" ? Theme.accent
                          : entry.status === "done" ? Theme.selectedFill : Theme.card
-                    border.width: entry.status === "current" ? 0 : Theme.heavy
-                    border.color: entry.status === "done" ? Theme.selectedEdge : Theme.outline
+                    border.width: Theme.heavy
+                    border.color: entry.status === "done" || entry.status === "current" ? Theme.selectedEdge
+                                                                                         : Theme.outline
 
                     Label {
                         anchors.centerIn: parent
                         visible: entry.status !== "done"
                         decorative: true
-                        role: "mono"
+                        role: "eyebrow"
                         text: entry.number
                         font.capitalization: Font.MixedCase
                         color: entry.status === "current" ? Theme.buttonInk : Theme.inkSecondary
@@ -72,7 +73,7 @@ Item {
                         width: Theme.iconSm
                         height: Theme.iconSm
                         name: "done"
-                        color: Theme.accent
+                        color: Theme.selectedInk
                     }
                 }
 
@@ -82,7 +83,7 @@ Item {
                     role: "caption"
                     text: root.names[entry.index]
                     font.weight: entry.status === "current" ? Font.DemiBold : Font.Normal
-                    color: entry.status === "current" ? Theme.accent : Theme.inkSecondary
+                    color: entry.status === "current" ? Theme.accentText : Theme.inkSecondary
                 }
 
                 // The line to the next step.
@@ -93,7 +94,7 @@ Item {
                     Layout.leftMargin: Theme.space1
                     Layout.rightMargin: Theme.space1
                     radius: Theme.radiusXs
-                    color: entry.status === "done" ? Theme.accent : Theme.line
+                    color: entry.status === "done" ? Theme.accentText : Theme.line
                 }
             }
         }

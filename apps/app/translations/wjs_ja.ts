@@ -866,7 +866,7 @@
         <translation>最後のサイコロをもう一度タップするか、「完了」を押します</translation>
     </message>
     <message>
-        <location line="+107"/>
+        <location line="+106"/>
         <source>1 word</source>
         <translation>1単語</translation>
     </message>
@@ -1263,17 +1263,17 @@
         <translation>%1 個の単語をすべて見つけました!</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+49"/>
         <source>Look at the jewels you collected.</source>
         <translation>集めた宝石を見てください。</translation>
     </message>
     <message>
-        <location line="-51"/>
+        <location line="-50"/>
         <source>You found the word!</source>
         <translation>ことばをみつけたね！</translation>
     </message>
     <message>
-        <location line="+137"/>
+        <location line="+136"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>

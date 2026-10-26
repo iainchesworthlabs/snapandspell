@@ -207,11 +207,11 @@ TestCase {
         verify(clear !== null && done !== null && help !== null && newBoard !== null)
         verify(clear.visible && done.visible && help.visible && newBoard.visible)
         // The ladder: Done 96 dp, Clear 64 dp, the help at least 64 dp (its picture sits above
-        // its word), the ways out 48 dp.
+        // its word), the ways out at least 48 dp (a label that wraps makes the pair taller).
         compare(done.height, Theme.targetPrimary)
         compare(clear.height, Theme.targetChild)
         verify(help.height >= Theme.targetChild, "the help (a picture above its word): " + help.height)
-        compare(newBoard.height, Theme.targetMin)
+        verify(newBoard.height >= Theme.targetMin, "the way out: " + newBoard.height)
         // The edge: 16 dp from the window's right edge (not the old 8 dp) and from
         // the bottom.
         const doneBox = done.mapToItem(view, 0, 0)

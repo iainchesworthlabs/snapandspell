@@ -36,7 +36,7 @@ Row {
             lineRatio: Theme.lineHeading
         }
         Label {
-            role: "mono"
+            role: "eyebrow"
             decorative: true
             text: qsTr("SOLVER")
         }

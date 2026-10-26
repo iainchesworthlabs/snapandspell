@@ -149,8 +149,7 @@ Item {
                         }
                         Label {
                             visible: root.clockShown
-                            role: "heading"
-                            font.family: Theme.monoFont
+                            role: "numeral"
                             text: root.solo.clockText
                             color: root.solo.clockMode === "down" && root.solo.clockSeconds <= 30
                                    ? Theme.goldInk : Theme.ink
@@ -268,7 +267,7 @@ Item {
                                     anchors.right: parent.right
                                     anchors.rightMargin: Theme.space1
                                     anchors.verticalCenter: parent.verticalCenter
-                                    role: "mono"
+                                    role: "eyebrow"
                                     decorative: true
                                     font.capitalization: Font.MixedCase
                                     color: Theme.goldInk

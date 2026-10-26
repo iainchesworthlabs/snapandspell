@@ -447,13 +447,14 @@ TestCase {
         const smallFrame = frame(small)
         verify(smallFrame !== null)
         const smallWidth = smallFrame.width
+        const smallHeight = smallFrame.height
         small.destroy()
         const tall = createTemporaryObject(screenComponent, testCase,
                                          { width: 900, height: 1200, scan: scanModel,
                                            assist: assistModel })
         verify(tall !== null)
-        tryVerify(() => frame(tall).width > 0)
-        verify(frame(tall).height > smallFrame.height)
+        // The first pass of a layout is not its last: wait for the frame to take the room.
+        tryVerify(() => frame(tall).height > smallHeight)
         verify(frame(tall).width >= smallWidth)
         // Not the old fixed 350 px.
         verify(frame(tall).width > 350)

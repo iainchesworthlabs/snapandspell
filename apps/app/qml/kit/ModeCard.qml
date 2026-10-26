@@ -153,7 +153,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 role: "label"
                 text: root.actionLabel
-                color: Theme.accent
+                color: Theme.accentText
                 decorative: true
             }
             Icon {
@@ -161,7 +161,7 @@ Rectangle {
                 name: "forward"
                 width: Theme.iconSm
                 height: width
-                color: Theme.accent
+                color: Theme.accentText
                 strokeWidth: Theme.litEdge - 0.5
             }
         }

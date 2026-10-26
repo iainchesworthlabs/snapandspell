@@ -58,7 +58,7 @@ riskiest part, so it comes after there is a game worth scanning for.**
 | Trace a path with loose tolerance | **Built:** `validate_path` and a pointer tracer with a snap radius and a hysteresis band | A test with small fingers on a tablet | M1 |
 | Letters speak their *phonetic sounds* | The sound-it-out sequence and its player are built; **no clip exists**, so only the word is spoken | Recorded phoneme audio. Speech synthesis says letter *names* ("see"), not sounds ("k"), so this is a recording job (D5) | M1 |
 | Read the found word aloud, name its category | The word is read by the device's voice; the category is not named | Category tags from M2 | M1, M2 |
-| Legible early-reader typeface | **Built:** Andika (with Archivo and IBM Plex Mono) is bundled | A glyph check with a child | M1 |
+| Legible early-reader typeface | **Built:** Andika (with Pixelify Sans and Silkscreen) is bundled | A glyph check with a child | M1 |
 | Hide advanced words, give hints not lists | The standard board counts every ENABLE word of three letters or more (no block list); the hint is the start tile, never the word | A hint engine over lexicon metadata: "a 3-letter animal starting with C" | M2 |
 | Camera scan of a physical board | The reader and the desktop camera are built (Qt Multimedia, not OpenCV); no real board has been read | Recorded photographs and a measurement; the iPad's camera and Vision reader | M4 |
 

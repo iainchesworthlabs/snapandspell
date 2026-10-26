@@ -11,6 +11,6 @@ import WordJewelsSolver
 Label {
     property bool accented: false
 
-    role: "mono"
-    color: accented ? Theme.accent : Theme.inkSecondary
+    role: "eyebrow"
+    color: accented ? Theme.accentText : Theme.inkSecondary
 }

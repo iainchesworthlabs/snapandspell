@@ -3,32 +3,30 @@ pragma Singleton
 import QtQuick
 import WordJewelsSolver
 
-// The one design system of the application: the Jewel Box. Warm paper, a deep
-// tray, cream dice, an emerald action colour and a gold reward. Archivo is the
-// house UI face, IBM Plex Mono the label face, Andika the learning face (dice
-// letters and words). Every screen, the parent area included, reads these
-// tokens; a screen writes no colour, size or type value of its own. The lint
-// test in apps/app/ui-tests keeps it so (tst files `lint` and `contrast`).
+// The one design system of the application: Toybox Pixel (docs/design/toybox/DESIGN.md). A sunshine
+// page, night-purple ink, cream panels with hard outlines and hard shadows, a coral selection and five
+// gem colours. Pixelify Sans is the chrome (wordmark, titles, headings, buttons, labels), Silkscreen the
+// upper-case eyebrow, and Andika the face a child reads: the dice, the words, the body text and every
+// numeral. Every screen, the parent area included, reads these tokens; a screen writes no colour, size
+// or type value of its own. The lint test in apps/app/ui-tests keeps it so (tst files `lint` and
+// `contrast`).
 //
-// Light and dark are chosen by the parent's Colour scheme setting, or by the
-// system when that is System. The board is the one object that stays warm in
-// both: its tray, dice and gold rim are the physical toy on the table.
+// Light and dark are chosen by the parent's Colour scheme setting, or by the system when that is
+// System. Toybox has no dark scheme, so Toybox Night is made from the same palette (section 5 of the
+// design): a deep-purple page, ink panels, cream text and outlines. The dice, the tray's well and the
+// gems are the same in both: they are the physical toy on the table.
 //
-// Colour rules, held by apps/app/ui-tests/tst_contrast.qml against the design's gates
-// (text 4.5, large text 3, non-text 3):
-//   * Emerald (`accent`) is the one action colour. Selection is `selectedFill`
-//     with an `accent` edge and a check mark - never colour alone, never gold.
-//   * Gold is reward only: the hint, the lit die, the tray rim, a jewel's rim.
-//   * A disabled control uses `disabledFill`/`disabledInk`/`disabledEdge`,
-//     never `opacity`, so its label keeps 3:1 or better.
-//   * A container is told from its surround by `line` (>= 1.6:1 on a card).
+// Colour rules, held by apps/app/ui-tests/tst_contrast.qml (text 4.5, large text 3, non-text 3):
+//   * Ink is the one text colour on the page and on panels, and the fill of the primary button (Night:
+//     sunshine, with ink text). Selection is `selectedFill` (coral) with ink text and an ink edge, and
+//     a check mark - never colour alone.
+//   * No text sits on pink or on blueberry (ink on pink is 4.16:1, on blueberry 3.47:1). Coral and
+//     sunshine objects on the page always have an ink outline (coral on sunshine is 1.83:1).
+//   * A disabled control is `disabledFill` with a dashed edge and no shadow, never `opacity`.
+//   * Every state also differs by shape, mark or position, not by colour alone (WCAG 1.4.1).
 //
-// Type rules (docs/design/application.md, "The Jewel Box design system"): the scale is 12,
-// 14, 16, 20, 24, 32, 40, 48 and nothing is smaller than 12. Two tiers share it. The CHILD
-// tier is `child` (24), `word` (24), `title` (32) and `display` (40): what a
-// five-year-old reads. The PARENT tier is `body` (16), `label` (16), `caption`
-// (14), `mono` (12) and `heading` (20): what an adult scans. A screen picks a
-// role through kit/Label.qml and never a size.
+// Type rules: the scale is 14, 16, 18, 20, 24, 26, 34, 36, 40, 56 and nothing is smaller than 14. A
+// screen picks a role through kit/Label.qml and never a size.
 QtObject {
     id: root
 
@@ -41,127 +39,149 @@ QtObject {
     readonly property bool dark: colourScheme === "dark"
                                  || (colourScheme !== "light" && SystemColourScheme.dark)
 
+    // --- colour: the palette (the same in both schemes) ---------------------
+    // The named colours of Toybox (tokens.json). A component that needs one of these in either
+    // scheme names it here; the scheme's own roles follow.
+    readonly property color sunshine: "#FFC93C"
+    readonly property color cream: "#FFF1D6"
+    readonly property color coral: "#FF6B4A"
+    readonly property color pink: "#FF2E63"
+    readonly property color leaf: "#5BD16A"
+    readonly property color blueberry: "#4C6BFF"
+    readonly property color blueberryShine: "#DDE3FF"
+    readonly property color nightPurple: "#2B1D52"
+    readonly property color deepPurple: "#1A1035"
+    readonly property color tealLight: "#1F6E7A"
+    readonly property color tealDark: "#1A6170"
+
     // --- colour: the chrome (light / dark) ----------------------------------
-    // The ladder, darkest to lightest in dark: boardArea < page < panel/surface
-    // < card < hoverWash. In light the card is the lightest and the panel the
-    // darkest of the paper family.
-    readonly property color page: dark ? "#11181B" : "#F6F1E7"
-    readonly property color surface: dark ? "#1A2428" : "#FFFDF8"
-    readonly property color card: dark ? "#232F35" : "#FFFDF8"
-    readonly property color panel: dark ? "#1A2428" : "#EDE7DA"
-    // The stage the board stands on. 1.14:1 against the panel in light and
-    // 1.19:1 in dark (it was 1.02 and 1.00), and the tray stands off it 1.5:1.
-    readonly property color boardArea: dark ? "#0C1214" : "#FAF6EC"
-    readonly property color ink: dark ? "#F2ECDE" : "#1E2A30"
-    // 4.8:1 on panel and hoverWash in light (the brief's #5C6B70 gave 4.49).
-    readonly property color inkSecondary: dark ? "#B3BDBB" : "#56666A"
-    // A container's edge: 1.79:1 on a card and 1.62:1 on the page in light
-    // (was #D9D1C2: 1.49 and 1.35), 1.74 and 2.27 in dark.
-    readonly property color line: dark ? "#445459" : "#C9BFAB"
-    readonly property color outline: dark ? "#8C9A98" : "#6E7A78"
-    readonly property color accent: dark ? "#63C7B2" : "#166B5C"
-    readonly property color accentSoft: dark ? "#1E3A36" : "#DDEDE8"
-    readonly property color buttonFill: accent
-    readonly property color buttonInk: dark ? "#0E1F1C" : "#FFFFFF"
-    // Reward only. One value for both themes, slightly deeper than the brief's
-    // #C98A1E so that it holds 3:1 against a cream die (3.11, was 2.76) and
-    // against the tray (4.07).
-    readonly property color gold: "#BF8019"
-    readonly property color goldInk: dark ? "#F0C879" : "#7A4E08"
-    readonly property color goldSoft: dark ? "#3A2E1A" : "#F7E8C6"
-    readonly property color hoverWash: dark ? "#2C3B41" : "#EDE6D6"
-    readonly property color pressWash: dark ? "#36484F" : "#E0D8C4"
-    readonly property color focusRing: accent
-    readonly property color scrim: Qt.rgba(0.067, 0.094, 0.106, 0.64)
+    // Light: a sunshine page, cream panels. Night: a deep-purple page, night-purple panels.
+    readonly property color page: dark ? deepPurple : sunshine
+    readonly property color surface: dark ? nightPurple : cream
+    readonly property color card: surface
+    readonly property color panel: surface
+    // A darker cream (Night: a lighter purple): the empty well of a panel, a disabled fill.
+    readonly property color surfaceDim: dark ? "#3A2B66" : "#EBD9B4"
+    // The stage the board stands on is the page itself: the tray has its own frame.
+    readonly property color boardArea: page
+    readonly property color ink: dark ? cream : nightPurple
+    // Secondary text: 6.25:1 or better on every light surface, 5.46:1 on the Night ones.
+    readonly property color inkSecondary: dark ? "#C4B7DD" : "#4A3A7C"
+    // The edge of a container and of a control is the ink itself.
+    readonly property color line: ink
+    readonly property color outline: ink
+    // The hard drop shadow: no blur, always darker than what it falls on.
+    readonly property color shadow: dark ? "#0B0618" : deepPurple
+    // Selection, a path, a highlight: always with an ink outline on the page (1.83:1 on sunshine).
+    readonly property color accent: coral
+    // Text that stands out from the rest: ink on light, sunshine on Night (never coral).
+    readonly property color accentText: dark ? sunshine : nightPurple
+    // A chip's fill (Often found): sunshine in both schemes; its text is `chipInk`.
+    readonly property color accentSoft: sunshine
+    readonly property color chipInk: nightPurple
+    readonly property color buttonFill: dark ? sunshine : nightPurple
+    readonly property color buttonInk: dark ? nightPurple : cream
+    // The focus ring is ink on light and cream on Night, drawn outside the control with a gap.
+    readonly property color focusRing: ink
+    readonly property color scrim: Qt.rgba(0.169, 0.114, 0.322, 0.8)
+    // Reward and hint: sunshine. `goldInk` is emphasised text on a panel (the points, a low clock), so it
+    // follows the scheme like `accentText`; text on the hint's own sunshine card is `hintCardInk`.
+    readonly property color gold: sunshine
+    readonly property color goldInk: accentText
+    readonly property color goldSoft: sunshine
+    readonly property color hoverWash: dark ? "#3A2B66" : "#FFE7B8"
+    readonly property color pressWash: dark ? "#473577" : "#FFDA8F"
 
-    // A chosen option: a soft emerald fill, an emerald edge and a check mark.
-    readonly property color selectedFill: accentSoft
-    readonly property color selectedEdge: accent
-    readonly property color selectedInk: ink
+    // A chosen option: coral, ink text, an ink edge and a check mark.
+    readonly property color selectedFill: coral
+    readonly property color selectedEdge: ink
+    readonly property color selectedInk: nightPurple
 
-    // A control that cannot be used now. Its label is 3.6:1 (light) and 4.5:1
-    // (dark) on its fill; opacity is not used, so nothing under it shows.
-    readonly property color disabledFill: dark ? "#262F34" : "#E8E2D4"
-    readonly property color disabledInk: dark ? "#8A9794" : "#6B7770"
-    readonly property color disabledEdge: dark ? "#3A474B" : "#D9D1C2"
+    // A control that cannot be used now: a dimmer fill, a dashed edge and no shadow. Its label stays
+    // at full strength on the fill, so nothing under it needs to show.
+    readonly property color disabledFill: surfaceDim
+    readonly property color disabledInk: ink
+    readonly property color disabledEdge: ink
 
-    // A destructive action: the text/edge colour on a card, and the fill of the
-    // confirming button with its ink.
-    readonly property color danger: dark ? "#F08A78" : "#A33A2B"
-    readonly property color dangerFill: danger
-    readonly property color dangerInk: dark ? "#1E0F0C" : "#FFFFFF"
+    // A destructive action: a cream (Night: night-purple) button with a pink outline and an x mark, the
+    // text in ink. Pink is never a text colour.
+    readonly property color danger: pink
+    readonly property color dangerFill: surface
+    readonly property color dangerInk: ink
 
-    // An empty progress track, 3:1 against a card.
-    readonly property color track: outline
+    // An empty progress track is the dimmer surface; a filled step is coral.
+    readonly property color track: surfaceDim
 
-    // The hint's own card. Gold is the reward and the hint, never the chrome.
-    readonly property color hintCard: goldSoft
-    readonly property color hintCardInk: ink
+    // The hint's own card.
+    readonly property color hintCard: sunshine
+    readonly property color hintCardInk: nightPurple
 
     // The resting screen is meant to be looked at without wanting anything.
-    readonly property color restPage: dark ? "#161B22" : "#F1ECDF"
-    readonly property color restShape: dark ? "#2B3542" : "#D9D2BF"
-    readonly property color restDetail: dark ? "#3A4757" : "#C7BFA9"
+    readonly property color restPage: dark ? "#241848" : "#FFD76B"
+    readonly property color restShape: dark ? "#33265E" : "#EBD9B4"
+    readonly property color restDetail: dark ? "#3F3070" : "#E0CA9A"
 
-    // --- colour: the board (the same warm object in both themes) ------------
-    // The tray is 1.56:1 against the dark board area (it was 1.17 at #17323A).
-    readonly property color tray: "#1B3A44"
-    readonly property color trayEdge: gold
-    readonly property color trayLine: "#2A4A52"
-    readonly property color trayShadow: "#0A1113"
-    readonly property color lid: "#F7E8C6"
-    readonly property color well: "#0D2229"
-    readonly property color wellCell: "#1F3F49"
-    readonly property color die: "#FFF7E3"
-    readonly property color dieInk: "#1F2A30"
-    readonly property color dieEdge: "#20323A"
-    readonly property color dieLit: "#F7E8C6"
-    readonly property color dieLitInk: "#1F2A30"
+    // --- colour: the board (the same toy in both schemes) -------------------
+    // The tray is an ink frame round a teal checker well; in Night the frame is cream, as the outlines are.
+    readonly property color tray: nightPurple
+    readonly property color trayEdge: dark ? cream : nightPurple
+    readonly property color trayLine: tealDark
+    readonly property color trayShadow: shadow
+    readonly property color lid: cream
+    readonly property color well: tealDark
+    readonly property color wellCell: tealLight
+    readonly property color die: cream
+    readonly property color dieInk: nightPurple
+    readonly property color dieEdge: nightPurple
+    readonly property color dieLit: sunshine
+    readonly property color dieLitInk: nightPurple
     readonly property color bevelLight: "#FFFFFF"
-    readonly property color bevelShade: "#000000"
-    readonly property color pathCasing: gold
-    readonly property color pathCore: "#17323A"
-    // Solo Play's path is a ribbon under the letters: a gold edge round a pale
-    // core, so a dark letter stays dark on pale (14:1) where the line runs through
-    // its middle, with a thin dark line outside the gold, so the ribbon holds 3:1
-    // on a cream die and on a lit one (gold alone is 3.1 and 2.7) and the gold
-    // holds 4:1 on the tray.
-    readonly property color ribbonEdge: gold
-    readonly property color ribbonCore: dieLit
-    readonly property color ribbonLine: dieEdge
-    // A jewel not yet found: 3.3:1 on a card (was #8FA1B8: 2.6).
-    readonly property color jewelDead: "#7A8DA6"
+    readonly property color bevelShade: deepPurple
+    // The path is a dotted trail drawn over the dice: square ink dashes with a cream centre.
+    readonly property color pathCasing: nightPurple
+    readonly property color pathCore: cream
+    readonly property color ribbonEdge: nightPurple
+    readonly property color ribbonCore: cream
+    readonly property color ribbonLine: nightPurple
+    // A jewel not yet found: 3.2:1 on cream.
+    readonly property color jewelDead: "#9C8450"
 
-    // A jewel's colour is decoration: its size says its tier. These are taken
-    // in turn by the order a word was found.
-    readonly property var jewelColors: ["#E0556B", "#3F9E8F", "#7B6FD6", "#E39A2D", "#4B8BD3"]
+    // A jewel's colour is decoration: its shape says its tier. These are taken in turn by the order a
+    // word was found.
+    readonly property var jewelColors: [coral, blueberry, leaf, pink, sunshine]
 
     // --- type --------------------------------------------------------------
-    readonly property string uiFont: "Archivo"
+    // Pixelify Sans: the chrome. Silkscreen: the upper-case eyebrow only. Andika: the face a child
+    // reads - the dice, the words, the body and caption text and every numeral.
+    readonly property string uiFont: "Pixelify Sans"
     readonly property string fontFamily: "Andika"
-    readonly property string monoFont: "IBM Plex Mono"
+    readonly property string eyebrowFont: "Silkscreen"
+    // The one monospace: the About version block and the licence bodies. Courier New is on Windows and
+    // macOS (so Qt has no missing family to warn about); elsewhere fontconfig substitutes its metric twin.
+    readonly property string monoFont: "Courier New"
 
-    // Nothing is set smaller than this, at any text scale.
-    readonly property real minTextSize: 12
+    // Nothing is set smaller than this, at any text scale (Toybox's caption).
+    readonly property real minTextSize: 14
     // The scale, for tests and for anyone who needs the list.
-    readonly property var typeScale: [12, 14, 16, 20, 24, 32, 40, 48]
+    readonly property var typeScale: [14, 16, 18, 20, 24, 26, 34, 36, 40, 56]
 
     function rem(amount) {
         return Math.max(minTextSize, amount * 16 * textScale);
     }
 
-    readonly property real monoSize: rem(0.75)          // 12
-    readonly property real microSize: monoSize
+    readonly property real monoSize: rem(1.0)           // 16, the eyebrow
+    readonly property real microSize: smallSize
     readonly property real smallSize: rem(0.875)        // 14
     readonly property real captionSize: smallSize
-    readonly property real bodySize: rem(1.0)           // 16
-    readonly property real headingSize: rem(1.25)       // 20
-    readonly property real labelSize: bodySize          // a parent's button label
+    readonly property real bodySize: rem(1.125)         // 18
+    readonly property real labelSize: rem(1.0)          // 16, a parent's button label
+    readonly property real headingSize: rem(1.5)        // 24
     readonly property real wordSize: rem(1.5)           // 24
-    readonly property real childLabelSize: rem(1.5)     // 24
-    readonly property real titleSize: rem(2.0)          // 32
-    readonly property real displaySize: rem(2.5)        // 40
-    readonly property real numeralSize: rem(3.0)        // 48
+    readonly property real childLabelSize: rem(1.625)   // 26, the primary button
+    readonly property real titleSize: rem(2.125)        // 34
+    readonly property real wordmarkSize: rem(2.5)       // 40
+    readonly property real numeralSize: rem(2.25)       // 36, a statistic
+    readonly property real displaySize: rem(3.5)        // 56
 
     // Line height, as a multiple of the size (the brief: 1.4-1.5 for text,
     // 1.15-1.25 for display).
@@ -177,7 +197,7 @@ QtObject {
     // Letter spacing, in em: Label turns it into pixels. Positive tracking is
     // not applied in a right-to-left language (it breaks Hebrew's letter forms).
     readonly property real trackMono: 0.08
-    readonly property real trackDisplay: -0.02
+    readonly property real trackDisplay: 0
     readonly property real trackNone: 0
 
     // --- sizes, in dp ------------------------------------------------------

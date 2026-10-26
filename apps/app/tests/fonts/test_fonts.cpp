@@ -13,10 +13,10 @@ namespace wjs::app::test {
 
 bool load_house_fonts() {
     static const bool loaded = [] {
-        // The same six files as WJS_FONT_FILES in apps/app/CMakeLists.txt.
-        constexpr std::array<const char*, 6> files = {
-            "Archivo-Regular.ttf",    "Archivo-SemiBold.ttf", "Archivo-ExtraBold.ttf",
-            "IBMPlexMono-Medium.ttf", "Andika-Regular.ttf",   "Andika-Bold.ttf"};
+        // The same five files as WJS_FONT_FILES in apps/app/CMakeLists.txt.
+        constexpr std::array<const char*, 5> files = {
+            "PixelifySans-Medium.ttf", "PixelifySans-Bold.ttf", "Silkscreen-Regular.ttf",
+            "Andika-Regular.ttf", "Andika-Bold.ttf"};
         const QDir directory(QStringLiteral(WJS_TEST_FONTS_DIRECTORY));
         bool all = true;
         for (const char* file : files) {
@@ -26,7 +26,7 @@ bool load_house_fonts() {
                 all = false;
             }
         }
-        QGuiApplication::setFont(QFont(QStringLiteral("Archivo")));
+        QGuiApplication::setFont(QFont(QStringLiteral("Andika")));
         return all;
     }();
     return loaded;

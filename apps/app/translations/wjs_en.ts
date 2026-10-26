@@ -866,7 +866,7 @@
         <translation>Tap the last die again, or press Done</translation>
     </message>
     <message>
-        <location line="+107"/>
+        <location line="+106"/>
         <source>1 word</source>
         <translation>1 word</translation>
     </message>
@@ -1263,17 +1263,17 @@
         <translation>You found all %1 words!</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+49"/>
         <source>Look at the jewels you collected.</source>
         <translation>Look at the jewels you collected.</translation>
     </message>
     <message>
-        <location line="-51"/>
+        <location line="-50"/>
         <source>You found the word!</source>
         <translation>You found the word!</translation>
     </message>
     <message>
-        <location line="+137"/>
+        <location line="+136"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
