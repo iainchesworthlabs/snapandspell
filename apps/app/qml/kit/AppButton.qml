@@ -233,7 +233,6 @@ Item {
                 width: root.checkable && !root.isTab && root.size !== "child" ? Theme.iconSm : 0
                 height: width
                 name: "done"
-                strokeWidth: Theme.litEdge
                 anchors.verticalCenter: parent.verticalCenter
                 // Held in place when not chosen, so choosing does not shift the word.
                 opacity: root.showChoice ? 1 : 0
@@ -245,7 +244,6 @@ Item {
                 width: root.isDangerous ? Theme.iconSm : 0
                 height: width
                 name: "close"
-                strokeWidth: Theme.litEdge
                 anchors.verticalCenter: parent.verticalCenter
                 color: root.contentColor
             }
@@ -256,7 +254,6 @@ Item {
                 height: width
                 anchors.verticalCenter: parent.verticalCenter
                 color: root.contentColor
-                strokeWidth: root.size === "primary" ? 2.4 : 2
             }
             Label {
                 id: labelText
@@ -298,7 +295,6 @@ Item {
                 height: width
                 anchors.horizontalCenter: parent.horizontalCenter
                 color: root.contentColor
-                strokeWidth: 2
             }
             Label {
                 id: childText
@@ -332,7 +328,6 @@ Item {
                 width: Theme.iconXs
                 height: width
                 name: "done"
-                strokeWidth: Theme.litEdge
                 color: Theme.buttonInk
             }
         }

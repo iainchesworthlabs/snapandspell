@@ -27,7 +27,9 @@ set(WJS_KIT_QML_FILES
     Label.qml
     ModeCard.qml
     Navigation.qml
+    PixelArt.js
     PixelBox.qml
+    PixelPicture.qml
     SegmentedChoice.qml
     Sheet.qml
     TabletArt.qml

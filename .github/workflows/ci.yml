@@ -178,7 +178,7 @@ jobs:
       - name: Check out the shared scripts
         uses: iainchesworthlabs/icl-common-infra/actions/checkout-infra@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
       - name: Test the planner
-        run: python3 -m unittest tools/ci/test_plan.py tools/ci/test_quality_history.py tools/ci/test_osv_requirements.py
+        run: python3 -m unittest tools/ci/test_plan.py tools/ci/test_quality_history.py tools/ci/test_osv_requirements.py tools/design/test_make_pixel_art.py
       - name: Plan
         id: plan
         shell: bash
