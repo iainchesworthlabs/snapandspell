@@ -958,8 +958,12 @@ opened the parent gate (held for two seconds), the dashboard and Mode A's setup 
 and offers typing the board), and wrote its store under `/persist`, which was there, with the same
 size, after a reload (IndexedDB). `smoke_web.sh` passed against Chrome's headless shell.
 
-**Not shown:** that this workflow is green on a hosted runner until it has run there (the pull
-request that added it is where); Safari, Firefox and any phone or tablet browser; a real GPU; touch
+On a hosted runner (`ubuntu-24.04`, run 40280996137, the pull request that added the workflow): the
+Emscripten and Qt installs, the configure and the build, the bundle check and the start in the
+runner's Google Chrome all passed, in about 10½ minutes; the program was 31 MB and 11 MB gzipped
+there too.
+
+**Not shown:** Safari, Firefox and any phone or tablet browser; a real GPU; touch
 input; a game played to the end; the frame rate and the first-load time on a slow device; the install as a
 home-screen app; that GitHub Pages compresses a `.wasm`. The `smoke_web.sh` run cannot draw a picture
 (a headless Chrome's screenshot is taken before the canvas has painted), so a person has to look at the page

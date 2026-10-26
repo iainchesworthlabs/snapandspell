@@ -86,4 +86,5 @@ and run in a headless Chromium (software WebGL): Home, Solo Play's box screen, t
 scene, the board, the parent gate (held for two seconds), the parent dashboard and Mode A's setup screen
 ("No camera", "Type in your board") drew with the bundled fonts; the store file was written under `/persist`
 and was there after a reload. Not run: Safari, Firefox, any phone or tablet browser, a real GPU, touch input,
-or a long game. [CI](ci.md#what-the-web-has-and-has-not-shown) says which of this a workflow repeats.
+or a long game. [CI](ci.md#what-the-web-has-and-has-not-shown) says which of this a workflow repeats: the build, the
+bundle's checks and the start of the page in Chrome run on every change that touches the web build.
