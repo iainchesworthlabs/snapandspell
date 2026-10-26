@@ -145,7 +145,7 @@ gh attestation verify WordJewelsSolver-0.1.0-win64-unsigned.zip --repo iainchesw
 `tools/release/generate_sbom.ps1` writes a CycloneDX 1.6 document from what the repository already
 records, not from a scan of the binaries:
 
-- the application (GPL-3.0-only: it links Qt Quick 3D) and `wjs-cli` (GPL-3.0-or-later), with the
+- the application and `wjs-cli` (both GPL-3.0-or-later), with the
   commit and the repository;
 - Qt by module at the version in `.github/toolchain-versions.json`, under the licence it is used
   under, only if a ZIP in the release carries `Qt6Core.dll` or a package is an AppImage, a disk image

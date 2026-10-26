@@ -628,35 +628,21 @@ measurement behind the 10 ms row of the [budgets](#budgets).
 
 ### The scene's work
 
-**Built, and measured 2026-10-19** (a Debug build of the app tests for the count,
-which is the same in every configuration; the frames and the timing are the
-[shake prototype](../design/shake-prototype.md)'s). The 3D board scene's work
-that can be counted without a window is held the same way as the solver's: a
-count, exact, in `libs/core/bench/budgets.hpp`, measured by
-`apps/app/tests/unit/shake_script_test.cpp` over the scene's own script
-(`ShakeScript.js`) and dice simulation (`DiceSim`). The case carries the `perf`
-tag and runs with the scene's script tests, in every build: it is one play, not
-the tier's corpus.
+**Built (2026-10-26; the 3D scene's step and atlas budgets are gone with it).** The pixel scene's
+work is not a simulation, so what can be counted without a window is the **length of a play**: the
+shake's least time, the lid, the drop and the settle that `SceneScript.js` computes from the board's
+size. It is held the same way as the solver's: a number, exact, in `libs/core/bench/budgets.hpp`,
+measured by `apps/app/tests/unit/scene_script_test.cpp` over the scene's own script. The case
+carries the `perf` tag and runs with the scene's script tests, in every build.
 
-| Metric | Measured | Budget (a quarter above) |
+| Metric | Computed | Budget |
 | --- | --- | --- |
-| `scene.steps` of one 4x4 weighted play, 60 Hz, first frame to last die home | 2,560 whole steps | 3,200 |
-| `scene.atlas.cells` of a 4x4 board | 96 (48 glyph cells, 48 jewel cells) | Exactly: six cells a die |
+| The longest play (6x6): shake 600, lid 250, drop 1,060 (35 starts 19.4 ms apart and a die's 380), settle 150 | 2,061 ms | 2,200 ms |
 
-A step is `Tuning::substep` of simulated time (1/1200 s), so 2,560 steps are
-2.13 s of a play that runs for about 2.1 s of frames: the simulation is the
-scene's frame cost, at the 62 µs a step the prototype measured. The atlas's
-cells are what a board's `prepare` makes and draws: one `Text` for each glyph
-cell and one jewel cell, six a die, so a `prepare` is one atlas of exactly this
-many. The cells' layout is in `ShakeScript.js` (`atlasCells`), which is where
-the test can reach it without a window; `FaceAtlas.qml` fills from it, so the
-test's count is the item's.
-
-**What is not held.** The frame in which a board's atlas is *built* (rather
-than drawn) is QML item creation, which needs a window to make; it is measured
-by `scene.prepare`'s zone and by the shake prototype's tables (9 to 23 ms for
-the first board of a size), not by a work budget. The number of atlas builds is
-one for each board whose faces are not in an atlas already, by construction.
+The scene's frame cost is a few dozen items moved by whole pixels: no shaders, no textures drawn
+ahead, nothing to measure in a window that a count would miss. (The 3D scene's simulation cost 62 µs
+a step and 2,560 steps a play, and its atlas 96 cells a 4x4 board; the history is in
+[Profiling](../profiling.md#the-smoke-mode).)
 
 ### The first show
 
@@ -664,7 +650,7 @@ one for each board whose faces are not in an atlas already, by construction.
 desktop; the Debug figures are a shape - sanitizers and Tracy dominate - and
 the Release figure is the frame check's machine). A screen's or window's first
 showing cost what it did because every QML type was instantiated interpreted
-and the 3D scene's graph and shaders were made on the first shake. Three
+and the scene's items were made on the first shake. Three
 mechanisms now spread that cost, and the plan is to leave it there rather than
 to budget a launch in CI:
 
@@ -679,17 +665,12 @@ to budget a launch in CI:
   reasons. The kit's private headers and the qmltc runtime are linked by hand in
   `cmake/FindQt6.cmake` (the kit ships them without their CMake packages).
 - **Deferred loading.** The navigation loader is asynchronous, so a screen
-  switch never stalls a frame; the 3D scene sits behind an asynchronous Loader
+  switch never stalls a frame; the board scene sits behind an asynchronous Loader
   that makes it when Solo Play is first shown - the closed box, while the child
   reads it - and keeps it for the run, so the first shake pays no scene-graph
   cost. (Its `active` is a monotonic flag: gating it on the derived state
   booleans destroyed the scene mid-shake once, because those re-evaluate
   non-atomically - measured in the box suites.)
-- **Shaders.** Qt Quick 3D's persistent shader caches - the low-level pipeline
-  cache and the 3D material cache - are on by default, written when the window
-  closes and reloaded on the next run, so the scene's one-time shader
-  compilation happens once per machine and now during the box rather than on
-  the first shake.
 
 Measured, the Debug smoke's `ui.first_frame_ms` (process start to the first
 frame): **14 676 ms to 7 848 ms**; the `*-profiling` build (RelWithDebInfo)
@@ -746,10 +727,9 @@ support it. The desktop has two screens, and the window had landed on the
 - **Measured 2026-10-20 and 21, and open:** the same binary holds **p50 10.0 / p95
   10.5 ms** on the 100 Hz screen and shows **p50 19.9 / p95 20.3 ms, with the
   render thread spending about 7 ms a frame in the present,** on the 59.95 Hz one.
-  A plain Qt Quick window and a Quick 3D window hold 17 ms there, and the shake
-  prototype (the same scene) 16.7 ms. The scene's own cost is 0.6 ms of GUI thread,
-  0.6 ms of render thread and 0.03 ms of recording, at 3 to 6% of the GPU: the
-  scene is not what is slow.
+  A plain Qt Quick window held 17 ms there, and so did the 3D scene's prototype.
+  The 3D scene's own cost was 0.6 ms of GUI thread, 0.6 ms of render thread and
+  0.03 ms of recording, at 3 to 6% of the GPU: the scene was not what was slow.
 - On the 59.95 Hz screen, switching the Quick Controls style to Basic, the basic or
   windows render loop, or an OpenGL or Direct3D 12 backend puts the application back
   at the screen's rate; Vulkan does not. **The cause is not found.** The Basic style
@@ -835,5 +815,3 @@ with the screen.
   program that is over in a tenth of a second (`wjs-cli`) cannot be captured as
   it is. `wjs-cli --repeat <n>` exists for this; the zones of the application
   will not have the problem. See [Profiling](../profiling.md#capturing-a-trace).
-- Whether Qt Quick 3D's first frames on the iPad need a baked light probe, as
-  they did on Cubeulator's software renderer.

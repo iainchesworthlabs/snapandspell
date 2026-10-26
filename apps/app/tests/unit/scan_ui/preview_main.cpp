@@ -7,7 +7,7 @@
 // check screen are walked without a device. A live camera is never started.
 //
 // The application's real shell (apps/app/qml/Main.qml) is not used, because it
-// carries the 3D Solo Play scene and a window that needs a display. The screens
+// carries the Solo Play scene and a window that needs a display. The screens
 // here are the application's own files and the models are the application's own
 // classes: this is test support, not a copy.
 //

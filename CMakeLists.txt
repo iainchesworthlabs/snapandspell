@@ -100,20 +100,11 @@ option(WJS_BUILD_CLI "Build the wjs-cli command-line solver" ON)
 # builds it when such a kit is found and leaves it out when it is not, so one
 # preset is useful both on a machine that only builds the solver and on a
 # desktop with Qt; ON makes a missing Qt an error, and OFF never looks for it.
-# The resolved value is ON or OFF from the Qt section below onwards. The
-# application links Qt Quick 3D for the board scene, so the binary it makes is
-# GPL-3.0 only (the author's decision of 2026-10-16; docs/design/board.md).
+# The resolved value is ON or OFF from the Qt section below onwards.
 set(WJS_BUILD_APP "AUTO" CACHE STRING
     "Build the Qt Quick application: AUTO when Qt 6.12 is found, ON to require it, OFF to skip it")
 set_property(CACHE WJS_BUILD_APP PROPERTY STRINGS AUTO ON OFF)
 option(WJS_BUILD_TESTS "Build the unit, integration, system and UI test suites" ON)
-# The harness around the 3D board scene (apps/app/src/prototype/shake, and
-# docs/design/shake-prototype.md): a window with a Shake button, a drag standing
-# in for the accelerometer and the frame timing, over the scene module the
-# application also links (WordJewelsSolver.Scene, GPL-3.0 only). A program of its
-# own, not part of the application. Needs the application built
-# (WJS_BUILD_APP=AUTO with a Qt 6.12 kit found, or ON).
-option(WJS_BUILD_SHAKE_PROTOTYPE "Build the 3D board-scene prototype harness (needs Qt Quick 3D; GPL-3.0 only)" OFF)
 
 # The review gate. Phonics data (data/phonics) is written and reviewed by a
 # person qualified to do it, and a file says so in its header (reviewed-by and
@@ -139,9 +130,7 @@ option(WJS_REQUIRE_REVIEWED_PHONICS
 # the notices: the third-party notice names Qt's version (cmake/Notices.cmake),
 # and imported targets are directory-scoped, so a find_package() at the top
 # level is visible to tests/ and to every module under apps/app/src.
-# Quick3D is the board scene's, and it makes the application GPL-3.0 only: it is
-# a required component now, not the prototype's alone. LinguistTools is the
-# catalogues' (lupdate/lrelease).
+# LinguistTools is the catalogues' (lupdate/lrelease).
 #
 # WJS_BUILD_APP is resolved here first: AUTO looks for the kit and builds the
 # application when it is there, ON requires it, OFF never looks. Every use
@@ -161,7 +150,7 @@ else()
         "build the application).")
 endif()
 
-set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 QuickLayouts QuickShapes Quick3D LinguistTools)
+set(WJS_QT_COMPONENTS Core Gui Qml Quick QuickControls2 QuickLayouts QuickShapes LinguistTools)
 if(_wjs_qt_requirement)
     find_package(Qt6 6.12 ${_wjs_qt_requirement} COMPONENTS ${WJS_QT_COMPONENTS})
 endif()
@@ -279,10 +268,6 @@ endif()
 # The application is a thin Qt Quick layer over the library.
 if(WJS_BUILD_APP)
     add_subdirectory(apps/app)
-elseif(WJS_BUILD_SHAKE_PROTOTYPE)
-    message(WARNING
-        "WJS_BUILD_SHAKE_PROTOTYPE needs WJS_BUILD_APP=ON and a Qt 6.12 kit; "
-        "the prototype is not built.")
 endif()
 
 if(WJS_BUILD_TESTS)
@@ -329,7 +314,6 @@ wjs_set_target_folder("Libraries"
     wjs_lib
     wjs_platform
     wjs_scan
-    wjs_dice_world
     wjs_tracy
     wjs_profiling
     wjs_warnings
@@ -341,16 +325,15 @@ wjs_set_target_folder("Tests"
     wjs_scan_tests
     wjs_scan_synth
     wjs_app_tests
-    wjs_shake_script_tests
+    wjs_scene_script_tests
     wjs_frame_timing_tests
     wjs_parent_preview
     wjs_scan_preview
     wjs_quick_tests
     wjs_quick_tests_support
     wjs_quick_test_scene
-    wjs_quick_test_sceneplugin
-    wjs_dice_tests)
-wjs_set_target_folder("Tools" wjs_scan_render ShakePrototype)
+    wjs_quick_test_sceneplugin)
+wjs_set_target_folder("Tools" wjs_scan_render)
 wjs_set_target_folder("Packaging" "package-${PROJECT_NAME}")
 
 message(STATUS "WordJewelsSolver ${PROJECT_VERSION} for ${WJS_PLATFORM_DISPLAY_NAME}")
@@ -359,7 +342,6 @@ message(STATUS "  Build app   : ${WJS_BUILD_APP} (requested ${WJS_BUILD_APP_MODE
 message(STATUS "  Build tests : ${WJS_BUILD_TESTS}")
 message(STATUS "  Tracy       : ${WJS_ENABLE_TRACY} (default: ON for a Debug build type)")
 message(STATUS "  Reviewed phonics data required : ${WJS_REQUIRE_REVIEWED_PHONICS}")
-message(STATUS "  Build shake prototype : ${WJS_BUILD_SHAKE_PROTOTYPE}")
 message(STATUS "  Package generators : ${WJS_PACKAGE_GENERATORS}")
 if(WJS_BUILD_APP)
     message(STATUS "  Qt feedback modules : Multimedia=${WJS_QT_HAS_MULTIMEDIA}"

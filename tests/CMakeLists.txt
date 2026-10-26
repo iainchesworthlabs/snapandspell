@@ -7,7 +7,7 @@ include(Catch)
 # The repository checks (system, quality) stay here, in the topic directories. The
 # tests of a library or an application live beside it: libs/core/tests/unit,
 # libs/core/bench (the performance tier), libs/scan/tests, apps/app/tests/unit,
-# apps/app/tests/prototype and apps/app/ui-tests. This file adds them in the order
+# and apps/app/ui-tests. This file adds them in the order
 # they need (Catch2 and the variables below are shared), each with a build
 # directory that mirrors its source directory.
 set(WJS_TESTS_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -37,9 +37,6 @@ wjs_add_tests(libs/scan/tests)
 
 # Performance tier: work budgets and a few relative timings (wjs_perf_tests).
 wjs_add_tests(libs/core/bench)
-
-# The shake prototype's dice simulation, when the prototype is built.
-wjs_add_tests(apps/app/tests/prototype)
 
 if(WJS_BUILD_APP)
     # The application's model tier, the scene script, the window's frame budget

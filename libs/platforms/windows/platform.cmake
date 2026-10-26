@@ -84,12 +84,11 @@ function(wjs_platform_deploy_qt_runtime target qml_dir)
     # qoffscreen is the platform plugin that runs without a display, which the
     # checks of the Qt Quick screens need (apps/app/tests/unit/parent_ui).
     #
-    # --skip-plugin-types qmltooling keeps the QML debugger plugins out of the
-    # deploy directory. One of them, qmldbg_quick3dprofiler, is the GPL-3.0-only
-    # Quick 3D profiler: windeployqt copies it (and Qt6Quick3DUtils, which it
-    # depends on) into anything with a QML module, whether or not the program
-    # links Quick 3D. Nothing here loads it, and it must not ship: see
-    # docs/design/shake-prototype.md ("Deploy").
+    # --skip-plugin-types qmltooling keeps the QML debugger and profiler plugins out
+    # of the deploy directory: windeployqt copies them into anything with a QML
+    # module, nothing here loads them, and a package has no use for a debugger.
+    # (One of them, the Quick 3D profiler, is GPL-3.0 only, which the program has
+    # never linked since the board scene went 2D.)
     set(_arguments --no-translations --include-plugins qoffscreen --skip-plugin-types qmltooling)
     if(NOT "${qml_dir}" STREQUAL "")
         list(APPEND _arguments --qmldir "${qml_dir}")

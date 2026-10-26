@@ -9,11 +9,6 @@ Bundled assets
   project and licensed with it. They are compiled into the application's
   resources as :/sounds/<name>.wav, so no file of them is installed.
 
-- The board scene's light probe, apps/app/qml/scene/lightprobe/sky.ktx, is the
-  project's own: it is baked by tools/lightprobe from the sky the scene would
-  otherwise make at run time, and it is not third-party artwork. It is compiled
-  into the application's resources, so no file of it is installed.
-
 - The interface fonts, assets/fonts/*.ttf, are bundled under the SIL Open Font
   License 1.1: Pixelify Sans, Silkscreen and Andika. Their copyright notices and
   licence texts are in the Bundled fonts section below. They are compiled into

@@ -423,26 +423,14 @@ inline constexpr int kSubmitsPerRun = 200;
 inline constexpr int kPathsPerRun = 200;
 
 // ---------------------------------------------------------------------------
-// The board scene, counted (apps/app/tests/unit/shake_script_test.cpp)
+// The board scene, counted (apps/app/tests/unit/scene_script_test.cpp)
 // ---------------------------------------------------------------------------
 
-// The scene's frame work, where it is countable without a window: the
-// simulation and the atlas. A play is one 4x4 weighted play at 60 Hz with the
-// stand-in's shake, from ShakeScript.create() to the last die home.
-
-// The whole simulation steps of that play (wjs::dice::World::steps(): a
-// Tuning::substep each, 1/1200 s). A count, so the same on every machine and
-// compiler; the budget is a quarter above what it measured. It is the cost
-// docs/design/shake-prototype.md measured as "62 us a step", counted.
-inline constexpr std::uint64_t kSceneSteps4x4 = 3'200;  // measured 2,560
-
-// The cells of a 4x4 board's atlas: six a die, exact. The letters are the glyph
-// cells (`Text`, one each) and the jewels the cells that show the jewel's
-// texture. `prepare` builds one atlas for a board, so this is the work of its
-// frame (docs/design/shake-prototype.md, "The real faces").
-inline constexpr std::uint64_t kSceneAtlasCells = 96;
-inline constexpr std::uint64_t kSceneAtlasLetters = 48;
-inline constexpr std::uint64_t kSceneAtlasJewels = 48;
+// A play of the board scene from the first hop of the box to the settled board: the shake's least
+// length, the lid, the drop and the settle (apps/app/qml/solo/SceneScript.js). It is a number of
+// milliseconds that the script computes from the board's size, the same on every machine, and a child
+// waits for it: the budget is the 6x6 board's play, the longest, and it is 2.2 s.
+inline constexpr std::uint64_t kScenePlay6x6Ms = 2'200;  // computed 2,061
 
 // The window's frame, during a smoke run's shake cycle (docs/profiling.md,
 // "The smoke mode"). The design's budget is one frame's 16.7 ms at 60 Hz and no

@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # The privacy scan held to a table of cases on throw-away trees: each rule must
 # find the violation it is for, and must leave alone what it is not for (a
-# comment, the store's own source, a prototype, a word inside a longer word).
+# comment, the store's own source, a word inside a longer word).
 #
 #   cmake -DREPO_ROOT=<repository root> -DWORK_DIR=<scratch directory> \
 #         -P tests/privacy/test_check_sources.cmake
@@ -138,8 +138,6 @@ wjs_case("the scanner's privacy checker names what it forbids" CLEAN "libs/scan/
     "\"network|QNetworkAccessManager|QTcpSocket\" \"audio capture|QAudioInput\"")
 wjs_case("the scanner's deliberate leak" CLEAN "libs/scan/tests/privacy_fixture/libs/scan/leak.cpp"
     "QNetworkAccessManager manager; QAudioInput input;")
-wjs_case("the prototype is a program of its own" CLEAN "apps/app/src/prototype/shake/frames.cpp"
-    "file.open(QIODevice::WriteOnly);")
 wjs_case("documentation is not scanned" CLEAN "docs/x.md" "QNetworkAccessManager QAudioInput")
 wjs_case("third-party code is not scanned" CLEAN "deps/vcpkg/x.cpp" "QNetworkAccessManager m;")
 wjs_case("a tool may write files" CLEAN "tools/x/make.cpp" "std::ofstream out(path);")

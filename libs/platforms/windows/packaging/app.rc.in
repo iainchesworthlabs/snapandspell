@@ -24,7 +24,7 @@ BEGIN
             VALUE "FileDescription", "WordJewelsSolver - finds every word on a Boggle board"
             VALUE "FileVersion", "@PROJECT_VERSION@"
             VALUE "InternalName", "WordJewelsSolver"
-            VALUE "LegalCopyright", "Copyright (C) Iain Chesworth and contributors. GPL-3.0-only (this binary links Qt Quick 3D)."
+            VALUE "LegalCopyright", "Copyright (C) Iain Chesworth and contributors. GPL-3.0-or-later."
             VALUE "OriginalFilename", "WordJewelsSolver.exe"
             VALUE "ProductName", "WordJewelsSolver"
             VALUE "ProductVersion", "@PROJECT_VERSION@"

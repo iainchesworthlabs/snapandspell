@@ -57,22 +57,20 @@ if(EXPECT_QT)
         message(FATAL_ERROR "EXPECT_QT is ON, so -DQT_VERSION=<version> is required.")
     endif()
     list(APPEND _required
-        # The application binary is GPL-3.0-only because it links Quick 3D, and
-        # the notice has to say so plainly.
-        "GPL-3.0-only"
+        # The application binary is GPL-3.0-or-later, as the sources are: it links Qt
+        # under the LGPL and no Qt Quick 3D, and the notice says so plainly.
+        "GPL-3.0 OR LATER"
         "Qt ${QT_VERSION}"
         "GNU Lesser General Public License"
-        "Quick 3D"
         # The feedback engines' modules, under the same LGPL/GPL options.
         "Multimedia"
         "Sensors"
         "TextToSpeech"
         "feedback sounds"
-        "light probe"
         "font")
 else()
     # No application in this build, so no section may describe one.
-    foreach(_absent IN ITEMS "Quick 3D" "GNU Lesser General Public License" "GPL-3.0-only"
+    foreach(_absent IN ITEMS "GNU Lesser General Public License"
             "Multimedia" "TextToSpeech" "feedback sounds")
         string(FIND "${_text}" "${_absent}" _found)
         if(NOT _found EQUAL -1)
@@ -81,6 +79,15 @@ else()
         endif()
     endforeach()
 endif()
+
+# The binary was GPL-3.0-only while it linked Qt Quick 3D; it does not any more, and no section may
+# say it is.
+foreach(_never IN ITEMS "GPL-3.0-only" "GPL-3.0 ONLY")
+    string(FIND "${_text}" "${_never}" _found)
+    if(NOT _found EQUAL -1)
+        list(APPEND _failures "${NOTICES} says '${_never}', but nothing in it is GPL-3.0 only")
+    endif()
+endforeach()
 
 foreach(_phrase IN LISTS _required)
     string(FIND "${_text}" "${_phrase}" _found)

@@ -76,16 +76,15 @@ namespace {
 // seconds at 60 Hz, two shakes and the screens around them.
 constexpr int kSmokeFrames = 300;
 // How many frame intervals a smoke run leaves out before it measures: the
-// window's first frames create the scene graph, the scene and its textures
-// (docs/design/shake-prototype.md, "Making the view"), and are not a steady
-// frame.
+// window's first frames create the scene graph and its textures, and are not a
+// steady frame.
 constexpr int kSmokeWarmupFrames = 60;
 // How long a smoke run gives a profiler that was started first to attach, before
 // the setup it is meant to see. In a build without Tracy there is nothing to
 // wait for, and the wait is compiled to nothing.
 constexpr int kProfilerWaitMs = 5000;
 // How long a smoke run waits for its first frame before saying the window cannot
-// render: Quick 3D needs a display, and the offscreen platform plugin does not
+// render: the window needs a display, and the offscreen platform plugin does not
 // give it one (docs/profiling.md, "The smoke mode").
 constexpr int kSmokeFrameTimeoutMs = 20000;
 // How many of Qt's QML warnings a failed load puts in the dialog: the first ones
@@ -440,7 +439,7 @@ int main(int argc, char* argv[]) {
                 std::fflush(stdout);
                 application.quit();
             });
-        // A window that cannot present a frame (Quick 3D with no display) is
+        // A window that cannot present a frame (no display) is
         // said, not left hanging, and not faked: nothing is reported.
         QTimer::singleShot(kSmokeFrameTimeoutMs, &application, [&application, &profiler] {
             if (profiler.first_frame_seen()) {
@@ -448,7 +447,7 @@ int main(int argc, char* argv[]) {
             }
             qCritical().noquote() << "smoke: no frame was presented in"
                                   << kSmokeFrameTimeoutMs / 1000
-                                  << "s. Qt Quick 3D needs a display; the offscreen platform"
+                                  << "s. The window needs a display; the offscreen platform"
                                      " plugin does not provide one (docs/profiling.md, \"The"
                                      " smoke mode\").";
             application.exit(wjs::app::exit_code(wjs::app::ExitStatus::no_frame));

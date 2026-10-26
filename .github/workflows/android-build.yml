@@ -135,7 +135,7 @@ jobs:
           arch: android_arm64_v8a
           dir: ${{ runner.temp }}
           aqtsource: "git+https://github.com/miurahr/aqtinstall.git@076e1659807d0b362a3ed684d54c2e9c775eb9c7"
-          modules: "qtquick3d qtshadertools qtmultimedia qtsensors qtspeech"
+          modules: "qtshadertools qtmultimedia qtsensors qtspeech"
           cache: false
 
       # Where the action put the two kits, which the preset reads (the runner context
@@ -160,7 +160,7 @@ jobs:
           done
           # The modules whose real engines this leg is the one to build (the silent
           # variants would otherwise be chosen without a word).
-          for module in Multimedia Sensors TextToSpeech Quick3D; do
+          for module in Multimedia Sensors TextToSpeech; do
             [ -d "$QT_ANDROID_DIR/lib/cmake/Qt6$module" ] || { echo "::error::the Qt Android kit has no $module: the module list in the install step is wrong"; exit 1; }
           done
 

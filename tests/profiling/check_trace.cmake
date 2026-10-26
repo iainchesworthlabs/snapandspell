@@ -55,7 +55,7 @@ if(CASE STREQUAL "cli")
     set(_zones solver.solve)
     set(_plots solver.visits)
 elseif(CASE STREQUAL "app")
-    # The offscreen platform: Quick 3D draws nothing there but the frame clock
+    # The offscreen platform: the window draws with a software renderer, but the frame clock
     # and the start-up are the same (docs/profiling.md, "The smoke mode").
     set(_args --smoke 120 --store "${WORK_DIR}/app-store.wjs")
     set(_capture_seconds 60)
@@ -68,7 +68,7 @@ elseif(CASE STREQUAL "app")
     set(_zones
         app.startup app.load_qml data.load_dictionary data.load_store data.save_store
         board.deal board.roll solver.solve
-        scene.step scene.prepare scene.play scene.show scene.shake scene.drop scene.settle)
+        scene.prepare scene.play scene.show scene.shake scene.drop scene.settle)
     set(_plots
         solver.visits ui.frame_ms ui.first_frame_ms ui.sync_ms ui.animate_ms render.frame_ms)
 else()

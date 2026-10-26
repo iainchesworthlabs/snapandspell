@@ -158,7 +158,7 @@ endif()
 #
 # A DEB or an RPM is made for the command-line solver only. The Linux platform
 # fragment offers them when the application is NOT built: the application needs a
-# Qt 6.12 with Quick 3D, which no distribution's Qt packages are, so a Depends:
+# Qt 6.12, which no distribution's Qt packages are, so a Depends:
 # line naming "libqt6core6 (>= 6.8)" would install a package that fails to start,
 # and one naming 6.12 could not be installed. The application is distributed as
 # an AppImage that carries its Qt (libs/platforms/linux/packaging).
@@ -177,7 +177,7 @@ endif()
 
 # ---------------------------------------------------------------------------
 # RPM, on Linux, when rpmbuild was found: the command-line solver, GPL-3.0-or-later
-# (the application, GPL-3.0-only because it links Qt Quick 3D, is the AppImage's).
+# (the application, also GPL-3.0-or-later, is the AppImage's).
 # AUTOREQPROV writes the shared-library requirements it can resolve.
 # ---------------------------------------------------------------------------
 if("RPM" IN_LIST CPACK_GENERATOR)

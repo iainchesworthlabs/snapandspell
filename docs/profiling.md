@@ -309,14 +309,12 @@ as the finger moves. The column below says which.
 | `app.startup` | zone | both | `start()` in `apps/app/src/main.cpp`, once: the store and everything the game is made from | none |
 | `app.load_qml` | zone | both | the same file, once, around the engine's properties and `loadFromModule` | none |
 | `data.load_phase` | zone | phonics | `PhaseSet::load_directory`, so a `--phase-directory` load | the words of every phase |
-| `scene.step` | zone | both | `DiceSim::advance`, once a device sample (one or two a frame) | the simulation steps that call took |
-| `scene.prepare` | zone (QML) | both | `BoardScene.prepare`, only when the board's faces are not in an atlas already | the cells of the atlas built |
+| `scene.prepare` | zone (QML) | both | `BoardScene.prepare`, once a board is announced a frame ahead (the 2D scene has nothing to prepare, so it is an empty zone) | none |
 | `scene.play` | zone (QML) | both | `BoardScene.play`, once a play | none |
 | `scene.show` | zone (QML) | both | `BoardScene.show`, once a board is shown without motion | none |
 | `scene.shake`, `scene.drop`, `scene.settle` | zone (QML) | both | `BoardScene.step`, one a frame, by the stage the script is in (`BoardScene.stageZone()` chooses the name, so the check pins them as literals) | none |
 | `ui.trace` | zone (QML) | both | `FlatBoard.qml`, the flat board, one for each pointer or key event that traces | none |
 | `ui.screen` | zone (QML) | both | `Main.qml`, the loader's `onLoaded`: the screen transition's work | none |
-| `scene2d.play`, `scene2d.step`, `scene2d.show` | zone (QML) | the 2D fallback (**not built**, so not required by any check) | `qml/scene/fallback/BoardScene.qml`, its script calls | none |
 | `ui.frame_ms` | plot | both | the frame clock, once a frame | the interval between swaps |
 | `ui.first_frame_ms` | plot | both | the frame clock, once | process start to the first frame |
 | `render.frame_ms` | plot | both | the frame clock, once a frame | the render thread's own time for the frame |
@@ -466,9 +464,9 @@ Tracy's API is macros, QML has no preprocessor, and the rule here is that only
 `apps/app/src/scene/profiler.cpp`), over a zone the wrapper can name at run time:
 
 ```qml
-Profiler.begin("scene.prepare")
-fillAtlas(spareAtlas, shown)
-Profiler.value(96)                    // the number beside the innermost zone
+Profiler.begin("ui.trace")
+tracePath(points)
+Profiler.value(points.length)         // the number beside the innermost zone
 Profiler.end()
 
 Profiler.mark("ui.screen")             // a moment with no work: a zero-length zone
@@ -505,12 +503,17 @@ zone's.
 
 **Where it is used**, and only there: the scene's `prepare`/`play`/`show` and
 its per-frame stage; the flat board's path work (one per pointer or key event);
-a screen's transition; the 2D fallback's script calls. The names are in the
-table above. `Profiler.value()` is the QML
-side of a zone's `Value()`: the atlas's cells are the number beside
-`scene.prepare`.
+a screen's transition. The names are in the table above. `Profiler.value()` is the QML
+side of a zone's `Value()`.
 
 ## The smoke mode
+
+> **History.** The measurements in this section and the next were made of the 3D board scene
+> (Qt Quick 3D, a dice simulation, `scene.step`), which the pixel scene replaced on 2026-10-24.
+> They are kept as what was measured then: the frame budget they show is the 3D scene's, and the
+> 2D scene is lighter. The scene's QML zones (`scene.play`, `scene.show`, `scene.shake`,
+> `scene.drop`, `scene.settle`) are the same names; `scene.step` and the atlas's cell counts are
+> gone with the simulation. A new set of figures wants a run on a desktop with a display.
 
 ```sh
 build/windows-msvc-profiling/bin/WordJewelsSolver.exe --smoke 300 --store build/smoke-store.wjs
@@ -623,7 +626,7 @@ the budget is for.
   which screen (`screen=`, `refresh_hz=`), and the budget follows it. The
   check is opt-in (`WJS_PERF_FRAME_TIMING=1`) and runs in no CI leg.
 
-**Those numbers are a real offscreen run, and they are not the 3D scene's.**
+**Those numbers are a real offscreen run, and they are not the 3D scene's** (the one the History note above speaks of).
 Under `QT_QPA_PLATFORM=offscreen` with `QSG_RHI_BACKEND=opengl`, Qt Quick runs
 on a renderer that is not QRhi-based, and Quick 3D says so on stderr:
 
@@ -642,7 +645,7 @@ that reason.
 
 **Two runs of the application** were captured for this document on 2026-10-19
 (MSVC 19.51, RelWithDebInfo, Tracy 0.14.1, on the Windows 11 desktop the
-[shake prototype](design/shake-prototype.md) measured; the profiler connected
+shake prototype (removed with the 3D scene) measured; the profiler connected
 before the program started, so the start-up zones are in them):
 
 - a windowed run with the profiler attached, killed after 15 s; the session did
@@ -670,7 +673,7 @@ before the program started, so the start-up zones are in them):
 | `scene.shake` (QML) | 234 | 0.69 ms | 0.45 | 2.21 |
 | `scene.drop` (QML) | 144 | 0.72 ms | 0.44 | 1.48 |
 | `scene.settle` (QML) | 330 | 0.98 ms | 0.41 | 4.58 |
-| `scene.step` (C++) | 708 | 0.51 ms | 0.12 | 1.63 |
+| `scene.step` (C++, retired with the simulation) | 708 | 0.51 ms | 0.12 | 1.63 |
 | `ui.screen` (QML) | 1 | 64.1 µs | | |
 
 The run played nine deals of the default 3x3 standard board and put each away;
@@ -680,7 +683,7 @@ the dice world's step for a 3x3, against the prototype's 0.59 ms a frame for the
 same size: the zone is the simulation's own time, as it should be. The QML
 stage zones (`scene.shake` etc.) are the whole frame's scene work and sit above
 it, as the nesting says. `ui.trace` is not in the table: a smoke run sends no
-pointer input. `scene2d.*` never appears: the 2D fallback is not built.
+pointer input.
 
 The offscreen run this document first printed (60 frames, a p50 at 15.7 ms) was
 **not** a desktop 3D measurement; the windowed figures are in
@@ -726,8 +729,7 @@ report counts, as they were for the prototype's tables.
 **As a capture workload** it is the recipe [above](#capturing-a-trace): start
 `tracy-capture`, run `--smoke` with enough frames for the scene's shake and drop
 (a shake cycle is about three seconds at 60 Hz, so 600 frames is three of them),
-and read the zones and the frame plots out of the trace. The 2D fallback's
-`scene2d.*` zones never appear: it is not built.
+and read the zones and the frame plots out of the trace.
 
 ## Adding instrumentation
 

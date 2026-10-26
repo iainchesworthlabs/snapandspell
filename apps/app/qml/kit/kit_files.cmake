@@ -16,6 +16,7 @@ set(WJS_KIT_QML_FILES
     AppBar.qml
     AppButton.qml
     BoardTray.qml
+    BoardWell.qml
     Card.qml
     Eyebrow.qml
     Feedback.qml

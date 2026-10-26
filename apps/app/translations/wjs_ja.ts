@@ -1233,7 +1233,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+251"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+253"/>
         <source>Solo Play</source>
         <translation>ソロプレイ</translation>
     </message>
@@ -1253,7 +1253,7 @@
         <translation>単語を探す</translation>
     </message>
     <message>
-        <location line="+236"/>
+        <location line="+237"/>
         <source>You found all %1 words!</source>
         <translation>%1 個の単語をすべて見つけました!</translation>
     </message>

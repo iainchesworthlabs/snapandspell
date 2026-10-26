@@ -17,12 +17,15 @@ SizeMatrixCase {
     settle: 900
     subjects: [boxComponent, playComponent, summaryComponent, historyComponent]
 
+    Component { id: stubScene; StubBoardScene { } }
+
     Component {
         id: boxComponent
         Item {
             id: host
             readonly property var game: { fixture.reset(); return soloModel }
             SoloScreen {
+                sceneComponent: stubScene
                 anchors.fill: parent
                 solo: host.game
             }
@@ -35,6 +38,7 @@ SizeMatrixCase {
             id: host
             readonly property var game: { fixture.reset(); return soloModel }
             SoloScreen {
+                sceneComponent: stubScene
                 anchors.fill: parent
                 solo: host.game
             }
@@ -61,6 +65,7 @@ SizeMatrixCase {
             id: host
             readonly property var game: { fixture.reset(); return soloModel }
             SoloScreen {
+                sceneComponent: stubScene
                 id: screen
                 anchors.fill: parent
                 solo: host.game

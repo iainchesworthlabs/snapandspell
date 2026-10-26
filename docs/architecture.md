@@ -60,15 +60,14 @@ apps/
     qml/kit/             Theme (the tokens), Navigation, Feedback, and the parts the
                          screens are built from: Label, Card, Sheet, AppBar, ActionBar,
                          AppButton, HoldButton, SegmentedChoice, ModeCard, Icon, Jewel,
-                         JewelBox, TileFace, BoardTray, TabletArt, Wordmark, Eyebrow,
+                         JewelBox, TileFace, BoardTray, BoardWell, PixelBox, PixelPicture, PixelArt.js,
+                         TabletArt, Wordmark, Eyebrow,
                          FocusRing
-    qml/scene/           BoardScene (the 3D scene, in the module WordJewelsSolver.Scene),
-                         Die, FaceAtlas, ShakeScript.js, lightprobe/sky.ktx; fallback/
-                         holds the 2D implementation of the same interface for D2, not built
     qml/solo/            SoloScreen (solo.box, solo.playing and the end-of-board summary
                          Sheet), SoloBox, FlatBoard, PlayingPanel, HistorySheet,
-                         BoardThumb, ScrollCue, JewelsScreen (My jewels), and the
-                         wording files SoloWording and JewelsWording
+                         BoardThumb, ScrollCue, JewelsScreen (My jewels), BoardScene,
+                         SceneDie and SceneScript.js (the pixel scene of the shake and
+                         the drop), and the wording files SoloWording and JewelsWording
     qml/scan/            ScanScreen (scan.ready, scan.reading, scan.check), CheckScreen,
                          AssistScreen (assist.playing), AssistBoard, AssistHistory,
                          ScanWording
@@ -80,9 +79,7 @@ apps/
                            window; startup_failure.* says why it could not start
       camera/              CameraSource (QML element: the live view and one frame),
                            CameraBackend (its variant seam), frame_conversion.*
-      scene/               the scene's C++ objects for QML: DiceSim (dice_sim.*), DieGeometry
-                           (die_geometry.*), the Profiler singleton (profiler.*), and sim/
-                           (the wjs_dice_world library)
+      scene/               the profiling seam's C++ for QML: the Profiler singleton (profiler.*)
       solo/                solo_game.hpp (the port), real_solo_game.* (over the library's
                            session), solo_game_setup.* (what it is made from),
                            solo_game_factory.*, fake_solo_game.*, solo_model.*,
@@ -127,8 +124,8 @@ tools/data/            check_wordlists.ps1, check_phonics.ps1 and its self-test,
 tools/sounds/          make_sounds.ps1: writes assets/sounds/*.wav, checked by data.sounds
 tools/release/, package/  the release scripts (signing, SBOM, smoke tests) and the
                        package check
-tools/coverage/, lightprobe/, policy/, repo/, hooks/
-                       coverage runs, the baked light probe, the commit and PR text
+tools/coverage/, design/, policy/, repo/, hooks/
+                       coverage runs, the fonts and pixel art, the commit and PR text
                        rule, repository rulesets, git hooks
 
 ```
@@ -899,17 +896,16 @@ the playing panel shows them, and the store keeps the setting and no duration. I
 amends the MVP's earlier "no timers or limits", and the weakness is stated: a
 clock a child can see is a pull and a count-down is a limit, so both are the
 parent's, behind the gate, and the app never starts one. The library knows
-nothing of any of it, and no game rule is in the QML. It links Qt Quick 3D for the scene, so a build of the application is
-**GPL-3.0 only** (the author's decision of 2026-10-16; D2 in the
-[roadmap](roadmap.md) decides what a store build does).
+nothing of any of it, and no game rule is in the QML. The board scene is 2D, in Qt Quick alone, so the application is
+GPL-3.0-or-later like everything else.
 
 The board scene's board is `{ rows, columns, tiles, faces, up }`: for each tile,
 its letters, the six faces of the die that is on it and which of them is up,
-from `wjs::roll_with_placements` of the dealt board's seed. A board that was not
-rolled from dice (the phonics board, a game the store brought back, the fake
-game) has no faces, and the scene draws the tile's letter on the face that is up,
-as the first scene did. `Main.qml` makes `SoloScreen` (and so the scene) once at
-start-up and keeps it, so the `View3D` is not created on the Shake press.
+from `wjs::roll_with_placements` of the dealt board's seed. The pixel scene draws
+the tile's letter upright and ignores the faces, so a board that was not rolled
+from dice (the phonics board, a game the store brought back, the fake game) is
+drawn like any other. `SoloScreen` makes the scene with an asynchronous Loader
+when Solo Play is first shown and keeps it, so it is not created on the Shake press.
 
 | Layer | Where | What it is |
 | --- | --- | --- |
@@ -920,7 +916,7 @@ start-up and keeps it, so the `View3D` is not created on the Shake press.
 | The model | `solo/solo_model.*` | `SoloModel`, the QObject the screens bind to: the state as a string (the design's ids without `solo.`, including `word-found`, which is presentation and so the model's and not the game's), the board, the path being made and its grapheme blocks, the tray, the start tile and the help's steps, the board clock, the history. It turns pointer input into moves with `PathTracer` and says every moment that wants a sound or a tap as a `cue`. When the parent changes the store (`storeEdited()`), it takes its next game from the program's maker |
 | The touch logic | `solo/path_tracer.*` | Trace and tap in order, both always on. A hit circle smaller than the tile and a larger one it must leave, so a diagonal slide takes the diagonal tile and a wobble near an edge does nothing; a fast move is walked in small steps so no tile is jumped; sliding back takes the last tile off; lifting outside the board cancels; a tapped path ends with the last tile tapped again or the Done jewel; a trace may carry on from a tapped path; a dead jewel is never in a path. The radii are starting values for a small finger and are the one thing the tests cannot settle |
 | The layout rule | `solo/board_layout.*`, `solo/solo_layout.*` | [Board design](design/board.md#layouts-and-sizes) as a pure function, tested on the page's reference windows, and one copy for the screens and the scene. A size is offered only if its tile is 48 dp or more |
-| The board scene | `qml/scene/BoardScene.qml`, the module `WordJewelsSolver.Scene` (`scene/`) | One component: given a finished board (its tiles, its dice's six faces and the one that is up) and a seed, play the shake, the lid and the drop and say when the dice are settled. Qt Quick 3D, built once behind home and kept; the dice are simulated from first principles in `scene/sim` (plain C++, no Qt). `prepare(board)` draws a board's faces a frame ahead of `play`/`show`. The 2D implementation of the same interface is kept at `qml/scene/fallback/` for D2 and is not built. `app.scene_contract` holds both files to the list, and `app.qml_lint` lints both modules |
+| The board scene | `qml/solo/BoardScene.qml`, `SceneDie.qml`, `SceneScript.js` | One component: given a finished board and a seed, play the shake, the lid and the drop and say when the dice are settled. 2D pixel art in Qt Quick alone (DESIGN.md, "Motion"): the closed box hops in stepped jumps, the lid lifts in four steps and each die falls through six frames; the poses are pure functions of the board size, the seed and the time (`SceneScript.js`, held by `scene_script_test.cpp`). It draws with the kit's tile, tray and well, so the cross-fade to the flat board changes nothing. Built once behind home by `SoloScreen`'s Loader and kept. `app.scene_contract` holds it and the stub of the Quick Test suites to the interface list |
 | The Mode A port | `scan/assist_game.*` | `AssistGame`, Qt-free: a board a grown-up confirmed, the English dictionary as both the words that count and the words that tell a real word from a string of letters (the standard board's word set, with no block list, so every real word counts and `real_not_todays` never arises; a second constructor takes a phase index's words and nothing in the program calls it), and the store. `wjs::classify_path` answers viable, real-but-not-today's or not-a-word (the last two carry no word); `FoundWords` keeps the tray; `wjs::start_tile_help` answers the one help with a tile, never the word; `leave()` records the board in the store's standard-board form (`viable_total`, no phase) with each find's day and whether the start tile was shown |
 | The Mode A models | `scan/scan_model.*`, `scan/assist_model.*` | `ScanModel` owns the `BoardDraft` the check screen corrects, the doubtful tiles and the reader's alternatives, the board size, and the camera's little lifecycle: it starts the camera only on `scan.ready`, takes one frame (from the application's `CameraSource` when it is supplied, otherwise from the platform interface), stops the camera as soon as the frame is in hand, reads it through `board_reader` on a worker thread named `scan` (a `QThreadPool` of one), and only a grown-up's `confirm()` makes a `Board`. `AssistModel` is the assistant's board as Qt Quick wants it: tiles, the traced path (`PathTracer`, the same touch logic as Solo Play), the tray, the start tile and the cues. It is made by QML and asks `make_assist_game()` for its round, which `main.cpp` installs over the program's one dictionary and store |
 | The Mode A screens | `qml/scan/`, the module `WordJewelsSolver.Scan` (`scan/`) | `ScanScreen` (`scan.ready`, `scan.reading`, `scan.check` on one screen, the check in `CheckScreen.qml`), `AssistScreen`, `AssistBoard` and `AssistHistory` (`assist.playing`, the two-thirds/one-third split of `SoloLayout`, the tray, the start tile, earlier boards, New board), and `ScanWording` (every sentence and accessible name, in all eight languages). The camera is on only while `scan.ready` is on screen; every frame is read on the device and none is kept (docs/design/scanner.md, "Privacy, built in and checked"). On a device with a camera its live picture is shown in the frame; with none (a desktop without a webcam, or a kit without Qt Multimedia) the absence is said in words and "Type in your board" opens the check screen with an empty 4x4 |
@@ -1131,8 +1127,8 @@ display. See [The parent area as built](design/parent-area.md).
 | `wjs_platform` (`wjs::platform`) | static library | The platform's implementations; links `wjs_scan` |
 | `wjs_scan` (`wjs::scan`) | static library | The scanner: finds a board in a frame and reads it. No third-party dependency |
 | `wjs-cli` | executable `wjs-cli` | `WJS_BUILD_CLI` |
-| `WordJewelsSolver` | executable `WordJewelsSolver` | `WJS_BUILD_APP=AUTO` when Qt 6.12 is found, `ON` to require it, `OFF` to skip; links Qt Quick 3D, so GPL-3.0 only |
-| `wjs_scene` | static QML module (`WordJewelsSolver.Scene`) | The 3D board scene, its dice objects and the `wjs_dice_world` simulation. Linked by `WordJewelsSolver` and the prototype; GPL-3.0 only |
+| `WordJewelsSolver` | executable `WordJewelsSolver` | `WJS_BUILD_APP=AUTO` when Qt 6.12 is found, `ON` to require it, `OFF` to skip |
+| `wjs_scene` | static QML module (`WordJewelsSolver.Scene`) | The profiling seam: the `Profiler` singleton that opens Tracy zones from QML. Linked by `WordJewelsSolver` |
 | `wjs_scan_ui` | static QML module (`WordJewelsSolver.Scan`) | Mode A's screens, wording, models and the camera source. Linked by `WordJewelsSolver` as `wjs_scan_uiplugin` |
 | `wjs_parent` | static QML module (`WordJewelsSolver.Parent`) | The parent area: the controller and the screens (the gate, the dashboard, the settings, the about page) |
 | `wjs_feedback` | static library | The sound, speech and motion engines and the sound-it-out player, over the variant backends |

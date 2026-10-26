@@ -20,7 +20,7 @@
 # (docs/licensing.md, "Notices").
 #
 # The fragments are plain text in notices/fragments/, one section each: the
-# header and the project's own licence, Qt and Quick 3D, the word list, the
+# header and the project's own licence, Qt, the word list, the
 # translations, the assets, and the tools that are only used to build and test.
 # A fragment that describes what a PACKAGE contains is included only when that
 # package is built - Qt and the translations only with the application - so a
@@ -158,7 +158,7 @@ function(wjs_write_notices)
     set(qt_version "")
     set(qt_series "")
     if(WJS_BUILD_APP)
-        list(APPEND fragments application qt qt-quick3d)
+        list(APPEND fragments application qt)
         set(qt_version "${Qt6_VERSION}")
         string(REGEX MATCH "^[0-9]+\\.[0-9]+" qt_series "${Qt6_VERSION}")
         if(NOT qt_version OR NOT qt_series)

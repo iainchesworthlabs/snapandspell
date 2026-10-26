@@ -70,7 +70,7 @@ wjs_case("a hex colour" "HEX_COLOUR" "Screen.qml"
     "Item { Rectangle { color: \"#C98A1E\" } }" "${_none}")
 wjs_case("a hex colour in the tokens is the point of them" CLEAN "kit/Theme.qml"
     "QtObject { readonly property color gold: \"#BF8019\" }" "${_none}")
-wjs_case("a hex colour in the 3D scene is exempt" CLEAN "scene/FaceAtlas.qml"
+wjs_case("a hex colour in a scene file is exempt" CLEAN "scene/FaceAtlas.qml"
     "Item { Rectangle { color: \"#F4E9CC\"; Text { font.pixelSize: 12 } } }" "${_none}")
 wjs_case("a bare Text" "BARE_TEXT" "Screen.qml"
     "Item { Text { text: \"x\" } }" "${_none}")

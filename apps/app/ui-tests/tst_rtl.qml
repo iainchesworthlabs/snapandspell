@@ -25,7 +25,8 @@ TestCase {
     width: 1100
     height: 700
 
-    Component { id: screenComponent; SoloScreen { } }
+    Component { id: stubScene; StubBoardScene { } }
+    Component { id: screenComponent; SoloScreen { sceneComponent: stubScene } }
     Component { id: panelComponent; PlayingPanel { } }
     Component { id: layoutComponent; SoloLayout { } }
     Component { id: boardComponent; FlatBoard { } }

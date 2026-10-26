@@ -26,11 +26,11 @@ How to read the evidence marks:
    used today is a build tool (vcpkg) and a test framework (Catch2), neither of
    which is in a package.
 4. **Qt 6.12 is used by the application** (the optional window; the library and
-   the CLI do not use it). The window links Qt Quick 3D for the 3D board scene, which Qt offers only under
-   the GPL-3.0 or commercially, so a build of the window is **GPL-3.0 only**
-   (the author's recorded decision; see [Qt](#qt)). The library and the CLI stay
-   free of Qt and of that consequence. A package of the window says so plainly
-   in its notices.
+the CLI do not use it). The window links Qt under the LGPL-3.0 and draws its board in 2D, so a
+   build of the window is **GPL-3.0-or-later**, like the sources (see [Qt](#qt)). Until 2026-10-24
+   the board was 3D, with Qt Quick 3D, which Qt offers only under the GPL-3.0 or commercially, and
+   the binary was GPL-3.0 only; the pixel scene of the Toybox restyle removed it. A package of the
+   window says what it is in its notices.
 5. **The English word list is ENABLE**, a separate public-domain work kept
    unmodified in `data/dictionaries/` (see [The word list](#the-word-list)).
 6. **The history begins with the author's own 2013 program**, written before
@@ -72,7 +72,7 @@ unmodified GPLv3. `vcpkg.json` says `GPL-3.0-or-later`, and so does this page.
 | vcpkg (the labs' fork, a separate clone found through `VCPKG_ROOT`) | MIT, Copyright Microsoft Corporation [V: `LICENSE.txt` in the vcpkg clone] | Fetches and builds dependencies | No: a build tool |
 | vcpkg helper ports `vcpkg-cmake`, `vcpkg-cmake-config` | MIT [V: installed `share/*/copyright`] | Build helpers | No |
 | Catch2 3.15.3 | BSL-1.0 [V: installed `share/catch2/copyright`] | The test framework (`tests` vcpkg feature) | No: tests only |
-| Qt 6.12 (Core, Gui, Qml, Quick, Quick Controls 2, Quick 3D) | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 for the first five; **Quick 3D: GPL-3.0 only** [I] | The optional Qt Quick window; not built by vcpkg. A build of the window is GPL-3.0 only | Yes, in a Windows package: the DLLs, plugins and QML modules the window loads, with the LGPL text in `NOTICES.txt` |
+| Qt 6.12 (Core, Gui, Qml, Quick, Quick Controls 2, Quick Shapes) | Commercial, LGPL-3.0, GPL-2.0 or GPL-3.0 [I] | The optional Qt Quick window; not built by vcpkg. A build of the window is GPL-3.0-or-later | Yes, in a Windows package: the DLLs, plugins and QML modules the window loads, with the LGPL text in `NOTICES.txt` |
 | Qt 6.12 Multimedia, Sensors and TextToSpeech | LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only [V: `<qt>/sbom/qt{multimedia,sensors,speech}-6.12.0.spdx` in the shared kit] | The feedback engines: short sounds, the device's speech, the accelerometer/gyroscope. Optional at build time (silent variants) | Yes, in a Windows package when the kit has them: the DLLs and their plugins, under the LGPL option |
 | The project's feedback sounds (`assets/sounds/*.wav`) | GPL-3.0-or-later, the project's own work; synthesised placeholders for the reviewer's recordings [V: `tools/sounds/make_sounds.ps1`] | The eight cue assets | Yes, embedded in the application |
 | Tracy 0.14.1 (a vcpkg port) | BSD-3-Clause [V: the port's installed `copyright`, reproduced in `notices/fragments/tracy.txt`] | Profiling, in the Debug and `*-profiling` presets only. It opens a TCP listener ([Profiling](profiling.md#the-profiler-listens-on-the-network)) | **Never in a release.** The release presets build without it and `cpack` refuses a Tracy build; a development package (a Debug build, which is what CI uploads) carries `TracyClient` and a Tracy section in its notices, added to `NOTICES.txt` only when the build has Tracy |
@@ -94,17 +94,14 @@ fragments in `notices/fragments/`, so the versions it names are the ones the
 build used and a package cannot be made without it. Its layers:
 
 - the project's own licence, GPL-3.0-or-later, and where the source is;
-- **the application binary is GPL-3.0-only**, because it links Qt Quick 3D,
-  which Qt offers only under GPL-3.0 or commercially ([Qt](#qt)). The notice
-  says so in capitals, next to the "or later" statement, so the two cannot be
-  confused;
+- **the application binary is GPL-3.0-or-later**, as the sources are: it links Qt under the LGPL
+  ([Qt](#qt)). The notice says so in capitals;
 - Qt 6.12: the modules used under the LGPL (Core, Gui, Qml, Quick, Quick
   Controls 2, Multimedia, Sensors and TextToSpeech), the options Qt also offers
   them under (GPL-2.0/3.0 or commercial), the LGPL-3.0 text, how the libraries
   can be replaced (they are linked dynamically and found beside the program
   through `qt.conf`), where Qt's corresponding source is published, and that no
   Qt translation catalogue is installed;
-- Qt Quick 3D, GPL-3.0-only, and that it is why the binary is;
 - ENABLE, the public-domain word list ([below](#the-word-list)), with its
   SHA-256 and the pointer to `data/README.md`;
 - the interface's translations, which are this repository's own text;
@@ -124,13 +121,12 @@ that starts shipping means a new fragment, its licence text in
 Qt is a prebuilt dependency found through `CMAKE_PREFIX_PATH` or `QT_ROOT_DIR`;
 it is not part of the repository and is not built by vcpkg. Today only the
 optional window (`WJS_BUILD_APP`) uses it. The modules it links are Core, Gui,
-Qml, Quick, Quick Controls 2, Multimedia, Sensors and TextToSpeech, which Qt
-offers under the LGPL-3.0 as well as the GPL (2 or 3) and a commercial licence,
-and **Quick 3D**, which Qt offers only as commercial or GPL-3.0-only: the board
-scene is 3D, so a build of the window can be conveyed only under GPL-3.0 and
-its "or later" stops there. That is the author's decision of 2026-10-16 for the
-private MVP build, and D2 (in the [roadmap](roadmap.md)) decides what a store
-build does; the source files stay GPL-3.0-or-later either way. The three
+Qml, Quick, Quick Controls 2, Quick Shapes, Multimedia, Sensors and TextToSpeech, which Qt
+offers under the LGPL-3.0 as well as the GPL (2 or 3) and a commercial licence. The board
+scene was 3D until 2026-10-24, with **Quick 3D**, which Qt offers only as commercial or
+GPL-3.0-only, and the binary was GPL-3.0 only; the owner chose the 2D pixel scene
+(DESIGN.md, 12.1) and the "or later" is back. Qt Quick 3D is not linked, deployed or listed
+in the package any more. The three
 feedback modules are optional at configure time: a kit without them builds the
 silent variants, so no package claims a module it does not carry. The kit's
 `sbom/qtmultimedia-6.12.0.spdx`, `qtsensors-...` and `qtspeech-...` are the
@@ -139,8 +135,8 @@ record of their licence expressions.
 The rule for adding another module is still to check how Qt offers it first, in
 "Qt licensing" in the Qt 6.12 documentation, and to avoid modules that are
 offered only as **GPL-3.0-only** (or commercially) in anything that is to keep
-the "or later". Quick 3D is the one deliberate exception, made with the decision
-and the seam above; Qt Quick 3D Physics, on the same GPL-only list, is not used.
+the "or later". There is no such exception now: Qt Quick 3D and Qt Quick 3D Physics, on the
+GPL-only list, are not used.
 A module offered under the LGPL does not raise it. `<qt>/sbom/*.spdx.json` in a
 Qt install holds the licence expression of every module in that install.
 

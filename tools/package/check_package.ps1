@@ -23,7 +23,7 @@
          Release build tree);
       6. runs the packaged WordJewelsSolver with the offscreen platform plugin,
          so a Windows runner with no display proves the installed tree carries
-         Qt's runtime, its QML modules and the Quick 3D plugin (skip with
+         Qt's runtime and its QML modules (skip with
          -NoSmoke).
 
     Windows is where the ZIP is checked, because it is the package CI builds
@@ -240,8 +240,8 @@ if ($withApplication) {
     )
     if ($IsWindows) {
         # Qt's runtime, the platform plugins (the offscreen one is what the
-        # smoke below runs with) and the QML modules the window imports,
-        # Quick 3D's among them. The DLLs are beside the program; Qt's deploy
+        # smoke below runs with) and the QML modules the window imports.
+        # The DLLs are beside the program; Qt's deploy
         # script puts the plugins and QML modules at the install prefix, one
         # level above bin, and writes the qt.conf that points there.
         #
@@ -253,7 +253,6 @@ if ($withApplication) {
             "bin/Qt6Core$qtSuffix.dll",
             "bin/Qt6Qml$qtSuffix.dll",
             "bin/Qt6Quick$qtSuffix.dll",
-            "bin/Qt6Quick3D$qtSuffix.dll",
             'bin/qt.conf',
             "plugins/platforms/qwindows$qtSuffix.dll",
             "plugins/platforms/qoffscreen$qtSuffix.dll"
@@ -284,7 +283,7 @@ foreach ($relative in $required) {
     }
 }
 if ($withApplication -and $IsWindows) {
-    $requiredDirectories = @('qml/QtQuick', 'qml/QtQuick3D')
+    $requiredDirectories = @('qml/QtQuick', 'qml/QtQuick/Shapes')
     # The scanner's live view is Qt Multimedia's VideoOutput, and its camera is a
     # Multimedia backend plugin: when the window links the module, the package
     # must carry both, or the scan screen starts and cannot show a preview. The
@@ -360,7 +359,7 @@ else {
         $previous[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
     }
     try {
-        # Quick 3D needs no display for the start-up path and the 2D graph;
+        # The window needs no display for the start-up path and the 2D graph;
         # the offscreen plugin draws text with the system's fonts on Windows.
         $env:QT_QPA_PLATFORM = 'offscreen'
         $env:QSG_RHI_BACKEND = 'opengl'

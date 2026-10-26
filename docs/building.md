@@ -170,9 +170,8 @@ Pass these to the configure step, for example
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `WJS_BUILD_CLI` | `ON` | Build `wjs-cli` |
-| `WJS_BUILD_APP` | `AUTO` | Build the Qt Quick window. `AUTO` builds it when Qt 6.12 is found and leaves it out otherwise; `ON` requires Qt and fails the configure without it; `OFF` never looks. Needs Quick 3D, so the binary is GPL-3.0 only |
+| `WJS_BUILD_APP` | `AUTO` | Build the Qt Quick window. `AUTO` builds it when Qt 6.12 is found and leaves it out otherwise; `ON` requires Qt and fails the configure without it; `OFF` never looks. The board scene is 2D, so the binary is GPL-3.0-or-later like the sources |
 | `WJS_BUILD_TESTS` | `ON` | Build the test suites, and register the platform tests. Turning it off also stops vcpkg building Catch2 |
-| `WJS_BUILD_SHAKE_PROTOTYPE` | `OFF` | Build the harness around the 3D board scene as `ShakePrototype`. Needs the application built (`WJS_BUILD_APP=AUTO` with Qt found, or `ON`) and Qt Quick 3D; the harness links the same scene module as the application, so both are GPL-3.0 only. See [the prototype](design/shake-prototype.md#how-it-was-measured) |
 | `WJS_ENABLE_SANITIZERS` | `ON` | AddressSanitizer (and UBSan, where the compiler has it) in Debug builds. See [Sanitizers](#sanitizers-and-warnings) |
 | `WJS_ENABLE_HARDENING` | `ON` | The shared hardening flags on the libraries, the command line and the application: stack protector, `_FORTIFY_SOURCE=3` outside Debug, relro and immediate binding, PIE and control-flow protection on GCC and Clang; `/GS /guard:cf /sdl` on MSVC. Only the `linux-fuzz` preset turns it off (a fortified libc call bypasses AddressSanitizer); the switch is also for finding a toolchain problem. See [Security](security.md#hardening) |
 | `WJS_ENABLE_FUZZING` | `OFF` | The libFuzzer harnesses of `libs/<lib>/fuzz`, with AddressSanitizer and UBSan. Clang only, and not with the other instrumentation switches, Tracy or the hardening flags; the `linux-fuzz` preset sets it on its own. See [Fuzzing](fuzzing.md) |
@@ -203,18 +202,17 @@ deliberately, or `-DWJS_BUILD_APP=ON` to make a missing Qt a configure error
 (the Windows CI leg does the latter).
 
 It needs Qt 6.12 with the modules Core, Gui, Qml, Quick, Quick Controls 2, Quick
-Layouts, Quick Shapes, Quick 3D and LinguistTools (`lupdate` and `lrelease`, in the
+Layouts, Quick Shapes and LinguistTools (`lupdate` and `lrelease`, in the
 base kit from 6.12; before that the `qttools` module), as a prebuilt install (from
 the Qt online installer, or with
-[aqtinstall](https://github.com/miurahr/aqtinstall)). In the 6.12 repository Quick 3D
-and its shader tools are modules of their own, so a kit installed by aqtinstall names
-`qtquick3d qtshadertools`; CI also names the optional `qtmultimedia qtsensors
+[aqtinstall](https://github.com/miurahr/aqtinstall)). In the 6.12 repository the shader
+tools are a module of their own, so a kit installed by aqtinstall names
+`qtshadertools`; CI also names the optional `qtmultimedia qtsensors
 qtspeech` (below). aqtinstall 3.3.0, the last PyPI release, cannot read the per-architecture
 Windows repository of Qt 6.11 and later; CI installs it from the commit in
 `.github/toolchain-versions.json` (`qt.aqtsource`). Qt is not built by vcpkg.
-The board scene is 3D, so a build of the window links Qt Quick 3D, which Qt
-offers only under the GPL-3.0 or commercially: the binary is **GPL-3.0 only**
-(the recorded decision, [Board design](design/board.md#rendered-3d-or-drawn-in-2d)).
+The board scene is 2D, in Qt Quick alone, so the window is GPL-3.0-or-later like the
+sources, with Qt used under the LGPL ([Board design](design/board.md#drawn-in-2d)).
 
 **The feedback and camera modules are optional.** Sound, speech and motion use
 Qt Multimedia, Qt Sensors and Qt TextToSpeech, and Mode A's live camera uses Qt
@@ -360,7 +358,7 @@ the literacy reviewer replaces them (docs/design/application.md, "Languages, rig
 
 Exit codes. `WordJewelsSolver`: **0** ran to the end; **2** the game could not be set
 up (the word list, the dice or the phase directory is missing or unreadable); **3** a
-smoke run presented no frame (a machine with no display cannot render Quick 3D); **4**
+smoke run presented no frame (a machine with no display may present none); **4**
 the window failed to load. 1 is left to the toolkit and to a crash. `wjs-cli`:
 **0** solved, **1** usage, **2** the word list, **3** the board, and **4** an
 exception the program did not foresee and **5** the result could not be written to
@@ -390,7 +388,7 @@ for the host tools a cross build runs. aqtinstall installs both with
 
 ```sh
 aqt install-qt mac ios 6.12.0 ios --autodesktop --outputdir ~/Qt \
-    -m qtquick3d qtshadertools qtmultimedia qtsensors qtspeech
+    -m qtshadertools qtmultimedia qtsensors qtspeech
 export QT_ROOT_DIR=~/Qt/6.12.0/ios
 export QT_HOST_PATH=~/Qt/6.12.0/macos
 export VCPKG_ROOT=...            # as for any preset
@@ -448,7 +446,7 @@ With aqtinstall, both Qt kits come in one go:
 
 ```sh
 aqt install-qt all_os android 6.12.0 android_arm64_v8a --autodesktop --outputdir ~/Qt \
-    -m qtquick3d qtshadertools qtmultimedia qtsensors qtspeech
+    -m qtshadertools qtmultimedia qtsensors qtspeech
 export QT_ANDROID_DIR=~/Qt/6.12.0/android_arm64_v8a
 export QT_HOST_PATH=~/Qt/6.12.0/gcc_64          # msvc2022_64 on Windows, macos on a Mac
 export ANDROID_SDK_ROOT=...  ANDROID_NDK_ROOT=...
@@ -551,7 +549,7 @@ What lands in `build/<preset>/packages/`:
 | *(AppImage)* | `WordJewelsSolver-<version>-x86_64.AppImage` | Linux, with the application: `build_appimage.sh`, not CPack |
 
 The deb and rpm are for the command-line solver: the application needs a Qt 6.12
-with Quick 3D that no distribution packages, so a package of it could only declare
+that no distribution packages, so a package of it could only declare
 dependencies nobody can satisfy. On Linux the application is the AppImage, which
 carries its Qt. A prerelease is packaged under its own version:
 `-DWJS_PACKAGE_PRERELEASE=rc.1` gives `...-0.1.0-rc.1-...`, a deb `0.1.0~rc.1` and
@@ -577,7 +575,7 @@ WordJewelsSolver-0.1.0-win64/
     NOTICES.txt
     LICENSE.txt
   plugins/            Qt's platform, image-format and multimedia plugins
-  qml/                the Qt QML modules the window imports, Quick 3D included,
+  qml/                the Qt QML modules the window imports,
                       and QtMultimedia where the kit has the camera's module
 ```
 
@@ -700,8 +698,8 @@ Every package carries `NOTICES.txt` beside the programs and the GPL text as
 `:/notices/NOTICES.txt`, which the About screen shows under Licences. The file
 is assembled at configure time from `notices/fragments/`
 (`cmake/Notices.cmake`) and states the project's licence; that the application
-binary is GPL-3.0-only because it links Qt Quick 3D; Qt's LGPL-3.0 and GPL-3.0
-options, with the LGPL text and the Quick 3D section; the ENABLE word list's
+binary is GPL-3.0-or-later and links Qt under the LGPL; Qt's LGPL-3.0 and GPL-3.0
+options, with the LGPL text; the ENABLE word list's
 public-domain status; the translations; the bundled asset; and that Catch2 is
 used only to test. [Licensing](licensing.md#notices) explains what each entry
 means, and the `notices.sections` test holds the generated file to those

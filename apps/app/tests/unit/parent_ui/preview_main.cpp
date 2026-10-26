@@ -313,9 +313,9 @@ int run_check(const QString& out) {
     // (cmake/Notices.cmake, wjs_add_notices_resource).
     check(QFile::exists(QStringLiteral(":/notices/NOTICES.txt")),
           "the third-party notices are embedded as :/notices/NOTICES.txt");
-    check(any_contains(texts, "GPL-3.0-only"),
-          "the notices say the application binary is GPL-3.0 only");
-    check(any_contains(texts, "Qt Quick 3D"), "and carry the Qt Quick 3D section");
+    check(any_contains(texts, "GPL-3.0 OR LATER"),
+          "the notices say the application binary is GPL-3.0 or later");
+    check(!any_contains(texts, "GPL-3.0-only"), "and nothing says it is GPL-3.0 only");
     check(any_contains(texts, "ENABLE"), "and the word list's");
     check(any_contains(texts, "Catch2"), "and what is used only to test it");
     check(!any_contains(texts, "does not use the network"),

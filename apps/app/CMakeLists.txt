@@ -1,7 +1,6 @@
-# Qt6 is found by the top-level CMakeLists.txt, which now finds Qt Quick 3D for
-# the application too: the 3D board scene is part of it, so the binary this
-# directory makes is GPL-3.0 only (the recorded decision, docs/design/board.md,
-# "Rendered 3D, or drawn in 2D", and D2 in docs/roadmap.md).
+# Qt6 is found by the top-level CMakeLists.txt. The binary this directory makes is
+# GPL-3.0-or-later like the sources: the board scene is 2D (Qt Quick alone), and no
+# Qt module the program links is offered under the GPL only.
 
 # AUTOMOC and friends, and the QML module plumbing.
 qt_standard_project_setup(REQUIRES 6.8)
@@ -29,9 +28,10 @@ target_link_libraries(wjs_i18n
         wjs::coverage)
 wjs_add_translations(wjs_i18n)
 
-# The board scene: one QML module (`WordJewelsSolver.Scene`) with the 3D scene,
-# the dice and the script, built in scene/. The application and the prototype
-# harness both link it, so both show the same scene.
+# The profiling seam: one small QML module (`WordJewelsSolver.Scene`) with the
+# Profiler singleton, built in scene/. (The board scene itself is the application's own
+# QML, qml/solo/BoardScene.qml: it draws with the kit, which a module built before the
+# application cannot import.)
 add_subdirectory(src/scene)
 set(WJS_SCENE_IMPORT_DIR "${CMAKE_CURRENT_BINARY_DIR}/src/scene")
 
@@ -152,12 +152,15 @@ qt_add_qml_module(WordJewelsSolver
         qml/HomeWording.qml
         qml/Main.qml
         ${WJS_APP_KIT_SOURCES}
+        qml/solo/BoardScene.qml
         qml/solo/BoardThumb.qml
         qml/solo/FlatBoard.qml
         qml/solo/HistorySheet.qml
         qml/solo/JewelsScreen.qml
         qml/solo/JewelsWording.qml
         qml/solo/PlayingPanel.qml
+        qml/solo/SceneDie.qml
+        qml/solo/SceneScript.js
         qml/solo/ScrollCue.qml
         qml/solo/SoloBox.qml
         qml/solo/SoloScreen.qml
@@ -308,7 +311,6 @@ target_link_libraries(WordJewelsSolver
         Qt6::QuickControls2
         Qt6::QuickLayouts
         Qt6::QuickShapes
-        Qt6::Quick3D
         wjs::warnings
         wjs::hardening
         wjs::sanitizers
@@ -383,8 +385,8 @@ endif()
 
 # The Qt runtime, plugins and QML modules of the INSTALLED program, with Qt's
 # own QML-aware deploy script. It reads the built binary and scans the QML it
-# imports, so the installed copy carries the Quick 3D plugin and the modules
-# the scene and screens import, not a list kept here.
+# imports, so the installed copy carries the modules
+# the screens import, not a list kept here.
 #
 # Not the plain qt_generate_deploy_app_script(): that one deploys library
 # dependencies only, and a package made with it has an empty qml/ directory
@@ -396,8 +398,8 @@ endif()
 # INCLUDE_PLUGINS qoffscreen: the packaged program's headless smoke
 # (tools/package/check_package.ps1, and CI) runs with QT_QPA_PLATFORM=offscreen,
 # and windeployqt otherwise ships only the platform plugin the desktop uses.
-# EXCLUDE_PLUGIN_TYPES qmltooling: the build-time deploy above says why - the
-# GPL-3.0-only Quick 3D profiler plugin must not ship.
+# EXCLUDE_PLUGIN_TYPES qmltooling: the build-time deploy above says why - the QML
+# debugger and profiler plugins have no place in a package.
 #
 # Only where the installed program carries Qt (WJS_PLATFORM_QT_DEPLOY_AT_INSTALL):
 # on Linux the system's Qt is used and a deploy script's qt.conf would break it
@@ -419,9 +421,4 @@ endif()
 # programs by wjs_install_notices()).
 wjs_add_notices_resource(WordJewelsSolver)
 
-# The harness around the 3D board scene is a program of its own, behind its own
-# option. It links the same scene module as the application (and so Qt Quick 3D,
-# which the application now links too), and is for timing and stills.
-if(WJS_BUILD_SHAKE_PROTOTYPE)
-    add_subdirectory(src/prototype/shake)
-endif()
+

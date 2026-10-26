@@ -14,7 +14,7 @@
 
 # The third-party notices (cmake/Notices.cmake): every section a package must
 # state, and no placeholder left unfilled. Runs on every host; a build with the
-# application names Qt and Quick 3D, and a command-line package does not claim
+# application names Qt, and a command-line package does not claim
 # to carry either.
 add_test(NAME notices.sections
     COMMAND "${CMAKE_COMMAND}"

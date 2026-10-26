@@ -177,12 +177,6 @@ function(wjs_add_coverage_targets)
             USES_TERMINAL
             COMMENT "Coverage: unit tier over libs/core (gate ${WJS_COVERAGE_MIN_LINE} percent lines / ${WJS_COVERAGE_MIN_BRANCH} percent branches)")
         add_dependencies(coverage-unit wjs_unit_tests)
-        if(TARGET wjs_dice_tests)
-            # The dice simulation's cases carry the unit label too, when the
-            # shake prototype is built; the tier runs them, so it must build
-            # them.
-            add_dependencies(coverage-unit wjs_dice_tests)
-        endif()
     endif()
 
     if(_wjs_ui_executable)

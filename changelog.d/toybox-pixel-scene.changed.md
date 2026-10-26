@@ -1,0 +1,1 @@
+**The shake and the drop are pixel art, and Qt Quick 3D is gone.** The closed box hops in steps, its lid lifts in four steps and each die falls through six frames; with reduced motion the box stays still and the dice fade in. The program no longer links Qt Quick 3D, so it is GPL-3.0-or-later like its sources, and it is smaller.

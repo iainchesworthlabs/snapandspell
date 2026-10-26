@@ -87,7 +87,7 @@ GitHub's default. The limits, by workflow:
 | `dependency-review.yml` | `Scan dependency diff` | 10 |
 
 The 75 minutes of the build-and-test legs is the Windows leg's: it builds the
-application and its prototype with the sanitizers on and then runs about a
+application with the sanitizers on and then runs about a
 thousand tests, which takes about 40 minutes on a hosted runner; 45 minutes once
 cancelled it in its last step.
 
@@ -196,13 +196,13 @@ The **Windows leg**, the one that builds the Qt application, also runs its
 smoke mode after ctest (`WordJewelsSolver.exe --smoke 60`, offscreen with the
 OpenGL RHI backend): the window, its screens and the game start up and present
 frames, and the run fails if they do not (docs/profiling.md, "The smoke mode").
-Quick 3D cannot render offscreen, so this is the start-up path and the 2D graph;
+The window may present no frame offscreen, so this is the start-up path and the 2D graph;
 the frame budget is a desktop check.
 
 That leg then **packages what it built** and proves the package is usable:
 `tools/package/check_package.ps1` (docs/building.md, "Checking a package") runs
 `cpack -G ZIP`, checks the archive carries the two programs, Qt's DLLs, plugins
-and QML modules (Quick 3D included, and the multimedia plugin and
+and QML modules (the multimedia plugin and
 `qml/QtMultimedia` the camera's live view needs), the dictionary, the dice, `NOTICES.txt` and
 `LICENSE.txt`, writes `SHA256SUMS`, unpacks it, solves a board with the packaged
 `wjs-cli` and its installed dictionary, and runs the packaged
@@ -267,15 +267,14 @@ repository wants it.
   show up in a release rehearsal or locally.
 - **Qt on the Windows leg.** The Windows leg installs the prebuilt Qt 6.12.0
   kit with `jurplel/install-qt-action` (pinned to v4.4.1 by commit SHA) and
-  configures with `-DWJS_BUILD_APP=ON -DWJS_BUILD_SHAKE_PROTOTYPE=ON`, so the
-  Qt Quick application, its 3D scene prototype, the app tests, `parent.screens`,
+configures with `-DWJS_BUILD_APP=ON`, so the
+  Qt Quick application, the app tests, `parent.screens`,
   `scan.screens`, `camera.screens`, `parent.languages`, `scan.languages`, the `quick.*`
   suites, `i18n.catalogues`, `app.scene_contract`, `app.qml_lint` and `quick.lint` all run on
-  every push. The install names the modules `qtquick3d qtshadertools qtmultimedia qtsensors
+every push. The install names the modules `qtshadertools qtmultimedia qtsensors
   qtspeech` (see `aqt list-qt windows desktop --modules 6.12.0
-  win64_msvc2022_64`): Quick 3D and its shader tools are modules of their own
-  in the 6.12 repository, and a kit without them fails the configure on
-  `Qt6Quick3D`; the
+  win64_msvc2022_64`): the shader tools are a module of their own
+  in the 6.12 repository (Qt Multimedia builds with them); the
   base kit itself carries `lupdate`, `lrelease` and Qt Linguist (from 6.12
   `qttools` is an archive of the base package, and naming it as a module makes
   aqtinstall fail), and the modules are the application's sound, camera, motion and speech, so this is
@@ -585,7 +584,7 @@ installs both, the second through aqtinstall's `--autodesktop` with the same
 modules, and the jobs name them `QT_ROOT_DIR` (`.../Qt/6.12.0/ios`) and
 `QT_HOST_PATH` (`.../Qt/6.12.0/macos`), which the preset reads. Checked with the
 pinned aqtinstall (`aqt list-qt mac ios`): Qt 6.12.0 has an `ios` architecture with
-all five modules the application uses (`qtquick3d qtshadertools qtmultimedia
+all four modules the application uses (`qtshadertools qtmultimedia
 qtsensors qtspeech`), and the macOS desktop kit has them too. The versions are
 `.github/toolchain-versions.json`'s (`qt.kits.ios`). The iOS kit is several
 gigabytes, so the jobs do not cache it: a cache of that size would evict the
@@ -700,7 +699,7 @@ device.** Specifically, and in the order it is likely to fail:
   that it names devices and does not allow a debugger to attach);
 - that Safari accepts the manifest at a GitHub release URL (it redirects to GitHub's
   asset host; CountdownSolver's flow did the same and installed), the install page,
-  and the app starting on a device: Quick 3D on Metal, the shake, the camera and its
+  and the app starting on a device: the window on Metal, the shake, the camera and its
   permission prompt, the data directory in the container. **Nothing built for iOS has
   run on a device.**
 
@@ -754,13 +753,13 @@ the QML modules the application imports, and Gradle makes the package.
   (shared with the desktops and iOS), the shake is Qt Sensors' accelerometer.
 - *The QML debugger plugins are in the package.* Qt's Android dependency rules bundle the
   whole `plugins/qmltooling` directory with any program that has a QML module (13 files:
-  the TCP debug server, the profilers, among them the Quick 3D profiler the Windows deploy
+  the TCP debug server and the profilers, which the Windows deploy
   leaves out). Excluding them through the plugin list does not work (`qt_import_plugins(...
   EXCLUDE_BY_TYPE qmltooling)` changes the list `androiddeployqt` is given and not what it
   copies) and the one way left is a replacement for Qt's `build.gradle` that tracks Qt's
   own. They are inert unless QML debugging is compiled into the program (`QT_QML_DEBUG` is
   not defined anywhere here), which has not been checked on a device. The licence is
-  not the issue it is for a desktop package (the application is GPL-3.0-only); the open
+  not the issue it might be for a desktop package (the application is GPL-3.0-or-later); the open
   question is whether a release should carry a debug server at all.
 - *The platform levels:* minimum 28 (what Qt 6.12 supports), target and compile 36 (Google
   Play's requirement is 35 or later). `versionCode` is derived from the version
@@ -776,8 +775,8 @@ and `android`); `tests/platform/check_android.cmake` holds both workflows to the
 `jurplel/install-qt-action` installs Qt with `host: all_os`, `target: android`,
 `arch: android_arm64_v8a`: from Qt 6.7 the Android repository is `all_os`, not the
 host's name (`aqt list-qt all_os android --arch 6.12.0` lists `android_arm64_v8a`, and
-`aqt list-qt all_os android --modules 6.12.0 android_arm64_v8a` lists the five
-modules the application uses, `qtquick3d qtshadertools qtmultimedia qtsensors qtspeech`),
+`aqt list-qt all_os android --modules 6.12.0 android_arm64_v8a` lists the four
+modules the application uses, `qtshadertools qtmultimedia qtsensors qtspeech`),
 and the action adds `--autodesktop`, which installs the Linux kit beside it (`gcc_64`).
 `aqt list-qt linux android` finds nothing for 6.12 with the pinned aqtinstall. The kits are
 several gigabytes, so the jobs do not cache them. The runner image already has the SDK, so
@@ -876,7 +875,7 @@ Not verified, because nothing here has an Android device, and the author's kit h
 three optional modules:
 
 - **Anything that runs on a device.** The program has never started on Android. Whether the
-  window comes up (Quick 3D on the device's GPU, `QtQuick.Controls` styles and the fonts),
+  window comes up (Qt Quick on the device's GPU, `QtQuick.Controls` styles and the fonts),
   the data unpacking and the store in the private directory, rotation, the camera's
   permission prompt and live view, the shake, the speech engine, sound, the launcher icon and
   theme, and the settings it shows under *App info*: all unseen. `verify_apk.sh` says what is
@@ -1033,8 +1032,8 @@ what a local configure checks a developer's clone against.
 ## The compiler cache (Windows)
 
 The Windows leg compiles about 480 translation units with AddressSanitizer on
-four cores (the library, the Qt Quick application, its qmltc output, the 3D
-prototype and every test), 7 to 16 minutes whenever anything was touched. The
+four cores (the library, the Qt Quick application, its qmltc output
+and every test), 7 to 16 minutes whenever anything was touched. The
 `Windows (MSVC)` leg and the `Package (Windows, Release)` job therefore build
 through [ccache](https://ccache.dev), with two composite actions that wrap it
 the way `vcpkg-cache` wraps vcpkg's provider: `.github/actions/ccache/setup`
@@ -1070,7 +1069,7 @@ an entry was saved.
 | clang-format, gcovr, clang-tidy | `==` in `.github/requirements/*.txt` | Dependabot (`pip`), weekly |
 | GCC (the Linux GCC jobs) | The major version in `.github/toolchain-versions.json` (`gcc`), installed by `setup-gcc` from `icl-common-infra`; the exact version is printed at the start of each leg | By hand |
 | CMake and Ninja (`lukka/get-cmake`) | `cmakeVersion` / `ninjaVersion`, exact, and one the pinned action's catalog lists | By hand, with the action |
-| Qt (`jurplel/install-qt-action`) | The action's commit SHA, the Qt version, the kit per host (`win64_msvc2022_64`, `linux_gcc_64`, `clang_64`, the iOS kit), the module list (`qtquick3d qtshadertools qtmultimedia qtsensors qtspeech`) and the `aqtsource` commit, in `.github/toolchain-versions.json` | By hand: run `aqt list-qt windows desktop --modules <version> <arch>` **and** a real install before bumping, as the action's README says |
+| Qt (`jurplel/install-qt-action`) | The action's commit SHA, the Qt version, the kit per host (`win64_msvc2022_64`, `linux_gcc_64`, `clang_64`, the iOS kit), the module list (`qtshadertools qtmultimedia qtsensors qtspeech`) and the `aqtsource` commit, in `.github/toolchain-versions.json` | By hand: run `aqt list-qt windows desktop --modules <version> <arch>` **and** a real install before bumping, as the action's README says |
 | vcpkg and the ports | `cmake/vcpkg-commit.txt` and `builtin-baseline`; `tracy` is overridden to one version, and built from the overlay port in `cmake/vcpkg-ports` | Dependabot moves `builtin-baseline` (`vcpkg`, monthly); the commit file is by hand, and the two move together; the overlay moves with the override, by hand |
 | linuxdeploy and its Qt plugin (the AppImage tools) | A release tag and a SHA-256 each, in `libs/platforms/linux/packaging/linuxdeploy.pins` | By hand, with `pin_linuxdeploy.sh` |
 | actionlint, ShellCheck, the SBOM schema validator | `==` in `.github/requirements/workflows.txt` and `sbom.txt`; the CycloneDX schema at the commit of its `1.6` tag, in `release-tooling.yml` | Dependabot (`pip`), weekly; the schema commit by hand |
