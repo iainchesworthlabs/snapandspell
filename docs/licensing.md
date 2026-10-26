@@ -109,7 +109,7 @@ build used and a package cannot be made without it. Its layers:
   SHA-256 and the pointer to `data/README.md`;
 - the interface's translations, which are this repository's own text;
 - the bundled light probe, the project's own, and the three bundled typefaces
-  (Archivo, Andika and IBM Plex Mono), each under the SIL Open Font License with
+  (Pixelify Sans, Silkscreen and Andika), each under the SIL Open Font License with
   its copyright and licence text reproduced in the notices;
 - Catch2, BSL-1.0, used to build and test and **not shipped**.
 
@@ -205,9 +205,12 @@ Rules for word lists:
 **Three typefaces are bundled**, all under the SIL Open Font License 1.1:
 
 - **Andika** (Regular, Bold), SIL Global, for the reading text and the dice;
-- **Archivo** (Regular, SemiBold, ExtraBold), The Archivo Project Authors, for
-  the interface's headings, buttons and labels;
-- **IBM Plex Mono** (Medium), IBM Corp., for small uppercase labels and counts.
+- **Pixelify Sans** (Medium, Bold), The Pixelify Sans Project Authors, for the
+  interface's wordmark, headings, buttons and labels (static instances of the
+  upstream variable font, made by `tools/design/make_fonts.py`; the licence names
+  no Reserved Font Name);
+- **Silkscreen** (Regular), The Silkscreen Project Authors, for small upper-case
+  labels.
 
 Their copyright lines and full licence texts are in
 `notices/fragments/fonts.txt`, which is reproduced in the generated

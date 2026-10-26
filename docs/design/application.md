@@ -175,9 +175,10 @@ tablet cannot be assumed to have it.
 
 **As built.** Three typefaces are bundled and compiled into the application,
 all under the SIL Open Font License (`notices/fragments/fonts.txt`): **Andika**
-(Regular, Bold) for the reading text, the dice and the words a child reads;
-**Archivo** (Regular, SemiBold, ExtraBold) for headings, buttons and labels; and
-**IBM Plex Mono** (Medium) for small uppercase labels and counts.
+(Regular, Bold) for the reading text, the dice, the words a child reads and every
+numeral; **Pixelify Sans** (Medium, Bold) for the wordmark, titles, headings,
+buttons and labels; and **Silkscreen** (Regular) for small upper-case labels
+([Toybox](toybox/DESIGN.md), section 4).
 OpenDyslexic is not bundled. The five-step glyph check below has not been done
 with a child, and no specimen sheet is committed.
 
@@ -276,9 +277,9 @@ coordinates in every language (`LayoutMirroring.enabled: false` on the board
 containers). Numbers and dates use the locale.
 
 **Fonts.** Andika (SIL OFL) is bundled and is the face for beginning readers,
-the dice and the reading text; Archivo carries the interface's headings, buttons
-and labels, and IBM Plex Mono the small uppercase labels. All three are
-compiled into the application's resources. Hebrew, Yiddish and CJK still fall
+the dice, the reading text and every numeral; Pixelify Sans carries the
+interface's headings, buttons and labels, and Silkscreen the small upper-case
+labels. All three are compiled into the application's resources. Hebrew, Yiddish and CJK still fall
 back per glyph through the platform's fonts: Segoe UI/Arial and Microsoft YaHei
 and Yu Gothic on Windows, PingFang and Hiragino on the iPad. CJK faces are
 **not bundled** (about 16 MB); the system fallback is documented and accepted,
@@ -305,6 +306,12 @@ Solo Play or Home smoke run in each language, text overflow in the longest
 translations, or number and date formatting by locale.
 ## The Jewel Box design system
 
+> **Being replaced by Toybox Pixel.** The restyle ([Toybox](toybox/DESIGN.md), signed off 2026-10-24) is
+> built in steps. The fonts, the palette, the type roles and the contrast gates below are already Toybox's
+> (`Theme.qml`, `Label.qml`); the colour jobs, the component shapes and the board art described here
+> are the Jewel Box's until the pull requests that restyle them, and this section is rewritten with
+> the last of them.
+
 **As built.** One design system, the Jewel Box, serves every screen, the parent
 area included: warm paper, a deep tray, cream dice, an emerald action colour and
 a gold reward. It replaced three hand-built looks (the child screens, the parent
@@ -321,13 +328,11 @@ the system is made of and which rules the tests hold it to.
   same in both: the tray, the dice and the gold rim are the physical toy on the
   table.
 - **Roles, not sizes, for text.** A `Label` takes a role (display, title,
-  heading, body, label, child, word, mono, caption) and never a pixel size. The
-  scale has eight steps and nothing is smaller than 12 at any text scale. Two
-  tiers share it: the **child tier** (`child`, `word`, `title`, `display`) is
-  what a five-year-old reads, set in Archivo or in Andika; the **parent tier**
-  (`body`, `label`, `caption`, `mono`, `heading`) is what an adult scans. Source
-  strings are never upper-cased; a small label is an `Eyebrow`, which the
-  platform capitalises.
+  heading, child, label, body, word, numeral, eyebrow, caption) and never a pixel
+  size. The scale has ten steps (14, 16, 18, 20, 24, 26, 34, 36, 40, 56) and
+  nothing is smaller than 14 at any text scale. The chrome is Pixelify Sans and
+  what a child reads, and every numeral, is Andika. Source strings are never
+  upper-cased; a small label is an `Eyebrow`, which the platform capitalises.
 - **Colour has jobs.** Emerald is the one action colour; selection is a soft
   emerald fill, an emerald edge and a check mark. **Gold is reward only**: the
   hint, the lit die, the tray rim, a jewel's rim; never a selection. A disabled

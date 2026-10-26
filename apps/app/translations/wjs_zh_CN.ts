@@ -866,7 +866,7 @@
         <translation>再次点击最后一个骰子，或按“完成”</translation>
     </message>
     <message>
-        <location line="+107"/>
+        <location line="+106"/>
         <source>1 word</source>
         <translation>1 个字</translation>
     </message>
@@ -1263,17 +1263,17 @@
         <translation>您找到了所有 %1 个单词！</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+49"/>
         <source>Look at the jewels you collected.</source>
         <translation>看看你收集的珠宝。</translation>
     </message>
     <message>
-        <location line="-51"/>
+        <location line="-50"/>
         <source>You found the word!</source>
         <translation>你找到这个词了！</translation>
     </message>
     <message>
-        <location line="+137"/>
+        <location line="+136"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>

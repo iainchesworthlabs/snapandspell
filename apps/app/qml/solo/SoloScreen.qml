@@ -517,7 +517,7 @@ FocusScope {
                 Accessible.ignored: true
             }
             Label {
-                role: "child"
+                role: "numeral"
                 color: Theme.goldInk
                 text: SoloWording.summaryStars(root.solo.boardStars)
             }
@@ -526,8 +526,7 @@ FocusScope {
                 Layout.preferredHeight: 1
             }
             Label {
-                role: "child"
-                font.family: Theme.monoFont
+                role: "numeral"
                 text: SoloWording.summaryPoints(root.solo.boardPoints)
             }
         }
@@ -619,7 +618,7 @@ FocusScope {
                             id: summaryPoints
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            role: "mono"
+                            role: "eyebrow"
                             decorative: true
                             font.capitalization: Font.MixedCase
                             color: Theme.goldInk

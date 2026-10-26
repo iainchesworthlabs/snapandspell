@@ -866,7 +866,7 @@
         <translation>צאַפּן ווידער אויף די לעצטע מאָל אָדער דריקן געטאן</translation>
     </message>
     <message>
-        <location line="+107"/>
+        <location line="+106"/>
         <source>1 word</source>
         <translation>1 וואָרט</translation>
     </message>
@@ -1263,17 +1263,17 @@
         <translation>איר האָט געפֿונען אַלע %1 ווערטער!</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+49"/>
         <source>Look at the jewels you collected.</source>
         <translation>קוק בייַ די דזשולז איר געזאמלט.</translation>
     </message>
     <message>
-        <location line="-51"/>
+        <location line="-50"/>
         <source>You found the word!</source>
         <translation>דו האָסט געפֿונען דאָס וואָרט!</translation>
     </message>
     <message>
-        <location line="+137"/>
+        <location line="+136"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>

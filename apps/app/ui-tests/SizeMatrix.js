@@ -55,6 +55,28 @@ function walk(item, visit) {
     }
 }
 
+// The sheets that are open under `root`. A sheet is modal: it traps the Tab focus and its scrim takes
+// the clicks (Sheet.qml, tst_kit), so while one is open the controls behind it are not reachable and
+// only its own are held to the audit. They are audited in the states where no sheet is open.
+function openSheets(root) {
+    const sheets = [];
+    walk(root, function (it) {
+        if (it !== root && it.visible && it.open === true && typeName(it) === "Sheet") {
+            sheets.push(it);
+        }
+    });
+    return sheets;
+}
+
+function isInside(item, ancestor) {
+    for (let at = item; at; at = at.parent) {
+        if (at === ancestor) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function truncatedDescendants(item) {
     const found = [];
     walk(item, function (it) {
@@ -70,17 +92,22 @@ function truncatedDescendants(item) {
 //   - not wholly inside the viewport `root`, or inside an ancestor that clips
 //     (a Flickable's content may run off the end of its scrolling direction);
 //   - holding a label that is truncated ("Cl...");
-//   - overlapping another interactive item that is not its ancestor or child.
+//   - overlapping another interactive item that is not its ancestor or child, where both can be seen.
+// While a sheet is open only the controls inside it are audited (openSheets).
 function audit(root, min) {
     const floor = min === undefined ? 48 : min;
     const found = [];
     const items = [];
+    const sheets = openSheets(root);
+    const reachable = function (item) {
+        return sheets.length === 0 || sheets.some(function (sheet) { return isInside(item, sheet); });
+    };
 
     walk(root, function (item) {
         if (item === root || !item.visible || item.opacity <= 0 || item.width <= 0 || item.height <= 0) {
             return;
         }
-        if (isInteractive(item)) {
+        if (isInteractive(item) && reachable(item)) {
             items.push(item);
         }
     });
@@ -90,7 +117,7 @@ function audit(root, min) {
     const focusables = items.slice();
     walk(root, function (item) {
         if (item === root || !isMouseArea(item) || !item.visible || !item.enabled
-                || item.width <= 0 || item.height <= 0) {
+                || item.width <= 0 || item.height <= 0 || !reachable(item)) {
             return;
         }
         for (let at = item.parent; at; at = at.parent) {
@@ -115,7 +142,22 @@ function audit(root, min) {
     const rects = [];
     for (const item of items) {
         const at = item.mapToItem(root, 0, 0);
-        const rect = {item: item, x: at.x, y: at.y, w: item.width, h: item.height};
+        // Two controls overlap where both can be seen: the part of a control that a clipping ancestor
+        // (a Flickable) hides is scrolled away, not under its neighbour.
+        let left = at.x;
+        let top = at.y;
+        let right = at.x + item.width;
+        let bottom = at.y + item.height;
+        for (let up = item.parent; up && up !== root; up = up.parent) {
+            if (up.clip === true) {
+                const p = up.mapToItem(root, 0, 0);
+                left = Math.max(left, p.x);
+                top = Math.max(top, p.y);
+                right = Math.min(right, p.x + up.width);
+                bottom = Math.min(bottom, p.y + up.height);
+            }
+        }
+        const rect = {item: item, x: left, y: top, w: Math.max(0, right - left), h: Math.max(0, bottom - top)};
         rects.push(rect);
         const who = nameOf(item) + " at " + Math.round(at.x) + "," + Math.round(at.y)
                   + " " + Math.round(item.width) + "x" + Math.round(item.height);

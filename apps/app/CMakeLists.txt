@@ -216,16 +216,16 @@ qt_add_resources(WordJewelsSolver wjs_sounds
     BASE "${PROJECT_SOURCE_DIR}/assets/sounds"
     FILES ${WJS_SOUND_FILES})
 
-# The fonts the screens use: the house faces (Archivo for the UI and wordmark,
-# IBM Plex Mono for labels) and Andika for the learning text and the dice. They
+# The fonts the screens use: the Toybox faces (Pixelify Sans for the chrome, Silkscreen
+# for the upper-case labels) and Andika for the learning text, the dice and every
+# numeral (docs/design/toybox/DESIGN.md, section 4). They
 # are SIL Open Font Licence works; the notices carry the licence text. They are
 # compiled in rather than installed beside the program, so a package cannot be
 # missing one and QML's font lookup is the same on every target.
 set(WJS_FONT_FILES
-    "${PROJECT_SOURCE_DIR}/assets/fonts/Archivo-Regular.ttf"
-    "${PROJECT_SOURCE_DIR}/assets/fonts/Archivo-SemiBold.ttf"
-    "${PROJECT_SOURCE_DIR}/assets/fonts/Archivo-ExtraBold.ttf"
-    "${PROJECT_SOURCE_DIR}/assets/fonts/IBMPlexMono-Medium.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/PixelifySans-Medium.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/PixelifySans-Bold.ttf"
+    "${PROJECT_SOURCE_DIR}/assets/fonts/Silkscreen-Regular.ttf"
     "${PROJECT_SOURCE_DIR}/assets/fonts/Andika-Regular.ttf"
     "${PROJECT_SOURCE_DIR}/assets/fonts/Andika-Bold.ttf")
 foreach(WJS_FONT_FILE IN LISTS WJS_FONT_FILES)

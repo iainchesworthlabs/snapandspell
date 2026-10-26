@@ -29,38 +29,65 @@ TestCase {
         init()
     }
 
+    // Toybox Pixel (docs/design/toybox/DESIGN.md, section 5). The named palette is tied to tokens.json by
+    // tests/design/check_tokens.cmake; these are the roles it plays in each scheme.
     function test_theLightTokens() {
         Theme.colourScheme = "light"
 
         compare(Theme.dark, false)
-        compare(Theme.page.toString(), "#f6f1e7")
-        compare(Theme.ink.toString(), "#1e2a30")
-        compare(Theme.inkSecondary.toString(), "#56666a")
-        compare(Theme.outline.toString(), "#6e7a78")
-        compare(Theme.buttonFill.toString(), "#166b5c")
-        compare(Theme.buttonInk.toString(), "#ffffff")
-        compare(Theme.hoverWash.toString(), "#ede6d6")
-        compare(Theme.pressWash.toString(), "#e0d8c4")
-        compare(Theme.boardArea.toString(), "#faf6ec")
-        compare(Theme.panel.toString(), "#ede7da")
-        compare(Theme.card.toString(), "#fffdf8")
+        compare(Theme.page.toString(), "#ffc93c")
+        compare(Theme.ink.toString(), "#2b1d52")
+        compare(Theme.inkSecondary.toString(), "#4a3a7c")
+        compare(Theme.outline.toString(), "#2b1d52")
+        compare(Theme.buttonFill.toString(), "#2b1d52")
+        compare(Theme.buttonInk.toString(), "#fff1d6")
+        compare(Theme.hoverWash.toString(), "#ffe7b8")
+        compare(Theme.pressWash.toString(), "#ffda8f")
+        compare(Theme.boardArea.toString(), "#ffc93c")
+        compare(Theme.panel.toString(), "#fff1d6")
+        compare(Theme.card.toString(), "#fff1d6")
+        compare(Theme.surfaceDim.toString(), "#ebd9b4")
+        compare(Theme.shadow.toString(), "#1a1035")
+        compare(Theme.accentText.toString(), "#2b1d52")
+        compare(Theme.selectedFill.toString(), "#ff6b4a")
     }
 
+    // Toybox Night: a deep-purple page, night-purple panels, cream text and outlines, a sunshine primary
+    // button with ink text and coral selection with ink text.
     function test_theDarkTokens() {
         Theme.colourScheme = "dark"
 
         compare(Theme.dark, true)
-        compare(Theme.page.toString(), "#11181b")
-        compare(Theme.ink.toString(), "#f2ecde")
-        compare(Theme.inkSecondary.toString(), "#b3bdbb")
-        compare(Theme.outline.toString(), "#8c9a98")
-        compare(Theme.buttonFill.toString(), "#63c7b2")
-        compare(Theme.buttonInk.toString(), "#0e1f1c")
-        compare(Theme.hoverWash.toString(), "#2c3b41")
-        compare(Theme.pressWash.toString(), "#36484f")
-        compare(Theme.boardArea.toString(), "#0c1214")
-        compare(Theme.panel.toString(), "#1a2428")
-        compare(Theme.card.toString(), "#232f35")
+        compare(Theme.page.toString(), "#1a1035")
+        compare(Theme.ink.toString(), "#fff1d6")
+        compare(Theme.inkSecondary.toString(), "#c4b7dd")
+        compare(Theme.outline.toString(), "#fff1d6")
+        compare(Theme.buttonFill.toString(), "#ffc93c")
+        compare(Theme.buttonInk.toString(), "#2b1d52")
+        compare(Theme.hoverWash.toString(), "#3a2b66")
+        compare(Theme.pressWash.toString(), "#473577")
+        compare(Theme.boardArea.toString(), "#1a1035")
+        compare(Theme.panel.toString(), "#2b1d52")
+        compare(Theme.card.toString(), "#2b1d52")
+        compare(Theme.surfaceDim.toString(), "#3a2b66")
+        compare(Theme.shadow.toString(), "#0b0618")
+        compare(Theme.accentText.toString(), "#ffc93c")
+        compare(Theme.selectedFill.toString(), "#ff6b4a")
+        compare(Theme.selectedInk.toString(), "#2b1d52")
+    }
+
+    // Text never sits on pink or blueberry, and a coral or sunshine object on the page carries an ink
+    // outline: the roles that would break that rule must not exist as text colours.
+    function test_noTextRoleIsCoralPinkOrBlueberry() {
+        for (const scheme of ["light", "dark"]) {
+            Theme.colourScheme = scheme
+            for (const name of ["ink", "inkSecondary", "accentText", "buttonInk", "selectedInk", "dangerInk",
+                                "goldInk", "chipInk", "hintCardInk", "dieInk", "dieLitInk", "disabledInk"]) {
+                const colour = Theme[name].toString()
+                verify(colour !== Theme.coral.toString() && colour !== Theme.pink.toString()
+                       && colour !== Theme.blueberry.toString(), scheme + " " + name + " " + colour)
+            }
+        }
     }
 
     function test_theBoardIsTheSameInBothThemes() {
@@ -94,49 +121,50 @@ TestCase {
 
     function test_theTextScaleMultipliesTheType() {
         Theme.textScale = 1.0
-        compare(Theme.headingSize, 20.0)
-        compare(Theme.bodySize, 16.0)
+        compare(Theme.headingSize, 24.0)
+        compare(Theme.bodySize, 18.0)
         compare(Theme.wordSize, 24.0)
         compare(Theme.smallSize, 14.0)
         compare(Theme.rem(1.0), 16.0)
 
         Theme.textScale = 1.25
-        compare(Theme.headingSize, 25.0)
+        compare(Theme.headingSize, 30.0)
         compare(Theme.wordSize, 30.0)
         compare(Theme.smallSize, 17.5)
 
         Theme.textScale = 1.5
-        compare(Theme.headingSize, 30.0)
+        compare(Theme.headingSize, 36.0)
         compare(Theme.wordSize, 36.0)
         compare(Theme.smallSize, 21.0)
     }
 
-    // The brief's scale (12, 14, 16, 20, 24, 32, 40, 48) is the whole of the
-    // type: every size token is one of its steps at the default text size.
+    // The Toybox scale (14, 16, 18, 20, 24, 26, 34, 36, 40, 56) is the whole of the type: every size
+    // token is one of its steps at the default text size.
     function test_everyTypeSizeIsAStepOfTheScale() {
         Theme.textScale = 1.0
         const sizes = {
             monoSize: Theme.monoSize, microSize: Theme.microSize, smallSize: Theme.smallSize,
             captionSize: Theme.captionSize, bodySize: Theme.bodySize, labelSize: Theme.labelSize,
             headingSize: Theme.headingSize, wordSize: Theme.wordSize, childLabelSize: Theme.childLabelSize,
-            titleSize: Theme.titleSize, displaySize: Theme.displaySize, numeralSize: Theme.numeralSize
+            titleSize: Theme.titleSize, displaySize: Theme.displaySize, numeralSize: Theme.numeralSize,
+            wordmarkSize: Theme.wordmarkSize
         }
         for (const name in sizes) {
             verify(Theme.typeScale.indexOf(sizes[name]) >= 0, name + " " + sizes[name] + " is a step of the scale")
         }
-        compare(Theme.typeScale.length, 8)
-        compare(Theme.typeScale[0], 12)
-        compare(Theme.typeScale[7], 48)
+        compare(Theme.typeScale.length, 10)
+        compare(Theme.typeScale[0], 14)
+        compare(Theme.typeScale[9], 56)
     }
 
-    // Nothing is set below 12, whatever the text scale (the old 7, 9, 10, 11).
-    function test_noTypeIsSmallerThanTwelve() {
+    // Nothing is set below 14 (Toybox's caption), whatever the text scale.
+    function test_noTypeIsSmallerThanFourteen() {
         Theme.textScale = 0.85
-        verify(Theme.monoSize >= 12)
-        verify(Theme.smallSize >= 12)
-        verify(Theme.rem(0.5) >= 12)
+        verify(Theme.monoSize >= 14)
+        verify(Theme.smallSize >= 14)
+        verify(Theme.rem(0.5) >= 14)
         Theme.textScale = 1.0
-        compare(Theme.minTextSize, 12)
+        compare(Theme.minTextSize, 14)
     }
 
     function test_theLineHeightsAreTheBriefs() {
@@ -144,7 +172,7 @@ TestCase {
         verify(Theme.lineDisplay >= 1.15 && Theme.lineDisplay <= 1.25)
         verify(Theme.lineCaption >= 1.3 && Theme.lineCaption <= 1.5)
         compare(Theme.trackMono, 0.08)
-        compare(Theme.trackDisplay, -0.02)
+        compare(Theme.trackDisplay, 0)
     }
 
     // The tray outset never exceeds the board area's inset minus the rim when it

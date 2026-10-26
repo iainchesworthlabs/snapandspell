@@ -181,6 +181,7 @@ app and scanner suites' CTest labels (`camera`, `app`, `solo`, ...).
 | `libs/core/bench/` | The solver, the word list, and the code that makes a board (the roll of the dice, the seeding), binds its blocks and deals and plays a session, what the screens wait on besides the solver (the store a play leaves, the dashboard, the phase directory, a path submitted), and the scanner's work, as `wjs_perf_tests` | See below: [Performance tests](#performance-tests) |
 | `libs/scan/tests/` | The scanner, the camera and `board_reader` interfaces and the synthetic corpus, as `wjs_scan_tests` | See below: [The scanner](#the-scanner) |
 | `libs/scan/tests/check_privacy.cmake` | The scanner's sources and the camera and `board_reader` files | `scan.privacy`, `scan.privacy.catches_a_leak`: see [The scanner](#the-scanner) |
+| `tests/design/check_tokens.cmake` | `docs/design/toybox/tokens.json`, `wjs-tokens.json`, `Theme.qml`, `assets/fonts`, the application's and the tests' font lists | `design.tokens`: every colour of the shared palette, the dimmer surface, the Night shadow, the three faces, the smallest text size and the touch targets of the design are what `Theme` says, and the font files, the resource list and both loaders are one list |
 | `tests/analysis/check_analysis.cmake` | `CMakePresets.json`, `.github/workflows/analysis.yml`, `codeql.yml` | `analysis.config`: the analysis presets exist with their settings, `analysis.yml` is nightly and not on a push, pull request or `merge_group`, and `codeql.yml` is nightly too |
 | `tests/profiling/check_presets.cmake` | `CMakePresets.json`, `vcpkg.json`, `cmake/Tracy.cmake` | See below: `profiling.shipped_presets` |
 | `tests/profiling/check_zone_names.cmake` | Every `zone<"...">` under `libs/` and `apps/` | See below: `profiling.zone_names` |
@@ -290,6 +291,7 @@ below describe at length are marked "below":
 | `profiling.perf_budgets_ran` | A leg that claims the performance work budgets ran them ([The trace tests](#the-trace-tests)) | An optimised build, or `WJS_REQUIRE_PERF_BUDGETS=1`; otherwise it reports itself skipped (exit 4) |
 | `toolchain.versions`, `toolchain.version`, `toolchain.version.selftest` | The workflows' toolchain pins are `.github/toolchain-versions.json`'s; the version is one number in `project(VERSION)`, `vcpkg.json` and the newest `CHANGELOG.md` release (and the release job runs the same script with the tag) | Nothing |
 | `analysis.config` | The nightly analysis presets and workflows (row of [What there is](#what-there-is)) | Nothing |
+| `design.tokens` | The design's tokens against `Theme.qml`, and the font lists (row of [What there is](#what-there-is)) | Nothing |
 | `privacy.sources`, `privacy.sources.selftest`, `parent.wording`, `parent.wording.selftest` | [The privacy and parent-area checks](#the-privacy-and-parent-area-checks) | Nothing |
 | `requirements.matrix`, `requirements.matrix.selftest` | [The requirements matrix](#the-requirements-matrix) | Nothing |
 | `data.phonics.review_gate.selftest`, `data.phonics.review_gate` | The release build's review gate, held to cases (always) and to the data there is (only when `WJS_REQUIRE_REVIEWED_PHONICS` is on): [Phonics data](#phonics-data-the-checker-and-the-review-gate) | Nothing: a CMake script |
@@ -571,17 +573,19 @@ until the 2D scene replaces the 3D one, which does not render without a GPU.
 
 ### The house fonts in the QML tests
 
-The Quick Test harness and the two stub shells (`wjs_scan_preview`, `wjs_parent_preview`) register Archivo,
-IBM Plex Mono and Andika from `assets/fonts` before a screen is loaded (`wjs_test_fonts`,
+The Quick Test harness and the two stub shells (`wjs_scan_preview`, `wjs_parent_preview`) register Pixelify Sans,
+Silkscreen and Andika from `assets/fonts` before a screen is loaded (`wjs_test_fonts`,
 `apps/app/tests/fonts`), as the application does from its resource. Without them a screen is laid out in
 whatever the machine has: every label has another width, so a layout assertion (the action zone's sizes,
 the frame's room) measures the fallback and fails on a machine whose fallback differs from the
-author's, and on macOS Qt warns that it is replacing the missing "Archivo", which a run that treats a
-warning as a failure cannot pass. Archivo is also made the application's default font: a Text that names
-no family takes the platform theme's, the offscreen platform's is the generic "Sans Serif", macOS has no
-such family and Qt warns again ('missing font family "Sans Serif"'); the Cocoa platform of the real
-application supplies a system font, so only the tests need it. The glyph check of `language_test.cpp` does
-not load them: it asks what the platform's own fonts cover, and skips on a machine with none.
+author's, and on macOS Qt warns that it is replacing a missing family, which a run that treats a
+warning as a failure cannot pass. Andika, the reading face, is also made the application's default font: a
+Text that names no family takes the platform theme's, the offscreen platform's is the generic "Sans
+Serif", macOS has no such family and Qt warns again ('missing font family "Sans Serif"'); the Cocoa
+platform of the real application supplies a system font, so only the tests need it. The glyph check of
+`language_test.cpp` does not load them: it asks what the platform's own fonts cover, and skips on a machine
+with none. `design.tokens` holds the files in `assets/fonts`, the application's resource list and both
+loaders to one list.
 
 ### Camera tests without a media backend
 

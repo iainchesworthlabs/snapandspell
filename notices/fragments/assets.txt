@@ -15,7 +15,7 @@ Bundled assets
   into the application's resources, so no file of it is installed.
 
 - The interface fonts, assets/fonts/*.ttf, are bundled under the SIL Open Font
-  License 1.1: Archivo, Andika and IBM Plex Mono. Their copyright notices and
+  License 1.1: Pixelify Sans, Silkscreen and Andika. Their copyright notices and
   licence texts are in the Bundled fonts section below. They are compiled into
   the application's resources as :/fonts/<name>.ttf, so no font file is
   installed separately. No CJK face is bundled.

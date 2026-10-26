@@ -5,22 +5,26 @@ import WordJewelsSolver
 // The one text of the application. A screen says what a piece of text IS (its
 // `role`) and the kit decides how it looks: face, size, weight, line height,
 // tracking and colour all come from Theme, scale with the parent's Text size
-// setting, and cannot be forgotten - a bare Text falls back to the system face,
-// which is how the Dashboard once came to mix Segoe UI with Archivo.
+// setting, and cannot be forgotten - a bare Text falls back to the system face.
 //
-//   display  Archivo ExtraBold 40, tight           the home hero, the cleared summary
-//   title    Archivo SemiBold 32                    a screen's title
-//   heading  Archivo SemiBold 20                    a card's or section's title
-//   body     Archivo 16                             a parent's sentence
-//   label    Archivo SemiBold 16                    a parent's button
-//   child    Andika Bold 24                         a child's button or panel title
+// Toybox (docs/design/toybox/DESIGN.md, section 4): the chrome is Pixelify Sans, the face a child
+// reads is Andika.
+//
+//   display  Pixelify Sans Bold 56                  the home hero, the cleared summary
+//   title    Pixelify Sans Bold 34                  a screen's title
+//   heading  Pixelify Sans Bold 24                  a card's or section's title
+//   child    Pixelify Sans Bold 26                  a child's button
+//   label    Pixelify Sans Medium 16                a parent's button
+//   body     Andika 18                              a sentence
 //   word     Andika 24                              a found word, a hint
-//   mono     IBM Plex Mono 12, capitals, 0.08 em    counts, board size, section eyebrow
-//   caption  Archivo 14                             a hint, a time stamp
+//   caption  Andika 14                              a hint, a time stamp
+//   numeral  Andika Bold 24, tabular figures        every number: points, counts, sizes, order badges
+//   eyebrow  Silkscreen 16, capitals, 0.08 em       a section's label, board size
 //
-// `learning: true` sets a body, label or caption in Andika, the face for
-// beginning readers, for a sentence a child reads. A decorative Label (an icon's
-// twin, a repeated name) is kept out of the accessibility tree.
+// Pixelify Sans is hard to read for a beginning reader (its O and 0 match, its 2, 3 and 5 read as Z, 8 and
+// S at small sizes), so a numeral and anything a child reads is Andika. `learning: true` sets a label in
+// Andika Bold for a sentence a child reads. A decorative Label (an icon's twin, a repeated name) is kept
+// out of the accessibility tree.
 Text {
     id: root
 
@@ -44,33 +48,36 @@ Text {
     function specFor(role, learning) {
         switch (role) {
         case "display":
-            return {face: Theme.uiFont, size: Theme.displaySize, weight: Font.ExtraBold, line: Theme.lineDisplay,
+            return {face: Theme.uiFont, size: Theme.displaySize, weight: Font.Bold, line: Theme.lineDisplay,
                     tracking: Theme.trackDisplay, caps: Font.MixedCase, color: Theme.ink};
         case "title":
-            return {face: Theme.uiFont, size: Theme.titleSize, weight: Font.DemiBold, line: Theme.lineTitle,
+            return {face: Theme.uiFont, size: Theme.titleSize, weight: Font.Bold, line: Theme.lineTitle,
                     tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
         case "heading":
-            return {face: Theme.uiFont, size: Theme.headingSize, weight: Font.DemiBold, line: Theme.lineHeading,
+            return {face: Theme.uiFont, size: Theme.headingSize, weight: Font.Bold, line: Theme.lineHeading,
                     tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
         case "label":
-            return {face: learning ? Theme.fontFamily : Theme.uiFont, size: Theme.labelSize, weight: Font.DemiBold,
-                    line: Theme.lineHeading, tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
+            return {face: learning ? Theme.fontFamily : Theme.uiFont, size: Theme.labelSize,
+                    weight: learning ? Font.Bold : Font.Medium, line: Theme.lineHeading, tracking: Theme.trackNone,
+                    caps: Font.MixedCase, color: Theme.ink};
         case "child":
-            return {face: Theme.fontFamily, size: Theme.childLabelSize, weight: Font.Bold, line: Theme.lineChild,
+            return {face: Theme.uiFont, size: Theme.childLabelSize, weight: Font.Bold, line: Theme.lineChild,
                     tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
         case "word":
             return {face: Theme.fontFamily, size: Theme.wordSize, weight: Font.Normal, line: Theme.lineWord,
                     tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
-        case "mono":
-            return {face: Theme.monoFont, size: Theme.monoSize, weight: Font.Medium, line: Theme.lineMono,
+        case "numeral":
+            return {face: Theme.fontFamily, size: Theme.wordSize, weight: Font.Bold, line: Theme.lineWord,
+                    tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
+        case "eyebrow":
+            return {face: Theme.eyebrowFont, size: Theme.monoSize, weight: Font.Normal, line: Theme.lineMono,
                     tracking: Theme.trackMono, caps: Font.AllUppercase, color: Theme.inkSecondary};
         case "caption":
-            return {face: learning ? Theme.fontFamily : Theme.uiFont, size: Theme.captionSize, weight: Font.Normal,
-                    line: Theme.lineCaption, tracking: Theme.trackNone, caps: Font.MixedCase,
-                    color: Theme.inkSecondary};
+            return {face: Theme.fontFamily, size: Theme.captionSize, weight: Font.Normal, line: Theme.lineCaption,
+                    tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.inkSecondary};
         default:
-            return {face: learning ? Theme.fontFamily : Theme.uiFont, size: Theme.bodySize, weight: Font.Normal,
-                    line: Theme.lineBody, tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
+            return {face: Theme.fontFamily, size: Theme.bodySize, weight: Font.Normal, line: Theme.lineBody,
+                    tracking: Theme.trackNone, caps: Font.MixedCase, color: Theme.ink};
         }
     }
 
@@ -79,6 +86,7 @@ Text {
     font.pixelSize: root.size
     font.weight: spec.weight
     font.capitalization: spec.caps
+    font.features: root.role === "numeral" ? {"tnum": 1} : ({})
     font.letterSpacing: (root.tracking > 0 && Theme.rightToLeft) ? 0 : root.tracking * root.size
     lineHeight: root.lineRatio * root.size
     lineHeightMode: Text.FixedHeight

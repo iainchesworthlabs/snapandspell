@@ -866,7 +866,7 @@
         <translation>הקש שוב על הקוביה האחרונה, או הקש על סיום</translation>
     </message>
     <message>
-        <location line="+107"/>
+        <location line="+106"/>
         <source>1 word</source>
         <translation>מילה אחת</translation>
     </message>
@@ -1263,17 +1263,17 @@
         <translation>מצאת את כל %1 המילים!</translation>
     </message>
     <message>
-        <location line="+50"/>
+        <location line="+49"/>
         <source>Look at the jewels you collected.</source>
         <translation>תראו את התכשיטים שאספתם.</translation>
     </message>
     <message>
-        <location line="-51"/>
+        <location line="-50"/>
         <source>You found the word!</source>
         <translation>מצאת את המילה!</translation>
     </message>
     <message>
-        <location line="+137"/>
+        <location line="+136"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>

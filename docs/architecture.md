@@ -106,7 +106,7 @@ apps/
       system_motion.*      whether the system asks for reduced motion
       frame_profiler.*     the window's frame mark and plots
     translations/        wjs_<code>.ts, the eight languages' catalogues
-assets/                fonts/ (Archivo, IBM Plex Mono, Andika: compiled into the program),
+assets/                fonts/ (Pixelify Sans, Silkscreen, Andika: compiled into the program),
                        icon/, and sounds/ (the project's eight placeholder feedback WAVs)
 data/                  dice/ (3x3 to 6x6), dictionaries/en.txt (ENABLE), lexicon/
 cmake/                 Platform.cmake (selector), PlatformContract.cmake,
@@ -991,7 +991,7 @@ is skipped, and the word is said by the voice at once; the standard board has no
 sequence and its word is said whole. No device shake on a desktop: Shake is a button and Space there,
 with the drag on the box standing in for the accelerometer. The button and Space
 are always there. The type is
-bundled: Archivo, IBM Plex Mono and Andika (each with its licence beside it in
+bundled: Pixelify Sans, Silkscreen and Andika (each with its licence beside it in
 `assets/fonts`) are compiled into the program and loaded in `main.cpp`, and `Theme`
 names them. The family game's picture on `home` asks for the parent area, and
 Mode A is entered from the dashboard (above); the desktop camera is the application's

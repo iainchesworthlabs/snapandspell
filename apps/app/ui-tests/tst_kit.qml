@@ -370,40 +370,45 @@ TestCase {
 
     // --- Label ------------------------------------------------------------------
     function test_everyLabelRoleSetsItsFaceSizeAndLineHeight() {
-        const faces = {display: "Archivo", title: "Archivo", heading: "Archivo", body: "Archivo",
-                       label: "Archivo", child: "Andika", word: "Andika", mono: "IBM Plex Mono", caption: "Archivo"}
+        const faces = {display: "Pixelify Sans", title: "Pixelify Sans", heading: "Pixelify Sans",
+                       child: "Pixelify Sans", label: "Pixelify Sans", body: "Andika", word: "Andika",
+                       numeral: "Andika", eyebrow: "Silkscreen", caption: "Andika"}
         for (const role in faces) {
             const label = createTemporaryObject(labelComponent, testCase, { role: role, text: "Aa" })
             compare(label.font.family, faces[role], role + " face")
             verify(Theme.typeScale.indexOf(label.font.pixelSize) >= 0, role + " size " + label.font.pixelSize + " is on the scale")
             verify(label.lineRatio >= 1.0 && label.lineRatio <= 1.5, role + " has a line height ratio")
             compare(label.lineHeight, label.lineRatio * label.size, role + " line height is that ratio of its size")
-            verify(label.font.pixelSize >= 12)
+            verify(label.font.pixelSize >= 14)
         }
     }
 
     function test_aLabelFollowsTheTextSizeAndLearningSetsAndika() {
         const body = createTemporaryObject(labelComponent, testCase, { role: "body", text: "x" })
-        compare(body.font.pixelSize, 16)
-        Theme.textScale = 1.5
-        compare(body.font.pixelSize, 24)
-        Theme.textScale = 1.0
-        body.learning = true
+        compare(body.font.pixelSize, 18)
         compare(body.font.family, "Andika")
+        Theme.textScale = 1.5
+        compare(body.font.pixelSize, 27)
+        Theme.textScale = 1.0
+        // A parent's button label is the chrome's face; set for a child to read it is Andika.
+        const label = createTemporaryObject(labelComponent, testCase, { role: "label", text: "x" })
+        compare(label.font.family, "Pixelify Sans")
+        label.learning = true
+        compare(label.font.family, "Andika")
     }
 
     function test_trackingIsInEmAndNotAppliedToARightToLeftLanguage() {
-        const mono = createTemporaryObject(labelComponent, testCase, { role: "mono", text: "Play" })
-        compare(mono.font.capitalization, Font.AllUppercase)
-        verify(Math.abs(mono.font.letterSpacing - 0.08 * 12) < 0.02, "0.08 em of 12 px")
+        const eyebrow = createTemporaryObject(labelComponent, testCase, { role: "eyebrow", text: "Play" })
+        compare(eyebrow.font.capitalization, Font.AllUppercase)
+        verify(Math.abs(eyebrow.font.letterSpacing - 0.08 * 16) < 0.02, "0.08 em of 16 px")
         Theme.textScale = 1.5
-        verify(Math.abs(mono.font.letterSpacing - 0.08 * 18) < 0.02, "it scales with the type")
+        verify(Math.abs(eyebrow.font.letterSpacing - 0.08 * 24) < 0.02, "it scales with the type")
         Theme.textScale = 1.0
         const display = createTemporaryObject(labelComponent, testCase, { role: "display", text: "Shake." })
-        verify(Math.abs(display.font.letterSpacing - (-0.02 * 40)) < 0.02, "-0.02 em of 40 px")
+        compare(display.font.letterSpacing, 0)
         Theme.rightToLeft = true
-        compare(mono.font.letterSpacing, 0)
-        verify(display.font.letterSpacing < 0, "tight display type is kept")
+        compare(eyebrow.font.letterSpacing, 0)
+        compare(display.font.letterSpacing, 0)
     }
 
     function test_anEyebrowIsCapitalsByFontNotBySource() {
@@ -412,7 +417,7 @@ TestCase {
         compare(eyebrow.font.capitalization, Font.AllUppercase)
         compare(eyebrow.color.toString(), Theme.inkSecondary.toString())
         eyebrow.accented = true
-        compare(eyebrow.color.toString(), Theme.accent.toString())
+        compare(eyebrow.color.toString(), Theme.accentText.toString())
     }
 
     function test_headingsAreHeadingsToAssistiveTechnology() {
