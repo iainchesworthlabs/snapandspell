@@ -151,7 +151,7 @@ TestCase {
         verify(card !== undefined)
         compare(card.empty, true)
         compare(card.color, Theme.card)
-        compare(card.radius, Theme.radius)
+        compare(card.radius, Theme.radiusPanel)
         const texts = textsShown(view)
         verify(texts.indexOf(ScanWording.wordsFound) >= 0)
         verify(texts.indexOf(ScanWording.noWordsYet) >= 0)

@@ -133,8 +133,18 @@ FocusScope {
                          column.implicitHeight + 2 * Theme.space4)
         radius: Theme.radiusLarge
         color: Theme.card
-        border.width: Theme.hair
+        border.width: Theme.outlinePanel
         border.color: Theme.line
+
+        // The hard shadow, painted behind the dialog.
+        Rectangle {
+            z: -1
+            y: Theme.shadowLarge
+            width: panel.width
+            height: panel.height
+            radius: panel.radius
+            color: Theme.shadow
+        }
 
         Accessible.role: Accessible.Dialog
         Accessible.name: root.title

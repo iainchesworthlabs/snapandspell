@@ -4,8 +4,8 @@ import QtQuick.Layouts
 import WordJewelsSolver
 
 // A titled card: the pattern behind the panel's Words and Hint cards, the
-// dashboard's sections and the jewels page. A 12 px radius, the card colour and
-// a 1 px `line` edge (which is what tells it from the paper in both themes).
+// dashboard's sections and the jewels page. Toybox: the card colour, a 4 px ink outline, an 18 px
+// radius and a hard 6 px shadow (docs/design/toybox/DESIGN.md, section 6).
 //
 // Every card has a title and an empty state (docs/design/application.md,
 // "The Jewel Box design system"): `title` is the heading, `hint` a caption under it, and while
@@ -26,10 +26,20 @@ Rectangle {
 
     implicitWidth: column.implicitWidth + 2 * padding
     implicitHeight: column.implicitHeight + 2 * padding
-    radius: Theme.radius
+    radius: Theme.radiusPanel
     color: Theme.card
-    border.width: Theme.hair
+    border.width: Theme.outlinePanel
     border.color: Theme.line
+
+    // The hard shadow, painted behind the card (a negative z is below its parent).
+    Rectangle {
+        z: -1
+        y: Theme.shadowLarge
+        width: root.width
+        height: root.height
+        radius: root.radius
+        color: Theme.shadow
+    }
 
     Accessible.role: Accessible.Grouping
     Accessible.name: root.title

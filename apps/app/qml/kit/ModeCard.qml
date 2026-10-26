@@ -13,7 +13,8 @@ import WordJewelsSolver
 // preferred height plus the words' own height, and `minimumHeight` the least
 // the art may be given (Theme.cardArtMin), so a screen that lays the card out
 // reads its height from the card and never writes a number. Both cards use one
-// title role; `primary` only changes the edge and the fill.
+// title role; `primary` is the child's card (its jewel box, the entry that has the focus first). Both
+// are Toybox panels: a 4 px ink outline, an 18 px radius and a hard 6 px shadow.
 //
 // The card draws the keyboard focus ring (not drawn after a tap or a click, nor
 // on the first paint of the card that holds focus from the start), and its
@@ -45,12 +46,22 @@ Rectangle {
     readonly property real wordsBlock: words.implicitHeight + Theme.space6
     implicitHeight: Theme.space4 + Theme.cardArt + Theme.space3 + wordsBlock
     readonly property real minimumHeight: Theme.space4 + Theme.cardArtMin + Theme.space3 + wordsBlock
-    radius: Theme.radiusLarge
-    color: primary ? Theme.surface : Theme.card
-    border.width: primary ? Theme.heavy : Theme.hair
-    border.color: primary ? Theme.accent : Theme.line
+    radius: Theme.radiusPanel
+    color: Theme.card
+    border.width: Theme.outlinePanel
+    border.color: Theme.line
     activeFocusOnTab: true
     focus: primary
+
+    // The hard shadow, painted behind the card.
+    Rectangle {
+        z: -1
+        y: Theme.shadowLarge
+        width: root.width
+        height: root.height
+        radius: root.radius
+        color: Theme.shadow
+    }
 
     Accessible.role: Accessible.Button
     Accessible.name: root.accessibleName
@@ -121,7 +132,6 @@ Rectangle {
             width: parent.width
             role: "title"
             text: root.title
-            font.weight: Font.ExtraBold
             wrapMode: Text.WordWrap
             maximumLineCount: 2
             elide: Text.ElideRight

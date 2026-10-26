@@ -15,18 +15,18 @@ import WordJewelsSolver
 // A button grows with its label (wrapping, at the 48 dp tier), so a larger text
 // size never truncates a word to "Cl...". Variants:
 //
-//   primary    the one action of a place: emerald fill
-//   secondary  a card-coloured button with an outline
-//   ghost      text (and an icon) on the paper, a wash on hover
-//   danger     a destructive action: filled with `Theme.dangerFill`
-//   dangerQuiet  the same colour as an outline, for a step before the last
-//   tab        a page switch: text with an emerald underline when `checked`
+//   primary    the one action of a place: the ink fill (Night: sunshine), hard shadow
+//   secondary  a cream button with a 3 px ink outline and a hard shadow
+//   ghost      text (and an icon) on the paper, no outline and no shadow, a wash on hover
+//   danger     a destructive action: cream, a 4 px pink outline and an x mark, the text in ink
+//   dangerQuiet  the same, for a step before the last
+//   tab        a page switch: text with an underline when `checked`
 //   picture    a ghost button whose content is the caller's own picture
 //
-// `checkable` buttons show their chosen state as a soft emerald fill, a heavier
-// emerald edge and a check mark (never gold, never colour alone). A disabled
-// button has its own fill, ink and edge; nothing is made see-through. Icon-only
-// buttons are for Back and Close only (the lint test holds the list).
+// Toybox (docs/design/toybox/DESIGN.md, section 6): a pressed button sinks 4 px onto its shadow, a
+// disabled one is dimmer with a dashed outline and no shadow (nothing is made see-through), and a
+// `checkable` button shows its chosen state as a coral fill, a 4 px outline and a check mark - never
+// colour alone. Icon-only buttons are for Back and Close only (the lint test holds the list).
 //
 // `label` is the visible word. `accessibleName` falls back to the label, and
 // `speaks` falls back to it too, so a labelled button is never silent.
@@ -88,8 +88,14 @@ Item {
     readonly property real iconSize: size === "primary" ? Theme.iconLg
                                    : size === "min" ? Theme.iconSm
                                    : Theme.iconMd
-    property real labelPointSize: size === "min" ? (compact ? Theme.smallSize : Theme.labelSize)
-                                                 : Theme.childLabelSize
+    // 26 for the primary action, 18 for a child's button, 16 (14 compact) for a grown-up's.
+    property real labelPointSize: size === "primary" ? Theme.childLabelSize
+                                : size === "child" ? Theme.bodySize
+                                : (compact ? Theme.smallSize : Theme.labelSize)
+    readonly property bool isDangerous: isDanger || variant === "dangerQuiet"
+    // The hard shadow: none for a ghost or a disabled button, 6 px under the primary action, else 4.
+    readonly property real shadowSize: (!root.enabled || root.isGhost) ? 0
+                                     : (size === "primary" ? Theme.shadowLarge : Theme.shadowMedium)
     readonly property color contentColor: {
         if (!root.enabled) {
             return Theme.disabledInk;
@@ -101,7 +107,7 @@ Item {
             return Theme.dangerInk;
         }
         if (root.variant === "dangerQuiet") {
-            return Theme.danger;
+            return root.ink;
         }
         if (root.checked && root.checkable && !root.isTab) {
             return Theme.selectedInk;
@@ -115,8 +121,9 @@ Item {
     // Room for the check mark: kept on both sides of the label, so the word stays
     // in the middle whether or not the option is chosen and choosing it moves nothing.
     readonly property real choiceSpace: (checkable && !isTab && size !== "child") ? 2 * (Theme.iconSm + Theme.space2) : 0
+    readonly property real markSpace: isDangerous ? Theme.iconSm + Theme.space2 : 0
     readonly property real rowContentWidth: (hasIcon ? iconSize + (hasLabel ? Theme.space2 : 0) : 0)
-                                            + (hasLabel ? labelText.implicitWidth : 0) + choiceSpace
+                                            + (hasLabel ? labelText.implicitWidth : 0) + choiceSpace + markSpace
     readonly property real rowContentHeight: Math.max(hasIcon ? iconSize : 0, hasLabel ? labelText.height : 0)
     readonly property real columnContentHeight: (hasIcon ? iconSize : 0) + (hasIcon && hasLabel ? 2 : 0)
                                                 + (hasLabel ? childText.height : 0)
@@ -139,170 +146,195 @@ Item {
     Accessible.checked: checked
     Accessible.onPressAction: root.activate()
 
-    Rectangle {
+    PixelBox {
         id: face
         anchors.fill: parent
         radius: root.radius
-        color: {
+        shadowOffset: root.shadowSize
+        sunk: root.pressed && root.shadowSize > 0
+        dashed: !root.enabled && !root.isGhost
+        fill: {
             if (!root.enabled) {
                 return root.isGhost ? "transparent" : Theme.disabledFill;
             }
             if (root.isPrimary) {
-                return root.pressed ? Qt.darker(Theme.buttonFill, 1.15) : Theme.buttonFill;
+                return Theme.buttonFill;
             }
-            if (root.isDanger) {
-                return root.pressed ? Qt.darker(Theme.dangerFill, 1.15) : Theme.dangerFill;
+            if (root.isDangerous) {
+                return root.pressed ? root.pressFill : Theme.dangerFill;
             }
             if (root.checked && root.checkable && !root.isTab) {
-                return root.pressed ? root.pressFill : Theme.selectedFill;
+                return Theme.selectedFill;
             }
             if (root.isGhost) {
                 return root.pressed ? root.pressFill : (root.hovered ? root.hoverFill : "transparent");
             }
             return root.pressed ? root.pressFill : (root.hovered ? root.hoverFill : Theme.card);
         }
-        border.width: {
+        edgeWidth: {
+            if (root.isGhost) {
+                return 0;
+            }
             if (!root.enabled) {
-                return (root.variant === "secondary" || root.variant === "dangerQuiet") ? Theme.hair : 0;
+                return Theme.outlineControl;
             }
-            if (root.checked && root.checkable && !root.isTab) {
-                return Theme.heavy;
+            if (root.isDangerous || (root.checked && root.checkable && !root.isTab)) {
+                return Theme.outlinePanel;
             }
-            return (root.variant === "secondary" || root.variant === "dangerQuiet") ? Theme.hair : 0;
+            return Theme.outlineControl;
         }
-        border.color: {
+        edge: {
             if (!root.enabled) {
                 return Theme.disabledEdge;
+            }
+            if (root.isDangerous) {
+                return Theme.danger;
             }
             if (root.checked && root.checkable && !root.isTab) {
                 return Theme.selectedEdge;
             }
-            return root.variant === "dangerQuiet" ? Theme.danger : root.edge;
+            return root.edge;
         }
     }
 
-    // A tab's chosen page: an emerald underline across its foot.
-    Rectangle {
-        visible: root.isTab && root.checked
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.leftMargin: Theme.space2
-        anchors.rightMargin: Theme.space2
-        height: Theme.litEdge
-        radius: Theme.radiusXs
-        color: Theme.selectedEdge
-    }
-
+    // What the button shows sinks with its face when it is pressed.
     Item {
-        id: contentArea
+        id: inner
         anchors.fill: parent
-    }
+        y: face.sunk ? root.shadowSize : 0
 
-    // 48 and 96 dp tiers: the picture beside the word.
-    Row {
-        id: labelRow
-        visible: root.size !== "child" && (root.hasIcon || root.hasLabel)
-        anchors.centerIn: parent
-        spacing: Theme.space2
+        // A tab's chosen page: an emerald underline across its foot.
+        Rectangle {
+            visible: root.isTab && root.checked
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: Theme.space2
+            anchors.rightMargin: Theme.space2
+            height: Theme.litEdge
+            radius: Theme.radiusXs
+            color: Theme.selectedEdge
+        }
 
-        Icon {
-            visible: root.checkable && !root.isTab && root.size !== "child"
-            width: root.checkable && !root.isTab && root.size !== "child" ? Theme.iconSm : 0
-            height: width
-            name: "done"
-            strokeWidth: Theme.litEdge
-            anchors.verticalCenter: parent.verticalCenter
-            // Held in place when not chosen, so choosing does not shift the word.
-            opacity: root.showChoice ? 1 : 0
-            color: root.contentColor
-        }
-        Icon {
-            visible: root.hasIcon
-            name: root.iconName
-            width: root.iconSize
-            height: width
-            anchors.verticalCenter: parent.verticalCenter
-            color: root.contentColor
-            strokeWidth: root.size === "primary" ? 2.4 : 2
-        }
-        Label {
-            id: labelText
-            visible: root.hasLabel
-            role: "label"
-            decorative: true
-            text: root.label
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.min(implicitWidth, Math.max(0, root.width - 2 * root.contentPad
-                                                        - (root.hasIcon ? root.iconSize + Theme.space2 : 0)
-                                                        - root.choiceSpace))
-            size: root.labelPointSize
-            font.family: root.size === "primary" ? Theme.fontFamily : Theme.uiFont
-            font.weight: (root.isPrimary || root.checked || root.size === "primary") ? Font.Bold : Font.DemiBold
-            color: root.contentColor
-            wrapMode: root.wrap ? Text.WordWrap : Text.NoWrap
-            elide: root.wrap ? Text.ElideNone : Text.ElideRight
-            maximumLineCount: root.wrap ? 3 : 1
-            horizontalAlignment: Text.AlignHCenter
-        }
-        // The check mark's twin on the other side, empty.
         Item {
-            visible: root.checkable && !root.isTab && root.size !== "child"
-            width: Theme.iconSm
-            height: 1
+            id: contentArea
+            anchors.fill: parent
         }
-    }
 
-    // The 64 dp tier: the picture above the word.
-    Column {
-        id: labelColumn
-        visible: root.size === "child" && (root.hasIcon || root.hasLabel)
-        anchors.centerIn: parent
-        spacing: 2
-
-        Icon {
-            visible: root.hasIcon
-            name: root.iconName
-            width: root.iconSize
-            height: width
-            anchors.horizontalCenter: parent.horizontalCenter
-            color: root.contentColor
-            strokeWidth: 2
-        }
-        Label {
-            id: childText
-            visible: root.hasLabel
-            role: "child"
-            decorative: true
-            text: root.label
-            width: Math.min(implicitWidth, Math.max(0, root.width - 2 * Theme.space2))
-            horizontalAlignment: Text.AlignHCenter
-            anchors.horizontalCenter: parent.horizontalCenter
-            size: root.labelPointSize
-            font.weight: Font.Bold
-            color: root.contentColor
-            wrapMode: root.wrap ? Text.WordWrap : Text.NoWrap
-            elide: root.wrap ? Text.ElideNone : Text.ElideRight
-        }
-    }
-
-    // A chosen child button carries its check at the corner.
-    Rectangle {
-        visible: root.showChoice && root.size === "child"
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: Theme.space1
-        width: Theme.iconSm
-        height: width
-        radius: width / 2
-        color: Theme.selectedEdge
-        Icon {
+        // 48 and 96 dp tiers: the picture beside the word.
+        Row {
+            id: labelRow
+            visible: root.size !== "child" && (root.hasIcon || root.hasLabel)
             anchors.centerIn: parent
-            width: Theme.iconXs
+            spacing: Theme.space2
+
+            Icon {
+                visible: root.checkable && !root.isTab && root.size !== "child"
+                width: root.checkable && !root.isTab && root.size !== "child" ? Theme.iconSm : 0
+                height: width
+                name: "done"
+                strokeWidth: Theme.litEdge
+                anchors.verticalCenter: parent.verticalCenter
+                // Held in place when not chosen, so choosing does not shift the word.
+                opacity: root.showChoice ? 1 : 0
+                color: root.contentColor
+            }
+            // A destructive button says so with a mark as well as its outline.
+            Icon {
+                visible: root.isDangerous
+                width: root.isDangerous ? Theme.iconSm : 0
+                height: width
+                name: "close"
+                strokeWidth: Theme.litEdge
+                anchors.verticalCenter: parent.verticalCenter
+                color: root.contentColor
+            }
+            Icon {
+                visible: root.hasIcon
+                name: root.iconName
+                width: root.iconSize
+                height: width
+                anchors.verticalCenter: parent.verticalCenter
+                color: root.contentColor
+                strokeWidth: root.size === "primary" ? 2.4 : 2
+            }
+            Label {
+                id: labelText
+                visible: root.hasLabel
+                role: "label"
+                decorative: true
+                text: root.label
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.min(implicitWidth, Math.max(0, root.width - 2 * root.contentPad
+                                                            - (root.hasIcon ? root.iconSize + Theme.space2 : 0)
+                                                            - root.choiceSpace))
+                size: root.labelPointSize
+                font.weight: (root.size !== "min" || root.isPrimary || root.checked) ? Font.Bold : Font.Medium
+                color: root.contentColor
+                wrapMode: root.wrap ? Text.WordWrap : Text.NoWrap
+                elide: root.wrap ? Text.ElideNone : Text.ElideRight
+                maximumLineCount: root.wrap ? 3 : 1
+                horizontalAlignment: Text.AlignHCenter
+            }
+            // The check mark's twin on the other side, empty.
+            Item {
+                visible: root.checkable && !root.isTab && root.size !== "child"
+                width: Theme.iconSm
+                height: 1
+            }
+        }
+
+        // The 64 dp tier: the picture above the word.
+        Column {
+            id: labelColumn
+            visible: root.size === "child" && (root.hasIcon || root.hasLabel)
+            anchors.centerIn: parent
+            spacing: 2
+
+            Icon {
+                visible: root.hasIcon
+                name: root.iconName
+                width: root.iconSize
+                height: width
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: root.contentColor
+                strokeWidth: 2
+            }
+            Label {
+                id: childText
+                visible: root.hasLabel
+                role: "child"
+                decorative: true
+                text: root.label
+                width: Math.min(implicitWidth, Math.max(0, root.width - 2 * Theme.space2))
+                horizontalAlignment: Text.AlignHCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+                size: root.labelPointSize
+                font.weight: Font.Bold
+                color: root.contentColor
+                wrapMode: root.wrap ? Text.WordWrap : Text.NoWrap
+                elide: root.wrap ? Text.ElideNone : Text.ElideRight
+            }
+        }
+
+        // A chosen child button carries its check at the corner.
+        Rectangle {
+            visible: root.showChoice && root.size === "child"
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: Theme.space1
+            width: Theme.iconSm
             height: width
-            name: "done"
-            strokeWidth: Theme.litEdge
-            color: Theme.buttonInk
+            radius: width / 2
+            color: Theme.selectedEdge
+            Icon {
+                anchors.centerIn: parent
+                width: Theme.iconXs
+                height: width
+                name: "done"
+                strokeWidth: Theme.litEdge
+                color: Theme.buttonInk
+            }
         }
     }
 

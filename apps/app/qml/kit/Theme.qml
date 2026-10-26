@@ -221,7 +221,7 @@ QtObject {
     readonly property real heavy: 2
     readonly property real litEdge: 3
     readonly property real litScale: 1.03
-    readonly property real focusWidth: 2
+    readonly property real focusWidth: 4
     readonly property real focusGap: 3
     readonly property real pathCoreWidth: 5
     readonly property real pathCasingWidth: 9
@@ -248,9 +248,24 @@ QtObject {
     readonly property real ringWidth: 4
     readonly property real ringWidthSecond: 3
 
+    // Shape (DESIGN.md, sections 3 and 6): outlines and hard shadows are whole pixels, no blur.
+    readonly property real outlineControl: 3
+    readonly property real outlinePanel: 4
+    readonly property real outlineFrame: 6
+    readonly property real shadowSmall: 3
+    readonly property real shadowMedium: 4
+    readonly property real shadowLarge: 6
+    readonly property real shadowFrame: 12
+    // A pressed button sinks onto its own shadow; a dashed edge is this many outline widths on, as many off.
+    readonly property real pressDepth: 4
+    readonly property real dashLength: 4
+
+    // Radii: a segment, a chip, a control and a die, a button, a panel, a dialog.
     readonly property real radiusXs: 4
     readonly property real radiusSmall: 8
-    readonly property real radius: 12
+    readonly property real radiusControl: 10
+    readonly property real radius: 14
+    readonly property real radiusPanel: 18
     readonly property real radiusLarge: 20
 
     readonly property real appBarHeight: 72

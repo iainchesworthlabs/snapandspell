@@ -115,6 +115,53 @@ foreach(_pair "targetMin|min" "targetChild|child" "targetPrimary|primary" "targe
     endif()
 endforeach()
 
+# --- shape: outlines, radii and hard shadows (tokens.json shape) ------------------------------------
+function(_theme_number property out_var)
+    string(REGEX MATCH "readonly property real ${property}: ([0-9.]+)" _m "${_theme}")
+    set(${out_var} "${CMAKE_MATCH_1}" PARENT_SCOPE)
+endfunction()
+
+# Theme property | tokens.json path (keys separated by a space) | how to read the value
+set(_shape
+    "outlinePanel|shape outline panel|number" "outlineControl|shape outline control|number"
+    "radiusXs|shape radius segment|number" "radiusSmall|shape radius chip|number"
+    "radiusControl|shape radius control|number" "radius|shape radius button|number"
+    "radiusPanel|shape radius panel|number" "radiusLarge|shape radius dialog|number"
+    "shadowSmall|shape dropShadow small|shadow" "shadowMedium|shape dropShadow medium|shadow"
+    "shadowLarge|shape dropShadow large|shadow")
+foreach(_entry IN LISTS _shape)
+    string(REPLACE "|" ";" _entry "${_entry}")
+    list(GET _entry 0 _property)
+    list(GET _entry 1 _path)
+    list(GET _entry 2 _kind)
+    separate_arguments(_keys UNIX_COMMAND "${_path}")
+    string(JSON _raw ERROR_VARIABLE _error GET "${_tokens}" ${_keys})
+    if(_error)
+        _fail("tokens.json has no ${_path}")
+        continue()
+    endif()
+    if(_kind STREQUAL "shadow")
+        # "0 4px 0 #1A1035": the drop is the second number.
+        string(REGEX MATCH "^0 ([0-9]+)px" _m "${_raw}")
+        set(_want "${CMAKE_MATCH_1}")
+    else()
+        set(_want "${_raw}")
+    endif()
+    _theme_number("${_property}" _got)
+    if(NOT _got STREQUAL _want)
+        _fail("Theme.${_property} is '${_got}', tokens.json ${_path} is ${_want}")
+    endif()
+endforeach()
+
+# The tray's frame: "6px ink outline plus a 12px hard drop".
+string(JSON _frame GET "${_tokens}" board frame)
+string(REGEX MATCH "^([0-9]+)px[^0-9]*([0-9]+)px" _m "${_frame}")
+_theme_number(outlineFrame _got_outline)
+_theme_number(shadowFrame _got_drop)
+if(NOT _got_outline STREQUAL "${CMAKE_MATCH_1}" OR NOT _got_drop STREQUAL "${CMAKE_MATCH_2}")
+    _fail("Theme.outlineFrame/shadowFrame are ${_got_outline}/${_got_drop}, tokens.json board.frame is '${_frame}'")
+endif()
+
 # --- the font files: one list in four places --------------------------------------------------------
 file(GLOB _disk RELATIVE "${REPO_ROOT}/assets/fonts" "${REPO_ROOT}/assets/fonts/*.ttf")
 list(SORT _disk)
@@ -150,4 +197,4 @@ endforeach()
 if(_failures)
     message(FATAL_ERROR "The design tokens, the Theme and the font lists disagree:${_failures}")
 endif()
-message(STATUS "design: the palette, the faces, the smallest text and the targets match tokens.json; the fonts are one list")
+message(STATUS "design: the palette, the faces, the shape, the smallest text and the targets match tokens.json; the fonts are one list")
