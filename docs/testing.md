@@ -567,8 +567,9 @@ Windows leg (`Screenshots (Windows)`, which never fails the leg) and keeps them 
 it is not part of `all`. It is how a change to the look is compared with the one before it, and the
 Toybox restyle ([design](design/toybox/DESIGN.md)) is checked against its mockups with it.
 
-The board scene is the harness's stub, which draws nothing: the dice of Solo Play are not in the pictures
-until the 2D scene replaces the 3D one, which does not render without a GPU.
+The pictures use the application's own board scene (the pixel scene draws without a GPU), and the
+last five are frames of its play: the closed box, a shake, the lid lifting, the drop under way and the
+settled board.
 
 ### The house fonts in the QML tests
 
