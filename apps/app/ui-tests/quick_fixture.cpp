@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "quick_fixture.hpp"
 
+#include <QDir>
 #include <QQmlContext>
 #include <utility>
 
@@ -142,6 +143,12 @@ bool QuickFixture::readDoubtfulBoard() {
     reading.tiles[3].confidence = 0.5;
     reading.tiles[3].doubtful = true;
     return scan_->useReading(reading);
+}
+
+QString QuickFixture::shotsDirectory() const {
+    QDir directory(qEnvironmentVariable("WJS_SHOTS_DIR", QStringLiteral("screenshots")));
+    directory.mkpath(QStringLiteral("."));
+    return directory.absolutePath() + QLatin1Char('/');
 }
 
 bool QuickFixture::mediaBackendAvailable() const {

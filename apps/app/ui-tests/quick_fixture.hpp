@@ -96,6 +96,10 @@ public:
     // the no-camera screen, as the program on a desktop with no webcam does.
     Q_INVOKABLE void useCamera();
 
+    // The directory capture_screens.qml writes its pictures into: WJS_SHOTS_DIR, else `screenshots`
+    // in the working directory. Made if it is not there.
+    Q_INVOKABLE QString shotsDirectory() const;
+
     [[nodiscard]] bool mediaBackendAvailable() const;
 
 private:

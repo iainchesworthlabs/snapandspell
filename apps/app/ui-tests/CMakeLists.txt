@@ -240,6 +240,22 @@ foreach(WJS_QUICK_TEST_FILE IN LISTS WJS_QUICK_TEST_FILES)
         LABELS "system;ui;gui")
 endforeach()
 
+# A picture of every screen and dialog (capture_screens.qml): the QML the suites test, drawn by the
+# offscreen platform and written as PNG files into <build>/screenshots (or WJS_SHOTS_DIR). Not a test and
+# not part of `all`: `cmake --build --preset <preset> --target wjs_screenshots` (docs/testing.md,
+# "Screenshots").
+add_custom_target(wjs_screenshots
+    COMMAND "${CMAKE_COMMAND}" -E env
+        QT_QPA_PLATFORM=offscreen
+        QT_FORCE_STDERR_LOGGING=1
+        ${WJS_PLATFORM_QT_HEADLESS_ENVIRONMENT}
+        "WJS_SHOTS_DIR=${PROJECT_BINARY_DIR}/screenshots"
+        $<TARGET_FILE:wjs_quick_tests>
+        -input "${CMAKE_CURRENT_SOURCE_DIR}/capture_screens.qml" -platform offscreen
+    DEPENDS wjs_quick_tests
+    USES_TERMINAL
+    COMMENT "Taking a picture of every screen")
+
 # The design system's guard rail over the QML sources: no pixel size, colour or
 # bare Text in a screen, no deleted names (apps/app/ui-tests/check_qml_literals.cmake),
 # with an allow-list of the offences still in the tree that the screen streams
