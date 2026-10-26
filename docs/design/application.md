@@ -278,17 +278,19 @@ containers). Numbers and dates use the locale.
 **Fonts.** Andika (SIL OFL) is bundled and is the face for beginning readers,
 the dice, the reading text and every numeral; Pixelify Sans carries the
 interface's headings, buttons and labels, and Silkscreen the small upper-case
-labels. All three are compiled into the application's resources. Hebrew, Yiddish and CJK still fall
-back per glyph through the platform's fonts: Segoe UI/Arial and Microsoft YaHei
-and Yu Gothic on Windows, PingFang and Hiragino on the iPad. CJK faces are
-**not bundled** (about 16 MB); the system fallback is documented and accepted,
-and no CJK text is ever drawn into a picture. If a device's chain turned out to
-lack a Hebrew or Yiddish glyph, Noto Sans Hebrew (OFL, also not bundled) would
-be added to the asset directory, the resource and the font family list, and
-recorded in [Licensing](../licensing.md). A test lays out a sample
-sentence in each of the eight languages with the app's font chain and skips
-itself, with a message, on a platform whose fonts lack the script; it is a
-Windows check today (docs/testing.md). **Recorded:** run on Windows on
+labels. Those three are compiled into the application's resources, with **Noto Sans SC, Noto Sans JP
+and Noto Sans Hebrew** (SIL OFL), each a subset of the upstream variable font cut by
+`tools/design/make_noto_subsets.py` to the characters of the catalogues and the languages' own names, in
+two static weights (Regular, Bold): 0.86 MB in all, where the full CJK families would be about 27 MB.
+The web has no system fonts, so a face for every script is bundled and no platform fallback is relied on.
+In Chinese, Japanese, Hebrew and Yiddish the chrome and the sentences are set in the Noto face of the
+language (`Theme.nativeFont`: Pixelify Sans, Silkscreen and Andika carry Latin only), and a
+Han character is Chinese or Japanese by the language it is read in; the wordmark keeps the house faces.
+The language picker names each language in its own script, in every interface language, and Qt finds those
+glyphs among the registered fonts. The words on the board are English and are
+drawn in Andika, so no CJK text is ever drawn into a picture. A test reads every catalogue and checks that
+the bundled faces carry each character (`language_test.cpp`); the older glyph check of eight sample
+sentences still skips itself on a platform whose fonts lack the script (docs/testing.md). **Recorded:** run on Windows on
 2026-10-19, the chain carried every glyph of all eight samples (Latin with
 accents, Hebrew, Yiddish, Chinese and Japanese).
 

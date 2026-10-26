@@ -105,8 +105,8 @@ build used and a package cannot be made without it. Its layers:
 - ENABLE, the public-domain word list ([below](#the-word-list)), with its
   SHA-256 and the pointer to `data/README.md`;
 - the interface's translations, which are this repository's own text;
-- the bundled light probe, the project's own, and the three bundled typefaces
-  (Pixelify Sans, Silkscreen and Andika), each under the SIL Open Font License with
+- the bundled light probe, the project's own, and the six bundled typefaces
+  (Pixelify Sans, Silkscreen, Andika, and Noto Sans SC, JP and Hebrew), each under the SIL Open Font License with
   its copyright and licence text reproduced in the notices;
 - Catch2, BSL-1.0, used to build and test and **not shipped**.
 
@@ -198,7 +198,7 @@ Rules for word lists:
 
 ## Fonts and the interface's languages
 
-**Three typefaces are bundled**, all under the SIL Open Font License 1.1:
+**Six typefaces are bundled**, all under the SIL Open Font License 1.1:
 
 - **Andika** (Regular, Bold), SIL Global, for the reading text and the dice;
 - **Pixelify Sans** (Medium, Bold), The Pixelify Sans Project Authors, for the
@@ -206,7 +206,17 @@ Rules for word lists:
   upstream variable font, made by `tools/design/make_fonts.py`; the licence names
   no Reserved Font Name);
 - **Silkscreen** (Regular), The Silkscreen Project Authors, for small upper-case
-  labels.
+  labels;
+- **Noto Sans SC** and **Noto Sans JP** (Regular, Bold), Adobe (the Source Han Sans
+  family, published by Google under these names), for Chinese and Japanese text;
+- **Noto Sans Hebrew** (Regular, Bold), The Noto Project Authors, for Hebrew and
+  Yiddish text.
+
+The three Noto files are subsets of the upstream variable fonts, cut to the characters
+of the interface's translations and made into two static weights by
+`tools/design/make_noto_subsets.py` (0.86 MB in all). The upstream copyright line of
+the Source Han files reserves the name "Source"; the families here keep the names
+Noto Sans SC and Noto Sans JP that upstream publishes them under, and use no reserved name.
 
 Their copyright lines and full licence texts are in
 `notices/fragments/fonts.txt`, which is reproduced in the generated
@@ -214,16 +224,10 @@ Their copyright lines and full licence texts are in
 `assets/fonts/`. The files are compiled into the application's resources as
 `:/fonts/...` and are not installed separately.
 
-Nothing of Microsoft's, Apple's or Google's is copied into the repository or a
-package: Segoe UI/Arial (Hebrew), Microsoft YaHei and Yu Gothic (Chinese and
-Japanese) are the system fallback on Windows, PingFang and Hiragino on the iPad,
-and CJK faces are deliberately **not** bundled because of their size
+Nothing of Microsoft's or Apple's is copied into the repository or a package, and no platform font is
+relied on for Hebrew, Yiddish, Chinese or Japanese: the Noto subsets above carry them, which the web build
+needs because a browser has no system fonts
 ([Application design](design/application.md#languages-right-to-left-and-fonts)).
-If a Hebrew or Yiddish glyph is ever missing from a device's chain, Noto Sans
-Hebrew (OFL) is the candidate: it would be added under an `assets/` directory,
-the OFL text and its notice recorded here, and the file added to the resource
-and the font family list. It is not in the tree today, so it has no entry in the
-inventory.
 
 **The interface's translations** (`apps/app/translations/*.ts`) are this project's own text, under
 the project's licence, like the English wording they translate. No third-party

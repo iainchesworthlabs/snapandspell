@@ -92,6 +92,12 @@ foreach(_pair "uiFont|${_chrome}" "fontFamily|${_reading}" "eyebrowFont|${_count
     list(GET _pair 0 _property)
     list(GET _pair 1 _want)
     _theme_string("${_property}" _got)
+    if(_got STREQUAL "")
+        # The chrome faces are the language's own Noto face in Chinese, Japanese, Hebrew and Yiddish
+        # (`nativeFont`), and the token's face otherwise: it is the value after the colon that is held.
+        string(REGEX MATCH "readonly property string ${_property}: nativeFont !== \"\" \\? nativeFont : \"([^\"]*)\"" _m "${_theme}")
+        set(_got "${CMAKE_MATCH_1}")
+    endif()
     if(NOT _want STREQUAL _got)
         _fail("Theme.${_property} is '${_got}', wjs-tokens.json says '${_want}'")
     endif()

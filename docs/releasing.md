@@ -95,10 +95,12 @@ README in the same commit; old releases keep verifying against the old key, whic
 
 This repository adds:
 
-- **iOS**: five repository secrets from the Apple developer portal (`IOS_DIST_CERTIFICATE_BASE64`,
-  `IOS_DIST_CERTIFICATE_PASSWORD`, `IOS_PROVISIONING_PROFILE_BASE64`, `APPLE_TEAM_ID`,
-  `APPLE_PROVISIONING_PROFILE_NAME`). The profile lists the registered devices and expires
-  2027-07-16 ([Installing on my iPhone/iPad](ios-install.md#add-a-device)).
+- **iOS**: the organisation's `IOS_DIST_CERT_P12_BASE64` and `IOS_DIST_CERT_PASSWORD` (they must
+  reach this repository) and one repository secret, `IOS_PROVISIONING_PROFILE_BASE64`, from the
+  Apple developer portal. The profile lists the registered devices and expires 2027-07-16
+  ([Installing on my iPhone/iPad](ios-install.md#add-a-device)). The IPA is attached to a
+  release only when the repository variable `IOS_IPA_ON_RELEASE` is `true`: it lists the devices'
+  UDIDs and the repository is public ([iOS](ci.md#ios)).
 - **Android**: four repository secrets for the upload keystore, made with
   `tools/release/new_android_keystore.sh` ([Android](ci.md#android)). With none set the release has no
   Android file; with some set and not all, the job fails.

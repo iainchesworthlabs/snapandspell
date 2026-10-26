@@ -13,10 +13,12 @@ namespace wjs::app::test {
 
 bool load_house_fonts() {
     static const bool loaded = [] {
-        // The same five files as WJS_FONT_FILES in apps/app/CMakeLists.txt.
-        constexpr std::array<const char*, 5> files = {
-            "PixelifySans-Medium.ttf", "PixelifySans-Bold.ttf", "Silkscreen-Regular.ttf",
-            "Andika-Regular.ttf", "Andika-Bold.ttf"};
+        // The same eleven files as WJS_FONT_FILES in apps/app/CMakeLists.txt.
+        constexpr std::array<const char*, 11> files = {
+            "PixelifySans-Medium.ttf",    "PixelifySans-Bold.ttf",  "Silkscreen-Regular.ttf",
+            "Andika-Regular.ttf",         "Andika-Bold.ttf",        "NotoSansSC-Regular.ttf",
+            "NotoSansSC-Bold.ttf",        "NotoSansJP-Regular.ttf", "NotoSansJP-Bold.ttf",
+            "NotoSansHebrew-Regular.ttf", "NotoSansHebrew-Bold.ttf"};
         const QDir directory(QStringLiteral(WJS_TEST_FONTS_DIRECTORY));
         bool all = true;
         for (const char* file : files) {

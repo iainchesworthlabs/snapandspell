@@ -608,37 +608,55 @@ at a multiple.
 
 **`release.yml`, job `Build the iOS ad-hoc IPA`.** In order:
 
-1. *Require the Apple signing secrets.* The five secrets, by name, before anything
-   is downloaded: `IOS_DIST_CERTIFICATE_BASE64`, `IOS_DIST_CERTIFICATE_PASSWORD`,
-   `IOS_PROVISIONING_PROFILE_BASE64`, `APPLE_TEAM_ID`, `APPLE_PROVISIONING_PROFILE_NAME`.
-   Any missing is a red job with one message naming them and where they come from.
+1. *Require the Apple signing secrets.* The three secrets, by name, before anything
+   is downloaded: the organisation's `IOS_DIST_CERT_P12_BASE64` and `IOS_DIST_CERT_PASSWORD`
+   (one Apple Distribution certificate signs every app of the team; the organisation
+   restricts them to the repositories that build for iOS) and this repository's own
+   `IOS_PROVISIONING_PROFILE_BASE64`. Any missing is a red job with one message naming
+   them and where they come from. The team ID and the profile's name are not secrets:
+   they are read out of the profile.
 2. vcpkg (the presets' toolchain file chains to Qt's; the manifest has no dependency
    without the tests or Tracy, so nothing is built through it), CMake and Ninja at
    the pins, and the two Qt kits.
-3. *Import the signing certificate and the provisioning profile.* A keychain made
-   for the job (removed at the end, whatever happened), the `.p12` imported into
-   it, the profile installed under its UUID. The profile is then held to the
-   secrets: its name equals `APPLE_PROVISIONING_PROFILE_NAME`, its team is
-   `APPLE_TEAM_ID`, its App ID is `<team>.org.iainchesworth.wordjewelssolver`, it lists
-   devices (it is ad hoc) and has not expired. Only counts and names are printed.
+3. *Import the signing certificate and the provisioning profile*, with
+   `icl-common-infra`'s `import-ios-signing` action (`docs/ios-signing.md` there): a
+   keychain made for the job (removed at the end, whatever happened), the `.p12`
+   imported into it, the profile installed under its UUID. The profile is held to
+   the bundle identifier: its App ID is `<team>.org.iainchesworth.wordjewelssolver`, it
+   lists devices (it is ad hoc) and has not expired. Its team ID and name come out as
+   the step's outputs. Only counts and names are printed.
 4. *Configure (signed):* `cmake --preset ios-release` with
    `-DWJS_IOS_SIGNING_TEAM` and `-DWJS_IOS_SIGNING_PROFILE`, which sign the
    application target alone (the preset turns signing off for every other Xcode
    target: static libraries and Qt's resource targets have no bundle identifier
    and cannot be signed).
-5. *Archive* (`xcodebuild archive`, scheme `WordJewelsSolver`) and *export*
-   (`xcodebuild -exportArchive`, an `ExportOptions.plist` with method `ad-hoc`, the
-   team, manual signing, `Apple Distribution` and the profile by name). The file is
+5. *Archive and export* with the `export-ios-ipa` action (`xcodebuild archive`,
+   scheme `WordJewelsSolver`, then `xcodebuild -exportArchive` with method `ad-hoc`,
+   the team, manual signing, `Apple Distribution` and the profile by name). The file is
    `WordJewelsSolver-<v>-ios-adhoc.ipa`.
 6. *Check the IPA* with `verify_ipa.sh --signed --version <v>`: as the build check,
    plus the signature, the embedded profile, that it names devices, that it does not
    allow a debugger to attach and that it is for this bundle identifier.
-7. *Write the manifest* with `tools/release/make_ios_manifest.sh`: `manifest.plist`,
-   whose URL for the IPA is the release asset's, known from the tag before the release
-   exists. Its tests are in `tests/package/test_release_tools.sh`.
-8. Upload `package-ios`, and remove the keychain and the profile.
+7. *Write the manifest* (only when the IPA goes to the release, below) with
+   `tools/release/make_ios_manifest.sh`: `manifest.plist`, whose URL for the IPA is the
+   release asset's, known from the tag before the release exists. Its tests are in
+   `tests/package/test_release_tools.sh`.
+8. Upload the IPA, and remove the keychain and the profile.
 
-`Source archive and SBOM` downloads `package-*`, so the IPA and the manifest get the same
+**Whether the IPA goes on the release.** An ad-hoc IPA carries its provisioning
+profile, which lists the UDIDs of the devices, and this repository is public, so
+attaching the IPA to a release publishes them. The repository variable
+`IOS_IPA_ON_RELEASE` decides, on purpose: when it is `true` the IPA and the manifest
+are uploaded as `package-ios` and published with the other files; when it is not set
+(the default) the IPA is the workflow artifact `ios-adhoc`, kept 14 days, to download
+and install from a computer, and the release has no iOS file and no iOS install note.
+`gh variable set IOS_IPA_ON_RELEASE --body true` turns publishing on.
+
+**The pin.** The two actions are `icl-common-infra`'s, pinned to the develop commit
+that added them (`12e5356`); move the pin to the tag when one is cut with
+`python3 tools/ci/repin.py`.
+
+`Source archive and SBOM` downloads `package-*`, so a published IPA and its manifest get the same
 checksums, GPG signatures, attestations and SBOM entry as everything else (an `.ipa` counts as
 carrying Qt, like an AppImage and a disk image). `Add the install notes` adds an install section
 to the notes when there is a manifest.
