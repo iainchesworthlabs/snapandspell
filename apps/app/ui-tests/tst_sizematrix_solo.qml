@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import SnapAndSpell
-import "SizeMatrix.js" as SizeMatrix
 
 // The size matrix over Solo Play's screens: the box, a board in play with a path
 // in hand, the summary sheet and the boards sheet, at 900x620, 900x1200, 1024x768,
@@ -14,8 +13,6 @@ import "SizeMatrix.js" as SizeMatrix
 // screen where the subject is: a shake dealt, a path tapped, the board finished.
 SizeMatrixCase {
     name: "SizeMatrixSolo"
-    // Not yet laid out for a phone or a tablet (Solo Play: stage 3 of the phone and tablet work); the desktop shapes only until it is.
-    sizes: SizeMatrix.desktopSizes
     // The shake, the drop and the panel's slide-in take a moment to be over.
     settle: 900
     subjects: [boxComponent, playComponent, summaryComponent, historyComponent]
