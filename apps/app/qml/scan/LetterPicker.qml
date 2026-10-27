@@ -78,7 +78,9 @@ Sheet {
                 spacing: Theme.space1
 
                 Eyebrow {
+                    Layout.fillWidth: true
                     text: ScanWording.pickerSuggestions
+                    wrapMode: Text.WordWrap
                 }
                 Flow {
                     Layout.fillWidth: true
@@ -129,12 +131,21 @@ Sheet {
                 }
             }
 
-            // Qu is one die face; the box is for anything else the die says.
-            RowLayout {
+            // Qu is one die face; the box is for anything else the die says. In a row if the box then
+            // has room for what it says, one above the other if not (a phone at big text).
+            GridLayout {
+                id: otherRow
                 Layout.fillWidth: true
-                spacing: root.gap
+                Layout.minimumWidth: 0
+                columnSpacing: root.gap
+                rowSpacing: root.gap
+                readonly property bool stackedRow: width - quButton.implicitWidth - useButton.implicitWidth
+                                                   - 2 * root.gap < 2 * Theme.targetPrimary
+                columns: stackedRow ? 1 : 3
 
                 AppButton {
+                    id: quButton
+                    Layout.fillWidth: otherRow.stackedRow
                     size: "min"
                     variant: "secondary"
                     quiet: true
@@ -187,6 +198,8 @@ Sheet {
                 }
 
                 AppButton {
+                    id: useButton
+                    Layout.fillWidth: otherRow.stackedRow
                     size: "min"
                     variant: "primary"
                     quiet: true

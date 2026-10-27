@@ -132,9 +132,15 @@ Item {
                     ? Math.max(targetHeight, size === "child" ? columnContentHeight + 2 * Theme.space1
                                                               : rowContentHeight + 2 * Theme.space2)
                     : targetHeight
-    implicitWidth: Math.max(targetHeight, minimumWidth, 2 * contentPad + (size === "child"
+    readonly property real naturalWidth: Math.max(targetHeight, minimumWidth, 2 * contentPad + (size === "child"
                             ? Math.max(hasIcon ? iconSize : 0, hasLabel ? childText.implicitWidth : 0)
                             : rowContentWidth))
+    // A button in a Flow of a fixed width (a card's row of actions) can ask to be no wider than the Flow: a
+    // long label (a translation with no spaces in it) then wraps inside the button instead of running out of
+    // the card. Not for a Flow that is as wide as its buttons (the bar's), which would loop.
+    property bool fitFlow: false
+    implicitWidth: (fitFlow && wrap && (parent as Flow) !== null && parent.width > 0)
+                   ? Math.min(naturalWidth, Math.max(parent.width, targetHeight)) : naturalWidth
     activeFocusOnTab: root.enabled
 
     Accessible.role: root.isTab ? Accessible.PageTab
@@ -268,7 +274,9 @@ Item {
                 size: root.labelPointSize
                 font.weight: (root.size !== "min" || root.isPrimary || root.checked) ? Font.Bold : Font.Medium
                 color: root.contentColor
-                wrapMode: root.wrap ? Text.WordWrap : Text.NoWrap
+                // Words wrap at their spaces; a label with none (a Japanese phrase) breaks where it must.
+                wrapMode: root.wrap ? (root.label.indexOf(" ") >= 0 ? Text.WordWrap : Text.WrapAtWordBoundaryOrAnywhere)
+                                    : Text.NoWrap
                 elide: root.wrap ? Text.ElideNone : Text.ElideRight
                 maximumLineCount: root.wrap ? 3 : 1
                 horizontalAlignment: Text.AlignHCenter
@@ -308,7 +316,9 @@ Item {
                 size: root.labelPointSize
                 font.weight: Font.Bold
                 color: root.contentColor
-                wrapMode: root.wrap ? Text.WordWrap : Text.NoWrap
+                // Words wrap at their spaces; a label with none (a Japanese phrase) breaks where it must.
+                wrapMode: root.wrap ? (root.label.indexOf(" ") >= 0 ? Text.WordWrap : Text.WrapAtWordBoundaryOrAnywhere)
+                                    : Text.NoWrap
                 elide: root.wrap ? Text.ElideNone : Text.ElideRight
             }
         }

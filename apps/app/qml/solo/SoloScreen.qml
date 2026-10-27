@@ -78,7 +78,8 @@ FocusScope {
     SoloLayout {
         id: rule
         width: root.width
-        height: root.height - Theme.appBarHeight
+        // What the bar leaves: it is 72 dp, and taller when its words wrap or its entries drop to a second row.
+        height: root.height - appBar.height
         boardSize: root.solo.boardSize
         rightToLeft: root.mirrored
     }
@@ -277,12 +278,18 @@ FocusScope {
         // The closed box, before the shake. Its compartments change with the
         // board size, so the picture on the left answers the choice on the
         // right. The caption is aligned to the box, not to the whole window.
+        // The box and its caption are one group, centred in the board area: the box takes the height
+        // the caption leaves (a phone on its side, big text), up to its usual share.
         JewelBox {
             id: boxArt
-            readonly property real boxSide: Math.min(root.boardArea.width * 0.66,
-                                                     root.boardArea.height * 0.64, 560)
+            readonly property real room: root.boardArea.height - boxCaption.implicitHeight - 3 * Theme.space4
+            readonly property real boxSide: Math.max(0, Math.min(root.boardArea.width * 0.66,
+                                                                 root.boardArea.height * 0.64, 560,
+                                                                 room / 0.92))
             x: root.boardArea.x + (root.boardArea.width - width) / 2
-            y: root.boardArea.y + (root.boardArea.height - height) / 2 - 28
+            // The lid stands a little over the box's own top, so the group sits a little low.
+            y: root.boardArea.y + (root.boardArea.height - height - Theme.space4 - boxCaption.implicitHeight) / 2
+               + height * 0.05
             width: boxSide
             height: boxSide * 0.80
             closed: true
@@ -314,8 +321,9 @@ FocusScope {
         Label {
             id: boxCaption
             visible: root.boxShown
-            width: Math.min(boxArt.width * 1.2, root.boardArea.width)
-            x: boxArt.x + (boxArt.width - width) / 2
+            // Not tied to the box's width (the box's height depends on the caption's): a share of the area.
+            width: Math.min(root.boardArea.width - 2 * Theme.space4, 360)
+            x: root.boardArea.x + (root.boardArea.width - width) / 2
             y: boxArt.y + boxArt.height + Theme.space4
             horizontalAlignment: Text.AlignHCenter
             role: "word"
@@ -405,7 +413,10 @@ FocusScope {
             width: root.boardArea.width
             height: root.boardArea.height
             solo: root.solo
-            boardRect: rule.boardRect
+            // Relative to the flat board, which sits at the board area's own corner: in a right-to-left
+            // window that corner is not the stage's.
+            boardRect: Qt.rect(rule.boardRect.x - root.boardArea.x, rule.boardRect.y - root.boardArea.y,
+                               rule.boardRect.width, rule.boardRect.height)
             tileSize: rule.tile
             tileGap: rule.gap
             trayInset: root.trayInset
@@ -469,7 +480,8 @@ FocusScope {
                 Behavior on shown { NumberAnimation { duration: Theme.turn; easing.type: Easing.OutCubic } }
                 opacity: shown > 0 ? 1 : 0
                 visible: shown > 0
-                x: rule.wide && !Theme.reducedMotion ? (1 - shown) * width : 0
+                // It comes in from the side it sits on: the right, and the left in a right-to-left window.
+                x: rule.wide && !Theme.reducedMotion ? (root.mirrored ? -1 : 1) * (1 - shown) * width : 0
                 y: !rule.wide && !Theme.reducedMotion ? (1 - shown) * height : 0
                 onFinishRequested: root.finishBoard()
             }
@@ -641,7 +653,8 @@ FocusScope {
 
         // The way on: Play again leads, Home is as big beside it. The two are
         // the same height and share the row equally; the colour says which leads.
-        RowLayout {
+        // They are the sheet's footer, so a tall body scrolls above them.
+        footer: RowLayout {
             Layout.fillWidth: true
             spacing: Theme.space3
 

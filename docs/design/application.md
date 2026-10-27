@@ -375,8 +375,31 @@ the system is made of and which rules the tests hold it to.
   instead, and says which stage fixes it. On a narrow bar the boards and the jewels are
   pictures alone (they keep their names for a screen reader); the grown-ups' entry keeps
   its words, and a bar with a Back button leaves the product's name to the title.
-- **Where it is not finished.** Solo Play and the scanner and assistant are not yet laid
-  out for the phone and the tablet (their matrix suites run the desktop sizes only). The parent area's bare `Text` items are on the lint
+- **Solo Play on a phone.** The board takes the width of a tall window and the panel
+  the rest, never less than 300 dp (`docs/design/board.md`). Clear and Done are the foot
+  of the panel where it is tall or short (a phone upright or on its side), outside what
+  scrolls; in a wide panel they stay in the actions' column. The box and its caption
+  are one group that takes the height the caption leaves. A `Sheet` scrolls its body
+  under its heading, and its `footer` (the summary's Play again and Home) stays in view.
+  A bar's height follows its content and the layout rule is given what the bar leaves.
+- **The scanner on a phone.** The check screen asks the layout rule for a lighter panel
+  (`SoloLayout.minPanel` 200 dp) so the tiles, which are tapped to correct, stay at least
+  48 dp on a 360 x 640 phone, and its panel scrolls as a whole, with the actions at the
+  foot of what scrolls. A narrow bar wraps a long title onto a second line. The letter
+  picker's own-letters row stacks when its box would be too narrow to say what it is for.
+- **The parent area's tabs on a phone.** The bar's trailing group is a flow, not a row: on a
+  row of its own it has the bar's whole width and wraps onto more rows when it needs them
+  (four tabs at big text), and its tabs are tighter on a narrow bar. The matrix opens the
+  gate, so the tabs are audited too.
+- **Other languages on a phone.** `quick.sizematrix_languages` holds Home, My jewels, the
+  open parent area and Solo Play's box and board to the phone shapes (390 x 844, 360 x 640,
+  844 x 390, and 150 % text on the first) in German (the long translations), Hebrew (right
+  to left) and Japanese (a script in its own face, and phrases with no space to break at).
+  A button's label breaks at its spaces, and anywhere if it has none; a card's title takes
+  four lines. A button in a card's Flow can ask to be no wider than the Flow (`fitFlow`).
+  It found that the right-to-left Solo board was drawn a whole area to the right of where
+  it belongs, and the panel slid in from the wrong side.
+- **Where it is not finished.** The parent area's bare `Text` items are on the lint
   allow-list; at 150 % text on the smallest window the playing panel scrolls
   (Clear and Done are reachable below the fold).
 

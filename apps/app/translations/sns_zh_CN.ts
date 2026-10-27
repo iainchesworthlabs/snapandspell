@@ -9,7 +9,7 @@
         <translation>返回</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+130"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>我的棋盘</translation>
@@ -21,7 +21,7 @@
         <translation>我的珠宝</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>给大人</translation>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../qml/scan/CheckScreen.qml" line="+348"/>
+        <location filename="../qml/scan/CheckScreen.qml" line="+363"/>
         <source>Turn</source>
         <translation>转动</translation>
     </message>
@@ -51,7 +51,7 @@
         <translation>摇一摇。找一找。收集。</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>摇动盒子。找词。收集珠宝。</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>玩</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>适合年轻读者的找词游戏</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>使用摄像头，或手动输入棋盘。由成年人设置。</translation>
     </message>
@@ -864,12 +864,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../qml/solo/PlayingPanel.qml" line="+60"/>
+        <location filename="../qml/solo/PlayingPanel.qml" line="+63"/>
         <source>Tap the last die again, or press Done</source>
         <translation>再次点击最后一个骰子，或按“完成”</translation>
     </message>
     <message>
-        <location line="+104"/>
+        <location line="+164"/>
         <source>1 word</source>
         <translation>1 个字</translation>
     </message>
@@ -889,12 +889,12 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+43"/>
         <source>Your words will land here.</source>
         <translation>你的话将会落到这里。</translation>
     </message>
     <message>
-        <location line="+112"/>
+        <location line="-280"/>
         <source>Clear</source>
         <translation>清除</translation>
     </message>
@@ -1225,7 +1225,7 @@
 <context>
     <name>Sheet</name>
     <message>
-        <location filename="../qml/kit/Sheet.qml" line="+25"/>
+        <location filename="../qml/kit/Sheet.qml" line="+26"/>
         <source>Close</source>
         <translation>关闭</translation>
     </message>
@@ -1241,7 +1241,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+253"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+254"/>
         <source>Solo Play</source>
         <translation>独奏</translation>
     </message>
@@ -1261,7 +1261,7 @@
         <translation>找一个词</translation>
     </message>
     <message>
-        <location line="+237"/>
+        <location line="+248"/>
         <source>You found all %1 words!</source>
         <translation>您找到了所有 %1 个单词！</translation>
     </message>
@@ -1281,7 +1281,7 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+122"/>
+        <location line="+123"/>
         <source>You found this one already.</source>
         <translation>这个你已经找到了。</translation>
     </message>

@@ -114,7 +114,13 @@ the brief's two-thirds / one-third split, everywhere.
 - **Wide** (width at least height): the board is in the leading two-thirds of
   the width, the panel in the trailing third, both full height.
 - **Tall**: the board is in the top two-thirds of the height, the panel in the
-  bottom third, both full width.
+  bottom third, both full width. The board is a square that fits the width, so
+  the board's area is never taller than the window is wide: on a phone held
+  upright (390 x 772 under its bar) the board has 390 and the panel the other
+  382, not 257, and no tile gets smaller for it. The panel is also never less than
+  300 dp (the foot with Clear and Done, and the words above it), so a short, tall
+  window (a phone of 640 dp high) gives the board a little less: 5 x 5 is then 44 dp
+  on a 360 x 640 phone and is not offered.
 
 The board is the largest square that fits its area less an inset, drawn
 centred. The inset is 12 dp when the area's shorter side is under 600 dp, 24 dp
@@ -139,17 +145,17 @@ this repository). dp is Android's unit and about the same as an iOS point.
 
 | Window | Shape | Board area | Panel | 3x3 | 4x4 | 5x5 | 6x6 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Phone 360 x 740 | Tall | 360 x 493 | 360 x 247 | 108 | 80 | 62 | 51 |
-| Phone 390 x 800 | Tall | 390 x 533 | 390 x 267 | 118 | 87 | 68 | 56 |
-| Phone 320 x 600 | Tall | 320 x 400 | 320 x 200 | 95 | 70 | 54 | **44** |
+| Phone 360 x 740 | Tall | 360 x 360 | 360 x 380 | 108 | 80 | 62 | 51 |
+| Phone 390 x 800 | Tall | 390 x 390 | 390 x 410 | 118 | 87 | 68 | 56 |
+| Phone 320 x 600 | Tall | 320 x 300 | 320 x 300 | 88 | 65 | 50 | **41** |
 | Phone on its side 740 x 360 | Wide | 493 x 360 | 247 x 360 | 108 | 80 | 62 | 51 |
-| Small tablet 744 x 1133 | Tall | 744 x 755 | 744 x 378 | 227 | 168 | 133 | 109 |
-| Tablet 800 x 1280 | Tall | 800 x 853 | 800 x 427 | 245 | 182 | 144 | 119 |
+| Small tablet 744 x 1133 | Tall | 744 x 744 | 744 x 389 | 227 | 168 | 133 | 109 |
+| Tablet 800 x 1280 | Tall | 800 x 800 | 800 x 480 | 245 | 182 | 144 | 119 |
 | Tablet 1280 x 800 | Wide | 853 x 800 | 427 x 800 | 245 | 182 | 144 | 119 |
 | Desktop window 1100 x 700 | Wide | 733 x 700 | 367 x 700 | 212 | 157 | 124 | 102 |
-| Narrow browser 420 x 800 | Tall | 420 x 533 | 420 x 267 | 128 | 95 | 74 | 61 |
+| Narrow browser 420 x 800 | Tall | 420 x 420 | 420 x 380 | 128 | 95 | 74 | 61 |
 
-[layouts.svg](layouts.svg) draws four of these to scale. On an iPad the MVP's
+[layouts.svg](layouts.svg) draws four of these to scale (its tall windows show the board's area at two thirds of the height, as it was before the area was capped to the width). On an iPad the MVP's
 3x3 and 4x4 are 160 dp or more, which is large for a finger.
 
 ### Which sizes are offered

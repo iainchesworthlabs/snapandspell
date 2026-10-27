@@ -13,7 +13,10 @@
 //   left in a left-to-right language and the right in a right-to-left one
 //   (`right_to_left`): the split mirrors, the board's own tiles do not.
 //   Tall: the board area is the top two thirds of the height, the panel the
-//   bottom third, both full width.
+//   bottom third, both full width; but the board area is never taller than the
+//   window is wide (the board is a square that fits the width) and leaves the
+//   panel at least `min_tall_panel`, which holds the words and Clear and Done.
+//   The panel takes what the board does not.
 //
 //   The board is the largest square that fits its area less an inset, centred.
 //   The inset is 12 dp (and the gap between tiles 6 dp) when the area's shorter
@@ -47,6 +50,11 @@ inline constexpr double roomy_inset = 24;
 inline constexpr double small_gap = 6;
 inline constexpr double roomy_gap = 8;
 
+// The least height of the panel in a tall window: the foot with Clear and Done (96 dp and its
+// margins) and a card of the words found above it. A short, tall window gives the board less
+// for it, and a size whose tile is then under the floor below is not offered.
+inline constexpr double min_tall_panel = 300;
+
 // A size is offered only if its tile is at least this (Cubeulator's floor for
 // any target). One that does not fit is not shown, not shown disabled.
 inline constexpr double min_offered_tile = 48;
@@ -62,7 +70,10 @@ struct SoloLayoutResult {
     BoardMetrics metrics;   // of board_area
 };
 
+// `min_panel` is the least height of the panel in a tall window; a screen whose panel is lighter
+// than Solo Play's (the scanner's check screen) asks for less, and gives the board more.
 [[nodiscard]] SoloLayoutResult solo_layout(double width, double height, std::size_t n,
-                                           bool right_to_left = false) noexcept;
+                                           bool right_to_left = false,
+                                           double min_panel = min_tall_panel) noexcept;
 
 }  // namespace sns::app

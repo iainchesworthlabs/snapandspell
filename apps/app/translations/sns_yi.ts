@@ -9,7 +9,7 @@
         <translation>צוריק</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+130"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>מײַנע ברעטער</translation>
@@ -21,7 +21,7 @@
         <translation>מײַנע בריליאַנטן</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>פֿאַר דערוואַקסענע</translation>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../qml/scan/CheckScreen.qml" line="+348"/>
+        <location filename="../qml/scan/CheckScreen.qml" line="+363"/>
         <source>Turn</source>
         <translation>קער</translation>
     </message>
@@ -51,7 +51,7 @@
         <translation>שאָקלען. געפֿינען. קלייַבן.</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>שאָקלען די קעסטל. געפינען ווערטער. קלייַבן דזשולז.</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>שפּיל</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>א וואָרט-געפינען שפּיל פֿאַר יונגע לייענער</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>ניצט די קאַמערע, אָדער טיפּט אַרײַן דאָס ברעט. אַ דערוואַקסענער שטעלט דאָס&#xa0;אויף.</translation>
     </message>
@@ -864,12 +864,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../qml/solo/PlayingPanel.qml" line="+60"/>
+        <location filename="../qml/solo/PlayingPanel.qml" line="+63"/>
         <source>Tap the last die again, or press Done</source>
         <translation>צאַפּן ווידער אויף די לעצטע מאָל אָדער דריקן געטאן</translation>
     </message>
     <message>
-        <location line="+104"/>
+        <location line="+164"/>
         <source>1 word</source>
         <translation>1 וואָרט</translation>
     </message>
@@ -889,12 +889,12 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+43"/>
         <source>Your words will land here.</source>
         <translation>דיין ווערטער וועט לאַנד דאָ.</translation>
     </message>
     <message>
-        <location line="+112"/>
+        <location line="-280"/>
         <source>Clear</source>
         <translation>אויסמעקן</translation>
     </message>
@@ -1225,7 +1225,7 @@
 <context>
     <name>Sheet</name>
     <message>
-        <location filename="../qml/kit/Sheet.qml" line="+25"/>
+        <location filename="../qml/kit/Sheet.qml" line="+26"/>
         <source>Close</source>
         <translation>פֿאַרמאַכן</translation>
     </message>
@@ -1241,7 +1241,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+253"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+254"/>
         <source>Solo Play</source>
         <translation>סאָלאָ שפּיל</translation>
     </message>
@@ -1261,7 +1261,7 @@
         <translation>געפֿינען אַ וואָרט</translation>
     </message>
     <message>
-        <location line="+237"/>
+        <location line="+248"/>
         <source>You found all %1 words!</source>
         <translation>איר האָט געפֿונען אַלע %1 ווערטער!</translation>
     </message>
@@ -1281,7 +1281,7 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+122"/>
+        <location line="+123"/>
         <source>You found this one already.</source>
         <translation>דאָס האָסטו שוין געפֿונען.</translation>
     </message>

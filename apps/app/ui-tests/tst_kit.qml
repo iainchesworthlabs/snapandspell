@@ -33,6 +33,22 @@ TestCase {
     Component { id: tabletComponent; TabletArt { } }
     Component { id: spyComponent; SignalSpy { } }
     Component {
+        id: tallSheetComponent
+        Sheet {
+            property alias save: saveButton
+            property alias last: lastButton
+            open: true
+            title: "Tall"
+            // More body than a 300 dp window leaves.
+            Repeater {
+                model: 6
+                AppButton { size: "child"; label: "Row" }
+            }
+            AppButton { id: lastButton; size: "min"; label: "Last row" }
+            footer: AppButton { id: saveButton; size: "primary"; variant: "primary"; label: "Save" }
+        }
+    }
+    Component {
         id: sheetHostComponent
         Item {
             property alias sheet: theSheet
@@ -615,6 +631,62 @@ TestCase {
     }
 
     // --- Sheet --------------------------------------------------------------------
+    function test_aTallSheetScrollsItsBodyAndKeepsItsFooter() {
+        const sheet = createTemporaryObject(tallSheetComponent, testCase, { width: 400, height: 300 })
+        verify(sheet !== null)
+        // The sheet is as tall as the window leaves it, and the footer is inside it, whole.
+        const save = sheet.save
+        const at = save.mapToItem(sheet, 0, 0)
+        verify(at.y >= 0 && at.y + save.height <= sheet.height, "the footer is inside the window")
+        // The body is the thing that scrolls: its last row is below the fold until it is scrolled to.
+        const walk = (item, found) => {
+            if (item.contentHeight !== undefined && item.flickableDirection !== undefined && item.interactive !== undefined) {
+                found.push(item)
+            }
+            for (const child of item.children) {
+                walk(child, found)
+            }
+            return found
+        }
+        const scrollers = walk(sheet, [])
+        verify(scrollers.length > 0)
+        const scroller = scrollers[0]
+        verify(scroller.interactive, "the body scrolls")
+        verify(scroller.contentHeight > scroller.height)
+        const last = sheet.last
+        verify(last.mapToItem(sheet, 0, 0).y + last.height > save.mapToItem(sheet, 0, 0).y, "the last row starts below the fold")
+        scroller.contentY = scroller.contentHeight - scroller.height
+        verify(last.mapToItem(sheet, 0, 0).y + last.height <= save.mapToItem(sheet, 0, 0).y + 0.5, "the last row is reachable")
+        // A short body needs no scrolling.
+        const roomy = createTemporaryObject(tallSheetComponent, testCase, { width: 400, height: 1400, maxHeight: 2000 })
+        const roomyScroller = walk(roomy, [])[0]
+        verify(!roomyScroller.interactive, "a body that fits does not scroll")
+    }
+
+    Component {
+        id: flowHostComponent
+        Flow {
+            width: 200
+            property alias button: wide
+            AppButton { id: wide; size: "min"; fitFlow: true; label: "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ" }
+        }
+    }
+
+    function test_aButtonInAFlowCanFitTheFlowAndWrapItsWordsAnywhere() {
+        const flow = createTemporaryObject(flowHostComponent, testCase, {})
+        const button = flow.button
+        verify(button.width <= 200 + 0.5, "the button is no wider than its flow: " + button.width)
+        verify(button.height > Theme.targetMin, "a long unbroken label wraps onto more lines: " + button.height)
+        button.fitFlow = false
+        verify(button.width > 200, "without asking, it keeps its natural width")
+    }
+
+    function test_aLabelDrawsNoLigatures() {
+        const label = createTemporaryObject(labelComponent, testCase, { text: "finished" })
+        compare(label.font.features["liga"], 0)
+        compare(label.font.features["clig"], 0)
+    }
+
     function test_aSheetClosesOnEscapeAndHasATitle() {
         const host = createTemporaryObject(sheetHostComponent, testCase, { width: 600, height: 400 })
         const sheet = host.sheet
@@ -739,6 +811,39 @@ TestCase {
         bar.width = 900
         tryCompare(bar, "narrow", false)
         compare(buttons[qsTr("My boards")].label, qsTr("My boards"))
+    }
+
+    function test_aNarrowBarKeepsAllFourTabsInsideItAndWrapsThemAtBigText() {
+        const bar = createTemporaryObject(appBarComponent, testCase,
+            { width: 360, showBack: true, showWordmark: true, title: "Parent area", showParent: false,
+              tabs: [{id: "dashboard", label: "Dashboard"}, {id: "settings", label: "Settings"},
+                     {id: "about", label: "About"}, {id: "licences", label: "Licences"}],
+              currentTab: "dashboard" })
+        tryCompare(bar, "narrow", true)
+        const tabs = []
+        const walk = item => {
+            if (item.variant === "tab") {
+                tabs.push(item)
+            }
+            for (const child of item.children) {
+                walk(child)
+            }
+        }
+        walk(bar)
+        compare(tabs.length, 4)
+        const inside = () => tabs.every(tab => {
+            const at = tab.mapToItem(bar, 0, 0)
+            return at.x >= -0.5 && at.x + tab.width <= bar.width + 0.5 && at.y + tab.height <= bar.height + 0.5
+        })
+        verify(inside(), "four tabs fit the bar at 360 dp")
+        Theme.textScale = 1.5
+        tryCompare(bar, "stacked", true)
+        // At big text they no longer fit one row: they wrap, the bar grows, and none leaves it.
+        wait(50)
+        verify(inside(), "the tabs wrap inside the bar at 150% text")
+        const rows = new Set(tabs.map(tab => Math.round(tab.mapToItem(bar, 0, 0).y)))
+        verify(rows.size >= 2, "the tabs are on more than one row")
+        Theme.textScale = 1.0
     }
 
     function test_aNarrowBarWithABackButtonLeavesTheNameToTheTitle() {

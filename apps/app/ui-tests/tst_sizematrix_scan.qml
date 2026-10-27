@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import SnapAndSpell
-import "SizeMatrix.js" as SizeMatrix
 import SnapAndSpell.Scan
 
-// The size matrix over Mode A (the scan screen, the check screen and the Family
-// Assistant's screen; the two modals, the letter picker and the question about
+// The size matrix over Mode A's scanner (the scan screen and the check screen; the Family
+// Assistant's screen is tst_sizematrix_assist.qml; the two modals, the letter picker and the question about
 // ringed tiles, are audited open in tst_scan.qml, because the screen under a
 // modal cannot be audited with the modal on top of it): 900x620, 900x1200, 1024x768,
 // 2400x1200 and 150% text. Every interactive item is at least 48 dp each way,
@@ -19,10 +18,7 @@ SizeMatrixCase {
     id: matrix
 
     name: "SizeMatrixScan"
-    // Not yet laid out for a phone or a tablet (the scanner and the assistant: stage 3 of the phone and tablet work); the desktop shapes only until it is.
-    sizes: SizeMatrix.desktopSizes
-    subjects: [readyComponent, cameraComponent, typedComponent, readComponent, assistComponent,
-               assistFoundComponent]
+    subjects: [readyComponent, cameraComponent, typedComponent, readComponent]
     // Subject 1 is the live view, a VideoOutput.
     skipSubjects: fixture.mediaBackendAvailable ? [] : [1]
     skipReason: "Qt Multimedia has no backend on this machine"
@@ -70,32 +66,6 @@ SizeMatrixCase {
         Item {
             readonly property bool prepared: { fixture.reset(); fixture.readDoubtfulBoard(); return true }
             ScanScreen { anchors.fill: parent; scan: scanModel; assist: assistModel }
-        }
-    }
-
-    // assist.playing with nothing found yet: the empty card, the help, New board.
-    Component {
-        id: assistComponent
-        Item {
-            readonly property bool prepared: { fixture.reset(); assistModel.begin(4, 4, matrix.board); return true }
-            AssistScreen { anchors.fill: parent; assist: assistModel }
-        }
-    }
-
-    // assist.playing with a word found: its row in the card.
-    Component {
-        id: assistFoundComponent
-        Item {
-            readonly property bool prepared: {
-                fixture.reset()
-                assistModel.begin(4, 4, matrix.board)
-                assistModel.tapTile(0)
-                assistModel.tapTile(1)
-                assistModel.tapTile(2)
-                assistModel.done()
-                return true
-            }
-            AssistScreen { anchors.fill: parent; assist: assistModel }
         }
     }
 }

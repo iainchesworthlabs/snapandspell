@@ -511,9 +511,8 @@ TestCase {
         return allItems(root).find(item => item.title === title && item.maxWidth !== undefined)
     }
 
-    // The desktop shapes until the scanner's sheets are laid out for a phone and a tablet (stage 3 of that work).
     function test_theSheetsFitEverySize_data() {
-        return SizeMatrix.desktopSizes.map(size => ({
+        return SizeMatrix.sizes.map(size => ({
             tag: size.w + "x" + size.h + " text " + Math.round(size.scale * 100) + "%",
             w: size.w, h: size.h, scale: size.scale
         }))

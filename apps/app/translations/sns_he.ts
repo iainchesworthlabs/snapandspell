@@ -9,7 +9,7 @@
         <translation>חזרה</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+130"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>הלוחות שלי</translation>
@@ -21,7 +21,7 @@
         <translation>התכשיטים שלי</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>למבוגרים</translation>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../qml/scan/CheckScreen.qml" line="+348"/>
+        <location filename="../qml/scan/CheckScreen.qml" line="+363"/>
         <source>Turn</source>
         <translation>פִּנָה</translation>
     </message>
@@ -51,7 +51,7 @@
         <translation>לְנַעֵר. לִמצוֹא. לֶאֱסוֹף.</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>נער את הקופסה. מצא מילים. אסוף תכשיטים.</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>לְשַׂחֵק</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>משחק למציאת מילים לקוראים צעירים</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>משתמשים במצלמה או מקלידים את הלוח. מבוגר מגדיר&#xa0;זאת.</translation>
     </message>
@@ -864,12 +864,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../qml/solo/PlayingPanel.qml" line="+60"/>
+        <location filename="../qml/solo/PlayingPanel.qml" line="+63"/>
         <source>Tap the last die again, or press Done</source>
         <translation>הקש שוב על הקוביה האחרונה, או הקש על סיום</translation>
     </message>
     <message>
-        <location line="+104"/>
+        <location line="+164"/>
         <source>1 word</source>
         <translation>מילה אחת</translation>
     </message>
@@ -889,12 +889,12 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+43"/>
         <source>Your words will land here.</source>
         <translation>המילים שלך ינחתו כאן.</translation>
     </message>
     <message>
-        <location line="+112"/>
+        <location line="-280"/>
         <source>Clear</source>
         <translation>מחיקה</translation>
     </message>
@@ -1225,7 +1225,7 @@
 <context>
     <name>Sheet</name>
     <message>
-        <location filename="../qml/kit/Sheet.qml" line="+25"/>
+        <location filename="../qml/kit/Sheet.qml" line="+26"/>
         <source>Close</source>
         <translation>סגירה</translation>
     </message>
@@ -1241,7 +1241,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+253"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+254"/>
         <source>Solo Play</source>
         <translation>משחק סולו</translation>
     </message>
@@ -1261,7 +1261,7 @@
         <translation>מצא מילה</translation>
     </message>
     <message>
-        <location line="+237"/>
+        <location line="+248"/>
         <source>You found all %1 words!</source>
         <translation>מצאת את כל %1 המילים!</translation>
     </message>
@@ -1281,7 +1281,7 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+122"/>
+        <location line="+123"/>
         <source>You found this one already.</source>
         <translation>כבר מצאת את זה.</translation>
     </message>

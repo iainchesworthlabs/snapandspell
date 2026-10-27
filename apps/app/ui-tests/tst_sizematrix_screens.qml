@@ -12,11 +12,19 @@ import SnapAndSpell.Parent
 SizeMatrixCase {
     name: "SizeMatrixScreens"
     subjects: [homeComponent, jewelsComponent, gateComponent, dashboardComponent,
-               settingsComponent, aboutComponent, licencesComponent]
+               settingsComponent, aboutComponent, licencesComponent, areaOpenComponent]
 
     Component { id: homeComponent; Home { controller: parentController } }
     Component { id: jewelsComponent; JewelsScreen { controller: parentController } }
     Component { id: gateComponent; ParentArea { controller: parentController } }
+    // The parent area with its gate open: its bar carries the four tabs.
+    Component {
+        id: areaOpenComponent
+        ParentArea {
+            controller: parentController
+            Component.onCompleted: parentController.unlockForAssistiveTechnology()
+        }
+    }
     Component { id: dashboardComponent; DashboardScreen { controller: parentController } }
     Component { id: settingsComponent; SettingsScreen { controller: parentController } }
     Component { id: aboutComponent; AboutScreen { controller: parentController } }

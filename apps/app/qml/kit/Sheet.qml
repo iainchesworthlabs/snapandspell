@@ -16,7 +16,8 @@ import SnapAndSpell
 //     Escape closes it. A press on the scrim closes it too (`dismissOnScrim`).
 //
 // `close` is emitted when the person asks to close it (Escape, the scrim, the
-// button); the owner sets `open` to false. The default content is the body.
+// button); the owner sets `open` to false. The default content is the body, which
+// scrolls when the window leaves it too little; `footer` is what stays under it.
 FocusScope {
     id: root
 
@@ -28,6 +29,9 @@ FocusScope {
     property bool dismissOnScrim: true
 
     default property alias content: body.data
+    // What stays under the body whatever its height: the way on (Play again, Save), which does not
+    // scroll away with a tall body. Give it one item, or a list.
+    property alias footer: foot.data
 
     // The item that had focus before the sheet opened, to give it back.
     property Item opener: null
@@ -180,10 +184,35 @@ FocusScope {
                 }
             }
 
-            ColumnLayout {
-                id: body
+            // The body is a scroll of its own: a sheet that is taller than the window leaves (a phone
+            // on its side, 150% text) scrolls under its heading instead of running off the window. It is
+            // as tall as the body wants, up to what the window leaves; a body with a part that fills the
+            // height (a list) is given the whole of it.
+            Flickable {
+                id: scroller
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.minimumHeight: Math.min(body.implicitHeight, Theme.targetChild)
+                Layout.preferredHeight: body.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.VerticalFlick
+                contentWidth: width
+                contentHeight: body.height
+                interactive: contentHeight > height + 0.5
+
+                ColumnLayout {
+                    id: body
+                    width: scroller.width
+                    height: Math.max(implicitHeight, scroller.height)
+                    spacing: Theme.space3
+                }
+            }
+
+            ColumnLayout {
+                id: foot
+                Layout.fillWidth: true
+                visible: foot.children.length > 0
                 spacing: Theme.space3
             }
         }
