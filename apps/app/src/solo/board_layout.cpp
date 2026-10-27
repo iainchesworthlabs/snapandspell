@@ -26,8 +26,8 @@ BoardMetrics board_metrics(double width, double height, std::size_t n) noexcept 
     return metrics;
 }
 
-SoloLayoutResult solo_layout(double width, double height, std::size_t n,
-                             bool right_to_left) noexcept {
+SoloLayoutResult solo_layout(double width, double height, std::size_t n, bool right_to_left,
+                             double min_panel) noexcept {
     SoloLayoutResult result;
     result.wide = width >= height;
     if (result.wide) {
@@ -47,7 +47,7 @@ SoloLayoutResult solo_layout(double width, double height, std::size_t n,
         // fits the width, so a phone held upright keeps the room above that for the panel), and
         // never so tall that the panel has less than it needs.
         const double board_height =
-            std::min({height * 2 / 3, width, std::max(0.0, height - min_tall_panel)});
+            std::min({height * 2 / 3, width, std::max(0.0, height - min_panel)});
         result.board_area = {0, 0, width, board_height};
         result.panel_area = {0, board_height, width, height - board_height};
     }

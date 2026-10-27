@@ -70,7 +70,10 @@ struct SoloLayoutResult {
     BoardMetrics metrics;   // of board_area
 };
 
+// `min_panel` is the least height of the panel in a tall window; a screen whose panel is lighter
+// than Solo Play's (the scanner's check screen) asks for less, and gives the board more.
 [[nodiscard]] SoloLayoutResult solo_layout(double width, double height, std::size_t n,
-                                           bool right_to_left = false) noexcept;
+                                           bool right_to_left = false,
+                                           double min_panel = min_tall_panel) noexcept;
 
 }  // namespace sns::app

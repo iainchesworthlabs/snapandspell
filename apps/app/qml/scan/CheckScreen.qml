@@ -111,6 +111,9 @@ FocusScope {
         width: root.width
         height: root.height
         boardSize: Math.max(root.boardRows, root.boardColumns, 3)
+        // The panel here is a size choice, a sentence and two buttons, and scrolls: the board, which is
+        // tapped to correct, takes what a tall window can give it (a tile is at least 48 dp).
+        minPanel: 200
         // The replica stays the family's board, left to right as it was read; the
         // split around it follows the window's direction.
         rightToLeft: root.mirrored
@@ -286,96 +289,109 @@ FocusScope {
             color: Theme.line
         }
 
-        // As wide as a phone's panel at most: on a 2400 px window the buttons
-        // would otherwise stretch across a third of the screen.
-        ColumnLayout {
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.topMargin: Theme.space4
-            anchors.bottomMargin: Theme.space4
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: Math.min(parent.width - 2 * Theme.space4, Theme.modalMax)
-            spacing: Theme.space3
+        // The panel scrolls as a whole when a short window (a phone on its side, big text) leaves it less
+        // than its parts need; the actions are then at the foot of what scrolls.
+        Flickable {
+            id: panelScroll
+            anchors.fill: parent
+            contentWidth: width
+            contentHeight: Math.max(height, panelColumn.implicitHeight + 2 * Theme.space4)
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            interactive: contentHeight > height + 0.5
 
-            // What can scroll is the middle: the actions below it never leave the
-            // window, however short it is or however large the text.
-            Flickable {
-                id: middle
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                contentWidth: width
-                contentHeight: middleColumn.implicitHeight
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                interactive: contentHeight > height
+            // As wide as a phone's panel at most: on a 2400 px window the buttons
+            // would otherwise stretch across a third of the screen.
+            ColumnLayout {
+                id: panelColumn
+                y: Theme.space4
+                x: (panelScroll.width - width) / 2
+                height: panelScroll.contentHeight - 2 * Theme.space4
+                width: Math.min(panelScroll.width - 2 * Theme.space4, Theme.modalMax)
+                spacing: Theme.space3
 
-                ColumnLayout {
-                    id: middleColumn
-                    width: middle.width
-                    spacing: Theme.space3
+                // What can scroll is the middle: the actions below it never leave the
+                // window, however short it is or however large the text.
+                Flickable {
+                    id: middle
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: middleColumn.implicitHeight
+                    Layout.minimumHeight: Math.min(middleColumn.implicitHeight, Theme.targetMin)
+                    contentWidth: width
+                    contentHeight: middleColumn.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    interactive: contentHeight > height
 
-                    // Not a Card: its title and padding cost 70 dp that the panel
-                    // does not have at 150% text on a 900 by 620 window.
                     ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: Theme.space2
+                        id: middleColumn
+                        width: middle.width
+                        spacing: Theme.space3
 
-                        Eyebrow {
-                            text: ScanWording.boardSize
-                        }
-
-                        SegmentedChoice {
+                        // Not a Card: its title and padding cost 70 dp that the panel
+                        // does not have at 150% text on a 900 by 620 window.
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            title: ScanWording.boardSize
-                            size: "min"
-                            compact: true
-                            options: root.sizeOptions
-                            current: root.scan.size
-                            onChosen: value => root.scan.resize(value, value)
-                        }
+                            spacing: Theme.space2
 
-                        // Turn is the camera board's control: the real board is
-                        // turned every which way, and a quarter turn of the
-                        // replica matches how the child sees it.
-                        AppButton {
-                            id: turn
-                            visible: root.scan.draftFromCamera
-                            Layout.alignment: Qt.AlignLeft
-                            size: "min"
-                            variant: "ghost"
-                            quiet: true
-                            iconName: "again"
-                            label: qsTr("Turn")
-                            accessibleName: ScanWording.turn
-                            onClicked: root.scan.turn()
+                            Eyebrow {
+                                text: ScanWording.boardSize
+                            }
+
+                            SegmentedChoice {
+                                Layout.fillWidth: true
+                                title: ScanWording.boardSize
+                                size: "min"
+                                compact: true
+                                options: root.sizeOptions
+                                current: root.scan.size
+                                onChosen: value => root.scan.resize(value, value)
+                            }
+
+                            // Turn is the camera board's control: the real board is
+                            // turned every which way, and a quarter turn of the
+                            // replica matches how the child sees it.
+                            AppButton {
+                                id: turn
+                                visible: root.scan.draftFromCamera
+                                Layout.alignment: Qt.AlignLeft
+                                size: "min"
+                                variant: "ghost"
+                                quiet: true
+                                iconName: "again"
+                                label: qsTr("Turn")
+                                accessibleName: ScanWording.turn
+                                onClicked: root.scan.turn()
+                            }
                         }
                     }
                 }
-            }
 
-            // What the grown-up most needs to know now. It stays put, above the
-            // actions, where the board size above it may scroll.
-            Label {
-                Layout.fillWidth: true
-                visible: text !== ""
-                role: "body"
-                wrapMode: Text.WordWrap
-                color: Theme.ink
-                text: root.guidance
-            }
+                // What the grown-up most needs to know now. It stays put, above the
+                // actions, where the board size above it may scroll.
+                Label {
+                    Layout.fillWidth: true
+                    visible: text !== ""
+                    role: "body"
+                    wrapMode: Text.WordWrap
+                    color: Theme.ink
+                    text: root.guidance
+                }
 
-            // One row (or, when it does not fit, one stack): the secondary action
-            // beside the primary, in the same order in every language. Start
-            // playing waits for every tile to have a letter.
-            ActionBar {
-                id: actions
-                Layout.fillWidth: true
-                tier: "child"
-                primaryLabel: ScanWording.startPlaying
-                primaryEnabled: root.scan.complete
-                secondaryLabel: root.scan.draftFromCamera ? ScanWording.scanAgain : ScanWording.startOver
-                onPrimaryClicked: root.requestPlay()
-                onSecondaryClicked: root.secondaryAction()
+                // One row (or, when it does not fit, one stack): the secondary action
+                // beside the primary, in the same order in every language. Start
+                // playing waits for every tile to have a letter.
+                ActionBar {
+                    id: actions
+                    Layout.fillWidth: true
+                    tier: "child"
+                    primaryLabel: ScanWording.startPlaying
+                    primaryEnabled: root.scan.complete
+                    secondaryLabel: root.scan.draftFromCamera ? ScanWording.scanAgain : ScanWording.startOver
+                    onPrimaryClicked: root.requestPlay()
+                    onSecondaryClicked: root.secondaryAction()
+                }
             }
         }
     }

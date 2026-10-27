@@ -120,7 +120,7 @@ Item {
         Label {
             id: titleLabel
             visible: root.title.length > 0
-            height: Theme.targetMin
+            height: Math.max(Theme.targetMin, implicitHeight)
             verticalAlignment: Text.AlignVCenter
             // The room left of the trailing group (or of the bar's end, when
             // that group has a row of its own).
@@ -132,7 +132,9 @@ Item {
             text: root.title
             color: root.showWordmark ? Theme.inkSecondary : Theme.ink
             elide: Text.ElideRight
-            maximumLineCount: 1
+            // A narrow bar wraps a long title onto a second line rather than cutting it short; the bar grows.
+            wrapMode: root.narrow ? Text.WordWrap : Text.NoWrap
+            maximumLineCount: root.narrow ? 2 : 1
         }
     }
 

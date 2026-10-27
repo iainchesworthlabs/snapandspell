@@ -9,7 +9,7 @@
         <translation>返回</translation>
     </message>
     <message>
-        <location line="+111"/>
+        <location line="+113"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>我的棋盘</translation>
@@ -38,7 +38,7 @@
 <context>
     <name>CheckScreen</name>
     <message>
-        <location filename="../qml/scan/CheckScreen.qml" line="+348"/>
+        <location filename="../qml/scan/CheckScreen.qml" line="+363"/>
         <source>Turn</source>
         <translation>转动</translation>
     </message>

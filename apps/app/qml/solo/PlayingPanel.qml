@@ -128,7 +128,7 @@ Item {
         anchors.rightMargin: root.margin
         anchors.bottomMargin: root.margin
         visible: root.footed && root.actionsShown
-        height: visible && footLoader.item ? footLoader.item.implicitHeight : 0
+        height: visible && footLoader.item ? (footLoader.item as Item).implicitHeight : 0
 
         Loader {
             id: footLoader

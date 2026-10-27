@@ -23,6 +23,8 @@ class SoloLayout : public QObject {
     // panel then takes the leading side of a wide window instead of the trailing
     // one. The board's tiles never mirror.
     Q_PROPERTY(bool rightToLeft READ rightToLeft WRITE setRightToLeft NOTIFY changed)
+    // The least height of the panel in a tall window (board_layout.hpp); Solo Play's by default.
+    Q_PROPERTY(qreal minPanel READ minPanel WRITE setMinPanel NOTIFY changed)
 
     // Wide: the board in the leading two thirds, the panel in the trailing third.
     // Tall: the board in the top two thirds (and no taller than the window is wide), the panel
@@ -49,6 +51,8 @@ public:
     void setHeight(qreal height);
     void setBoardSize(int size);
     void setRightToLeft(bool right_to_left);
+    [[nodiscard]] qreal minPanel() const { return min_panel_; }
+    void setMinPanel(qreal min_panel);
 
     [[nodiscard]] bool wide() const { return result_.wide; }
     [[nodiscard]] QRectF boardArea() const { return rect(result_.board_area); }
@@ -75,6 +79,7 @@ private:
     qreal height_ = 0;
     int board_size_ = 3;
     bool right_to_left_ = false;
+    qreal min_panel_ = min_tall_panel;
     SoloLayoutResult result_;
 };
 

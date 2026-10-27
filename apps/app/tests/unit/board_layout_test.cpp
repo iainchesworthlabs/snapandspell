@@ -85,6 +85,17 @@ TEST_CASE("a tall window keeps the room above the board's square for the panel",
     CHECK(small.board_area.height == Approx(568 - sns::app::min_tall_panel));
     CHECK(small.panel_area.height == Approx(sns::app::min_tall_panel));
 
+    // A screen with a lighter panel asks for less and gives the board more.
+    const auto light = solo_layout(360, 568, 4, false, 200);
+    CHECK(light.board_area.height == Approx(360));
+    CHECK(solo_layout(360, 568, 4, false, 200).metrics.tile > small.metrics.tile);
+    sns::app::SoloLayout object;
+    object.setWidth(360);
+    object.setHeight(568);
+    CHECK(object.boardArea().height() == Approx(568 - sns::app::min_tall_panel));
+    object.setMinPanel(200);
+    CHECK(object.boardArea().height() == Approx(360));
+
     // The board area is never taller than wide or than two thirds of the height, at any tall shape.
     for (double width : {320.0, 360.0, 390.0, 430.0, 600.0, 744.0, 820.0}) {
         for (double height : {width + 1, width * 1.3, width * 1.8, width * 2.5}) {

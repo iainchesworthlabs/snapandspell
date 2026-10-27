@@ -1,0 +1,1 @@
+**The scanner and the assistant fit a phone.** The check screen's board gets the room it needs for tiles of at least 48 points on a small phone, its panel scrolls with "Start playing" in reach, a long screen title wraps onto a second line instead of being cut off, and the letter picker's own-letters box has room to say what it is for at the largest text size.

@@ -40,8 +40,15 @@ void SoloLayout::setRightToLeft(bool right_to_left) {
     }
 }
 
+void SoloLayout::setMinPanel(qreal min_panel) {
+    if (min_panel_ != min_panel) {
+        min_panel_ = min_panel;
+        update();
+    }
+}
+
 void SoloLayout::update() {
-    result_ = solo_layout(width_, height_, count(board_size_), right_to_left_);
+    result_ = solo_layout(width_, height_, count(board_size_), right_to_left_, min_panel_);
     emit changed();
 }
 
@@ -57,7 +64,7 @@ int SoloLayout::largestOffered() const {
 }
 
 qreal SoloLayout::tileFor(int size) const {
-    return solo_layout(width_, height_, count(size), right_to_left_).metrics.tile;
+    return solo_layout(width_, height_, count(size), right_to_left_, min_panel_).metrics.tile;
 }
 
 bool SoloLayout::offers(int size) const {

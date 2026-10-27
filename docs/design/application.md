@@ -382,8 +382,12 @@ the system is made of and which rules the tests hold it to.
   are one group that takes the height the caption leaves. A `Sheet` scrolls its body
   under its heading, and its `footer` (the summary's Play again and Home) stays in view.
   A bar's height follows its content and the layout rule is given what the bar leaves.
-- **Where it is not finished.** The scanner and assistant are not yet laid
-  out for the phone and the tablet (their matrix suite runs the desktop sizes only). The parent area's bare `Text` items are on the lint
+- **The scanner on a phone.** The check screen asks the layout rule for a lighter panel
+  (`SoloLayout.minPanel` 200 dp) so the tiles, which are tapped to correct, stay at least
+  48 dp on a 360 x 640 phone, and its panel scrolls as a whole, with the actions at the
+  foot of what scrolls. A narrow bar wraps a long title onto a second line. The letter
+  picker's own-letters row stacks when its box would be too narrow to say what it is for.
+- **Where it is not finished.** The parent area's bare `Text` items are on the lint
   allow-list; at 150 % text on the smallest window the playing panel scrolls
   (Clear and Done are reachable below the fold).
 
