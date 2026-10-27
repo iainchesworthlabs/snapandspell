@@ -90,6 +90,11 @@ constexpr int kSmokeFrameTimeoutMs = 20000;
 // How many of Qt's QML warnings a failed load puts in the dialog: the first ones
 // are the cause, the rest follow from it.
 constexpr qsizetype kMaxQmlErrors = 5;
+
+// A desktop window is sized by the person and has a least size; on a phone, a
+// tablet or a browser page the window is the screen. CMake passes it in from the
+// platform fragment (apps/app/CMakeLists.txt).
+constexpr bool kDesktopWindow = SNS_DESKTOP_WINDOW != 0;
 // The seed a smoke run plays when none is given, so that a capture is the same
 // boards in the same order on every run.
 constexpr std::uint32_t kSmokeSeed = 7919;
@@ -412,6 +417,7 @@ int main(int argc, char* argv[]) {
             // The smoke run's switch: Main.qml shows Solo Play and shakes the
             // box, and the frames are counted below, in C++.
             {QStringLiteral("smoke"), smoke > 0},
+            {QStringLiteral("desktopWindow"), kDesktopWindow},
         });
         engine.loadFromModule("SnapAndSpell", "Main");
     }

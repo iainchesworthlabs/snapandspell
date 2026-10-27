@@ -319,11 +319,6 @@ QtObject {
     function isShort(h) {
         return h < compactHeight;
     }
-    // Qt.platform.os of a window the person can resize: not a phone, a tablet or
-    // a browser page.
-    function isDesktop(os) {
-        return os === "windows" || os === "osx" || os === "linux" || os === "unix";
-    }
 
     // Pictures and panels.
     readonly property real pictureMax: 520

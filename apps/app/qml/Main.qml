@@ -37,7 +37,8 @@ ApplicationWindow {
     // tablet and a browser page have neither: the window is the screen (the page)
     // and the screens are laid out for whatever size that is, in either
     // orientation (docs/design/application.md, "Window sizes").
-    readonly property bool desktopWindow: Theme.isDesktop(Qt.platform.os)
+    // main.cpp says which, from the platform the program is built for.
+    property bool desktopWindow: true
 
     width: 1160
     height: 740

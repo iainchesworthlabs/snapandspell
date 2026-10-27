@@ -241,7 +241,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+47"/>
+        <location filename="../qml/Main.qml" line="+48"/>
         <source>Snap and Spell</source>
         <translation>Snap and Spell</translation>
     </message>

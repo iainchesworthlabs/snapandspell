@@ -364,7 +364,7 @@ the system is made of and which rules the tests hold it to.
   device (`Theme.isNarrow`, `isShort`, `isWide`): **narrow** below 600 dp wide (a phone
   held upright), **short** below 500 dp high (a phone on its side), **wide** from 900 dp
   (a tablet on its side, a desktop window). A tablet held upright is none of the three.
-  Only a desktop window has a floor (900 x 620, `Theme.desktopMinWidth/Height`); a phone,
+  Only a desktop window has a floor (900 x 620, `Theme.desktopMinWidth/Height`; the platform fragment's `SNS_PLATFORM_DESKTOP` says which, through `main.cpp`); a phone,
   a tablet and a browser page are as big as the screen is, and `Main.qml` lays the
   screens inside the device's safe area (`SafeArea`), so nothing sits under the notch, the
   rounded corners or the home indicator. The matrix holds each screen to 900x620,

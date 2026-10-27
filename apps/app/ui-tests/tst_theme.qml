@@ -271,12 +271,6 @@ TestCase {
         // Only a desktop window has a floor.
         compare(Theme.desktopMinWidth, 900)
         compare(Theme.desktopMinHeight, 620)
-        for (const os of ["windows", "osx", "linux", "unix"]) {
-            compare(Theme.isDesktop(os), true, os)
-        }
-        for (const os of ["ios", "android", "tvos", "visionos", "wasm", "qnx", ""]) {
-            compare(Theme.isDesktop(os), false, os)
-        }
     }
 
     function test_theJewelSizesSayTheirTier() {
