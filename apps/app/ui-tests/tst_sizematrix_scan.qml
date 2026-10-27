@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import QtQuick
 import SnapAndSpell
+import "SizeMatrix.js" as SizeMatrix
 import SnapAndSpell.Scan
 
 // The size matrix over Mode A (the scan screen, the check screen and the Family
@@ -18,6 +19,8 @@ SizeMatrixCase {
     id: matrix
 
     name: "SizeMatrixScan"
+    // Not yet laid out for a phone or a tablet (the scanner and the assistant: stage 3 of the phone and tablet work); the desktop shapes only until it is.
+    sizes: SizeMatrix.desktopSizes
     subjects: [readyComponent, cameraComponent, typedComponent, readComponent, assistComponent,
                assistFoundComponent]
     // Subject 1 is the live view, a VideoOutput.

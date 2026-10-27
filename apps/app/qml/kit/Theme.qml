@@ -322,6 +322,30 @@ QtObject {
         return h < compactHeight;
     }
 
+    // --- window sizes, in dp -----------------------------------------------
+    // A screen is laid out for the size it is given, by class and not by device:
+    // narrow below `compactWidth` (a phone held upright), short below
+    // `compactHeight` (a phone on its side), wide from `expandedWidth` (a tablet
+    // on its side, a desktop window: two columns). A tablet held upright is none
+    // of the three. A screen asks its own width and height, so a test can give it
+    // any size. Only a desktop window has a floor (`desktopMinWidth` x
+    // `desktopMinHeight`); a phone, a tablet and a browser page are as big as
+    // the screen is.
+    readonly property real compactWidth: 600
+    readonly property real expandedWidth: 900
+    readonly property real compactHeight: 500
+    readonly property real desktopMinWidth: 900
+    readonly property real desktopMinHeight: 620
+    function isNarrow(w) {
+        return w < compactWidth;
+    }
+    function isWide(w) {
+        return w >= expandedWidth;
+    }
+    function isShort(h) {
+        return h < compactHeight;
+    }
+
     // Pictures and panels.
     readonly property real pictureMax: 520
     readonly property real roomyPanel: 320
