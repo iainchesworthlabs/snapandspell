@@ -155,7 +155,7 @@ this repository). dp is Android's unit and about the same as an iOS point.
 | Desktop window 1100 x 700 | Wide | 733 x 700 | 367 x 700 | 212 | 157 | 124 | 102 |
 | Narrow browser 420 x 800 | Tall | 420 x 420 | 420 x 380 | 128 | 95 | 74 | 61 |
 
-[layouts.svg](layouts.svg) draws four of these to scale. On an iPad the MVP's
+[layouts.svg](layouts.svg) draws four of these to scale (its tall windows show the board's area at two thirds of the height, as it was before the area was capped to the width). On an iPad the MVP's
 3x3 and 4x4 are 160 dp or more, which is large for a finger.
 
 ### Which sizes are offered
