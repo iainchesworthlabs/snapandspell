@@ -51,7 +51,7 @@
         <translation>לְנַעֵר. לִמצוֹא. לֶאֱסוֹף.</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>נער את הקופסה. מצא מילים. אסוף תכשיטים.</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>לְשַׂחֵק</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>משחק למציאת מילים לקוראים צעירים</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>משתמשים במצלמה או מקלידים את הלוח. מבוגר מגדיר&#xa0;זאת.</translation>
     </message>

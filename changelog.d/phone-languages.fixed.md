@@ -1,1 +1,3 @@
 **Right-to-left Solo Play shows its board, and long translations fit a phone.** In Hebrew and Yiddish the board on a wide window (a tablet or a phone on its side) was drawn off the right edge of the screen, and the panel slid in from the wrong side; both are fixed. A card's title in German, and a button label in Japanese with no spaces in it, now wrap inside their card instead of being cut off or running past it.
+
+Home's two cards line up their titles, sentences and buttons when they sit side by side, as on an iPad held upright.

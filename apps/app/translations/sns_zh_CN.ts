@@ -51,7 +51,7 @@
         <translation>摇一摇。找一找。收集。</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>摇动盒子。找词。收集珠宝。</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>玩</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>适合年轻读者的找词游戏</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>使用摄像头，或手动输入棋盘。由成年人设置。</translation>
     </message>

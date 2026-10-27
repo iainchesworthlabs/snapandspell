@@ -51,7 +51,7 @@
         <translation>שאָקלען. געפֿינען. קלייַבן.</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>שאָקלען די קעסטל. געפינען ווערטער. קלייַבן דזשולז.</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>שפּיל</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>א וואָרט-געפינען שפּיל פֿאַר יונגע לייענער</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>ניצט די קאַמערע, אָדער טיפּט אַרײַן דאָס ברעט. אַ דערוואַקסענער שטעלט דאָס&#xa0;אויף.</translation>
     </message>

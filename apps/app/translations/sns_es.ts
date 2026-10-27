@@ -51,7 +51,7 @@
         <translation>Agita. Encuentra. Recoge.</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>Agite la caja. Encuentra palabras. Colecciona joyas.</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>Jugar</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>Un juego de encontrar palabras para lectores jóvenes</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>Use la cámara o escriba el tablero. Un adulto lo&#xa0;prepara.</translation>
     </message>

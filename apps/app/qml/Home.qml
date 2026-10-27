@@ -137,6 +137,9 @@ FocusScope {
                     Layout.preferredHeight: root.wide ? root.cardHeight : implicitHeight
                     Layout.minimumHeight: minimumHeight
                     primary: true
+                    titleReserve: familyCard.titleNeeded
+                    subtitleReserve: familyCard.subtitleNeeded
+                    buttonReserve: familyCard.buttonNeeded
                     eyebrow: HomeWording.soloEyebrow
                     title: HomeWording.soloPicture
                     subtitle: qsTr("Shake the box. Find words. Collect jewels.")
@@ -158,6 +161,9 @@ FocusScope {
                     Layout.preferredHeight: root.wide ? root.cardHeight : implicitHeight
                     Layout.minimumHeight: minimumHeight
                     grownUp: true
+                    titleReserve: primaryCard.titleNeeded
+                    subtitleReserve: primaryCard.subtitleNeeded
+                    buttonReserve: primaryCard.buttonNeeded
                     eyebrow: HomeWording.forGrownUps
                     title: HomeWording.familyPicture
                     subtitle: qsTr("Use the camera, or type the board. A grown-up sets\u00a0this\u00a0up.")

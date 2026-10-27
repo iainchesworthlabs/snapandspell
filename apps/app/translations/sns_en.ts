@@ -51,7 +51,7 @@
         <translation>Shake. Find. Collect.</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>Shake the box. Find words. Collect jewels.</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>Play</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>A word-finding game for young readers</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</translation>
     </message>

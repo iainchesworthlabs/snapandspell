@@ -51,7 +51,7 @@
         <translation>シェイク。探す。集める。</translation>
     </message>
     <message>
-        <location line="+25"/>
+        <location line="+28"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>箱を振ります。言葉を見つけてください。宝石を集めましょう。</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>遊ぶ</translation>
     </message>
     <message>
-        <location line="-33"/>
+        <location line="-36"/>
         <source>A word-finding game for young readers</source>
         <translation>若い読者のための言葉探しゲーム</translation>
     </message>
     <message>
-        <location line="+53"/>
+        <location line="+59"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>カメラを使うか、ボードを入力します。大人が設定します。</translation>
     </message>

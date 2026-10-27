@@ -33,6 +33,14 @@ Rectangle {
     property bool grownUp: false
     // The least number of lines the sentence under the title is given room for.
     property int subtitleLines: 2
+    // What two cards side by side give each other, so their buttons start at one height whichever title
+    // or sentence wraps more: each is told how tall the other's needs to be.
+    property real titleReserve: 0
+    property real subtitleReserve: 0
+    property real buttonReserve: 0
+    readonly property real buttonNeeded: buttonHeight
+    readonly property real titleNeeded: titleText.implicitHeight
+    readonly property real subtitleNeeded: subtitleText.implicitHeight
     property bool pointerFocus: false
     // Focus the card was given when it was made is not announced with a ring.
     property bool quietFocus: false
@@ -120,7 +128,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.space6
-        spacing: Theme.space1
+        spacing: Theme.space2
 
         Eyebrow {
             visible: root.eyebrow.length > 0
@@ -130,21 +138,28 @@ Rectangle {
             elide: Text.ElideRight
             decorative: true
         }
-        Label {
+        Item {
             width: parent.width
-            role: "title"
-            text: root.title
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-            maximumLineCount: 4
-            elide: Text.ElideRight
-            decorative: true
+            height: Math.max(titleText.implicitHeight, root.titleReserve)
+
+            Label {
+                id: titleText
+                width: parent.width
+                role: "title"
+                text: root.title
+                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                maximumLineCount: 4
+                elide: Text.ElideRight
+                decorative: true
+            }
         }
         // The line under the title always has room for `subtitleLines` lines, so
         // two cards side by side start their words at the same height whichever
         // of the two sentences wraps.
         Item {
             width: parent.width
-            height: Math.max(subtitleText.implicitHeight, root.subtitleLines * subtitleText.lineRatio * subtitleText.size)
+            height: Math.max(subtitleText.implicitHeight, root.subtitleLines * subtitleText.lineRatio * subtitleText.size,
+                             root.subtitleReserve)
 
             Label {
                 id: subtitleText
@@ -163,7 +178,8 @@ Rectangle {
         // handlers of its own. 96 dp for the child's card, 64 dp for the grown-ups'.
         Item {
             width: parent.width
-            height: root.buttonHeight + Theme.shadowMedium
+            // As tall as the taller of the two cards' buttons, the button at the top of it.
+            height: Math.max(root.buttonHeight, root.buttonReserve) + Theme.shadowMedium
 
             PixelBox {
                 width: parent.width
