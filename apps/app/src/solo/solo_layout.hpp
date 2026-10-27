@@ -25,7 +25,8 @@ class SoloLayout : public QObject {
     Q_PROPERTY(bool rightToLeft READ rightToLeft WRITE setRightToLeft NOTIFY changed)
 
     // Wide: the board in the leading two thirds, the panel in the trailing third.
-    // Tall: the board in the top two thirds (and no taller than the window is wide), the panel below.
+    // Tall: the board in the top two thirds (and no taller than the window is wide), the panel
+    // below.
     Q_PROPERTY(bool wide READ wide NOTIFY changed)
     Q_PROPERTY(QRectF boardArea READ boardArea NOTIFY changed)
     Q_PROPERTY(QRectF panelArea READ panelArea NOTIFY changed)

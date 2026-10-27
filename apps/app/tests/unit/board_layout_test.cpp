@@ -42,8 +42,8 @@ const std::vector<Window>& reference_windows() {
 
 }  // namespace
 
-// Wide: two thirds of the width. Tall: two thirds of the height, and no more than the width (a square
-// that fits it); the panel takes the rest in either case.
+// Wide: two thirds of the width. Tall: two thirds of the height, and no more than the width (a
+// square that fits it); the panel takes the rest in either case.
 TEST_CASE("the board area is two thirds of the window on its long side", "[app][layout]") {
     for (const auto& window : reference_windows()) {
         INFO(window.name);
@@ -79,7 +79,8 @@ TEST_CASE("a tall window keeps the room above the board's square for the panel",
     const auto squat = solo_layout(900, 1000, 4);
     CHECK(squat.board_area.height == Approx(1000.0 * 2 / 3));
 
-    // Nor so tall that the panel has less than its least: a small phone gives the board a little less.
+    // Nor so tall that the panel has less than its least: a small phone gives the board a little
+    // less.
     const auto small = solo_layout(360, 568, 4);
     CHECK(small.board_area.height == Approx(568 - sns::app::min_tall_panel));
     CHECK(small.panel_area.height == Approx(sns::app::min_tall_panel));
@@ -93,7 +94,8 @@ TEST_CASE("a tall window keeps the room above the board's square for the panel",
             CHECK(layout.board_area.height <= width + 0.001);
             CHECK(layout.board_area.height <= height * 2 / 3 + 0.001);
             CHECK(layout.board_area.height + layout.panel_area.height == Approx(height));
-            CHECK(layout.panel_area.height >= std::min(sns::app::min_tall_panel, height - 0.001) - 0.001);
+            CHECK(layout.panel_area.height >=
+                  std::min(sns::app::min_tall_panel, height - 0.001) - 0.001);
         }
     }
 }
