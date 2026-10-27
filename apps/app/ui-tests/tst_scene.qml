@@ -163,11 +163,18 @@ TestCase {
         scene.boxHopChanged.connect(() => { if (scene.boxHop.x !== 0 || scene.boxHop.y !== 0) hopped++ })
         const started = Date.now()
         scene.play(board(3, 3), 5)
-        tryCompare(scene, "busy", false, 4000)
+        tryCompare(scene, "busy", false, 8000)
+        const reduced = Date.now() - started
         compare(hopped, 0)
-        // 300 ms + 120 ms + 120 ms + the settle: well under the 2 s of the full play.
-        verify(Date.now() - started < 1500)
         compare(dice(scene)[0].opacity, 1)
+
+        // 300 ms + 120 ms + 120 ms + the settle against the 2 s of the full play: measured against a
+        // full play on the same machine, not against the clock, so a slow runner does not fail it.
+        const full = makeScene()
+        const fullStarted = Date.now()
+        full.play(board(3, 3), 5)
+        tryCompare(full, "busy", false, 12000)
+        verify(reduced < (Date.now() - fullStarted) * 0.75, reduced + " ms reduced, " + (Date.now() - fullStarted) + " ms full")
     }
 
     function test_aSecondPlayRestartsTheFirst() {
