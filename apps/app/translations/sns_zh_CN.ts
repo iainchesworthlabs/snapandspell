@@ -9,7 +9,7 @@
         <translation>返回</translation>
     </message>
     <message>
-        <location line="+113"/>
+        <location line="+130"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>我的棋盘</translation>
@@ -21,7 +21,7 @@
         <translation>我的珠宝</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>给大人</translation>

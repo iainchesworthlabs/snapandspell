@@ -9,7 +9,7 @@
         <translation>Zurück</translation>
     </message>
     <message>
-        <location line="+113"/>
+        <location line="+130"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>Meine Bretter</translation>
@@ -21,7 +21,7 @@
         <translation>Meine Juwelen</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>Für Erwachsene</translation>

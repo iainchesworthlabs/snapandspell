@@ -58,8 +58,21 @@ Item {
     readonly property real naturalLeading: (backButton.visible ? backButton.implicitWidth + Theme.space3 : 0)
                                            + (mark.visible ? mark.implicitWidth + Theme.space3 : 0)
                                            + (titleLabel.visible ? titleLabel.implicitWidth : 0)
+    // The width the trailing group wants on one line: its entries side by side (the group wraps onto
+    // rows when it has less than this).
+    readonly property real naturalTrailing: {
+        let width = 0;
+        let count = 0;
+        for (const entry of trailing.children) {
+            if (entry.visible && entry.implicitWidth > 0) {
+                width += entry.implicitWidth;
+                ++count;
+            }
+        }
+        return width + Math.max(0, count - 1) * trailing.spacing;
+    }
     // The width both groups want on one line.
-    readonly property real naturalWidth: naturalLeading + trailing.implicitWidth + 3 * margin
+    readonly property real naturalWidth: naturalLeading + naturalTrailing + 3 * margin
     // On a narrow window the title gives way (it is elided) before the trailing group drops to a row of its
     // own, down to this much of it.
     readonly property real leastTitleWidth: narrow ? Math.min(titleLabel.implicitWidth, Theme.barTitleMin)
@@ -70,7 +83,7 @@ Item {
     // The first line is 72 dp or, at a large text size, whatever the wordmark and
     // the Back button need; a second line is added when the trailing group drops.
     readonly property real firstRowHeight: Math.max(Theme.appBarHeight, leading.height + 2 * Theme.space2)
-    implicitHeight: stacked ? firstRowHeight + Theme.targetMin + Theme.space3 : firstRowHeight
+    implicitHeight: stacked ? firstRowHeight + trailing.height + Theme.space3 : firstRowHeight
     height: implicitHeight
 
     Rectangle {
@@ -127,7 +140,7 @@ Item {
             width: Math.min(implicitWidth, Math.max(Theme.targetMin, root.width - 2 * root.margin
                                                      - (backButton.visible ? backButton.implicitWidth + Theme.space3 : 0)
                                                      - (mark.visible ? mark.implicitWidth + Theme.space3 : 0)
-                                                     - (root.stacked ? 0 : trailing.implicitWidth + Theme.space3)))
+                                                     - (root.stacked ? 0 : root.naturalTrailing + Theme.space3)))
             role: root.showWordmark ? "body" : "heading"
             text: root.title
             color: root.showWordmark ? Theme.inkSecondary : Theme.ink
@@ -138,11 +151,15 @@ Item {
         }
     }
 
-    Row {
+    // The entries at the trailing end. On a row of their own (stacked) they have the bar's whole width
+    // and wrap onto more rows if they need it (four tabs at big text on a phone).
+    Flow {
         id: trailing
         anchors.right: parent.right
         anchors.rightMargin: root.margin
         y: root.stacked ? root.firstRowHeight : (root.firstRowHeight - height) / 2
+        width: root.stacked ? root.width - 2 * root.margin : root.naturalTrailing
+        height: childrenRect.height
         spacing: Theme.space2
 
         AppButton {
@@ -173,6 +190,7 @@ Item {
                 required property var modelData
                 size: "min"
                 variant: "tab"
+                compact: root.narrow
                 quiet: true
                 label: modelData.label
                 checkable: true

@@ -387,6 +387,10 @@ the system is made of and which rules the tests hold it to.
   48 dp on a 360 x 640 phone, and its panel scrolls as a whole, with the actions at the
   foot of what scrolls. A narrow bar wraps a long title onto a second line. The letter
   picker's own-letters row stacks when its box would be too narrow to say what it is for.
+- **The parent area's tabs on a phone.** The bar's trailing group is a flow, not a row: on a
+  row of its own it has the bar's whole width and wraps onto more rows when it needs them
+  (four tabs at big text), and its tabs are tighter on a narrow bar. The matrix opens the
+  gate, so the tabs are audited too.
 - **Where it is not finished.** The parent area's bare `Text` items are on the lint
   allow-list; at 150 % text on the smallest window the playing panel scrolls
   (Clear and Done are reachable below the fold).

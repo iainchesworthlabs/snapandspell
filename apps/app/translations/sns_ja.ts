@@ -9,7 +9,7 @@
         <translation>もどる</translation>
     </message>
     <message>
-        <location line="+113"/>
+        <location line="+130"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>わたしのボード</translation>
@@ -21,7 +21,7 @@
         <translation>わたしの宝石</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>おとな向け</translation>

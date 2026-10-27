@@ -61,6 +61,8 @@ TestCase {
     function home() {
         const home = createTemporaryObject(homeComponent, testCase, { width: 900, height: 600 })
         verify(home !== null)
+        // The bar's entries are placed on the first polish, as a person sees them: after a frame.
+        verify(waitForRendering(home, 2000))
         return home
     }
 

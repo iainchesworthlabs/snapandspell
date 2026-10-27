@@ -1,0 +1,1 @@
+**The parent area's tabs fit a phone.** The Dashboard, Settings, About and Licences tabs used to run off the left edge of a phone held upright. They are tighter on a narrow screen and wrap onto a second row when the text size makes them too wide.

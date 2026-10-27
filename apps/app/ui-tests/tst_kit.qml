@@ -795,6 +795,39 @@ TestCase {
         compare(buttons[qsTr("My boards")].label, qsTr("My boards"))
     }
 
+    function test_aNarrowBarKeepsAllFourTabsInsideItAndWrapsThemAtBigText() {
+        const bar = createTemporaryObject(appBarComponent, testCase,
+            { width: 360, showBack: true, showWordmark: true, title: "Parent area", showParent: false,
+              tabs: [{id: "dashboard", label: "Dashboard"}, {id: "settings", label: "Settings"},
+                     {id: "about", label: "About"}, {id: "licences", label: "Licences"}],
+              currentTab: "dashboard" })
+        tryCompare(bar, "narrow", true)
+        const tabs = []
+        const walk = item => {
+            if (item.variant === "tab") {
+                tabs.push(item)
+            }
+            for (const child of item.children) {
+                walk(child)
+            }
+        }
+        walk(bar)
+        compare(tabs.length, 4)
+        const inside = () => tabs.every(tab => {
+            const at = tab.mapToItem(bar, 0, 0)
+            return at.x >= -0.5 && at.x + tab.width <= bar.width + 0.5 && at.y + tab.height <= bar.height + 0.5
+        })
+        verify(inside(), "four tabs fit the bar at 360 dp")
+        Theme.textScale = 1.5
+        tryCompare(bar, "stacked", true)
+        // At big text they no longer fit one row: they wrap, the bar grows, and none leaves it.
+        wait(50)
+        verify(inside(), "the tabs wrap inside the bar at 150% text")
+        const rows = new Set(tabs.map(tab => Math.round(tab.mapToItem(bar, 0, 0).y)))
+        verify(rows.size >= 2, "the tabs are on more than one row")
+        Theme.textScale = 1.0
+    }
+
     function test_aNarrowBarWithABackButtonLeavesTheNameToTheTitle() {
         const bar = createTemporaryObject(appBarComponent, testCase,
             { width: 390, showBack: true, showWordmark: true, title: "Parent area", showParent: false })

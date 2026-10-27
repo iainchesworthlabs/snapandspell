@@ -9,7 +9,7 @@
         <translation>Atrás</translation>
     </message>
     <message>
-        <location line="+113"/>
+        <location line="+130"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>Mis tableros</translation>
@@ -21,7 +21,7 @@
         <translation>Mis joyas</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <location line="+1"/>
         <source>For grown-ups</source>
         <translation>Para adultos</translation>
