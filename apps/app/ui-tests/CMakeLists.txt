@@ -239,9 +239,14 @@ foreach(SNS_QUICK_TEST_FILE IN LISTS SNS_QUICK_TEST_FILES)
     string(REGEX REPLACE "^tst_" "" SNS_QUICK_TEST_SUITE "${SNS_QUICK_TEST_NAME}")
     add_test(NAME "quick.${SNS_QUICK_TEST_SUITE}"
         COMMAND sns_quick_tests -input "${SNS_QUICK_TEST_FILE}" -platform offscreen)
+    # A size matrix makes every screen at every shape: on a hosted Windows runner that is minutes, not seconds.
+    set(SNS_QUICK_TEST_TIMEOUT 300)
+    if(SNS_QUICK_TEST_SUITE MATCHES "^sizematrix")
+        set(SNS_QUICK_TEST_TIMEOUT 900)
+    endif()
     set_tests_properties("quick.${SNS_QUICK_TEST_SUITE}" PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_FORCE_STDERR_LOGGING=1;${SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT}"
-        TIMEOUT 300
+        TIMEOUT ${SNS_QUICK_TEST_TIMEOUT}
         LABELS "system;ui;gui")
 endforeach()
 
