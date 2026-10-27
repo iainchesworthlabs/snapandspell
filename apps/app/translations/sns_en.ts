@@ -9,7 +9,7 @@
         <translation>Back</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+111"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>My boards</translation>
@@ -864,12 +864,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../qml/solo/PlayingPanel.qml" line="+60"/>
+        <location filename="../qml/solo/PlayingPanel.qml" line="+63"/>
         <source>Tap the last die again, or press Done</source>
         <translation>Tap the last die again, or press Done</translation>
     </message>
     <message>
-        <location line="+104"/>
+        <location line="+164"/>
         <source>1 word</source>
         <translation>1 word</translation>
     </message>
@@ -889,12 +889,12 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+43"/>
         <source>Your words will land here.</source>
         <translation>Your words will land here.</translation>
     </message>
     <message>
-        <location line="+112"/>
+        <location line="-280"/>
         <source>Clear</source>
         <translation>Clear</translation>
     </message>
@@ -1225,7 +1225,7 @@
 <context>
     <name>Sheet</name>
     <message>
-        <location filename="../qml/kit/Sheet.qml" line="+25"/>
+        <location filename="../qml/kit/Sheet.qml" line="+26"/>
         <source>Close</source>
         <translation>Close</translation>
     </message>
@@ -1241,7 +1241,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+253"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+254"/>
         <source>Solo Play</source>
         <translation>Solo Play</translation>
     </message>
@@ -1261,7 +1261,7 @@
         <translation>Find a word</translation>
     </message>
     <message>
-        <location line="+237"/>
+        <location line="+244"/>
         <source>You found all %1 words!</source>
         <translation>You found all %1 words!</translation>
     </message>
@@ -1281,7 +1281,7 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+122"/>
+        <location line="+123"/>
         <source>You found this one already.</source>
         <translation>You found this one already.</translation>
     </message>

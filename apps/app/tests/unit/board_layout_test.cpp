@@ -27,21 +27,23 @@ struct Window {
 
 const std::vector<Window>& reference_windows() {
     static const std::vector<Window> windows{
-        {"phone 360 x 740", 360, 740, false, 360, 493, {108, 80, 62, 51}},
-        {"phone 390 x 800", 390, 800, false, 390, 533, {118, 87, 68, 56}},
-        {"phone 320 x 600", 320, 600, false, 320, 400, {95, 70, 54, 44}},
+        {"phone 360 x 740", 360, 740, false, 360, 360, {108, 80, 62, 51}},
+        {"phone 390 x 800", 390, 800, false, 390, 390, {118, 87, 68, 56}},
+        {"phone 320 x 600", 320, 600, false, 320, 300, {88, 65, 50, 41}},
         {"phone on its side 740 x 360", 740, 360, true, 493, 360, {108, 80, 62, 51}},
-        {"small tablet 744 x 1133", 744, 1133, false, 744, 755, {227, 168, 133, 109}},
-        {"tablet 800 x 1280", 800, 1280, false, 800, 853, {245, 182, 144, 119}},
+        {"small tablet 744 x 1133", 744, 1133, false, 744, 744, {227, 168, 133, 109}},
+        {"tablet 800 x 1280", 800, 1280, false, 800, 800, {245, 182, 144, 119}},
         {"tablet 1280 x 800", 1280, 800, true, 853, 800, {245, 182, 144, 119}},
         {"desktop 1100 x 700", 1100, 700, true, 733, 700, {212, 157, 124, 102}},
-        {"narrow browser 420 x 800", 420, 800, false, 420, 533, {128, 95, 74, 61}},
+        {"narrow browser 420 x 800", 420, 800, false, 420, 420, {128, 95, 74, 61}},
     };
     return windows;
 }
 
 }  // namespace
 
+// Wide: two thirds of the width. Tall: two thirds of the height, and no more than the width (a square
+// that fits it); the panel takes the rest in either case.
 TEST_CASE("the board area is two thirds of the window on its long side", "[app][layout]") {
     for (const auto& window : reference_windows()) {
         INFO(window.name);
@@ -59,6 +61,39 @@ TEST_CASE("the board area is two thirds of the window on its long side", "[app][
             CHECK(layout.panel_area.y == Approx(layout.board_area.height));
             CHECK(layout.panel_area.height + layout.board_area.height == Approx(window.height));
             CHECK(layout.panel_area.width == Approx(window.width));
+        }
+    }
+}
+
+TEST_CASE("a tall window keeps the room above the board's square for the panel", "[app][layout]") {
+    // A phone held upright below its bar: the board needs the width, not two thirds of the height.
+    const auto phone = solo_layout(390, 772, 4);
+    CHECK_FALSE(phone.wide);
+    CHECK(phone.board_area.height == Approx(390));
+    CHECK(phone.panel_area.y == Approx(390));
+    CHECK(phone.panel_area.height == Approx(772 - 390));
+    // The board is the same: the width decided its tile before and still does.
+    CHECK(phone.metrics.tile == Approx((390 - 2 * 12 - 3 * 6) / 4.0));
+
+    // Never taller than two thirds, as before, where the window is not that tall.
+    const auto squat = solo_layout(900, 1000, 4);
+    CHECK(squat.board_area.height == Approx(1000.0 * 2 / 3));
+
+    // Nor so tall that the panel has less than its least: a small phone gives the board a little less.
+    const auto small = solo_layout(360, 568, 4);
+    CHECK(small.board_area.height == Approx(568 - sns::app::min_tall_panel));
+    CHECK(small.panel_area.height == Approx(sns::app::min_tall_panel));
+
+    // The board area is never taller than wide or than two thirds of the height, at any tall shape.
+    for (double width : {320.0, 360.0, 390.0, 430.0, 600.0, 744.0, 820.0}) {
+        for (double height : {width + 1, width * 1.3, width * 1.8, width * 2.5}) {
+            const auto layout = solo_layout(width, height, 4);
+            INFO(width << " x " << height);
+            CHECK_FALSE(layout.wide);
+            CHECK(layout.board_area.height <= width + 0.001);
+            CHECK(layout.board_area.height <= height * 2 / 3 + 0.001);
+            CHECK(layout.board_area.height + layout.panel_area.height == Approx(height));
+            CHECK(layout.panel_area.height >= std::min(sns::app::min_tall_panel, height - 0.001) - 0.001);
         }
     }
 }
@@ -188,7 +223,8 @@ TEST_CASE("the layout object recomputes when the window or the size changes", "[
     rule.setWidth(800);
     rule.setHeight(1280);
     CHECK_FALSE(rule.wide());
-    CHECK(rule.panelArea().y() == Approx(1280.0 * 2 / 3));
+    // Tall and no taller than wide: the board's area is 800 of the 1280, not two thirds.
+    CHECK(rule.panelArea().y() == Approx(800));
 }
 
 TEST_CASE("the geometry the scene draws by is the same rule", "[app][layout]") {

@@ -315,9 +315,37 @@ TestCase {
         verify(list.height >= 2 * Theme.rowHeight)
         // Whole rows only, so no row is cut under the heading.
         compare(list.height % Theme.rowHeight, 0)
-        // The actions are beside the words, not under them.
+        // The hint and Finish are beside the words, not under them.
+        const finish = buttonNamed(tall, SoloWording.finishBoard)
+        verify(finish.mapToItem(tall, 0, 0).x >= card.mapToItem(tall, 0, 0).x + card.width)
+        // Clear and Done are the foot of the panel: below the words, inside the panel.
         const done = buttonNamed(tall, SoloWording.done)
-        verify(done.mapToItem(tall, 0, 0).x >= card.x + card.width)
+        const at = done.mapToItem(tall, 0, 0)
+        verify(at.y >= card.mapToItem(tall, 0, 0).y + card.height - 1, "Done is below the words")
+        verify(at.y + done.height <= tall.height + 0.5, "Done is inside the panel")
+    }
+
+    function test_clearAndDoneStayInReachInAShortTallPanel() {
+        // A phone upright at 150% text leaves the panel less room than its parts need: the words and
+        // the hint scroll, and Clear and Done are still on the panel.
+        play()
+        Theme.textScale = 1.5
+        const tall = createTemporaryObject(panelComponent, testCase,
+                                           { width: 390, height: 300, wide: false, solo: soloModel })
+        verify(tall !== null)
+        const done = buttonNamed(tall, SoloWording.done)
+        const clear = buttonNamed(tall, qsTr("Clear"))
+        verify(done !== null && clear !== null)
+        for (const button of [done, clear]) {
+            const at = button.mapToItem(tall, 0, 0)
+            verify(at.y >= 0 && at.y + button.height <= tall.height + 0.5, button.label + " is inside the panel")
+            verify(at.x >= 0 && at.x + button.width <= tall.width + 0.5, button.label + " is inside the panel across")
+        }
+        // In a wide panel they are in the zone's column, not a foot.
+        const wide = createTemporaryObject(panelComponent, testCase,
+                                           { width: 300, height: 700, wide: true, solo: soloModel })
+        verify(buttonNamed(wide, SoloWording.done) !== null)
+        Theme.textScale = 1.0
     }
 
     function test_theWordsCardKeepsItsRoomInTheSmallestWideWindow() {

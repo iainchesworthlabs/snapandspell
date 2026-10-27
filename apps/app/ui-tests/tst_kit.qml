@@ -33,6 +33,22 @@ TestCase {
     Component { id: tabletComponent; TabletArt { } }
     Component { id: spyComponent; SignalSpy { } }
     Component {
+        id: tallSheetComponent
+        Sheet {
+            property alias save: saveButton
+            property alias last: lastButton
+            open: true
+            title: "Tall"
+            // More body than a 300 dp window leaves.
+            Repeater {
+                model: 6
+                AppButton { size: "child"; label: "Row" }
+            }
+            AppButton { id: lastButton; size: "min"; label: "Last row" }
+            footer: AppButton { id: saveButton; size: "primary"; variant: "primary"; label: "Save" }
+        }
+    }
+    Component {
         id: sheetHostComponent
         Item {
             property alias sheet: theSheet
@@ -615,6 +631,44 @@ TestCase {
     }
 
     // --- Sheet --------------------------------------------------------------------
+    function test_aTallSheetScrollsItsBodyAndKeepsItsFooter() {
+        const sheet = createTemporaryObject(tallSheetComponent, testCase, { width: 400, height: 300 })
+        verify(sheet !== null)
+        // The sheet is as tall as the window leaves it, and the footer is inside it, whole.
+        const save = sheet.save
+        const at = save.mapToItem(sheet, 0, 0)
+        verify(at.y >= 0 && at.y + save.height <= sheet.height, "the footer is inside the window")
+        // The body is the thing that scrolls: its last row is below the fold until it is scrolled to.
+        const walk = (item, found) => {
+            if (item.contentHeight !== undefined && item.flickableDirection !== undefined && item.interactive !== undefined) {
+                found.push(item)
+            }
+            for (const child of item.children) {
+                walk(child, found)
+            }
+            return found
+        }
+        const scrollers = walk(sheet, [])
+        verify(scrollers.length > 0)
+        const scroller = scrollers[0]
+        verify(scroller.interactive, "the body scrolls")
+        verify(scroller.contentHeight > scroller.height)
+        const last = sheet.last
+        verify(last.mapToItem(sheet, 0, 0).y + last.height > save.mapToItem(sheet, 0, 0).y, "the last row starts below the fold")
+        scroller.contentY = scroller.contentHeight - scroller.height
+        verify(last.mapToItem(sheet, 0, 0).y + last.height <= save.mapToItem(sheet, 0, 0).y + 0.5, "the last row is reachable")
+        // A short body needs no scrolling.
+        const roomy = createTemporaryObject(tallSheetComponent, testCase, { width: 400, height: 1400, maxHeight: 2000 })
+        const roomyScroller = walk(roomy, [])[0]
+        verify(!roomyScroller.interactive, "a body that fits does not scroll")
+    }
+
+    function test_aLabelDrawsNoLigatures() {
+        const label = createTemporaryObject(labelComponent, testCase, { text: "finished" })
+        compare(label.font.features["liga"], 0)
+        compare(label.font.features["clig"], 0)
+    }
+
     function test_aSheetClosesOnEscapeAndHasATitle() {
         const host = createTemporaryObject(sheetHostComponent, testCase, { width: 600, height: 400 })
         const sheet = host.sheet

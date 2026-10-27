@@ -9,7 +9,7 @@
         <translation>もどる</translation>
     </message>
     <message>
-        <location line="+105"/>
+        <location line="+111"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>わたしのボード</translation>
@@ -864,12 +864,12 @@
 <context>
     <name>PlayingPanel</name>
     <message>
-        <location filename="../qml/solo/PlayingPanel.qml" line="+60"/>
+        <location filename="../qml/solo/PlayingPanel.qml" line="+63"/>
         <source>Tap the last die again, or press Done</source>
         <translation>最後のサイコロをもう一度タップするか、「完了」を押します</translation>
     </message>
     <message>
-        <location line="+104"/>
+        <location line="+164"/>
         <source>1 word</source>
         <translation>1単語</translation>
     </message>
@@ -889,12 +889,12 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+42"/>
+        <location line="+43"/>
         <source>Your words will land here.</source>
         <translation>あなたの言葉がここに届きます。</translation>
     </message>
     <message>
-        <location line="+112"/>
+        <location line="-280"/>
         <source>Clear</source>
         <translation>けす</translation>
     </message>
@@ -1225,7 +1225,7 @@
 <context>
     <name>Sheet</name>
     <message>
-        <location filename="../qml/kit/Sheet.qml" line="+25"/>
+        <location filename="../qml/kit/Sheet.qml" line="+26"/>
         <source>Close</source>
         <translation>とじる</translation>
     </message>
@@ -1241,7 +1241,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+253"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+254"/>
         <source>Solo Play</source>
         <translation>ソロプレイ</translation>
     </message>
@@ -1261,7 +1261,7 @@
         <translation>単語を探す</translation>
     </message>
     <message>
-        <location line="+237"/>
+        <location line="+244"/>
         <source>You found all %1 words!</source>
         <translation>%1 個の単語をすべて見つけました!</translation>
     </message>
@@ -1281,7 +1281,7 @@
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+122"/>
+        <location line="+123"/>
         <source>You found this one already.</source>
         <translation>これはもうみつけているよ。</translation>
     </message>

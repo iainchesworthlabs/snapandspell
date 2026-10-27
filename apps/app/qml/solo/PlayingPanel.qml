@@ -15,7 +15,10 @@ import SnapAndSpell
 // which once left the words card a 4 px sliver). Nothing moves when a path starts:
 // the line for the word in hand has its height reserved, and so does the hint's
 // words, which share it. If a window and a text size leave less room than the
-// actions need, the panel scrolls instead of hiding one under the edge.
+// actions need, the panel scrolls instead of hiding one under the edge. In the
+// tall layout (a phone held upright) and in a short one (a phone on its side) Clear
+// and Done are the foot of the panel and do not scroll with the rest: the way on is
+// always in reach.
 Item {
     id: root
 
@@ -66,6 +69,9 @@ Item {
 
     readonly property real margin: Theme.space4
     readonly property real gap: Theme.space3
+    // Clear and Done are the foot of the panel, not in the zone's column, where the panel is tall (a
+    // phone upright) or short (a phone on its side): there the rest scrolls above them.
+    readonly property bool footed: !wide || Theme.isShort(height)
     // The tall layout's second column.
     readonly property real zoneWidth: Math.min(width * 0.45, Theme.modalMax - Theme.space16)
     // The line's reserved height: a word and its small line, or two lines of the hint.
@@ -84,13 +90,68 @@ Item {
 
     // Toybox: the panel is the page with cards on it, not a strip of its own (the cards carry the outlines).
 
+    // Clear and Done: one pair, in the zone's column of a wide panel and at the foot of a tall one.
+    Component {
+        id: actionBar
+        ActionBar {
+            tier: "child"
+            secondaryLabel: qsTr("Clear")
+            secondaryEnabled: root.solo.path.length > 0 || root.statusText.length > 0
+            primaryLabel: qsTr("Done")
+            primaryIcon: "done"
+            primaryEnabled: root.solo.path.length > 0
+            onSecondaryClicked: root.solo.clearPath()
+            onPrimaryClicked: root.solo.done()
+        }
+    }
+
+    // The foot is painted over the scrolling content, on the page's own colour, so nothing that
+    // scrolls shows through between or under its buttons.
+    Rectangle {
+        z: 1
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: foot.height + root.margin + root.gap
+        visible: foot.visible
+        color: Theme.page
+    }
+
+    // The tall layout's foot.
+    Item {
+        id: foot
+        z: 2
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: root.margin
+        anchors.rightMargin: root.margin
+        anchors.bottomMargin: root.margin
+        visible: root.footed && root.actionsShown
+        height: visible && footLoader.item ? footLoader.item.implicitHeight : 0
+
+        Loader {
+            id: footLoader
+            anchors.left: parent.left
+            anchors.right: parent.right
+            active: root.footed
+            sourceComponent: actionBar
+        }
+    }
+
     Flickable {
         id: viewport
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: foot.visible ? foot.top : parent.bottom
+        anchors.bottomMargin: foot.visible ? Theme.space1 : 0
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         contentWidth: width
-        contentHeight: Math.max(layout.implicitHeight + 2 * root.margin, height)
+        // Over the foot the content stops at the cards' own shadow; otherwise a margin's worth.
+        readonly property real bottomPad: foot.visible ? root.gap : root.margin
+        contentHeight: Math.max(layout.implicitHeight + root.margin + bottomPad, height)
 
         GridLayout {
             id: layout
@@ -98,7 +159,7 @@ Item {
             y: root.margin
             width: viewport.width - 2 * root.margin
             // The room the viewport gives it, or what it needs if that is more.
-            height: Math.max(implicitHeight, viewport.height - 2 * root.margin)
+            height: Math.max(implicitHeight, viewport.height - root.margin - viewport.bottomPad)
             columns: root.wide ? 1 : 2
             rowSpacing: root.gap
             columnSpacing: root.gap
@@ -155,8 +216,10 @@ Item {
                             Accessible.name: SoloWording.clockName(root.solo.clockMode, root.solo.clockText)
                         }
                     }
-                    RowLayout {
+                    // Side by side, or one under the other when the card is too narrow for both (big text).
+                    Flow {
                         Layout.fillWidth: true
+                        Layout.preferredHeight: childrenRect.height
                         spacing: Theme.space3
 
                         Label {
@@ -309,9 +372,12 @@ Item {
                                 Accessible.ignored: true
                             }
                             Label {
+                                width: Math.min(implicitWidth, listArea.width - 2 * Theme.space2)
                                 role: "caption"
                                 learning: true
                                 text: qsTr("Your words will land here.")
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.WordWrap
                             }
                         }
                     }
@@ -418,18 +484,13 @@ Item {
 
                 // Clear clears a path; Done hands one in. A traced word hands itself
                 // in when the finger lifts, so Done is for a word made by taps (or
-                // the keyboard and a screen reader).
-                ActionBar {
+                // the keyboard and a screen reader). In a tall panel they are the
+                // foot of it instead (`foot`).
+                Loader {
                     visible: root.actionsShown
                     Layout.fillWidth: true
-                    tier: "child"
-                    secondaryLabel: qsTr("Clear")
-                    secondaryEnabled: root.solo.path.length > 0 || root.statusText.length > 0
-                    primaryLabel: qsTr("Done")
-                    primaryIcon: "done"
-                    primaryEnabled: root.solo.path.length > 0
-                    onSecondaryClicked: root.solo.clearPath()
-                    onPrimaryClicked: root.solo.done()
+                    active: !root.footed
+                    sourceComponent: actionBar
                 }
             }
         }

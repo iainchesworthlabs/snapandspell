@@ -375,8 +375,15 @@ the system is made of and which rules the tests hold it to.
   instead, and says which stage fixes it. On a narrow bar the boards and the jewels are
   pictures alone (they keep their names for a screen reader); the grown-ups' entry keeps
   its words, and a bar with a Back button leaves the product's name to the title.
-- **Where it is not finished.** Solo Play and the scanner and assistant are not yet laid
-  out for the phone and the tablet (their matrix suites run the desktop sizes only). The parent area's bare `Text` items are on the lint
+- **Solo Play on a phone.** The board takes the width of a tall window and the panel
+  the rest, never less than 300 dp (`docs/design/board.md`). Clear and Done are the foot
+  of the panel where it is tall or short (a phone upright or on its side), outside what
+  scrolls; in a wide panel they stay in the actions' column. The box and its caption
+  are one group that takes the height the caption leaves. A `Sheet` scrolls its body
+  under its heading, and its `footer` (the summary's Play again and Home) stays in view.
+  A bar's height follows its content and the layout rule is given what the bar leaves.
+- **Where it is not finished.** The scanner and assistant are not yet laid
+  out for the phone and the tablet (their matrix suite runs the desktop sizes only). The parent area's bare `Text` items are on the lint
   allow-list; at 150 % text on the smallest window the playing panel scrolls
   (Clear and Done are reachable below the fold).
 

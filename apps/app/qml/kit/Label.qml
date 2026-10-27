@@ -89,7 +89,9 @@ Text {
     font.pixelSize: root.size
     font.weight: spec.weight
     font.capitalization: spec.caps
-    font.features: root.role === "numeral" ? {"tnum": 1} : ({})
+    // No ligatures: the house pixel faces draw "fi" as a glyph that reads as another letter ("finished"
+    // came out as "Anished"), and a child learning to read should see each letter on its own.
+    font.features: root.role === "numeral" ? {"tnum": 1, "liga": 0, "clig": 0} : ({"liga": 0, "clig": 0})
     font.letterSpacing: (root.tracking > 0 && Theme.rightToLeft) ? 0 : root.tracking * root.size
     lineHeight: root.lineRatio * root.size
     lineHeightMode: Text.FixedHeight

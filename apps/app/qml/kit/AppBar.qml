@@ -50,9 +50,9 @@ Item {
     signal boardsRequested
     signal tabSelected(string id)
 
-    readonly property real margin: Theme.space4
     // Not before the bar has a width: its first layout is the wide one, so nothing jumps.
     readonly property bool narrow: root.width > 0 && Theme.isNarrow(root.width)
+    readonly property real margin: narrow ? Theme.space3 : Theme.space4
     readonly property bool hasTrailing: showBoards || showJewels || showParent || tabs.length > 0
     // One line if both groups fit; otherwise two.
     readonly property real naturalLeading: (backButton.visible ? backButton.implicitWidth + Theme.space3 : 0)
@@ -60,7 +60,12 @@ Item {
                                            + (titleLabel.visible ? titleLabel.implicitWidth : 0)
     // The width both groups want on one line.
     readonly property real naturalWidth: naturalLeading + trailing.implicitWidth + 3 * margin
-    readonly property bool stacked: hasTrailing && naturalWidth > root.width
+    // On a narrow window the title gives way (it is elided) before the trailing group drops to a row of its
+    // own, down to this much of it.
+    readonly property real leastTitleWidth: narrow ? Math.min(titleLabel.implicitWidth, Theme.barTitleMin)
+                                                   : titleLabel.implicitWidth
+    readonly property real leastWidth: naturalWidth - (titleLabel.visible ? titleLabel.implicitWidth - leastTitleWidth : 0)
+    readonly property bool stacked: hasTrailing && leastWidth > root.width
 
     // The first line is 72 dp or, at a large text size, whatever the wordmark and
     // the Back button need; a second line is added when the trailing group drops.
@@ -97,7 +102,8 @@ Item {
             size: "min"
             variant: "ghost"
             iconName: "back"
-            label: root.backLabel
+            // The arrow alone on a narrow window (a back button may be a picture); its name stays.
+            label: root.narrow ? "" : root.backLabel
             accessibleName: root.backLabel
             onClicked: root.back()
         }

@@ -295,6 +295,8 @@ QtObject {
 
     readonly property real appBarHeight: 72
     readonly property real barHeight: appBarHeight
+    // The least of a screen's title a narrow bar keeps before its trailing group drops to a second row.
+    readonly property real barTitleMin: 88
 
     // --- window sizes, in dp -----------------------------------------------
     // A screen is laid out for the size it is given, by class and not by device:
