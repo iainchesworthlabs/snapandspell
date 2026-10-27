@@ -52,7 +52,7 @@ sns-cli [-d <file>] [-m <n>] [-s boggle|rarity] <row>...
 ```
 
 Each `<row>` is one row of the board, as one argument. A worked example is in
-the [README](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/README.md#a-worked-example).
+the [README](https://github.com/iainchesworthlabs/snapandspell/blob/develop/README.md#a-worked-example).
 
 ### The board
 

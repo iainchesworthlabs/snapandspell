@@ -37,7 +37,7 @@ intent; only the versions just named have been tried. What CI runs is in
 ## Clone
 
 ```sh
-git clone https://github.com/iainchesworthlabs/wordjewelssolver
+git clone https://github.com/iainchesworthlabs/snapandspell
 cd snapandspell
 ```
 

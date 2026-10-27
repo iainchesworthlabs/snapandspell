@@ -39,7 +39,7 @@ The project is trunk-based:
 options. The short version, on Windows:
 
 ```sh
-git clone https://github.com/iainchesworthlabs/wordjewelssolver
+git clone https://github.com/iainchesworthlabs/snapandspell
 cd snapandspell
 # VCPKG_ROOT must point at a clone of the labs' vcpkg fork (docs/building.md)
 cmake --preset windows-msvc-debug

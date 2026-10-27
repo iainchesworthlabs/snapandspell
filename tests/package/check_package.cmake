@@ -58,7 +58,7 @@ else()
 endif()
 _expect(CPACK_PACKAGE_VENDOR "Iain Chesworth")
 _expect(CPACK_PACKAGE_CONTACT "Iain Chesworth")
-_expect(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/iainchesworthlabs/wordjewelssolver")
+_expect(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/iainchesworthlabs/snapandspell")
 _expect(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Finds every word on a Boggle board")
 
 # CPack refuses to package a Tracy build unless a development package is asked

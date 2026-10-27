@@ -1,7 +1,7 @@
 # Security and threat model
 
 Reports of a vulnerability go through the process in
-[SECURITY.md](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/SECURITY.md). This page
+[SECURITY.md](https://github.com/iainchesworthlabs/snapandspell/blob/develop/SECURITY.md). This page
 says what the project protects, from whom, and what keeps it true.
 
 ## What is protected

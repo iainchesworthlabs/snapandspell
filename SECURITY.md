@@ -81,7 +81,7 @@ sha512sum -c SHA512SUMS
 ```
 
 Builds also carry GitHub build-provenance attestations
-(`gh attestation verify <file> --repo iainchesworthlabs/wordjewelssolver`) and a
+(`gh attestation verify <file> --repo iainchesworthlabs/snapandspell`) and a
 CycloneDX software bill of materials. If this key is ever replaced or revoked,
 this section changes in the same commit that changes `docs/signing-key.asc`.
 

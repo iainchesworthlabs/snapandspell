@@ -3,7 +3,7 @@
   "name": "snapandspell",
   "version": "0.1.0",
   "description": "Finds every word on a Boggle board.",
-  "homepage": "https://github.com/iainchesworthlabs/wordjewelssolver",
+  "homepage": "https://github.com/iainchesworthlabs/snapandspell",
   "license": "GPL-3.0-or-later",
   "builtin-baseline": "9eec002df1cd109f8f104cd966a763daf9751489",
   "overrides": [

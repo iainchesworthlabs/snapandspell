@@ -89,7 +89,7 @@ The organisation holds the release secrets (`REPO_GPG_PRIVATE_KEY`, `REPO_GPG_PA
 `RELEASE_BOT_APP_ID`, `RELEASE_BOT_PRIVATE_KEY`), the `release` environment and the `tags` and
 `main-release-only` rulesets. `admin/apply.sh` in `icl-common-infra` applies the environment and the
 rulesets; the secrets are in its `docs/secrets.md`. The public key is `docs/signing-key.asc` and its
-fingerprint is in [SECURITY.md](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/SECURITY.md#verifying-a-release).
+fingerprint is in [SECURITY.md](https://github.com/iainchesworthlabs/snapandspell/blob/develop/SECURITY.md#verifying-a-release).
 Replacing the key means a new `docs/signing-key.asc` and a new fingerprint in `SECURITY.md` and the
 README in the same commit; old releases keep verifying against the old key, which stays in the history.
 
@@ -139,7 +139,7 @@ gpg --import docs/signing-key.asc
 gpg --fingerprint FD13CB8CAC8316648CD974D08149254C41894DBE   # compare with SECURITY.md
 gpg --verify SHA512SUMS.asc SHA512SUMS
 sha512sum -c SHA512SUMS
-gh attestation verify SnapAndSpell-0.1.0-win64-unsigned.zip --repo iainchesworthlabs/wordjewelssolver
+gh attestation verify SnapAndSpell-0.1.0-win64-unsigned.zip --repo iainchesworthlabs/snapandspell
 ```
 
 ## The SBOM

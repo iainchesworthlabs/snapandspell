@@ -37,7 +37,7 @@ out="$HOME/sns-android-keystore"
 alias_name="sns-upload"
 dname="CN=SnapAndSpell upload key, O=Iain Chesworth Labs"
 validity=9125
-repo="iainchesworthlabs/wordjewelssolver"
+repo="iainchesworthlabs/snapandspell"
 
 while [ $# -gt 0 ]; do
   case "$1" in
