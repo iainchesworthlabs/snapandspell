@@ -663,6 +663,24 @@ TestCase {
         verify(!roomyScroller.interactive, "a body that fits does not scroll")
     }
 
+    Component {
+        id: flowHostComponent
+        Flow {
+            width: 200
+            property alias button: wide
+            AppButton { id: wide; size: "min"; fitFlow: true; label: "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ" }
+        }
+    }
+
+    function test_aButtonInAFlowCanFitTheFlowAndWrapItsWordsAnywhere() {
+        const flow = createTemporaryObject(flowHostComponent, testCase, {})
+        const button = flow.button
+        verify(button.width <= 200 + 0.5, "the button is no wider than its flow: " + button.width)
+        verify(button.height > Theme.targetMin, "a long unbroken label wraps onto more lines: " + button.height)
+        button.fitFlow = false
+        verify(button.width > 200, "without asking, it keeps its natural width")
+    }
+
     function test_aLabelDrawsNoLigatures() {
         const label = createTemporaryObject(labelComponent, testCase, { text: "finished" })
         compare(label.font.features["liga"], 0)

@@ -213,6 +213,28 @@ TestCase {
         compare(ltr.boardRect.y - ltr.boardArea.y, rtl.boardRect.y - rtl.boardArea.y)
     }
 
+    function test_theBoardIsInsideItsAreaInAWideRightToLeftWindow() {
+        // The board's area is on the right of a right-to-left window; the board, which is positioned
+        // inside the area's own corner, was drawn a second area's width beyond it.
+        useLanguage("he")
+        play()
+        const screen = createTemporaryObject(screenComponent, testCase,
+                                             { width: 1180, height: 820, solo: soloModel })
+        verify(screen !== null)
+        wait(300)
+        const flat = allItems(screen).find(item => item.tileX !== undefined && item.tileSize !== undefined)
+        verify(flat !== null && flat !== undefined)
+        const area = screen.boardArea
+        const first = flat.mapToItem(screen, flat.tileX(0), flat.tileY(0))
+        const last = flat.mapToItem(screen, flat.tileX(soloModel.tiles.length - 1) + flat.tileSize,
+                                    flat.tileY(soloModel.tiles.length - 1) + flat.tileSize)
+        verify(first.x >= area.x - 0.5 && last.x <= area.x + area.width + 0.5,
+               "the tiles are in the board's area: " + first.x + " to " + last.x + " in " + area.x + " to " + (area.x + area.width))
+        verify(last.x <= screen.width + 0.5, "and in the window")
+        // The panel is on the other side, and its slide comes from it.
+        verify(screen.panelArea.x < area.x)
+    }
+
     function test_theFlatBoardsTilesKeepTheirOrder() {
         play()
         const parent = createTemporaryObject(mirroredComponent, testCase,

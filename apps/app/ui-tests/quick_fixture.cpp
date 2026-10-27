@@ -60,6 +60,11 @@ void QuickFixture::useLanguage(const QString& setting) {
     if (language_ != nullptr) {
         language_->apply(setting);
     }
+    // The program's own window retranslates its engine when the language changes; the harness's
+    // engine is told too, or a singleton (the wording files) keeps the first language it was read in.
+    if (engine_ != nullptr) {
+        engine_->retranslate();
+    }
 }
 
 void QuickFixture::advance(qint64 milliseconds) {

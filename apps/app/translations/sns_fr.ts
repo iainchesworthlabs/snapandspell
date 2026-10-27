@@ -1261,7 +1261,7 @@
         <translation>Trouver un mot</translation>
     </message>
     <message>
-        <location line="+244"/>
+        <location line="+248"/>
         <source>You found all %1 words!</source>
         <translation>Vous avez trouvé tous les %1&#xa0;mots&#xa0;!</translation>
     </message>

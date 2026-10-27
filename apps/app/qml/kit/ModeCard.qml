@@ -134,8 +134,8 @@ Rectangle {
             width: parent.width
             role: "title"
             text: root.title
-            wrapMode: Text.WordWrap
-            maximumLineCount: 2
+            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+            maximumLineCount: 4
             elide: Text.ElideRight
             decorative: true
         }
@@ -154,7 +154,7 @@ Rectangle {
                 text: root.subtitle
                 color: Theme.inkSecondary
                 wrapMode: Text.WordWrap
-                maximumLineCount: root.primary ? 3 : 5
+                maximumLineCount: 5
                 elide: Text.ElideRight
                 decorative: true
             }

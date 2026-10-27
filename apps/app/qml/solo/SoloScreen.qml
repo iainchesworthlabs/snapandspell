@@ -413,7 +413,10 @@ FocusScope {
             width: root.boardArea.width
             height: root.boardArea.height
             solo: root.solo
-            boardRect: rule.boardRect
+            // Relative to the flat board, which sits at the board area's own corner: in a right-to-left
+            // window that corner is not the stage's.
+            boardRect: Qt.rect(rule.boardRect.x - root.boardArea.x, rule.boardRect.y - root.boardArea.y,
+                               rule.boardRect.width, rule.boardRect.height)
             tileSize: rule.tile
             tileGap: rule.gap
             trayInset: root.trayInset
@@ -477,7 +480,8 @@ FocusScope {
                 Behavior on shown { NumberAnimation { duration: Theme.turn; easing.type: Easing.OutCubic } }
                 opacity: shown > 0 ? 1 : 0
                 visible: shown > 0
-                x: rule.wide && !Theme.reducedMotion ? (1 - shown) * width : 0
+                // It comes in from the side it sits on: the right, and the left in a right-to-left window.
+                x: rule.wide && !Theme.reducedMotion ? (root.mirrored ? -1 : 1) * (1 - shown) * width : 0
                 y: !rule.wide && !Theme.reducedMotion ? (1 - shown) * height : 0
                 onFinishRequested: root.finishBoard()
             }

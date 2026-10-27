@@ -391,6 +391,14 @@ the system is made of and which rules the tests hold it to.
   row of its own it has the bar's whole width and wraps onto more rows when it needs them
   (four tabs at big text), and its tabs are tighter on a narrow bar. The matrix opens the
   gate, so the tabs are audited too.
+- **Other languages on a phone.** `quick.sizematrix_languages` holds Home, My jewels, the
+  open parent area and Solo Play's box and board to the phone shapes (390 x 844, 360 x 640,
+  844 x 390, and 150 % text on the first) in German (the long translations), Hebrew (right
+  to left) and Japanese (a script in its own face, and phrases with no space to break at).
+  A button's label breaks at its spaces, and anywhere if it has none; a card's title takes
+  four lines. A button in a card's Flow can ask to be no wider than the Flow (`fitFlow`).
+  It found that the right-to-left Solo board was drawn a whole area to the right of where
+  it belongs, and the panel slid in from the wrong side.
 - **Where it is not finished.** The parent area's bare `Text` items are on the lint
   allow-list; at 150 % text on the smallest window the playing panel scrolls
   (Clear and Done are reachable below the fold).

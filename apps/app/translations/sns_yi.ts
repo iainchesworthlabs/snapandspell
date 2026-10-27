@@ -1261,7 +1261,7 @@
         <translation>געפֿינען אַ וואָרט</translation>
     </message>
     <message>
-        <location line="+244"/>
+        <location line="+248"/>
         <source>You found all %1 words!</source>
         <translation>איר האָט געפֿונען אַלע %1 ווערטער!</translation>
     </message>

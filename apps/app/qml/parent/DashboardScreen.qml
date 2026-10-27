@@ -78,6 +78,7 @@ Flickable {
                 spacing: Theme.space2
                 AppButton {
                     size: "min"
+                    fitFlow: true
                     quiet: true
                     label: ParentWording.setUpBoard
                     variant: "primary"
@@ -85,6 +86,7 @@ Flickable {
                 }
                 AppButton {
                     size: "min"
+                    fitFlow: true
                     quiet: true
                     label: ParentWording.backToPlay
                     onClicked: root.playRequested()

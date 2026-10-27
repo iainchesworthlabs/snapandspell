@@ -36,6 +36,9 @@ TestCase {
     // Components to try; each takes the stage's width and height.
     property var subjects: []
     property var sizes: SizeMatrix.sizes
+    // The languages each size is also held to, [{code, rtl}]: English alone by default; a suite of the
+    // long translations (German), the right-to-left (Hebrew) and the wide scripts (Japanese) names them.
+    property var languages: [{code: "en", rtl: false}]
     property var knownIssues: []
     // Indexes of subjects that cannot be made on this machine, and why (a live camera view with
     // no Qt Multimedia backend): their rows are skipped, the others run.
@@ -56,7 +59,15 @@ TestCase {
         Theme.rightToLeft = false
     }
 
+    function useLanguage(language) {
+        fixture.useLanguage(language.code)
+        Theme.language = language.code
+        Theme.rightToLeft = language.rtl
+    }
+
     function cleanup() {
+        fixture.useLanguage("en")
+        Theme.language = "en"
         Theme.colourScheme = "system"
         Theme.textScale = 1.0
         Theme.reducedMotion = false
@@ -67,13 +78,17 @@ TestCase {
         const rows = [];
         for (let subject = 0; subject < root.subjects.length; ++subject) {
             for (const size of root.sizes) {
-                rows.push({
-                    tag: "subject " + subject + " at " + size.w + "x" + size.h + " text " + Math.round(size.scale * 100) + "%",
-                    subject: subject,
-                    w: size.w,
-                    h: size.h,
-                    scale: size.scale
-                });
+                for (const language of root.languages) {
+                    rows.push({
+                        tag: "subject " + subject + " at " + size.w + "x" + size.h + " text " + Math.round(size.scale * 100) + "%"
+                             + (root.languages.length > 1 ? " in " + language.code : ""),
+                        subject: subject,
+                        w: size.w,
+                        h: size.h,
+                        scale: size.scale,
+                        language: language
+                    });
+                }
             }
         }
         return rows;
@@ -84,10 +99,13 @@ TestCase {
             skip(root.skipReason);
         }
         Theme.textScale = data.scale;
+        root.useLanguage(data.language);
         stage.width = data.w;
         stage.height = data.h;
         const item = root.subjects[data.subject].createObject(stage, {width: data.w, height: data.h});
         verify(item !== null, "the subject was created");
+        // A subject that resets the fixture (a game) put English back; the screen retranslates.
+        root.useLanguage(data.language);
         wait(root.settle);
 
         const found = SizeMatrix.audit(item, Theme.targetMin);

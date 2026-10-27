@@ -1261,7 +1261,7 @@
         <translation>找一个词</translation>
     </message>
     <message>
-        <location line="+244"/>
+        <location line="+248"/>
         <source>You found all %1 words!</source>
         <translation>您找到了所有 %1 个单词！</translation>
     </message>
