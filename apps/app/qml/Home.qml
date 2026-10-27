@@ -10,7 +10,7 @@ import SnapAndSpell
 // cards say what the app is without asking a child to read a menu.
 //
 // The page is sized from the window it is given. At the 900 x 620 minimum the
-// cards lose height rather than sliding under the bottom edge; below 900 the two cards stack and the page scrolls. In a window
+// cards lose height rather than sliding under the bottom edge; below 600 (a phone upright) the two cards stack and the page scrolls. In a window
 // far larger than the design the column grows (to 1.5 times) and, when it is
 // still shorter than the window, sits in the middle of it: the bar spans the
 // width, so the content is never left top-left over an empty lower half. The
@@ -27,7 +27,9 @@ FocusScope {
     signal collectionRequested
     signal boardsRequested
 
-    readonly property bool wide: width >= 900
+    // Two cards side by side from a tablet upright (and a phone on its side) up;
+    // one above the other on a narrow window, a phone held upright.
+    readonly property bool wide: !Theme.isNarrow(width)
     // Home has one primary Play picture and one adult picture; the name is kept
     // for the shell's checks and for a future first-run layout.
     readonly property int pictures: 2
@@ -100,6 +102,7 @@ FocusScope {
             ColumnLayout {
                 id: hero
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 spacing: Theme.space2
 
                 Eyebrow {
@@ -116,11 +119,12 @@ FocusScope {
                 }
             }
 
-            // Side by side from 900 up; below that one above the other, and the
+            // Side by side from 600 up; below that one above the other, and the
             // page scrolls rather than squeezing a card until its label is cut.
             GridLayout {
                 id: cards
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 columns: root.wide ? 2 : 1
                 columnSpacing: root.gutter
                 rowSpacing: root.gutter
@@ -173,27 +177,29 @@ FocusScope {
             }
 
             // The two labels keep their own edges and elide only if the window is
-            // truly too narrow for both.
-            RowLayout {
+            // truly too narrow for both; on a narrow window they are one above the other.
+            GridLayout {
                 id: footer
                 Layout.fillWidth: true
-                spacing: Theme.space4
+                Layout.minimumWidth: 0
+                columns: Theme.isNarrow(root.width) ? 1 : 2
+                columnSpacing: Theme.space4
+                rowSpacing: Theme.space1
 
                 Eyebrow {
                     text: qsTr("Snap and Spell")
                     elide: Text.ElideRight
+                    Layout.fillWidth: Theme.isNarrow(root.width)
+                    Layout.minimumWidth: 0
                     Layout.maximumWidth: content.width * 0.42
-                }
-                Item {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: Theme.hair
                 }
                 Label {
                     role: "caption"
                     text: qsTr("Everything stays on this device.")
-                    horizontalAlignment: Text.AlignRight
+                    horizontalAlignment: Theme.isNarrow(root.width) ? Text.AlignLeft : Text.AlignRight
                     elide: Text.ElideRight
-                    Layout.maximumWidth: content.width * 0.55
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                 }
             }
         }

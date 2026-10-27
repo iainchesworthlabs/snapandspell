@@ -143,7 +143,7 @@ function(sns_platform_configure_app target)
     set_target_properties(${target} PROPERTIES
         MACOSX_BUNDLE ON
         MACOSX_BUNDLE_INFO_PLIST "${SNS_IOS_PACKAGING_DIR}/Info.plist.in"
-        MACOSX_BUNDLE_BUNDLE_NAME "SnapAndSpell"
+        MACOSX_BUNDLE_BUNDLE_NAME "Snap and Spell"
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.iainchesworthlabs.snapandspell"
         MACOSX_BUNDLE_BUNDLE_VERSION "${_build_number}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"

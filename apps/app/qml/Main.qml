@@ -33,10 +33,17 @@ ApplicationWindow {
     required property var feedback
     required property var motion
 
+    // A desktop window has a size to open at and a floor under it. A phone, a
+    // tablet and a browser page have neither: the window is the screen (the page)
+    // and the screens are laid out for whatever size that is, in either
+    // orientation (docs/design/application.md, "Window sizes").
+    // main.cpp says which, from the platform the program is built for.
+    property bool desktopWindow: true
+
     width: 1160
     height: 740
-    minimumWidth: 900
-    minimumHeight: 620
+    minimumWidth: desktopWindow ? Theme.desktopMinWidth : 0
+    minimumHeight: desktopWindow ? Theme.desktopMinHeight : 0
     visible: true
     title: qsTr("Snap and Spell")
     color: Theme.page
@@ -93,12 +100,20 @@ ApplicationWindow {
         // parent's settings that decide what a cue plays and says.
         Feedback.engine = feedback;
         feedback.settings = parentController.settings;
+        if (smoke) {
+            startSmoke();
+        }
+        if (!desktopWindow) {
+            return;
+        }
         // Centre the first window on the screen it opens on. Use the window's
         // own screen, not Screen.desktopAvailableWidth: that is the union of
         // every monitor, so on a multi-monitor desk it can place the window in
         // the gap between two screens (or off every one of them). The parent's
         // window geometry is not persisted yet; the default is a comfortable
-        // desktop size rather than a phone-sized minimum.
+        // desktop size rather than a phone-sized minimum. (Not on a phone: the
+        // window there is the screen, and a floor of 900 would push the right
+        // and the bottom of every screen off it.)
         const screenX = typeof Screen.virtualX === "number" ? Screen.virtualX : 0;
         const screenY = typeof Screen.virtualY === "number" ? Screen.virtualY : 0;
         const screenWidth = Screen.width > 0 ? Screen.width : width;
@@ -111,9 +126,6 @@ ApplicationWindow {
         }
         x = screenX + Math.max(0, Math.round((screenWidth - width) / 2));
         y = screenY + Math.max(0, Math.round((screenHeight - height) / 2));
-        if (smoke) {
-            startSmoke();
-        }
     }
 
     Timer {
@@ -207,12 +219,25 @@ ApplicationWindow {
         }
     }
 
+    // The screens sit inside the device's safe area (the notch or the Dynamic
+    // Island, the rounded corners, the home indicator, the status bar); `stage`
+    // only reads it, as it is the whole window. What shows in the margin is the
+    // window's own page colour.
+    Item {
+        id: stage
+        anchors.fill: parent
+    }
+
     // Esc, and the system's back key, go back. A screen that has a deeper state
     // (a path being made, a sheet) takes the key first and lets it through when it
     // has nothing to undo.
     FocusScope {
         id: shell
         anchors.fill: parent
+        anchors.leftMargin: stage.SafeArea.margins.left
+        anchors.rightMargin: stage.SafeArea.margins.right
+        anchors.topMargin: stage.SafeArea.margins.top
+        anchors.bottomMargin: stage.SafeArea.margins.bottom
         focus: true
 
         // Hebrew and Yiddish read right to left: the window's layout follows, and

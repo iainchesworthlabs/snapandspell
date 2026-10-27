@@ -32,7 +32,7 @@ put the game on a web address. How it is built is in [Building](building.md#web)
 | A vibration, where the browser has one | `navigator.vibrate`: Chrome on Android. Safari, and every desktop browser, do not. |
 | Hebrew, Chinese and Japanese show missing-letter boxes until their fonts are bundled | A browser has no system fonts the page may count on. The Latin faces are in the program; the Noto subsets for these scripts are the fonts work's ([Toybox restyle, 12.4](design/toybox/DESIGN.md)). A browser that grants Qt its local fonts may supply them meanwhile. |
 | One thread | The multithreaded kit needs the page served with `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy` headers, which GitHub Pages cannot send. The game has no thread of its own, so nothing is lost. A host that can send the headers could use the other kit later. |
-| A window of at least 900 x 620 | The least window of the application. A smaller viewport scrolls the page instead of squeezing the layout. Phone layouts come with the design's tablet and phone work. |
+| A viewport that is a phone's | A browser page has no least size: the layouts follow the width and the height of the page, as they do on a phone (narrow below 600, short below 500). The screens that are not yet laid out for a phone (Solo Play, the scanner) still want a window of about 900 x 620. |
 
 ## The licence it carries
 

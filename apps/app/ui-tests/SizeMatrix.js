@@ -6,11 +6,15 @@
 // SizeMatrixCase.qml runs a screen through the matrix; this file is the part
 // that reads the tree, so a suite can call it on its own as well.
 //
-// The sizes are the design's own: the 900 x 620 minimum window, a tall tablet
-// held upright (900 x 1200), a 4:3 tablet (1024 x 768), a big monitor
-// (2400 x 1200) and 150% text on the two smaller ones.
+// The sizes are the design's own. The desktop: the 900 x 620 minimum window, a
+// 4:3 window (1024 x 768), a tall one (900 x 1200) and a big monitor
+// (2400 x 1200). The tablets: an iPad held upright (820 x 1180) and on its side
+// (1180 x 820). The phones: an iPhone upright (390 x 844), a small one (375 x
+// 667), the smallest Android we hold to (360 x 640) and the iPhone on its side
+// (844 x 390, and 667 x 375 for the small one). And 150% text on the smallest
+// of each kind.
 
-var sizes = [
+var desktopSizes = [
     {w: 900, h: 620, scale: 1.0},
     {w: 900, h: 1200, scale: 1.0},
     {w: 1024, h: 768, scale: 1.0},
@@ -18,6 +22,21 @@ var sizes = [
     {w: 900, h: 620, scale: 1.5},
     {w: 1024, h: 768, scale: 1.5}
 ];
+
+// Every shape. A suite whose screen has not been laid out for the tablets and
+// the phones yet names `desktopSizes` instead (SizeMatrixCase.sizes), with the
+// stage that fixes it, and the line comes out when it does.
+var sizes = desktopSizes.concat([
+    {w: 820, h: 1180, scale: 1.0},
+    {w: 1180, h: 820, scale: 1.0},
+    {w: 390, h: 844, scale: 1.0},
+    {w: 375, h: 667, scale: 1.0},
+    {w: 360, h: 640, scale: 1.0},
+    {w: 844, h: 390, scale: 1.0},
+    {w: 667, h: 375, scale: 1.0},
+    {w: 390, h: 844, scale: 1.5},
+    {w: 844, h: 390, scale: 1.5}
+]);
 
 var epsilon = 0.6;
 
@@ -85,6 +104,17 @@ function truncatedDescendants(item) {
         }
     });
     return found;
+}
+
+function isFlickable(item) {
+    return item.contentItem !== undefined && item.contentWidth !== undefined
+           && item.flickableDirection !== undefined;
+}
+
+// A text a person is meant to read: a visible, non-empty Text under `root`.
+function isReadable(item) {
+    return typeof item.text === "string" && item.text.length > 0
+           && item.contentWidth !== undefined && item.lineCount !== undefined;
 }
 
 // The problems with the interactive items under `root`, as readable strings:
@@ -196,6 +226,62 @@ function audit(root, min) {
             found.push(who + ": label truncated (\"" + label.text + "\")");
         }
     }
+
+    // A page does not scroll sideways: a Flickable that is not a horizontal list is as wide as its
+    // content (a phone has no room for a row that is wider than the screen).
+    // HorizontalFlick is 1 in Flickable.FlickableDirection.
+    walk(root, function (item) {
+        if (item === root || !item.visible || !isFlickable(item) || item.flickableDirection === 1) {
+            return;
+        }
+        if (item.contentWidth > item.width + epsilon && reachable(item)) {
+            found.push(nameOf(item) + ": content is " + Math.round(item.contentWidth)
+                       + " wide in a " + Math.round(item.width) + " wide view");
+        }
+    });
+
+    // A text is wholly inside the window, and inside what clips it, across: it may be below the
+    // fold of a Flickable, but never past its sides, and a text outside the window altogether
+    // (not in a scrolled view) is lost.
+    walk(root, function (item) {
+        if (item === root || !item.visible || item.opacity <= 0 || !isReadable(item) || !reachable(item)) {
+            return;
+        }
+        if (item.width <= 0 || item.height <= 0) {
+            return;
+        }
+        let shown = true;
+        for (let up = item; up && shown; up = up.parent) {
+            shown = up.visible && up.opacity > 0;
+        }
+        if (!shown) {
+            return;
+        }
+        let scrolls = false;
+        let child = item;
+        for (let at2 = item.parent; at2; child = at2, at2 = at2.parent) {
+            if (isScrollContent(at2, child)) {
+                scrolls = true;
+            }
+            if (!(at2 === root || at2.clip === true)) {
+                continue;
+            }
+            // The text as painted: a label wider than its words is not what overflows.
+            const p = item.mapToItem(at2, 0, 0);
+            const painted = Math.min(item.width, item.contentWidth);
+            const align = item.effectiveHorizontalAlignment;
+            const left = p.x + (align === 2 ? item.width - painted : align === 4 ? (item.width - painted) / 2 : 0);
+            const outSide = left + painted > at2.width + epsilon || left < -epsilon;
+            const outEnd = !scrolls && (p.y + item.height > at2.height + epsilon || p.y < -epsilon);
+            if (outSide || outEnd) {
+                found.push(nameOf(item) + " at " + Math.round(p.x) + "," + Math.round(p.y) + " "
+                           + Math.round(item.width) + "x" + Math.round(item.height)
+                           + ": text outside " + typeName(at2) + " " + Math.round(at2.width) + "x"
+                           + Math.round(at2.height));
+                break;
+            }
+        }
+    });
 
     for (let i = 0; i < rects.length; ++i) {
         for (let j = i + 1; j < rects.length; ++j) {

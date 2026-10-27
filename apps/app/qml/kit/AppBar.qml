@@ -10,6 +10,10 @@ import SnapAndSpell
 // with a picture and a word, so they read as buttons beside one another; the
 // grown-up entry is always a labelled control, never a bare person icon.
 //
+// On a narrow window (a phone held upright) the boards and the jewels are the
+// picture alone, as 48 dp buttons that still carry their names for a screen
+// reader; the grown-ups' entry keeps its words.
+//
 // The bar is 72 dp. When the leading and trailing groups do not fit one line -
 // 150% text on a 900 px window - the trailing group drops to a second row and
 // the bar grows (`height` follows `implicitHeight`; anchor the screen below
@@ -47,6 +51,8 @@ Item {
     signal tabSelected(string id)
 
     readonly property real margin: Theme.space4
+    // Not before the bar has a width: its first layout is the wide one, so nothing jumps.
+    readonly property bool narrow: root.width > 0 && Theme.isNarrow(root.width)
     readonly property bool hasTrailing: showBoards || showJewels || showParent || tabs.length > 0
     // One line if both groups fit; otherwise two.
     readonly property real naturalLeading: (backButton.visible ? backButton.implicitWidth + Theme.space3 : 0)
@@ -98,7 +104,8 @@ Item {
 
         Wordmark {
             id: mark
-            visible: root.showWordmark
+            // On a narrow window a screen with a Back button has its title and no room for the name too.
+            visible: root.showWordmark && !(root.narrow && root.showBack)
             compact: root.compact
             shadowed: root.transparent
             anchors.verticalCenter: parent.verticalCenter
@@ -136,7 +143,7 @@ Item {
             variant: "secondary"
             quiet: true
             iconName: "history"
-            label: qsTr("My boards")
+            label: root.narrow ? "" : qsTr("My boards")
             accessibleName: qsTr("My boards")
             onClicked: root.boardsRequested()
         }
@@ -147,7 +154,7 @@ Item {
             variant: "secondary"
             quiet: true
             iconName: "jewel"
-            label: qsTr("My jewels")
+            label: root.narrow ? "" : qsTr("My jewels")
             accessibleName: qsTr("My jewels")
             onClicked: root.jewelsRequested()
         }

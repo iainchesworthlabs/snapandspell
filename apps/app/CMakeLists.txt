@@ -86,6 +86,13 @@ add_subdirectory(src/camera)
 qt_add_executable(SnapAndSpell
     src/main.cpp)
 
+# Whether the window is a desktop window, one the person sizes (and which has a
+# least size), or the whole screen of a phone, a tablet or a browser page. The
+# platform fragment says (SNS_PLATFORM_DESKTOP); the source never asks the
+# operating system (docs/platform-isolation.md).
+target_compile_definitions(SnapAndSpell PRIVATE
+    SNS_DESKTOP_WINDOW=$<BOOL:${SNS_PLATFORM_DESKTOP}>)
+
 # The kit's singletons: tokens, navigation, the sound and touch seam, and the
 # two wording files of the child-facing screens.
 set_source_files_properties(

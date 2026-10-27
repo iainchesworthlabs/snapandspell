@@ -709,6 +709,58 @@ TestCase {
         tryCompare(bar, "height", oneLine)
     }
 
+    function test_aNarrowBarShowsTheBoardsAndTheJewelsAsPicturesAndKeepsTheGrownUpsWord() {
+        const bar = createTemporaryObject(appBarComponent, testCase,
+            { width: 390, showWordmark: true, showJewels: true, showBoards: true, showParent: true })
+        tryCompare(bar, "narrow", true)
+        const buttons = {}
+        const walk = item => {
+            if (item.accessibleName !== undefined && item.accessibleName.length > 0 && item.variant !== undefined) {
+                buttons[item.accessibleName] = item
+            }
+            for (const child of item.children) {
+                walk(child)
+            }
+        }
+        walk(bar)
+        // The word is gone, the name a screen reader says is not, and a picture alone is still 48 dp.
+        for (const name of [qsTr("My boards"), qsTr("My jewels")]) {
+            verify(buttons[name] !== undefined, name)
+            compare(buttons[name].label, "")
+            compare(buttons[name].Accessible.name, name)
+            verify(buttons[name].width >= Theme.targetMin - 0.01)
+            verify(buttons[name].height >= Theme.targetMin - 0.01)
+        }
+        // The grown-ups' entry is never a bare person.
+        compare(buttons[qsTr("For grown-ups")].label, qsTr("For grown-ups"))
+        // The trailing group fits the bar's width.
+        verify(buttons[qsTr("For grown-ups")].mapToItem(bar, 0, 0).x >= 0)
+
+        bar.width = 900
+        tryCompare(bar, "narrow", false)
+        compare(buttons[qsTr("My boards")].label, qsTr("My boards"))
+    }
+
+    function test_aNarrowBarWithABackButtonLeavesTheNameToTheTitle() {
+        const bar = createTemporaryObject(appBarComponent, testCase,
+            { width: 390, showBack: true, showWordmark: true, title: "Parent area", showParent: false })
+        tryCompare(bar, "narrow", true)
+        const marks = []
+        const walk = item => {
+            if (item.compact !== undefined && item.shadowed !== undefined) {
+                marks.push(item)
+            }
+            for (const child of item.children) {
+                walk(child)
+            }
+        }
+        walk(bar)
+        compare(marks.length, 1)
+        compare(marks[0].visible, false)
+        bar.width = 900
+        tryCompare(marks[0], "visible", true)
+    }
+
     // --- TabletArt ---------------------------------------------------------------
     function test_theTabletAndItsStandStayTogether() {
         for (const size of [[310, 250], [250, 210], [200, 400], [500, 120]]) {
