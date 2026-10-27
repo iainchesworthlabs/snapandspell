@@ -1,12 +1,12 @@
 # SnapAndSpell
 
-[![CI](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/ci.yml)
+[![CI](https://github.com/iainchesworthlabs/snapandspell/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/iainchesworthlabs/snapandspell/actions/workflows/ci.yml)
 [![Coverage: statements](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworthlabs%2Fsnapandspell%2Fquality-history%2Fcoverage-line.json)](docs/ci.md#quality-history)
 [![Coverage: branches](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fiainchesworthlabs%2Fsnapandspell%2Fquality-history%2Fcoverage-branch.json)](docs/ci.md#quality-history)
-[![CodeQL](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/codeql.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/codeql.yml)
-[![zizmor](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/zizmor.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/zizmor.yml)
-[![Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworthlabs/wordjewelssolver/badge)](https://securityscorecards.dev/viewer/?uri=github.com/iainchesworthlabs/wordjewelssolver)
-[![Docs](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/docs.yml/badge.svg)](https://github.com/iainchesworthlabs/wordjewelssolver/actions/workflows/docs.yml)
+[![CodeQL](https://github.com/iainchesworthlabs/snapandspell/actions/workflows/codeql.yml/badge.svg)](https://github.com/iainchesworthlabs/snapandspell/actions/workflows/codeql.yml)
+[![zizmor](https://github.com/iainchesworthlabs/snapandspell/actions/workflows/zizmor.yml/badge.svg)](https://github.com/iainchesworthlabs/snapandspell/actions/workflows/zizmor.yml)
+[![Scorecard](https://api.securityscorecards.dev/projects/github.com/iainchesworthlabs/snapandspell/badge)](https://securityscorecards.dev/viewer/?uri=github.com/iainchesworthlabs/snapandspell)
+[![Docs](https://github.com/iainchesworthlabs/snapandspell/actions/workflows/docs.yml/badge.svg)](https://github.com/iainchesworthlabs/snapandspell/actions/workflows/docs.yml)
 [![C++23](https://img.shields.io/badge/C%2B%2B-23-blue)](docs/architecture.md)
 [![License: GPL v3+](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS%20%7C%20iOS-lightgrey)
@@ -74,7 +74,7 @@ isolation, the word lists and dice, the phonics data and the feedback sounds);
 those are skipped by the tests if it is not installed.
 
 ```sh
-git clone https://github.com/iainchesworthlabs/wordjewelssolver
+git clone https://github.com/iainchesworthlabs/snapandspell
 cd snapandspell
 
 # needs VCPKG_ROOT set to a clone of the labs' vcpkg fork (one clone serves every

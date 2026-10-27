@@ -24,9 +24,9 @@
     <binary>SnapAndSpell</binary>
     <binary>sns-cli</binary>
   </provides>
-  <url type="homepage">https://github.com/iainchesworthlabs/wordjewelssolver</url>
-  <url type="bugtracker">https://github.com/iainchesworthlabs/wordjewelssolver/issues</url>
-  <url type="vcs-browser">https://github.com/iainchesworthlabs/wordjewelssolver</url>
+  <url type="homepage">https://github.com/iainchesworthlabs/snapandspell</url>
+  <url type="bugtracker">https://github.com/iainchesworthlabs/snapandspell/issues</url>
+  <url type="vcs-browser">https://github.com/iainchesworthlabs/snapandspell</url>
   <categories>
     <category>Game</category>
     <category>LogicGame</category>

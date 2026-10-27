@@ -47,7 +47,7 @@ endif()
 project(SnapAndSpell
     VERSION 0.1.0
     DESCRIPTION "Finds every word on a Boggle board"
-    HOMEPAGE_URL "https://github.com/iainchesworthlabs/wordjewelssolver"
+    HOMEPAGE_URL "https://github.com/iainchesworthlabs/snapandspell"
     LANGUAGES CXX)
 
 # What the build was built from, for the version block (cmake/GitProvenance.cmake).

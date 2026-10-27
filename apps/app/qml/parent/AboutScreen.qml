@@ -91,7 +91,7 @@ Flickable {
                 objectName: "sourceAddress"
                 Layout.fillWidth: true
                 role: "caption"
-                text: "github.com/iainchesworthlabs/wordjewelssolver"
+                text: "github.com/iainchesworthlabs/snapandspell"
                 font.family: Theme.monoFont
                 wrapMode: Text.WrapAnywhere
             }

@@ -10,7 +10,7 @@ say and why.
 ```sh
 # From a checkout of icl-common-infra. A dry run unless --apply is given.
 RELEASE_BOT_APP_ID=<id> OWNER_USER=iainchesworth \
-  admin/apply.sh --repo iainchesworthlabs/wordjewelssolver \
+  admin/apply.sh --repo iainchesworthlabs/snapandspell \
   --config-dir <this checkout>/.github [--only settings,rulesets,labels] [--apply]
 ```
 

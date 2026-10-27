@@ -192,7 +192,7 @@ app and scanner suites' CTest labels (`camera`, `app`, `solo`, ...).
 | `tools/data/test_check_phonics.ps1` | The phonics checker itself | See below: `data.phonics.checker` |
 
 The first solver case uses the board of the
-[README example](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/README.md#a-worked-example):
+[README example](https://github.com/iainchesworthlabs/snapandspell/blob/develop/README.md#a-worked-example):
 
 ```text
 C A T

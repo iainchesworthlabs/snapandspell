@@ -2,7 +2,7 @@ Snap and Spell and the sns library
 --------------------------------------
 
 Copyright (C) Iain Chesworth and contributors.
-https://github.com/iainchesworthlabs/wordjewelssolver
+https://github.com/iainchesworthlabs/snapandspell
 
 The project is free software under the GNU General Public License, version 3,
 or (at your option) any later version. The full text is LICENSE.txt beside this

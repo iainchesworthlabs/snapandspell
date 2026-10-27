@@ -41,7 +41,7 @@
     The commit the release is built from. Default: HEAD of -Root.
 
 .PARAMETER Repository
-    owner/name, for the links. Default iainchesworthlabs/wordjewelssolver.
+    owner/name, for the links. Default iainchesworthlabs/snapandspell.
 
 .PARAMETER PackagesDir
     Folder with the release's package files. Their names and hashes are listed;
@@ -71,7 +71,7 @@ param(
 
     [string]$Commit,
 
-    [string]$Repository = 'iainchesworthlabs/wordjewelssolver',
+    [string]$Repository = 'iainchesworthlabs/snapandspell',
 
     [string]$PackagesDir,
 

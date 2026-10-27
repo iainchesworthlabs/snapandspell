@@ -302,7 +302,7 @@ tile-frequency table: six different letters to a die dealt in proportion to the
 table, one to three vowels and at most one of J K Q V X Z on each, 30% to 40%
 vowel faces and at most 8% S faces in a set, a Q shown as `QU`, a seed to each
 size, and the table, method and seed in the header
-([Data](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/data/README.md)).
+([Data](https://github.com/iainchesworthlabs/snapandspell/blob/develop/data/README.md)).
 The dictionary is not an input. `data.dice` holds the files to what the tool
 makes. The faces of a printed set are not used: in the scanner mode the board is
 read from the table.

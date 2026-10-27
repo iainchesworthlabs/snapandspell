@@ -160,7 +160,7 @@ and notice obligations is unverified ([CI](ci.md)).
 The solver needs a word list. The one in the repository is **ENABLE**
 (`enable1.txt`, 172,823 words), kept unmodified as `data/dictionaries/en.txt`.
 Its originators released it into the public domain; where it was fetched from,
-when, and its SHA-256 are in [data/README.md](https://github.com/iainchesworthlabs/wordjewelssolver/blob/main/data/README.md).
+when, and its SHA-256 are in [data/README.md](https://github.com/iainchesworthlabs/snapandspell/blob/main/data/README.md).
 That the notice is genuine is taken from the list's published statement and has
 not been independently verified [I][L]. `sns-cli` and the window look for
 `dictionaries/en.txt` beside the executable, and a build copies it there.

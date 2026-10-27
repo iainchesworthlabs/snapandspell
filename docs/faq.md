@@ -88,7 +88,7 @@ anywhere. The camera's picture is read in memory and never saved; no audio is
 captured. Build checks (`privacy.sources`, `scan.privacy`) fail if the first-party
 code opens a network connection, captures audio, exports data or writes a frame to
 disk. The one exception is a *profiling* build, which listens on a local TCP port
-and is never released ([Security](https://github.com/iainchesworthlabs/wordjewelssolver/blob/develop/SECURITY.md)).
+and is never released ([Security](https://github.com/iainchesworthlabs/snapandspell/blob/develop/SECURITY.md)).
 
 **Can I use the library in my own program?**
 There is no install step or exported package yet, so it can only be built as

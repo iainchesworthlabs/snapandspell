@@ -835,10 +835,10 @@ looks like, and refuses a failed one.
    folder, opens the keystore again with the password it wrote, and prints the four commands:
 
    ```sh
-   gh secret set ANDROID_KEYSTORE_BASE64   --repo iainchesworthlabs/wordjewelssolver < <folder>/upload-keystore.p12.base64
-   gh secret set ANDROID_KEYSTORE_PASSWORD --repo iainchesworthlabs/wordjewelssolver < <folder>/store-password.txt
-   gh secret set ANDROID_KEY_ALIAS         --repo iainchesworthlabs/wordjewelssolver < <folder>/key-alias.txt
-   gh secret set ANDROID_KEY_PASSWORD      --repo iainchesworthlabs/wordjewelssolver < <folder>/key-password.txt
+   gh secret set ANDROID_KEYSTORE_BASE64   --repo iainchesworthlabs/snapandspell < <folder>/upload-keystore.p12.base64
+   gh secret set ANDROID_KEYSTORE_PASSWORD --repo iainchesworthlabs/snapandspell < <folder>/store-password.txt
+   gh secret set ANDROID_KEY_ALIAS         --repo iainchesworthlabs/snapandspell < <folder>/key-alias.txt
+   gh secret set ANDROID_KEY_PASSWORD      --repo iainchesworthlabs/snapandspell < <folder>/key-password.txt
    ```
 
    (The key's password is the keystore's: a PKCS12 store has one.) Keep a copy of the keystore and

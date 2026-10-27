@@ -42,8 +42,8 @@ In this repository the pieces are:
 | The switch | repository variable | `SIGN_IOS_UPLOAD` = `true` |
 
 ```sh
-base64 -w0 Snap_and_Spell_App_Store.mobileprovision | gh secret set IOS_PROVISIONING_PROFILE_BASE64 -R iainchesworthlabs/wordjewelssolver
-gh variable set SIGN_IOS_UPLOAD --body true -R iainchesworthlabs/wordjewelssolver
+base64 -w0 Snap_and_Spell_App_Store.mobileprovision | gh secret set IOS_PROVISIONING_PROFILE_BASE64 -R iainchesworthlabs/snapandspell
+gh variable set SIGN_IOS_UPLOAD --body true -R iainchesworthlabs/snapandspell
 ```
 
 Without `SIGN_IOS_UPLOAD` the release has no iOS build and says nothing about it.

@@ -1,8 +1,8 @@
 site_name: SnapAndSpell
 site_description: Finds every word on a Boggle board.
 site_url: https://iainchesworthlabs.github.io/snapandspell/
-repo_url: https://github.com/iainchesworthlabs/wordjewelssolver
-repo_name: iainchesworthlabs/wordjewelssolver
+repo_url: https://github.com/iainchesworthlabs/snapandspell
+repo_name: iainchesworthlabs/snapandspell
 edit_uri: edit/develop/docs/
 
 theme:
