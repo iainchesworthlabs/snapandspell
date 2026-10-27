@@ -203,8 +203,10 @@ FocusScope {
                     id: tray
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    // A title and one row at the least; it likes to be a good deal more.
-                    Layout.minimumHeight: Theme.targetPrimary + Theme.rowHeight
+                    // A title and one row at the least; it likes to be a good deal more. Empty,
+                    // it keeps the room its title and its hint need, so the hint is not cut off.
+                    Layout.minimumHeight: tray.empty ? Math.max(Theme.targetPrimary + Theme.rowHeight, tray.implicitHeight)
+                                                     : Theme.targetPrimary + Theme.rowHeight
                     Layout.preferredHeight: Theme.pictureMax / 2
                     title: ScanWording.wordsFound
                     empty: root.assist.found.length === 0

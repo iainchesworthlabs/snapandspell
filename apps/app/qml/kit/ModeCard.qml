@@ -154,7 +154,7 @@ Rectangle {
                 text: root.subtitle
                 color: Theme.inkSecondary
                 wrapMode: Text.WordWrap
-                maximumLineCount: root.primary ? 2 : 3
+                maximumLineCount: root.primary ? 3 : 5
                 elide: Text.ElideRight
                 decorative: true
             }

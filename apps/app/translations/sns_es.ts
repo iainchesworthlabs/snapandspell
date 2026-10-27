@@ -4,12 +4,12 @@
 <context>
     <name>AppBar</name>
     <message>
-        <location filename="../qml/kit/AppBar.qml" line="+37"/>
+        <location filename="../qml/kit/AppBar.qml" line="+41"/>
         <source>Back</source>
         <translation>Atrás</translation>
     </message>
     <message>
-        <location line="+102"/>
+        <location line="+105"/>
         <location line="+1"/>
         <source>My boards</source>
         <translation>Mis tableros</translation>
@@ -46,12 +46,12 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../qml/Home.qml" line="+114"/>
+        <location filename="../qml/Home.qml" line="+117"/>
         <source>Shake. Find. Collect.</source>
         <translation>Agita. Encuentra. Recoge.</translation>
     </message>
     <message>
-        <location line="+24"/>
+        <location line="+25"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>Agite la caja. Encuentra palabras. Colecciona joyas.</translation>
     </message>
@@ -61,12 +61,12 @@
         <translation>Jugar</translation>
     </message>
     <message>
-        <location line="-32"/>
+        <location line="-33"/>
         <source>A word-finding game for young readers</source>
         <translation>Un juego de encontrar palabras para lectores jóvenes</translation>
     </message>
     <message>
-        <location line="+52"/>
+        <location line="+53"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>Use la cámara o escriba el tablero. Un adulto lo&#xa0;prepara.</translation>
     </message>
@@ -76,12 +76,12 @@
         <translation>Continuar</translation>
     </message>
     <message>
-        <location line="+23"/>
+        <location line="+26"/>
         <source>Snap and Spell</source>
         <translation>Snap and Spell</translation>
     </message>
     <message>
-        <location line="+10"/>
+        <location line="+8"/>
         <source>Everything stays on this device.</source>
         <translation>Todo queda en este dispositivo.</translation>
     </message>
@@ -241,7 +241,7 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="+41"/>
+        <location filename="../qml/Main.qml" line="+47"/>
         <source>Snap and Spell</source>
         <translation>Snap and Spell</translation>
     </message>

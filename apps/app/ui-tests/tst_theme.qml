@@ -255,6 +255,30 @@ TestCase {
         compare(Theme.radiusLarge, 20)
     }
 
+    function test_theWindowSizeClasses() {
+        // A phone held upright is narrow; on its side it is short and not narrow; a tablet upright is neither.
+        compare(Theme.isNarrow(390), true)
+        compare(Theme.isNarrow(599), true)
+        compare(Theme.isNarrow(600), false)
+        compare(Theme.isNarrow(844), false)
+        compare(Theme.isShort(390), true)
+        compare(Theme.isShort(499), true)
+        compare(Theme.isShort(500), false)
+        compare(Theme.isShort(1180), false)
+        compare(Theme.isWide(820), false)
+        compare(Theme.isWide(900), true)
+        compare(Theme.isWide(1180), true)
+        // Only a desktop window has a floor.
+        compare(Theme.desktopMinWidth, 900)
+        compare(Theme.desktopMinHeight, 620)
+        for (const os of ["windows", "osx", "linux", "unix"]) {
+            compare(Theme.isDesktop(os), true, os)
+        }
+        for (const os of ["ios", "android", "tvos", "visionos", "wasm", "qnx", ""]) {
+            compare(Theme.isDesktop(os), false, os)
+        }
+    }
+
     function test_theJewelSizesSayTheirTier() {
         compare(Theme.jewelSpark, 26)
         compare(Theme.jewelPower, 34)

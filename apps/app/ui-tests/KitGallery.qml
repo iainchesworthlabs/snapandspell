@@ -65,13 +65,18 @@ Rectangle {
                           {value: 5, label: qsTr("5 x 5")}, {value: 6, label: qsTr("6 x 6")}]
             }
 
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
-                spacing: Theme.space4
+                Layout.minimumWidth: 0
+                columns: Theme.isNarrow(root.width) ? 1 : 2
+                columnSpacing: Theme.space4
+                rowSpacing: Theme.space4
 
                 // The play panel's narrow card: Clear and Done must both fit.
                 Card {
                     Layout.preferredWidth: 280
+                    Layout.fillWidth: Theme.isNarrow(root.width)
+                    Layout.minimumWidth: 0
                     Layout.alignment: Qt.AlignTop
                     title: qsTr("Words I found")
                     empty: false
@@ -97,33 +102,39 @@ Rectangle {
                     empty: true
                     emptyTitle: qsTr("Your words will land here.")
                     emptyText: qsTr("Find a word and it is kept here.")
+                    Layout.minimumWidth: 0
                     Layout.minimumHeight: 180
                 }
             }
 
             // The home screen's two cards, as the narrow layout stacks them.
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
-                spacing: Theme.space4
+                Layout.minimumWidth: 0
+                columns: Theme.isNarrow(root.width) ? 1 : 2
+                columnSpacing: Theme.space4
+                rowSpacing: Theme.space4
 
                 ModeCard {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 300
+                    Layout.preferredWidth: 56
+                    Layout.minimumHeight: minimumHeight
+                    Layout.preferredHeight: Theme.isNarrow(root.width) ? implicitHeight : Math.max(300, minimumHeight)
                     primary: true
                     title: qsTr("Play on my own")
                     subtitle: qsTr("Shake the box. Find words. Collect jewels.")
                     actionLabel: qsTr("Play")
 
                     JewelBox {
-                        anchors.centerIn: parent
-                        width: Math.min(parent.width * 0.9, 460)
-                        height: Math.max(120, parent.height)
+                        anchors.fill: parent
                         closed: false
                     }
                 }
                 ModeCard {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 300
+                    Layout.preferredWidth: 44
+                    Layout.minimumHeight: minimumHeight
+                    Layout.preferredHeight: Theme.isNarrow(root.width) ? implicitHeight : Math.max(300, minimumHeight)
                     grownUp: true
                     eyebrow: qsTr("For grown-ups")
                     title: qsTr("Play with a real board")

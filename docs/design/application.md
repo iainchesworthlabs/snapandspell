@@ -354,11 +354,29 @@ the system is made of and which rules the tests hold it to.
   gold used for selection and an icon-only button outside back and close, against
   an allow-list that may only shrink; `quick.contrast` measures about sixty
   foreground and background token pairs in both schemes against the gates below;
-  `quick.sizematrix` lays the screens out at 900x620, 900x1200, 1024x768,
-  2400x1200 and at 150 % text and checks that every focusable item is at least
-  48 dp, inside its window, not truncated and not overlapping another control; and
+  `quick.sizematrix` lays the screens out at the sizes of "Window sizes" below
+  (desktop, tablet and phone, both ways round) and at 150 % text and checks that
+  every focusable item is at least 48 dp, inside its window, not truncated and
+  not overlapping another control, that no page scrolls sideways and that no text
+  runs off its card or the window; and
   `quick.kit` and `quick.theme` pin the components and tokens.
-- **Where it is not finished.** The parent area's bare `Text` items are on the lint
+- **Window sizes.** A screen is laid out for the size it is given, by class and not by
+  device (`Theme.isNarrow`, `isShort`, `isWide`): **narrow** below 600 dp wide (a phone
+  held upright), **short** below 500 dp high (a phone on its side), **wide** from 900 dp
+  (a tablet on its side, a desktop window). A tablet held upright is none of the three.
+  Only a desktop window has a floor (900 x 620, `Theme.desktopMinWidth/Height`); a phone,
+  a tablet and a browser page are as big as the screen is, and `Main.qml` lays the
+  screens inside the device's safe area (`SafeArea`), so nothing sits under the notch, the
+  rounded corners or the home indicator. The matrix holds each screen to 900x620,
+  900x1200, 1024x768 and 2400x1200 (desktop), 820x1180 and 1180x820 (an iPad both ways),
+  390x844, 375x667 and 360x640 (phones upright), 844x390 and 667x375 (phones on their
+  side), and 150 % text at 900x620, 1024x768, 390x844 and 844x390. A suite whose screen
+  is not yet laid out for the phones and the tablets names `SizeMatrix.desktopSizes`
+  instead, and says which stage fixes it. On a narrow bar the boards and the jewels are
+  pictures alone (they keep their names for a screen reader); the grown-ups' entry keeps
+  its words, and a bar with a Back button leaves the product's name to the title.
+- **Where it is not finished.** Solo Play and the scanner and assistant are not yet laid
+  out for the phone and the tablet (their matrix suites run the desktop sizes only). The parent area's bare `Text` items are on the lint
   allow-list; at 150 % text on the smallest window the playing panel scrolls
   (Clear and Done are reachable below the fold).
 
