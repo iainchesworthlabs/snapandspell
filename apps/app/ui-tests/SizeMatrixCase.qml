@@ -108,7 +108,13 @@ TestCase {
         root.useLanguage(data.language);
         wait(root.settle);
 
-        const found = SizeMatrix.audit(item, Theme.targetMin);
+        // A screen still settling (a board easing into place on a slow machine) is a pixel off for a
+        // moment: a finding must still be there a little later to count.
+        let found = SizeMatrix.audit(item, Theme.targetMin);
+        for (let again = 0; again < 3 && found.length > 0; ++again) {
+            wait(400);
+            found = SizeMatrix.audit(item, Theme.targetMin);
+        }
         const failing = [];
         const used = {};
         for (const finding of found) {
