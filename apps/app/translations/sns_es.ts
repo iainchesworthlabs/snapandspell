@@ -46,12 +46,13 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../qml/Home.qml" line="+117"/>
+        <location filename="../qml/Home.qml" line="+171"/>
+        <location line="+97"/>
         <source>Shake. Find. Collect.</source>
         <translation>Agita. Encuentra. Recoge.</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="-210"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>Agite la caja. Encuentra palabras. Colecciona joyas.</translation>
     </message>
@@ -61,12 +62,12 @@
         <translation>Jugar</translation>
     </message>
     <message>
-        <location line="-36"/>
+        <location line="+105"/>
         <source>A word-finding game for young readers</source>
         <translation>Un juego de encontrar palabras para lectores jóvenes</translation>
     </message>
     <message>
-        <location line="+59"/>
+        <location line="-104"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>Use la cámara o escriba el tablero. Un adulto lo&#xa0;prepara.</translation>
     </message>
@@ -76,12 +77,13 @@
         <translation>Continuar</translation>
     </message>
     <message>
-        <location line="+26"/>
+        <location line="+163"/>
         <source>Snap and Spell</source>
         <translation>Snap and Spell</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+7"/>
+        <location line="+116"/>
         <source>Everything stays on this device.</source>
         <translation>Todo queda en este dispositivo.</translation>
     </message>
@@ -869,7 +871,7 @@
         <translation>Toca otra vez el último dado o pulsa «Listo».</translation>
     </message>
     <message>
-        <location line="+164"/>
+        <location line="+7"/>
         <source>1 word</source>
         <translation>1 palabra</translation>
     </message>
@@ -879,12 +881,12 @@
         <translation>%1 palabras</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+1"/>
         <source>%1 points</source>
         <translation>%1 puntos</translation>
     </message>
     <message>
-        <location line="+102"/>
+        <location line="+324"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
@@ -894,7 +896,7 @@
         <translation>Tus palabras aparecerán aquí.</translation>
     </message>
     <message>
-        <location line="-280"/>
+        <location line="-304"/>
         <source>Clear</source>
         <translation>Borrar</translation>
     </message>
@@ -1233,7 +1235,7 @@
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../qml/solo/SoloBox.qml" line="+125"/>
+        <location filename="../qml/solo/SoloBox.qml" line="+130"/>
         <source>%1. %2</source>
         <translation>%1. %2</translation>
     </message>
@@ -1241,7 +1243,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+254"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+257"/>
         <source>Solo Play</source>
         <translation>Juego en solitario</translation>
     </message>
@@ -1266,17 +1268,17 @@
         <translation>¡Encontraste todas las %1 palabras!</translation>
     </message>
     <message>
-        <location line="+49"/>
+        <location line="+51"/>
         <source>Look at the jewels you collected.</source>
         <translation>Mira las joyas que has recogido.</translation>
     </message>
     <message>
-        <location line="-50"/>
+        <location line="-52"/>
         <source>You found the word!</source>
         <translation>¡Has encontrado la palabra!</translation>
     </message>
     <message>
-        <location line="+136"/>
+        <location line="+138"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>

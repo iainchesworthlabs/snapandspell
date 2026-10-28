@@ -171,21 +171,21 @@ TestCase {
         compare(hint.width, finish.width)
     }
 
-    function test_theTallPanelKeepsTheWordsOnTheLeadingSide() {
-        // A tall window's panel has the words and the actions side by side: the
-        // words on the leading side, which is the right in Hebrew.
+    function test_theTallPanelKeepsTheHintOnTheLeadingSide() {
+        // A tall window's panel has the hint and Finish side by side: the hint on the leading side,
+        // which is the right in Hebrew.
         play()
         const panel = createTemporaryObject(panelComponent, testCase,
-                                            { width: 900, height: 376, wide: false,
+                                            { width: 402, height: 400, wide: false,
                                               solo: soloModel })
         verify(panel !== null)
-        const card = findChild(panel, "wordsCard")
+        const hint = buttonNamed(panel, SoloWording.showStart)
         const finish = buttonNamed(panel, SoloWording.finishBoard)
-        verify(card.mapToItem(panel, 0, 0).x < finish.mapToItem(panel, 0, 0).x)
+        verify(hint.mapToItem(panel, 0, 0).x < finish.mapToItem(panel, 0, 0).x)
 
         Theme.rightToLeft = true
         compare(panel.mirrored, true)
-        tryVerify(() => card.mapToItem(panel, 0, 0).x > finish.mapToItem(panel, 0, 0).x)
+        tryVerify(() => hint.mapToItem(panel, 0, 0).x > finish.mapToItem(panel, 0, 0).x)
     }
 
     function test_theSplitMirrorsButTheBoardDoesNot() {

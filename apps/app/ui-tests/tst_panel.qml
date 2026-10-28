@@ -300,29 +300,49 @@ TestCase {
         return allItems(tray).find(item => item.count !== undefined && item.model !== undefined)
     }
 
-    function test_theWordsCardNeverCollapsesInATallWindow() {
-        // 900 x 1200: the panel is the bottom third, 900 x 376. The words and the
-        // actions share it side by side; the card was a 4 px sliver when they were
-        // stacked.
+    function test_everythingIsInViewInATallPanel() {
+        // A phone upright under its board: 402 x 400. The word in hand, the words found (at least a whole
+        // row), the hint and Finish side by side, and Clear and Done are all in view at once: nothing
+        // is left to scroll to.
         play()
         const tall = createTemporaryObject(panelComponent, testCase,
-                                           { width: 900, height: 376, wide: false, solo: soloModel })
+                                           { width: 402, height: 400, wide: false, solo: soloModel })
         verify(tall !== null)
+        // The layout is polished a frame after the panel is made.
+        wait(100)
+        verify(tall.tallNeed <= 400, "a tall panel needs " + tall.tallNeed + " dp")
         const card = findChild(tall, "wordsCard")
         verify(card !== null)
-        verify(card.height >= 170, "the words card is " + card.height + " dp tall")
         const list = listOf(tall)
-        verify(list.height >= 2 * Theme.rowHeight)
+        verify(list.height >= Theme.rowHeight)
         // Whole rows only, so no row is cut under the heading.
         compare(list.height % Theme.rowHeight, 0)
-        // The hint and Finish are beside the words, not under them.
+        // The hint and Finish are side by side, under the words, at the smaller size.
+        const hint = buttonNamed(tall, SoloWording.showStart)
         const finish = buttonNamed(tall, SoloWording.finishBoard)
-        verify(finish.mapToItem(tall, 0, 0).x >= card.mapToItem(tall, 0, 0).x + card.width)
-        // Clear and Done are the foot of the panel: below the words, inside the panel.
+        verify(hint !== null && finish !== null)
+        compare(hint.mapToItem(tall, 0, 0).y, finish.mapToItem(tall, 0, 0).y)
+        verify(finish.mapToItem(tall, 0, 0).x > hint.mapToItem(tall, 0, 0).x)
+        verify(hint.mapToItem(tall, 0, 0).y >= card.mapToItem(tall, 0, 0).y + card.height - 1,
+               "the hint is below the words")
+        // Clear and Done are the foot of the panel: below the hint, inside the panel.
         const done = buttonNamed(tall, SoloWording.done)
-        const at = done.mapToItem(tall, 0, 0)
-        verify(at.y >= card.mapToItem(tall, 0, 0).y + card.height - 1, "Done is below the words")
-        verify(at.y + done.height <= tall.height + 0.5, "Done is inside the panel")
+        const clear = buttonNamed(tall, qsTr("Clear"))
+        for (const button of [hint, finish, clear, done]) {
+            const at = button.mapToItem(tall, 0, 0)
+            verify(at.y >= 0 && at.y + button.height <= tall.height + 0.5, button.label + " is inside the panel")
+            verify(at.x >= 0 && at.x + button.width <= tall.width + 0.5, button.label + " is inside across")
+        }
+        verify(done.mapToItem(tall, 0, 0).y >= finish.mapToItem(tall, 0, 0).y + finish.height - 1,
+               "Done is below Finish")
+        // Nothing scrolls: the content is no taller than the panel.
+        for (const item of allItems(tall)) {
+            if (item.contentHeight !== undefined && item.flickableDirection !== undefined
+                    && item.visible && item.interactive !== undefined && item !== list) {
+                verify(item.contentHeight <= item.height + 1, "the panel scrolls (" + item.contentHeight
+                                                              + " in " + item.height + ")")
+            }
+        }
     }
 
     function test_clearAndDoneStayInReachInAShortTallPanel() {

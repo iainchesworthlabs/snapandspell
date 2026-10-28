@@ -10,8 +10,9 @@ import SnapAndSpell
 // column, where Done sits once the board is out.
 //
 // The panel is a viewport over the choice and the steps, with Shake fixed at its
-// foot: at the minimum window height all of it fits, and if a larger text size
-// makes the steps taller than the room they scroll while Shake stays in reach.
+// foot: at the minimum window height all of it fits; where the steps would not fit (a phone upright)
+// they are left out, and if a larger text size makes what is shown taller than the room it scrolls
+// while Shake stays in reach.
 Item {
     id: root
 
@@ -26,6 +27,9 @@ Item {
     readonly property var offered: solo.sizes.filter(size => size <= layoutRule.largestOffered)
     readonly property bool mirrored: Theme.rightToLeft
     readonly property bool small: height < 640
+    // The three steps are shown when the panel has the room for them as well as the sizes and Shake;
+    // a phone upright does not, and the box's own caption ("Shake the box to start") says the first.
+    readonly property bool howShown: height >= Theme.howItWorksRoom
     readonly property real margin: Theme.space4
     readonly property real gap: small ? Theme.space3 : Theme.space4
     // One option per size offered: the numeral is the button ("3 × 3" would need
@@ -99,6 +103,7 @@ Item {
             }
 
             Card {
+                visible: root.howShown
                 Layout.fillWidth: true
                 title: SoloWording.howItWorks
                 padding: root.small ? Theme.space3 : Theme.space4

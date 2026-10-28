@@ -31,6 +31,12 @@ Rectangle {
     property string accessibleName: root.title
     property bool primary: false
     property bool grownUp: false
+    // A card that is a page of its own on a phone: the words are tighter and the picture may be
+    // smaller, so the card, its words and its button are all in view on one screen.
+    property bool compact: false
+    // The picture beside the words, not above them: a card that is a page of its own on a phone on
+    // its side, where the screen is wide and low.
+    property bool sideways: false
     // The least number of lines the sentence under the title is given room for.
     property int subtitleLines: 2
     // What two cards side by side give each other, so their buttons start at one height whichever title
@@ -53,9 +59,23 @@ Rectangle {
     // The art's room above the words, and the words' own height under it.
     // The way-in button's height under the words.
     readonly property real buttonHeight: primary ? Theme.targetPrimary : Theme.targetChild
-    readonly property real wordsBlock: words.implicitHeight + Theme.space6
-    implicitHeight: Theme.space4 + Theme.cardArt + Theme.space3 + wordsBlock
-    readonly property real minimumHeight: Theme.space4 + Theme.cardArtMin + Theme.space3 + wordsBlock
+    readonly property real wordsMargin: compact ? Theme.space4 : Theme.space6
+    readonly property real wordsBlock: words.implicitHeight + 2 * wordsMargin
+    // Beside its picture a card's words are the title and the button, and the sentence too where the
+    // card is tall enough for all three; the least a card needs is the first two.
+    readonly property real titleBlock: Math.max(titleText.implicitHeight, titleReserve)
+    readonly property real subtitleBlock: Math.max(subtitleText.implicitHeight,
+                                                   subtitleLines * subtitleText.lineRatio * subtitleText.size,
+                                                   subtitleReserve)
+    readonly property real buttonBlock: Math.max(buttonHeight, buttonReserve) + Theme.shadowMedium
+    readonly property real leastSideways: titleBlock + Theme.space2 + buttonBlock + 2 * wordsMargin
+    readonly property bool subtitleShown: !sideways
+                                          || height >= leastSideways + Theme.space2 + subtitleBlock
+    implicitHeight: sideways ? leastSideways + Theme.space2 + subtitleBlock
+                             : Theme.space4 + Theme.cardArt + Theme.space3 + wordsBlock
+    readonly property real minimumHeight: sideways ? leastSideways
+                                          : Theme.space4 + (compact ? 0 : Theme.cardArtMin)
+                                            + Theme.space3 + wordsBlock
     radius: Theme.radiusPanel
     color: Theme.card
     border.width: Theme.outlinePanel
@@ -114,24 +134,29 @@ Rectangle {
     Item {
         id: artArea
         anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.right: root.sideways ? undefined : parent.right
         anchors.top: parent.top
-        anchors.bottom: words.top
+        anchors.bottom: root.sideways ? parent.bottom : words.top
         anchors.margins: Theme.space4
-        anchors.bottomMargin: Theme.space3
+        anchors.bottomMargin: root.sideways ? Theme.space4 : Theme.space3
+        width: root.sideways ? Math.max(0, root.width * 0.36) : root.width - 2 * Theme.space4
+        // A small card (a phone's smallest screen) has no room for a picture: the words and the button
+        // keep theirs.
+        visible: height >= Theme.cardArtCompact
         clip: true
     }
 
     Column {
         id: words
-        anchors.left: parent.left
+        anchors.left: root.sideways ? artArea.right : parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: Theme.space6
+        anchors.margins: root.wordsMargin
+        anchors.leftMargin: root.sideways ? Theme.space4 : root.wordsMargin
         spacing: Theme.space2
 
         Eyebrow {
-            visible: root.eyebrow.length > 0
+            visible: root.eyebrow.length > 0 && !root.compact
             width: parent.width
             text: root.eyebrow
             accented: !root.grownUp
@@ -157,6 +182,7 @@ Rectangle {
         // two cards side by side start their words at the same height whichever
         // of the two sentences wraps.
         Item {
+            visible: root.subtitleShown
             width: parent.width
             height: Math.max(subtitleText.implicitHeight, root.subtitleLines * subtitleText.lineRatio * subtitleText.size,
                              root.subtitleReserve)

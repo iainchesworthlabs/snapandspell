@@ -16,6 +16,9 @@ SizeMatrixCase {
     // The shake, the drop and the panel's slide-in take a moment to be over.
     settle: 900
     subjects: [boxComponent, playComponent, summaryComponent, historyComponent]
+    // The box and a board in play fit a phone's screen whole (the summary and the boards sheet are
+    // sheets that scroll their own words).
+    onePageSubjects: [0, 1]
 
     Component { id: stubScene; StubBoardScene { } }
 

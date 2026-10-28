@@ -341,6 +341,15 @@ QtObject {
     readonly property real measure: 720
     readonly property real cardArt: 240
     readonly property real cardArtMin: 160
+    // The picture's least height on a phone upright, where the card is a page of its own.
+    readonly property real cardArtCompact: 96
+    // A tall Solo window's least panel (the words and the actions) and least board, in dp.
+    readonly property real minTallPanel: 300
+    readonly property real minTallBoard: 180
+    // The width of Solo's panel from which it puts the words beside the actions (a phone on its side).
+    readonly property real twoColumnsWidth: 330
+    // The height of Solo's box panel from which it shows the three steps under the sizes.
+    readonly property real howItWorksRoom: 520
     readonly property real cardMax: 420
     readonly property real hintDisplay: 96
     readonly property real doneWidth: 160

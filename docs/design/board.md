@@ -112,7 +112,10 @@ The window is split by its shape, not by what device it is. **MVP**: this is
 the brief's two-thirds / one-third split, everywhere.
 
 - **Wide** (width at least height): the board is in the leading two-thirds of
-  the width, the panel in the trailing third, both full height.
+  the width, the panel in the trailing third, both full height. In a **short**
+  window (under 500 dp high, a phone on its side) the board's area is no wider
+  than the window is high, a square, and the panel has the rest: 441 of 750 dp
+  under a phone's bar, enough for the words beside the actions.
 - **Tall**: the board is in the top two-thirds of the height, the panel in the
   bottom third, both full width. The board is a square that fits the width, so
   the board's area is never taller than the window is wide: on a phone held
@@ -120,7 +123,9 @@ the brief's two-thirds / one-third split, everywhere.
   382, not 257, and no tile gets smaller for it. The panel is also never less than
   300 dp (the foot with Clear and Done, and the words above it), so a short, tall
   window (a phone of 640 dp high) gives the board a little less: 5 x 5 is then 44 dp
-  on a 360 x 640 phone and is not offered.
+  on a 360 x 640 phone and is not offered. Solo Play asks for more than that, what
+  its panel needs to show everything at once (about 390 dp on a phone), and keeps
+  at least 180 dp of the height for the board.
 
 The board is the largest square that fits its area less an inset, drawn
 centred. The inset is 12 dp when the area's shorter side is under 600 dp, 24 dp
@@ -148,7 +153,7 @@ this repository). dp is Android's unit and about the same as an iOS point.
 | Phone 360 x 740 | Tall | 360 x 360 | 360 x 380 | 108 | 80 | 62 | 51 |
 | Phone 390 x 800 | Tall | 390 x 390 | 390 x 410 | 118 | 87 | 68 | 56 |
 | Phone 320 x 600 | Tall | 320 x 300 | 320 x 300 | 88 | 65 | 50 | **41** |
-| Phone on its side 740 x 360 | Wide | 493 x 360 | 247 x 360 | 108 | 80 | 62 | 51 |
+| Phone on its side 740 x 360 | Wide (short) | 360 x 360 | 380 x 360 | 108 | 80 | 62 | 51 |
 | Small tablet 744 x 1133 | Tall | 744 x 744 | 744 x 389 | 227 | 168 | 133 | 109 |
 | Tablet 800 x 1280 | Tall | 800 x 800 | 800 x 480 | 245 | 182 | 144 | 119 |
 | Tablet 1280 x 800 | Wide | 853 x 800 | 427 x 800 | 245 | 182 | 144 | 119 |

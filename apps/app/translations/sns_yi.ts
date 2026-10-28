@@ -46,12 +46,13 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../qml/Home.qml" line="+117"/>
+        <location filename="../qml/Home.qml" line="+171"/>
+        <location line="+97"/>
         <source>Shake. Find. Collect.</source>
         <translation>שאָקלען. געפֿינען. קלייַבן.</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="-210"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>שאָקלען די קעסטל. געפינען ווערטער. קלייַבן דזשולז.</translation>
     </message>
@@ -61,12 +62,12 @@
         <translation>שפּיל</translation>
     </message>
     <message>
-        <location line="-36"/>
+        <location line="+105"/>
         <source>A word-finding game for young readers</source>
         <translation>א וואָרט-געפינען שפּיל פֿאַר יונגע לייענער</translation>
     </message>
     <message>
-        <location line="+59"/>
+        <location line="-104"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>ניצט די קאַמערע, אָדער טיפּט אַרײַן דאָס ברעט. אַ דערוואַקסענער שטעלט דאָס&#xa0;אויף.</translation>
     </message>
@@ -76,12 +77,13 @@
         <translation>פאָרזעצן</translation>
     </message>
     <message>
-        <location line="+26"/>
+        <location line="+163"/>
         <source>Snap and Spell</source>
         <translation>Snap and Spell</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+7"/>
+        <location line="+116"/>
         <source>Everything stays on this device.</source>
         <translation>אַלץ בלייבט אויף דעם מיטל.</translation>
     </message>
@@ -869,7 +871,7 @@
         <translation>צאַפּן ווידער אויף די לעצטע מאָל אָדער דריקן געטאן</translation>
     </message>
     <message>
-        <location line="+164"/>
+        <location line="+7"/>
         <source>1 word</source>
         <translation>1 וואָרט</translation>
     </message>
@@ -879,12 +881,12 @@
         <translation>%1 ווערטער</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+1"/>
         <source>%1 points</source>
         <translation>%1 פּונקטן</translation>
     </message>
     <message>
-        <location line="+102"/>
+        <location line="+324"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
@@ -894,7 +896,7 @@
         <translation>דיין ווערטער וועט לאַנד דאָ.</translation>
     </message>
     <message>
-        <location line="-280"/>
+        <location line="-304"/>
         <source>Clear</source>
         <translation>אויסמעקן</translation>
     </message>
@@ -1233,7 +1235,7 @@
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../qml/solo/SoloBox.qml" line="+125"/>
+        <location filename="../qml/solo/SoloBox.qml" line="+130"/>
         <source>%1. %2</source>
         <translation>%1. %2</translation>
     </message>
@@ -1241,7 +1243,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+254"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+257"/>
         <source>Solo Play</source>
         <translation>סאָלאָ שפּיל</translation>
     </message>
@@ -1266,17 +1268,17 @@
         <translation>איר האָט געפֿונען אַלע %1 ווערטער!</translation>
     </message>
     <message>
-        <location line="+49"/>
+        <location line="+51"/>
         <source>Look at the jewels you collected.</source>
         <translation>קוק בייַ די דזשולז איר געזאמלט.</translation>
     </message>
     <message>
-        <location line="-50"/>
+        <location line="-52"/>
         <source>You found the word!</source>
         <translation>דו האָסט געפֿונען דאָס וואָרט!</translation>
     </message>
     <message>
-        <location line="+136"/>
+        <location line="+138"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>

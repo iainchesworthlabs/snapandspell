@@ -31,7 +31,11 @@ SoloLayoutResult solo_layout(double width, double height, std::size_t n, bool ri
     SoloLayoutResult result;
     result.wide = width >= height;
     if (result.wide) {
-        const double board_width = width * 2 / 3;
+        // A short window (a phone on its side) is as wide as a tablet and far lower: the board is
+        // a square no wider than the window is high, and the panel takes the room that leaves,
+        // enough for two columns and the actions under them.
+        const double board_width =
+            height < short_window ? std::min(width * 2 / 3, height) : width * 2 / 3;
         if (right_to_left) {
             // The panel takes the leading (left) side and the board the trailing
             // (right) one. Only the areas swap: the board is drawn from its own
