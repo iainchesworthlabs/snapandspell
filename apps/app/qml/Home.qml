@@ -53,14 +53,21 @@ FocusScope {
     LayoutMirroring.enabled: Theme.rightToLeft
     LayoutMirroring.childrenInherit: true
 
+    // The words of the two cards. They are here, not inside the cards' components, so that the
+    // catalogues list them in the order they are written whichever version of lupdate reads them.
+    readonly property string playSubtitle: qsTr("Shake the box. Find words. Collect jewels.")
+    readonly property string playAction: qsTr("Play")
+    readonly property string familySubtitle: qsTr("Use the camera, or type the board. A grown-up sets\u00a0this\u00a0up.")
+    readonly property string familyAction: qsTr("Continue")
+
     // The two cards, once each in the wide page and once each in the phone's. Only one of the pages
     // is made, so a screen reader and a test find each card once.
     component PlayCard: ModeCard {
         primary: true
         eyebrow: HomeWording.soloEyebrow
         title: HomeWording.soloPicture
-        subtitle: qsTr("Shake the box. Find words. Collect jewels.")
-        actionLabel: qsTr("Play")
+        subtitle: root.playSubtitle
+        actionLabel: root.playAction
         onClicked: root.soloRequested()
 
         JewelBox {
@@ -73,8 +80,8 @@ FocusScope {
         grownUp: true
         eyebrow: HomeWording.forGrownUps
         title: HomeWording.familyPicture
-        subtitle: qsTr("Use the camera, or type the board. A grown-up sets this up.")
-        actionLabel: qsTr("Continue")
+        subtitle: root.familySubtitle
+        actionLabel: root.familyAction
         onClicked: root.parentRequested()
 
         TabletArt {

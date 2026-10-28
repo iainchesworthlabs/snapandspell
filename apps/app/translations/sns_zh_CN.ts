@@ -46,13 +46,13 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../qml/Home.qml" line="+164"/>
+        <location filename="../qml/Home.qml" line="+171"/>
         <location line="+97"/>
         <source>Shake. Find. Collect.</source>
         <translation>摇一摇。找一找。收集。</translation>
     </message>
     <message>
-        <location line="-199"/>
+        <location line="-210"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>摇动盒子。找词。收集珠宝。</translation>
     </message>
@@ -62,12 +62,12 @@
         <translation>玩</translation>
     </message>
     <message>
-        <location line="+94"/>
+        <location line="+105"/>
         <source>A word-finding game for young readers</source>
         <translation>适合年轻读者的找词游戏</translation>
     </message>
     <message>
-        <location line="-81"/>
+        <location line="-104"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>使用摄像头，或手动输入棋盘。由成年人设置。</translation>
     </message>
@@ -77,13 +77,13 @@
         <translation>继续</translation>
     </message>
     <message>
-        <location line="+140"/>
+        <location line="+163"/>
         <source>Snap and Spell</source>
         <translation>Snap and Spell</translation>
     </message>
     <message>
         <location line="+7"/>
-        <location line="+115"/>
+        <location line="+116"/>
         <source>Everything stays on this device.</source>
         <translation>一切都保留在该设备上。</translation>
     </message>

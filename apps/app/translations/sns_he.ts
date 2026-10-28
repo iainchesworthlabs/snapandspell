@@ -46,13 +46,13 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../qml/Home.qml" line="+164"/>
+        <location filename="../qml/Home.qml" line="+171"/>
         <location line="+97"/>
         <source>Shake. Find. Collect.</source>
         <translation>לְנַעֵר. לִמצוֹא. לֶאֱסוֹף.</translation>
     </message>
     <message>
-        <location line="-199"/>
+        <location line="-210"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>נער את הקופסה. מצא מילים. אסוף תכשיטים.</translation>
     </message>
@@ -62,12 +62,12 @@
         <translation>לְשַׂחֵק</translation>
     </message>
     <message>
-        <location line="+94"/>
+        <location line="+105"/>
         <source>A word-finding game for young readers</source>
         <translation>משחק למציאת מילים לקוראים צעירים</translation>
     </message>
     <message>
-        <location line="-81"/>
+        <location line="-104"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>משתמשים במצלמה או מקלידים את הלוח. מבוגר מגדיר&#xa0;זאת.</translation>
     </message>
@@ -77,13 +77,13 @@
         <translation>לְהַמשִׁיך</translation>
     </message>
     <message>
-        <location line="+140"/>
+        <location line="+163"/>
         <source>Snap and Spell</source>
         <translation>Snap and Spell</translation>
     </message>
     <message>
         <location line="+7"/>
-        <location line="+115"/>
+        <location line="+116"/>
         <source>Everything stays on this device.</source>
         <translation>הכל נשאר במכשיר הזה.</translation>
     </message>
