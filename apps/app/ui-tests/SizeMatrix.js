@@ -12,7 +12,8 @@
 // (1180 x 820). The phones: an iPhone upright (390 x 844), a small one (375 x
 // 667), the smallest Android we hold to (360 x 640) and the iPhone on its side
 // (844 x 390, and 667 x 375 for the small one). And 150% text on the smallest
-// of each kind.
+// of each kind. A phone at the normal text size (`onePage`) is also held to the rule of its play
+// screens: all of the screen is in view, nothing is left to scroll down to (`scrollingPages`).
 
 var desktopSizes = [
     {w: 900, h: 620, scale: 1.0},
@@ -29,11 +30,11 @@ var desktopSizes = [
 var sizes = desktopSizes.concat([
     {w: 820, h: 1180, scale: 1.0},
     {w: 1180, h: 820, scale: 1.0},
-    {w: 390, h: 844, scale: 1.0},
-    {w: 375, h: 667, scale: 1.0},
-    {w: 360, h: 640, scale: 1.0},
-    {w: 844, h: 390, scale: 1.0},
-    {w: 667, h: 375, scale: 1.0},
+    {w: 390, h: 844, scale: 1.0, onePage: true},
+    {w: 375, h: 667, scale: 1.0, onePage: true},
+    {w: 360, h: 640, scale: 1.0, onePage: true},
+    {w: 844, h: 390, scale: 1.0, onePage: true},
+    {w: 667, h: 375, scale: 1.0, onePage: true},
     {w: 390, h: 844, scale: 1.5},
     {w: 844, h: 390, scale: 1.5}
 ]);
@@ -198,10 +199,13 @@ function audit(root, min) {
 
         // Walk up: every clipping ancestor, and the viewport, must contain it.
         let scrolls = false;
+        let sideways = false;
         let child = item;
         for (let at2 = item.parent; at2; child = at2, at2 = at2.parent) {
             if (isScrollContent(at2, child)) {
                 scrolls = true;
+                // A row of cards or words that scrolls sideways (Home's pager) runs off its sides by nature.
+                sideways = sideways || at2.contentWidth > at2.width + epsilon;
             }
             const clips = at2 === root || at2.clip === true || at2.contentItem !== undefined;
             if (!clips) {
@@ -216,7 +220,7 @@ function audit(root, min) {
             if (scrolls && at2.contentItem === undefined && at2 !== root) {
                 // Above a Flickable the content is wherever it is scrolled to.
             }
-            if (outRight || outLeft || (!scrolls && (outBottom || outTop))) {
+            if ((!sideways && (outRight || outLeft)) || (!scrolls && (outBottom || outTop))) {
                 found.push(who + ": clipped by " + typeName(at2));
                 break;
             }
@@ -258,10 +262,12 @@ function audit(root, min) {
             return;
         }
         let scrolls = false;
+        let sideways = false;
         let child = item;
         for (let at2 = item.parent; at2; child = at2, at2 = at2.parent) {
             if (isScrollContent(at2, child)) {
                 scrolls = true;
+                sideways = sideways || at2.contentWidth > at2.width + epsilon;
             }
             if (!(at2 === root || at2.clip === true)) {
                 continue;
@@ -271,7 +277,7 @@ function audit(root, min) {
             const painted = Math.min(item.width, item.contentWidth);
             const align = item.effectiveHorizontalAlignment;
             const left = p.x + (align === 2 ? item.width - painted : align === 4 ? (item.width - painted) / 2 : 0);
-            const outSide = left + painted > at2.width + epsilon || left < -epsilon;
+            const outSide = !sideways && (left + painted > at2.width + epsilon || left < -epsilon);
             const outEnd = !scrolls && (p.y + item.height > at2.height + epsilon || p.y < -epsilon);
             if (outSide || outEnd) {
                 found.push(nameOf(item) + " at " + Math.round(p.x) + "," + Math.round(p.y) + " "
@@ -309,5 +315,24 @@ function audit(root, min) {
             }
         }
     }
+    return found;
+}
+
+// What scrolls up and down under `root`, as readable strings: a Flickable that is visible, can move
+// vertically, is not a list (a list of words scrolls by its nature) and holds more than it shows. A
+// phone's play screens (Home, Solo Play's box and its board) are held to none: the child's way on is
+// in view, not below the fold.
+function scrollingPages(root) {
+    const found = [];
+    walk(root, function (item) {
+        if (item === root || !item.visible || item.opacity <= 0 || !isFlickable(item)
+                || item.flickableDirection === 1 || item.model !== undefined) {
+            return;
+        }
+        if (item.contentHeight > item.height + 1 && item.height > 0) {
+            found.push(nameOf(item) + " scrolls: " + Math.round(item.contentHeight) + " dp of content in "
+                       + Math.round(item.height) + " dp");
+        }
+    });
     return found;
 }

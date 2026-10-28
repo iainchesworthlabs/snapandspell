@@ -40,6 +40,9 @@ TestCase {
     // long translations (German), the right-to-left (Hebrew) and the wide scripts (Japanese) names them.
     property var languages: [{code: "en", rtl: false}]
     property var knownIssues: []
+    // Indexes of subjects that must fit a phone's screen without scrolling (SizeMatrix.scrollingPages), at
+    // the sizes marked `onePage`: Home, Solo Play's box and its board.
+    property var onePageSubjects: []
     // Indexes of subjects that cannot be made on this machine, and why (a live camera view with
     // no Qt Multimedia backend): their rows are skipped, the others run.
     property var skipSubjects: []
@@ -86,6 +89,7 @@ TestCase {
                         w: size.w,
                         h: size.h,
                         scale: size.scale,
+                        onePage: size.onePage === true && root.onePageSubjects.indexOf(subject) >= 0,
                         language: language
                     });
                 }
@@ -110,10 +114,14 @@ TestCase {
 
         // A screen still settling (a board easing into place on a slow machine) is a pixel off for a
         // moment: a finding must still be there a little later to count.
-        let found = SizeMatrix.audit(item, Theme.targetMin);
+        const check = function () {
+            const problems = SizeMatrix.audit(item, Theme.targetMin);
+            return data.onePage ? problems.concat(SizeMatrix.scrollingPages(item)) : problems;
+        };
+        let found = check();
         for (let again = 0; again < 3 && found.length > 0; ++again) {
             wait(400);
-            found = SizeMatrix.audit(item, Theme.targetMin);
+            found = check();
         }
         const failing = [];
         const used = {};

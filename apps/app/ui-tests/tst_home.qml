@@ -198,6 +198,59 @@ TestCase {
         verify(bottom > top * 0.4)
     }
 
+    // A phone held upright: one card to a page, the whole of the first one in view with its button, the
+    // second a swipe away (its edge shows). Nothing on the page scrolls down.
+    function test_aPhoneShowsOneWholeCardAndTheNextIsASwipeAway() {
+        const screen = createTemporaryObject(homeComponent, testCase, { width: 402, height: 778 })
+        verify(screen !== null)
+        verify(waitForRendering(screen, 2000))
+        const pager = findChild(screen, "homePager")
+        verify(pager !== null)
+        compare(pager.currentIndex, 0)
+        compare(screen.paged, true)
+
+        const play = picture(screen, HomeWording.soloPicture)
+        const board = picture(screen, HomeWording.familyPicture)
+        verify(play !== null && board !== null)
+        const at = play.mapToItem(screen, 0, 0)
+        verify(at.x >= 0 && at.x + play.width <= screen.width, "Play is across the screen")
+        verify(at.y >= Theme.appBarHeight - 1 && at.y + play.height <= screen.height, "Play is whole on the screen")
+        verify(play.height >= play.minimumHeight)
+        // The next card's edge is in view, and no more than its edge.
+        const next = board.mapToItem(screen, 0, 0).x
+        verify(next > at.x + play.width && next < screen.width, "the grown-ups' card shows its edge")
+
+        // A swipe to the side brings it in.
+        mouseDrag(pager, 300, 200, -240, 0, Qt.LeftButton, Qt.NoModifier, 20)
+        tryCompare(pager, "currentIndex", 1, 2000)
+        tryVerify(() => board.mapToItem(screen, 0, 0).x < screen.width / 4, 2000)
+        parentSpy.target = screen
+        parentSpy.clear()
+        // The pager has come to rest.
+        wait(2 * Theme.turn)
+        mouseClick(board, board.width / 2, board.height / 2)
+        compare(parentSpy.count, 1)
+
+        // Nothing scrolls up and down.
+        for (const item of allItems(screen)) {
+            if (item.contentHeight !== undefined && item.flickableDirection !== undefined && item.visible) {
+                verify(item.contentHeight <= item.height + 1, "the page scrolls down")
+            }
+        }
+    }
+
+    // A phone on its side is too low for a column: a card to a page again, the picture beside the words.
+    function test_aPhoneOnItsSideShowsTheCardSideways() {
+        const screen = createTemporaryObject(homeComponent, testCase, { width: 750, height: 381 })
+        verify(screen !== null)
+        verify(waitForRendering(screen, 2000))
+        compare(screen.paged, true)
+        const play = picture(screen, HomeWording.soloPicture)
+        verify(play.sideways)
+        const at = play.mapToItem(screen, 0, 0)
+        verify(at.y + play.height <= screen.height, "Play is whole on the screen")
+    }
+
     function test_theCardsFollowTheReadingDirection() {
         const screen = home()
         const play = picture(screen, HomeWording.soloPicture)

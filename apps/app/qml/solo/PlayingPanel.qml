@@ -67,8 +67,24 @@ Item {
     readonly property bool inHand: statusText.length > 0 || solo.path.length > 0
     readonly property bool hintOnly: !inHand && helpShown && hintLine.length > 0
 
-    readonly property real margin: Theme.space4
-    readonly property real gap: Theme.space3
+    readonly property string wordCount: solo.found.length === 1 ? qsTr("1 word")
+                                                                 : qsTr("%1 words").arg(solo.found.length)
+    readonly property string pointCount: qsTr("%1 points").arg(solo.boardPoints)
+
+    // A tall panel (a phone upright) is tighter all round: it has to hold everything in view at once.
+    // Two columns (the words beside the word in hand and the hint) in a window that is wide and short,
+    // a phone on its side, where the board's square leaves the panel wide.
+    readonly property bool twoColumns: wide && Theme.isShort(height) && width >= Theme.twoColumnsWidth
+    // Tight: a tall panel or a short one, which hold everything in view at once, so every part of
+    // them is a little smaller.
+    readonly property bool tight: !wide || twoColumns
+    readonly property real margin: tight ? Theme.space3 : Theme.space4
+    readonly property real gap: tight ? Theme.space2 : Theme.space3
+    // Above the first row and under the foot: a tight panel gives the board every dp it can.
+    readonly property real vMargin: tight ? Theme.space2 : Theme.space4
+    // Whole rows of words the card always has room for: two beside the board, one under it (a taller
+    // panel gives it more).
+    readonly property int leastRows: tight ? 1 : 2
     // Clear and Done are the foot of the panel, not in the zone's column, where the panel is tall (a
     // phone upright) or short (a phone on its side): there the rest scrolls above them.
     readonly property bool footed: !wide || Theme.isShort(height)
@@ -77,7 +93,28 @@ Item {
     // The line's reserved height: a word and its small line, or two lines of the hint.
     readonly property real stripHeight: Math.max(
         Theme.wordSize * Theme.lineWord + Theme.captionSize * Theme.lineCaption + Theme.space1,
-        2 * Theme.bodySize * Theme.lineBody + 2 * Theme.space2)
+        tight ? 2 * captionRuler.implicitHeight + 2 * Theme.space2
+              : 2 * Theme.bodySize * Theme.lineBody + 2 * Theme.space2)
+
+    // The line heights the tall panel is counted from: a text's own height, not the design's ratio, since
+    // the faces' metrics make a line taller than size times ratio.
+    Label { id: wordRuler; visible: false; decorative: true; role: "word"; text: "Ag" }
+    Label { id: captionRuler; visible: false; decorative: true; role: "caption"; learning: true; text: "Ag" }
+    Label { id: headingRuler; visible: false; decorative: true; role: "heading"; text: "Ag" }
+
+    // The least height a tall panel (a phone upright) needs for everything in it to be in view at once:
+    // the word in hand, the words found in one whole row, the hint and Finish board, and the foot with
+    // Clear and Done. The screen gives the board the rest of the window; the board never takes it. It
+    // is written from the kit alone, not from `wide`, which the screen's layout rule decides from this.
+    readonly property real tallNeed: 2 * Theme.space2
+                                     + Math.max(wordRuler.implicitHeight + captionRuler.implicitHeight + Theme.space1,
+                                                2 * captionRuler.implicitHeight + 2 * Theme.space2)
+                                     + 2 * Theme.space3
+                                     + Math.max(headingRuler.implicitHeight, 2 * captionRuler.implicitHeight)
+                                     + 3 * Theme.space1 + Theme.outlineControl + Theme.rowHeight
+                                     + Theme.targetMin + Theme.targetPrimary + 3 * Theme.space2
+                                     // What the layout adds beyond the sum of its parts.
+                                     + Theme.space2
 
     function currentWord() {
         var letters = [];
@@ -112,7 +149,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: foot.height + root.margin + root.gap
+        height: foot.height + root.vMargin + root.gap
         visible: foot.visible
         color: Theme.page
     }
@@ -126,7 +163,7 @@ Item {
         anchors.bottom: parent.bottom
         anchors.leftMargin: root.margin
         anchors.rightMargin: root.margin
-        anchors.bottomMargin: root.margin
+        anchors.bottomMargin: root.vMargin
         visible: root.footed && root.actionsShown
         height: visible && footLoader.item ? (footLoader.item as Item).implicitHeight : 0
 
@@ -145,22 +182,22 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: foot.visible ? foot.top : parent.bottom
-        anchors.bottomMargin: foot.visible ? Theme.space1 : 0
+        anchors.bottomMargin: foot.visible && !root.tight ? Theme.space1 : 0
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         contentWidth: width
         // Over the foot the content stops at the cards' own shadow; otherwise a margin's worth.
-        readonly property real bottomPad: foot.visible ? root.gap : root.margin
-        contentHeight: Math.max(layout.implicitHeight + root.margin + bottomPad, height)
+        readonly property real bottomPad: foot.visible ? root.gap : root.vMargin
+        contentHeight: Math.max(layout.implicitHeight + root.vMargin + bottomPad, height)
 
         GridLayout {
             id: layout
             x: root.margin
-            y: root.margin
+            y: root.vMargin
             width: viewport.width - 2 * root.margin
             // The room the viewport gives it, or what it needs if that is more.
-            height: Math.max(implicitHeight, viewport.height - root.margin - viewport.bottomPad)
-            columns: root.wide ? 1 : 2
+            height: Math.max(implicitHeight, viewport.height - root.vMargin - viewport.bottomPad)
+            columns: root.twoColumns ? 2 : 1
             rowSpacing: root.gap
             columnSpacing: root.gap
 
@@ -168,6 +205,9 @@ Item {
             Rectangle {
                 id: wordsCard
                 objectName: "wordsCard"
+                // Under the word in hand in a tall panel, over it in a wide one, beside it in two columns.
+                Layout.row: root.wide ? 0 : 1
+                Layout.rowSpan: root.twoColumns ? 2 : 1
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 // Never a sliver: the heading, its counts and two whole rows.
@@ -206,6 +246,21 @@ Item {
                             text: SoloWording.wordsFound
                             wrapMode: Text.WordWrap
                         }
+                        // A tall panel has no height to spare for a line of its own: the counts stand
+                        // beside the heading, one over the other.
+                        Column {
+                            visible: root.tight
+                            Layout.alignment: Qt.AlignVCenter
+                            Label {
+                                role: "caption"
+                                text: root.wordCount
+                            }
+                            Label {
+                                role: "caption"
+                                color: Theme.goldInk
+                                text: root.pointCount
+                            }
+                        }
                         Label {
                             visible: root.clockShown
                             role: "numeral"
@@ -218,19 +273,19 @@ Item {
                     }
                     // Side by side, or one under the other when the card is too narrow for both (big text).
                     Flow {
+                        visible: !root.tight
                         Layout.fillWidth: true
                         Layout.preferredHeight: childrenRect.height
                         spacing: Theme.space3
 
                         Label {
                             role: "caption"
-                            text: root.solo.found.length === 1 ? qsTr("1 word")
-                                                               : qsTr("%1 words").arg(root.solo.found.length)
+                            text: root.wordCount
                         }
                         Label {
                             role: "caption"
                             color: Theme.goldInk
-                            text: qsTr("%1 points").arg(root.solo.boardPoints)
+                            text: root.pointCount
                         }
                     }
 
@@ -248,8 +303,8 @@ Item {
                         id: listArea
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.minimumHeight: 2 * Theme.rowHeight
-                        Layout.preferredHeight: 2 * Theme.rowHeight
+                        Layout.minimumHeight: root.leastRows * Theme.rowHeight
+                        Layout.preferredHeight: root.leastRows * Theme.rowHeight
 
                         ListView {
                             id: words
@@ -259,6 +314,9 @@ Item {
                             anchors.rightMargin: Theme.space3
                             height: Math.floor(listArea.height / Theme.rowHeight) * Theme.rowHeight
                             clip: true
+                            // Only the rows in view are made: a row scrolled out is not left drawn outside the
+                            // list's clip (its jewel is a Shape).
+                            cacheBuffer: 0
                             model: root.solo.found
                             boundsBehavior: Flickable.StopAtBounds
                             snapMode: ListView.SnapToItem
@@ -275,6 +333,9 @@ Item {
                                 required property var modelData
                                 width: ListView.view.width
                                 height: Theme.rowHeight
+                                // A row scrolled out of the list is not drawn: its jewel is a Shape, which
+                                // the list's clip does not always hold.
+                                visible: y + height > words.contentY && y < words.contentY + words.height
 
                                 activeFocusOnTab: true
                                 Accessible.role: Accessible.ListItem
@@ -385,83 +446,97 @@ Item {
             }
 
             // --- the actions: the word in hand, the hint, Finish, Clear and Done ----
-            ColumnLayout {
-                id: zone
-                Layout.fillWidth: root.wide
-                Layout.preferredWidth: root.wide ? -1 : root.zoneWidth
-                Layout.alignment: Qt.AlignTop
-                spacing: root.gap
+            Item {
+                id: strip
+                // Over the words in a tall panel, under them in a wide one, beside them in two columns.
+                Layout.row: root.wide && !root.twoColumns ? 1 : 0
+                Layout.column: root.twoColumns ? 1 : 0
+                Layout.fillWidth: true
+                Layout.preferredHeight: Math.max(root.stripHeight, handColumn.implicitHeight,
+                                                 hintText.implicitHeight + 2 * Theme.space2)
 
-                // The word in hand (or what just happened), or the hint's words:
-                // one line of a fixed height, so nothing under it moves.
-                Item {
-                    id: strip
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: Math.max(root.stripHeight, handColumn.implicitHeight,
-                                                     hintText.implicitHeight + 2 * Theme.space2)
+                Rectangle {
+                    visible: root.hintOnly
+                    anchors.fill: parent
+                    radius: Theme.radius
+                    color: Theme.hintCard
+                    border.width: Theme.hair
+                    border.color: Theme.gold
+                }
 
-                    Rectangle {
-                        visible: root.hintOnly
-                        anchors.fill: parent
-                        radius: Theme.radius
-                        color: Theme.hintCard
-                        border.width: Theme.hair
-                        border.color: Theme.gold
-                    }
-
-                    Column {
-                        id: handColumn
-                        visible: root.inHand
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 0
-
-                        Label {
-                            width: parent.width
-                            role: "word"
-                            font.weight: Font.DemiBold
-                            text: root.statusText.length > 0 ? root.statusText : root.currentWord()
-                            color: root.statusText.length > 0 && !root.statusWord
-                                   ? Theme.inkSecondary : Theme.ink
-                            elide: Text.ElideRight
-                            wrapMode: Text.NoWrap
-                        }
-                        Label {
-                            width: parent.width
-                            visible: root.statusDetail.length > 0 || root.solo.path.length > 0
-                            role: "caption"
-                            learning: true
-                            text: root.statusDetail.length > 0 ? root.statusDetail : root.actionLine
-                            wrapMode: Text.WordWrap
-                            maximumLineCount: 2
-                            elide: Text.ElideRight
-                        }
-                    }
+                Column {
+                    id: handColumn
+                    visible: root.inHand
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 0
 
                     Label {
-                        id: hintText
-                        visible: root.hintOnly
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.margins: Theme.space3
-                        anchors.verticalCenter: parent.verticalCenter
-                        role: "body"
+                        width: parent.width
+                        role: "word"
+                        font.weight: Font.DemiBold
+                        text: root.statusText.length > 0 ? root.statusText : root.currentWord()
+                        color: root.statusText.length > 0 && !root.statusWord
+                               ? Theme.inkSecondary : Theme.ink
+                        elide: Text.ElideRight
+                        wrapMode: Text.NoWrap
+                    }
+                    Label {
+                        width: parent.width
+                        visible: root.statusDetail.length > 0 || root.solo.path.length > 0
+                        role: "caption"
                         learning: true
-                        color: Theme.hintCardInk
-                        text: root.hintLine
+                        text: root.statusDetail.length > 0 ? root.statusDetail : root.actionLine
                         wrapMode: Text.WordWrap
+                        // One line where the panel is tight: its height is counted on that.
+                        maximumLineCount: root.tight ? 1 : 2
+                        elide: Text.ElideRight
                     }
                 }
+
+                Label {
+                    id: hintText
+                    visible: root.hintOnly
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: Theme.space3
+                    anchors.verticalCenter: parent.verticalCenter
+                    role: root.tight ? "caption" : "body"
+                    learning: true
+                    color: Theme.hintCardInk
+                    text: root.hintLine
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            // The hint and Finish board: one over the other in a wide panel, side by side (and the
+            // smaller 48 dp size) in a tall one, which has no height for two 64 dp rows.
+            GridLayout {
+                id: helpers
+                Layout.row: root.twoColumns ? 1 : 2
+                Layout.column: root.twoColumns ? 1 : 0
+                Layout.fillWidth: true
+                // A tall panel keeps the row's height whatever is shown, so nothing under it moves.
+                Layout.minimumHeight: root.tight && !root.twoColumns ? Theme.targetMin : 0
+                Layout.preferredHeight: root.tight && !root.twoColumns ? Theme.targetMin : implicitHeight
+                visible: root.tight ? !root.twoColumns || root.helpShown || root.actionsShown
+                                    : (root.helpShown || root.actionsShown)
+                columns: root.tight && !root.twoColumns ? 2 : 1
+                columnSpacing: root.gap
+                rowSpacing: root.gap
 
                 // A start for a word, a second letter, or the hint put away.
                 AppButton {
                     visible: root.helpShown
                     Layout.fillWidth: true
-                    size: "child"
+                    Layout.preferredWidth: 1
+                    size: root.tight ? "min" : "child"
                     variant: "secondary"
                     wrap: true
-                    iconName: "hint"
+                    // The icon gives its room to the words in a tall panel's half-width button.
+                    iconName: root.tight ? "" : "hint"
+                    compact: root.tight
                     label: root.hintLabel
                     accessibleName: root.hintLabel
                     onClicked: root.solo.askHelp()
@@ -474,24 +549,27 @@ Item {
                 AppButton {
                     visible: root.actionsShown
                     Layout.fillWidth: true
-                    size: "child"
+                    Layout.preferredWidth: 1
+                    size: root.tight ? "min" : "child"
                     variant: "secondary"
                     wrap: true
+                    compact: root.tight
                     label: SoloWording.finishBoard
                     accessibleName: SoloWording.finishBoard
                     onClicked: root.finishRequested()
                 }
+            }
 
-                // Clear clears a path; Done hands one in. A traced word hands itself
-                // in when the finger lifts, so Done is for a word made by taps (or
-                // the keyboard and a screen reader). In a tall panel they are the
-                // foot of it instead (`foot`).
-                Loader {
-                    visible: root.actionsShown
-                    Layout.fillWidth: true
-                    active: !root.footed
-                    sourceComponent: actionBar
-                }
+            // Clear clears a path; Done hands one in. A traced word hands itself
+            // in when the finger lifts, so Done is for a word made by taps (or
+            // the keyboard and a screen reader). In a tall panel they are the
+            // foot of it instead (`foot`).
+            Loader {
+                visible: root.actionsShown && !root.footed
+                Layout.row: 3
+                Layout.fillWidth: true
+                active: !root.footed
+                sourceComponent: actionBar
             }
         }
     }

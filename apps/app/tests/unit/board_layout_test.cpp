@@ -30,7 +30,7 @@ const std::vector<Window>& reference_windows() {
         {"phone 360 x 740", 360, 740, false, 360, 360, {108, 80, 62, 51}},
         {"phone 390 x 800", 390, 800, false, 390, 390, {118, 87, 68, 56}},
         {"phone 320 x 600", 320, 600, false, 320, 300, {88, 65, 50, 41}},
-        {"phone on its side 740 x 360", 740, 360, true, 493, 360, {108, 80, 62, 51}},
+        {"phone on its side 740 x 360", 740, 360, true, 360, 360, {108, 80, 62, 51}},
         {"small tablet 744 x 1133", 744, 1133, false, 744, 744, {227, 168, 133, 109}},
         {"tablet 800 x 1280", 800, 1280, false, 800, 800, {245, 182, 144, 119}},
         {"tablet 1280 x 800", 1280, 800, true, 853, 800, {245, 182, 144, 119}},
@@ -42,8 +42,9 @@ const std::vector<Window>& reference_windows() {
 
 }  // namespace
 
-// Wide: two thirds of the width. Tall: two thirds of the height, and no more than the width (a
-// square that fits it); the panel takes the rest in either case.
+// Wide: two thirds of the width, or no wider than the window is high where that is under 500 (a
+// phone on its side). Tall: two thirds of the height, and no more than the width (a square that
+// fits it); the panel takes the rest in every case.
 TEST_CASE("the board area is two thirds of the window on its long side", "[app][layout]") {
     for (const auto& window : reference_windows()) {
         INFO(window.name);
@@ -63,6 +64,34 @@ TEST_CASE("the board area is two thirds of the window on its long side", "[app][
             CHECK(layout.panel_area.width == Approx(window.width));
         }
     }
+}
+
+TEST_CASE("a short, wide window gives the panel the room the board's square leaves",
+          "[app][layout]") {
+    // A phone on its side below its bar: the board is a square as high as the window, and the
+    // panel is the other 390 dp, wide enough for the words beside the actions.
+    const auto side = solo_layout(750, 309, 4);
+    CHECK(side.wide);
+    CHECK(side.board_area.width == Approx(309));
+    CHECK(side.board_area.height == Approx(309));
+    CHECK(side.panel_area.x == Approx(309));
+    CHECK(side.panel_area.width == Approx(750 - 309));
+    CHECK(side.panel_area.height == Approx(309));
+    CHECK(side.metrics.tile == Approx((309 - 2 * 12 - 3 * 6) / 4.0));
+
+    // A right-to-left language puts the panel on the left, the board on the right.
+    const auto mirrored = solo_layout(750, 309, 4, true);
+    CHECK(mirrored.panel_area.x == Approx(0));
+    CHECK(mirrored.panel_area.width == Approx(750 - 309));
+    CHECK(mirrored.board_area.x == Approx(750 - 309));
+
+    // Never wider than two thirds, where the window is not much wider than high.
+    const auto near_square = solo_layout(420, 400, 4);
+    CHECK(near_square.board_area.width == Approx(280));
+
+    // Not short at 500: the usual two thirds.
+    const auto not_short = solo_layout(900, 500, 4);
+    CHECK(not_short.board_area.width == Approx(600));
 }
 
 TEST_CASE("a tall window keeps the room above the board's square for the panel", "[app][layout]") {

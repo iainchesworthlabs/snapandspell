@@ -13,6 +13,8 @@ SizeMatrixCase {
     name: "SizeMatrixScreens"
     subjects: [homeComponent, jewelsComponent, gateComponent, dashboardComponent,
                settingsComponent, aboutComponent, licencesComponent, areaOpenComponent]
+    // Home fits a phone's screen whole: a card to a page, nothing to scroll down to.
+    onePageSubjects: [0]
 
     Component { id: homeComponent; Home { controller: parentController } }
     Component { id: jewelsComponent; JewelsScreen { controller: parentController } }

@@ -46,12 +46,13 @@
 <context>
     <name>Home</name>
     <message>
-        <location filename="../qml/Home.qml" line="+117"/>
+        <location filename="../qml/Home.qml" line="+164"/>
+        <location line="+97"/>
         <source>Shake. Find. Collect.</source>
         <translation>シェイク。探す。集める。</translation>
     </message>
     <message>
-        <location line="+28"/>
+        <location line="-199"/>
         <source>Shake the box. Find words. Collect jewels.</source>
         <translation>箱を振ります。言葉を見つけてください。宝石を集めましょう。</translation>
     </message>
@@ -61,12 +62,12 @@
         <translation>遊ぶ</translation>
     </message>
     <message>
-        <location line="-36"/>
+        <location line="+94"/>
         <source>A word-finding game for young readers</source>
         <translation>若い読者のための言葉探しゲーム</translation>
     </message>
     <message>
-        <location line="+59"/>
+        <location line="-81"/>
         <source>Use the camera, or type the board. A grown-up sets&#xa0;this&#xa0;up.</source>
         <translation>カメラを使うか、ボードを入力します。大人が設定します。</translation>
     </message>
@@ -76,12 +77,13 @@
         <translation>続く</translation>
     </message>
     <message>
-        <location line="+26"/>
+        <location line="+140"/>
         <source>Snap and Spell</source>
         <translation>Snap and Spell</translation>
     </message>
     <message>
-        <location line="+8"/>
+        <location line="+7"/>
+        <location line="+115"/>
         <source>Everything stays on this device.</source>
         <translation>すべてがこのデバイス上に残ります。</translation>
     </message>
@@ -869,7 +871,7 @@
         <translation>最後のサイコロをもう一度タップするか、「完了」を押します</translation>
     </message>
     <message>
-        <location line="+164"/>
+        <location line="+7"/>
         <source>1 word</source>
         <translation>1単語</translation>
     </message>
@@ -879,12 +881,12 @@
         <translation>%1 単語</translation>
     </message>
     <message>
-        <location line="+5"/>
+        <location line="+1"/>
         <source>%1 points</source>
         <translation>%1てん</translation>
     </message>
     <message>
-        <location line="+102"/>
+        <location line="+324"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
@@ -894,7 +896,7 @@
         <translation>あなたの言葉がここに届きます。</translation>
     </message>
     <message>
-        <location line="-280"/>
+        <location line="-304"/>
         <source>Clear</source>
         <translation>けす</translation>
     </message>
@@ -1233,7 +1235,7 @@
 <context>
     <name>SoloBox</name>
     <message>
-        <location filename="../qml/solo/SoloBox.qml" line="+125"/>
+        <location filename="../qml/solo/SoloBox.qml" line="+130"/>
         <source>%1. %2</source>
         <translation>%1. %2</translation>
     </message>
@@ -1241,7 +1243,7 @@
 <context>
     <name>SoloScreen</name>
     <message>
-        <location filename="../qml/solo/SoloScreen.qml" line="+254"/>
+        <location filename="../qml/solo/SoloScreen.qml" line="+257"/>
         <source>Solo Play</source>
         <translation>ソロプレイ</translation>
     </message>
@@ -1266,17 +1268,17 @@
         <translation>%1 個の単語をすべて見つけました!</translation>
     </message>
     <message>
-        <location line="+49"/>
+        <location line="+51"/>
         <source>Look at the jewels you collected.</source>
         <translation>集めた宝石を見てください。</translation>
     </message>
     <message>
-        <location line="-50"/>
+        <location line="-52"/>
         <source>You found the word!</source>
         <translation>ことばをみつけたね！</translation>
     </message>
     <message>
-        <location line="+136"/>
+        <location line="+138"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>

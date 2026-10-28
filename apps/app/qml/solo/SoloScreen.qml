@@ -82,6 +82,9 @@ FocusScope {
         height: root.height - appBar.height
         boardSize: root.solo.boardSize
         rightToLeft: root.mirrored
+        // A tall window (a phone upright) gives the panel what it needs to show all of it, and the
+        // board the rest, but never less than 180 of the height for the board.
+        minPanel: Math.max(Theme.minTallPanel, Math.min(panel.tallNeed, root.height - appBar.height - Theme.minTallBoard))
     }
 
     // The stage already sits below the app bar, so the layout's rectangles are
@@ -546,7 +549,9 @@ FocusScope {
             }
         }
 
+        // A phone on its side has no height for the line: the words are what the child came to see.
         Label {
+            visible: !Theme.isShort(root.height)
             Layout.fillWidth: true
             role: "body"
             learning: true
