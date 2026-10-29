@@ -658,8 +658,9 @@ asset nor a workflow artifact is private in a public repository. So this reposit
 `manifest.plist`, no `itms-services` link, no install page, no `IOS_IPA_ON_RELEASE` and no `RELEASE_WITHOUT_IOS`. A release
 carries no iOS file; its notes say that the version is in TestFlight (the `Add the install notes` job, when the iOS job ran).
 
-**The pin.** The three actions are `icl-common-infra`'s, pinned to the develop commit that added the upload
-(`494f40c`, "v0.1.16 plus #31 and #33"); move the pin to the tag when one is cut with `python3 tools/ci/repin.py`.
+**The pin.** The three actions are `icl-common-infra`'s, pinned like the rest of the workflows to a tag
+(`python3 tools/ci/repin.py`). `release-publish.yml` is the exception: it stays on v0.1.13 until the newer one, which
+verifies signatures against `docs/signing-key.asc` and takes SBOM options, has been rehearsed.
 
 **When it runs.** A `v*` tag runs the job when `SIGN_IOS_UPLOAD` is `true` and skips it, with nothing said, when it is not; the
 weekly rehearsal never does (it would spend a macOS runner and a signing identity every Sunday). A manual run builds it unless

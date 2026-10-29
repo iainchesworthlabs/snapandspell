@@ -35,7 +35,7 @@ jobs:
       security-events: write
       contents: read
       issues: write
-    uses: iainchesworthlabs/icl-common-infra/.github/workflows/codeql.yml@dd980dbe9d40a468cedf651de91bb429a4bbb10f # v0.1.16
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/codeql.yml@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
     with:
       runner: '["ubuntu-26.04"]'
       # The lean build (the linux-gcc-analysis preset): the library, the platform
