@@ -217,7 +217,7 @@ std::string_view canonical_language(std::string_view code) noexcept {
                std::equal(known.begin(), known.end(), code.begin(),
                           [](char a, char b) { return lower(a) == lower(b); });
     };
-    const auto found = std::find_if(std::begin(languages), std::end(languages), same);
+    const auto* const found = std::find_if(std::begin(languages), std::end(languages), same);
     return found == std::end(languages) ? std::string_view{} : *found;
 }
 

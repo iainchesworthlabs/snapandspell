@@ -39,6 +39,21 @@
 #   clang-analyzer-optin.core.EnumCastOutOfRange
 #     Reports a false positive inside MSVC's own <filesystem> bitmask helpers,
 #     which the analyzer reports even though the header is external.
+#
+#   clang-analyzer-deadcode.DeadStores
+#     A profiling zone (`auto zone = profiling::zone<"x">();`) is an empty
+#     object when profiling is off and a timer when it is on; the analyzer sees
+#     only a variable that is never read. The compiler's unused-variable
+#     warnings still cover real dead locals.
+#
+#   readability-trailing-comma (clang-tidy 23)
+#     Asks for a trailing comma in every multi-line list; clang-format, which
+#     owns the layout here, packs lists the other way and the two would fight.
+#
+#   bugprone-signed-bitwise (clang-tidy 23)
+#     Every report is a bit operation on a non-negative constant (`1 << 14`,
+#     `value & 0xF`, `| 1`) where an int literal is the operand; none touches
+#     a value that can be negative.
 Checks: >
   bugprone-*,
   cppcoreguidelines-*,
@@ -60,7 +75,10 @@ Checks: >
   -readability-math-missing-parentheses,
   -bugprone-easily-swappable-parameters,
   -performance-enum-size,
-  -clang-analyzer-optin.core.EnumCastOutOfRange
+  -clang-analyzer-optin.core.EnumCastOutOfRange,
+  -clang-analyzer-deadcode.DeadStores,
+  -readability-trailing-comma,
+  -bugprone-signed-bitwise
 
 WarningsAsErrors: ''
 HeaderFilterRegex: '(libs|apps)/[^/]+/(include|src)/.*'
