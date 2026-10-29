@@ -373,10 +373,10 @@ TEST_CASE("the language follows the device's list in order, and About says how",
         } else {
             CHECK(details.contains(QStringLiteral("from the device: %1").arg(phone.matched)));
         }
-        CHECK(details.contains(
-            QStringLiteral("device offers: %1")
-                .arg(phone.offered.isEmpty() ? QStringLiteral("none")
-                                             : phone.offered.join(QStringLiteral(", ")))));
+        CHECK(details.contains(QStringLiteral("device offers: %1")
+                                   .arg(phone.offered.isEmpty()
+                                            ? QStringLiteral("none")
+                                            : phone.offered.join(QStringLiteral(", ")))));
     }
 
     // A language chosen in Settings is not the device's, and About says so.

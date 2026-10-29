@@ -133,7 +133,7 @@ QString LanguageManager::apply(const QString& setting) {
     // code asks for a language this program does not have, so it is English and
     // the setting is not one of the eight either: it is kept as the system's.
     const QString stored = canonical(setting);
-    const QString code = setting.isEmpty() ? code_text(device.code)
+    const QString code = setting.isEmpty()  ? code_text(device.code)
                          : stored.isEmpty() ? QStringLiteral("en")
                                             : stored;
 
