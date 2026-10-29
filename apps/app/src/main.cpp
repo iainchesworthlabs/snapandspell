@@ -370,6 +370,9 @@ int main(int argc, char* argv[]) {
     // object, and the engine's bindings follow `languageChanged`.
     sns::app::LanguageManager language;
     language.apply(sns::app::to_qstring(store.settings().language));
+    parent.setLanguageDetails(language.details());
+    QObject::connect(&language, &sns::app::LanguageManager::languageChanged, &parent,
+                     [&parent, &language] { parent.setLanguageDetails(language.details()); });
 
     // The feedback engines and the device's motion, made before the engine that
     // points at them and gone after it: Main.qml binds the parent's settings to

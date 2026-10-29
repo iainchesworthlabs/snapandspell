@@ -227,8 +227,15 @@ books), no sentences in capitals.
 **As built:** the window is offered in **English, French, Spanish, German,
 Yiddish, Hebrew, Chinese and Japanese** (`en`, `fr`, `es`, `de`, `yi`, `he`,
 `zh_CN`, `ja`). The Language row in the parent area offers those eight and
-**System**, which is the device's own language when it is one of them and
-English otherwise. The setting is kept in the store with the others, so it
+**System**, which is the first of the device's preferred languages that has a
+catalogue, and English when none has (`sns::choose_language`,
+`libs/core/src/language_choice.cpp`): each tag is matched by its language
+alone, any `en-*` is English, `iw` and `ji` are the old codes of Hebrew and
+Yiddish, and `zh` is Simplified unless the tag says Traditional (Hant, TW, HK
+or MO), which is skipped like any language without a catalogue. The app does
+this itself and does not leave it to the platform's translator search, whose
+input differs from one system to the next. About shows the language in force,
+what chose it and the languages the device offered. The setting is kept in the store with the others, so it
 survives a restart, and the language is in force before the window is built:
 `LanguageManager` (`apps/app/src/language_manager.*`) installs the catalogue and sets
 `QGuiApplication::setLayoutDirection` before the engine loads. A change in the

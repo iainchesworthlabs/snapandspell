@@ -74,6 +74,18 @@ Flickable {
                 font.family: Theme.monoFont
                 wrapMode: Text.WordWrap
             }
+            // Which language is in force, what chose it and what the device
+            // offered: the same kind of label, for a report of the wrong
+            // language to be answered from a screenshot.
+            Label {
+                objectName: "languageDetails"
+                Layout.fillWidth: true
+                role: "caption"
+                text: root.controller.languageDetails
+                font.family: Theme.monoFont
+                wrapMode: Text.WrapAnywhere
+                visible: text.length > 0
+            }
         }
 
         // The licence and where the source is: text only, because the program has nowhere to

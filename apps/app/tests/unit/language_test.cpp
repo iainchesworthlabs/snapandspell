@@ -275,7 +275,10 @@ TEST_CASE("Hebrew and Yiddish are right to left and the other six left to right"
     CHECK(LanguageManager::language_from_locale(QStringLiteral("ja")) == "ja");
     CHECK(LanguageManager::language_from_locale(QStringLiteral("zh_CN")) == "zh_CN");
     CHECK(LanguageManager::language_from_locale(QStringLiteral("zh-Hans-CN")) == "zh_CN");
-    CHECK(LanguageManager::language_from_locale(QStringLiteral("zh_TW")) == "zh_CN");
+    // Traditional Chinese has no catalogue here, and is not shown as Simplified
+    // (the project standard, 7.2): on its own it is English.
+    CHECK(LanguageManager::language_from_locale(QStringLiteral("zh_TW")) == "en");
+    CHECK(LanguageManager::language_from_locale(QStringLiteral("zh-Hant-HK")) == "en");
     CHECK(LanguageManager::resolved(QStringLiteral("zh_cn")) == "zh_CN");
     CHECK(LanguageManager::resolved(QStringLiteral("zh")) == "en");
     CHECK(LanguageManager::language_from_locale(QStringLiteral("tlh_QS")) == "en");
@@ -327,6 +330,72 @@ TEST_CASE("applying a language installs its catalogue, its direction and its tex
     // it is, it is one of the eight.
     CHECK(language.apply(QString()) == LanguageManager::system_language());
     CHECK(language.setting().isEmpty());
+}
+
+TEST_CASE("the language follows the device's list in order, and About says how",
+          "[app][i18n][language]") {
+    TestApplication app;
+
+    struct Phone {
+        QStringList offered;
+        QString code;
+        QString matched;
+    };
+    // The phone that listed English (UK), German and French got German; the
+    // device's own first choice decides, and the platform's expansion of one
+    // choice into several tags is still one choice.
+    const std::vector<Phone> phones = {
+        {{"en-GB", "de-DE", "fr-FR"}, "en", "en-GB"},
+        {{"en-Latn-GB", "en-GB", "en-Latn", "en"}, "en", "en-Latn-GB"},
+        {{"de-DE", "en-GB"}, "de", "de-DE"},
+        {{"pt-BR", "ru-RU", "fr-CA", "en-US"}, "fr", "fr-CA"},
+        {{"iw-IL", "en"}, "he", "iw-IL"},
+        {{"zh-Hant-TW", "ja-JP"}, "ja", "ja-JP"},
+        {{"zh-Hans-CN"}, "zh_CN", "zh-Hans-CN"},
+        {{"zh-Hant-TW"}, "en", ""},
+        {{"pt-BR"}, "en", ""},
+        {{}, "en", ""},
+    };
+    for (const Phone& phone : phones) {
+        INFO(phone.offered.join(", ").toStdString());
+        LanguageManager language;
+        language.use_system_languages(phone.offered);
+        CHECK(language.apply(QString()) == phone.code);
+        CHECK(language.code() == phone.code);
+        CHECK(language.setting().isEmpty());
+
+        // About shows the code, what chose it and everything the device offered.
+        const QString details = language.details();
+        INFO(details.toStdString());
+        CHECK(details.contains(QStringLiteral("language %1 (").arg(phone.code)));
+        if (phone.matched.isEmpty()) {
+            CHECK(details.contains(QStringLiteral("the device offered none of ours")));
+        } else {
+            CHECK(details.contains(QStringLiteral("from the device: %1").arg(phone.matched)));
+        }
+        CHECK(details.contains(
+            QStringLiteral("device offers: %1")
+                .arg(phone.offered.isEmpty() ? QStringLiteral("none")
+                                             : phone.offered.join(QStringLiteral(", ")))));
+    }
+
+    // A language chosen in Settings is not the device's, and About says so.
+    LanguageManager language;
+    language.use_system_languages({"en-GB", "de-DE"});
+    CHECK(language.apply(QStringLiteral("fr")) == "fr");
+    CHECK(language.details().contains(QStringLiteral("language fr (chosen in Settings)")));
+    CHECK(language.details().contains(QStringLiteral("device offers: en-GB, de-DE")));
+
+    // The device changing its list while the setting is the device's own is a
+    // change the screens hear about.
+    CHECK(language.apply(QString()) == "en");
+    int changes = 0;
+    QObject::connect(&language, &LanguageManager::languageChanged, [&changes] { ++changes; });
+    language.use_system_languages({"en-US", "de-DE"});
+    CHECK(language.apply(QString()) == "en");
+    CHECK(changes == 1);
+    CHECK(language.apply(QString()) == "en");
+    CHECK(changes == 1);
 }
 
 namespace {

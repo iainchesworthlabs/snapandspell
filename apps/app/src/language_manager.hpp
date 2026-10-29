@@ -34,6 +34,10 @@ class LanguageManager : public QObject {
     Q_PROPERTY(QString setting READ setting NOTIFY languageChanged)
     // Hebrew and Yiddish read right to left; the other six left to right.
     Q_PROPERTY(bool rightToLeft READ rightToLeft NOTIFY languageChanged)
+    // What About shows so that a report of the wrong language can be answered
+    // from a screenshot: the code in force, what decided it, and the languages
+    // the device offered, in its order.
+    Q_PROPERTY(QString details READ details NOTIFY languageChanged)
 
 public:
     explicit LanguageManager(QObject* parent = nullptr);
@@ -44,10 +48,13 @@ public:
     [[nodiscard]] static bool is_known(const QString& code);
     // Hebrew and Yiddish, and nothing else, are right to left.
     [[nodiscard]] static bool is_right_to_left(const QString& code);
-    // The code a locale name ("he_IL", "fr-CA", "ja") names: the first part in
-    // lower case when it is one of the eight, English otherwise.
+    // The code a locale name ("he_IL", "fr-CA", "ja") names, by the rules of
+    // `sns::choose_language` (sns/language_choice.hpp): English otherwise.
     [[nodiscard]] static QString language_from_locale(const QString& locale_name);
-    // The device's own language, as above.
+    // The languages the device offers, in the order the person ranked them
+    // ("en-GB", "de-DE"): the system locale's UI languages.
+    [[nodiscard]] static QStringList system_languages();
+    // The device's own language: the first of those that has a catalogue.
     [[nodiscard]] static QString system_language();
     // The code a setting comes to: "" is the device's, an unknown code is English.
     [[nodiscard]] static QString resolved(const QString& setting);
@@ -55,6 +62,11 @@ public:
     [[nodiscard]] QString code() const { return code_; }
     [[nodiscard]] QString setting() const { return setting_; }
     [[nodiscard]] bool rightToLeft() const;
+    [[nodiscard]] QString details() const;
+
+    // The languages the device offers, instead of the system's own: for a test
+    // that has to be a German phone. Takes effect at the next `apply`.
+    void use_system_languages(const QStringList& offered);
 
     // Applies a setting ("" or one of the eight), installs its catalogue, sets
     // the application's layout direction and returns the code in force. Doing
@@ -70,6 +82,9 @@ private:
 
     QString code_ = QStringLiteral("en");
     QString setting_;
+    QStringList offered_ = system_languages();
+    // The tag of `offered_` that chose the device's language, or empty.
+    QString matched_;
     std::unique_ptr<QTranslator> translator_;
 };
 
