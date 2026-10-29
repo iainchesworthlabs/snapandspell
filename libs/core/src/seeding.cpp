@@ -285,10 +285,8 @@ std::expected<SeededBoard, SeedError> seed_board(const PhaseIndex& index,
     // A guided fill may make a tile dead when no letter fits, so it needs the
     // dead letter whether or not dead jewels were asked for.
     const bool needs_dead_letter = options.dead_cells > 0 || options.guided_fill;
-    if (needs_dead_letter) {
-        if (!is_letter(dead_letter) || alphabet.contains(dead_letter)) {
-            return std::unexpected(SeedError::bad_dead_letter);
-        }
+    if (needs_dead_letter && (!is_letter(dead_letter) || alphabet.contains(dead_letter))) {
+        return std::unexpected(SeedError::bad_dead_letter);
     }
 
     const std::string filler = options.filler.empty() ? alphabet : upper(options.filler);

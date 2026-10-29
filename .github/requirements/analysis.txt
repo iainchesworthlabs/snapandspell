@@ -5,4 +5,4 @@
 # disabled list names the ones this version brought (docs/ci.md, "Nightly
 # analysis"). Dependabot's pip ecosystem for /.github/requirements keeps this
 # current.
-clang-tidy==22.1.8
+clang-tidy==23.1.3

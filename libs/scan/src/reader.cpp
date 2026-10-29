@@ -108,7 +108,7 @@ std::expected<BoardReading, ReadError> read_board(const Frame& frame, const Read
     tally.frame_pixels += static_cast<std::uint64_t>(frame.width) * frame.height;
 
     // Every way out of here records how many buffers this read took.
-    const auto finish = [&]() {
+    const auto finish = [&] {
         tally.largest_buffers = std::max(tally.largest_buffers, tally.buffers - buffers_before);
     };
 

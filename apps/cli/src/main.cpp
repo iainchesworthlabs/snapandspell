@@ -68,7 +68,7 @@ struct Arguments {
         const std::string& arg = args[i];
 
         // The value after an option that takes one.
-        const auto value = [&]() -> std::expected<std::string_view, std::string> {
+        const auto value = [&] -> std::expected<std::string_view, std::string> {
             if (i + 1 >= args.size()) {
                 return std::unexpected(std::format("{} needs a value", arg));
             }

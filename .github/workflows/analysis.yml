@@ -75,7 +75,7 @@ jobs:
       # application are deliberately out of this gate.
       # GCC 15's compile commands carry the flags CMake adds for C++ module
       # dependency scanning (-fdeps-format, -fmodule-mapper, -fmodules-ts),
-      # which clang-tidy 22 does not parse. Nothing here uses modules, so the
+      # which clang-tidy does not parse. Nothing here uses modules, so the
       # scan is off for the database rather than stripped afterwards.
       - name: Configure (library, platform, scanner and CLI only)
         run: cmake --preset linux-gcc-analysis -DCMAKE_CXX_SCAN_FOR_MODULES=OFF

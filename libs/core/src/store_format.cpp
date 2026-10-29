@@ -121,6 +121,8 @@ void append_line(std::string& out, std::string_view tag, const std::vector<std::
     out += '\n';
 }
 
+// The record builders take std::string elements, so this stays a std::string.
+// NOLINTNEXTLINE(modernize-use-string-view)
 [[nodiscard]] std::string flag(bool value) {
     return value ? "1" : "0";
 }
