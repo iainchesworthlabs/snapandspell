@@ -116,14 +116,21 @@ def icon_done() -> Grid:
 
 
 def icon_parent() -> Grid:
-    g = Grid(12)
-    g.disc(6, 3.6, 2.7)
-    # shoulders: a half-ellipse, flat at the bottom
-    for y in range(7, 12):
-        for x in range(12):
-            if ((x + 0.5 - 6) / 5.6) ** 2 + ((y + 0.5 - 12) / 5.2) ** 2 <= 1:
-                g.put(x, y)
-    return g
+    # A head and shoulders: a round head six cells wide, a gap for the neck, shoulders that slope.
+    return _from_rows((
+        "....####....",
+        "...######...",
+        "...######...",
+        "...######...",
+        "...######...",
+        "....####....",
+        "............",
+        "..########..",
+        ".##########.",
+        "############",
+        "############",
+        "############",
+    ))
 
 
 def icon_history() -> Grid:

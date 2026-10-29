@@ -59,6 +59,14 @@ FocusScope {
     // side, and the window's mirroring reaches this screen.
     readonly property real yesPlayX: panel.x + actions.x + actions.width / 2
     readonly property bool mirrored: LayoutMirroring.enabled
+    // What the panel's parts need in a window as narrow as a phone: its margins, the board size's name
+    // and two rows of buttons, two lines of words, the pair of actions and the gaps between. An
+    // estimate, not a measure: the panel's own width cannot be read here without the layout reading itself.
+    readonly property real panelNeed: 2 * Theme.space4 + Theme.space6 + 2 * Theme.targetMin + Theme.space2
+                                      + 2 * Theme.space6 + Theme.targetChild + 3 * Theme.space3
+    // The least the board can have: a tile is 48 dp to tap, with its gaps and the tray's edge.
+    readonly property real boardNeed: Math.max(root.boardRows, root.boardColumns, 3) * (Theme.targetMin + Theme.space1)
+                                      + 2 * Theme.space3
     readonly property real tile: rule.tile
     readonly property real gap: rule.gap
     readonly property real pitch: root.tile + root.gap
@@ -111,9 +119,12 @@ FocusScope {
         width: root.width
         height: root.height
         boardSize: Math.max(root.boardRows, root.boardColumns, 3)
-        // The panel here is a size choice, a sentence and two buttons, and scrolls: the board, which is
-        // tapped to correct, takes what a tall window can give it (a tile is at least 48 dp).
-        minPanel: 200
+        // The panel here is a size choice, a sentence and two buttons (and Turn, for a camera board). A
+        // tall window gives it what they need, so the buttons are in view and not a scroll away, and
+        // the board, which is tapped to correct, takes the rest (a tile is at least 48 dp). The panel
+        // still scrolls, in a window too short for even that (a large text size).
+        minPanel: Math.max(200, Math.min(root.height - root.boardNeed,
+                                         root.panelNeed + (root.scan.draftFromCamera ? Theme.space8 : 0)))
         // The replica stays the family's board, left to right as it was read; the
         // split around it follows the window's direction.
         rightToLeft: root.mirrored
@@ -295,7 +306,15 @@ FocusScope {
             id: panelScroll
             anchors.fill: parent
             contentWidth: width
-            contentHeight: Math.max(height, panelColumn.implicitHeight + 2 * Theme.space4)
+            // The least the panel needs: the middle shrinks to two rows' height (and scrolls) before the
+            // actions leave the window.
+            readonly property real middleLeast: Math.min(middleColumn.implicitHeight,
+                                                        2 * Theme.targetMin + Theme.space2)
+            readonly property real leastHeight: middleLeast
+                                                + (guide.visible ? guide.implicitHeight + panelColumn.spacing : 0)
+                                                + actions.implicitHeight + panelColumn.spacing
+                                                + 2 * Theme.space4
+            contentHeight: Math.max(height, leastHeight)
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             interactive: contentHeight > height + 0.5
@@ -317,7 +336,7 @@ FocusScope {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.preferredHeight: middleColumn.implicitHeight
-                    Layout.minimumHeight: Math.min(middleColumn.implicitHeight, Theme.targetMin)
+                    Layout.minimumHeight: panelScroll.middleLeast
                     contentWidth: width
                     contentHeight: middleColumn.implicitHeight
                     clip: true
@@ -335,8 +354,33 @@ FocusScope {
                             Layout.fillWidth: true
                             spacing: Theme.space2
 
-                            Eyebrow {
-                                text: ScanWording.boardSize
+                            // The board's name, and Turn on its far side: the camera board's control, as
+                            // the real board is turned every which way and a quarter turn of the replica
+                            // matches how the child sees it.
+                            RowLayout {
+                                Layout.fillWidth: true
+                                // Nothing but the name and Turn: in a window too short for them (a phone on its
+                                // side) the name goes, and with it the row, unless there is a Turn to show.
+                                visible: nameLabel.visible || turn.visible
+                                spacing: Theme.space2
+
+                                Eyebrow {
+                                    id: nameLabel
+                                    Layout.fillWidth: true
+                                    visible: !Theme.isShort(root.height)
+                                    text: ScanWording.boardSize
+                                }
+                                AppButton {
+                                    id: turn
+                                    visible: root.scan.draftFromCamera
+                                    size: "min"
+                                    variant: "ghost"
+                                    quiet: true
+                                    iconName: "again"
+                                    label: qsTr("Turn")
+                                    accessibleName: ScanWording.turn
+                                    onClicked: root.scan.turn()
+                                }
                             }
 
                             SegmentedChoice {
@@ -348,22 +392,6 @@ FocusScope {
                                 current: root.scan.size
                                 onChosen: value => root.scan.resize(value, value)
                             }
-
-                            // Turn is the camera board's control: the real board is
-                            // turned every which way, and a quarter turn of the
-                            // replica matches how the child sees it.
-                            AppButton {
-                                id: turn
-                                visible: root.scan.draftFromCamera
-                                Layout.alignment: Qt.AlignLeft
-                                size: "min"
-                                variant: "ghost"
-                                quiet: true
-                                iconName: "again"
-                                label: qsTr("Turn")
-                                accessibleName: ScanWording.turn
-                                onClicked: root.scan.turn()
-                            }
                         }
                     }
                 }
@@ -371,6 +399,7 @@ FocusScope {
                 // What the grown-up most needs to know now. It stays put, above the
                 // actions, where the board size above it may scroll.
                 Label {
+                    id: guide
                     Layout.fillWidth: true
                     visible: text !== ""
                     role: "body"
@@ -385,7 +414,9 @@ FocusScope {
                 ActionBar {
                     id: actions
                     Layout.fillWidth: true
-                    tier: "child"
+                    // The grown-up's confirmation: on a phone it is the smaller pair, so both buttons are
+                    // on one line and the panel has room for the size choice above them.
+                    tier: Theme.isNarrow(root.width) ? "parent" : "child"
                     primaryLabel: ScanWording.startPlaying
                     primaryEnabled: root.scan.complete
                     secondaryLabel: root.scan.draftFromCamera ? ScanWording.scanAgain : ScanWording.startOver

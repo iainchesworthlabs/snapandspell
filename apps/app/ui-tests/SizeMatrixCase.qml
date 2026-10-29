@@ -43,6 +43,9 @@ TestCase {
     // Indexes of subjects that must fit a phone's screen without scrolling (SizeMatrix.scrollingPages), at
     // the sizes marked `onePage`: Home, Solo Play's box and its board.
     property var onePageSubjects: []
+    // The same, at the upright phone sizes only (a size taller than it is wide), for a
+    // screen that scrolls a little on its side.
+    property var onePageUprightSubjects: []
     // Indexes of subjects that cannot be made on this machine, and why (a live camera view with
     // no Qt Multimedia backend): their rows are skipped, the others run.
     property var skipSubjects: []
@@ -89,7 +92,8 @@ TestCase {
                         w: size.w,
                         h: size.h,
                         scale: size.scale,
-                        onePage: size.onePage === true && root.onePageSubjects.indexOf(subject) >= 0,
+                        onePage: size.onePage === true && (root.onePageSubjects.indexOf(subject) >= 0
+                                 || (size.h > size.w && root.onePageUprightSubjects.indexOf(subject) >= 0)),
                         language: language
                     });
                 }

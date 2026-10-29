@@ -42,24 +42,12 @@ Item {
                                                  gridTop - Theme.space2
                                                  - Math.abs(Math.sin(lidTilt * Math.PI / 180)) * trayWidth / 2))
 
-    Rectangle {
-        // The shadow under the box.
-        x: (root.width - root.trayWidth) / 2 + 10
-        y: (root.height - root.trayHeight) / 2 + 16
-        width: root.trayWidth
-        height: root.trayHeight
-        radius: Theme.radiusLarge
-        color: Theme.trayShadow
-        opacity: 0.18
-    }
-
     BoardTray {
         id: tray
         x: (root.width - root.trayWidth) / 2
         y: (root.height - root.trayHeight) / 2
         width: root.trayWidth
         height: root.trayHeight
-        rim: Theme.litEdge
         showWell: true
         wellInset: Theme.space2
 
@@ -101,65 +89,28 @@ Item {
         }
     }
 
-    // The lid: a cream slab with a gold rim, hinged at the back. It stands over the
-    // tray's top edge and never over the compartments (see lidOverlap), so a closed
-    // box reads as a box and its rows can be counted.
-    Rectangle {
+    // The lid: a cream slab with an ink outline and a hard drop, lying a little askew over the tray's
+    // top edge and never over the compartments (see lidOverlap), so a closed box reads as a box and its
+    // rows can be counted. Its coral label is the box's mark.
+    PixelBox {
         id: lid
         visible: root.closed
         x: tray.x - 6
         y: tray.y - root.lidHeight + root.lidOverlap
         width: tray.width + 12
         height: root.lidHeight
-        radius: Theme.radius
-        color: Theme.lid
-        border.width: Theme.litEdge
-        border.color: Theme.gold
+        fill: Theme.lid
+        shadowOffset: Theme.shadowMedium
         rotation: root.lidTilt
         transformOrigin: Item.Center
 
         Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: parent.height * 0.28
-            radius: parent.radius
-            color: Theme.bevelLight
-            opacity: 0.22
+            anchors.centerIn: parent
+            width: Math.min(parent.width * 0.2, Theme.space8 * 2)
+            height: Math.min(parent.height * 0.36, Theme.space6)
+            color: Theme.accent
+            border.width: Theme.outlineControl
+            border.color: Theme.outline
         }
-
-        // The box's jewel mark.
-        Jewel {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -Theme.space1
-            width: Math.min(parent.height * 0.5, Theme.jewelMega)
-            height: width
-            tier: "power"
-            color: Theme.gold
-        }
-
-        // A small gold latch on the lid's leading edge.
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Theme.space1
-            width: Theme.space8 + Theme.space1
-            height: Theme.space1 + 3
-            radius: Theme.radiusXs
-            color: Theme.gold
-        }
-    }
-
-    // A thin gold reflection under the tray's leading edge, never across a
-    // letter.
-    Rectangle {
-        x: tray.x + 16
-        y: tray.y + tray.height + 3
-        width: tray.width - 32
-        height: 3
-        radius: 2
-        color: Theme.gold
-        opacity: 0.4
     }
 }
