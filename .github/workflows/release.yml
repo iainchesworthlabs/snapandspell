@@ -692,7 +692,7 @@ jobs:
       # (docs/ios-signing.md there).
       - name: Import the signing certificate and the provisioning profile
         id: signing
-        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@e15f14812b7446517252d6677abf755698d57986 # v0.1.18 plus #31 and #33
+        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
         with:
           certificate-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
           certificate-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
@@ -733,7 +733,7 @@ jobs:
       # `xcodebuild archive` and the App Store export.
       - name: Archive and export the App Store IPA
         id: export
-        uses: iainchesworthlabs/icl-common-infra/actions/export-ios-ipa@e15f14812b7446517252d6677abf755698d57986 # v0.1.18 plus #31 and #33
+        uses: iainchesworthlabs/icl-common-infra/actions/export-ios-ipa@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
         with:
           project: ${{ steps.name.outputs.project }}
           scheme: SnapAndSpell
@@ -757,7 +757,7 @@ jobs:
       # declarations of the libraries; and, for a tag or a manual run that asks, the
       # upload to TestFlight.
       - name: Validate with Apple, and upload to TestFlight
-        uses: iainchesworthlabs/icl-common-infra/actions/upload-testflight@e15f14812b7446517252d6677abf755698d57986 # v0.1.18 plus #31 and #33
+        uses: iainchesworthlabs/icl-common-infra/actions/upload-testflight@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
         with:
           ipa: ${{ steps.export.outputs.ipa }}
           key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
@@ -769,7 +769,7 @@ jobs:
       # runner.
       - name: Remove the signing keychain and the provisioning profile
         if: ${{ always() }}
-        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@e15f14812b7446517252d6677abf755698d57986 # v0.1.18 plus #31 and #33
+        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
         with:
           remove: "true"
 
