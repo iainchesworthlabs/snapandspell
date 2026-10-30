@@ -6,8 +6,11 @@
 #include <QLocale>
 #include <QTranslator>
 #include <algorithm>
+#include <string>
 #include <string_view>
+#include <vector>
 
+#include "sns/language_choice.hpp"
 #include "sns/profiling.hpp"
 #include "sns/settings.hpp"
 
@@ -33,6 +36,16 @@ namespace {
 // The code in the library's list that `code` names, whatever its case, or empty.
 [[nodiscard]] QString canonical(const QString& code) {
     return code_text(sns::canonical_language(code.toUtf8().toStdString()));
+}
+
+// The tags in the order given, as the library's rules read them.
+[[nodiscard]] std::vector<std::string> tags_of(const QStringList& offered) {
+    std::vector<std::string> tags;
+    tags.reserve(static_cast<std::size_t>(offered.size()));
+    for (const QString& tag : offered) {
+        tags.push_back(tag.toStdString());
+    }
+    return tags;
 }
 
 }  // namespace
@@ -68,27 +81,18 @@ bool LanguageManager::is_right_to_left(const QString& code) {
 }
 
 QString LanguageManager::language_from_locale(const QString& locale_name) {
-    QString name = locale_name;
-    name.replace(QLatin1Char('-'), QLatin1Char('_'));
-    // A locale that is one of the codes ("zh_CN") is that code. Any other
-    // region of a language is the code of the language ("zh_TW" has no
-    // catalogue of its own, so it is the Chinese there is; "fr_CA" is French).
-    const QString exact = canonical(name);
-    if (!exact.isEmpty()) {
-        return exact;
-    }
-    const QString language = name.section(QLatin1Char('_'), 0, 0).toLower();
-    for (const std::string_view known : sns::languages) {
-        const QString code = code_text(known);
-        if (code.section(QLatin1Char('_'), 0, 0) == language) {
-            return code;
-        }
-    }
-    return QStringLiteral("en");
+    return code_text(sns::choose_language(locale_name.toStdString()).code);
+}
+
+QStringList LanguageManager::system_languages() {
+    // The person's ranked list, not the one locale name: a phone that lists
+    // English (UK), German and French has a locale of its own whose language is
+    // not necessarily the first of them.
+    return QLocale::system().uiLanguages();
 }
 
 QString LanguageManager::system_language() {
-    return language_from_locale(QLocale::system().name());
+    return code_text(sns::choose_language(tags_of(system_languages())).code);
 }
 
 QString LanguageManager::resolved(const QString& setting) {
@@ -103,16 +107,40 @@ bool LanguageManager::rightToLeft() const {
     return is_right_to_left(code_);
 }
 
+QString LanguageManager::details() const {
+    QString source;
+    if (!setting_.isEmpty()) {
+        source = QStringLiteral("chosen in Settings");
+    } else if (matched_.isEmpty()) {
+        source = QStringLiteral("the device offered none of ours");
+    } else {
+        source = QStringLiteral("from the device: %1").arg(matched_);
+    }
+    const QString offered =
+        offered_.isEmpty() ? QStringLiteral("none") : offered_.join(QStringLiteral(", "));
+    return QStringLiteral("language %1 (%2)\ndevice offers: %3").arg(code_, source, offered);
+}
+
+void LanguageManager::use_system_languages(const QStringList& offered) {
+    offered_ = offered;
+}
+
 QString LanguageManager::apply(const QString& setting) {
-    const QString code = resolved(setting);
+    const sns::LanguageChoice device = sns::choose_language(tags_of(offered_));
+    const QString before = details();
+    matched_ = QString::fromStdString(device.matched);
     // The setting the screens read back: "" for the device's own. An unknown
     // code asks for a language this program does not have, so it is English and
     // the setting is not one of the eight either: it is kept as the system's.
     const QString stored = canonical(setting);
+    const QString code = setting.isEmpty()  ? code_text(device.code)
+                         : stored.isEmpty() ? QStringLiteral("en")
+                                            : stored;
 
     if (code == code_ && translator_) {
-        if (stored != setting_) {
-            setting_ = stored;
+        const bool changed = stored != setting_;
+        setting_ = stored;
+        if (changed || details() != before) {
             emit languageChanged();
         }
         return code_;

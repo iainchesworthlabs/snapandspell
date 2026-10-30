@@ -107,6 +107,10 @@ class ParentController : public QObject {
     // The version and build provenance, as lines (release, commit, branch,
     // target), for the About page.
     Q_PROPERTY(QString versionDetails READ versionDetails CONSTANT)
+    // The language in force, what chose it and the languages the device offered
+    // (LanguageManager::details), so that a report of the wrong language can be
+    // answered from a screenshot. Set by whoever owns the language.
+    Q_PROPERTY(QString languageDetails READ languageDetails NOTIFY languageDetailsChanged)
     // The third-party notices this build carries, for the Licences page:
     // :/notices/NOTICES.txt, the same text installed beside the programs
     // (cmake/Notices.cmake).
@@ -209,6 +213,8 @@ public:
     [[nodiscard]] QVariantList timerLengthChoices() const;
     [[nodiscard]] QString version() const;
     [[nodiscard]] QString versionDetails() const;
+    [[nodiscard]] QString languageDetails() const { return language_details_; }
+    void setLanguageDetails(const QString& details);
     [[nodiscard]] QString licenceNotices() const;
 
 signals:
@@ -218,6 +224,7 @@ signals:
     void dashboardChanged();
     void settingsChanged();
     void storeNoteChanged();
+    void languageDetailsChanged();
 
     // The parent changed something the game reads from the store: a setting (one
     // that was not already so), or a reset. Not sent by refresh(), which only
@@ -231,6 +238,7 @@ private:
     void applySettings(sns::Settings settings);
     void updateNote();
 
+    QString language_details_;
     std::optional<sns::Store> owned_;
     sns::Store* store_ = nullptr;
     sns::LoadStatus status_ = sns::LoadStatus::loaded;

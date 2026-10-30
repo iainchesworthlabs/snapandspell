@@ -663,6 +663,21 @@ TEST_CASE("the version is the project's, with the build's provenance", "[app][pa
     CHECK(details.contains(QStringLiteral("target:")));
 }
 
+TEST_CASE("About is told the language in force and tells the screens when it changes",
+          "[app][parent]") {
+    ParentController controller;
+    int changes = 0;
+    QObject::connect(&controller, &ParentController::languageDetailsChanged,
+                     [&changes] { ++changes; });
+
+    CHECK(controller.languageDetails().isEmpty());
+    controller.setLanguageDetails(QStringLiteral("language de (from the device: de-DE)"));
+    CHECK(controller.languageDetails() == "language de (from the device: de-DE)");
+    CHECK(changes == 1);
+    controller.setLanguageDetails(QStringLiteral("language de (from the device: de-DE)"));
+    CHECK(changes == 1);
+}
+
 // ---------------------------------------------------------------------------
 // Numbers from QML that are not numbers
 

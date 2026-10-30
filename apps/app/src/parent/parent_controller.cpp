@@ -491,6 +491,13 @@ QString ParentController::versionDetails() const {
     return to_qstring(sns::version_details());
 }
 
+void ParentController::setLanguageDetails(const QString& details) {
+    if (details != language_details_) {
+        language_details_ = details;
+        emit languageDetailsChanged();
+    }
+}
+
 // The notice is not one of the parent area's sentences: it is a legal text, in
 // English, the same in every language, and it comes from the file rather than
 // from ParentWording.qml. A build without the resource - the app tests compile
