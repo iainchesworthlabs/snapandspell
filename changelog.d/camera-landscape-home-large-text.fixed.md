@@ -1,0 +1,1 @@
+**Capture is in view on a phone on its side, and Home fits at the largest text.** Setting up a board with the camera on a phone held sideways put the picture above the buttons and Capture below the screen; the picture is now beside the words and buttons. On Home at 150% text the cards' pictures give way first, so Play and Continue are in view in the default window.

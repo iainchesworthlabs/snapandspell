@@ -65,8 +65,10 @@ unset(_sns_android_build_app)
 set(SNS_PLATFORM_SOURCES
     android/fatal_error_android.cpp
     android/paths_android.cpp
+    detail/audio_output_none.cpp
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
+    detail/speech_output_none.cpp
     detail/haptics_none.cpp
     detail/window_chrome_none.cpp
     posix/console_posix.cpp)

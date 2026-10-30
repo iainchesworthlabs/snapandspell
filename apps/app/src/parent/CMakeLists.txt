@@ -29,6 +29,7 @@ set(SNS_PARENT_QML_FILES
     ParentWording.qml
     ResetStep.qml
     Section.qml
+    SettingGroup.qml
     SettingRow.qml
     SettingsScreen.qml)
 

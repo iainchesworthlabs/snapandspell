@@ -506,7 +506,8 @@ FocusScope {
                : root.solo.found.length === 1
                  ? qsTr("You found the word!")
                  : qsTr("You found all %1 words!").arg(root.solo.found.length)
-        maxWidth: Theme.modalMax
+        // On a phone on its side the words and the reward stand side by side, which takes the width.
+        maxWidth: Theme.isShort(root.height) ? 2 * Theme.modalMax : Theme.modalMax
         maxHeight: Theme.modalMax
         dismissOnScrim: false
         onClose: root.dismissSummary()
@@ -521,137 +522,163 @@ FocusScope {
             }
         }
 
-        // The reward, front and centre: the stars (which feed the collection) and
-        // the points, large enough to read at arm's length.
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.space2
-
-            Jewel {
-                Layout.preferredWidth: Theme.jewelMd
-                Layout.preferredHeight: Theme.jewelMd
-                tier: "power"
-                color: Theme.gold
-                Accessible.ignored: true
-            }
-            Label {
-                role: "numeral"
-                color: Theme.goldInk
-                text: SoloWording.summaryStars(root.solo.boardStars)
-            }
-            Item {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-            }
-            Label {
-                role: "numeral"
-                text: SoloWording.summaryPoints(root.solo.boardPoints)
-            }
-        }
-
-        // A phone on its side has no height for the line: the words are what the child came to see.
-        Label {
-            visible: !Theme.isShort(root.height)
-            Layout.fillWidth: true
-            role: "body"
-            learning: true
-            color: Theme.inkSecondary
-            text: root.finishSummary ? SoloWording.finishBody : qsTr("Look at the jewels you collected.")
-            wrapMode: Text.WordWrap
-        }
-
-        Label {
-            Layout.fillWidth: true
-            visible: root.solo.clockMode === "up"
-            role: "caption"
-            text: SoloWording.playedFor(root.solo.clockText)
-        }
-
-        Label {
-            Layout.fillWidth: true
-            visible: root.finishedByClock
-            role: "body"
-            learning: true
-            color: Theme.inkSecondary
-            text: SoloWording.timeRanOut
-            wrapMode: Text.WordWrap
-        }
-
-        // The words, one jewel each, in their own scroll: the sheet stays one
-        // height however many were found, and the buttons below stay put.
-        Card {
+        // A phone on its side has no height to stack the reward over the words, so the reward
+        // stands beside them: three rows of words show instead of one.
+        GridLayout {
+            id: summaryBody
+            readonly property bool sideBySide: Theme.isShort(root.height)
             Layout.fillWidth: true
             Layout.fillHeight: true
-            title: SoloWording.yourWordsCount(root.solo.found.length)
-            empty: root.solo.found.length === 0
-            emptyTitle: SoloWording.summaryNoWords
+            columns: summaryBody.sideBySide ? 2 : 1
+            columnSpacing: Theme.space4
+            rowSpacing: Theme.space3
 
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: Theme.rowHeight
-                Layout.preferredHeight: Math.min(summaryWords.contentHeight, 4 * Theme.rowHeight)
+            ColumnLayout {
+                Layout.fillWidth: !summaryBody.sideBySide
+                Layout.preferredWidth: summaryBody.sideBySide ? Theme.roomyPanel * 0.7 : -1
+                Layout.alignment: Qt.AlignTop
+                spacing: Theme.space3
+                // The reward, front and centre: the stars (which feed the collection) and
+                // the points, large enough to read at arm's length.
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.space2
 
-                ListView {
-                    id: summaryWords
-                    anchors.fill: parent
-                    anchors.rightMargin: Theme.space3
-                    clip: true
-                    model: root.solo.found
-                    boundsBehavior: Flickable.StopAtBounds
-
-                    Accessible.role: Accessible.List
-                    Accessible.name: SoloWording.yourWordsCount(root.solo.found.length)
-
-                    delegate: Item {
-                        id: summaryRow
-                        required property int index
-                        required property var modelData
-                        width: ListView.view.width
-                        height: Theme.rowHeight
-
-                        Accessible.role: Accessible.ListItem
-                        Accessible.name: SoloWording.found(summaryRow.modelData.word)
-
-                        Jewel {
-                            id: summaryJewel
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: Theme.jewelMd
-                            height: Theme.jewelMd
-                            tier: summaryRow.modelData.tier
-                            colorIndex: summaryRow.index
-                            Accessible.ignored: true
-                        }
-                        Label {
-                            anchors.left: summaryJewel.right
-                            anchors.leftMargin: Theme.space3
-                            anchors.right: summaryPoints.left
-                            anchors.rightMargin: Theme.space2
-                            anchors.verticalCenter: parent.verticalCenter
-                            role: "word"
-                            decorative: true
-                            text: summaryRow.modelData.word
-                            elide: Text.ElideRight
-                        }
-                        Label {
-                            id: summaryPoints
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            role: "eyebrow"
-                            decorative: true
-                            font.capitalization: Font.MixedCase
-                            color: Theme.goldInk
-                            text: qsTr("+%1").arg(summaryRow.modelData.points)
-                        }
+                    Jewel {
+                        Layout.preferredWidth: Theme.jewelMd
+                        Layout.preferredHeight: Theme.jewelMd
+                        tier: "power"
+                        color: Theme.gold
+                        Accessible.ignored: true
+                    }
+                    Label {
+                        role: "numeral"
+                        color: Theme.goldInk
+                        text: SoloWording.summaryStars(root.solo.boardStars)
+                    }
+                    Item {
+                        visible: !summaryBody.sideBySide
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                    }
+                    Label {
+                        visible: !summaryBody.sideBySide
+                        role: "numeral"
+                        text: SoloWording.summaryPoints(root.solo.boardPoints)
                     }
                 }
 
-                ScrollCue {
-                    view: summaryWords
-                    anchors.top: summaryWords.top
-                    anchors.bottom: summaryWords.bottom
-                    anchors.right: parent.right
+                Label {
+                    visible: summaryBody.sideBySide
+                    role: "numeral"
+                    text: SoloWording.summaryPoints(root.solo.boardPoints)
+                }
+
+                // A phone on its side has no height for the line: the words are what the child came to see.
+                Label {
+                    visible: !Theme.isShort(root.height)
+                    Layout.fillWidth: true
+                    role: "body"
+                    learning: true
+                    color: Theme.inkSecondary
+                    text: root.finishSummary ? SoloWording.finishBody : qsTr("Look at the jewels you collected.")
+                    wrapMode: Text.WordWrap
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    visible: root.solo.clockMode === "up"
+                    role: "caption"
+                    text: SoloWording.playedFor(root.solo.clockText)
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    visible: root.finishedByClock
+                    role: "body"
+                    learning: true
+                    color: Theme.inkSecondary
+                    text: SoloWording.timeRanOut
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            // The words, one jewel each, in their own scroll: the sheet stays one
+            // height however many were found, and the buttons below stay put.
+            Card {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                title: SoloWording.yourWordsCount(root.solo.found.length)
+                empty: root.solo.found.length === 0
+                emptyTitle: SoloWording.summaryNoWords
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: Theme.rowHeight
+                    Layout.preferredHeight: Math.min(summaryWords.contentHeight, 4 * Theme.rowHeight)
+
+                    ListView {
+                        id: summaryWords
+                        anchors.fill: parent
+                        anchors.rightMargin: Theme.space3
+                        clip: true
+                        model: root.solo.found
+                        boundsBehavior: Flickable.StopAtBounds
+
+                        Accessible.role: Accessible.List
+                        Accessible.name: SoloWording.yourWordsCount(root.solo.found.length)
+
+                        delegate: Item {
+                            id: summaryRow
+                            required property int index
+                            required property var modelData
+                            width: ListView.view.width
+                            height: Theme.rowHeight
+
+                            Accessible.role: Accessible.ListItem
+                            Accessible.name: SoloWording.found(summaryRow.modelData.word)
+
+                            Jewel {
+                                id: summaryJewel
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Theme.jewelMd
+                                height: Theme.jewelMd
+                                tier: summaryRow.modelData.tier
+                                colorIndex: summaryRow.index
+                                Accessible.ignored: true
+                            }
+                            Label {
+                                anchors.left: summaryJewel.right
+                                anchors.leftMargin: Theme.space3
+                                anchors.right: summaryPoints.left
+                                anchors.rightMargin: Theme.space2
+                                anchors.verticalCenter: parent.verticalCenter
+                                role: "word"
+                                decorative: true
+                                text: summaryRow.modelData.word
+                                elide: Text.ElideRight
+                            }
+                            Label {
+                                id: summaryPoints
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                role: "eyebrow"
+                                decorative: true
+                                font.capitalization: Font.MixedCase
+                                color: Theme.goldInk
+                                text: qsTr("+%1").arg(summaryRow.modelData.points)
+                            }
+                        }
+                    }
+
+                    ScrollCue {
+                        view: summaryWords
+                        anchors.top: summaryWords.top
+                        anchors.bottom: summaryWords.bottom
+                        anchors.right: parent.right
+                    }
                 }
             }
         }

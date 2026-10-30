@@ -11,7 +11,7 @@ import SnapAndSpell
 // the label block keeps its place at the bottom instead of the two overlapping.
 // The picture is also promised a room of its own: `implicitHeight` is the art's
 // preferred height plus the words' own height, and `minimumHeight` the least
-// the art may be given (Theme.cardArtMin), so a screen that lays the card out
+// the art may be given (Theme.cardArtMin, Theme.cardArtLeast at a large text size), so a screen that lays the card out
 // reads its height from the card and never writes a number. Both cards use one
 // title role; `primary` is the child's card (its jewel box, the entry that has the focus first). Both
 // are Toybox panels: a 4 px ink outline, an 18 px radius and a hard 6 px shadow.
@@ -73,8 +73,11 @@ Rectangle {
                                           || height >= leastSideways + Theme.space2 + subtitleBlock
     implicitHeight: sideways ? leastSideways + Theme.space2 + subtitleBlock
                              : Theme.space4 + Theme.cardArt + Theme.space3 + wordsBlock
+    // The least the picture may be given: at the design's text size its minimum, at a larger one the
+    // words come first and the picture gives way (the Text size setting, 125 or 150 %).
+    readonly property real artFloor: Theme.textScale > 1 ? Theme.cardArtLeast : Theme.cardArtMin
     readonly property real minimumHeight: sideways ? leastSideways
-                                          : Theme.space4 + (compact ? 0 : Theme.cardArtMin)
+                                          : Theme.space4 + (compact ? 0 : artFloor)
                                             + Theme.space3 + wordsBlock
     radius: Theme.radiusPanel
     color: Theme.card

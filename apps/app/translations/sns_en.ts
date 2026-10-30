@@ -1268,22 +1268,22 @@
         <translation>You found all %1 words!</translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+76"/>
         <source>Look at the jewels you collected.</source>
         <translation>Look at the jewels you collected.</translation>
     </message>
     <message>
-        <location line="-52"/>
+        <location line="-77"/>
         <source>You found the word!</source>
         <translation>You found the word!</translation>
     </message>
     <message>
-        <location line="+138"/>
+        <location line="+164"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+123"/>
+        <location line="+124"/>
         <source>You found this one already.</source>
         <translation>You found this one already.</translation>
     </message>
