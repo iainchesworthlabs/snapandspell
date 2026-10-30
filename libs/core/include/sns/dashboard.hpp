@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -77,6 +78,11 @@ struct WeekSummary {
     int boards_cleared = 0;
     int stars = 0;
     int new_words = 0;  // met for the first time on this device this week
+
+    // The stars of each of the week's seven days, the first day first (My jewels draws them as bars),
+    // and the ISO weekday (1 Monday to 7 Sunday) that the first day is, so that a screen can name them.
+    std::array<int, 7> stars_by_day{};
+    int first_iso_weekday = 1;
 
     // The longest word found this week (the first alphabetically of equal
     // length), or empty.

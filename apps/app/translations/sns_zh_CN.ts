@@ -145,13 +145,13 @@
     </message>
     <message>
         <location line="+3"/>
-        <location line="+28"/>
+        <location line="+46"/>
         <source>1 word</source>
         <translation>1 个词</translation>
     </message>
     <message>
-        <location line="-28"/>
-        <location line="+28"/>
+        <location line="-46"/>
+        <location line="+46"/>
         <source>%1 words</source>
         <translation>%1 个词</translation>
     </message>
@@ -185,7 +185,37 @@
         <translation>%1 × %2</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-20"/>
+        <source>Stars</source>
+        <translation>星星</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Points</source>
+        <translation>分数</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Words</source>
+        <translation>单词</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>all boards</source>
+        <translation>所有棋盘</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>found so far</source>
+        <translation>目前找到</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Stars each day this week: %1</source>
+        <translation>本周每天的星星：%1</translation>
+    </message>
+    <message>
+        <location line="+15"/>
         <source>1 new word</source>
         <translation>1 个新词</translation>
     </message>

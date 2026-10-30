@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 
+#include "sns/calendar.hpp"
 #include "sns/profiling.hpp"
 
 namespace sns {
@@ -111,10 +112,13 @@ Dashboard build_dashboard(const StoreData& data, const PhaseIndex* index, Day to
     WeekSummary& week = dashboard.week;
     week.first = week_start(today, first_day_of_week);
     week.last = week.first + 6;
+    week.first_iso_weekday = iso_weekday(week.first);
     for (const DayTally& tally : data.days) {
         if (in_week(tally.day, week)) {
             week.boards_cleared += static_cast<int>(tally.boards_cleared);
             week.stars += static_cast<int>(tally.stars);
+            week.stars_by_day[static_cast<std::size_t>(tally.day - week.first)] +=
+                static_cast<int>(tally.stars);
         }
     }
     for (const VaultWord& word : data.vault) {

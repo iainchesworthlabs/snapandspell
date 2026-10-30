@@ -1,0 +1,1 @@
+**My jewels follows the Toybox design.** Stars, points and words are three big panels with six-digit figures, the week is a bar chart of the stars of each day (beside the rest on a wide window), and the best boards, the words and the earlier boards follow. The figures are read out as plain numbers.
