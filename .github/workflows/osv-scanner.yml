@@ -56,7 +56,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: iainchesworthlabs/icl-common-infra/actions/report-nightly-failure@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+      - uses: iainchesworthlabs/icl-common-infra/actions/report-nightly-failure@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
         with:
           engine: OSV-Scanner
           detail: The scan found a vulnerability in a pinned dependency, or failed to run. Open the run, or Security > Code scanning, bump the pin, or dismiss the alert with a justification.

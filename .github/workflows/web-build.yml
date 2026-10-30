@@ -89,7 +89,7 @@ jobs:
       # (emscripten.*; tests/platform/check_web.cmake holds this file to them). The action's own
       # default is a newer SDK that this kit refuses.
       - name: Install Emscripten
-        uses: iainchesworthlabs/icl-common-infra/actions/setup-emscripten@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+        uses: iainchesworthlabs/icl-common-infra/actions/setup-emscripten@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
         with:
           emsdk-version: "5.0.5"
           emsdk-repo-commit: "c9ef2c9d6000341d667a32a807ba47ca489d1e1b"
