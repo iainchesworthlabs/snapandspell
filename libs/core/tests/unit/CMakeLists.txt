@@ -1,6 +1,7 @@
 add_executable(sns_unit_tests
     board_test.cpp
     calendar_test.cpp
+    cli_arguments_test.cpp
     dashboard_test.cpp
     dice_data_test.cpp
     dice_sets_test.cpp

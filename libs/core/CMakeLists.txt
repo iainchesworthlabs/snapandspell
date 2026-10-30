@@ -11,6 +11,7 @@ configure_file(
 
 add_library(sns_lib STATIC
     src/board.cpp
+    src/cli_arguments.cpp
     src/dashboard.cpp
     src/deal.cpp
     src/dice.cpp
