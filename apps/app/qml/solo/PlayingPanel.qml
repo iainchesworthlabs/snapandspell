@@ -85,6 +85,8 @@ Item {
     // Whole rows of words the card always has room for: two beside the board, one under it (a taller
     // panel gives it more).
     readonly property int leastRows: tight ? 1 : 2
+    // One row of word chips and the gap under it.
+    readonly property real chipPitch: Theme.rowHeight + Theme.space1
     // Clear and Done are the foot of the panel, not in the zone's column, where the panel is tall (a
     // phone upright) or short (a phone on its side): there the rest scrolls above them.
     readonly property bool footed: !wide || Theme.isShort(height)
@@ -296,119 +298,33 @@ Item {
                         color: Theme.line
                     }
 
-                    // The words, in whole rows: the list is a whole number of rows
-                    // tall, so a row is never cut under the heading, and a thin
-                    // handle says there are more when there are.
+                    // The words, as chips that wrap: each is a jewel and its word, as wide as it needs,
+                    // so a narrow panel shows two or three at once where a row to a word showed one. The
+                    // list is a whole number of chip rows tall, so a row is never cut under the heading,
+                    // and a thin handle says there are more when there are.
                     Item {
                         id: listArea
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.minimumHeight: root.leastRows * Theme.rowHeight
-                        Layout.preferredHeight: root.leastRows * Theme.rowHeight
+                        Layout.minimumHeight: root.leastRows * root.chipPitch - Theme.space1
+                        Layout.preferredHeight: root.leastRows * root.chipPitch - Theme.space1
 
-                        ListView {
+                        WordChips {
                             id: words
+                            objectName: "wordsList"
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.top: parent.top
                             anchors.rightMargin: Theme.space3
-                            height: Math.floor(listArea.height / Theme.rowHeight) * Theme.rowHeight
-                            clip: true
-                            // Only the rows in view are made: a row scrolled out is not left drawn outside the
-                            // list's clip (its jewel is a Shape).
-                            cacheBuffer: 0
+                            // Whole rows of chips, at least one: n rows and the gaps between them.
+                            height: Math.max(1, Math.floor((listArea.height + Theme.space1) / root.chipPitch))
+                                    * root.chipPitch - Theme.space1
                             model: root.solo.found
-                            boundsBehavior: Flickable.StopAtBounds
-                            snapMode: ListView.SnapToItem
-
-                            Accessible.role: Accessible.List
+                            chipName: word => SoloWording.found(word)
+                            // The points are said in the wide card, where there is room; a tall panel has
+                            // them in its count.
+                            showPoints: !root.tight
                             Accessible.name: SoloWording.wordsFound
-
-                            onCountChanged: Qt.callLater(() => words.positionViewAtEnd())
-                            Component.onCompleted: Qt.callLater(() => words.positionViewAtEnd())
-
-                            delegate: Item {
-                                id: row
-                                required property int index
-                                required property var modelData
-                                width: ListView.view.width
-                                height: Theme.rowHeight
-                                // A row scrolled out of the list is not drawn: its jewel is a Shape, which
-                                // the list's clip does not always hold.
-                                visible: y + height > words.contentY && y < words.contentY + words.height
-
-                                activeFocusOnTab: true
-                                Accessible.role: Accessible.ListItem
-                                Accessible.name: SoloWording.found(row.modelData.word)
-                                Accessible.focusable: true
-                                Accessible.onPressAction: row.speak()
-
-                                function speak() {
-                                    Feedback.cue("speak", row.modelData.word);
-                                }
-
-                                Keys.onPressed: event => {
-                                    const acts = event.key === Qt.Key_Space || event.key === Qt.Key_Return
-                                                 || event.key === Qt.Key_Enter;
-                                    if (acts) {
-                                        row.speak();
-                                    }
-                                    event.accepted = acts;
-                                }
-                                // A row the keyboard reaches is scrolled into view, whole.
-                                onActiveFocusChanged: {
-                                    if (row.activeFocus) {
-                                        ListView.view.positionViewAtIndex(row.index, ListView.Contain);
-                                    }
-                                }
-
-                                Jewel {
-                                    id: jewel
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: Theme.space1
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: Theme.jewelMd
-                                    height: Theme.jewelMd
-                                    tier: row.modelData.tier
-                                    colorIndex: row.index
-                                    Accessible.ignored: true
-                                }
-                                Label {
-                                    anchors.left: jewel.right
-                                    anchors.leftMargin: Theme.space2
-                                    anchors.right: points.left
-                                    anchors.rightMargin: Theme.space2
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    role: "word"
-                                    decorative: true
-                                    text: row.modelData.word
-                                    elide: Text.ElideRight
-                                }
-                                Label {
-                                    id: points
-                                    anchors.right: parent.right
-                                    anchors.rightMargin: Theme.space1
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    role: "eyebrow"
-                                    decorative: true
-                                    font.capitalization: Font.MixedCase
-                                    color: Theme.goldInk
-                                    text: qsTr("+%1").arg(row.modelData.points)
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: row.speak()
-                                }
-                                Rectangle {
-                                    visible: row.activeFocus
-                                    anchors.fill: parent
-                                    radius: Theme.radiusSmall
-                                    color: "transparent"
-                                    border.width: Theme.focusWidth
-                                    border.color: Theme.focusRing
-                                    Accessible.ignored: true
-                                }
-                            }
                         }
 
                         ScrollCue {

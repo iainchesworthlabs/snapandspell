@@ -1,0 +1,1 @@
+**The words you found are chips that wrap.** On a small phone the "Words I found" card showed one word at a time; the words are now chips, as wide as each word needs, so two or three show in a row. The same list is used in Find words.
