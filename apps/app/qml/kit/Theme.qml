@@ -276,6 +276,8 @@ QtObject {
     // Shape (DESIGN.md, sections 3 and 6): outlines and hard shadows are whole pixels, no blur.
     readonly property real outlineControl: 3
     readonly property real outlinePanel: 4
+    // The line round one of a sparkle's small squares.
+    readonly property real outlineSpark: 2
     readonly property real outlineFrame: 6
     readonly property real shadowSmall: 3
     readonly property real shadowMedium: 4
@@ -407,6 +409,8 @@ QtObject {
     readonly property int glowFall: 1200
     readonly property real glowPeak: 0.28
     readonly property int wordHold: ms(450, 150)
+    // A found word's sparkle: one burst that rises and fades (Sparkle.qml); none with reduced motion.
+    readonly property int sparkle: ms(600, 0)
     readonly property int clearedHold: 3000
     readonly property int holdToPlay: 1000
 

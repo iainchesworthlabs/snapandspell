@@ -461,7 +461,8 @@ brief's strong effects are limited, because they are strong for a young child
 
 **What is built and what is not.** The shake, lid and drop of the pixel scene, the
 page and sheet transitions, and the reduced-motion behaviour of all of them are
-built. **Not built:** the sparkle and rainbow trail on a word, the Mega burst
+built, and so is the sparkle on a found word (`Sparkle.qml`: one burst of six gold squares from the
+word's last tile that fades in 600 ms; none with reduced motion). **Not built:** the rainbow trail on a word, the Mega burst
 and bounce, confetti and the particle layer, the "single slow glow when the board
 clears", and the resting screen (deleted on 2026-10-21; [Game](game.md#the-end-of-a-board)).
 The rows above are the design for them and the limits any such effect must
