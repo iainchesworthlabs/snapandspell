@@ -25,7 +25,8 @@ struct LanguageChoice {
 //    end to the search. Any en-* is English.
 //  - "iw" and "ji" are the old codes of Hebrew and Yiddish.
 //  - "zh" is Simplified Chinese (zh_CN) unless the tag says Traditional (Hant,
-//    TW, HK or MO); a Traditional tag has no catalogue here and is skipped.
+//    TW, HK or MO; a script of Hans, as in "zh-Hans-HK", is Simplified whatever
+//    the region); a Traditional tag has no catalogue here and is skipped.
 //  - Nothing matched is English.
 //
 // A platform's own translator search is not used for this: its input differs

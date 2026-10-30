@@ -1,0 +1,1 @@
+**A Simplified Chinese phone in Hong Kong, Macao or Taiwan gets the Simplified interface.** The device language `zh-Hans-HK` (and `-MO`, `-TW`) was read as Traditional, which has no catalogue, so the app opened in English; a script of Hans now wins over the region.
