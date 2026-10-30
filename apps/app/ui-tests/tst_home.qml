@@ -180,6 +180,19 @@ TestCase {
         Theme.textScale = 1.0
     }
 
+    // At the largest text in the window the app opens at, the picture gives way and both cards, with
+    // their buttons, are in view: the child's Play does not wait under a scroll.
+    function test_playIsInViewAtLargeTextInTheDefaultWindow() {
+        Theme.textScale = 1.5
+        const screen = createTemporaryObject(homeComponent, testCase, { width: 1160, height: 740 })
+        verify(screen !== null)
+        verify(waitForRendering(screen, 2000))
+        const play = picture(screen, HomeWording.soloPicture)
+        const at = play.mapToItem(screen, 0, 0)
+        verify(at.y + play.height <= screen.height, "the Play card ends at " + (at.y + play.height))
+        Theme.textScale = 1.0
+    }
+
     // In a window far larger than the design the content is centred under the
     // bar, not left at the top of an empty page.
     function test_aVeryLargeWindowCentresTheColumn() {

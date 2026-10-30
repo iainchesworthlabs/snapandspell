@@ -149,12 +149,19 @@ FocusScope {
         // column's least height does it scroll.
         contentHeight: Math.max(height, stage.leastHeight)
 
-        ColumnLayout {
+        // A phone on its side is too low for the frame and the buttons one above the other (Capture was
+        // below the fold): there the frame takes the left and the words and buttons the right.
+        GridLayout {
             id: stage
+            readonly property bool beside: Theme.isShort(root.height)
             x: Theme.space4
             width: readyStage.width - 2 * Theme.space4
             height: readyStage.contentHeight - Theme.space4
-            spacing: Theme.space3
+            columns: stage.beside ? 2 : 1
+            // Beside the frame the words and buttons take this much, the frame the rest.
+            readonly property real sideWidth: Math.min(Theme.modalMax, width * 0.45)
+            columnSpacing: Theme.space4
+            rowSpacing: Theme.space3
 
             // What the frame cannot be smaller than, and what it likes to be.
             readonly property real frameLeast: Theme.targetPrimary * 1.5
@@ -164,7 +171,11 @@ FocusScope {
 
             Label {
                 id: prompt
+                Layout.row: 0
+                Layout.column: stage.beside ? 1 : 0
                 Layout.fillWidth: true
+                Layout.preferredWidth: stage.beside ? stage.sideWidth : -1
+                Layout.maximumWidth: stage.beside ? stage.sideWidth : -1
                 role: "heading"
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
@@ -178,6 +189,9 @@ FocusScope {
             // board, so the screen still says what it is for without a sentence.
             Item {
                 id: frameHolder
+                Layout.row: stage.beside ? 0 : 1
+                Layout.column: 0
+                Layout.rowSpan: stage.beside ? 5 : 1
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.minimumHeight: stage.frameLeast
@@ -313,8 +327,11 @@ FocusScope {
 
             // The camera's absence, and a read that failed: two facts, no blame.
             Label {
+                Layout.row: stage.beside ? 1 : 2
+                Layout.column: stage.beside ? 1 : 0
                 Layout.fillWidth: true
-                Layout.maximumWidth: Theme.contentWidth
+                Layout.preferredWidth: stage.beside ? stage.sideWidth : -1
+                Layout.maximumWidth: stage.beside ? stage.sideWidth : Theme.contentWidth
                 Layout.alignment: Qt.AlignHCenter
                 visible: text !== ""
                 role: "body"
@@ -324,8 +341,11 @@ FocusScope {
                 text: root.cameraMessage
             }
             Label {
+                Layout.row: stage.beside ? 2 : 3
+                Layout.column: stage.beside ? 1 : 0
                 Layout.fillWidth: true
-                Layout.maximumWidth: Theme.contentWidth
+                Layout.preferredWidth: stage.beside ? stage.sideWidth : -1
+                Layout.maximumWidth: stage.beside ? stage.sideWidth : Theme.contentWidth
                 Layout.alignment: Qt.AlignHCenter
                 visible: text !== ""
                 role: "body"
@@ -343,6 +363,8 @@ FocusScope {
             AppButton {
                 id: tryCamera
                 visible: root.scanState === "ready" && root.cameraMessage !== ""
+                Layout.row: stage.beside ? 3 : 4
+                Layout.column: stage.beside ? 1 : 0
                 Layout.alignment: Qt.AlignHCenter
                 size: "min"
                 variant: "secondary"
@@ -360,8 +382,11 @@ FocusScope {
                 id: actions
                 readonly property bool capturing: root.cameraShown && root.scanState === "ready"
 
+                Layout.row: stage.beside ? 4 : 5
+                Layout.column: stage.beside ? 1 : 0
                 Layout.fillWidth: true
-                Layout.maximumWidth: Theme.modalMax
+                Layout.preferredWidth: stage.beside ? stage.sideWidth : -1
+                Layout.maximumWidth: stage.beside ? stage.sideWidth : Theme.modalMax
                 Layout.alignment: Qt.AlignHCenter
                 tier: "child"
                 primaryLabel: root.scanState !== "ready" ? ""
