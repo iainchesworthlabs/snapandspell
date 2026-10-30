@@ -39,6 +39,12 @@ table below remains the product's target.
 | Back | On-screen control; swipe from the leading edge | System back | | Browser back | Esc |
 | Orientation | Both | Both | Both | Follows the window | |
 
+- **Orientation is not locked on a phone or a tablet.** The standard's section 7.7 says a phone application locks its
+  orientation in the Android manifest and the iOS property list. This one does not, on purpose: every screen is laid out
+  from the size of its window, and the size matrix holds each of them to a phone upright and on its side. The iPhone list
+  has no upside-down portrait; the iPad list has all four and so needs no `UIRequiresFullScreen`; Android uses `fullUser`
+  (the person's own rotation lock applies). Locking would be one line in each file.
+
 - **Shake in the browser.** A page can read motion only with a permission on
   some systems; Qt Sensors on WebAssembly is **unverified**. The browser build
   uses the **Shake** button.

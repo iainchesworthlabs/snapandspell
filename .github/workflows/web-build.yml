@@ -16,6 +16,10 @@ name: Web build
 #
 # What the browser run does not show is listed in docs/ci.md ("What the web has and has not
 # shown"): nothing here plays a game, and no mobile browser runs it.
+#
+# release.yml calls this workflow (the `web` job) to make the web bundle of a release: the
+# artifact is then named package-web, so that the shared Publish job collects it with the other
+# packages, and the zip carries the release's version and suffix.
 
 on:
   pull_request:
@@ -49,6 +53,16 @@ on:
       - ".github/actions/vcpkg-setup/**"
       - ".github/workflows/web-build.yml"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: The name of the artifact the zip is uploaded as.
+        type: string
+        default: web-bundle
+      suffix:
+        description: A pre-release suffix for the zip's name (rc.1), without the dash.
+        type: string
+        default: ""
 
 concurrency:
   group: web-build-${{ github.ref }}
@@ -158,17 +172,19 @@ jobs:
 
       - name: Zip the bundle
         shell: bash
+        env:
+          SUFFIX: ${{ inputs.suffix }}
         run: |
           set -euo pipefail
           version="$(sed -n 's/^ *VERSION \([0-9][0-9.]*\)$/\1/p' CMakeLists.txt | head -n 1)"
           mkdir -p web-dist
-          (cd build/web-release/web-bundle && cmake -E tar cf "$GITHUB_WORKSPACE/web-dist/SnapAndSpell-$version-web.zip" --format=zip .)
+          (cd build/web-release/web-bundle && cmake -E tar cf "$GITHUB_WORKSPACE/web-dist/SnapAndSpell-$version${SUFFIX:+-$SUFFIX}-web.zip" --format=zip .)
           ls -l web-dist
 
       - name: Upload the bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-bundle
+          name: ${{ inputs.artifact-name || 'web-bundle' }}
           path: web-dist/*.zip
           if-no-files-found: error
           retention-days: 14

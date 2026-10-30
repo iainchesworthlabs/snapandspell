@@ -60,7 +60,9 @@ four seconds and when the page is hidden or closed. So:
 ## Putting it on an address
 
 The build makes the directory `build/web-release/web-bundle/` and CI zips it as `SnapAndSpell-<version>-web.zip`
-(the `web-bundle` artifact of the [Web build](ci.md#web) workflow). Three ways to host it, and what each
+(the `web-bundle` artifact of the [Web build](ci.md#web) workflow). A release builds the same bundle and
+attaches it as `SnapAndSpell-<version>-web.zip` ([Releasing](releasing.md)); that puts the files in a
+release and nowhere on the web, which is the owner's choice below. Three ways to host it, and what each
 needs:
 
 1. **GitHub Pages, under the documentation site** (for example `…/play/`). The documentation site is built

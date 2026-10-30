@@ -21,11 +21,11 @@ page without one.
 | [Board, dice and shake](requirements/board.md) | 62 | 39 | 13 | 4 | 3 | 2 | 1 |
 | [Game, tracing and progress](requirements/game.md) | 57 | 32 | 12 | 8 | 1 | 3 | 1 |
 | [Phonics and the word library](requirements/phonics.md) | 59 | 34 | 12 | 2 | 5 | 3 | 3 |
-| [Scanner and Mode A](requirements/scanner.md) | 56 | 35 | 14 | 1 | 4 | 2 | 0 |
-| [Parent area, dashboard and privacy](requirements/parent.md) | 74 | 47 | 11 | 6 | 5 | 3 | 2 |
+| [Scanner and Mode A](requirements/scanner.md) | 56 | 35 | 14 | 3 | 2 | 2 | 0 |
+| [Parent area, dashboard and privacy](requirements/parent.md) | 74 | 47 | 11 | 9 | 2 | 3 | 2 |
 | [Application, audio, languages and platforms](requirements/application.md) | 78 | 34 | 32 | 4 | 3 | 5 | 0 |
 | [Performance, constraints and licensing](requirements/performance.md) | 67 | 30 | 25 | 4 | 5 | 1 | 2 |
-| **All** | **453** | **251** | **119** | **29** | **26** | **19** | **9** |
+| **All** | **453** | **251** | **119** | **34** | **21** | **19** | **9** |
 
 Rows with no test: **28** (Implemented or Partial rows whose "Demonstrated by"
 cell is empty). The check holds this number to the pages: it may fall only by a
@@ -85,6 +85,7 @@ with the pages they amended (D8 to D12).
 | 2026-10-21 | The **parental gate is one two-second press-and-hold**, not two fingers on two spots | [R-PAR-01](requirements/parent.md) to R-PAR-03, R-PAR-09 |
 | 2026-10-21 | **My jewels** (best board for each size, points, the week) is shown to the child without the gate; "shown to the parent only" is amended | R-DSH-14, R-DSH-18 |
 | 2026-10-16, recorded 2026-10-21 | The **standard board plays the full ENABLE list with no block list**; "no unsuitable word is ever shown" holds for the phonics board only, and a test pins the risk | R-LIB-13, R-LIB-16, R-GAM-08b |
+| 2026-10-31 | **Five Deferred rows are decided, not waiting**: the family-companion setup and the lid-lifting game were replaced by one capture and a button; "emerging sounds", a voice clip and a printed or mailed report are dropped because they would record or export a child's data | R-SCN-01, R-SCN-02, R-DSH-08, R-DSH-23, R-DSH-24 |
 | 2026-10-21 | 0.1 is the three **desktops** plus an **ad-hoc iOS** build for the author's devices; **Android** is in progress and not built | R-PLT-02 to R-PLT-06 |
 | 2026-10-21, to confirm | The **three-step help**, the **resting screen not built** and **Back leaving the round open** are recorded from the build; the author has not yet confirmed them | R-GAM-14, R-GAM-15, R-GAM-18, R-GAM-23 |
 
