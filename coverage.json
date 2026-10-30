@@ -11,7 +11,7 @@
     },
     "libs/platforms": {
       "branch": 64.29,
-      "line": 75.41
+      "line": 78.26
     },
     "libs/scan": {
       "branch": 87.93,
@@ -19,6 +19,6 @@
     }
   },
   "date": "2026-10-30",
-  "line": 95.63,
-  "sha": "249bea0b34c1cc956da6bb37f38f10f4fd664cbe"
+  "line": 95.64,
+  "sha": "e57b7bf4b99abaf3fe8abd1b6e5c2326e903d54e"
 }
