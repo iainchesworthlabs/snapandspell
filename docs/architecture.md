@@ -87,9 +87,8 @@ apps/
       feedback/            FeedbackEngine (the one cue seam's engine), SoundEngine,
                            Speech, MotionSource and SoundSequencePlayer (with its
                            ClipPlayer), over the backends below
-      variants/            one directory per optional Qt module: sound-multimedia,
-                           sound-web or sound-silent, speech-texttospeech,
-                           speech-web or speech-silent,
+      variants/            one directory per optional Qt module: sound-multimedia or
+                           sound-platform, speech-texttospeech or speech-platform,
                            motion-sensors or motion-silent, camera-multimedia or
                            camera-none (the profiling pattern; each camera variant
                            also has its CameraPreview.qml)
@@ -847,6 +846,8 @@ An OS service the program needs is declared in a header under
 | `camera.hpp`: `enumerate_devices`, `start`, `stop`, `try_pop_latest_frame`, ... | Capture frames for Mode A, for a native backend | no camera backend yet (`detail/`): `unavailable` | the same | the same |
 | `board_reader.hpp`: `read(frame, options)` | Read a board from a frame | the portable reader (`detail/`) | the same | the same |
 | `haptics.hpp`: `vibrate(pattern)` | A pattern of taps of the hand | answers `false` (`detail/haptics_none.cpp`) | the same | the same |
+| `audio_output.hpp`: `play_wav(name, wav, volume)` | A short sound where Qt has no Multimedia: the browser's own, Web Audio (`web/audio_output_web.cpp`) | answers no output (`detail/audio_output_none.cpp`) | the same | the same |
+| `speech_output.hpp`: `speak(text, volume)` | A voice where Qt has no TextToSpeech: the browser's speech synthesis, a local voice only (`web/speech_output_web.cpp`) | answers no voice (`detail/speech_output_none.cpp`) | the same | the same |
 | `fatal_error.hpp`: `show_fatal_error(...)` | Say that the program cannot start | a dialog as well as standard error (`fatal_error_windows.cpp`) | standard error (`detail/`) | standard error (`detail/`) |
 | `window_chrome.hpp`: `set_window_chrome(...)` | Paint the native title bar to match the page | `window_chrome_win.cpp` | nothing (`detail/`) | nothing (`detail/`) |
 

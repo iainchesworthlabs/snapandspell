@@ -18,6 +18,7 @@ add_executable(sns_unit_tests
     path_test.cpp
     paths_test.cpp
     phase_data_test.cpp
+    platform_output_test.cpp
     profiling_test.cpp
     scoring_test.cpp
     settings_test.cpp

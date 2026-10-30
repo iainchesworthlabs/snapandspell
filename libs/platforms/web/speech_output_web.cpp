@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include "sns/app/speech_backend.hpp"
-
 #include <emscripten.h>
 
-#include <QByteArray>
 #include <algorithm>
+#include <string>
+
+#include "sns/platform/speech_output.hpp"
 
 namespace {
 
 // Whether the browser has a local English voice. A browser loads its voice list after the page starts,
 // so the list is asked for here and again when it announces a change. A voice whose `localService` is
-// false is spoken by a server and is never used.
+// false is spoken by a server and is never used: the program sends nothing anywhere.
 EM_JS(int, sns_web_speech_available, (), {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
         return 0;
@@ -51,26 +51,22 @@ EM_JS(void, sns_web_speech_stop, (), {
 
 }  // namespace
 
-namespace sns::app {
+namespace sns::platform {
 
-SpeechBackend::SpeechBackend() = default;
-
-SpeechBackend::~SpeechBackend() = default;
-
-bool SpeechBackend::available() const {
+bool speech_output_available() {
     return sns_web_speech_available() != 0;
 }
 
-void SpeechBackend::say(const QString& text, double volume) {
-    if (text.isEmpty() || !available()) {
+void speak(std::string_view utf8, double volume) {
+    if (utf8.empty() || !speech_output_available()) {
         return;
     }
-    const QByteArray utf8 = text.toUtf8();
-    sns_web_speech_say(utf8.constData(), std::clamp(volume, 0.0, 1.0));
+    const std::string text(utf8);
+    sns_web_speech_say(text.c_str(), std::clamp(volume, 0.0, 1.0));
 }
 
-void SpeechBackend::stop() {
+void stop_speaking() {
     sns_web_speech_stop();
 }
 
-}  // namespace sns::app
+}  // namespace sns::platform
