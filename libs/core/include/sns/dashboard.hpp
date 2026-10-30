@@ -85,6 +85,13 @@ struct WeekSummary {
     std::array<int, 7> stars_by_day{};
     int first_iso_weekday = 1;
 
+    // The finds the store holds from this week, and of them those for which the
+    // start tile had been shown ("how many start tiles were shown", R-DSH-20). The
+    // store keeps a bounded list of finds, so a very busy week counts the finds it
+    // still has, both numbers alike.
+    int finds = 0;
+    int start_tiles_shown = 0;
+
     // The longest word found this week (the first alphabetically of equal
     // length), or empty.
     std::string longest_word;

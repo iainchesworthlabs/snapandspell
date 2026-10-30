@@ -313,12 +313,12 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+107"/>
+        <location line="+113"/>
         <source>Settings</source>
         <translation>סעטינגס</translation>
     </message>
     <message>
-        <location line="-105"/>
+        <location line="-111"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>וועגן</translation>
@@ -520,6 +520,11 @@
         <location line="+2"/>
         <source>This week: %1.</source>
         <translation>די וואָך: %1.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The start tile was shown for %1 of %2 words.</source>
+        <translation>דער סטאַרט־פֿעלד איז געווען געוויזן ביי %1 פֿון %2 ווערטער.</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -811,8 +816,8 @@
         <translation>אויסגעמעקט.</translation>
     </message>
     <message>
-        <location line="-191"/>
-        <location line="+194"/>
+        <location line="-197"/>
+        <location line="+200"/>
         <source>Licences</source>
         <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>ליצענצן</translation>

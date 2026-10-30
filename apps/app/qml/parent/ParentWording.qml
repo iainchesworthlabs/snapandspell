@@ -115,6 +115,12 @@ QtObject {
         return qsTr("This week: %1.").arg(parts.join(", "));
     }
 
+    // "The start tile was shown for 3 of 12 words." The count is of start tiles shown, never of
+    // who asked for one (dashboard.md, "Family play insights"). Said only when the week has finds.
+    function startTilesShown(shown, finds) {
+        return qsTr("The start tile was shown for %1 of %2 words.").arg(shown).arg(finds);
+    }
+
     function longestWord(word) {
         return qsTr("The longest word: %1.").arg(word);
     }

@@ -101,6 +101,8 @@ using sns::app::to_utf8;
     }
     week.insert(QStringLiteral("starsByDay"), stars_by_day);
     week.insert(QStringLiteral("firstWeekday"), d.week.first_iso_weekday);
+    week.insert(QStringLiteral("finds"), d.week.finds);
+    week.insert(QStringLiteral("startTilesShown"), d.week.start_tiles_shown);
     map.insert(QStringLiteral("week"), week);
 
     QVariantList sounds;
