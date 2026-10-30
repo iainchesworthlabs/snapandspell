@@ -1,0 +1,1 @@
+**The library reads the word lists for children, and can name a category as a hint.** `sns::Lexicon` loads the early-reader tier and the ten categories, and `category_hint` says "a 3-letter animal starting with C" for a word the child has not found, without the word. No screen offers it yet.

@@ -22,6 +22,7 @@ add_library(sns_lib STATIC
     src/game_session.cpp
     src/grapheme_binder.cpp
     src/language_choice.cpp
+    src/lexicon.cpp
     src/motion.cpp
     src/parent_gate.cpp
     src/path.cpp

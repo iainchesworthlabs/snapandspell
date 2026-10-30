@@ -14,6 +14,7 @@ add_executable(sns_unit_tests
     grapheme_binder_test.cpp
     haptics_test.cpp
     language_choice_test.cpp
+    lexicon_test.cpp
     motion_test.cpp
     parent_gate_test.cpp
     path_test.cpp
