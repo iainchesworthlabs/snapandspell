@@ -183,6 +183,13 @@ sign_uses="$(grep -c 'actions/sign-windows@' "$workflow" || true)"
 sign_modes="$(grep -Fc 'mode: ${{ vars.SIGN_WINDOWS || '"'"'false'"'"' }}' "$workflow" || true)"
 if [ "$sign_uses" -ge 1 ] && [ "$sign_uses" = "$sign_modes" ]; then ok "every sign-windows step takes its mode from SIGN_WINDOWS, false when unset"; else bad "a sign-windows step does not take its mode from vars.SIGN_WINDOWS || 'false' ($sign_uses steps, $sign_modes with the mode)"; fi
 
+# --- the Linux glibc floor (standard 13.2) --------------------------------------------
+# The release builds on the newest runner and starts the program there, so only a check of the symbol
+# versions sees that a package needs more glibc than the oldest system it is for. Both Linux legs run it.
+glibc_legs="$(awk '/^[ \t]*- /{c=""} /if: matrix.leg ==/{c=$NF} /uses:.*actions\/check-glibc-floor@/{print c}' "$workflow" | LC_ALL=C sort | tr '
+' ' ')"
+if [ "$glibc_legs" = "'linux' 'linux-app' " ]; then ok "both Linux legs check the glibc floor of their package with the shared action"; else bad "the Linux legs do not both check the glibc floor (found: ${glibc_legs:-none})"; fi
+
 # --- the web bundle: web-build.yml's own job, called by the release, handed on as package-web -----
 web_workflow="$repo/.github/workflows/web-build.yml"
 if grep -q 'uses: ./.github/workflows/web-build.yml' "$workflow" && grep -q 'artifact-name: package-web' "$workflow" \

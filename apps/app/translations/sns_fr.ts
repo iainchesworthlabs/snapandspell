@@ -916,17 +916,12 @@
         <translation>%1 points</translation>
     </message>
     <message>
-        <location line="+324"/>
-        <source>+%1</source>
-        <translation>+%1</translation>
-    </message>
-    <message>
-        <location line="+43"/>
+        <location line="+283"/>
         <source>Your words will land here.</source>
         <translation>Tes mots apparaîtront ici.</translation>
     </message>
     <message>
-        <location line="-304"/>
+        <location line="-218"/>
         <source>Clear</source>
         <translation>Effacer</translation>
     </message>
@@ -1298,22 +1293,22 @@
         <translation>Vous avez trouvé tous les %1&#xa0;mots&#xa0;!</translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+76"/>
         <source>Look at the jewels you collected.</source>
         <translation>Regarde les bijoux que tu as collectionnés.</translation>
     </message>
     <message>
-        <location line="-52"/>
+        <location line="-77"/>
         <source>You found the word!</source>
         <translation>Tu as trouvé le mot !</translation>
     </message>
     <message>
-        <location line="+138"/>
+        <location line="+164"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+123"/>
+        <location line="+124"/>
         <source>You found this one already.</source>
         <translation>Tu as déjà trouvé celui-ci.</translation>
     </message>
@@ -1620,6 +1615,14 @@
         <location line="+4"/>
         <source>Jewel, row %1, column %2</source>
         <translation>Bijou, ligne %1, colonne %2</translation>
+    </message>
+</context>
+<context>
+    <name>WordChips</name>
+    <message>
+        <location filename="../qml/kit/WordChips.qml" line="+137"/>
+        <source>+%1</source>
+        <translation>+%1</translation>
     </message>
 </context>
 <context>

@@ -186,6 +186,22 @@ elseif(CASE STREQUAL "dictionary-error")
     run_cli(--dictionary "${_work}/no-such-dictionary.txt" ${_board})
     expect_code(2)
     expect_in("no-such-dictionary.txt" "${RUN_ERR}")
+elseif(CASE STREQUAL "output-unwritable")
+    # A result that cannot be written is exit 5, not 0 (apps/cli/src/main.cpp,
+    # finish_output). /dev/full accepts a write and then fails it, which is a full disk;
+    # where there is no such device (Windows) there is nothing to point the output at.
+    if(NOT EXISTS "/dev/full")
+        message(STATUS "sns-cli ${CASE}: no /dev/full here; nothing to check")
+        return()
+    endif()
+    execute_process(
+        COMMAND "${CLI}" --version
+        OUTPUT_FILE "/dev/full"
+        RESULT_VARIABLE RUN_CODE
+        ERROR_VARIABLE RUN_ERR)
+    set(RUN_OUT "")
+    expect_code(5)
+    expect_in("could not be written" "${RUN_ERR}")
 else()
     message(FATAL_ERROR "check_cli.cmake: unknown CASE '${CASE}'")
 endif()

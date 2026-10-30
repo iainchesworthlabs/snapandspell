@@ -38,6 +38,7 @@ set(SNS_KIT_QML_FILES
     Theme.qml
     TileFace.qml
     TileMark.qml
+    WordChips.qml
     Wordmark.qml)
 
 set(SNS_KIT_QML_SINGLETONS

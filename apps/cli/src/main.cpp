@@ -1,23 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-#include <charconv>
 #include <cstddef>
 #include <exception>
 #include <expected>
 #include <filesystem>
 #include <format>
 #include <iostream>
-#include <optional>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <vector>
 
 #include "sns/board.hpp"
+#include "sns/cli_arguments.hpp"
 #include "sns/dictionary.hpp"
 #include "sns/platform/console.hpp"
 #include "sns/platform/paths.hpp"
 #include "sns/profiling.hpp"
-#include "sns/scoring.hpp"
 #include "sns/solver.hpp"
 #include "sns/version.hpp"
 
@@ -51,85 +48,6 @@ constexpr std::string_view usage_text =
     "  -h, --help               Show this help.\n"
     "      --version            Show the version.\n";
 
-struct Arguments {
-    std::optional<std::filesystem::path> dictionary;
-    sns::SolveOptions options;
-    std::size_t repeat = 1;
-    std::string board_text;
-    bool help = false;
-    bool version = false;
-};
-
-[[nodiscard]] std::expected<Arguments, std::string> parse_arguments(
-    const std::vector<std::string>& args) {
-    Arguments parsed;
-
-    for (std::size_t i = 0; i < args.size(); ++i) {
-        const std::string& arg = args[i];
-
-        // The value after an option that takes one.
-        const auto value = [&] -> std::expected<std::string_view, std::string> {
-            if (i + 1 >= args.size()) {
-                return std::unexpected(std::format("{} needs a value", arg));
-            }
-            return std::string_view(args[++i]);
-        };
-
-        if (arg == "-h" || arg == "--help") {
-            parsed.help = true;
-        } else if (arg == "--version") {
-            parsed.version = true;
-        } else if (arg == "-d" || arg == "--dictionary") {
-            const auto path = value();
-            if (!path) {
-                return std::unexpected(path.error());
-            }
-            parsed.dictionary = std::filesystem::path{std::string(*path)};
-        } else if (arg == "-m" || arg == "--min-length") {
-            const auto text = value();
-            if (!text) {
-                return std::unexpected(text.error());
-            }
-            const char* const first = text->data();
-            const char* const last = first + text->size();
-            const auto [end, error] = std::from_chars(first, last, parsed.options.min_length);
-            if (error != std::errc{} || end != last) {
-                return std::unexpected(std::format("'{}' is not a length", *text));
-            }
-        } else if (arg == "-r" || arg == "--repeat") {
-            const auto text = value();
-            if (!text) {
-                return std::unexpected(text.error());
-            }
-            const char* const first = text->data();
-            const char* const last = first + text->size();
-            const auto [end, error] = std::from_chars(first, last, parsed.repeat);
-            if (error != std::errc{} || end != last || parsed.repeat == 0) {
-                return std::unexpected(std::format("'{}' is not a count of one or more", *text));
-            }
-        } else if (arg == "-s" || arg == "--scoring") {
-            const auto scheme = value();
-            if (!scheme) {
-                return std::unexpected(scheme.error());
-            }
-            if (*scheme == "boggle") {
-                parsed.options.scoring = sns::ScoringScheme::standard_boggle;
-            } else if (*scheme == "rarity") {
-                parsed.options.scoring = sns::ScoringScheme::letter_rarity;
-            } else {
-                return std::unexpected(
-                    std::format("'{}' is not a scoring scheme (boggle or rarity)", *scheme));
-            }
-        } else if (arg.size() > 1 && arg.front() == '-') {
-            return std::unexpected(std::format("unknown option '{}'", arg));
-        } else {
-            parsed.board_text += arg;
-            parsed.board_text += '\n';
-        }
-    }
-    return parsed;
-}
-
 [[nodiscard]] std::string describe_path(const std::vector<sns::Position>& path) {
     std::string text;
     for (const auto& position : path) {
@@ -157,7 +75,7 @@ struct Arguments {
     return 0;
 }
 
-[[nodiscard]] int run(const Arguments& arguments) {
+[[nodiscard]] int run(const sns::CliArguments& arguments) {
     auto zone = sns::profiling::zone<"cli.run">();
 
     const auto board = sns::Board::parse(arguments.board_text);
@@ -201,7 +119,7 @@ int run_cli(int argc, char** argv) {
         args.emplace_back(argv[i]);
     }
 
-    const auto arguments = parse_arguments(args);
+    const auto arguments = sns::parse_cli_arguments(args);
     if (!arguments) {
         std::cerr << std::format("sns-cli: {}\n\n{}", arguments.error(), usage_text);
         return exit_usage;

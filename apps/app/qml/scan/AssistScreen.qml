@@ -214,99 +214,13 @@ FocusScope {
                     emptyText: ScanWording.noWordsHint
                     clip: true
 
-                    ListView {
+                    WordChips {
                         id: words
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        clip: true
                         model: root.assist.found
-                        spacing: Theme.space1
-                        boundsBehavior: Flickable.StopAtBounds
-                        onCountChanged: positionViewAtEnd()
-
-                        Accessible.role: Accessible.List
+                        chipName: word => ScanWording.foundName(word)
                         Accessible.name: ScanWording.wordsFound
-
-                        // A jewel drops in; with reduced motion it appears.
-                        add: Transition {
-                            enabled: !Theme.reducedMotion
-                            NumberAnimation {
-                                property: "y"
-                                from: -Theme.space8
-                                duration: Theme.turn
-                                easing.type: Easing.OutBounce
-                            }
-                            NumberAnimation {
-                                property: "opacity"
-                                from: 0
-                                to: 1
-                                duration: Theme.base
-                            }
-                        }
-
-                        // A row is 48 dp, a stop for Tab and a press speaks the word:
-                        // a tap and the Return key do the same.
-                        delegate: Item {
-                            id: row
-                            required property int index
-                            required property var modelData
-
-                            width: words.width
-                            height: Theme.rowHeight
-                            activeFocusOnTab: true
-
-                            Accessible.role: Accessible.ListItem
-                            Accessible.name: ScanWording.foundName(row.modelData.word)
-                            Accessible.focusable: true
-                            Accessible.onPressAction: Feedback.cue("speak", row.modelData.word)
-
-                            Keys.onPressed: event => {
-                                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter
-                                        || event.key === Qt.Key_Space) {
-                                    Feedback.cue("speak", row.modelData.word);
-                                    event.accepted = true;
-                                }
-                            }
-
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: Theme.radiusSmall
-                                color: rowMouse.pressed ? Theme.pressWash
-                                     : (rowMouse.containsMouse ? Theme.hoverWash : "transparent")
-                            }
-
-                            Jewel {
-                                id: jewel
-                                anchors.verticalCenter: parent.verticalCenter
-                                x: Theme.space2
-                                tier: row.modelData.tier
-                                colorIndex: row.index
-                            }
-
-                            Label {
-                                anchors.left: jewel.right
-                                anchors.leftMargin: Theme.space3
-                                anchors.right: parent.right
-                                anchors.rightMargin: Theme.space2
-                                anchors.verticalCenter: parent.verticalCenter
-                                decorative: true
-                                role: "word"
-                                text: row.modelData.word
-                                elide: Text.ElideRight
-                            }
-
-                            FocusRing {
-                                visible: row.activeFocus
-                                inner: Theme.radiusSmall
-                            }
-
-                            MouseArea {
-                                id: rowMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: Feedback.cue("speak", row.modelData.word)
-                            }
-                        }
                     }
                 }
 

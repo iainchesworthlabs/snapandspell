@@ -476,6 +476,49 @@ jobs:
             --build "build/$CMAKE_PRESET" --version "$package_version" \
             --out "build/$CMAKE_PRESET/packages" --qt-prefix "$QT_PREFIX" --smoke
 
+      # The AppImage carries Qt and what linuxdeploy found, but not glibc, so what it
+      # needs of glibc is that of the files inside it. It is unpacked and every program
+      # and library in it is read (standard 13.2).
+      - name: Unpack the AppImage (Linux application)
+        if: matrix.leg == 'linux-app'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          STAGE: ${{ runner.temp }}/glibc-floor-app
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          images=("build/$CMAKE_PRESET"/packages/*.AppImage)
+          test "${#images[@]}" -eq 1
+          mkdir -p "$STAGE"
+          image="$(realpath "${images[0]}")"
+          (cd "$STAGE" && "$image" --appimage-extract >/dev/null)
+
+      - name: Check the glibc floor of the package (Linux application)
+        if: matrix.leg == 'linux-app'
+        uses: iainchesworthlabs/icl-common-infra/actions/check-glibc-floor@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        with:
+          folder: ${{ runner.temp }}/glibc-floor-app
+
+      # The runner is the newest there is (glibc 2.43 on ubuntu-26.04), the smoke
+      # tests start the program on that same runner, and Ubuntu 24.04 has glibc 2.39:
+      # a function that glibc gave a new version makes a package that starts here and
+      # on nothing older (standard 13.2). The check reads the symbol versions of every
+      # program and library in the install tree that the packages are made from.
+      - name: Check the glibc floor (Linux command line)
+        if: matrix.leg == 'linux'
+        shell: bash
+        env:
+          CMAKE_PRESET: ${{ matrix.preset }}
+          STAGE: ${{ runner.temp }}/glibc-floor-cli
+        run: cmake --install "build/$CMAKE_PRESET" --prefix "$STAGE"
+
+      - name: Check the glibc floor of the package (Linux command line)
+        if: matrix.leg == 'linux'
+        uses: iainchesworthlabs/icl-common-infra/actions/check-glibc-floor@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        with:
+          folder: ${{ runner.temp }}/glibc-floor-cli
+
       - name: Smoke-test every package (Linux command line, macOS)
         if: matrix.leg == 'linux' || matrix.leg == 'macos'
         shell: bash

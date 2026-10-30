@@ -24,8 +24,8 @@ page without one.
 | [Scanner and Mode A](requirements/scanner.md) | 56 | 35 | 14 | 3 | 2 | 2 | 0 |
 | [Parent area, dashboard and privacy](requirements/parent.md) | 74 | 47 | 11 | 9 | 2 | 3 | 2 |
 | [Application, audio, languages and platforms](requirements/application.md) | 78 | 35 | 32 | 4 | 2 | 5 | 0 |
-| [Performance, constraints and licensing](requirements/performance.md) | 67 | 29 | 25 | 4 | 5 | 2 | 2 |
-| **All** | **453** | **251** | **119** | **34** | **20** | **20** | **9** |
+| [Performance, constraints and licensing](requirements/performance.md) | 67 | 30 | 25 | 4 | 5 | 1 | 2 |
+| **All** | **453** | **252** | **119** | **34** | **20** | **19** | **9** |
 
 Rows with no test: **28** (Implemented or Partial rows whose "Demonstrated by"
 cell is empty). The check holds this number to the pages: it may fall only by a

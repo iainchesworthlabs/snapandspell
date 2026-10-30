@@ -916,17 +916,12 @@
         <translation>%1 分</translation>
     </message>
     <message>
-        <location line="+324"/>
-        <source>+%1</source>
-        <translation>+%1</translation>
-    </message>
-    <message>
-        <location line="+43"/>
+        <location line="+283"/>
         <source>Your words will land here.</source>
         <translation>你的话将会落到这里。</translation>
     </message>
     <message>
-        <location line="-304"/>
+        <location line="-218"/>
         <source>Clear</source>
         <translation>清除</translation>
     </message>
@@ -1298,22 +1293,22 @@
         <translation>您找到了所有 %1 个单词！</translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+76"/>
         <source>Look at the jewels you collected.</source>
         <translation>看看你收集的珠宝。</translation>
     </message>
     <message>
-        <location line="-52"/>
+        <location line="-77"/>
         <source>You found the word!</source>
         <translation>你找到这个词了！</translation>
     </message>
     <message>
-        <location line="+138"/>
+        <location line="+164"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+123"/>
+        <location line="+124"/>
         <source>You found this one already.</source>
         <translation>这个你已经找到了。</translation>
     </message>
@@ -1620,6 +1615,14 @@
         <location line="+4"/>
         <source>Jewel, row %1, column %2</source>
         <translation>宝石，第 %1 行，第 %2 列</translation>
+    </message>
+</context>
+<context>
+    <name>WordChips</name>
+    <message>
+        <location filename="../qml/kit/WordChips.qml" line="+137"/>
+        <source>+%1</source>
+        <translation>+%1</translation>
     </message>
 </context>
 <context>
