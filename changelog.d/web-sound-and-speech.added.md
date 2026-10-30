@@ -1,0 +1,1 @@
+**The web build plays sounds and says words.** The cues play through the browser's Web Audio, and a found word is spoken by the browser's speech synthesis, using only a voice that runs on the device so that nothing is sent anywhere.

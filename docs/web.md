@@ -26,7 +26,7 @@ put the game on a web address. How it is built is in [Building](building.md#web)
 
 | In the browser | Because |
 | --- | --- |
-| No sound and no spoken words | Qt's WebAssembly kit has no Qt Multimedia and no Qt Speech, so the build uses the silent variants the program has for a kit without them. A Web Audio backend and the browser's speech synthesis would each be a variant of their own. |
+| Sound and spoken words depend on the browser | Qt's WebAssembly kit has no Qt Multimedia and no Qt Speech, so the build has two variants of its own over the browser's own interfaces (`sound-web`, `speech-web`). The cues are played through **Web Audio**: the WAVs are read from the program's resources and decoded by the browser once, and a browser lets a page make sound only after the first touch, which a game's first press is. A spoken word goes through the browser's **speech synthesis**, and only through a voice that runs on the device (`localService`): some browsers list voices that send the text to a server, and the program sends nothing anywhere, so a browser with no local English voice says nothing. Neither has been heard in a browser yet; the build compiles them and the bundle's checks hold the rest. |
 | No shake of the device | No Qt Sensors in the kit. The Shake button, Space and a drag are the ways in, as on a desktop. |
 | No camera: Mode A reads a typed board | No Qt Multimedia. The scan screens say "No camera" and offer **Type in your board**. |
 | A vibration, where the browser has one | `navigator.vibrate`: Chrome on Android. Safari, and every desktop browser, do not. |

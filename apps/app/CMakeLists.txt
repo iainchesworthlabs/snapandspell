@@ -58,11 +58,16 @@ target_link_libraries(sns_trace
 # pure library policy in sns/feedback.hpp.
 if(SNS_QT_HAS_MULTIMEDIA)
     set(SNS_SOUND_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/variants/sound-multimedia")
+elseif(EMSCRIPTEN)
+    # A browser has Web Audio and speech synthesis whatever Qt's kit lacks (docs/web.md).
+    set(SNS_SOUND_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/variants/sound-web")
 else()
     set(SNS_SOUND_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/variants/sound-silent")
 endif()
 if(SNS_QT_HAS_TEXTTOSPEECH)
     set(SNS_SPEECH_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/variants/speech-texttospeech")
+elseif(EMSCRIPTEN)
+    set(SNS_SPEECH_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/variants/speech-web")
 else()
     set(SNS_SPEECH_VARIANT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/variants/speech-silent")
 endif()

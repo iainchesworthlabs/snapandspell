@@ -87,8 +87,9 @@ apps/
       feedback/            FeedbackEngine (the one cue seam's engine), SoundEngine,
                            Speech, MotionSource and SoundSequencePlayer (with its
                            ClipPlayer), over the backends below
-      variants/            one directory per optional Qt module: sound-multimedia or
-                           sound-silent, speech-texttospeech or speech-silent,
+      variants/            one directory per optional Qt module: sound-multimedia,
+                           sound-web or sound-silent, speech-texttospeech,
+                           speech-web or speech-silent,
                            motion-sensors or motion-silent, camera-multimedia or
                            camera-none (the profiling pattern; each camera variant
                            also has its CameraPreview.qml)
