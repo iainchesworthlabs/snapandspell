@@ -22,10 +22,10 @@ page without one.
 | [Game, tracing and progress](requirements/game.md) | 57 | 32 | 12 | 8 | 1 | 3 | 1 |
 | [Phonics and the word library](requirements/phonics.md) | 59 | 34 | 12 | 2 | 5 | 3 | 3 |
 | [Scanner and Mode A](requirements/scanner.md) | 56 | 35 | 14 | 1 | 4 | 2 | 0 |
-| [Parent area, dashboard and privacy](requirements/parent.md) | 74 | 47 | 11 | 6 | 5 | 3 | 2 |
+| [Parent area, dashboard and privacy](requirements/parent.md) | 74 | 48 | 11 | 6 | 4 | 3 | 2 |
 | [Application, audio, languages and platforms](requirements/application.md) | 78 | 34 | 32 | 4 | 3 | 5 | 0 |
 | [Performance, constraints and licensing](requirements/performance.md) | 67 | 29 | 25 | 4 | 5 | 2 | 2 |
-| **All** | **453** | **250** | **119** | **29** | **26** | **20** | **9** |
+| **All** | **453** | **251** | **119** | **29** | **25** | **20** | **9** |
 
 Rows with no test: **28** (Implemented or Partial rows whose "Demonstrated by"
 cell is empty). The check holds this number to the pages: it may fall only by a

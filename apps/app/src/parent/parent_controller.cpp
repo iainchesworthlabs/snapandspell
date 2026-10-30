@@ -95,6 +95,8 @@ using sns::app::to_utf8;
     week.insert(QStringLiteral("stars"), d.week.stars);
     week.insert(QStringLiteral("newWords"), d.week.new_words);
     week.insert(QStringLiteral("longestWord"), to_qstring(d.week.longest_word));
+    week.insert(QStringLiteral("finds"), d.week.finds);
+    week.insert(QStringLiteral("startTilesShown"), d.week.start_tiles_shown);
     map.insert(QStringLiteral("week"), week);
 
     QVariantList sounds;
