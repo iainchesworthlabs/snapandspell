@@ -51,6 +51,14 @@ Release builds have Tracy off: the Release presets turn it off (`tests/profiling
 holds that), and every build job fails if `CMakeCache.txt` has it on or a package it can list holds a
 file with Tracy or a sanitizer runtime in its name.
 
+Linux packages start on the oldest system the project supports, Ubuntu 24.04 (glibc 2.39). The release
+builds on `ubuntu-26.04`, whose compiler links against the newest symbol versions (glibc 2.43), and the
+smoke test starts the program on that same runner, so it cannot see the difference. Both Linux legs
+therefore run the shared `check-glibc-floor` action: the command-line leg on the install tree its deb,
+rpm and archives are made from, the application leg on the unpacked AppImage. It fails, naming the file
+and the symbol, when a program or library needs more than 2.39. To raise the floor, pass `allowed` to the
+action and give the reason here.
+
 Not built: a deb or rpm of the application (it needs a Qt 6.12 that no distribution packages; the
 AppImage is the application), a production Authenticode signature on the Windows files (SmartScreen
 warns on first run; the GPG signature and the attestation prove who built a file; see
