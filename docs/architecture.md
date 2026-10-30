@@ -1192,8 +1192,8 @@ These do not exist, and nothing in the tree stands in for them:
   but **no audio clip exists**. The parent dashboard is built and shows nothing of the
   sounds until a phase exists.
 - **Using the child-facing word lists.** `data/lexicon/` holds category and
-  early-reader tier lists (animals, colours, shapes, and so on); nothing reads
-  them yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.
+  early-reader tier lists (animals, colours, shapes, and so on); the library
+  reads them (`sns/lexicon.hpp`) and no screen does yet. The [roadmap](roadmap.md) (M2) covers the lexicon and hints.
 - **A run on a device, Android and phones.** iOS is written and has never run
   on a device; Android is in progress and not built; phone layouts come after 0.1. The web
   build exists ([Playing in a browser](web.md)) and has been run in one desktop browser engine only. Packaging is written for all three desktops: the Windows leg installs, packages

@@ -20,12 +20,12 @@ page without one.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | [Board, dice and shake](requirements/board.md) | 62 | 39 | 13 | 4 | 3 | 2 | 1 |
 | [Game, tracing and progress](requirements/game.md) | 57 | 32 | 12 | 8 | 1 | 3 | 1 |
-| [Phonics and the word library](requirements/phonics.md) | 59 | 34 | 12 | 2 | 5 | 3 | 3 |
+| [Phonics and the word library](requirements/phonics.md) | 59 | 34 | 14 | 2 | 3 | 3 | 3 |
 | [Scanner and Mode A](requirements/scanner.md) | 56 | 35 | 14 | 3 | 2 | 2 | 0 |
 | [Parent area, dashboard and privacy](requirements/parent.md) | 74 | 47 | 11 | 9 | 2 | 3 | 2 |
 | [Application, audio, languages and platforms](requirements/application.md) | 78 | 35 | 32 | 4 | 2 | 5 | 0 |
 | [Performance, constraints and licensing](requirements/performance.md) | 67 | 29 | 25 | 4 | 5 | 2 | 2 |
-| **All** | **453** | **251** | **119** | **34** | **20** | **20** | **9** |
+| **All** | **453** | **251** | **121** | **34** | **18** | **20** | **9** |
 
 Rows with no test: **28** (Implemented or Partial rows whose "Demonstrated by"
 cell is empty). The check holds this number to the pages: it may fall only by a

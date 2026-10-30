@@ -47,8 +47,8 @@ subset of what the solver accepts and never a source of new words.
 
 These are a starting set. They have **not been reviewed** by a teacher or a
 parent, they hold base forms only (no plurals), and a word can be in more than
-one category (`star` is in `nature` and `shapes`). Nothing in the program reads
-them yet; the [roadmap](../docs/roadmap.md) (M2) says how they are to be used.
+one category (`star` is in `nature` and `shapes`). The library reads them
+(`libs/core/include/sns/lexicon.hpp`: the tier, the categories and a category hint) and no screen does yet; the [roadmap](../docs/roadmap.md) (M2) says how they are to be used.
 
 ## `dice/`: the standard board's dice
 
