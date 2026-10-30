@@ -186,7 +186,7 @@ if [ "$sign_uses" -ge 1 ] && [ "$sign_uses" = "$sign_modes" ]; then ok "every si
 # --- the Linux glibc floor (standard 13.2) --------------------------------------------
 # The release builds on the newest runner and starts the program there, so only a check of the symbol
 # versions sees that a package needs more glibc than the oldest system it is for. Both Linux legs run it.
-glibc_legs="$(awk '/^[ \t]*- /{c=""} /if: matrix.leg ==/{c=$NF} /uses:.*actions\/check-glibc-floor@/{print c}' "$workflow" | sort | tr '
+glibc_legs="$(awk '/^[ \t]*- /{c=""} /if: matrix.leg ==/{c=$NF} /uses:.*actions\/check-glibc-floor@/{print c}' "$workflow" | LC_ALL=C sort | tr '
 ' ' ')"
 if [ "$glibc_legs" = "'linux' 'linux-app' " ]; then ok "both Linux legs check the glibc floor of their package with the shared action"; else bad "the Linux legs do not both check the glibc floor (found: ${glibc_legs:-none})"; fi
 
