@@ -43,7 +43,7 @@ not removed.
 | [Performance](performance.md) | Budgets, the Tracy zones, the macro-free route, the performance tier |
 | [Path](path.md) | The route from the MVP to the full product across several releases, and what the MVP must leave open |
 | [MVP library](mvp-library.md) | What the first release's word library is, what was built and the accepted risk of the full dictionary with no block list |
-| [Layouts](layouts.svg) | The two-thirds / one-third arrangement at four window shapes, to scale |
+| [Layouts](layouts.svg) | The board and the panel at four window shapes, to scale (a tall window caps the board to a square) |
 
 ## The design in one page
 
