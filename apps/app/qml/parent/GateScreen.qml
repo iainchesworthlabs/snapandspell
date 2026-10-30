@@ -25,6 +25,9 @@ FocusScope {
     readonly property int firstTouch: 9001
     readonly property int secondTouch: 9002
     readonly property bool holding: root.controller.gateHolding
+    // A window too low for the whole card (a phone on its side): it keeps the title, the instruction, the
+    // button and the steps, and the two sentences that explain them go.
+    readonly property bool short: Theme.isShort(root.height)
 
     focus: true
 
@@ -86,23 +89,23 @@ FocusScope {
         flickableDirection: Flickable.VerticalFlick
         interactive: contentHeight > height
 
-        Rectangle {
+        // A Toybox panel: the cream card, a 4 px ink outline and a hard drop.
+        PixelBox {
             id: card
             width: Math.min(view.width - 2 * Theme.space8, Theme.modalMax)
-            height: words.implicitHeight + 2 * Theme.space6
+            height: words.implicitHeight + 2 * (root.short ? Theme.space4 : Theme.space6)
             x: (view.width - width) / 2
             y: Math.max(Theme.space8, (view.contentHeight - height) / 2)
-            radius: Theme.radius
-            color: Theme.card
-            border.width: Theme.hair
-            border.color: Theme.line
+            fill: Theme.card
+            radius: Theme.radiusPanel
+            shadowOffset: Theme.shadowLarge
 
             ColumnLayout {
                 id: words
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: Theme.space6
+                anchors.margins: root.short ? Theme.space4 : Theme.space6
                 spacing: Theme.space2
 
                 Label {
@@ -120,24 +123,27 @@ FocusScope {
                 }
                 Label {
                     Layout.fillWidth: true
+                    visible: !root.short
                     role: "caption"
                     text: ParentWording.gateWhy
                     wrapMode: Text.WordWrap
                 }
 
-                // The one target. It is deliberately large: 96 dp high, the whole
-                // width of the card less its margins; its edge is the action
-                // colour, so it looks like a thing to press.
-                Rectangle {
+                // The one target. It is deliberately large: 96 dp high, the whole width of the card less its
+                // margins, the primary button's ink with its hard drop; it sinks onto the drop while it is held.
+                PixelBox {
                     id: holdTarget
                     objectName: "gateHoldTarget"
                     Layout.fillWidth: true
                     Layout.topMargin: Theme.space4
+                    Layout.bottomMargin: Theme.shadowLarge
                     Layout.preferredHeight: Math.max(Theme.targetPrimary, holdWords.implicitHeight + 2 * Theme.space3)
-                    radius: Theme.radius
-                    color: root.holding ? Theme.selectedFill : Theme.card
-                    border.width: Theme.heavy
-                    border.color: Theme.accent
+                    fill: Theme.buttonFill
+                    edge: Theme.buttonFill
+                    edgeWidth: Theme.outlineControl
+                    radius: Theme.radiusPanel
+                    shadowOffset: Theme.shadowLarge
+                    sunk: root.holding
                     activeFocusOnTab: true
 
                     readonly property bool showFocus: activeFocus && !pointerFocus
@@ -173,11 +179,13 @@ FocusScope {
                     ColumnLayout {
                         id: holdWords
                         anchors.centerIn: parent
+                        anchors.verticalCenterOffset: holdTarget.sunk ? holdTarget.shadowOffset : 0
                         width: parent.width - 2 * Theme.space3
                         spacing: Theme.space1
                         Label {
                             Layout.fillWidth: true
                             role: "heading"
+                            color: Theme.buttonInk
                             text: ParentWording.gateHoldButton
                             horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.WordWrap
@@ -186,6 +194,7 @@ FocusScope {
                         Label {
                             Layout.fillWidth: true
                             role: "caption"
+                            color: Theme.buttonInk
                             text: ParentWording.gateHoldHint
                             horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.WordWrap
@@ -199,28 +208,36 @@ FocusScope {
                     }
                 }
 
-                // The progress is a bar, not a ring around two hidden spots: it
-                // says exactly how much longer the press has to last. The empty
-                // track is outlined in the token that holds 3:1 against the card.
-                Rectangle {
+                // The progress is a row of twenty steps, not a ring around two hidden spots: it says
+                // exactly how much longer the press has to last, a step to each tenth of a second. An
+                // empty step is outlined in the token that holds 3:1 against the card.
+                RowLayout {
                     id: progress
+                    objectName: "gateSteps"
+                    readonly property int steps: 20
+                    readonly property int filled: Math.floor(Math.min(1, root.controller.gateProgress) * steps)
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Theme.space2
-                    radius: Theme.radiusXs
-                    color: Theme.hoverWash
-                    border.width: Theme.hair
-                    border.color: Theme.track
+                    Layout.preferredHeight: Theme.space4
+                    // Closer together on a narrow card, so a step is still a step.
+                    spacing: width > 320 ? Theme.space1 : Theme.heavy
 
-                    Rectangle {
-                        width: parent.width * Math.min(1, root.controller.gateProgress)
-                        height: parent.height
-                        radius: parent.radius
-                        color: Theme.buttonFill
+                    Repeater {
+                        model: progress.steps
+                        Rectangle {
+                            required property int index
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.minimumWidth: 0
+                            color: index < progress.filled ? Theme.accent : Theme.hoverWash
+                            border.width: Theme.heavy
+                            border.color: Theme.outline
+                        }
                     }
                 }
 
                 Label {
                     Layout.fillWidth: true
+                    visible: !root.short
                     role: "caption"
                     horizontalAlignment: Text.AlignHCenter
                     text: ParentWording.gateKeys

@@ -138,11 +138,17 @@ TestCase {
         verify(parentController.gateProgress > 0.4)
         verify(parentController.gateProgress < 0.6)
         compare(parentController.unlocked, false)
+        // The progress is twenty steps, about half of them filled at the half-way mark.
+        const steps = allItems(view).find(item => item.objectName === "gateSteps")
+        verify(steps !== undefined)
+        compare(steps.steps, 20)
+        verify(steps.filled >= 8 && steps.filled <= 12)
 
         // Letting go starts it over: nothing is lost and nothing opens.
         mouseRelease(hold, hold.width / 2, hold.height / 2)
         compare(parentController.gateHolding, false)
         compare(parentController.gateProgress, 0)
+        compare(steps.filled, 0)
         compare(parentController.unlocked, false)
 
         // A full hold opens it.

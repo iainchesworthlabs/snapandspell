@@ -19,6 +19,9 @@ SizeMatrixCase {
 
     name: "SizeMatrixScan"
     subjects: [readyComponent, cameraComponent, typedComponent, readComponent]
+    // The scan screen without a camera and the check of a typed board fit a phone upright whole: the
+    // buttons that go on are in view, not a scroll away. (On its side they scroll a little.)
+    onePageUprightSubjects: [0, 2]
     // Subject 1 is the live view, a VideoOutput.
     skipSubjects: fixture.mediaBackendAvailable ? [] : [1]
     skipReason: "Qt Multimedia has no backend on this machine"
