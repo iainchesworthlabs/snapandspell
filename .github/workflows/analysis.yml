@@ -149,9 +149,10 @@ jobs:
         shell: bash
         run: cmake --build --preset windows-msvc-analysis
 
-      # Each translation unit writes its SARIF beside its object; flatten them
-      # into one directory for the upload. Even a red build has the logs of the
-      # units that were analyzed.
+      # Each translation unit writes its SARIF beside its object. Flatten them,
+      # then merge them into one log with one run: the upload refuses several runs
+      # in one category. Even a red build has the logs of the units that were
+      # analyzed.
       - name: Collect the analyzer's SARIF
         if: ${{ always() }}
         shell: pwsh
@@ -159,14 +160,13 @@ jobs:
           New-Item -ItemType Directory -Force build/msvc-sarif | Out-Null
           Get-ChildItem build/windows-msvc-analysis -Recurse -Filter *.nativecodeanalysis.sarif `
             -ErrorAction SilentlyContinue | Copy-Item -Destination build/msvc-sarif
-          Get-ChildItem build/msvc-sarif -Filter *.sarif | Measure-Object |
-            Select-Object -ExpandProperty Count
+          python tools/ci/merge_sarif.py build/msvc-sarif build/msvc-merged/msvc-analyze.sarif
 
       - name: Upload the analyzer's SARIF
-        if: ${{ always() && !github.event.repository.private && hashFiles('build/msvc-sarif/*.sarif') != '' }}
+        if: ${{ always() && !github.event.repository.private && hashFiles('build/msvc-merged/*.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
-          sarif_file: build/msvc-sarif
+          sarif_file: build/msvc-merged
           category: msvc-analyze
           # The workflow runs on main's ref; the code analysed is what was checked out.
           ref: ${{ github.event_name == 'schedule' && 'refs/heads/develop' || github.ref }}
