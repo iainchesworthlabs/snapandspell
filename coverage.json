@@ -1,13 +1,13 @@
 {
-  "branch": 87.08,
+  "branch": 87.1,
   "components": {
     "apps/cli": {
       "branch": 91.18,
       "line": 88.24
     },
     "libs/core": {
-      "branch": 86.91,
-      "line": 95.37
+      "branch": 86.93,
+      "line": 95.38
     },
     "libs/platforms": {
       "branch": 64.29,
@@ -20,5 +20,5 @@
   },
   "date": "2026-10-30",
   "line": 95.64,
-  "sha": "7f41c9c134d71b805a9b143b29949812a2d2817e"
+  "sha": "de6f58dd14d87028c40a48b5e0e0cf1d7bb469ea"
 }
