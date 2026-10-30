@@ -128,9 +128,9 @@ the post-MVP part:
 
 **As built:** the tiers, the stars (+1, +2, +5) and the first-time sticker are
 the library's (`game_rules`), and the word is read, with the cheer and the
-chime. **Not built:** the sparkle, the rainbow trail, the burst, confetti and
-the Mega screen shake. The jewel's size shows the tier and no particle effect
-exists in the QML. The sticker is worked out for a first-time Power or Mega
+chime, and a Spark gets a small sparkle on the word (`Sparkle.qml`). **Not built:** the
+rainbow trail, the burst, confetti and the Mega screen shake. The jewel's size shows
+the tier and no other particle effect exists in the QML. The sticker is worked out for a first-time Power or Mega
 word (`TraceOutcome::sticker`), and the traced-word signal the screens receive
 does not carry it, so no screen shows it to the child.
 

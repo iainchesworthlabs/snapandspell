@@ -87,11 +87,31 @@ Item {
         function onStateChanged() {
             if (root.solo.state === "word-found") {
                 wordTimer.restart();
+                root.sparkleWord();
             }
         }
         function onBoardChanged() {
             root.focusIndex = 0;
         }
+    }
+
+    // The sparkle of a found word: one burst at the word's last tile, when the word is shown.
+    function sparkleWord() {
+        const path = root.solo.litPath;
+        if (path.length === 0) {
+            return;
+        }
+        const end = root.centre(path[path.length - 1]);
+        sparkle.x = end.x;
+        sparkle.y = end.y;
+        sparkle.reach = root.tileSize * 1.1;
+        sparkle.burst();
+    }
+
+    Sparkle {
+        id: sparkle
+        objectName: "sparkle"
+        z: 5
     }
 
     Timer {

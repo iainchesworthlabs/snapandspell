@@ -1,0 +1,1 @@
+**A found word sparkles.** A burst of six small gold squares flies out from the last tile of a word you found and fades in about half a second, once. With reduced motion there is nothing to see, and the word and its jewel appear as before.
