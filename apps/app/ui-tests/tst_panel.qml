@@ -297,7 +297,7 @@ TestCase {
     }
 
     function listOf(tray) {
-        return allItems(tray).find(item => item.count !== undefined && item.model !== undefined)
+        return findChild(tray, "wordsList")
     }
 
     function test_everythingIsInViewInATallPanel() {
@@ -315,8 +315,8 @@ TestCase {
         verify(card !== null)
         const list = listOf(tall)
         verify(list.height >= Theme.rowHeight)
-        // Whole rows only, so no row is cut under the heading.
-        compare(list.height % Theme.rowHeight, 0)
+        // Whole rows only, so no row is cut under the heading: n chips and the gaps between them.
+        compare((list.height + Theme.space1) % (Theme.rowHeight + Theme.space1), 0)
         // The hint and Finish are side by side, under the words, at the smaller size.
         const hint = buttonNamed(tall, SoloWording.showStart)
         const finish = buttonNamed(tall, SoloWording.finishBoard)
@@ -375,7 +375,7 @@ TestCase {
                                             { width: 300, height: 548, wide: true, solo: soloModel })
         const card = findChild(small, "wordsCard")
         verify(card.height >= 170, "the words card is " + card.height + " dp tall")
-        verify(listOf(small).height >= 2 * Theme.rowHeight)
+        verify(listOf(small).height >= 2 * Theme.rowHeight + Theme.space1)
     }
 
     function test_noActionClipsInANarrowPanel() {
@@ -445,8 +445,9 @@ TestCase {
         soloModel.wordShown()
         const tray = panel()
         const list = listOf(tray)
-        tryVerify(() => list.itemAtIndex(0) !== null)
-        const row = list.itemAtIndex(0)
+        const chip = allItems(list).find(item => item.activeFocusOnTab === true && item.visible)
+        verify(chip !== undefined)
+        const row = chip
         compare(row.height, Theme.rowHeight)
         verify(row.height >= 48)
         verify(row.activeFocusOnTab)
@@ -476,6 +477,31 @@ TestCase {
         const list = listOf(small)
         compare(list.count, 5)
         tryVerify(() => list.contentY + list.height >= list.contentHeight - 1)
-        compare(list.contentY % Theme.rowHeight, 0)
+        compare(list.contentY % (Theme.rowHeight + Theme.space1), 0)
+    }
+
+    function test_aNarrowPanelShowsSeveralWordsInARow() {
+        // A phone upright shows one row of the words found; the words are chips that wrap, so that
+        // row holds as many as fit and not one.
+        play()
+        for (const word of ["sit", "sat", "tap"]) {
+            for (const index of pathFor(word)) {
+                soloModel.tapTile(index)
+            }
+            soloModel.done()
+            soloModel.wordShown()
+        }
+        const tall = createTemporaryObject(panelComponent, testCase,
+                                           { width: 360, height: 420, wide: false, solo: soloModel })
+        wait(100)
+        const list = listOf(tall)
+        compare(list.count, 3)
+        const chips = allItems(list).filter(item => item.activeFocusOnTab === true && item.visible)
+        verify(chips.length >= 2, "two words or more are in view, not one: " + chips.length)
+        for (const chip of chips) {
+            const at = chip.mapToItem(list, 0, 0)
+            verify(at.x >= -0.5 && at.x + chip.width <= list.width + 0.5, "a chip is inside the list across")
+            verify(chip.width >= 48 && chip.height >= 48, "a chip is a 48 dp target")
+        }
     }
 }

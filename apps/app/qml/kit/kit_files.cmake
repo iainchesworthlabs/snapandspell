@@ -33,10 +33,12 @@ set(SNS_KIT_QML_FILES
     PixelPicture.qml
     SegmentedChoice.qml
     Sheet.qml
+    Sparkle.qml
     TabletArt.qml
     Theme.qml
     TileFace.qml
     TileMark.qml
+    WordChips.qml
     Wordmark.qml)
 
 set(SNS_KIT_QML_SINGLETONS

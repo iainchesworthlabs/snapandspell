@@ -632,4 +632,40 @@ TestCase {
         compare(soloModel.state, "word-found")
         compare(board.linePath.length, 3)
     }
+
+    function test_aFoundWordSparklesOnceAndNotWithReducedMotion() {
+        const screen = soloScreen()
+        const sparkle = allItems(screen).find(item => item.objectName === "sparkle")
+        verify(sparkle !== undefined)
+        verify(!sparkle.playing)
+
+        soloModel.shake()
+        tryCompare(soloModel, "state", "playing")
+        soloModel.tapTile(2)
+        soloModel.tapTile(5)
+        soloModel.tapTile(8)
+        soloModel.done()
+        compare(soloModel.state, "word-found")
+        // One burst at the word's last tile, which fades out and stops: nothing loops.
+        verify(sparkle.playing)
+        tryCompare(sparkle, "playing", false, 3000)
+        compare(sparkle.progress, 1)
+    }
+
+    function test_withReducedMotionAFoundWordHasNoSparks() {
+        const screen = soloScreen()
+        const sparkle = allItems(screen).find(item => item.objectName === "sparkle")
+        verify(sparkle !== undefined)
+        Theme.reducedMotion = true
+        soloModel.shake()
+        tryCompare(soloModel, "state", "playing")
+        soloModel.tapTile(2)
+        soloModel.tapTile(5)
+        soloModel.tapTile(8)
+        soloModel.done()
+        compare(soloModel.state, "word-found")
+        // The word and its jewel appear, and no spark does.
+        verify(!sparkle.playing)
+        compare(sparkle.progress, 0)
+    }
 }
