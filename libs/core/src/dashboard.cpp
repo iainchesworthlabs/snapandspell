@@ -117,6 +117,14 @@ Dashboard build_dashboard(const StoreData& data, const PhaseIndex* index, Day to
             week.stars += static_cast<int>(tally.stars);
         }
     }
+    for (const FindRecord& find : data.finds) {
+        if (in_week(find.day, week)) {
+            ++week.finds;
+            if (find.start_tile_used) {
+                ++week.start_tiles_shown;
+            }
+        }
+    }
     for (const VaultWord& word : data.vault) {
         if (in_week(word.first_day, week)) {
             ++week.new_words;

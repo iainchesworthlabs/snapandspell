@@ -192,6 +192,13 @@ Flickable {
                 text: ParentWording.longestWord(root.week.longestWord)
                 wrapMode: Text.WordWrap
             }
+            Label {
+                Layout.fillWidth: true
+                visible: root.week.finds > 0
+                role: "body"
+                text: ParentWording.startTilesShown(root.week.startTilesShown, root.week.finds)
+                wrapMode: Text.WordWrap
+            }
         }
 
         // --- the sounds ---------------------------------------------------------

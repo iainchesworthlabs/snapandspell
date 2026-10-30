@@ -471,6 +471,23 @@ TEST_CASE("this week counts the words met for the first time this week", "[dashb
     CHECK(d.week.new_words == 1);  // tap; sat was met last week
 }
 
+TEST_CASE("this week counts the finds and those for which the start tile was shown",
+          "[dashboard][week]") {
+    auto store = sns::Store::in_memory();
+    put(store, board("", {}, {found("sat", 1, true), found("tap", 1)}), monday - 3);  // last week
+    put(store, board("", {}, {found("pin", 1, true), found("pan", 1, true), found("nip", 1)}),
+        monday + 1);
+
+    const auto d = sns::build_dashboard(store.data(), nullptr, friday, 1);
+
+    CHECK(d.week.finds == 3);
+    CHECK(d.week.start_tiles_shown == 2);
+
+    const auto empty = sns::build_dashboard(sns::Store::in_memory().data(), nullptr, friday, 1);
+    CHECK(empty.week.finds == 0);
+    CHECK(empty.week.start_tiles_shown == 0);
+}
+
 TEST_CASE("the longest word of the week is the longest, the first alphabetically of equal",
           "[dashboard][week]") {
     auto store = sns::Store::in_memory();

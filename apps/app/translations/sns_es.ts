@@ -283,12 +283,12 @@
     </message>
     <message>
         <location line="+1"/>
-        <location line="+107"/>
+        <location line="+113"/>
         <source>Settings</source>
         <translation>Ajustes</translation>
     </message>
     <message>
-        <location line="-105"/>
+        <location line="-111"/>
         <source>About</source>
         <extracomment>The About tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Acerca de</translation>
@@ -490,6 +490,11 @@
         <location line="+2"/>
         <source>This week: %1.</source>
         <translation>Esta semana: %1.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>The start tile was shown for %1 of %2 words.</source>
+        <translation>Se mostró la casilla de inicio en %1 de %2 palabras.</translation>
     </message>
     <message>
         <location line="+4"/>
@@ -781,8 +786,8 @@
         <translation>Borrado.</translation>
     </message>
     <message>
-        <location line="-191"/>
-        <location line="+194"/>
+        <location line="-197"/>
+        <location line="+200"/>
         <source>Licences</source>
         <extracomment>The Licences tab of the parent area, and the heading of the page it shows.</extracomment>
         <translation>Licencias</translation>

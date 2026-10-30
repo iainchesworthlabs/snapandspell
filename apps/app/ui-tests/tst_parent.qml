@@ -190,6 +190,8 @@ TestCase {
         verify(texts.indexOf(ParentWording.recordsHeading) >= 0)
         verify(texts.indexOf(ParentWording.weekSentence(week.boardsCleared, week.stars,
                                                         week.newWords)) >= 0)
+        verify(week.finds > 0)
+        verify(texts.indexOf(ParentWording.startTilesShown(week.startTilesShown, week.finds)) >= 0)
         verify(texts.indexOf(ParentWording.soundsHeading) >= 0)
         verify(report.sounds.length > 0)
         const ai = report.sounds.find(sound => sound.letters === "ai")
