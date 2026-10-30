@@ -10,7 +10,7 @@ a bad input and never crashes; the fuzzers are there to find the input for which
 
 | Library | Targets (`sns_fuzz_<name>`) |
 | --- | --- |
-| `libs/core/fuzz` | `board` (`Board::parse`: every position a board says it has holds a tile of one to three letters), `dictionary` (`Dictionary::load`), `dice_set` (`DiceSet::parse`, and the roll of a set with a square number of dice), `phase_graphemes` and `phase_words` (the phonics files; every problem is reported and can be written out), `store` (`parse_store`; a store that reads writes out again and reads back as the same data) |
+| `libs/core/fuzz` | `board` (`Board::parse`: every position a board says it has holds a tile of one to three letters), `cli_arguments` (`parse_cli_arguments`, the command line of `sns-cli`, one argument to a line: a wrong one is an error with a sentence, a right one has a repeat count of one or more), `dictionary` (`Dictionary::load`), `dice_set` (`DiceSet::parse`, and the roll of a set with a square number of dice), `phase_graphemes` and `phase_words` (the phonics files; every problem is reported and can be written out), `store` (`parse_store`; a store that reads writes out again and reads back as the same data) |
 | `libs/scan/fuzz` | `frame_reader` (`read_board` over a frame: the first five bytes of the input are the pixel format, the width and the height, each up to 256, and a stride; the rest are the pixels, so the buffer is as short or as long as the input makes it) |
 
 The `store` target also tries each input with its checksum rewritten. The file ends in the FNV-1a hash of
