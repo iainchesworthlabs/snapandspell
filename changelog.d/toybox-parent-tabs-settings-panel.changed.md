@@ -1,0 +1,1 @@
+**The parent area follows the Toybox design.** The four tabs are buttons, the chosen one coral; each group of settings is one outlined panel with a dashed line between its rows; and the My boards icon is filled.
