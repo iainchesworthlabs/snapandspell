@@ -41,8 +41,10 @@ set(SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
 # (docs/roadmap.md); until then Mode A reads the camera through Qt Multimedia, as
 # the desktops do, and nothing buzzes.
 set(SNS_PLATFORM_SOURCES
+    detail/audio_output_none.cpp
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
+    detail/speech_output_none.cpp
     detail/fatal_error_stderr.cpp
     detail/haptics_none.cpp
     detail/window_chrome_none.cpp

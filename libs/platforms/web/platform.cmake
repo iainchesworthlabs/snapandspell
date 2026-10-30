@@ -16,10 +16,12 @@
 #     those are in; with Qt's default local-fonts setting a browser that has such a font may
 #     supply it.
 #   * No Qt Multimedia, Qt Sensors or Qt Speech in the kit, so the variants the application
-#     already has for a kit without them are the ones built: no sound, no spoken word, no
-#     accelerometer shake (the Shake button, Space and a drag are the ways in, as on a desktop)
-#     and no camera (the Family Assistant's scan screens say so and offer typing the board).
-#     docs/ci.md, "Web", lists them as what the web has not got yet.
+#     already has for a kit without them are the ones built. The sound and the spoken word are
+#     the browser's own, through this fragment (audio_output_web.cpp: Web Audio;
+#     speech_output_web.cpp: speech synthesis, a voice that runs on the device only). There is
+#     no accelerometer shake (the Shake button, Space and a drag are the ways in, as on a
+#     desktop) and no camera (the Family Assistant's scan screens say so and offer typing the
+#     board). docs/ci.md, "Web", lists them as what the web has not got yet.
 #   * No installed data directory. The English dictionary and the dice are compiled into the
 #     program's resources and laid down in the in-memory file system at start (paths_web.cpp), as
 #     the Android build does. What the person keeps (the one store file) lives under /persist,
@@ -72,9 +74,11 @@ set(SNS_PLATFORM_SOURCES
     detail/camera_unavailable.cpp
     detail/window_chrome_none.cpp
     posix/console_posix.cpp
+    web/audio_output_web.cpp
     web/fatal_error_web.cpp
     web/haptics_web.cpp
-    web/paths_web.cpp)
+    web/paths_web.cpp
+    web/speech_output_web.cpp)
 
 # paths_web.cpp reads the unpacked data out of Qt's resource system. Emscripten's own JS
 # library calls (EM_ASM) need no library to link.
