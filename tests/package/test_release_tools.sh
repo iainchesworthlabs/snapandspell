@@ -183,6 +183,12 @@ sign_uses="$(grep -c 'actions/sign-windows@' "$workflow" || true)"
 sign_modes="$(grep -Fc 'mode: ${{ vars.SIGN_WINDOWS || '"'"'false'"'"' }}' "$workflow" || true)"
 if [ "$sign_uses" -ge 1 ] && [ "$sign_uses" = "$sign_modes" ]; then ok "every sign-windows step takes its mode from SIGN_WINDOWS, false when unset"; else bad "a sign-windows step does not take its mode from vars.SIGN_WINDOWS || 'false' ($sign_uses steps, $sign_modes with the mode)"; fi
 
+# --- the web bundle: web-build.yml's own job, called by the release, handed on as package-web -----
+web_workflow=".github/workflows/web-build.yml"
+if grep -q 'uses: ./.github/workflows/web-build.yml' "$workflow" && grep -q 'artifact-name: package-web' "$workflow" \
+  && grep -q '^  workflow_call:' "$web_workflow"; then ok "the release calls web-build.yml, which can be called, and names its artifact package-web"; else bad "the release does not call web-build.yml as package-web"; fi
+if awk '/^  assemble:/{f=1} f && /needs:/{print; exit}' "$workflow" | grep -q '\bweb\b'; then ok "the assemble job waits for the web bundle"; else bad "the assemble job does not wait for the web bundle"; fi
+
 # --- the iOS job: its secrets, its kit and what it hands to the assemble job ---------
 echo "release.yml, iOS"
 for secret in IOS_DIST_CERT_P12_BASE64 IOS_DIST_CERT_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 APPSTORE_API_KEY_ID APPSTORE_API_ISSUER_ID APPSTORE_API_PRIVATE_KEY; do

@@ -923,7 +923,9 @@ queue, run only when something the web build reads changes (`libs/`, `apps/`, `c
    (the boot script hides it when Qt reports the program loaded) and the page is not marked failed. No
    browser driver and no package is installed for this.
 7. Zip the bundle as `SnapAndSpell-<version>-web.zip` and upload it as the `web-bundle` artifact
-   (14 days).
+   (14 days). `release.yml` calls this workflow as its `web` job, with the artifact named `package-web`
+   and the release's pre-release suffix in the zip's name, so that the shared Publish job attaches the zip
+   to the release; the web has not been through a release rehearsal yet.
 
 [Playing in a browser](web.md) says what the page keeps, what it lacks and what hosting it needs.
 
