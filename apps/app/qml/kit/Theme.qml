@@ -341,6 +341,10 @@ QtObject {
     readonly property real measure: 720
     readonly property real cardArt: 240
     readonly property real cardArtMin: 160
+    // Where the type is larger than the design's, the words need the room first: the picture gives way
+    // down to this (none: a card shows its picture only from `cardArtCompact` up), and the card is not
+    // pushed off the window.
+    readonly property real cardArtLeast: 0
     // The picture's least height on a phone upright, where the card is a page of its own.
     readonly property real cardArtCompact: 96
     // A tall Solo window's least panel (the words and the actions) and least board, in dp.

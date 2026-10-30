@@ -189,6 +189,27 @@ TestCase {
         verify(buttonNamed(view, ScanWording.typeBoard).visible)
     }
 
+    function test_aPhoneOnItsSideHasCaptureInViewBesideTheFrame() {
+        if (!fixture.mediaBackendAvailable) {
+            skip("Qt Multimedia has no backend on this machine")
+        }
+        fixture.useCamera()
+        const view = createTemporaryObject(screenComponent, testCase,
+                                           { width: 844, height: 390, scan: scanModel, assist: assistModel })
+        verify(view !== null)
+        tryCompare(scanModel, "cameraAvailable", true)
+        wait(100)
+        const capture = buttonNamed(view, ScanWording.capture)
+        const at = capture.mapToItem(view, 0, 0)
+        // Capture is on the screen without a scroll, and the frame is to its leading side, not above it.
+        verify(at.y >= 0 && at.y + capture.height <= view.height, "Capture is in view: " + at.y)
+        const frame = allItems(view).find(item => item.showWell === false)
+        verify(frame !== undefined)
+        const frameAt = frame.mapToItem(view, 0, 0)
+        verify(frameAt.x + frame.width <= at.x + 0.5, "the frame is beside Capture, not above it")
+        verify(frame.height >= 96, "the frame is a usable size: " + frame.height)
+    }
+
     // --- scan.ready -> scan.check -------------------------------------------
     function test_typingABoardOpensTheCheckScreen() {
         const view = screen()
