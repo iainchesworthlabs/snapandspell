@@ -19,6 +19,7 @@ if(SNS_BUILD_CLI)
             output-every-time-2
             output-every-time-3
             output-every-time-4
+            output-unwritable
             solve
             min-length
             rarity
