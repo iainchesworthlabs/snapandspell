@@ -20,7 +20,7 @@ import SnapAndSpell
 //   ghost      text (and an icon) on the paper, no outline and no shadow, a wash on hover
 //   danger     a destructive action: cream, a 4 px pink outline and an x mark, the text in ink
 //   dangerQuiet  the same, for a step before the last
-//   tab        a page switch: text with an underline when `checked`
+//   tab        a page switch: a secondary button, coral with a 4 px outline when `checked` (no check mark)
 //   picture    a ghost button whose content is the caller's own picture
 //
 // Toybox (docs/design/toybox/DESIGN.md, section 6): a pressed button sinks 4 px onto its shadow, a
@@ -81,7 +81,7 @@ Item {
     readonly property bool isDanger: variant === "danger"
     readonly property bool isFilled: isPrimary || isDanger
     readonly property bool isTab: variant === "tab"
-    readonly property bool isGhost: variant === "ghost" || variant === "picture" || isTab
+    readonly property bool isGhost: variant === "ghost" || variant === "picture"
     readonly property bool hasLabel: label.length > 0
     readonly property bool hasIcon: iconName !== ""
     readonly property bool showChoice: checkable && checked && !isTab
@@ -109,7 +109,7 @@ Item {
         if (root.variant === "dangerQuiet") {
             return root.ink;
         }
-        if (root.checked && root.checkable && !root.isTab) {
+        if (root.checked && root.checkable) {
             return Theme.selectedInk;
         }
         return root.ink;
@@ -169,7 +169,7 @@ Item {
             if (root.isDangerous) {
                 return root.pressed ? root.pressFill : Theme.dangerFill;
             }
-            if (root.checked && root.checkable && !root.isTab) {
+            if (root.checked && root.checkable) {
                 return Theme.selectedFill;
             }
             if (root.isGhost) {
@@ -184,7 +184,7 @@ Item {
             if (!root.enabled) {
                 return Theme.outlineControl;
             }
-            if (root.isDangerous || (root.checked && root.checkable && !root.isTab)) {
+            if (root.isDangerous || (root.checked && root.checkable)) {
                 return Theme.outlinePanel;
             }
             return Theme.outlineControl;
@@ -196,7 +196,7 @@ Item {
             if (root.isDangerous) {
                 return Theme.danger;
             }
-            if (root.checked && root.checkable && !root.isTab) {
+            if (root.checked && root.checkable) {
                 return Theme.selectedEdge;
             }
             return root.edge;
@@ -208,19 +208,6 @@ Item {
         id: inner
         anchors.fill: parent
         y: face.sunk ? root.shadowSize : 0
-
-        // A tab's chosen page: an emerald underline across its foot.
-        Rectangle {
-            visible: root.isTab && root.checked
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: Theme.space2
-            anchors.rightMargin: Theme.space2
-            height: Theme.litEdge
-            radius: Theme.radiusXs
-            color: Theme.selectedEdge
-        }
 
         Item {
             id: contentArea

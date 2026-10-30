@@ -42,9 +42,13 @@ namespace {
         language = "yi";
     }
     if (language == "zh") {
+        // The script says which it is when the tag gives one ("zh-Hans-HK" is Simplified as
+        // written in Hong Kong); only a tag with no script is read by its region.
         static constexpr std::array<std::string_view, 4> traditional = {"hant", "tw", "hk", "mo"};
+        const auto rest = parts | std::views::drop(1);
+        const bool is_simplified = std::ranges::find(rest, "hans") != rest.end();
         const bool is_traditional =
-            std::ranges::any_of(parts | std::views::drop(1), [](const std::string& part) {
+            !is_simplified && std::ranges::any_of(rest, [](const std::string& part) {
                 return std::ranges::find(traditional, part) != traditional.end();
             });
         return is_traditional ? std::string_view{} : canonical_language("zh_CN");

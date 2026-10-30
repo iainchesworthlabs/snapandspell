@@ -47,8 +47,12 @@ TEST_CASE("Chinese is Simplified unless the tag says Traditional", "[language]")
     CHECK(code_of({"zh-Hans"}) == "zh_CN");
     CHECK(code_of({"zh-Hans-CN"}) == "zh_CN");
     CHECK(code_of({"zh-SG"}) == "zh_CN");
-    for (const char* tag : {"zh-Hant", "zh-Hant-TW", "zh-TW", "zh_TW", "zh-HK", "zh-Hans-HK",
-                            "zh-MO", "zh-Hant-MO"}) {
+    // The script wins over the region: Simplified as written in Hong Kong or Macao is Simplified.
+    CHECK(code_of({"zh-Hans-HK"}) == "zh_CN");
+    CHECK(code_of({"zh-Hans-MO"}) == "zh_CN");
+    CHECK(code_of({"zh-Hans-TW"}) == "zh_CN");
+    for (const char* tag : {"zh-Hant", "zh-Hant-TW", "zh-TW", "zh_TW", "zh-HK", "zh-MO",
+                            "zh-Hant-MO", "zh-Hant-HK", "zh-Hant-CN"}) {
         CAPTURE(tag);
         CHECK(sns::choose_language(std::string_view(tag)).code == "en");
         CHECK(sns::choose_language(std::string_view(tag)).matched.empty());

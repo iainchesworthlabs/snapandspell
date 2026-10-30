@@ -38,8 +38,10 @@ set(SNS_PLATFORM_APP_RC_TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/packaging/app.rc.in"
 set(SNS_PLATFORM_APP_ICON "${PROJECT_SOURCE_DIR}/assets/icon/app.ico")
 
 set(SNS_PLATFORM_SOURCES
+    detail/audio_output_none.cpp
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
+    detail/speech_output_none.cpp
     detail/haptics_none.cpp
     windows/console_windows.cpp
     windows/fatal_error_windows.cpp

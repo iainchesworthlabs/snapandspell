@@ -1,6 +1,7 @@
 add_executable(sns_unit_tests
     board_test.cpp
     calendar_test.cpp
+    cli_arguments_test.cpp
     dashboard_test.cpp
     dice_data_test.cpp
     dice_sets_test.cpp
@@ -19,6 +20,7 @@ add_executable(sns_unit_tests
     path_test.cpp
     paths_test.cpp
     phase_data_test.cpp
+    platform_output_test.cpp
     profiling_test.cpp
     scoring_test.cpp
     settings_test.cpp

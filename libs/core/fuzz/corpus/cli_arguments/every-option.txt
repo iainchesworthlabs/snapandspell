@@ -1,0 +1,10 @@
+-d
+dictionaries/en.txt
+-m
+4
+-s
+rarity
+-r
+3
+Qu I T
+A B C

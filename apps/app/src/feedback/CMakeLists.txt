@@ -4,8 +4,8 @@
 # Each engine is a small QObject whose backend is one of two sources with the
 # same header path, chosen here by CMake:
 #
-#   sns/app/sound_backend.hpp   variants/sound-multimedia  or  sound-silent
-#   sns/app/speech_backend.hpp  variants/speech-texttospeech or speech-silent
+#   sns/app/sound_backend.hpp   variants/sound-multimedia  or  sound-platform (the platform's own output)
+#   sns/app/speech_backend.hpp  variants/speech-texttospeech or speech-platform (the platform's own voice)
 #   sns/app/motion_backend.hpp  variants/motion-sensors    or  motion-silent
 #
 # It is the repository's variant pattern (cmake/Tracy.cmake and

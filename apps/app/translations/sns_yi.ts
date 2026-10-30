@@ -1263,22 +1263,22 @@
         <translation>איר האָט געפֿונען אַלע %1 ווערטער!</translation>
     </message>
     <message>
-        <location line="+51"/>
+        <location line="+76"/>
         <source>Look at the jewels you collected.</source>
         <translation>קוק בייַ די דזשולז איר געזאמלט.</translation>
     </message>
     <message>
-        <location line="-52"/>
+        <location line="-77"/>
         <source>You found the word!</source>
         <translation>דו האָסט געפֿונען דאָס וואָרט!</translation>
     </message>
     <message>
-        <location line="+138"/>
+        <location line="+164"/>
         <source>+%1</source>
         <translation>+%1</translation>
     </message>
     <message>
-        <location line="+123"/>
+        <location line="+124"/>
         <source>You found this one already.</source>
         <translation>דאָס האָסטו שוין געפֿונען.</translation>
     </message>

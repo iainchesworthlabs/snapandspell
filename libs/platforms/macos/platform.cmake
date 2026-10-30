@@ -29,8 +29,10 @@ set(SNS_PLATFORM_QT_HEADLESS_ENVIRONMENT "")
 # board reader (docs/design/scanner.md), and the no-op haptics every desktop
 # answers with (libs/platforms/interfaces/sns/platform/haptics.hpp).
 set(SNS_PLATFORM_SOURCES
+    detail/audio_output_none.cpp
     detail/board_reader_portable.cpp
     detail/camera_unavailable.cpp
+    detail/speech_output_none.cpp
     detail/fatal_error_stderr.cpp
     detail/haptics_none.cpp
     detail/window_chrome_none.cpp

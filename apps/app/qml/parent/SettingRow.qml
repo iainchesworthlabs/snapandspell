@@ -4,9 +4,9 @@ import QtQuick.Layouts
 import SnapAndSpell
 
 // A name, what it does, and the control: side by side where there is room, one
-// above the other where there is not. A card of the kit's look (the card colour
-// and the `line` edge); the name and the hint are Labels.
-Rectangle {
+// above the other where there is not. A row of a SettingGroup's panel: no edge of its own, a dashed
+// line above it that divides it from the row before; the name and the hint are Labels.
+Item {
     id: root
 
     property string title
@@ -16,10 +16,25 @@ Rectangle {
     readonly property bool narrow: width < 560
 
     implicitHeight: layout.implicitHeight + 2 * Theme.space4
-    radius: Theme.radius
-    color: Theme.card
-    border.width: Theme.hair
-    border.color: Theme.line
+
+    // The dashed line above the row.
+    Row {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.leftMargin: Theme.outlinePanel
+        spacing: Theme.space2
+        Accessible.ignored: true
+
+        Repeater {
+            model: Math.ceil((root.width - 2 * Theme.outlinePanel) / (Theme.space3 + Theme.space2))
+
+            Rectangle {
+                width: Theme.space3
+                height: Theme.outlineControl
+                color: Theme.surfaceDim
+            }
+        }
+    }
 
     GridLayout {
         id: layout

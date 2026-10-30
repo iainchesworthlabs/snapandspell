@@ -136,7 +136,7 @@ def icon_parent() -> Grid:
 def icon_history() -> Grid:
     g = Grid(12)
     for x, y in ((0, 0), (7, 0), (0, 7), (7, 7)):
-        g.rect(x, y, 5, 5)
+        g.rect(x, y, 5, 5, fill=True)
     return g
 
 

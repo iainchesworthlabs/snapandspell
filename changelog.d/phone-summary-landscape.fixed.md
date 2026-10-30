@@ -1,0 +1,1 @@
+**The summary on a phone on its side shows more of the words.** The stars and points now stand beside the words instead of above them, so two words show where one did. The Parent area, My jewels and the other screens were checked at phone size and needed no change.
