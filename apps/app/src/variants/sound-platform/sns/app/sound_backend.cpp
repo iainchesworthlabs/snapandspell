@@ -10,9 +10,9 @@
 #include "sns/platform/audio_output.hpp"
 
 // Compiled when Qt Multimedia is not in the kit. The cue goes to the platform's own output
-// (sns/platform/audio_output.hpp: Web Audio in the browser), and where the platform has none nothing is
-// played: the engine still counts the cue as a request, so the wiring is the same and a build without
-// sound is still a working game.
+// (sns/platform/audio_output.hpp: Web Audio in the browser), and where the platform has none
+// nothing is played: the engine still counts the cue as a request, so the wiring is the same and a
+// build without sound is still a working game.
 
 namespace sns::app {
 
@@ -35,10 +35,11 @@ void SoundBackend::play(std::string_view asset, double volume) {
         return;
     }
     const QByteArray bytes = file.readAll();
-    sns::platform::play_wav(asset,
-                            std::span<const std::byte>(reinterpret_cast<const std::byte*>(bytes.constData()),
-                                                       static_cast<std::size_t>(bytes.size())),
-                            volume);
+    sns::platform::play_wav(
+        asset,
+        std::span<const std::byte>(reinterpret_cast<const std::byte*>(bytes.constData()),
+                                   static_cast<std::size_t>(bytes.size())),
+        volume);
 }
 
 }  // namespace sns::app

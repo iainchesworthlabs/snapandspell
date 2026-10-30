@@ -6,9 +6,10 @@
 #include "sns/platform/audio_output.hpp"
 #include "sns/platform/speech_output.hpp"
 
-// The sound and the voice a platform offers where Qt has none (libs/platforms/detail/*_output_none.cpp,
-// on every platform but the browser): there is no output and no voice, and a request for either is a
-// harmless nothing, so the build that uses them is a working game with no sound.
+// The sound and the voice a platform offers where Qt has none
+// (libs/platforms/detail/*_output_none.cpp, on every platform but the browser): there is no output
+// and no voice, and a request for either is a harmless nothing, so the build that uses them is a
+// working game with no sound.
 
 TEST_CASE("a platform with no output of its own plays nothing, harmlessly", "[platform][audio]") {
     CHECK_FALSE(sns::platform::audio_output_available());

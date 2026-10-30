@@ -6,6 +6,8 @@
 
 #include "sns/platform/speech_output.hpp"
 
+// The JavaScript in EM_JS is the browser's, not C++: the formatter must not touch it.
+// clang-format off
 namespace {
 
 // Whether the browser has a local English voice. A browser loads its voice list after the page starts,
@@ -50,6 +52,7 @@ EM_JS(void, sns_web_speech_stop, (), {
 });
 
 }  // namespace
+// clang-format on
 
 namespace sns::platform {
 

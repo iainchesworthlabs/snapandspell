@@ -4,8 +4,8 @@
 #include <string_view>
 
 // The platform's sound backend: the build has no Qt Multimedia, so a cue goes to the platform's own
-// output where it has one (the browser's Web Audio) and is a harmless no-op where it has none. It is the
-// same header path and interface as the Qt Multimedia variant, chosen by CMake
+// output where it has one (the browser's Web Audio) and is a harmless no-op where it has none. It
+// is the same header path and interface as the Qt Multimedia variant, chosen by CMake
 // (apps/app/src/feedback/sound_engine.cpp includes it).
 
 namespace sns::app {

@@ -27,7 +27,8 @@ void SpeechBackend::say(const QString& text, double volume) {
         return;
     }
     const QByteArray utf8 = text.toUtf8();
-    sns::platform::speak(std::string_view(utf8.constData(), static_cast<std::size_t>(utf8.size())), volume);
+    sns::platform::speak(std::string_view(utf8.constData(), static_cast<std::size_t>(utf8.size())),
+                         volume);
 }
 
 void SpeechBackend::stop() {

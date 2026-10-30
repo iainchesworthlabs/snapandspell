@@ -6,6 +6,8 @@
 
 #include "sns/platform/audio_output.hpp"
 
+// The JavaScript in EM_JS is the browser's, not C++: the formatter must not touch it.
+// clang-format off
 namespace {
 
 // Whether the page has Web Audio. This is compiled into the program's script, not evaluated: the
@@ -60,6 +62,7 @@ EM_JS(void, sns_web_audio_play, (const char* name, const unsigned char* data, in
 });
 
 }  // namespace
+// clang-format on
 
 namespace sns::platform {
 

@@ -5,11 +5,12 @@
 #include <span>
 #include <string_view>
 
-// A platform's own way to play a short sound, for a build whose Qt has no Multimedia (the browser's:
-// Qt for WebAssembly). The application plays its cues through Qt Multimedia where the kit has it
-// (apps/app/src/variants/sound-multimedia); where it has not, the sound variant forwards here, so
-// the code that reads the files and the cues' policy are the same on every platform and only this
-// call differs. There is exactly one definition per platform, named in its platform.cmake:
+// A platform's own way to play a short sound, for a build whose Qt has no Multimedia (the
+// browser's: Qt for WebAssembly). The application plays its cues through Qt Multimedia where the
+// kit has it (apps/app/src/variants/sound-multimedia); where it has not, the sound variant forwards
+// here, so the code that reads the files and the cues' policy are the same on every platform and
+// only this call differs. There is exactly one definition per platform, named in its
+// platform.cmake:
 //
 //   - the web: Web Audio (libs/platforms/web/audio_output_web.cpp);
 //   - the others: detail/audio_output_none.cpp, which has no output and answers false.
@@ -24,8 +25,8 @@ namespace sns::platform {
 [[nodiscard]] bool audio_output_available();
 
 // Plays the WAV file whose bytes are `wav` at `volume` (0 to 1). `name` identifies the sound, so a
-// platform that decodes it can keep the result for next time. Never blocks, plays nothing where there
-// is no output, and is safe to call at any time.
+// platform that decodes it can keep the result for next time. Never blocks, plays nothing where
+// there is no output, and is safe to call at any time.
 void play_wav(std::string_view name, std::span<const std::byte> wav, double volume);
 
 }  // namespace sns::platform
