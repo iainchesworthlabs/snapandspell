@@ -497,7 +497,7 @@ a report for the next morning, not a blocked pull request.
 | Job | Runs on | What it does |
 | --- | --- | --- |
 | `clang-tidy` | ubuntu-26.04 | Configures `linux-gcc-analysis` for the compile database only (Debug, no tests, no Qt application, Tracy and sanitizers off, so vcpkg installs nothing; C++ module scanning off because GCC 15's `-fdeps` flags are not clang-tidy arguments) and runs the pinned clang-tidy (`.github/requirements/analysis.txt`) over it with `.clang-tidy`'s checks and **warnings as errors**. The database is checked to be non-empty first, so a misconfigured run cannot pass with nothing analysed. |
-| `MSVC /analyze` | windows-2025-vs2026 | Preset `windows-msvc-analysis` builds the library, platform layer, scanner and CLI with `/analyze /analyze:external- /W4 /WX`. The C6xxx findings are errors, so a finding is a red build; the SARIF each translation unit writes goes to **Security → Code scanning** (category `msvc-analyze`). |
+| `MSVC /analyze` | windows-2025-vs2026 | Preset `windows-msvc-analysis` builds the library, platform layer, scanner and CLI with `/analyze /analyze:external- /W4 /WX`. The C6xxx findings are errors, so a finding is a red build; the SARIF each translation unit writes is merged into one log (`tools/ci/merge_sarif.py`; the upload refuses several runs in one category) and goes to **Security → Code scanning** (category `msvc-analyze`). |
 | `Sanitizers (Linux, Clang)` | ubuntu-26.04 | Preset `linux-clang-debug`: the image's `clang++` builds the tree with AddressSanitizer and UBSan, and the whole ctest suite runs under them. The push legs cover GCC, AppleClang and MSVC; this is the nightly Clang build. |
 | `CodeQL / Analyze (cpp)` | ubuntu-26.04 | `codeql.yml` calls the shared CodeQL workflow of icl-common-infra with the `security-extended` query suite over the lean library/platform/CLI build (`linux-gcc-analysis`) and uploads to code scanning. A failed analysis opens or updates one `nightly-analysis` issue. Public-only, as above. |
 
@@ -923,7 +923,9 @@ queue, run only when something the web build reads changes (`libs/`, `apps/`, `c
    (the boot script hides it when Qt reports the program loaded) and the page is not marked failed. No
    browser driver and no package is installed for this.
 7. Zip the bundle as `SnapAndSpell-<version>-web.zip` and upload it as the `web-bundle` artifact
-   (14 days).
+   (14 days). `release.yml` calls this workflow as its `web` job, with the artifact named `package-web`
+   and the release's pre-release suffix in the zip's name, so that the shared Publish job attaches the zip
+   to the release; the web has not been through a release rehearsal yet.
 
 [Playing in a browser](web.md) says what the page keeps, what it lacks and what hosting it needs.
 

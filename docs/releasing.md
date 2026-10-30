@@ -39,6 +39,7 @@ that is no longer there.
 | Linux x64, the application | `ubuntu-26.04`, GCC, Qt 6.12.0 | `SnapAndSpell-<v>-x86_64.AppImage`, with Qt inside |
 | Linux x64, the solver | `ubuntu-26.04`, GCC | `.zip`, `.tar.gz`, `.deb`, `.rpm` of `sns-cli` only |
 | macOS arm64 | `macos-26`, AppleClang, Qt 6.12.0 | `SnapAndSpell-<v>-Darwin.dmg`: the application bundle and `sns-cli`; signed and notarised when the Apple secrets are set |
+| Web | `ubuntu-24.04`, Emscripten, Qt 6.12.0's WebAssembly kit | `SnapAndSpell-<v>-web.zip`: the static files of the page ([Playing in a browser](web.md)); GPL-3.0-only, because the page carries Qt's `qtloader.js` |
 | iPhone / iPad | `macos-26`, Xcode, Qt's iOS kit | no file: the build goes to TestFlight, when `SIGN_IOS_UPLOAD` is true ([iOS](ci.md#ios)) |
 | Android arm64 | `ubuntu-26.04`, Qt's Android kit | `...-android-arm64.apk` and `.aab`, when the four keystore secrets are set ([Android](ci.md#android)) |
 | Any | the tagged commit | `SnapAndSpell-<v>-source.tar.gz` (`git archive`, so `.gitattributes` decides what stays out) |
@@ -71,6 +72,7 @@ warns on first run; the GPG signature and the attestation prove who built a file
 | `Prepare the release` | Decides the mode. For a tag, `tools/release/check_release_ref.sh` requires `vMAJOR.MINOR.PATCH[-prerelease]` and the same version in `CMakeLists.txt` and `vcpkg.json`. |
 | `Build ...` (Windows, Linux solver, Linux application, macOS) | Configures the Release preset, builds, runs all of ctest, packages, smoke-tests what it packaged and checks what is in it (`check_release_build.ps1`: Tracy and sanitizers off, the expected packages present). |
 | `Build the iOS App Store IPA for TestFlight`, `Build the signed Android packages` | A tag, or a manual run unless its input is unticked (the iOS one only when `SIGN_IOS_UPLOAD` is true; a manual run uploads to TestFlight only with `upload_testflight`). |
+| `Web bundle` | `web-build.yml`, called by the release: builds the page with Emscripten and Qt's WebAssembly kit, checks what is in it (`verify_web.sh`), starts it in Chrome (`smoke_web.sh`) and uploads the zip as `package-web`. The weekly rehearsal builds it too. |
 | `Source archive and SBOM` | Downloads the packages, archives the source, writes the SBOM. A rehearsal ends here. |
 | `Publish` | The shared workflow. `Verify tag`: semver, on `develop`, the release has notes. `Sign and publish` (the `release` environment): `SHA512SUMS`, signatures checked against `docs/signing-key.asc`, attestations, the GitHub Release. `Fast-forward release branch`: for a final release, the release bot moves `main`. |
 | `Add the install notes` | Appends the iPhone and Android install sections to the notes, when those files exist. |

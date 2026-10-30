@@ -1033,10 +1033,23 @@ jobs:
   # (skipped), and Android does nothing without its secrets; a build that failed,
   # or an iOS or Android job that failed, stops here. A rehearsal ends here: the
   # files are the run's artifacts.
+  # The web bundle: the program built to WebAssembly, looked inside and started in Chrome by the
+  # same workflow that checks it on a pull request (web-build.yml), uploaded as package-web.
+  web:
+    name: Web bundle
+    needs: prepare
+    if: needs.prepare.outputs.desktop == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/web-build.yml
+    with:
+      artifact-name: package-web
+      suffix: ${{ needs.prepare.outputs.suffix }}
+
   assemble:
     name: Source archive and SBOM
-    needs: [prepare, build, ios, android]
-    if: ${{ !cancelled() && needs.build.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.ios.result) && contains(fromJSON('["success","skipped"]'), needs.android.result) }}
+    needs: [prepare, build, web, ios, android]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.web.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.ios.result) && contains(fromJSON('["success","skipped"]'), needs.android.result) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
