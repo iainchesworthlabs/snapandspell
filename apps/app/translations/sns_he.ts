@@ -145,13 +145,13 @@
     </message>
     <message>
         <location line="+3"/>
-        <location line="+28"/>
+        <location line="+46"/>
         <source>1 word</source>
         <translation>מילה אחת</translation>
     </message>
     <message>
-        <location line="-28"/>
-        <location line="+28"/>
+        <location line="-46"/>
+        <location line="+46"/>
         <source>%1 words</source>
         <translation>%1 מילים</translation>
     </message>
@@ -185,7 +185,37 @@
         <translation>%1 × %2</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-20"/>
+        <source>Stars</source>
+        <translation>כוכבים</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Points</source>
+        <translation>נקודות</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Words</source>
+        <translation>מילים</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>all boards</source>
+        <translation>בכל הלוחות</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>found so far</source>
+        <translation>נמצאו עד כה</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Stars each day this week: %1</source>
+        <translation>כוכבים בכל יום השבוע: %1</translation>
+    </message>
+    <message>
+        <location line="+15"/>
         <source>1 new word</source>
         <translation>מילה חדשה אחת</translation>
     </message>

@@ -471,6 +471,31 @@ TEST_CASE("this week counts the words met for the first time this week", "[dashb
     CHECK(d.week.new_words == 1);  // tap; sat was met last week
 }
 
+TEST_CASE("this week keeps the stars of each of its seven days, the first day first",
+          "[dashboard][week]") {
+    auto store = sns::Store::in_memory();
+    put(store, board("", {}, {found("sat", 3)}), monday - 1);  // last week: no bar
+    put(store, board("", {}, {found("tap", 2), found("pin", 1)}), monday);
+    put(store, board("", {}, {found("pan", 4)}), monday + 3);
+    put(store, board("", {}, {found("nip", 1)}), monday + 3);
+
+    const auto d = sns::build_dashboard(store.data(), nullptr, friday, 1);
+
+    CHECK(d.week.first_iso_weekday == 1);
+    CHECK(d.week.stars_by_day[0] == 3);
+    CHECK(d.week.stars_by_day[1] == 0);
+    CHECK(d.week.stars_by_day[3] == 5);
+    int total = 0;
+    for (const int stars : d.week.stars_by_day) {
+        total += stars;
+    }
+    CHECK(total == d.week.stars);
+
+    // Sunday first: the week begins on a Sunday and says so.
+    const auto sunday_first = sns::build_dashboard(store.data(), nullptr, friday, 7);
+    CHECK(sunday_first.week.first_iso_weekday == 7);
+}
+
 TEST_CASE("this week counts the finds and those for which the start tile was shown",
           "[dashboard][week]") {
     auto store = sns::Store::in_memory();

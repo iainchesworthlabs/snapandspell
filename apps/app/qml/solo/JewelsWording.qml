@@ -20,6 +20,24 @@ QtObject {
         return count === 1 ? qsTr("1 word") : qsTr("%1 words").arg(count);
     }
 
+    // The three big numbers of the page: a small label over the figure and what it counts.
+    readonly property string statStars: qsTr("Stars")
+    readonly property string statPoints: qsTr("Points")
+    readonly property string statWords: qsTr("Words")
+    readonly property string statAllBoards: qsTr("all boards")
+    readonly property string statFoundSoFar: qsTr("found so far")
+    // A figure, six digits wide like a score on a machine; a screen reader is given the plain number.
+    function padded(count) {
+        return String(count).padStart(6, "0");
+    }
+    // The week's bars: one letter a day, the first day of the week first.
+    function dayInitial(isoWeekday) {
+        return Qt.locale(Theme.language.length > 0 ? Theme.language : "").dayName(isoWeekday % 7, Locale.NarrowFormat);
+    }
+    function weekBars(starsByDay) {
+        return qsTr("Stars each day this week: %1").arg(starsByDay.join(", "));
+    }
+
     readonly property string bestTitle: qsTr("My best boards")
     // The three cells of a best board's row: its size, its stars and its words.
     function sizeLabel(size) {

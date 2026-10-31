@@ -20,6 +20,7 @@ TestCase {
     height: 2600
 
     Component { id: areaComponent; ParentArea { } }
+    Component { id: jewelsComponent; JewelsScreen { controller: parentController } }
 
     // What the shell binds from the parent's settings (Main.qml): the Text size
     // reaches every screen through the kit's one token set.
@@ -344,4 +345,25 @@ TestCase {
     }
 
     SignalSpy { id: closedSpy; signalName: "closed" }
+
+    // My jewels: the three figures in six digits, and the week as seven bars with a letter each.
+    function test_myJewelsShowsTheFiguresAndTheWeekAsSevenBars() {
+        const screen = createTemporaryObject(jewelsComponent, testCase, { width: 1160, height: 740 })
+        verify(screen !== null)
+        wait(100)
+        const texts = textsShown(screen)
+        verify(texts.indexOf(JewelsWording.padded(parentController.lifetimeStars)) >= 0)
+        verify(texts.indexOf(JewelsWording.padded(parentController.lifetimePoints)) >= 0)
+        verify(texts.indexOf(JewelsWording.padded(parentController.lifetimeWords)) >= 0)
+        compare(JewelsWording.padded(29), "000029")
+        const week = parentController.dashboard.week
+        compare(week.starsByDay.length, 7)
+        let total = 0
+        for (const stars of week.starsByDay) {
+            total += stars
+        }
+        compare(total, week.stars)
+        verify(week.firstWeekday >= 1 && week.firstWeekday <= 7)
+        verify(texts.indexOf(JewelsWording.weekTitle) >= 0)
+    }
 }

@@ -145,13 +145,13 @@
     </message>
     <message>
         <location line="+3"/>
-        <location line="+28"/>
+        <location line="+46"/>
         <source>1 word</source>
         <translation>1 mot</translation>
     </message>
     <message>
-        <location line="-28"/>
-        <location line="+28"/>
+        <location line="-46"/>
+        <location line="+46"/>
         <source>%1 words</source>
         <translation>%1 mots</translation>
     </message>
@@ -185,7 +185,37 @@
         <translation>%1 × %2</translation>
     </message>
     <message>
-        <location line="+9"/>
+        <location line="-20"/>
+        <source>Stars</source>
+        <translation>Étoiles</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Points</source>
+        <translation>Points</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>Words</source>
+        <translation>Mots</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>all boards</source>
+        <translation>tous les plateaux</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>found so far</source>
+        <translation>trouvés jusqu&apos;ici</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>Stars each day this week: %1</source>
+        <translation>Étoiles chaque jour cette semaine : %1</translation>
+    </message>
+    <message>
+        <location line="+15"/>
         <source>1 new word</source>
         <translation>1 nouveau mot</translation>
     </message>
