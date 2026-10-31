@@ -212,7 +212,7 @@
     <message>
         <location line="+10"/>
         <source>Stars each day this week: %1</source>
-        <translation>本周每天的星星：%1</translation>
+        <translation>本周每日的星星：%1</translation>
     </message>
     <message>
         <location line="+15"/>

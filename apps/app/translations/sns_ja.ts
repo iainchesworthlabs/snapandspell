@@ -192,7 +192,7 @@
     <message>
         <location line="+1"/>
         <source>Points</source>
-        <translation>ポイント</translation>
+        <translation>てん</translation>
     </message>
     <message>
         <location line="+1"/>
