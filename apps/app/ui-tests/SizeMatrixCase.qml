@@ -80,6 +80,26 @@ TestCase {
         Theme.rightToLeft = false
     }
 
+    // Destroys a subject and waits until it is gone. `destroy()` only queues the deletion: left to
+    // the end of the test function, the deletion runs after cleanup() has reset the theme, or, in
+    // the last row of a file, as the engine is torn down, and a screen deleted then warns about
+    // its own half-gone bindings (a Label with no specFor, a ScrollCue with no Flickable).
+    function discard(item) {
+        const before = root.deleted;
+        marker.createObject(item);
+        item.destroy();
+        tryVerify(() => root.deleted === before + 1, 5000, "the subject was deleted");
+    }
+
+    // How many markers have been deleted with their subjects.
+    property int deleted: 0
+    Component {
+        id: marker
+        QtObject {
+            Component.onDestruction: root.deleted++
+        }
+    }
+
     function test_matrix_data() {
         const rows = [];
         for (let subject = 0; subject < root.subjects.length; ++subject) {
@@ -143,7 +163,7 @@ TestCase {
                 failing.push(finding);
             }
         }
-        item.destroy();
+        root.discard(item);
         compare(failing.length, 0, data.tag + ":\n  " + failing.join("\n  "));
     }
 
@@ -162,7 +182,7 @@ TestCase {
                 const item = root.subjects[subject].createObject(stage, {width: size.w, height: size.h});
                 wait(root.settle);
                 const found = SizeMatrix.audit(item, Theme.targetMin);
-                item.destroy();
+                root.discard(item);
                 for (const finding of found) {
                     for (let i = stale.length - 1; i >= 0; --i) {
                         if (finding.indexOf(stale[i]) >= 0) {
