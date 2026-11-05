@@ -97,7 +97,7 @@ jobs:
           persist-credentials: false
 
       - name: Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: false
 
@@ -250,7 +250,7 @@ jobs:
           triplet: ${{ env.SNS_TRIPLET }}
 
       - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
@@ -280,7 +280,7 @@ jobs:
       # .github/toolchain-versions.json says where the commit came from.
       - name: Install Qt (Windows application leg)
         if: matrix.leg == 'windows'
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
           version: "6.12.0"
           host: windows
@@ -533,7 +533,7 @@ jobs:
         uses: iainchesworthlabs/icl-common-infra/actions/setup-gcc@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
 
       - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
@@ -594,7 +594,7 @@ jobs:
           triplet: x64-linux
 
       - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
@@ -657,7 +657,7 @@ jobs:
         uses: ./.github/actions/vcpkg-setup
 
       - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
@@ -717,7 +717,7 @@ jobs:
           triplet: x64-windows
 
       - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
@@ -727,7 +727,7 @@ jobs:
 
       # The same Qt kit as the Windows leg above (see the comments there).
       - name: Install Qt
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
           version: "6.12.0"
           host: windows
@@ -822,13 +822,13 @@ jobs:
         uses: iainchesworthlabs/icl-common-infra/actions/setup-gcc@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
 
       - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: false
 
