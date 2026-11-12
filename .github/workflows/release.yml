@@ -224,7 +224,7 @@ jobs:
           triplet: ${{ matrix.triplet }}
 
       - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
@@ -239,7 +239,7 @@ jobs:
       # this file to them). Only the legs that build the application need it.
       - name: Install Qt
         if: matrix.app == 'ON'
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
           version: "6.12.0"
           host: ${{ matrix.qt-host }}
@@ -350,7 +350,7 @@ jobs:
       # take the suffix below.
       - name: Sign the programs (Windows)
         if: matrix.leg == 'windows'
-        uses: iainchesworthlabs/icl-common-infra/actions/sign-windows@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        uses: iainchesworthlabs/icl-common-infra/actions/sign-windows@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
         with:
           mode: ${{ vars.SIGN_WINDOWS || 'false' }}
           files: |
@@ -427,7 +427,7 @@ jobs:
       - name: Sign and name the installer (Windows)
         if: matrix.leg == 'windows'
         id: sign-installer
-        uses: iainchesworthlabs/icl-common-infra/actions/sign-windows@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        uses: iainchesworthlabs/icl-common-infra/actions/sign-windows@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
         with:
           mode: ${{ vars.SIGN_WINDOWS || 'false' }}
           files: ${{ steps.windows-packages.outputs.installer }}
@@ -496,7 +496,7 @@ jobs:
 
       - name: Check the glibc floor of the package (Linux application)
         if: matrix.leg == 'linux-app'
-        uses: iainchesworthlabs/icl-common-infra/actions/check-glibc-floor@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        uses: iainchesworthlabs/icl-common-infra/actions/check-glibc-floor@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
         with:
           folder: ${{ runner.temp }}/glibc-floor-app
 
@@ -515,7 +515,7 @@ jobs:
 
       - name: Check the glibc floor of the package (Linux command line)
         if: matrix.leg == 'linux'
-        uses: iainchesworthlabs/icl-common-infra/actions/check-glibc-floor@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        uses: iainchesworthlabs/icl-common-infra/actions/check-glibc-floor@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
         with:
           folder: ${{ runner.temp }}/glibc-floor-cli
 
@@ -691,7 +691,7 @@ jobs:
         uses: ./.github/actions/vcpkg-setup
 
       - name: Install CMake 4 + Ninja
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
@@ -700,7 +700,7 @@ jobs:
       # with the same modules, for the host tools a cross build runs. The pins
       # are .github/toolchain-versions.json's (qt.kits.ios).
       - name: Install Qt (iOS kit and macOS host kit)
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
           version: "6.12.0"
           host: mac
@@ -735,7 +735,7 @@ jobs:
       # (docs/ios-signing.md there).
       - name: Import the signing certificate and the provisioning profile
         id: signing
-        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
         with:
           certificate-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
           certificate-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
@@ -776,7 +776,7 @@ jobs:
       # `xcodebuild archive` and the App Store export.
       - name: Archive and export the App Store IPA
         id: export
-        uses: iainchesworthlabs/icl-common-infra/actions/export-ios-ipa@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        uses: iainchesworthlabs/icl-common-infra/actions/export-ios-ipa@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
         with:
           project: ${{ steps.name.outputs.project }}
           scheme: SnapAndSpell
@@ -800,7 +800,7 @@ jobs:
       # declarations of the libraries; and, for a tag or a manual run that asks, the
       # upload to TestFlight.
       - name: Validate with Apple, and upload to TestFlight
-        uses: iainchesworthlabs/icl-common-infra/actions/upload-testflight@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        uses: iainchesworthlabs/icl-common-infra/actions/upload-testflight@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
         with:
           ipa: ${{ steps.export.outputs.ipa }}
           key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
@@ -812,7 +812,7 @@ jobs:
       # runner.
       - name: Remove the signing keychain and the provisioning profile
         if: ${{ always() }}
-        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+        uses: iainchesworthlabs/icl-common-infra/actions/import-ios-signing@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
         with:
           remove: "true"
 
@@ -905,7 +905,7 @@ jobs:
 
       - name: Install CMake 4 + Ninja
         if: steps.signing.outputs.have == 'true'
-        uses: lukka/get-cmake@a89e43e22a96abafcd7a62db652a65ecd33052c9 # v4.4.4
+        uses: lukka/get-cmake@f86dd60acae0d132056913e248bdabf0e0580b7a # v4.4.5
         with:
           cmakeVersion: "4.4.2"
           ninjaVersion: "1.13.2"
@@ -936,7 +936,7 @@ jobs:
       # .github/toolchain-versions.json's (qt.kits.android).
       - name: Install Qt (Android kit and Linux host kit)
         if: steps.signing.outputs.have == 'true'
-        uses: jurplel/install-qt-action@a9c63c7c123f3069cff414e7e482d95dfa9d8125 # v4.4.1
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4.5.0
         with:
           version: "6.12.0"
           host: all_os
@@ -1141,7 +1141,7 @@ jobs:
       contents: write
       id-token: write
       attestations: write
-    uses: iainchesworthlabs/icl-common-infra/.github/workflows/release-publish.yml@3e3b4da9b7808f4f0643eecf03134918fb67b082 # v0.1.13
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/release-publish.yml@c412e6a542644c2316d21db351ef4218fa3e185d # v0.1.19
     with:
       artifact-pattern: "package-*"
       generate-sbom: false
