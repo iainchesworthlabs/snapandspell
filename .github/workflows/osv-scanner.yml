@@ -30,7 +30,7 @@ jobs:
       actions: read
       contents: read
       security-events: write
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1
     with:
       # OSV-Scanner reads a file named requirements.txt and no other, so each pinned file of
       # .github/requirements is named, with the parser to read it by. A new one is added here;
@@ -56,7 +56,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - uses: iainchesworthlabs/icl-common-infra/actions/report-nightly-failure@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+      - uses: iainchesworthlabs/icl-common-infra/actions/report-nightly-failure@7298129e789aab3e34c523aace5c699dc24e0001 # v0.1.25
         with:
           engine: OSV-Scanner
           detail: The scan found a vulnerability in a pinned dependency, or failed to run. Open the run, or Security > Code scanning, bump the pin, or dismiss the alert with a justification.
