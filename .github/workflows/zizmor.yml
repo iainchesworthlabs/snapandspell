@@ -24,4 +24,4 @@ jobs:
     name: zizmor
     permissions:
       contents: read
-    uses: iainchesworthlabs/icl-common-infra/.github/workflows/zizmor.yml@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/zizmor.yml@7298129e789aab3e34c523aace5c699dc24e0001 # v0.1.25
