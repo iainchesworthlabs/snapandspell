@@ -44,7 +44,7 @@ jobs:
     name: Build the documentation (strict)
     permissions:
       contents: read
-    uses: iainchesworthlabs/icl-common-infra/.github/workflows/docs.yml@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/docs.yml@7343cae74fb2028b995b39cdec14a58b0f37f2e8 # v0.1.30
     with:
       requirements: .github/requirements/docs.txt
       upload: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
@@ -56,4 +56,4 @@ jobs:
     permissions:
       pages: write
       id-token: write
-    uses: iainchesworthlabs/icl-common-infra/.github/workflows/docs-deploy.yml@e15f14812b7446517252d6677abf755698d57986 # v0.1.18
+    uses: iainchesworthlabs/icl-common-infra/.github/workflows/docs-deploy.yml@7343cae74fb2028b995b39cdec14a58b0f37f2e8 # v0.1.30
